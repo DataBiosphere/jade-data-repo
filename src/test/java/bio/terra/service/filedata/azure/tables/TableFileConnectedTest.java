@@ -1,8 +1,5 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -17,9 +14,7 @@ import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -47,7 +42,18 @@ public class TableFileConnectedTest {
   private static final String PARTITION_KEY = "partitionKey";
   private static final String DATASET_ID = UUID.randomUUID().toString();
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private final TableEntity entity = makeEntity(FILE_ID);
+  private final TableEntity entity =
+      new TableEntity(PARTITION_KEY, FILE_ID)
+          .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, FILE_ID)
+          .addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json")
+          .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
+          .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
+          .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
+          .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
+          .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gspath")
+          .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
+          .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
+          .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
 
   @Before
   public void setUp() {
@@ -78,47 +84,5 @@ public class TableFileConnectedTest {
     // Try to delete the entry again
     boolean isNotDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertFalse("File record was already deleted", isNotDeleted);
-  }
-
-  @Test
-  public void testListEntry() {
-    List<FireStoreFile> fileList = IntStream.range(0, 5).boxed().map(this::makeFile).toList();
-    for (FireStoreFile fsFile : fileList) {
-      tableFileDao.createFileMetadata(tableServiceClient, DATASET_ID, fsFile);
-    }
-    String collectionId = FILES_TABLE.toTableName(UUID.fromString(DATASET_ID));
-    List<FireStoreFile> files =
-        tableFileDao.listFileMetadata(tableServiceClient, collectionId, 0, 10);
-    assertThat(files, equalTo(fileList));
-
-    List<FireStoreFile> filesOffset =
-        tableFileDao.listFileMetadata(tableServiceClient, collectionId, 1, 10);
-    assertThat(filesOffset.size(), equalTo(4));
-    assertThat(filesOffset, equalTo(fileList.subList(1, 5)));
-
-    List<FireStoreFile> filesLimit =
-        tableFileDao.listFileMetadata(tableServiceClient, collectionId, 0, 2);
-    assertThat(filesLimit.size(), equalTo(2));
-    assertThat(filesLimit, equalTo(fileList.subList(0, 2)));
-  }
-
-  private FireStoreFile makeFile(int index) {
-    String fileId = UUID.randomUUID().toString();
-    TableEntity entity = makeEntity(index + fileId);
-    return FireStoreFile.fromTableEntity(entity);
-  }
-
-  private TableEntity makeEntity(String rowKey) {
-    return new TableEntity(PARTITION_KEY, rowKey)
-        .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, rowKey)
-        .addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json")
-        .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
-        .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
-        .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
-        .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
-        .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gspath")
-        .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
-        .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
-        .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
   }
 }

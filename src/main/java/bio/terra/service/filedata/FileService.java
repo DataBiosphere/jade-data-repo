@@ -1,6 +1,6 @@
 package bio.terra.service.filedata;
 
-import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
+import static bio.terra.service.common.azure.StorageTableName.DATASET;
 import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT;
 
 import bio.terra.common.CloudPlatformWrapper;
@@ -31,7 +31,6 @@ import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestBulkFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -195,7 +194,7 @@ public class FileService {
             "Unexpected interruption during file system processing", ex);
       }
     } else {
-      String collectionId = FILES_TABLE.toTableName(UUID.fromString(datasetId));
+      String collectionId = DATASET.toTableName(UUID.fromString(datasetId));
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
@@ -203,21 +202,23 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
-      return tableDao.listFiles(collectionId, storageAuthInfo, offset, limit).stream()
-          .map(f -> FireStoreFile.toFileModel(f, collectionId, datasetId))
+      return tableDao
+          .batchRetrieveFiles(
+              collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit)
+          .stream()
+          .map(this::fileModelFromFSItem)
           .collect(Collectors.toList());
     }
   }
 
   public List<FileModel> listSnapshotFiles(String snapshotId, Integer offset, Integer limit) {
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+    Dataset dataset = snapshot.getSourceDataset();
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        return fileDao
-            .batchRetrieveFiles(snapshot, snapshot.getSourceDataset(), offset, limit)
-            .stream()
+        return fileDao.batchRetrieveFiles(snapshot, dataset, offset, limit).stream()
             .map(this::fileModelFromFSItem)
             .collect(Collectors.toList());
       } catch (InterruptedException ex) {
@@ -238,11 +239,23 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
-      return tableDao.listFiles(collectionId, storageAuthInfo, offset, limit).stream()
-          .map(
-              f ->
-                  FireStoreFile.toFileModel(
-                      f, collectionId, snapshot.getSourceDataset().getId().toString()))
+      BillingProfileModel datasetBillingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource datasetStorageAccountResource =
+          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
+      AzureStorageAuthInfo datasetStorageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              datasetBillingProfileModel, datasetStorageAccountResource);
+      return tableDao
+          .batchRetrieveFiles(
+              collectionId,
+              storageAuthInfo,
+              dataset.getId().toString(),
+              datasetStorageAuthInfo,
+              offset,
+              limit)
+          .stream()
+          .map(this::fileModelFromFSItem)
           .collect(Collectors.toList());
     }
   }
@@ -465,23 +478,18 @@ public class FileService {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
    */
-  static List<DRSChecksum> makeChecksums(FSItem fsItem) {
-    String fsItemCrc32c = fsItem.getChecksumCrc32c();
-    String fsItemMd5 = fsItem.getChecksumMd5();
-    return makeChecksums(fsItemCrc32c, fsItemMd5);
-  }
-
-  public static List<DRSChecksum> makeChecksums(String fsItemCrc32c, String fsItemMd5) {
+  List<DRSChecksum> makeChecksums(FSItem fsItem) {
     List<DRSChecksum> checksums = new ArrayList<>();
+    String fsItemCrc32c = fsItem.getChecksumCrc32c();
     if (fsItemCrc32c != null) {
       DRSChecksum checksumCrc32 = new DRSChecksum().checksum(fsItemCrc32c).type("crc32c");
       checksums.add(checksumCrc32);
     }
+    String fsItemMd5 = fsItem.getChecksumMd5();
     if (fsItemMd5 != null) {
       DRSChecksum checksumMd5 = new DRSChecksum().checksum(fsItemMd5).type("md5");
       checksums.add(checksumMd5);
     }
-
     return checksums;
   }
 }

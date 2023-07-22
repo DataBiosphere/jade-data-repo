@@ -80,18 +80,6 @@ public class TableFileDao {
     return FireStoreFile.fromTableEntity(entity);
   }
 
-  /** results are sorted by partition key and row key * */
-  public List<FireStoreFile> listFileMetadata(
-      TableServiceClient tableServiceClient, String collectionId, int offset, int limit) {
-    TableClient tableClient = tableServiceClient.getTableClient(collectionId);
-    ListEntitiesOptions options = new ListEntitiesOptions();
-    PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-    if (!entities.iterator().hasNext()) {
-      return List.of();
-    }
-    return entities.stream().skip(offset).limit(limit).map(FireStoreFile::fromTableEntity).toList();
-  }
-
   /**
    * Retrieve metadata from a list of directory entries.
    *

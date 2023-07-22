@@ -138,10 +138,21 @@ public class TableDao {
     return fileDao.retrieveFileMetadata(tableServiceClient, collectionId, fileId);
   }
 
-  public List<FireStoreFile> listFiles(
-      String collectionId, AzureStorageAuthInfo storageAuthInfo, int offset, int limit) {
+  public List<FSFile> batchRetrieveFiles(
+      String collectionId,
+      AzureStorageAuthInfo storageAuthInfo,
+      String datasetId,
+      AzureStorageAuthInfo datasetStorageAuthInfo,
+      int offset,
+      int limit) {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
-    return fileDao.listFileMetadata(tableServiceClient, collectionId, offset, limit);
+    List<FireStoreDirectoryEntry> directoryEntries =
+        directoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, offset, limit);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
+    List<FireStoreFile> files =
+        fileDao.batchRetrieveFileMetadata(datasetTableServiceClient, datasetId, directoryEntries);
+    return FileMetadataUtils.toFSFiles(directoryEntries, files);
   }
 
   public void snapshotCompute(

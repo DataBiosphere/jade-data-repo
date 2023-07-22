@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.model.FileModel;
-import bio.terra.service.filedata.FileService;
 import com.azure.data.tables.models.TableEntity;
 import java.util.Objects;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -36,7 +34,6 @@ public class FireStoreFile {
   public static final String LOAD_TAG_FIELD_NAME = "loadTag";
   public static final String FILE_CREATED_DATE_FIELD_NAME = "fileCreatedDate";
   public static final String GS_PATH_FIELD_NAME = "gspath";
-  public static final String PATH_FIELD_NAME = "path";
   public static final String CHECKSUM_CRC32C_FIELD_NAME = "checksum_crc32c";
   public static final String CHECKSUM_MD5_FIELD_NAME = "checksum_md5";
   public static final String USER_SPECIFIED_MD5_FIELD_NAME = "userSpecifiedMd5";
@@ -229,15 +226,5 @@ public class FireStoreFile {
         .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
         .addProperty(USER_SPECIFIED_MD5_FIELD_NAME, f.isUserSpecifiedMd5())
         .addProperty(SIZE_FIELD_NAME, f.getSize());
-  }
-
-  public static FileModel toFileModel(FireStoreFile f, String collectionName, String datasetId) {
-    return new FileModel()
-        .fileId(f.getFileId())
-        .collectionId(collectionName)
-        .size(f.getSize())
-        .created(f.getFileCreatedDate())
-        .description(f.getDescription())
-        .checksums(FileService.makeChecksums(f.getChecksumCrc32c(), f.getChecksumMd5()));
   }
 }

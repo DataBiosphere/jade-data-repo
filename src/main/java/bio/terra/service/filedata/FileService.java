@@ -192,7 +192,7 @@ public class FileService {
       }
     } else {
       String collectionId = DATASET.toTableName(dataset.getId());
-      AzureStorageAuthInfo storageAuthInfo = getDatasetStorageAuthInfo(dataset);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
       results = tableDao
           .batchRetrieveFiles(
               collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit);
@@ -214,14 +214,8 @@ public class FileService {
       }
     } else {
       String collectionId = SNAPSHOT.toTableName(snapshot.getId());
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getSnapshotStorageAccount(snapshot.getId());
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
-      AzureStorageAuthInfo datasetStorageAuthInfo = getDatasetStorageAuthInfo(dataset);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getSnapshotStorageAuthInfo(snapshot);
+      AzureStorageAuthInfo datasetStorageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
       results = tableDao
           .batchRetrieveFiles(
               collectionId,
@@ -234,15 +228,6 @@ public class FileService {
     return results.stream()
         .map(this::fileModelFromFSItem)
         .toList();
-  }
-
-  private AzureStorageAuthInfo getDatasetStorageAuthInfo(Dataset dataset) {
-    BillingProfileModel billingProfileModel =
-        profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-        billingProfileModel, storageAccountResource);
   }
 
   // -- dataset lookups --
@@ -279,13 +264,7 @@ public class FileService {
         throw new FileSystemExecutionException(ex);
       }
     } else {
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
       file = tableDao.lookupOptionalPath(dataset.getId(), path, storageAuthInfo, depth);
     }
     return file.map(this::fileModelFromFSItem);
@@ -298,13 +277,7 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveById(dataset, fileId, depth);
     } else if (cloudPlatformWrapper.isAzure()) {
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
 
       return tableDao.retrieveById(
           CollectionType.DATASET,
@@ -326,13 +299,7 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveByPath(dataset, path, depth);
     } else {
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
       return tableDao.retrieveByPath(UUID.fromString(datasetId), path, depth, storageAuthInfo);
     }
   }
@@ -368,25 +335,13 @@ public class FileService {
       return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth);
     } else {
       // TODO: this will get expensive if we query a lot.  We'll need to optimize this
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getSnapshotStorageAccount(snapshot.getId());
       AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+          resourceService.getSnapshotStorageAuthInfo(snapshot.getProfileId(), snapshot.getId());
 
       // TODO Cache these values.  Very expensive lookups
-      BillingProfileModel datasetBillingProfileModel =
-          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       Dataset dataset =
           datasetService.retrieve(snapshot.getSourceDatasetProjects().iterator().next().getId());
-      AzureStorageAccountResource datasetStorageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-
-      AzureStorageAuthInfo datasetTableStorageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              datasetBillingProfileModel, datasetStorageAccountResource);
+      AzureStorageAuthInfo datasetTableStorageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
 
       return tableDao.retrieveById(
           CollectionType.SNAPSHOT,

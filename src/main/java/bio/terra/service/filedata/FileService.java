@@ -183,30 +183,21 @@ public class FileService {
   public List<FileModel> listDatasetFiles(String datasetId, int offset, int limit) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    List<FSFile> results;
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        return fileDao.batchRetrieveFiles(dataset, dataset, offset, limit).stream()
-            .map(this::fileModelFromFSItem)
-            .collect(Collectors.toList());
+        results = fileDao.batchRetrieveFiles(dataset, dataset, offset, limit);
       } catch (InterruptedException ex) {
         throw new FileSystemExecutionException(ex);
       }
     } else {
       String collectionId = DATASET.toTableName(dataset.getId());
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
-      return tableDao
+      AzureStorageAuthInfo storageAuthInfo = getDatasetStorageAuthInfo(dataset);
+      results = tableDao
           .batchRetrieveFiles(
-              collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit)
-          .stream()
-          .map(this::fileModelFromFSItem)
-          .toList();
+              collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit);
     }
+    return results.stream().map(this::fileModelFromFSItem).toList();
   }
 
   public List<FileModel> listSnapshotFiles(String snapshotId, Integer offset, Integer limit) {
@@ -214,11 +205,10 @@ public class FileService {
     Dataset dataset = snapshot.getSourceDataset();
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
+    List<FSFile> results;
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        return fileDao.batchRetrieveFiles(snapshot, dataset, offset, limit).stream()
-            .map(this::fileModelFromFSItem)
-            .collect(Collectors.toList());
+        results = fileDao.batchRetrieveFiles(snapshot, dataset, offset, limit);
       } catch (InterruptedException ex) {
         throw new FileSystemExecutionException(ex);
       }
@@ -231,25 +221,28 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
-      BillingProfileModel datasetBillingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource datasetStorageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo datasetStorageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              datasetBillingProfileModel, datasetStorageAccountResource);
-      return tableDao
+      AzureStorageAuthInfo datasetStorageAuthInfo = getDatasetStorageAuthInfo(dataset);
+      results = tableDao
           .batchRetrieveFiles(
               collectionId,
               storageAuthInfo,
               dataset.getId().toString(),
               datasetStorageAuthInfo,
               offset,
-              limit)
-          .stream()
-          .map(this::fileModelFromFSItem)
-          .toList();
+              limit);
     }
+    return results.stream()
+        .map(this::fileModelFromFSItem)
+        .toList();
+  }
+
+  private AzureStorageAuthInfo getDatasetStorageAuthInfo(Dataset dataset) {
+    BillingProfileModel billingProfileModel =
+        profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+    AzureStorageAccountResource storageAccountResource =
+        resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
+    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+        billingProfileModel, storageAccountResource);
   }
 
   // -- dataset lookups --

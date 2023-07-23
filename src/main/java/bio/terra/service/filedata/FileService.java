@@ -189,8 +189,7 @@ public class FileService {
             .map(this::fileModelFromFSItem)
             .collect(Collectors.toList());
       } catch (InterruptedException ex) {
-        throw new FileSystemExecutionException(
-            "Unexpected interruption during file system processing", ex);
+        throw new FileSystemExecutionException(ex);
       }
     } else {
       String collectionId = DATASET.toTableName(dataset.getId());
@@ -221,8 +220,7 @@ public class FileService {
             .map(this::fileModelFromFSItem)
             .collect(Collectors.toList());
       } catch (InterruptedException ex) {
-        throw new FileSystemExecutionException(
-            "Unexpected interruption during file system processing", ex);
+        throw new FileSystemExecutionException(ex);
       }
     } else {
       String collectionId = SNAPSHOT.toTableName(snapshot.getId());
@@ -262,8 +260,7 @@ public class FileService {
     try {
       return fileModelFromFSItem(lookupFSItem(datasetId, fileId, depth));
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
   }
 
@@ -272,8 +269,7 @@ public class FileService {
     try {
       fsItem = lookupFSItemByPath(datasetId, path, depth);
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
     return fileModelFromFSItem(fsItem);
   }
@@ -287,8 +283,7 @@ public class FileService {
       try {
         file = fileDao.lookupOptionalPath(dataset, path, depth);
       } catch (InterruptedException ex) {
-        throw new FileSystemExecutionException(
-            "Unexpected interruption during file system processing", ex);
+        throw new FileSystemExecutionException(ex);
       }
     } else {
       BillingProfileModel billingProfileModel =
@@ -358,8 +353,7 @@ public class FileService {
           snapshotService.retrieveSnapshotProject(UUID.fromString(snapshotId));
       return fileModelFromFSItem(lookupSnapshotFSItem(snapshot, fileId, depth));
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
   }
 
@@ -368,8 +362,7 @@ public class FileService {
     try {
       fsItem = lookupSnapshotFSItemByPath(snapshotId, path, depth);
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
     return fileModelFromFSItem(fsItem);
   }

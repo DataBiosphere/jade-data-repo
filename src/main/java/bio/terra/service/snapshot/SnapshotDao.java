@@ -416,8 +416,7 @@ public class SnapshotDao implements TaggableResourceDao {
 
         // Retrieve the Azure Storage Account associated with the snapshot.
         resourceService
-            .getSnapshotStorageAccount(snapshot.getId())
-            .ifPresent(snapshot::storageAccountResource);
+            .getSnapshotStorageAccount(snapshot.getId());
 
         // Retrieve the DUOS Firecloud group associated with the snapshot.
         UUID duosFirecloudGroupId = snapshot.getDuosFirecloudGroupId();

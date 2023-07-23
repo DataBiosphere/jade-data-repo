@@ -22,7 +22,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
@@ -230,12 +229,7 @@ public class FileService {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService
-              .getSnapshotStorageAccount(snapshot.getId())
-              .orElseThrow(
-                  () ->
-                      new StorageResourceNotFoundException(
-                          "Snapshot storage account was not found"));
+          resourceService.getSnapshotStorageAccount(snapshot.getId());
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
@@ -391,13 +385,7 @@ public class FileService {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService
-              .getSnapshotStorageAccount(snapshot.getId())
-              .orElseThrow(
-                  () ->
-                      new StorageResourceNotFoundException(
-                          "Snapshot storage account was not found"));
-
+          resourceService.getSnapshotStorageAccount(snapshot.getId());
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);

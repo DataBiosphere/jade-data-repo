@@ -11,6 +11,7 @@ import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
@@ -353,10 +354,14 @@ public class ResourceService {
     return storageAccountResource;
   }
 
-  public Optional<AzureStorageAccountResource> getSnapshotStorageAccount(UUID snapshotId) {
+  public AzureStorageAccountResource getSnapshotStorageAccount(UUID snapshotId) {
     return snapshotStorageAccountDao
         .getStorageAccountResourceIdForSnapshotId(snapshotId)
-        .map(this::lookupStorageAccount);
+        .map(this::lookupStorageAccount)
+        .orElseThrow(
+            () ->
+                new StorageResourceNotFoundException(
+                    "Snapshot storage account was not found"));
   }
 
   /**

@@ -181,7 +181,7 @@ public class FileService {
         .submit();
   }
 
-  public List<FileModel> listDatasetFiles(String datasetId, Integer offset, Integer limit) {
+  public List<FileModel> listDatasetFiles(String datasetId, int offset, int limit) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -194,7 +194,7 @@ public class FileService {
             "Unexpected interruption during file system processing", ex);
       }
     } else {
-      String collectionId = DATASET.toTableName(UUID.fromString(datasetId));
+      String collectionId = DATASET.toTableName(dataset.getId());
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
@@ -207,7 +207,7 @@ public class FileService {
               collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit)
           .stream()
           .map(this::fileModelFromFSItem)
-          .collect(Collectors.toList());
+          .toList();
     }
   }
 
@@ -226,7 +226,7 @@ public class FileService {
             "Unexpected interruption during file system processing", ex);
       }
     } else {
-      String collectionId = SNAPSHOT.toTableName(UUID.fromString(snapshotId));
+      String collectionId = SNAPSHOT.toTableName(snapshot.getId());
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       AzureStorageAccountResource storageAccountResource =
@@ -256,7 +256,7 @@ public class FileService {
               limit)
           .stream()
           .map(this::fileModelFromFSItem)
-          .collect(Collectors.toList());
+          .toList();
     }
   }
 

@@ -422,7 +422,7 @@ public class FireStoreDao {
   }
 
   public List<FSFile> batchRetrieveFiles(
-      FSContainerInterface container, FSContainerInterface dataset, Integer offset, Integer limit)
+      FSContainerInterface container, FSContainerInterface dataset, int offset, int limit)
       throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();

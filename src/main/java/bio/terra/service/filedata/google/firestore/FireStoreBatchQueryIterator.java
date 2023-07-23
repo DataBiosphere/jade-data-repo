@@ -13,12 +13,12 @@ public class FireStoreBatchQueryIterator {
   private final Query baseQuery;
   private final int batchSize;
   private List<QueryDocumentSnapshot> currentList;
-  private int count;
-  private int totalSize;
-  private int offset;
-  private int limit;
-  private FireStoreUtils fireStoreUtils;
-  private Firestore firestore;
+  private int count = 0;
+  private int totalSize = 0;
+  private final int offset;
+  private final int limit;
+  private final FireStoreUtils fireStoreUtils;
+  private final Firestore firestore;
 
   /**
    * Construct and iterator over a query with a specific batch size.
@@ -28,15 +28,7 @@ public class FireStoreBatchQueryIterator {
    */
   public FireStoreBatchQueryIterator(
       Query baseQuery, int batchSize, FireStoreUtils fireStoreUtils) {
-    this.baseQuery = baseQuery;
-    this.firestore = baseQuery.getFirestore();
-    this.batchSize = batchSize;
-    this.currentList = null;
-    this.count = 0;
-    this.totalSize = 0;
-    this.offset = 0;
-    this.limit = Integer.MAX_VALUE;
-    this.fireStoreUtils = fireStoreUtils;
+    this(baseQuery, batchSize, fireStoreUtils, 0, Integer.MAX_VALUE);
   }
 
   public FireStoreBatchQueryIterator(
@@ -45,8 +37,6 @@ public class FireStoreBatchQueryIterator {
     this.firestore = baseQuery.getFirestore();
     this.batchSize = batchSize;
     this.currentList = null;
-    this.count = 0;
-    this.totalSize = 0;
     this.offset = offset;
     this.limit = limit;
     this.fireStoreUtils = fireStoreUtils;

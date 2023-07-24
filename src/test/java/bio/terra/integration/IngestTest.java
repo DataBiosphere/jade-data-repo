@@ -242,8 +242,7 @@ public class IngestTest extends UsersBase {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant-with-json-data.json");
-    IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     List<String> vals =
         dataRepoFixtures.getColumnValues(steward(), datasetId, "participant", "jsonData", 5);
     assertThat(

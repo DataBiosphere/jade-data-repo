@@ -348,11 +348,13 @@ export DB_MIGRATE_DROPALLONSTART=true
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 
 # Setting for credentials to test on Azure
-export AZURE_CREDENTIALS_HOMETENANTID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
-export AZURE_CREDENTIALS_APPLICATIONID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
+export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
+export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
 export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
 export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
 export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
+export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
+export AZURE_SYNAPSE_INITIALIZE=false
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`

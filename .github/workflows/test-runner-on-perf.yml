@@ -9,7 +9,7 @@ env:
   K8_CLUSTER: jade-master-us-central1
   K8_NAMESPACES: perf
   TDR_LOG_APPENDER: Console-Standard
-  AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
+  AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
 on:
   workflow_dispatch: {}
   schedule:
@@ -48,7 +48,7 @@ jobs:
           roleId: ${{ secrets.PERF_ROLE_ID }}
           secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/perf/helm-azure applicationsecret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/datarepo/perf/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
             secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
       - name: "Perform IAM policy cleanup for perf"
         run: |
@@ -194,6 +194,8 @@ jobs:
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
+        env:
+          AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
       - name: 'Re-obtain GKE Credentials'
         if: always()
         uses: 'google-github-actions/get-gke-credentials@v1'

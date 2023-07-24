@@ -240,7 +240,8 @@ public class IngestTest extends UsersBase {
   @Test
   public void ingestWildcardSuffix() throws Exception {
     IngestRequestModel ingestRequest =
-        dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/ingest-test-participant*");
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/wildcard/ingest-test-participant*");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
@@ -249,7 +250,8 @@ public class IngestTest extends UsersBase {
   @Test
   public void ingestWildcardMiddle() throws Exception {
     IngestRequestModel ingestRequest =
-        dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/ingest-test-p*t.json");
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/wildcard/ingest-test-p*t.json");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
@@ -332,7 +334,7 @@ public class IngestTest extends UsersBase {
   @Test
   public void ingestWildcardMalformedTest() throws Exception {
     IngestRequestModel request =
-        dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-p*.json");
+        dataRepoFixtures.buildSimpleIngest("file", "ingest-test/wildcard/ingest-test-p*.json");
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =

@@ -8,10 +8,11 @@ env:
   # This will make test logs not use JSON
   TDR_LOG_APPENDER: 'Console-Standard'
   # The default Azure credentials to use to authenticate
-  AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
+  AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
   RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+  AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
   CACHE_PATHS: |
     build/jacoco
     build/reports
@@ -113,9 +114,9 @@ jobs:
           roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/integration/helm-azure-integration applicationsecret | AZURE_CREDENTIALS_SECRET ;
-            secret/dsde/datarepo/integration/helm-azure-integration synapse-us-east-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
-            secret/dsde/datarepo/integration/helm-azure-integration synapse-us-east-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
+            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
+            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
             secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
       - name: "Write RBS SA to a file"
         run: |
@@ -176,7 +177,7 @@ jobs:
           roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/integration/helm-azure-integration applicationsecret | AZURE_CREDENTIALS_SECRET
+            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0
         with:
@@ -223,6 +224,9 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+        env:
+          AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
+          AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0

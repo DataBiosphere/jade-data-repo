@@ -7,7 +7,6 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -36,7 +35,6 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
@@ -45,7 +43,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -193,8 +190,8 @@ public class FileService {
     } else {
       String collectionId = DATASET.toTableName(dataset.getId());
       AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
-      results = tableDao
-          .batchRetrieveFiles(
+      results =
+          tableDao.batchRetrieveFiles(
               collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit);
     }
     return results.stream().map(this::fileModelFromFSItem).toList();
@@ -215,9 +212,10 @@ public class FileService {
     } else {
       String collectionId = SNAPSHOT.toTableName(snapshot.getId());
       AzureStorageAuthInfo storageAuthInfo = resourceService.getSnapshotStorageAuthInfo(snapshot);
-      AzureStorageAuthInfo datasetStorageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
-      results = tableDao
-          .batchRetrieveFiles(
+      AzureStorageAuthInfo datasetStorageAuthInfo =
+          resourceService.getDatasetStorageAuthInfo(dataset);
+      results =
+          tableDao.batchRetrieveFiles(
               collectionId,
               storageAuthInfo,
               dataset.getId().toString(),
@@ -225,9 +223,7 @@ public class FileService {
               offset,
               limit);
     }
-    return results.stream()
-        .map(this::fileModelFromFSItem)
-        .toList();
+    return results.stream().map(this::fileModelFromFSItem).toList();
   }
 
   // -- dataset lookups --
@@ -341,7 +337,8 @@ public class FileService {
       // TODO Cache these values.  Very expensive lookups
       Dataset dataset =
           datasetService.retrieve(snapshot.getSourceDatasetProjects().iterator().next().getId());
-      AzureStorageAuthInfo datasetTableStorageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
+      AzureStorageAuthInfo datasetTableStorageAuthInfo =
+          resourceService.getDatasetStorageAuthInfo(dataset);
 
       return tableDao.retrieveById(
           CollectionType.SNAPSHOT,

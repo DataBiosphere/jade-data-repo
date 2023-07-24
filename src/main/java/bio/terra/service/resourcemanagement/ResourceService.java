@@ -360,9 +360,7 @@ public class ResourceService {
         .getStorageAccountResourceIdForSnapshotId(snapshotId)
         .map(this::lookupStorageAccount)
         .orElseThrow(
-            () ->
-                new StorageResourceNotFoundException(
-                    "Snapshot storage account was not found"));
+            () -> new StorageResourceNotFoundException("Snapshot storage account was not found"));
   }
 
   public AzureStorageAuthInfo getDatasetStorageAuthInfo(Dataset dataset) {
@@ -379,10 +377,8 @@ public class ResourceService {
   }
 
   public AzureStorageAuthInfo getSnapshotStorageAuthInfo(UUID billingProfileId, UUID snapshotId) {
-    BillingProfileModel billingProfileModel =
-        profileDao.getBillingProfileById(billingProfileId);
-    AzureStorageAccountResource storageAccountResource =
-        getSnapshotStorageAccount(snapshotId);
+    BillingProfileModel billingProfileModel = profileDao.getBillingProfileById(billingProfileId);
+    AzureStorageAccountResource storageAccountResource = getSnapshotStorageAccount(snapshotId);
     return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
         billingProfileModel, storageAccountResource);
   }

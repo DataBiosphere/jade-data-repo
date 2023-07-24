@@ -24,7 +24,6 @@ import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.duos.DuosDao;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
@@ -418,7 +417,8 @@ public class SnapshotDao implements TaggableResourceDao {
 
         // Retrieve the Azure Storage Account associated with the snapshot.
         try {
-          snapshot.storageAccountResource(resourceService.getSnapshotStorageAccount(snapshot.getId()));
+          snapshot.storageAccountResource(
+              resourceService.getSnapshotStorageAccount(snapshot.getId()));
         } catch (StorageResourceNotFoundException ex) {
           logger.debug(ex.getMessage());
         }

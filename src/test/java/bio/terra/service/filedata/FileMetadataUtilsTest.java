@@ -10,7 +10,9 @@ import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.model.CloudPlatform;
+import bio.terra.model.FileDetailModel;
+import bio.terra.model.FileModel;
+import bio.terra.model.FileModelType;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -235,8 +237,9 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void testToFSFiles() {
+  public void testToFileModel() {
     UUID fileId = UUID.randomUUID();
+    String collectionId = UUID.randomUUID().toString();
     FireStoreDirectoryEntry entry =
         new FireStoreDirectoryEntry()
             .fileId(fileId.toString())
@@ -256,31 +259,34 @@ public class FileMetadataUtilsTest {
             .bucketResourceId("bucketResourceId")
             .loadTag("loadTag");
 
-    FSFile fsFile =
-        new FSFile()
-            .fileId(UUID.fromString(entry.getFileId()))
-            .collectionId(UUID.fromString(entry.getDatasetId()))
-            .datasetId(UUID.fromString(entry.getDatasetId()))
-            .createdDate(Instant.parse(file.getFileCreatedDate()))
+    FileModel fileModel =
+        new FileModel()
+            .fileId(entry.getFileId())
+            .collectionId(collectionId)
             .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
-            .checksumCrc32c(file.getChecksumCrc32c())
-            .checksumMd5(file.getChecksumMd5())
             .size(file.getSize())
+            .created(file.getFileCreatedDate())
             .description(file.getDescription())
-            .cloudPath(file.getGspath())
-            .cloudPlatform(CloudPlatform.GCP)
-            .mimeType(file.getMimeType())
-            .bucketResourceId(file.getBucketResourceId())
-            .loadTag(file.getLoadTag());
-    assertEquals(List.of(fsFile), FileMetadataUtils.toFSFiles(List.of(entry), List.of(file)));
+            .fileType(FileModelType.FILE)
+            .checksums(FileService.makeChecksums(file.getChecksumCrc32c(), file.getChecksumMd5()))
+            .fileDetail(
+                new FileDetailModel()
+                    .datasetId(entry.getDatasetId())
+                    .accessUrl(file.getGspath())
+                    .mimeType(file.getMimeType())
+                    .loadTag(file.getLoadTag()));
+    assertEquals(
+        List.of(fileModel),
+        FileMetadataUtils.toFileModel(List.of(entry), List.of(file), collectionId));
   }
 
   @Test
-  public void testToFSFilesMismatchedSizes() {
+  public void testToFileModelMismatchedSizes() {
     List<FireStoreDirectoryEntry> entries = List.of(new FireStoreDirectoryEntry());
     List<FireStoreFile> files = List.of(new FireStoreFile(), new FireStoreFile());
     assertThrows(
-        FileSystemExecutionException.class, () -> FileMetadataUtils.toFSFiles(entries, files));
+        FileSystemExecutionException.class,
+        () -> FileMetadataUtils.toFileModel(entries, files, UUID.randomUUID().toString()));
   }
 
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {

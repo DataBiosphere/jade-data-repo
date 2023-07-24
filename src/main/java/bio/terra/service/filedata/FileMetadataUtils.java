@@ -1,6 +1,8 @@
 package bio.terra.service.filedata;
 
-import bio.terra.model.CloudPlatform;
+import bio.terra.model.FileDetailModel;
+import bio.terra.model.FileModel;
+import bio.terra.model.FileModelType;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidFileChecksumException;
@@ -190,16 +192,11 @@ public class FileMetadataUtils {
     }
   }
 
-  /**
-   * Format a list of directory entries and their corresponding firestore files into FSFiles
-   *
-   * @param directoryEntries - list of directory entries
-   * @param files - list of firestore files
-   * @return list of FSItem of retrieved files; throws on not found
-   */
-  public static List<FSFile> toFSFiles(
-      List<FireStoreDirectoryEntry> directoryEntries, List<FireStoreFile> files) {
-    List<FSFile> resultList = new ArrayList<>();
+  public static List<FileModel> toFileModel(
+      List<FireStoreDirectoryEntry> directoryEntries,
+      List<FireStoreFile> files,
+      String collectionId) {
+    List<FileModel> resultList = new ArrayList<>();
     if (directoryEntries.size() != files.size()) {
       throw new FileSystemExecutionException("List sizes should be identical");
     }
@@ -208,24 +205,24 @@ public class FileMetadataUtils {
       FireStoreFile file = files.get(i);
       FireStoreDirectoryEntry entry = directoryEntries.get(i);
 
-      FSFile fsFile =
-          new FSFile()
-              .fileId(UUID.fromString(entry.getFileId()))
-              .collectionId(UUID.fromString(entry.getDatasetId()))
-              .datasetId(UUID.fromString(entry.getDatasetId()))
-              .createdDate(Instant.parse(file.getFileCreatedDate()))
+      FileModel fileModel =
+          new FileModel()
+              .fileId(entry.getFileId())
+              .collectionId(collectionId)
               .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
-              .checksumCrc32c(file.getChecksumCrc32c())
-              .checksumMd5(file.getChecksumMd5())
               .size(file.getSize())
+              .created(file.getFileCreatedDate())
               .description(file.getDescription())
-              .cloudPath(file.getGspath())
-              .cloudPlatform(CloudPlatform.GCP)
-              .mimeType(file.getMimeType())
-              .bucketResourceId(file.getBucketResourceId())
-              .loadTag(file.getLoadTag());
+              .fileType(FileModelType.FILE)
+              .checksums(FileService.makeChecksums(file.getChecksumCrc32c(), file.getChecksumMd5()))
+              .fileDetail(
+                  new FileDetailModel()
+                      .datasetId(entry.getDatasetId())
+                      .accessUrl(file.getGspath())
+                      .mimeType(file.getMimeType())
+                      .loadTag(file.getLoadTag()));
 
-      resultList.add(fsFile);
+      resultList.add(fileModel);
     }
 
     return resultList;

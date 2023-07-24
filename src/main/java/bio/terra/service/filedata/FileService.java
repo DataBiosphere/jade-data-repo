@@ -180,21 +180,18 @@ public class FileService {
   public List<FileModel> listDatasetFiles(String datasetId, int offset, int limit) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    List<FSFile> results;
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        results = fileDao.batchRetrieveFiles(dataset, dataset, offset, limit);
+        return fileDao.batchRetrieveFiles(dataset, dataset, offset, limit);
       } catch (InterruptedException ex) {
         throw new FileSystemExecutionException(ex);
       }
     } else {
       String collectionId = DATASET.toTableName(dataset.getId());
       AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
-      results =
-          tableDao.batchRetrieveFiles(
-              collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit);
+      return tableDao.batchRetrieveFiles(
+          collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit);
     }
-    return results.stream().map(this::fileModelFromFSItem).toList();
   }
 
   public List<FileModel> listSnapshotFiles(String snapshotId, Integer offset, Integer limit) {
@@ -202,10 +199,9 @@ public class FileService {
     Dataset dataset = snapshot.getSourceDataset();
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
-    List<FSFile> results;
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        results = fileDao.batchRetrieveFiles(snapshot, dataset, offset, limit);
+        return fileDao.batchRetrieveFiles(snapshot, dataset, offset, limit);
       } catch (InterruptedException ex) {
         throw new FileSystemExecutionException(ex);
       }
@@ -214,16 +210,14 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo = resourceService.getSnapshotStorageAuthInfo(snapshot);
       AzureStorageAuthInfo datasetStorageAuthInfo =
           resourceService.getDatasetStorageAuthInfo(dataset);
-      results =
-          tableDao.batchRetrieveFiles(
-              collectionId,
-              storageAuthInfo,
-              dataset.getId().toString(),
-              datasetStorageAuthInfo,
-              offset,
-              limit);
+      return tableDao.batchRetrieveFiles(
+          collectionId,
+          storageAuthInfo,
+          dataset.getId().toString(),
+          datasetStorageAuthInfo,
+          offset,
+          limit);
     }
-    return results.stream().map(this::fileModelFromFSItem).toList();
   }
 
   // -- dataset lookups --
@@ -404,14 +398,18 @@ public class FileService {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
    */
-  List<DRSChecksum> makeChecksums(FSItem fsItem) {
-    List<DRSChecksum> checksums = new ArrayList<>();
+  static List<DRSChecksum> makeChecksums(FSItem fsItem) {
     String fsItemCrc32c = fsItem.getChecksumCrc32c();
+    String fsItemMd5 = fsItem.getChecksumMd5();
+    return makeChecksums(fsItemCrc32c, fsItemMd5);
+  }
+
+  static List<DRSChecksum> makeChecksums(String fsItemCrc32c, String fsItemMd5) {
+    List<DRSChecksum> checksums = new ArrayList<>();
     if (fsItemCrc32c != null) {
       DRSChecksum checksumCrc32 = new DRSChecksum().checksum(fsItemCrc32c).type("crc32c");
       checksums.add(checksumCrc32);
     }
-    String fsItemMd5 = fsItem.getChecksumMd5();
     if (fsItemMd5 != null) {
       DRSChecksum checksumMd5 = new DRSChecksum().checksum(fsItemMd5).type("md5");
       checksums.add(checksumMd5);

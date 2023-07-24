@@ -5,6 +5,7 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CollectionType;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -421,7 +422,7 @@ public class FireStoreDao {
         fileId);
   }
 
-  public List<FSFile> batchRetrieveFiles(
+  public List<FileModel> batchRetrieveFiles(
       FSContainerInterface container, FSContainerInterface dataset, int offset, int limit)
       throws InterruptedException {
     Firestore firestore =
@@ -435,7 +436,7 @@ public class FireStoreDao {
     List<FireStoreFile> files =
         fileDao.batchRetrieveFileMetadata(
             datasetFirestore, dataset.getId().toString(), directoryEntries);
-    return FileMetadataUtils.toFSFiles(directoryEntries, files);
+    return FileMetadataUtils.toFileModel(directoryEntries, files, container.getId().toString());
   }
 
   /**
@@ -455,11 +456,41 @@ public class FireStoreDao {
 
     List<FireStoreDirectoryEntry> directoryEntries =
         directoryDao.batchRetrieveById(firestore, containerId, fileIds);
+
     // TODO: When we have more than one dataset in a snapshot then we will have to
     //  split entries by underlying dataset. For now we know that they all come from one dataset.
     List<FireStoreFile> files =
         fileDao.batchRetrieveFileMetadata(firestore, containerId, directoryEntries);
-    return FileMetadataUtils.toFSFiles(directoryEntries, files);
+    List<FSFile> resultList = new ArrayList<>();
+    if (directoryEntries.size() != files.size()) {
+      throw new FileSystemExecutionException("List sizes should be identical");
+    }
+
+    for (int i = 0; i < files.size(); i++) {
+      FireStoreFile file = files.get(i);
+      FireStoreDirectoryEntry entry = directoryEntries.get(i);
+
+      FSFile fsFile =
+          new FSFile()
+              .fileId(UUID.fromString(entry.getFileId()))
+              .collectionId(UUID.fromString(entry.getDatasetId()))
+              .datasetId(UUID.fromString(entry.getDatasetId()))
+              .createdDate(Instant.parse(file.getFileCreatedDate()))
+              .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+              .checksumCrc32c(file.getChecksumCrc32c())
+              .checksumMd5(file.getChecksumMd5())
+              .size(file.getSize())
+              .description(file.getDescription())
+              .cloudPath(file.getGspath())
+              .cloudPlatform(CloudPlatform.GCP)
+              .mimeType(file.getMimeType())
+              .bucketResourceId(file.getBucketResourceId())
+              .loadTag(file.getLoadTag());
+
+      resultList.add(fsFile);
+    }
+
+    return resultList;
   }
 
   public List<String> validateRefIds(Dataset dataset, List<String> refIdArray)

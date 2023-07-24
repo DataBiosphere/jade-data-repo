@@ -866,8 +866,9 @@ public class DataRepoFixtures {
         retrieveDatasetData(user, datasetId, tableName, 0, limitRowsReturned, null).getResult();
     assertThat("got right num of row ids back", dataModel.size(), equalTo(limitRowsReturned));
     return dataModel.stream()
-        .filter(r -> ((LinkedHashMap) r).get(columnName) != null)
-        .map(r -> ((LinkedHashMap) r).get(columnName).toString())
+        .map(r -> ((LinkedHashMap) r))
+        .filter(Objects::nonNull)
+        .map(Object::toString)
         .toList();
   }
 

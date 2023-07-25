@@ -21,6 +21,11 @@ public class Main implements CommandLineRunner {
     // Initially, Jade runs only with Google cloud parts right now, so we set the profile here.
     // ITFOT, we can parameterize the profile to include the appropriate pdao implementations.
     theApp.setAdditionalProfiles("google");
+
+    // Enable sending %2F (e.g. url encoded forward slashes) in the path of a URL which is helpful
+    // if there is a path parameter that contains a value with a slash in it.
+    System.setProperty("org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "true");
+
     theApp.run(args);
   }
 

@@ -25,7 +25,7 @@ public class PolicyApiService {
   private ApiClient getApiClient() {
     return new ApiClient()
         .setHttpClient(sharedHttpClient)
-        .setBasePath(policyServiceConfiguration.getBasePath());
+        .setBasePath(policyServiceConfiguration.basePath());
   }
 
   private ApiClient getApiClient(String accessToken) {

@@ -58,7 +58,7 @@ public class PolicyServiceTest {
   }
 
   private void mockPolicyServiceConfiguration() {
-    when(policyServiceConfiguration.getEnabled()).thenReturn(true);
+    when(policyServiceConfiguration.enabled()).thenReturn(true);
   }
 
   private void mockPolicyApi() {
@@ -163,7 +163,7 @@ public class PolicyServiceTest {
     mockUnauthPolicyApi();
     RepositoryStatusModelSystems status = policyService.status();
     assertTrue(status.isOk());
-    assertThat(status.isCritical(), equalTo(policyServiceConfiguration.getEnabled()));
+    assertThat(status.isCritical(), equalTo(policyServiceConfiguration.enabled()));
     assertThat(status.getMessage(), containsString("Terra Policy Service status ok"));
   }
 
@@ -175,7 +175,7 @@ public class PolicyServiceTest {
     doThrow(exception).when(tpsUnauthApi).getStatus();
     RepositoryStatusModelSystems status = policyService.status();
     assertFalse(status.isOk());
-    assertThat(status.isCritical(), equalTo(policyServiceConfiguration.getEnabled()));
+    assertThat(status.isCritical(), equalTo(policyServiceConfiguration.enabled()));
     assertThat(status.getMessage(), containsString(exception.getMessage()));
   }
 }

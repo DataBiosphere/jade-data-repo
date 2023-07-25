@@ -86,7 +86,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))
             .semVer(semVer)
             .gitHash(gitHash)
-            .terraUrl(terraConfiguration.getBasePath())
+            .terraUrl(terraConfiguration.basePath())
             .samUrl(samConfiguration.basePath())
             .authorityEndpoint(openIDConnectConfiguration.getAuthorityEndpoint());
 

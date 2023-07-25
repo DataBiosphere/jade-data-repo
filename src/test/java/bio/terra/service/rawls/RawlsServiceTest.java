@@ -64,7 +64,7 @@ public class RawlsServiceTest {
   public void setUp() throws Exception {
     rawlsService = new RawlsService(terraConfiguration, rawlsClient);
 
-    when(terraConfiguration.getBasePath()).thenReturn(BASE_PATH);
+    when(terraConfiguration.basePath()).thenReturn(BASE_PATH);
 
     when(rawlsClient.getWorkspace(accessibleWorkspaceId, TEST_USER))
         .thenReturn(accessibleWorkspaceResponse);

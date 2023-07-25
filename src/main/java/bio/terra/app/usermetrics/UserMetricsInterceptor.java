@@ -58,7 +58,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     }
 
     // Don't log metrics if bard isn't configured or the path is part of the ignore-list
-    if (StringUtils.isEmpty(metricsConfig.getBardBasePath()) || ignoreEventForPath(path)) {
+    if (StringUtils.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
 
@@ -78,13 +78,13 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 new BardEvent(
                     API_EVENT_NAME,
                     bardEventProperties,
-                    metricsConfig.getAppId(),
+                    metricsConfig.appId(),
                     applicationConfiguration.getDnsName())));
   }
 
   /** Should we actually ignore sending a tracking event for this path */
   private boolean ignoreEventForPath(String path) {
-    return metricsConfig.getIgnorePaths().stream()
+    return metricsConfig.ignorePaths().stream()
         .anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
   }
 }

@@ -68,9 +68,9 @@ public class UserMetricsInterceptorTest {
 
   @BeforeEach
   void setUp() {
-    when(metricsConfig.getIgnorePaths()).thenReturn(List.of());
-    when(metricsConfig.getAppId()).thenReturn(APP_ID);
-    when(metricsConfig.getBardBasePath()).thenReturn(BARD_BASE_PATH);
+    when(metricsConfig.ignorePaths()).thenReturn(List.of());
+    when(metricsConfig.appId()).thenReturn(APP_ID);
+    when(metricsConfig.bardBasePath()).thenReturn(BARD_BASE_PATH);
 
     when(applicationConfiguration.getDnsName()).thenReturn(DNS_NAME);
 
@@ -150,7 +150,7 @@ public class UserMetricsInterceptorTest {
 
   @Test
   void testSendEventNotFiredWithNoBardBasePath() throws Exception {
-    when(metricsConfig.getBardBasePath()).thenReturn(null);
+    when(metricsConfig.bardBasePath()).thenReturn(null);
 
     runAndWait();
 
@@ -170,7 +170,7 @@ public class UserMetricsInterceptorTest {
   @ParameterizedTest
   @ValueSource(strings = {REQUEST_URI, "/foo/*"})
   void testSendEventNotFiredWithIgnoredUrl(String ignorePath) throws Exception {
-    when(metricsConfig.getIgnorePaths()).thenReturn(List.of(ignorePath));
+    when(metricsConfig.ignorePaths()).thenReturn(List.of(ignorePath));
     mockRequestAuth(request);
 
     runAndWait();

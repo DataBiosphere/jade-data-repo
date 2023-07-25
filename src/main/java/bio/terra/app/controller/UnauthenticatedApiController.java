@@ -87,7 +87,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             .semVer(semVer)
             .gitHash(gitHash)
             .terraUrl(terraConfiguration.getBasePath())
-            .samUrl(samConfiguration.getBasePath())
+            .samUrl(samConfiguration.basePath())
             .authorityEndpoint(openIDConnectConfiguration.getAuthorityEndpoint());
 
     return new ResponseEntity<>(configurationModel, HttpStatus.OK);

@@ -217,7 +217,7 @@ public class SamIam implements IamProviderInterface {
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
-        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
+        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.adminsGroupEmail()));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
@@ -285,7 +285,7 @@ public class SamIam implements IamProviderInterface {
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
-        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
+        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.adminsGroupEmail()));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
@@ -345,7 +345,7 @@ public class SamIam implements IamProviderInterface {
     req.setResourceId(profileId);
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
-        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
+        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.adminsGroupEmail()));
     req.putPoliciesItem(
         IamRole.OWNER.toString(),
         createAccessPolicyOneV2(IamRole.OWNER, userStatusInfo.getUserEmail()));

@@ -75,14 +75,19 @@ public class SamIamTest {
   @Mock private UsersApi samUsersApi;
 
   private SamIam samIam;
-  private final SamConfiguration samConfig = new SamConfiguration();
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
+  private final SamConfiguration samConfig = new SamConfiguration(
+      "https://sam.dsde-dev.broadinstitute.org",
+      "samStewardsGroupEmail@a.com",
+      ADMIN_EMAIL,
+      10,
+      30,
+      60);
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
   void setUp() throws Exception {
-    samConfig.setAdminsGroupEmail(ADMIN_EMAIL);
     samIam =
         new SamIam(
             samConfig,
@@ -539,7 +544,7 @@ public class SamIamTest {
       req.putPoliciesItem(
           IamRole.ADMIN.toString(),
           new AccessPolicyMembershipV2()
-              .memberEmails(List.of(samConfig.getAdminsGroupEmail()))
+              .memberEmails(List.of(samConfig.adminsGroupEmail()))
               .roles(List.of(IamRole.ADMIN.toString())));
       req.putPoliciesItem(
           IamRole.OWNER.toString(),

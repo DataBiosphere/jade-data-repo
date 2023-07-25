@@ -62,7 +62,7 @@ public class UnauthenticatedApiControllerTest {
     when(oauthConfig.clientId()).thenReturn(oauthClientId);
     when(openIDConnectConfiguration.getClientId()).thenReturn(oidcClientId);
     when(terraConfiguration.getBasePath()).thenReturn(terraUrl);
-    when(samConfiguration.getBasePath()).thenReturn(samUrl);
+    when(samConfiguration.basePath()).thenReturn(samUrl);
     when(openIDConnectConfiguration.getAuthorityEndpoint()).thenReturn(oidcAuthorityEndpoint);
 
     mvc.perform(get("/configuration"))

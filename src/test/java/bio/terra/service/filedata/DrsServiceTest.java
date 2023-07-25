@@ -237,7 +237,7 @@ public class DrsServiceTest {
     drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
 
-    when(ecmConfiguration.getRasIssuer()).thenReturn(RAS_ISSUER);
+    when(ecmConfiguration.rasIssuer()).thenReturn(RAS_ISSUER);
   }
 
   @Test

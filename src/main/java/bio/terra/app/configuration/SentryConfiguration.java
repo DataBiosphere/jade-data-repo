@@ -12,15 +12,11 @@ import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-@Configuration
-@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "sentry")
-public class SentryConfiguration {
+public record SentryConfiguration(String dsn, String environment) {
   private static final Logger logger = LoggerFactory.getLogger(SentryConfiguration.class);
   private static final String DEFAULT_UNDEFINED_ENVIRONMENT = "undefined";
   private static final List<Class<? extends Exception>> FILTERED =
@@ -33,25 +29,6 @@ public class SentryConfiguration {
           IllegalArgumentException.class,
           NoHandlerFoundException.class,
           ForbiddenException.class);
-
-  private String dsn;
-  private String environment;
-
-  public String getDsn() {
-    return dsn;
-  }
-
-  public void setDsn(String dsn) {
-    this.dsn = dsn;
-  }
-
-  public String getEnvironment() {
-    return environment;
-  }
-
-  public void setEnvironment(String environment) {
-    this.environment = environment;
-  }
 
   @PostConstruct
   private void postConstruct() {

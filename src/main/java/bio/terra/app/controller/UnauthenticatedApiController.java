@@ -81,7 +81,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
     RepositoryConfigurationModel configurationModel =
         new RepositoryConfigurationModel()
-            .clientId(oauthConfig.getClientId())
+            .clientId(oauthConfig.clientId())
             .oidcClientId(openIDConnectConfiguration.getClientId())
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))
             .semVer(semVer)
@@ -114,7 +114,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
   @RequestMapping(value = "/swagger-ui.html")
   public String getSwaggerUI(Model model) {
-    model.addAttribute("oauthClientId", oauthConfig.getClientId());
+    model.addAttribute("oauthClientId", oauthConfig.clientId());
     model.addAttribute("oidcClientId", openIDConnectConfiguration.getClientId());
     return "index";
   }

@@ -55,7 +55,7 @@ public class BufferService {
   private ApiClient createUnauthApiClient() {
     return new ApiClient()
         .setHttpClient(sharedHttpClient)
-        .setBasePath(bufferServiceConfiguration.getInstanceUrl());
+        .setBasePath(bufferServiceConfiguration.instanceUrl());
   }
 
   private ApiClient createApiClient(String accessToken) {
@@ -81,11 +81,11 @@ public class BufferService {
     try {
       BufferApi bufferApi = bufferApi();
       ResourceInfo info =
-          bufferApi.handoutResource(requestBody, bufferServiceConfiguration.getPoolId());
+          bufferApi.handoutResource(requestBody, bufferServiceConfiguration.poolId());
       logger.info(
           "Retrieved resource from pool {} on Buffer Service instance {}",
-          bufferServiceConfiguration.getPoolId(),
-          bufferServiceConfiguration.getInstanceUrl());
+          bufferServiceConfiguration.poolId(),
+          bufferServiceConfiguration.instanceUrl());
 
       if (enableSecureMonitoring) {
         var projectId = info.getCloudResourceUid().getGoogleProjectUid().getProjectId();
@@ -136,12 +136,12 @@ public class BufferService {
       Map<String, SystemStatusSystems> subsystemStatusMap = status.getSystems();
       return new RepositoryStatusModelSystems()
           .ok(status.isOk())
-          .critical(bufferServiceConfiguration.getEnabled())
+          .critical(bufferServiceConfiguration.enabled())
           .message(subsystemStatusMap.toString());
     } catch (ApiException e) {
       return new RepositoryStatusModelSystems()
           .ok(false)
-          .critical(bufferServiceConfiguration.getEnabled())
+          .critical(bufferServiceConfiguration.enabled())
           .message(e.getResponseBody());
     }
   }

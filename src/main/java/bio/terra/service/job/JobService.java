@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +93,6 @@ public class JobService {
     this.objectMapper = objectMapper;
     this.performanceLogger = performanceLogger;
     this.kubeService = kubeService;
-    initialize();
   }
 
   /**
@@ -100,6 +100,7 @@ public class JobService {
    * and recovering any jobs; i.e., Stairway flights. It lives in this class so that JobService
    * encapsulates all Stairway interaction.
    */
+  @PostConstruct
   public void initialize() {
     migrate.migrateDatabase();
 

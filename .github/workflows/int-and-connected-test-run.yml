@@ -201,7 +201,7 @@ jobs:
           helm_datarepo_api_chart_version: 0.0.511
           helm_datarepo_ui_chart_version: 0.0.278
           helm_gcloud_sqlproxy_chart_version: 0.19.9
-          helm_oidc_proxy_chart_version: 0.0.41
+          helm_oidc_proxy_chart_version: 0.0.42
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |

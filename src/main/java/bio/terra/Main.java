@@ -7,8 +7,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-@ConfigurationPropertiesScan("bio.terra.app")
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
+@ConfigurationPropertiesScan("bio.terra")
+@SpringBootApplication(
+    exclude = {DataSourceAutoConfiguration.class},
+    scanBasePackages = {"bio.terra"})
 public class Main implements CommandLineRunner {
 
   @Override

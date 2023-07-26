@@ -40,8 +40,7 @@ public class RawlsClient {
     try {
       ResponseEntity<WorkspaceResponse> workspaceCall =
           restTemplate.exchange(
-              String.format(
-                  "%s/api/workspaces/id/%s", rawlsConfiguration.basePath(), workspaceId),
+              String.format("%s/api/workspaces/id/%s", rawlsConfiguration.basePath(), workspaceId),
               HttpMethod.GET,
               new HttpEntity<>(headers),
               WorkspaceResponse.class);

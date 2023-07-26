@@ -84,7 +84,6 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
 
   /** Should we actually ignore sending a tracking event for this path */
   private boolean ignoreEventForPath(String path) {
-    return metricsConfig.ignorePaths().stream()
-        .anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
+    return metricsConfig.ignorePaths().stream().anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
   }
 }

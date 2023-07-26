@@ -76,13 +76,14 @@ public class SamIamTest {
 
   private SamIam samIam;
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
-  private final SamConfiguration samConfig = new SamConfiguration(
-      "https://sam.dsde-dev.broadinstitute.org",
-      "samStewardsGroupEmail@a.com",
-      ADMIN_EMAIL,
-      10,
-      30,
-      60);
+  private final SamConfiguration samConfig =
+      new SamConfiguration(
+          "https://sam.dsde-dev.broadinstitute.org",
+          "samStewardsGroupEmail@a.com",
+          ADMIN_EMAIL,
+          10,
+          30,
+          60);
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 

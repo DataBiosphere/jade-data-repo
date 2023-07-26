@@ -14,8 +14,7 @@ public record UserMetricsConfiguration(
     String bardBasePath,
     Integer metricsReportingPoolSize,
     Integer syncRefreshIntervalSeconds,
-    List<String> ignorePaths
-) {
+    List<String> ignorePaths) {
 
   @Bean("metricsReportingThreadpool")
   public ExecutorService metricsPerformanceThreadpool() {

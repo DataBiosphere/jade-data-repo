@@ -49,8 +49,7 @@ public class BardClient {
 
     int ttl =
         Objects.requireNonNullElse(
-            metricsConfig.syncRefreshIntervalSeconds(),
-            DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
+            metricsConfig.syncRefreshIntervalSeconds(), DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
     this.bearerCache = Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
 
     this.metricsConfig = metricsConfig;

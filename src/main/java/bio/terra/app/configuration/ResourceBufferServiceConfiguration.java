@@ -10,8 +10,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Configuration for managing connection to Buffer Service. * */
 @ConfigurationProperties(prefix = "rbs")
-public record ResourceBufferServiceConfiguration(boolean enabled, String instanceUrl, String poolId,
-                                                 String clientCredentialFilePath) {
+public record ResourceBufferServiceConfiguration(
+    boolean enabled, String instanceUrl, String poolId, String clientCredentialFilePath) {
 
   // I think we'd want to re-use our app scopes.
   private static final List<String> BUFFER_SCOPES = List.of("openid", "email", "profile");

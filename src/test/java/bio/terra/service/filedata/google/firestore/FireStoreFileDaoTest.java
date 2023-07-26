@@ -221,8 +221,7 @@ public class FireStoreFileDaoTest {
   public void testBatchRetrieveFileMetadata() throws InterruptedException {
     List<FireStoreDirectoryEntry> directoryEntries =
         IntStream.range(0, 5)
-            .boxed()
-            .map(i -> new FireStoreDirectoryEntry().fileId(UUID.randomUUID().toString()))
+            .mapToObj(i -> new FireStoreDirectoryEntry().fileId(UUID.randomUUID().toString()))
             .toList();
     List<FireStoreFile> files =
         directoryEntries.stream()

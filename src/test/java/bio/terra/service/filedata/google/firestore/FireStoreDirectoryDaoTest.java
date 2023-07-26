@@ -297,18 +297,15 @@ public class FireStoreDirectoryDaoTest {
 
     List<FireStoreDirectoryEntry> allFiles =
         directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 10);
-    assertEquals(allFiles.size(), 5);
-    assertEquals(allFiles, fileEntries);
+    assertThat(allFiles, equalTo(fileEntries));
 
     List<FireStoreDirectoryEntry> offsetFiles =
         directoryDao.enumerateFileRefEntries(firestore, collectionId, 1, 10);
-    assertEquals(offsetFiles.size(), 4);
-    assertEquals(offsetFiles, fileEntries.subList(1, 5));
+    assertThat(offsetFiles, equalTo(fileEntries.subList(1, 5)));
 
     List<FireStoreDirectoryEntry> limitFiles =
         directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 2);
-    assertEquals(limitFiles.size(), 2);
-    assertEquals(limitFiles, fileEntries.subList(0, 2));
+    assertThat(limitFiles, equalTo(fileEntries.subList(0, 2)));
   }
 
   private String retrieveDirectoryObjectId(String fullPath) throws InterruptedException {

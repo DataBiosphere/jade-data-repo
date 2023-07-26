@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 
@@ -196,17 +197,15 @@ public class FileMetadataUtils {
       List<FireStoreDirectoryEntry> directoryEntries,
       List<FireStoreFile> files,
       String collectionId) {
-    List<FileModel> resultList = new ArrayList<>();
     if (directoryEntries.size() != files.size()) {
       throw new FileSystemExecutionException("List sizes should be identical");
     }
 
-    for (int i = 0; i < files.size(); i++) {
+    return IntStream.range(0, files.size()).mapToObj(i -> {
       FireStoreFile file = files.get(i);
       FireStoreDirectoryEntry entry = directoryEntries.get(i);
 
-      FileModel fileModel =
-          new FileModel()
+      return new FileModel()
               .fileId(entry.getFileId())
               .collectionId(collectionId)
               .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
@@ -221,10 +220,6 @@ public class FileMetadataUtils {
                       .accessUrl(file.getGspath())
                       .mimeType(file.getMimeType())
                       .loadTag(file.getLoadTag()));
-
-      resultList.add(fileModel);
-    }
-
-    return resultList;
+    }).toList();
   }
 }

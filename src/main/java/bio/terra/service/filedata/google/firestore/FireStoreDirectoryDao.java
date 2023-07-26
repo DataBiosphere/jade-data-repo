@@ -348,8 +348,7 @@ public class FireStoreDirectoryDao {
   List<FireStoreDirectoryEntry> enumerateFileRefEntries(
       Firestore firestore, String collectionId, int offset, int limit) throws InterruptedException {
     Query fileColl = firestore.collection(collectionId).whereEqualTo("isFileRef", true);
-    return fireStoreUtils.query(fileColl, FireStoreDirectoryEntry.class, offset, limit).stream()
-        .toList();
+    return fireStoreUtils.query(fileColl, FireStoreDirectoryEntry.class, offset, limit);
   }
 
   // As mentioned at the top of the module, we can't use forward slash in a FireStore document

@@ -420,7 +420,7 @@ public class SnapshotDao implements TaggableResourceDao {
           snapshot.storageAccountResource(
               resourceService.getSnapshotStorageAccount(snapshot.getId()));
         } catch (StorageResourceNotFoundException ex) {
-          logger.debug(ex.getMessage());
+          logger.debug(ex.getMessage(), ex);
         }
 
         // Retrieve the DUOS Firecloud group associated with the snapshot.

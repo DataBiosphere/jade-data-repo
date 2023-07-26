@@ -13,8 +13,8 @@ public class FireStoreBatchQueryIterator {
   private final Query baseQuery;
   private final int batchSize;
   private List<QueryDocumentSnapshot> currentList;
-  private int count = 0;
-  private int totalSize = 0;
+  private int count;
+  private int totalSize;
   private final int offset;
   private final int limit;
   private final FireStoreUtils fireStoreUtils;

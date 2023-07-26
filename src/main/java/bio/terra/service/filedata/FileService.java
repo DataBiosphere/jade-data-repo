@@ -194,7 +194,7 @@ public class FileService {
     }
   }
 
-  public List<FileModel> listSnapshotFiles(String snapshotId, Integer offset, Integer limit) {
+  public List<FileModel> listSnapshotFiles(String snapshotId, int offset, int limit) {
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     Dataset dataset = snapshot.getSourceDataset();
     CloudPlatformWrapper cloudPlatformWrapper =

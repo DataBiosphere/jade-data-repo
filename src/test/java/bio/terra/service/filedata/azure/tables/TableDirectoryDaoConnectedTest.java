@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
-import org.hamcrest.core.IsEqual;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -264,8 +263,7 @@ public class TableDirectoryDaoConnectedTest {
     String targetDirPath = String.format("/%s/", UUID.randomUUID());
     List<FireStoreDirectoryEntry> fileList =
         IntStream.range(0, 5)
-            .boxed()
-            .map(
+            .mapToObj(
                 i ->
                     createStorageTableEntrySharedBasePath(
                         targetDirPath, i + UUID.randomUUID().toString()))
@@ -274,15 +272,15 @@ public class TableDirectoryDaoConnectedTest {
     String collectionId = DATASET.toTableName(datasetId);
     List<FireStoreDirectoryEntry> files =
         tableDirectoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, 0, 10);
-    assertThat(files, IsEqual.equalTo(fileList));
+    assertThat(files, equalTo(fileList));
 
     List<FireStoreDirectoryEntry> filesOffset =
         tableDirectoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, 1, 10);
-    assertThat(filesOffset, IsEqual.equalTo(fileList.subList(1, 5)));
+    assertThat(filesOffset, equalTo(fileList.subList(1, 5)));
 
     List<FireStoreDirectoryEntry> filesLimit =
         tableDirectoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, 0, 2);
-    assertThat(filesLimit, IsEqual.equalTo(fileList.subList(0, 2)));
+    assertThat(filesLimit, equalTo(fileList.subList(0, 2)));
   }
 
   private FireStoreDirectoryEntry createStorageTableEntrySharedBasePath(

@@ -249,6 +249,22 @@ public class TableDirectoryDao {
         .collect(Collectors.toList());
   }
 
+  /** results are sorted by partition key and row key * */
+  public List<FireStoreDirectoryEntry> enumerateFileRefEntries(
+      TableServiceClient tableServiceClient, String collectionId, int offset, int limit) {
+    TableClient tableClient = tableServiceClient.getTableClient(collectionId);
+    ListEntitiesOptions options = new ListEntitiesOptions().setFilter("isFileRef eq true");
+    PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+    if (!entities.iterator().hasNext()) {
+      return List.of();
+    }
+    return entities.stream()
+        .skip(offset)
+        .limit(limit)
+        .map(FireStoreDirectoryEntry::fromTableEntity)
+        .toList();
+  }
+
   List<FireStoreDirectoryEntry> enumerateDirectory(
       TableServiceClient tableServiceClient, String tableName, String dirPath) {
     TableClient tableClient = tableServiceClient.getTableClient(tableName);

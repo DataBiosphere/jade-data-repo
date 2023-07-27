@@ -282,6 +282,15 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
+  public ResponseEntity<List<FileModel>> listFiles(UUID id, Integer offset, Integer limit) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+    List<FileModel> results = fileService.listDatasetFiles(id.toString(), offset, limit);
+    return ResponseEntity.ok(results);
+  }
+
+  @Override
   public ResponseEntity<JobModel> ingestFile(
       @PathVariable("id") UUID id, @Valid @RequestBody FileLoadModel ingestFile) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();

@@ -11,12 +11,14 @@ import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
@@ -353,10 +355,32 @@ public class ResourceService {
     return storageAccountResource;
   }
 
-  public Optional<AzureStorageAccountResource> getSnapshotStorageAccount(UUID snapshotId) {
+  public AzureStorageAccountResource getSnapshotStorageAccount(UUID snapshotId) {
     return snapshotStorageAccountDao
         .getStorageAccountResourceIdForSnapshotId(snapshotId)
-        .map(this::lookupStorageAccount);
+        .map(this::lookupStorageAccount)
+        .orElseThrow(
+            () -> new StorageResourceNotFoundException("Snapshot storage account was not found"));
+  }
+
+  public AzureStorageAuthInfo getDatasetStorageAuthInfo(Dataset dataset) {
+    BillingProfileModel billingProfileModel =
+        profileDao.getBillingProfileById(dataset.getDefaultProfileId());
+    AzureStorageAccountResource storageAccountResource =
+        getDatasetStorageAccount(dataset, billingProfileModel);
+    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+        billingProfileModel, storageAccountResource);
+  }
+
+  public AzureStorageAuthInfo getSnapshotStorageAuthInfo(Snapshot snapshot) {
+    return getSnapshotStorageAuthInfo(snapshot.getProfileId(), snapshot.getId());
+  }
+
+  public AzureStorageAuthInfo getSnapshotStorageAuthInfo(UUID billingProfileId, UUID snapshotId) {
+    BillingProfileModel billingProfileModel = profileDao.getBillingProfileById(billingProfileId);
+    AzureStorageAccountResource storageAccountResource = getSnapshotStorageAccount(snapshotId);
+    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+        billingProfileModel, storageAccountResource);
   }
 
   /**

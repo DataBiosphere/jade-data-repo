@@ -5,6 +5,7 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CollectionType;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -421,6 +422,23 @@ public class FireStoreDao {
         fileId);
   }
 
+  public List<FileModel> batchRetrieveFiles(
+      FSContainerInterface container, FSContainerInterface dataset, int offset, int limit)
+      throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+    List<FireStoreDirectoryEntry> directoryEntries =
+        directoryDao.enumerateFileRefEntries(
+            firestore, container.getId().toString(), offset, limit);
+
+    Firestore datasetFirestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    List<FireStoreFile> files =
+        fileDao.batchRetrieveFileMetadata(
+            datasetFirestore, dataset.getId().toString(), directoryEntries);
+    return FileMetadataUtils.toFileModel(directoryEntries, files, container.getId().toString());
+  }
+
   /**
    * Retrieve a batch of FSFile by id
    *
@@ -443,7 +461,6 @@ public class FireStoreDao {
     //  split entries by underlying dataset. For now we know that they all come from one dataset.
     List<FireStoreFile> files =
         fileDao.batchRetrieveFileMetadata(firestore, containerId, directoryEntries);
-
     List<FSFile> resultList = new ArrayList<>();
     if (directoryEntries.size() != files.size()) {
       throw new FileSystemExecutionException("List sizes should be identical");

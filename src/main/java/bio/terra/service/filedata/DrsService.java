@@ -688,7 +688,7 @@ public class DrsService {
 
     fileObject
         .mimeType(fsFile.getMimeType())
-        .checksums(fileService.makeChecksums(fsFile))
+        .checksums(FileService.makeChecksums(fsFile))
         .accessMethods(accessMethods);
 
     return fileObject;
@@ -799,7 +799,7 @@ public class DrsService {
         .description(fsObject.getDescription())
         .aliases(Collections.singletonList(fsObject.getPath()))
         .size(fsObject.getSize())
-        .checksums(fileService.makeChecksums(fsObject));
+        .checksums(FileService.makeChecksums(fsObject));
   }
 
   private List<DRSContentsObject> makeContentsList(FSDir fsDir, SnapshotCacheResult snapshot) {

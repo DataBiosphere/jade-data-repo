@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.SnapshotExportResponseModel;
@@ -70,9 +69,7 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
     UUID billingProfileId = workingMap.get(JobMapKeys.BILLING_ID.getKeyName(), UUID.class);
     BillingProfileModel billingProfile = profileService.getProfileById(billingProfileId, userReq);
     AzureStorageAccountResource storageAccountResource =
-        resourceService
-            .getSnapshotStorageAccount(snapshotId)
-            .orElseThrow(() -> new NotFoundException("Snapshot storage account not found"));
+        resourceService.getSnapshotStorageAccount(snapshotId);
     String exportManifestPath = "manifests/%s/manifest.json".formatted(context.getFlightId());
     String fullExportManifestPath =
         "%s/%s/%s"

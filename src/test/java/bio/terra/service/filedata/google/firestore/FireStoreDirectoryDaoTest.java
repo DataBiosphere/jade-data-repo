@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isA;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -270,6 +271,41 @@ public class FireStoreDirectoryDaoTest {
         "cause is correct",
         conflictingLoadTagsFail.getCause().getCause(),
         isA(FileAlreadyExistsException.class));
+  }
+
+  @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
+  public void testEnumerateFileRefEntries() throws InterruptedException {
+    List<FireStoreDirectoryEntry> noFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 10);
+    assertEquals(noFiles.size(), 0);
+
+    List<FireStoreDirectoryEntry> fireStoreDirectoryEntries =
+        List.of(
+            makeFileObject("/adir/A1"),
+            makeFileObject("/adir/bdir/B1"),
+            makeFileObject("/adir/bdir/B2"),
+            makeFileObject("/adir/bdir/cdir/C1"),
+            makeFileObject("/adir/bdir/cdir/C2"));
+
+    for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fireStoreDirectoryEntries) {
+      directoryDao.createDirectoryEntry(firestore, collectionId, fireStoreDirectoryEntry);
+    }
+
+    List<FireStoreDirectoryEntry> fileEntries =
+        fireStoreDirectoryEntries.stream().filter(FireStoreDirectoryEntry::getIsFileRef).toList();
+
+    List<FireStoreDirectoryEntry> allFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 10);
+    assertThat(allFiles, equalTo(fileEntries));
+
+    List<FireStoreDirectoryEntry> offsetFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 1, 10);
+    assertThat(offsetFiles, equalTo(fileEntries.subList(1, 5)));
+
+    List<FireStoreDirectoryEntry> limitFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 2);
+    assertThat(limitFiles, equalTo(fileEntries.subList(0, 2)));
   }
 
   private String retrieveDirectoryObjectId(String fullPath) throws InterruptedException {

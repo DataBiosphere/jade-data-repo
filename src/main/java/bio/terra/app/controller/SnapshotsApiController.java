@@ -228,6 +228,15 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
+  public ResponseEntity<List<FileModel>> listFiles(UUID id, Integer offset, Integer limit) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    List<FileModel> results = fileService.listSnapshotFiles(id.toString(), offset, limit);
+    return ResponseEntity.ok(results);
+  }
+
+  @Override
   public ResponseEntity<FileModel> lookupSnapshotFileById(
       @PathVariable("id") UUID id,
       @PathVariable("fileid") String fileid,

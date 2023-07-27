@@ -375,10 +375,17 @@ public class FireStoreUtils {
   }
 
   /** Queries a Firestore collection */
-  public <T> List<T> query(Query query, Class<T> clazz) throws InterruptedException {
+  <T> List<T> query(Query query, Class<T> clazz) throws InterruptedException {
+    int offset = 0;
+    int limit = Integer.MAX_VALUE;
+    return query(query, clazz, offset, limit);
+  }
+
+  public <T> List<T> query(Query query, Class<T> clazz, int offset, int limit)
+      throws InterruptedException {
     int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
     FireStoreBatchQueryIterator queryIterator =
-        new FireStoreBatchQueryIterator(query, batchSize, this);
+        new FireStoreBatchQueryIterator(query, batchSize, this, offset, limit);
 
     List<T> entryList = new ArrayList<>();
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();

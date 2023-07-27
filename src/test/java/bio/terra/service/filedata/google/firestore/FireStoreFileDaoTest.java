@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isA;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -21,6 +22,7 @@ import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
+import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
 import io.grpc.StatusRuntimeException;
@@ -60,11 +62,13 @@ public class FireStoreFileDaoTest {
 
   private String datasetId;
   private Firestore firestore;
+  private String collectionId;
 
   @Before
   public void setup() throws Exception {
     configurationService.reset();
     datasetId = UUID.randomUUID().toString();
+    collectionId = String.format("%s-files", datasetId);
     firestore = TestFirestoreProvider.getFirestore();
   }
 
@@ -213,8 +217,40 @@ public class FireStoreFileDaoTest {
         isA(FileAlreadyExistsException.class));
   }
 
+  @Test
+  public void testBatchRetrieveFileMetadata() throws InterruptedException {
+    List<FireStoreDirectoryEntry> directoryEntries =
+        IntStream.range(0, 5)
+            .mapToObj(i -> new FireStoreDirectoryEntry().fileId(UUID.randomUUID().toString()))
+            .toList();
+    List<FireStoreFile> files =
+        directoryEntries.stream()
+            .map(FireStoreDirectoryEntry::getFileId)
+            .map(this::makeFile)
+            .toList();
+    for (FireStoreFile file : files) {
+      fileDao.upsertFileMetadata(firestore, datasetId, file);
+    }
+    List<FireStoreFile> retrievedFiles =
+        fileDao.batchRetrieveFileMetadata(firestore, datasetId, directoryEntries);
+    assertEquals(files, retrievedFiles);
+  }
+
+  @Test
+  public void testBatchRetrieveNonExistentFileMetadata() {
+    FireStoreDirectoryEntry directoryEntry =
+        new FireStoreDirectoryEntry().fileId(UUID.randomUUID().toString());
+    assertThrows(
+        FileSystemCorruptException.class,
+        () -> fileDao.batchRetrieveFileMetadata(firestore, datasetId, List.of(directoryEntry)));
+  }
+
   private FireStoreFile makeFile() {
     String fileId = UUID.randomUUID().toString();
+    return makeFile(fileId);
+  }
+
+  private FireStoreFile makeFile(String fileId) {
     return new FireStoreFile()
         .fileId(fileId)
         .mimeType("application/test")

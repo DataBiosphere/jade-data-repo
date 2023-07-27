@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static bio.terra.service.common.azure.StorageTableName.DATASET;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
@@ -26,6 +27,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -254,6 +256,31 @@ public class TableDirectoryDaoConnectedTest {
 
     // The root directory may still exist from concurrent test runs
 
+  }
+
+  @Test
+  public void testEnumerateFileRefEntries() {
+    String targetDirPath = String.format("/%s/", UUID.randomUUID());
+    List<FireStoreDirectoryEntry> fileList =
+        IntStream.range(0, 5)
+            .mapToObj(
+                i ->
+                    createStorageTableEntrySharedBasePath(
+                        targetDirPath, i + UUID.randomUUID().toString()))
+            .toList();
+
+    String collectionId = DATASET.toTableName(datasetId);
+    List<FireStoreDirectoryEntry> files =
+        tableDirectoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, 0, 10);
+    assertThat(files, equalTo(fileList));
+
+    List<FireStoreDirectoryEntry> filesOffset =
+        tableDirectoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, 1, 10);
+    assertThat(filesOffset, equalTo(fileList.subList(1, 5)));
+
+    List<FireStoreDirectoryEntry> filesLimit =
+        tableDirectoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, 0, 2);
+    assertThat(filesLimit, equalTo(fileList.subList(0, 2)));
   }
 
   private FireStoreDirectoryEntry createStorageTableEntrySharedBasePath(

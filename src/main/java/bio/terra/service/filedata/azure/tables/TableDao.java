@@ -3,6 +3,7 @@ package bio.terra.service.filedata.azure.tables;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CollectionType;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.FileModel;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -136,6 +137,23 @@ public class TableDao {
       String collectionId, String fileId, AzureStorageAuthInfo storageAuthInfo) {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return fileDao.retrieveFileMetadata(tableServiceClient, collectionId, fileId);
+  }
+
+  public List<FileModel> batchRetrieveFiles(
+      String collectionId,
+      AzureStorageAuthInfo storageAuthInfo,
+      String datasetId,
+      AzureStorageAuthInfo datasetStorageAuthInfo,
+      int offset,
+      int limit) {
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    List<FireStoreDirectoryEntry> directoryEntries =
+        directoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, offset, limit);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
+    List<FireStoreFile> files =
+        fileDao.batchRetrieveFileMetadata(datasetTableServiceClient, datasetId, directoryEntries);
+    return FileMetadataUtils.toFileModel(directoryEntries, files, collectionId);
   }
 
   public void snapshotCompute(

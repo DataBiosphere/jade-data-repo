@@ -1,8 +1,13 @@
 package bio.terra.service.filedata;
 
+import bio.terra.model.FileDetailModel;
+import bio.terra.model.FileModel;
+import bio.terra.model.FileModelType;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.nio.file.Path;
@@ -14,6 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 
@@ -185,5 +191,38 @@ public class FileMetadataUtils {
       return new Md5ValidationResult(
           cloudMd5, StringUtils.isEmpty(cloudMd5) ? Md5Type.NEITHER : Md5Type.CLOUD_PROVIDED);
     }
+  }
+
+  public static List<FileModel> toFileModel(
+      List<FireStoreDirectoryEntry> directoryEntries,
+      List<FireStoreFile> files,
+      String collectionId) {
+    if (directoryEntries.size() != files.size()) {
+      throw new FileSystemExecutionException("List sizes should be identical");
+    }
+
+    return IntStream.range(0, files.size())
+        .mapToObj(
+            i -> {
+              FireStoreFile file = files.get(i);
+              FireStoreDirectoryEntry entry = directoryEntries.get(i);
+
+              return new FileModel()
+                  .fileId(entry.getFileId())
+                  .collectionId(collectionId)
+                  .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+                  .size(file.getSize())
+                  .created(file.getFileCreatedDate())
+                  .description(file.getDescription())
+                  .fileType(FileModelType.FILE)
+                  .checksums(FileService.makeChecksums(file))
+                  .fileDetail(
+                      new FileDetailModel()
+                          .datasetId(entry.getDatasetId())
+                          .accessUrl(file.getGspath())
+                          .mimeType(file.getMimeType())
+                          .loadTag(file.getLoadTag()));
+            })
+        .toList();
   }
 }

@@ -345,6 +345,12 @@ public class FireStoreDirectoryDao {
     return fireStoreUtils.query(query, FireStoreDirectoryEntry.class);
   }
 
+  List<FireStoreDirectoryEntry> enumerateFileRefEntries(
+      Firestore firestore, String collectionId, int offset, int limit) throws InterruptedException {
+    Query fileColl = firestore.collection(collectionId).whereEqualTo("isFileRef", true);
+    return fireStoreUtils.query(fileColl, FireStoreDirectoryEntry.class, offset, limit);
+  }
+
   // As mentioned at the top of the module, we can't use forward slash in a FireStore document
   // name, so we do this encoding.
   private static final char DOCNAME_SEPARATOR = '\u001c';

@@ -398,18 +398,14 @@ public class FileService {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
    */
-  static List<DRSChecksum> makeChecksums(FSItem fsItem) {
-    String fsItemCrc32c = fsItem.getChecksumCrc32c();
-    String fsItemMd5 = fsItem.getChecksumMd5();
-    return makeChecksums(fsItemCrc32c, fsItemMd5);
-  }
-
-  static List<DRSChecksum> makeChecksums(String fsItemCrc32c, String fsItemMd5) {
+  static List<DRSChecksum> makeChecksums(ChecksumInterface checksum) {
+    String fsItemCrc32c = checksum.getChecksumCrc32c();
     List<DRSChecksum> checksums = new ArrayList<>();
     if (fsItemCrc32c != null) {
       DRSChecksum checksumCrc32 = new DRSChecksum().checksum(fsItemCrc32c).type("crc32c");
       checksums.add(checksumCrc32);
     }
+    String fsItemMd5 = checksum.getChecksumMd5();
     if (fsItemMd5 != null) {
       DRSChecksum checksumMd5 = new DRSChecksum().checksum(fsItemMd5).type("md5");
       checksums.add(checksumMd5);

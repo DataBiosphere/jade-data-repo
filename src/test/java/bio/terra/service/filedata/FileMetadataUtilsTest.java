@@ -268,7 +268,7 @@ public class FileMetadataUtilsTest {
             .created(file.getFileCreatedDate())
             .description(file.getDescription())
             .fileType(FileModelType.FILE)
-            .checksums(FileService.makeChecksums(file.getChecksumCrc32c(), file.getChecksumMd5()))
+            .checksums(FileService.makeChecksums(file))
             .fileDetail(
                 new FileDetailModel()
                     .datasetId(entry.getDatasetId())

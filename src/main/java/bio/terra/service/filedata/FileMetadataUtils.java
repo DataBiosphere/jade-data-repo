@@ -201,25 +201,28 @@ public class FileMetadataUtils {
       throw new FileSystemExecutionException("List sizes should be identical");
     }
 
-    return IntStream.range(0, files.size()).mapToObj(i -> {
-      FireStoreFile file = files.get(i);
-      FireStoreDirectoryEntry entry = directoryEntries.get(i);
+    return IntStream.range(0, files.size())
+        .mapToObj(
+            i -> {
+              FireStoreFile file = files.get(i);
+              FireStoreDirectoryEntry entry = directoryEntries.get(i);
 
-      return new FileModel()
-              .fileId(entry.getFileId())
-              .collectionId(collectionId)
-              .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
-              .size(file.getSize())
-              .created(file.getFileCreatedDate())
-              .description(file.getDescription())
-              .fileType(FileModelType.FILE)
-              .checksums(FileService.makeChecksums(file.getChecksumCrc32c(), file.getChecksumMd5()))
-              .fileDetail(
-                  new FileDetailModel()
-                      .datasetId(entry.getDatasetId())
-                      .accessUrl(file.getGspath())
-                      .mimeType(file.getMimeType())
-                      .loadTag(file.getLoadTag()));
-    }).toList();
+              return new FileModel()
+                  .fileId(entry.getFileId())
+                  .collectionId(collectionId)
+                  .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+                  .size(file.getSize())
+                  .created(file.getFileCreatedDate())
+                  .description(file.getDescription())
+                  .fileType(FileModelType.FILE)
+                  .checksums(FileService.makeChecksums(file))
+                  .fileDetail(
+                      new FileDetailModel()
+                          .datasetId(entry.getDatasetId())
+                          .accessUrl(file.getGspath())
+                          .mimeType(file.getMimeType())
+                          .loadTag(file.getLoadTag()));
+            })
+        .toList();
   }
 }

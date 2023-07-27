@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.filedata.ChecksumInterface;
 import com.azure.data.tables.models.TableEntity;
 import java.util.Objects;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -12,7 +13,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  * <p>Requirements from the documentation are: "Each custom class must have a public constructor
  * that takes no arguments. In addition, the class must include a public getter for each property."
  */
-public class FireStoreFile {
+public class FireStoreFile implements ChecksumInterface {
   private String fileId;
   private String mimeType;
   private String description;

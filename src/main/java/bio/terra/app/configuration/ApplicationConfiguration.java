@@ -17,10 +17,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.tomcat.util.buf.EncodedSolidusHandling;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -35,6 +40,8 @@ import org.springframework.web.client.RestTemplate;
     name = "testWithEmbeddedDatabase",
     matchIfMissing = true)
 public class ApplicationConfiguration {
+  Logger logger = LoggerFactory.getLogger(ApplicationConfiguration.class);
+
   public static final String APPLICATION_NAME = "Terra Data Repository";
 
   private String userEmail;
@@ -417,5 +424,16 @@ public class ApplicationConfiguration {
       return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();
     }
     return null;
+  }
+
+  @Bean
+  public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatCustomizer() {
+    // Enable sending %2F (e.g. url encoded forward slashes) in the path of a URL which is helpful
+    // if there is a path parameter that contains a value with a slash in it.
+    logger.info("Configuring Tomcat to allow encoded slashes.");
+    return factory ->
+        factory.addConnectorCustomizers(
+            connector ->
+                connector.setEncodedSolidusHandling(EncodedSolidusHandling.DECODE.getValue()));
   }
 }

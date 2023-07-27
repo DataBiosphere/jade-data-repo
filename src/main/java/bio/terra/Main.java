@@ -21,6 +21,7 @@ public class Main implements CommandLineRunner {
     // Initially, Jade runs only with Google cloud parts right now, so we set the profile here.
     // ITFOT, we can parameterize the profile to include the appropriate pdao implementations.
     theApp.setAdditionalProfiles("google");
+
     theApp.run(args);
   }
 

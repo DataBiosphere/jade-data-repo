@@ -6,9 +6,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
 
 @ConfigurationProperties(prefix = "usermetrics")
+@ConstructorBinding
 public record UserMetricsConfiguration(
     String appId,
     String bardBasePath,

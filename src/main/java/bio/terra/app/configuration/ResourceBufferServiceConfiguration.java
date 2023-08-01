@@ -7,9 +7,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 
 /** Configuration for managing connection to Buffer Service. * */
 @ConfigurationProperties(prefix = "rbs")
+@ConstructorBinding
 public record ResourceBufferServiceConfiguration(
     boolean enabled, String instanceUrl, String poolId, String clientCredentialFilePath) {
 

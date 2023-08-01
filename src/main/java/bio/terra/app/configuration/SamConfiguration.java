@@ -1,6 +1,7 @@
 package bio.terra.app.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 
 /* SAM Retry notes:
 We frequently experience socket timeouts with SAM, so we have implemented retry. The
@@ -14,6 +15,7 @@ reach the operationTimeoutSeconds limit. Well, depending on the numbers you choo
 operationTimeoutSeconds before we reach retryMaximumSeconds.*/
 
 @ConfigurationProperties(prefix = "sam")
+@ConstructorBinding
 public record SamConfiguration(
     String basePath,
     String stewardsGroupEmail,

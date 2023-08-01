@@ -71,6 +71,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -780,11 +781,14 @@ public class GcsPdao implements CloudFileReader {
       AclOp op, Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
       throws InterruptedException {
 
-    // Build all the groups that need to get read access to the files
-    List<Acl.Group> groups = new LinkedList<>();
-    groups.add(new Acl.Group(policies.get(IamRole.READER)));
-    groups.add(new Acl.Group(policies.get(IamRole.CUSTODIAN)));
-    groups.add(new Acl.Group(policies.get(IamRole.STEWARD)));
+    // Build all the groups that need to get read access to the files, ignoring null policies
+    List<Acl.Group> groups =
+        Stream.of(IamRole.READER, IamRole.CUSTODIAN, IamRole.STEWARD)
+            .map(policies::get)
+            // Filter out cases where no policies were passed in
+            .filter(Objects::nonNull)
+            .map(Acl.Group::new)
+            .toList();
 
     // build acls if necessary
     List<Acl> acls = new LinkedList<>();

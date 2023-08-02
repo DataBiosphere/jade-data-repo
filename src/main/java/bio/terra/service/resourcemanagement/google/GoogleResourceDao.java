@@ -500,7 +500,7 @@ public class GoogleResourceDao {
     if (bucketResources.size() > 1) {
       // TODO This is only here because of the dev case. It should be removed when we start using
       // RBS in dev.
-      if (googleResourceConfiguration.getAllowReuseExistingBuckets()) {
+      if (googleResourceConfiguration.allowReuseExistingBuckets()) {
         return bucketResources.get(0).region(defaultRegion);
       }
       throw new CorruptMetadataException(

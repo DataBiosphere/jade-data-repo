@@ -37,8 +37,9 @@ public class BatchOperationTest {
 
   @Before
   public void setup() {
-    GoogleResourceConfiguration resourceConfiguration = new GoogleResourceConfiguration();
-    resourceConfiguration.setFirestoreRetries(4);
+    // Use fewer firestoreRetries for testing
+    GoogleResourceConfiguration resourceConfiguration =
+        new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456");
     ConfigurationService configurationService =
         new ConfigurationService(
             samConfiguration, gcsConfiguration, resourceConfiguration, appConfiguration);

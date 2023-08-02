@@ -117,7 +117,7 @@ public class BufferService {
     var project = cloudResourceManager.projects().get(projectId).execute();
 
     ResourceId resourceId =
-        new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.getSecureFolderResourceId());
+        new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.secureFolderResourceId());
 
     project.setParent(resourceId);
 

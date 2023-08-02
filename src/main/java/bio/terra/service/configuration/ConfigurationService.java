@@ -219,8 +219,8 @@ public class ConfigurationService {
     addParameter(DRS_LOOKUP_MAX, appConfiguration.getMaxDrsLookups());
     addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
     addParameter(
-        ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());
-    addParameter(FIRESTORE_RETRIES, googleResourceConfiguration.getFirestoreRetries());
+        ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.allowReuseExistingBuckets());
+    addParameter(FIRESTORE_RETRIES, googleResourceConfiguration.firestoreRetries());
 
     // -- Faults --
     addFaultSimple(CREATE_ASSET_FAULT);

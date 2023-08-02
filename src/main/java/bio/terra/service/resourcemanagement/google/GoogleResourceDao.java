@@ -111,7 +111,7 @@ public class GoogleResourceDao {
       @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
-    this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.getRegion());
+    this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.region());
     this.googleResourceConfiguration = googleResourceConfiguration;
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }

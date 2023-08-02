@@ -69,8 +69,8 @@ public class GcsProjectFactory {
         p ->
             new GcsProject(
                 p,
-                gcsConfiguration.getConnectTimeoutSeconds(),
-                gcsConfiguration.getReadTimeoutSeconds()));
+                gcsConfiguration.connectTimeoutSeconds(),
+                gcsConfiguration.readTimeoutSeconds()));
   }
 
   private GoogleProjectResource retrieveProjectResource(String projectId) {

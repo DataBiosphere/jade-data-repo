@@ -120,6 +120,12 @@ public class GrammarTest {
   }
 
   @Test
+  public void testJSONDataInStringField() {
+    Query.parse(
+        "SELECT * FROM foo.bar WHERE CAST(JSON_EXTRACT_SCALAR(Description, '$.favoriteNumber') AS INT64) > 5");
+  }
+
+  @Test
   public void test1000Genomes() {
     // test for DR-2143 Fix validating dataset names that start with a number
     Query.parse("SELECT * FROM 1000GenomesDataset.sample_info");

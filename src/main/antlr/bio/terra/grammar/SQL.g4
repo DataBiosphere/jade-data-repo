@@ -64,8 +64,12 @@ expr : number
     | '(' expr ')'
     | column_expr
     | keyword
+    | cast_clause
     ;
 
+cast_clause
+    : CAST '(' expr AS datatype_name ')'
+    ;
 over_clause
     : OVER '(' (PARTITION BY expr)? order_by_clause? ')'
     ;

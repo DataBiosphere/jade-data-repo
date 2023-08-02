@@ -12,6 +12,7 @@ import bio.terra.common.BQTestUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AccessInfoBigQueryModelTable;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -235,6 +236,27 @@ public class IngestTest extends UsersBase {
 
     TableResult bqQueryResultCommitted = bigQueryProject.query(bqTableInfo.getSampleQuery());
     assertThat("Committed rows are there", bqQueryResultCommitted.getTotalRows(), equalTo(6L));
+  }
+
+  @Test
+  public void ingestJsonData() throws Exception {
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant-with-json-data.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+    DatasetDataModel data =
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "participant", 0, 6, null);
+    assertThat("correct participant row count", data.getFilteredRowCount(), equalTo(5));
+    DatasetDataModel filteredData =
+        dataRepoFixtures.retrieveDatasetData(
+            steward(),
+            datasetId,
+            "participant",
+            0,
+            6,
+            "CAST(JSON_EXTRACT_SCALAR(jsonData, '$.numericField') AS INT64) > 5");
+    assertThat("correct filtered number of rows", filteredData.getFilteredRowCount(), equalTo(2));
   }
 
   @Test

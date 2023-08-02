@@ -75,8 +75,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
     try {
       Workspace byResourceGroup =
           client
@@ -107,8 +106,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info(
         "Creating new Log Analytics Workspace for Storage Account {}",
@@ -135,8 +133,7 @@ public class AzureMonitoringService {
   public void deleteLogAnalyticsWorkspace(BillingProfileModel profileModel, String id) {
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info("Deleting Log Analytics Workspace {}", id);
 
@@ -236,8 +233,7 @@ public class AzureMonitoringService {
 
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     try {
       DataExport dataExport =
@@ -275,7 +271,7 @@ public class AzureMonitoringService {
 
     String resourceId =
         resourceConfiguration
-            .getMonitoring()
+            .monitoring()
             .getLogCollectionConfigsAsMap()
             .get(storageAccount.getRegion());
     if (resourceId == null) {
@@ -285,8 +281,7 @@ public class AzureMonitoringService {
     }
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info(
         "Creating new export rule for Log Analytics Workspace linked to Storage Account {}",
@@ -313,8 +308,7 @@ public class AzureMonitoringService {
   public void deleteDataExportRule(BillingProfileModel profileModel, String id) {
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info("Deleting Log Analytics Workspace data export rule {}", id);
 
@@ -333,8 +327,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     try {
       SentinelOnboardingState sentinelOnboardingState =
@@ -367,8 +360,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info(
         "Creating new Sentinel deployment for Log Analytics Workspace that monitors Storage Account {}",
@@ -398,8 +390,7 @@ public class AzureMonitoringService {
 
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info("Deleting Sentinel instance {}", id);
 
@@ -418,8 +409,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
     try {
       AlertRule alertRule =
           client
@@ -454,8 +444,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     // Note: this is copied from the rule defined in the Terra landing zone service
     logger.info(
@@ -503,8 +492,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info(
         "Deleting Sentinel UnauthorizedAccess alert rule for Storage Account {}",
@@ -529,8 +517,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
     try {
       AutomationRule automationRule =
           client
@@ -566,8 +553,7 @@ public class AzureMonitoringService {
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
     logger.info(
         "Creating new Sentinel alert rule for Sentinel instance monitoring Storage Account {}",
         storageAccount.getStorageAccountId());
@@ -583,8 +569,8 @@ public class AzureMonitoringService {
             .withActionConfiguration(
                 new PlaybookActionProperties()
                     .withLogicAppResourceId(
-                        resourceConfiguration.getMonitoring().getNotificationApplicationId())
-                    .withTenantId(resourceConfiguration.getCredentials().getHomeTenantId()));
+                        resourceConfiguration.monitoring().notificationApplicationId())
+                    .withTenantId(resourceConfiguration.credentials().homeTenantId()));
     return client
         .automationRules()
         .define(SLACK_ALERT_RULE_NAME)
@@ -608,8 +594,7 @@ public class AzureMonitoringService {
   public void deleteNotificationRule(BillingProfileModel profileModel, String id) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.getCredentials().getHomeTenantId(),
-            profileModel.getSubscriptionId());
+            resourceConfiguration.credentials().homeTenantId(), profileModel.getSubscriptionId());
 
     logger.info("Deleting Sentinel alert rule {}", id);
 

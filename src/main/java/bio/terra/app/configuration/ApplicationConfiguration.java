@@ -369,10 +369,10 @@ public class ApplicationConfiguration {
       AzureResourceConfiguration azureResourceConfiguration) {
 
     SQLServerDataSource ds = new SQLServerDataSource();
-    ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
-    ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
-    ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
-    ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
+    ds.setServerName(azureResourceConfiguration.synapse().workspaceName());
+    ds.setUser(azureResourceConfiguration.synapse().sqlAdminUser());
+    ds.setPassword(azureResourceConfiguration.synapse().sqlAdminPassword());
+    ds.setDatabaseName(azureResourceConfiguration.synapse().databaseName());
 
     return new NamedParameterJdbcTemplate(ds);
   }

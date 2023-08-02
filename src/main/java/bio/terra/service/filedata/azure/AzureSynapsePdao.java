@@ -381,13 +381,13 @@ public class AzureSynapsePdao {
   @PostConstruct
   private void initializeDb() {
     // If this configuration wasn't set, skip initialization
-    if (azureResourceConfiguration.getSynapse() == null) {
+    if (azureResourceConfiguration.synapse() == null) {
       return;
     }
-    boolean initialize = azureResourceConfiguration.getSynapse().isInitialize();
-    String dbName = azureResourceConfiguration.getSynapse().getDatabaseName();
-    String encryptionKey = azureResourceConfiguration.getSynapse().getEncryptionKey();
-    String parquetFormatName = azureResourceConfiguration.getSynapse().getParquetFileFormatName();
+    boolean initialize = azureResourceConfiguration.synapse().initialize();
+    String dbName = azureResourceConfiguration.synapse().databaseName();
+    String encryptionKey = azureResourceConfiguration.synapse().encryptionKey();
+    String parquetFormatName = azureResourceConfiguration.synapse().parquetFileFormatName();
 
     if (initialize) {
       logger.info("Initializing Synapse database {}", dbName);
@@ -545,7 +545,7 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("destinationParquetFile", scratchParquetFile);
     sqlCreateTableTemplate.add("destinationDataSourceName", scratchDataSourceName);
     sqlCreateTableTemplate.add(
-        "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
+        "fileFormat", azureResourceConfiguration.synapse().parquetFileFormatName());
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", datasetTable.getSynapseColumns());
@@ -585,7 +585,7 @@ public class AzureSynapsePdao {
     sqlCreateFinalParquetFilesTemplate.add("destinationParquetFile", destinationParquetFile);
     sqlCreateFinalParquetFilesTemplate.add("destinationDataSourceName", destinationDataSourceName);
     sqlCreateFinalParquetFilesTemplate.add(
-        "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
+        "fileFormat", azureResourceConfiguration.synapse().parquetFileFormatName());
     sqlCreateFinalParquetFilesTemplate.add("scratchTableName", scratchTableName);
 
     String columns =
@@ -655,7 +655,7 @@ public class AzureSynapsePdao {
             .add("tableName", rowIdTableName)
             .add("destinationParquetFile", rowIdParquetFile)
             .add("destinationDataSourceName", snapshotDataSourceName)
-            .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+            .add("fileFormat", azureResourceConfiguration.synapse().parquetFileFormatName())
             .add("selectStatements", sqlMergeTablesTemplate.render());
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
@@ -1101,7 +1101,7 @@ public class AzureSynapsePdao {
         .add("tableName", snapshotTableName)
         .add("destinationParquetFile", snapshotParquetFileName)
         .add("destinationDataSourceName", snapshotDataSourceName)
-        .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+        .add("fileFormat", azureResourceConfiguration.synapse().parquetFileFormatName())
         .add("ingestFileName", datasetParquetFileName)
         .add("ingestFileDataSourceName", datasetDataSourceName)
         .add("drsLocator", drsLocator)
@@ -1330,14 +1330,14 @@ public class AzureSynapsePdao {
 
   @VisibleForTesting
   public SQLServerDataSource getDatasource() {
-    return getDatasource(azureResourceConfiguration.getSynapse().getDatabaseName());
+    return getDatasource(azureResourceConfiguration.synapse().databaseName());
   }
 
   private SQLServerDataSource getDatasource(String databaseName) {
     SQLServerDataSource ds = new SQLServerDataSource();
-    ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
-    ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
-    ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
+    ds.setServerName(azureResourceConfiguration.synapse().workspaceName());
+    ds.setUser(azureResourceConfiguration.synapse().sqlAdminUser());
+    ds.setPassword(azureResourceConfiguration.synapse().sqlAdminPassword());
     ds.setDatabaseName(databaseName);
     return ds;
   }

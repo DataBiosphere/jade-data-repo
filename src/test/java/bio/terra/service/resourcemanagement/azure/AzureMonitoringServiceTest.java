@@ -256,7 +256,7 @@ class AzureMonitoringServiceTest {
   private void mockLogAnalyticsClient() {
     Credentials credentials = new Credentials();
     credentials.setHomeTenantId(HOME_TENANT_ID);
-    when(resourceConfiguration.getCredentials()).thenReturn(credentials);
+    when(resourceConfiguration.credentials()).thenReturn(credentials);
 
     when(resourceConfiguration.getLogAnalyticsManagerClient(HOME_TENANT_ID, SUBSCRIPTION_ID))
         .thenReturn(logAnalyticsManager);
@@ -265,7 +265,7 @@ class AzureMonitoringServiceTest {
   private void mockSecurityInsightsClient() {
     Credentials credentials = new Credentials();
     credentials.setHomeTenantId(HOME_TENANT_ID);
-    when(resourceConfiguration.getCredentials()).thenReturn(credentials);
+    when(resourceConfiguration.credentials()).thenReturn(credentials);
 
     when(resourceConfiguration.getSecurityInsightsManagerClient(HOME_TENANT_ID, SUBSCRIPTION_ID))
         .thenReturn(securityInsightsManager);

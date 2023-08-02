@@ -36,8 +36,8 @@ public record AzureResourceConfiguration(
    */
   public TokenCredential getAppToken(final UUID tenantId) {
     return new ClientSecretCredentialBuilder()
-        .clientId(credentials.applicationId.toString())
-        .clientSecret(credentials.secret)
+        .clientId(credentials.getApplicationId().toString())
+        .clientSecret(credentials.getSecret())
         .tenantId(tenantId.toString())
         .build();
   }
@@ -49,7 +49,7 @@ public record AzureResourceConfiguration(
    * @return A credential object that can be used to interact with Azure apis
    */
   public TokenCredential getAppToken() {
-    return getAppToken(credentials.homeTenantId());
+    return getAppToken(credentials.getHomeTenantId());
   }
 
   /**
@@ -111,17 +111,42 @@ public record AzureResourceConfiguration(
    * @return An authenticated {@link AzureResourceManager} client
    */
   public AzureResourceManager getClient(final UUID subscriptionId) {
-    return getClient(credentials.homeTenantId(), subscriptionId);
+    return getClient(credentials.getHomeTenantId(), subscriptionId);
   }
 
   /** Information for authenticating the TDR service against user Azure tenants */
-  public record Credentials(
-      // The unique UUID of the TDR application
-      UUID applicationId,
-      // A valid and current secret (e.g. application password) for the TDR application
-      String secret,
-      // The UUID of the tenant to which the application belongs
-      UUID homeTenantId) {}
+  public static class Credentials {
+    // The unique UUID of the TDR application
+    private UUID applicationId;
+    // A valid and current secret (e.g. application password) for the TDR application
+    private String secret;
+    // The UUID of the tenant to which the application belongs
+    private UUID homeTenantId;
+
+    public UUID getApplicationId() {
+      return applicationId;
+    }
+
+    public void setApplicationId(UUID applicationId) {
+      this.applicationId = applicationId;
+    }
+
+    public String getSecret() {
+      return secret;
+    }
+
+    public void setSecret(String secret) {
+      this.secret = secret;
+    }
+
+    public UUID getHomeTenantId() {
+      return homeTenantId;
+    }
+
+    public void setHomeTenantId(UUID homeTenantId) {
+      this.homeTenantId = homeTenantId;
+    }
+  }
 
   public record Synapse(
       String workspaceName,

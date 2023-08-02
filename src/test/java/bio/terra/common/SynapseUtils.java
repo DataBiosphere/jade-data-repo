@@ -129,7 +129,7 @@ public class SynapseUtils {
 
     client =
         azureResourceConfiguration.getClient(
-            azureResourceConfiguration.getCredentials().getHomeTenantId(),
+            azureResourceConfiguration.credentials().getHomeTenantId(),
             billingProfile.getSubscriptionId());
 
     applicationResource =

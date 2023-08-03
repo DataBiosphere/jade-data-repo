@@ -58,7 +58,7 @@ public class SamApiService {
     return new ApiClient()
         .setHttpClient(sharedHttpClient)
         .setUserAgent("OpenAPI-Generator/1.0.0 java") // only logs an error in sam
-        .setBasePath(samConfig.getBasePath());
+        .setBasePath(samConfig.basePath());
   }
 
   private ApiClient createApiClient(String accessToken) {

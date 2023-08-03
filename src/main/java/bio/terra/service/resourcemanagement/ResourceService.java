@@ -648,7 +648,7 @@ public class ResourceService {
 
   private Map<String, List<String>> getStewardPolicy() {
     // get steward emails and add to policy
-    String stewardsGroupEmail = formatEmailForPolicy(samConfiguration.getStewardsGroupEmail());
+    String stewardsGroupEmail = formatEmailForPolicy(samConfiguration.stewardsGroupEmail());
     Map<String, List<String>> policyMap = new HashMap<>();
     policyMap.put(BQ_JOB_USER_ROLE, Collections.singletonList(stewardsGroupEmail));
     return Collections.unmodifiableMap(policyMap);

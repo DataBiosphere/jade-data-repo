@@ -49,8 +49,7 @@ public class BardClient {
 
     int ttl =
         Objects.requireNonNullElse(
-            metricsConfig.getSyncRefreshIntervalSeconds(),
-            DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
+            metricsConfig.syncRefreshIntervalSeconds(), DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
     this.bearerCache = Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
 
     this.metricsConfig = metricsConfig;
@@ -116,11 +115,11 @@ public class BardClient {
 
   @VisibleForTesting
   String getApiUrl() {
-    return metricsConfig.getBardBasePath() + API_PATH;
+    return metricsConfig.bardBasePath() + API_PATH;
   }
 
   @VisibleForTesting
   String getSyncPathUrl() {
-    return metricsConfig.getBardBasePath() + SYNC_PATH;
+    return metricsConfig.bardBasePath() + SYNC_PATH;
   }
 }

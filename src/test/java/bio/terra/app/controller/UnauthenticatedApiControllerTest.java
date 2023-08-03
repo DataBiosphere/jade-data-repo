@@ -59,10 +59,10 @@ public class UnauthenticatedApiControllerTest {
     String samUrl = "sam.base.url";
     String oidcAuthorityEndpoint = "/oidc/authority/endpoint";
 
-    when(oauthConfig.getClientId()).thenReturn(oauthClientId);
+    when(oauthConfig.clientId()).thenReturn(oauthClientId);
     when(openIDConnectConfiguration.getClientId()).thenReturn(oidcClientId);
-    when(terraConfiguration.getBasePath()).thenReturn(terraUrl);
-    when(samConfiguration.getBasePath()).thenReturn(samUrl);
+    when(terraConfiguration.basePath()).thenReturn(terraUrl);
+    when(samConfiguration.basePath()).thenReturn(samUrl);
     when(openIDConnectConfiguration.getAuthorityEndpoint()).thenReturn(oidcAuthorityEndpoint);
 
     mvc.perform(get("/configuration"))

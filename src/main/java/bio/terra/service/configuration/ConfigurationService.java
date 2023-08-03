@@ -202,9 +202,9 @@ public class ConfigurationService {
   // Setup the configuration. This is done once during construction.
   private void setConfiguration() {
     // -- Parameters --
-    addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, samConfiguration.getRetryInitialWaitSeconds());
-    addParameter(SAM_RETRY_MAXIMUM_WAIT_SECONDS, samConfiguration.getRetryMaximumWaitSeconds());
-    addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.getOperationTimeoutSeconds());
+    addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, samConfiguration.retryInitialWaitSeconds());
+    addParameter(SAM_RETRY_MAXIMUM_WAIT_SECONDS, samConfiguration.retryMaximumWaitSeconds());
+    addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.operationTimeoutSeconds());
     addParameter(LOAD_BULK_ARRAY_FILES_MAX, appConfiguration.getMaxBulkFileLoadArray());
     addParameter(LOAD_CONCURRENT_FILES, appConfiguration.getLoadConcurrentFiles());
     addParameter(LOAD_CONCURRENT_INGESTS, appConfiguration.getLoadConcurrentIngests());
@@ -219,8 +219,8 @@ public class ConfigurationService {
     addParameter(DRS_LOOKUP_MAX, appConfiguration.getMaxDrsLookups());
     addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
     addParameter(
-        ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());
-    addParameter(FIRESTORE_RETRIES, googleResourceConfiguration.getFirestoreRetries());
+        ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.allowReuseExistingBuckets());
+    addParameter(FIRESTORE_RETRIES, googleResourceConfiguration.firestoreRetries());
 
     // -- Faults --
     addFaultSimple(CREATE_ASSET_FAULT);

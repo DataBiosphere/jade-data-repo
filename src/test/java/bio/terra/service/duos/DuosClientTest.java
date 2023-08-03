@@ -60,7 +60,7 @@ public class DuosClientTest {
     when(googleCredentialsService.getApplicationDefaultAccessToken(DuosClient.SCOPES))
         .thenReturn(TDR_SA_TOKEN);
 
-    when(duosConfiguration.getBasePath()).thenReturn(BASE_PATH);
+    when(duosConfiguration.basePath()).thenReturn(BASE_PATH);
 
     duosClient = new DuosClient(duosConfiguration, restTemplate, googleCredentialsService);
   }

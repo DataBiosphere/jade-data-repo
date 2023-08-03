@@ -13,68 +13,20 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 /** Configuration for working with Azure resources */
-@Configuration
+@ConstructorBinding
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "azure")
-public class AzureResourceConfiguration {
-  private Credentials credentials;
-  private Synapse synapse;
-  private int maxRetries;
-  private int retryTimeoutSeconds;
-  private String apiVersion;
-  private Monitoring monitoring;
-
-  public Credentials getCredentials() {
-    return credentials;
-  }
-
-  public void setCredentials(Credentials credentials) {
-    this.credentials = credentials;
-  }
-
-  public Synapse getSynapse() {
-    return synapse;
-  }
-
-  public void setSynapse(Synapse synapse) {
-    this.synapse = synapse;
-  }
-
-  public int getMaxRetries() {
-    return maxRetries;
-  }
-
-  public void setMaxRetries(int maxRetries) {
-    this.maxRetries = maxRetries;
-  }
-
-  public int getRetryTimeoutSeconds() {
-    return retryTimeoutSeconds;
-  }
-
-  public void setRetryTimeoutSeconds(int retryTimeoutSeconds) {
-    this.retryTimeoutSeconds = retryTimeoutSeconds;
-  }
-
-  public String getApiVersion() {
-    return apiVersion;
-  }
-
-  public void setApiVersion(String apiVersion) {
-    this.apiVersion = apiVersion;
-  }
-
-  public Monitoring getMonitoring() {
-    return monitoring;
-  }
-
-  public void setMonitoring(Monitoring monitoring) {
-    this.monitoring = monitoring;
-  }
+public record AzureResourceConfiguration(
+    Credentials credentials,
+    Synapse synapse,
+    int maxRetries,
+    int retryTimeoutSeconds,
+    String apiVersion,
+    Monitoring monitoring) {
 
   /**
    * Given a user tenant Id, return Azure credentials
@@ -84,8 +36,8 @@ public class AzureResourceConfiguration {
    */
   public TokenCredential getAppToken(final UUID tenantId) {
     return new ClientSecretCredentialBuilder()
-        .clientId(credentials.applicationId.toString())
-        .clientSecret(credentials.secret)
+        .clientId(credentials.getApplicationId().toString())
+        .clientSecret(credentials.getSecret())
         .tenantId(tenantId.toString())
         .build();
   }
@@ -196,102 +148,28 @@ public class AzureResourceConfiguration {
     }
   }
 
-  public static class Synapse {
-
-    private String workspaceName;
-    private String sqlAdminUser;
-    private String sqlAdminPassword;
-    private String databaseName;
-    private String parquetFileFormatName;
-    private String encryptionKey;
-    private boolean initialize;
-
-    public String getWorkspaceName() {
-      return workspaceName;
-    }
-
-    public void setWorkspaceName(String workspaceName) {
-      this.workspaceName = workspaceName;
-    }
-
-    public String getSqlAdminUser() {
-      return sqlAdminUser;
-    }
-
-    public void setSqlAdminUser(String sqlAdminUser) {
-      this.sqlAdminUser = sqlAdminUser;
-    }
-
-    public String getSqlAdminPassword() {
-      return sqlAdminPassword;
-    }
-
-    public void setSqlAdminPassword(String sqlAdminPassword) {
-      this.sqlAdminPassword = sqlAdminPassword;
-    }
-
-    public String getDatabaseName() {
-      return databaseName;
-    }
-
-    public void setDatabaseName(String databaseName) {
-      this.databaseName = databaseName;
-    }
-
-    public String getParquetFileFormatName() {
-      return parquetFileFormatName;
-    }
-
-    public void setParquetFileFormatName(String parquetFileFormatName) {
-      this.parquetFileFormatName = parquetFileFormatName;
-    }
-
-    public String getEncryptionKey() {
-      return encryptionKey;
-    }
-
-    public void setEncryptionKey(String encryptionKey) {
-      this.encryptionKey = encryptionKey;
-    }
-
-    public boolean isInitialize() {
-      return initialize;
-    }
-
-    public void setInitialize(boolean initialize) {
-      this.initialize = initialize;
-    }
-  }
+  public record Synapse(
+      String workspaceName,
+      String sqlAdminUser,
+      String sqlAdminPassword,
+      String databaseName,
+      String parquetFileFormatName,
+      String encryptionKey,
+      boolean initialize) {}
 
   /** Track the monitoring-related configuration */
-  public static class Monitoring {
-    // The resource ID of the Azure Logic app that handles sending Slack notifications
-    private String notificationApplicationId;
-    // The list of regional storage accounts to send long term logs to
-    private List<LogCollectionConfig> logCollectionConfigs;
-
-    public String getNotificationApplicationId() {
-      return notificationApplicationId;
-    }
-
-    public void setNotificationApplicationId(String notificationApplicationId) {
-      this.notificationApplicationId = notificationApplicationId;
-    }
-
-    public List<LogCollectionConfig> getLogCollectionConfigs() {
-      return logCollectionConfigs;
-    }
-
-    public void setLogCollectionConfigs(List<LogCollectionConfig> logCollectionConfigs) {
-      this.logCollectionConfigs = logCollectionConfigs;
-    }
+  public record Monitoring(
+      // The resource ID of the Azure Logic app that handles sending Slack notifications
+      String notificationApplicationId,
+      // The list of regional storage accounts to send long term logs to
+      List<LogCollectionConfig> logCollectionConfigs) {
 
     public Map<AzureRegion, String> getLogCollectionConfigsAsMap() {
       return logCollectionConfigs.stream()
           .collect(
               Collectors.toMap(
-                  LogCollectionConfig::getRegion,
-                  LogCollectionConfig::getTargetStorageAccountResourceId));
+                  LogCollectionConfig::region,
+                  LogCollectionConfig::targetStorageAccountResourceId));
     }
   }
 
@@ -300,31 +178,5 @@ public class AzureResourceConfiguration {
    * in the same region as the Log Analytics workspace which is why there may be several of these
    * objects in the service configuration
    */
-  public static class LogCollectionConfig {
-
-    private AzureRegion region;
-    private String targetStorageAccountResourceId;
-
-    public AzureRegion getRegion() {
-      return region;
-    }
-
-    public void setRegion(String region) {
-      AzureRegion azureRegion = AzureRegion.fromValue(region);
-      if (azureRegion == null) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Invalid region '%s' specified in azure.monitoring.logCollectionConfigs", region));
-      }
-      this.region = azureRegion;
-    }
-
-    public String getTargetStorageAccountResourceId() {
-      return targetStorageAccountResourceId;
-    }
-
-    public void setTargetStorageAccountResourceId(String targetStorageAccountResourceId) {
-      this.targetStorageAccountResourceId = targetStorageAccountResourceId;
-    }
-  }
+  public record LogCollectionConfig(AzureRegion region, String targetStorageAccountResourceId) {}
 }

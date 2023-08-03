@@ -162,7 +162,7 @@ public class BufferServiceConnectedTest {
     assertThat(
         "Sensitive project was moved to the correct folder",
         sensitiveParent.getId(),
-        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
+        equalTo(googleResourceConfiguration.secureFolderResourceId()));
   }
 
   private SnapshotModel getTestSnapshot(UUID id) throws Exception {

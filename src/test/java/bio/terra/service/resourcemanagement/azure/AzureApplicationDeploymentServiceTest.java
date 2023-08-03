@@ -68,7 +68,7 @@ public class AzureApplicationDeploymentServiceTest {
                     STORAGE_PREFIX_KEY, Map.of(PARAMETER_VALUE_KEY, "tdr"),
                     STORAGE_TYPE_KEY, Map.of(PARAMETER_VALUE_KEY, "Standard_LRS"))));
     String appResourceId = MetadataDataAccessUtils.getApplicationDeploymentId(billingProfileModel);
-    when(genericResources.getById(appResourceId, resourceConfiguration.getApiVersion()))
+    when(genericResources.getById(appResourceId, resourceConfiguration.apiVersion()))
         .thenReturn(genericResource);
     when(client.genericResources()).thenReturn(genericResources);
     when(resourceDao.retrieveApplicationDeploymentByName(

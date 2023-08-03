@@ -57,7 +57,7 @@ public class SamRetryIntegrationTest extends UsersBase {
     ApiClient apiClient = new ApiClient();
     apiClient.setAccessToken(accessToken);
     apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    return apiClient.setBasePath(samConfig.getBasePath());
+    return apiClient.setBasePath(samConfig.basePath());
   }
 
   @Before

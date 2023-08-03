@@ -203,7 +203,7 @@ public class DrsService {
     DRSAuthorizations auths = new DRSAuthorizations();
     if (passportAuthorizationAvailable) {
       auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
-      auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
+      auths.addPassportAuthIssuersItem(ecmConfiguration.rasIssuer());
     }
     auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
     return auths;

@@ -85,6 +85,6 @@ public class RawlsService {
       return null;
     }
     return "%s/#workspaces/%s/%s"
-        .formatted(terraConfiguration.getBasePath(), workspace.getNamespace(), workspace.getName());
+        .formatted(terraConfiguration.basePath(), workspace.getNamespace(), workspace.getName());
   }
 }

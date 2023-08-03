@@ -50,7 +50,7 @@ public class PolicyService {
 
   public void createPao(
       UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
-    if (!policyServiceConfiguration.getEnabled()) {
+    if (!policyServiceConfiguration.enabled()) {
       logger.info("Terra Policy Service is not enabled.");
       return;
     }
@@ -74,7 +74,7 @@ public class PolicyService {
    * the PolicyServiceNotFoundException exception.
    */
   public void deletePaoIfExists(UUID resourceId) {
-    if (!policyServiceConfiguration.getEnabled()) {
+    if (!policyServiceConfiguration.enabled()) {
       logger.info("Terra Policy Service is not enabled.");
       return;
     }
@@ -119,14 +119,14 @@ public class PolicyService {
       publicApi.getStatus();
       return new RepositoryStatusModelSystems()
           .ok(true)
-          .critical(policyServiceConfiguration.getEnabled())
+          .critical(policyServiceConfiguration.enabled())
           .message("Terra Policy Service status ok");
     } catch (Exception ex) {
       String errorMsg = "Terra Policy Service status check failed";
       logger.error(errorMsg, ex);
       return new RepositoryStatusModelSystems()
           .ok(false)
-          .critical(policyServiceConfiguration.getEnabled())
+          .critical(policyServiceConfiguration.enabled())
           .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
     }
   }

@@ -55,6 +55,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -86,7 +87,7 @@ public class AzureIngestFileConnectedTest {
   private FileLoadModel fileLoadModel;
   private TableServiceClient tableServiceClient;
 
-  @Autowired private AzureResourceConfiguration azureResourceConfiguration;
+  @SpyBean private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -107,8 +108,8 @@ public class AzureIngestFileConnectedTest {
     UUID storageAccountId = UUID.randomUUID();
     datasetId = UUID.randomUUID();
 
-    homeTenantId = azureResourceConfiguration.getCredentials().getHomeTenantId();
-    azureResourceConfiguration.getCredentials().setHomeTenantId(testConfig.getTargetTenantId());
+    AzureResourceConfiguration.Credentials credentials = azureResourceConfiguration.credentials();
+    credentials.setHomeTenantId(testConfig.getTargetTenantId());
 
     billingProfile =
         new BillingProfileModel()
@@ -177,7 +178,6 @@ public class AzureIngestFileConnectedTest {
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
     }
-    azureResourceConfiguration.getCredentials().setHomeTenantId(homeTenantId);
     connectedOperations.teardown();
   }
 

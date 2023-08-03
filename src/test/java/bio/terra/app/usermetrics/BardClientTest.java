@@ -38,7 +38,7 @@ public class BardClientTest {
 
   @BeforeEach
   void setup() {
-    when(userMetricsConfiguration.getSyncRefreshIntervalSeconds()).thenReturn(1000);
+    when(userMetricsConfiguration.syncRefreshIntervalSeconds()).thenReturn(1000);
 
     bardClient = new BardClient(userMetricsConfiguration, restTemplate);
 

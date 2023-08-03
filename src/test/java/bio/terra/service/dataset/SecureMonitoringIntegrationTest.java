@@ -108,7 +108,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     assertThat(
         "The parent of the dataset project is in the 'secure' folder",
         datasetParent.getId(),
-        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
+        equalTo(googleResourceConfiguration.secureFolderResourceId()));
 
     String datasetName = dataset.getName();
     SnapshotRequestModel requestModel =
@@ -161,7 +161,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     assertThat(
         "The parent of the snapshot project is in the 'secure' folder",
         snapshotParent.getId(),
-        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
+        equalTo(googleResourceConfiguration.secureFolderResourceId()));
   }
 
   private DatasetSummaryModel datasetWithSecureMonitoring(boolean secureMonitoringEnabled)

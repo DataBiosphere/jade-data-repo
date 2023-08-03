@@ -1,21 +1,8 @@
 package bio.terra.app.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.ConstructorBinding;
 
-@Configuration
-@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "rawls")
-public class RawlsConfiguration {
-
-  private String basePath;
-
-  public String getBasePath() {
-    return basePath;
-  }
-
-  public void setBasePath(String basePath) {
-    this.basePath = basePath;
-  }
-}
+@ConstructorBinding
+public record RawlsConfiguration(String basePath) {}

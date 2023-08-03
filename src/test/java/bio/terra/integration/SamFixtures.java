@@ -40,7 +40,7 @@ public class SamFixtures {
   }
 
   public void deleteServiceAccountFromTerra(TestConfiguration.User user, String serviceAccount) {
-    logger.info("Deleting user {} from Sam {}", serviceAccount, samConfig.getBasePath());
+    logger.info("Deleting user {} from Sam {}", serviceAccount, samConfig.basePath());
     try {
       // Get the user ID to delete
       HttpHeaders authedHeader = getHeaders(user);
@@ -63,7 +63,7 @@ public class SamFixtures {
       // Delete the user
       String userDeletionUrl =
           "%s/api/admin/v1/user/%s"
-              .formatted(samConfig.getBasePath(), userStatus.getUserInfo().getUserSubjectId());
+              .formatted(samConfig.basePath(), userStatus.getUserInfo().getUserSubjectId());
       try {
         restTemplate.exchange(
             userDeletionUrl, HttpMethod.DELETE, new HttpEntity<>(null, authedHeader), Void.class);
@@ -86,7 +86,7 @@ public class SamFixtures {
     ApiClient apiClient = new ApiClient();
     apiClient.setAccessToken(accessToken);
     apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    return apiClient.setBasePath(samConfig.getBasePath());
+    return apiClient.setBasePath(samConfig.basePath());
   }
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {

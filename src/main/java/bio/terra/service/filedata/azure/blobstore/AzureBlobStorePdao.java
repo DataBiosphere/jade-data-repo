@@ -112,8 +112,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
   private RequestRetryOptions getRetryOptions() {
     return new RequestRetryOptions(
         RetryPolicyType.EXPONENTIAL,
-        this.resourceConfiguration.getMaxRetries(),
-        this.resourceConfiguration.getRetryTimeoutSeconds(),
+        this.resourceConfiguration.maxRetries(),
+        this.resourceConfiguration.retryTimeoutSeconds(),
         null,
         null,
         null);

@@ -5,9 +5,10 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,18 +81,134 @@ public final class ValidationUtils {
     return value;
   }
 
-  public static LinkedHashMap<String, String> validateRelationshipTerm(
+  @VisibleForTesting
+  static boolean isCompatibleDataType(
+      TableDataType fromDataType,
+      TableDataType toDataType,
+      CloudPlatformWrapper cloudPlatformWrapper) {
+    List<TableDataType> compatibleTypes = null;
+    if (cloudPlatformWrapper.isGcp()) {
+      // https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules
+      compatibleTypes =
+          switch (fromDataType) {
+            case DATE, DATETIME -> List.of(TableDataType.DATE, TableDataType.DATETIME);
+            case DIRREF, FILEREF -> List.of(TableDataType.DIRREF, TableDataType.FILEREF);
+            case FLOAT, FLOAT64, INTEGER, INT64, NUMERIC -> List.of(
+                TableDataType.FLOAT,
+                TableDataType.FLOAT64,
+                TableDataType.INTEGER,
+                TableDataType.INT64,
+                TableDataType.NUMERIC);
+            case STRING, TEXT -> List.of(TableDataType.STRING, TableDataType.TEXT);
+            default -> List.of(fromDataType);
+          };
+    } else if (cloudPlatformWrapper.isAzure()) {
+      // Following rules for implicit conversion in both directions as defined here:
+      // https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?view=sql-server-ver16
+      compatibleTypes =
+          switch (fromDataType) {
+            case BOOLEAN, FLOAT, FLOAT64, INTEGER, INT64, NUMERIC -> List.of(
+                TableDataType.BOOLEAN,
+                TableDataType.FLOAT,
+                TableDataType.FLOAT64,
+                TableDataType.TEXT,
+                TableDataType.STRING,
+                TableDataType.INTEGER,
+                TableDataType.INT64,
+                TableDataType.NUMERIC);
+            case BYTES -> List.of(
+                TableDataType.BOOLEAN,
+                TableDataType.BYTES,
+                TableDataType.INTEGER,
+                TableDataType.INT64,
+                TableDataType.NUMERIC);
+            case DATE -> List.of(
+                TableDataType.DATE,
+                TableDataType.DATETIME,
+                TableDataType.TIMESTAMP,
+                TableDataType.TEXT,
+                TableDataType.STRING);
+            case DATETIME, TIMESTAMP -> List.of(
+                TableDataType.DATE,
+                TableDataType.DATETIME,
+                TableDataType.TIMESTAMP,
+                TableDataType.TIME,
+                TableDataType.TEXT,
+                TableDataType.STRING);
+            case TIME -> List.of(
+                TableDataType.DATETIME,
+                TableDataType.TIMESTAMP,
+                TableDataType.TEXT,
+                TableDataType.STRING);
+            case DIRREF, FILEREF -> List.of(TableDataType.DIRREF, TableDataType.FILEREF);
+            case TEXT, STRING -> List.of(
+                TableDataType.BOOLEAN,
+                TableDataType.BYTES,
+                TableDataType.DATE,
+                TableDataType.DATETIME,
+                TableDataType.TIMESTAMP,
+                TableDataType.FLOAT,
+                TableDataType.FLOAT64,
+                TableDataType.INTEGER,
+                TableDataType.INT64,
+                TableDataType.NUMERIC,
+                TableDataType.TEXT,
+                TableDataType.STRING,
+                TableDataType.TIME);
+            default -> List.of(fromDataType);
+          };
+    } else {
+      compatibleTypes = List.of();
+    }
+    return compatibleTypes.contains(toDataType);
+  }
+
+  public static Map<String, String> validateMatchingColumnDataTypes(
+      RelationshipTermModel fromTerm,
+      RelationshipTermModel toTerm,
+      List<TableModel> tables,
+      CloudPlatformWrapper cloudPlatformWrapper) {
+    Map<String, String> termErrors = new HashMap<>();
+    retrieveColumnModelFromTerm(fromTerm, tables)
+        .ifPresent(
+            fromColumn ->
+                retrieveColumnModelFromTerm(toTerm, tables)
+                    .ifPresent(
+                        toColumn -> {
+                          TableDataType fromColumnDataType = fromColumn.getDatatype();
+                          TableDataType toColumnDataType = toColumn.getDatatype();
+                          // If either of the data types are null, then the data type is invalid
+                          // this would have already been caught when validating the table
+                          if (fromColumnDataType != null && toColumnDataType != null) {
+                            if (!isCompatibleDataType(
+                                fromColumnDataType, toColumnDataType, cloudPlatformWrapper)) {
+                              termErrors.put(
+                                  "RelationshipDatatypeMismatch",
+                                  String.format(
+                                      "Column data types in relationship must match: Column %s.%s has data type %s and Column %s.%s has data type %s",
+                                      fromTerm.getTable(),
+                                      fromTerm.getColumn(),
+                                      fromColumnDataType,
+                                      toTerm.getTable(),
+                                      toTerm.getColumn(),
+                                      toColumnDataType));
+                            }
+                          }
+                        }));
+    return termErrors;
+  }
+
+  public static Map<String, String> validateRelationshipTerm(
       RelationshipTermModel term, List<TableModel> tables) {
     String tableName = term.getTable();
     String columnName = term.getColumn();
-    LinkedHashMap<String, String> termErrors = new LinkedHashMap<>();
+    Map<String, String> termErrors = new HashMap<>();
     Optional<TableModel> table =
         tables.stream().filter(t -> t.getName().equals(tableName)).findFirst();
     if (table.isEmpty()) {
       termErrors.put("InvalidRelationshipTermTable", String.format("Invalid table %s", tableName));
     } else {
-      Optional<ColumnModel> columnModel =
-          table.get().getColumns().stream().filter(c -> c.getName().equals(columnName)).findFirst();
+      Optional<ColumnModel> columnModel = retrieveColumnModelFromTerm(term, tables);
       if (columnModel.isEmpty()) {
         termErrors.put(
             "InvalidRelationshipTermTableColumn",
@@ -109,9 +226,26 @@ public final class ValidationUtils {
     return termErrors;
   }
 
-  public static ArrayList<LinkedHashMap<String, String>> getRelationshipValidationErrors(
-      RelationshipModel relationship, List<TableModel> tables) {
-    ArrayList<LinkedHashMap<String, String>> errors = new ArrayList<>();
+  @VisibleForTesting
+  static Optional<ColumnModel> retrieveColumnModelFromTerm(
+      RelationshipTermModel term, List<TableModel> tables) {
+    String tableName = term.getTable();
+    String columnName = term.getColumn();
+    return tables.stream()
+        .filter(t -> t.getName().equals(tableName))
+        .findFirst()
+        .flatMap(
+            tableModel ->
+                tableModel.getColumns().stream()
+                    .filter(c -> c.getName().equals(columnName))
+                    .findFirst());
+  }
+
+  public static List<Map<String, String>> getRelationshipValidationErrors(
+      RelationshipModel relationship,
+      List<TableModel> tables,
+      CloudPlatformWrapper cloudPlatformWrapper) {
+    List<Map<String, String>> errors = new ArrayList<>();
     RelationshipTermModel fromTerm = relationship.getFrom();
     if (fromTerm != null) {
       errors.add(validateRelationshipTerm(fromTerm, tables));
@@ -121,6 +255,11 @@ public final class ValidationUtils {
     if (toTerm != null) {
       errors.add(validateRelationshipTerm(toTerm, tables));
     }
+
+    if (fromTerm != null && toTerm != null) {
+      errors.add(validateMatchingColumnDataTypes(fromTerm, toTerm, tables, cloudPlatformWrapper));
+    }
+
     return errors;
   }
 

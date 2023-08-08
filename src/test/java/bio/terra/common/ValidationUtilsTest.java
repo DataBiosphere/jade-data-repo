@@ -2,10 +2,24 @@ package bio.terra.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.TableDataType;
+import bio.terra.model.TableModel;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import liquibase.util.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -14,6 +28,16 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class ValidationUtilsTest {
+
+  private TableModel personTable;
+  private static final String PERSON_TABLE_NAME = "person";
+  private static final String PERSON_BOOLEAN_COLUMN = "hasCat";
+  private static final String PERSON_INTEGER_COLUMN = "id";
+  private TableModel carTable;
+  private static final String CAR_TABLE_NAME = "car";
+  private static final String CAR_INTEGER_COLUMN = "ownerId";
+  private List<TableModel> tables;
+  private final CloudPlatformWrapper gcpCloudPlatform = CloudPlatformWrapper.of(CloudPlatform.GCP);
 
   @Test
   public void testEmailFormats() throws Exception {
@@ -75,5 +99,147 @@ public class ValidationUtilsTest {
   public void testValidationOfValidInputString() {
     // no exception is thrown
     ValidationUtils.requireNotBlank("abc", "error msg");
+  }
+
+  @Test
+  public void testRelationshipValidationDifferentDataType() {
+    RelationshipTermModel fromTerm =
+        new RelationshipTermModel().column(PERSON_BOOLEAN_COLUMN).table(PERSON_TABLE_NAME);
+    RelationshipTermModel toTerm =
+        new RelationshipTermModel().column(CAR_INTEGER_COLUMN).table(CAR_TABLE_NAME);
+    defineSampleTables();
+
+    Map errors =
+        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables, gcpCloudPlatform);
+    assertThat("There should be one error.", errors.size(), equalTo(1));
+    String errorMessage = errors.get("RelationshipDatatypeMismatch").toString();
+    assertThat(
+        "RelationshipDatatypeMismatch error is returned",
+        errorMessage,
+        containsString("Column data types in relationship must match"));
+  }
+
+  @Test
+  public void testRelationshipValidationSameDataType() {
+    RelationshipTermModel fromTerm =
+        new RelationshipTermModel().column(PERSON_INTEGER_COLUMN).table(PERSON_TABLE_NAME);
+    RelationshipTermModel toTerm =
+        new RelationshipTermModel().column(CAR_INTEGER_COLUMN).table(CAR_TABLE_NAME);
+    defineSampleTables();
+
+    Map errors =
+        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables, gcpCloudPlatform);
+    assertThat("The data types match so there should not be an error.", errors.size(), equalTo(0));
+  }
+
+  @Test
+  public void validTermRelationship() {
+    RelationshipTermModel validTerm =
+        new RelationshipTermModel().column(PERSON_INTEGER_COLUMN).table(PERSON_TABLE_NAME);
+    defineSampleTables();
+    Map errors = ValidationUtils.validateRelationshipTerm(validTerm, tables);
+    assertThat("The term is valid so there should not be an error.", errors.size(), equalTo(0));
+  }
+
+  @Test
+  public void invalidTermTable() {
+    RelationshipTermModel invalidTable =
+        new RelationshipTermModel().column(PERSON_INTEGER_COLUMN).table("invalid");
+    defineSampleTables();
+    Map errors = ValidationUtils.validateRelationshipTerm(invalidTable, tables);
+    assertThat("Invalid Table", errors.size(), equalTo(1));
+  }
+
+  @Test
+  public void invalidTermColumn() {
+    RelationshipTermModel invalidColumn =
+        new RelationshipTermModel().column("invalid").table(PERSON_TABLE_NAME);
+    defineSampleTables();
+    Map errors = ValidationUtils.validateRelationshipTerm(invalidColumn, tables);
+    assertThat("Invalid Column", errors.size(), equalTo(1));
+  }
+
+  private void defineSampleTables() {
+    personTable =
+        new TableModel()
+            .name(PERSON_TABLE_NAME)
+            .addColumnsItem(
+                new ColumnModel().name(PERSON_INTEGER_COLUMN).datatype(TableDataType.INTEGER))
+            .addColumnsItem(
+                new ColumnModel().name(PERSON_BOOLEAN_COLUMN).datatype(TableDataType.BOOLEAN));
+    carTable =
+        new TableModel()
+            .name(CAR_TABLE_NAME)
+            .addColumnsItem(
+                new ColumnModel().name(CAR_INTEGER_COLUMN).datatype(TableDataType.INTEGER));
+    tables = List.of(personTable, carTable);
+  }
+
+  @Test
+  public void testIsCompatibleDataType() {
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.STRING, TableDataType.TEXT, CloudPlatformWrapper.of(CloudPlatform.GCP)));
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.DATE,
+            TableDataType.DATETIME,
+            CloudPlatformWrapper.of(CloudPlatform.GCP)));
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.DATE,
+            TableDataType.DATETIME,
+            CloudPlatformWrapper.of(CloudPlatform.AZURE)));
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.TIME,
+            TableDataType.TIMESTAMP,
+            CloudPlatformWrapper.of(CloudPlatform.AZURE)));
+
+    assertFalse(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.BYTES,
+            TableDataType.BOOLEAN,
+            CloudPlatformWrapper.of(CloudPlatform.GCP)));
+    assertFalse(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.DATE, TableDataType.FLOAT, CloudPlatformWrapper.of(CloudPlatform.AZURE)));
+  }
+
+  @Test
+  public void testRetrieveColumnModelFromTerm() {
+    defineSampleTables();
+
+    RelationshipTermModel hasCatTerm =
+        new RelationshipTermModel().column(PERSON_BOOLEAN_COLUMN).table(PERSON_TABLE_NAME);
+    Optional<ColumnModel> col = ValidationUtils.retrieveColumnModelFromTerm(hasCatTerm, tables);
+    assertThat("Returns correct column", col.get().getName(), equalTo(PERSON_BOOLEAN_COLUMN));
+
+    String invalidColumnName = "invalid";
+    RelationshipTermModel invalidTerm =
+        new RelationshipTermModel().column(invalidColumnName).table(PERSON_TABLE_NAME);
+    Optional<ColumnModel> invalidCol =
+        ValidationUtils.retrieveColumnModelFromTerm(invalidTerm, tables);
+    assertFalse(invalidCol.isPresent());
+  }
+
+  @Test
+  public void testGetRelationshipValidationErrors() {
+    defineSampleTables();
+    RelationshipTermModel fromTerm =
+        new RelationshipTermModel().column(PERSON_BOOLEAN_COLUMN).table(PERSON_TABLE_NAME);
+    RelationshipTermModel toTerm =
+        new RelationshipTermModel().column(CAR_INTEGER_COLUMN).table(CAR_TABLE_NAME);
+    RelationshipModel relationshipModel =
+        new RelationshipModel().from(fromTerm).to(toTerm).name("rel");
+
+    List<Map<String, String>> errors =
+        ValidationUtils.getRelationshipValidationErrors(
+            relationshipModel, tables, CloudPlatformWrapper.of(CloudPlatform.GCP));
+    List<String> errorList =
+        errors.stream().flatMap(m -> m.entrySet().stream()).map(s -> s.getKey()).toList();
+    assertThat("Error count", errorList.size(), equalTo(1));
+    assertThat(
+        "correct error is returned", errorList.get(0), equalTo("RelationshipDatatypeMismatch"));
   }
 }

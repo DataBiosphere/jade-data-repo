@@ -2,6 +2,7 @@
   "name": "testInvalidDataTypes",
   "description": "testInvalidDataTypes",
   "defaultProfileId": "fa8d8a79-5d66-4c42-831b-047dadfe84af",
+  "cloudPlatform": "gcp",
   "schema": {
     "tables": [
       {

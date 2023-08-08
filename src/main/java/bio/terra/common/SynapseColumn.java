@@ -69,7 +69,6 @@ public class SynapseColumn extends Column {
       case FILEREF:
         return "varchar(36)";
       case FLOAT:
-        return "float";
       case FLOAT64:
         return "float";
       case INTEGER:

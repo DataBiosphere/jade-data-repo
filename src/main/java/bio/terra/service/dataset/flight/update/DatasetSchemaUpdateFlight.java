@@ -53,7 +53,9 @@ public class DatasetSchemaUpdateFlight extends Flight {
 
     addStep(new LockDatasetStep(datasetService, datasetId, false));
 
-    addStep(new DatasetSchemaUpdateValidateModelStep(datasetService, datasetId, updateModel));
+    addStep(
+        new DatasetSchemaUpdateValidateModelStep(
+            datasetService, datasetId, updateModel, cloudPlatform));
 
     if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
       addStep(

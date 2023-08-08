@@ -1,0 +1,16 @@
+{
+  "name":"dataTypesGCPSnapshot",
+  "description":"Test creating snapshot with all allowed data type relationshps",
+  "contents":[
+    {
+      "datasetName":"AllDataTypes",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "allowed_gcp_relationships",
+        "rootValues": [
+          "entry1"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,252 @@
+{
+  "name": "AllDataTypes",
+  "description": "Dataset for testing joining across dataset data types",
+  "schema": {
+    "tables": [
+      {
+        "name": "table1",
+        "columns": [
+          {
+            "name": "stringCol",
+            "datatype": "string"
+          },
+          {
+            "name": "boolCol",
+            "datatype": "boolean"
+          },
+          {
+            "name": "bytesCol",
+            "datatype": "bytes"
+          },
+          {
+            "name": "dateCol",
+            "datatype": "date"
+          },
+          {
+            "name": "dateTimeCol",
+            "datatype": "datetime"
+          },
+          {
+            "name": "dirRefCol",
+            "datatype": "dirref"
+          },
+          {
+            "name": "fileRefCol",
+            "datatype": "fileref"
+          },
+          {
+            "name": "floatCol",
+            "datatype": "float"
+          },
+          {
+            "name": "float64Col",
+            "datatype": "float64"
+          },
+          {
+            "name": "intCol",
+            "datatype": "integer"
+          },
+          {
+            "name": "int64Col",
+            "datatype": "int64"
+          },
+          {
+            "name": "numericCol",
+            "datatype": "numeric"
+          },
+          {
+            "name": "textCol",
+            "datatype": "text"
+          },
+          {
+            "name": "timeCol",
+            "datatype": "time"
+          },
+          {
+            "name": "timestampCol",
+            "datatype": "timestamp"
+          },
+          {
+            "name": "arrayCol",
+            "datatype": "string",
+            "array_of": true
+          }
+        ],
+        "primaryKey": ["stringCol"]
+      },
+      {
+        "name": "table2",
+        "columns": [
+          {
+            "name": "stringCol",
+            "datatype": "string"
+          },
+          {
+            "name": "boolCol",
+            "datatype": "boolean"
+          },
+          {
+            "name": "bytesCol",
+            "datatype": "bytes"
+          },
+          {
+            "name": "dateCol",
+            "datatype": "date"
+          },
+          {
+            "name": "dateTimeCol",
+            "datatype": "datetime"
+          },
+          {
+            "name": "dirRefCol",
+            "datatype": "dirref"
+          },
+          {
+            "name": "fileRefCol",
+            "datatype": "fileref"
+          },
+          {
+            "name": "floatCol",
+            "datatype": "float"
+          },
+          {
+            "name": "float64Col",
+            "datatype": "float64"
+          },
+          {
+            "name": "intCol",
+            "datatype": "integer"
+          },
+          {
+            "name": "int64Col",
+            "datatype": "int64"
+          },
+          {
+            "name": "numericCol",
+            "datatype": "numeric"
+          },
+          {
+            "name": "textCol",
+            "datatype": "text"
+          },
+          {
+            "name": "timeCol",
+            "datatype": "time"
+          },
+          {
+            "name": "timestampCol",
+            "datatype": "timestamp"
+          },
+          {
+            "name": "arrayCol",
+            "datatype": "string",
+            "array_of": true
+          }
+        ],
+        "primaryKey": ["stringCol"]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "date_datetime",
+        "from": { "table": "table1", "column": "dateCol" },
+        "to": { "table": "table2", "column": "dateTimeCol" }
+      },
+      {
+        "name": "float_float64",
+        "from": { "table": "table1", "column": "floatCol" },
+        "to": { "table": "table2", "column": "float64Col" }
+      },
+      {
+        "name": "float_integer",
+        "from": { "table": "table1", "column": "floatCol" },
+        "to": { "table": "table2", "column": "intCol" }
+      },
+      {
+        "name": "float64_integer",
+        "from": { "table": "table1", "column": "float64Col" },
+        "to": { "table": "table2", "column": "intCol" }
+      },
+      {
+        "name": "float_int64",
+        "from": { "table": "table1", "column": "floatCol" },
+        "to": { "table": "table2", "column": "int64Col" }
+      },
+      {
+        "name": "float64_int64",
+        "from": { "table": "table1", "column": "float64Col" },
+        "to": { "table": "table2", "column": "int64Col" }
+      },
+      {
+        "name": "int64_integer",
+        "from": { "table": "table1", "column": "int64Col" },
+        "to": { "table": "table2", "column": "intCol" }
+      },
+      {
+        "name": "float_numeric",
+        "from": { "table": "table1", "column": "floatCol" },
+        "to": { "table": "table2", "column": "numericCol" }
+      },
+      {
+        "name": "float64_numeric",
+        "from": { "table": "table1", "column": "float64Col" },
+        "to": { "table": "table2", "column": "numericCol" }
+      },
+      {
+        "name": "integer_numeric",
+        "from": { "table": "table1", "column": "intCol" },
+        "to": { "table": "table2", "column": "numericCol" }
+      },
+      {
+        "name": "int64_numeric",
+        "from": { "table": "table1", "column": "int64Col" },
+        "to": { "table": "table2", "column": "numericCol" }
+      },
+      {
+        "name": "string_text",
+        "from": { "table": "table1", "column": "stringCol" },
+        "to": { "table": "table2", "column": "textCol" }
+      },
+      {
+        "name": "date_int_not_allowed",
+        "from": { "table": "table1", "column": "dateCol" },
+        "to": { "table": "table2", "column": "intCol" }
+      }
+    ],
+    "assets": [
+      {
+        "name": "allowed_gcp_relationships",
+        "rootTable": "table1",
+        "rootColumn": "stringCol",
+        "tables": [
+          { "name": "table1", "columns": [] },
+          { "name": "table2", "columns": [] }
+        ],
+        "follow": [
+          "date_datetime",
+          "float_float64",
+          "float_integer",
+          "float64_integer",
+          "float_int64",
+          "float64_int64",
+          "int64_integer",
+          "float_numeric",
+          "float64_numeric",
+          "integer_numeric",
+          "int64_numeric",
+          "string_text"
+        ]
+      },
+      {
+        "name": "example_disallowed_gcp_relationship",
+        "rootTable": "table1",
+        "rootColumn": "stringCol",
+        "tables": [
+          { "name": "table1", "columns": [] },
+          { "name": "table2", "columns": [] }
+        ],
+        "follow": ["date_int_not_allowed"]
+      }
+    ]
+  }
+}

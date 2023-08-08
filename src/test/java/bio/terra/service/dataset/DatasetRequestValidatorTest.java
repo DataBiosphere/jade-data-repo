@@ -230,7 +230,8 @@ public class DatasetRequestValidatorTest {
           "InvalidPrimaryKey",
           "InvalidPrimaryKey",
           "InvalidPrimaryKey",
-          "InvalidRelationshipColumnType"
+          "InvalidRelationshipColumnType",
+          "RelationshipDatatypeMismatch"
         });
   }
 

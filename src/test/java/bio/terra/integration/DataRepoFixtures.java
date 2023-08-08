@@ -12,6 +12,7 @@ import static org.hamcrest.Matchers.oneOf;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.app.model.CloudRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.TestUtils;
 import bio.terra.common.configuration.TestConfiguration;
@@ -205,13 +206,17 @@ public class DataRepoFixtures {
       boolean selfHosted,
       boolean dedicatedServiceAccount,
       boolean predictableIds,
-      DatasetRequestModelPolicies policies)
+      DatasetRequestModelPolicies policies,
+      CloudRegion region)
       throws Exception {
     DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
     requestModel.setName(Names.randomizeName(requestModel.getName()));
     if (cloudPlatform != null && requestModel.getCloudPlatform() == null) {
       requestModel.setCloudPlatform(cloudPlatform);
+    }
+    if (region != null && requestModel.getRegion() == null) {
+      requestModel.setRegion(region.getValue());
     }
     requestModel.experimentalSelfHosted(selfHosted);
     requestModel.experimentalPredictableFileIds(predictableIds);
@@ -231,7 +236,7 @@ public class DataRepoFixtures {
   public DatasetSummaryModel createDataset(
       TestConfiguration.User user, UUID profileId, String filename, CloudPlatform cloudPlatform)
       throws Exception {
-    return createDataset(user, profileId, filename, cloudPlatform, false);
+    return createDataset(user, profileId, filename, cloudPlatform, false, null);
   }
 
   public DatasetSummaryModel createDataset(
@@ -257,6 +262,7 @@ public class DataRepoFixtures {
             true,
             dedicatedServiceAccount,
             false,
+            null,
             null);
     return waitForDatasetCreate(user, jobResponse);
   }
@@ -265,7 +271,7 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID profileId, String fileName) throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, fileName, CloudPlatform.GCP, false, false, true, false, null);
+            user, profileId, fileName, CloudPlatform.GCP, false, false, true, false, null, null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -274,11 +280,21 @@ public class DataRepoFixtures {
       UUID profileId,
       String filename,
       CloudPlatform cloudPlatform,
-      boolean usePetAccount)
+      boolean usePetAccount,
+      CloudRegion region)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, filename, cloudPlatform, usePetAccount, false, false, false, null);
+            user,
+            profileId,
+            filename,
+            cloudPlatform,
+            usePetAccount,
+            false,
+            false,
+            false,
+            null,
+            region);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -290,7 +306,16 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, filename, CloudPlatform.GCP, false, false, false, false, policies);
+            user,
+            profileId,
+            filename,
+            CloudPlatform.GCP,
+            false,
+            false,
+            false,
+            false,
+            policies,
+            null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -323,7 +348,7 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, filename, cloudPlatform, false, false, false, false, null);
+            user, profileId, filename, cloudPlatform, false, false, false, false, null, null);
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());

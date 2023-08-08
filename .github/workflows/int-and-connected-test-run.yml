@@ -67,14 +67,16 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-unit }}
-      - name: "Run unit tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+      - name: "Run unit tests and sonar scan via Gradle"
+        uses: broadinstitute/datarepo-actions/actions/main@addTestReport
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'check'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+
   test_connected:
     name: "Run connected tests"
     outputs:

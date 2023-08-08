@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement.flight;
 
+import bio.terra.app.model.AzureRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
@@ -11,10 +12,8 @@ import bio.terra.stairway.exception.RetryException;
 
 public class CreateExportRuleStep extends AbstractCreateMonitoringResourceStep {
 
-  private final AzureMonitoringService monitoringService;
-
-  public CreateExportRuleStep(AzureMonitoringService monitoringService) {
-    this.monitoringService = monitoringService;
+  public CreateExportRuleStep(AzureMonitoringService monitoringService, AzureRegion region) {
+    super(monitoringService, region);
   }
 
   @Override

@@ -138,7 +138,7 @@ public class DatasetIngestFlight extends Flight {
       // Turn on logging and monitoring for the storage account associated with the dataset and
       // billing profile
       azureStorageMonitoringStepProvider
-          .configureSteps(dataset.isSecureMonitoringEnabled())
+          .configureSteps(dataset.isSecureMonitoringEnabled(), dataset.getStorageAccountRegion())
           .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 

@@ -673,7 +673,8 @@ public class FileTest extends UsersBase {
             selfHosted,
             false,
             predictableFileIds,
-            new DatasetRequestModelPolicies());
+            new DatasetRequestModelPolicies(),
+            null);
 
     datasetSummaryModel = dataRepoFixtures.waitForDatasetCreate(steward(), datasetCreateJob);
     datasetId = datasetSummaryModel.getId();

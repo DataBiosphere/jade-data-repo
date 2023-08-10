@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -117,7 +118,9 @@ public class DatasetCreateFlight extends Flight {
 
       // Turn on logging and monitoring for the storage account associated with the dataset
       azureStorageMonitoringStepProvider
-          .configureSteps(datasetRequest.isEnableSecureMonitoring())
+          .configureSteps(
+              datasetRequest.isEnableSecureMonitoring(),
+              AzureRegion.fromValue(datasetRequest.getRegion()))
           .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 

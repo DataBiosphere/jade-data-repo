@@ -172,7 +172,8 @@ public class SnapshotCreateFlight extends Flight {
 
       // Turn on logging and monitoring for the storage account associated with the snapshot
       azureStorageMonitoringStepProvider
-          .configureSteps(sourceDataset.isSecureMonitoringEnabled())
+          .configureSteps(
+              sourceDataset.isSecureMonitoringEnabled(), sourceDataset.getStorageAccountRegion())
           .forEach(s -> this.addStep(s.step(), s.retryRule()));
 
       addStep(

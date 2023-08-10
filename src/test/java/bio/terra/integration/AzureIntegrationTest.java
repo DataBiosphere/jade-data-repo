@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
@@ -73,6 +72,9 @@ import bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility;
 import bio.terra.service.filedata.google.util.GcsBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.resourcemanager.loganalytics.LogAnalyticsManager;
+import com.azure.resourcemanager.loganalytics.models.Workspace;
+import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
@@ -121,14 +123,11 @@ import org.springframework.util.ResourceUtils;
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class AzureIntegrationTest extends UsersBase {
+  private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
-  private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
-  private static final String omopDatasetGcpRegionName =
-      GoogleRegion.DEFAULT_GOOGLE_REGION.toString();
-  private static Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
@@ -197,7 +196,7 @@ public class AzureIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteProfile(steward, profileId);
     }
     if (storageAccounts != null) {
-      storageAccounts.forEach(this::deleteStorageAccount);
+      storageAccounts.forEach(this::deleteCloudResources);
     }
     azureBlobIOTestUtility.teardown();
     gcsBlobIOTestUtility.teardown();
@@ -205,12 +204,15 @@ public class AzureIntegrationTest extends UsersBase {
 
   @Test
   public void datasetsHappyPath() throws Exception {
+    // Note: this region should not be the same as the default region in the application deployment
+    // (eastus by default)
+    AzureRegion region = AzureRegion.SOUTH_CENTRAL_US;
+
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE, false, region);
     datasetId = summaryModel.getId();
-    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
-
+    String storageAccountName = recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     logger.info("dataset id is " + summaryModel.getId());
     assertThat(summaryModel.getName(), startsWith(omopDatasetName));
     assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
@@ -241,11 +243,13 @@ public class AzureIntegrationTest extends UsersBase {
                               Collectors.toMap(
                                   StorageResourceModel::getCloudResource, Function.identity()));
 
-                  AzureRegion omopDatasetRegion = AzureRegion.fromValue(omopDatasetRegionName);
-                  assertThat(omopDatasetRegion, notNullValue());
+                  // Verify that the real region of the storage account and the log analytics
+                  // workspace matches the region of the dataset
+                  verifyCloudResourceRegions(storageAccountName, region);
 
+                  // TODO<DR-3163> The values are currently not necessarily correct
                   assertThat(
-                      "Bucket storage matches",
+                      "Application deployment matches",
                       storageMap.entrySet().stream()
                           .filter(
                               e ->
@@ -254,10 +258,10 @@ public class AzureIntegrationTest extends UsersBase {
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(omopDatasetRegion.getValue()));
+                      equalTo(region.getValue()));
 
                   assertThat(
-                      "Firestore storage matches",
+                      "Synapse matches",
                       storageMap.entrySet().stream()
                           .filter(
                               e ->
@@ -266,7 +270,7 @@ public class AzureIntegrationTest extends UsersBase {
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(omopDatasetRegion.getValue()));
+                      equalTo(region.getValue()));
 
                   assertThat(
                       "Storage account storage matches",
@@ -276,7 +280,7 @@ public class AzureIntegrationTest extends UsersBase {
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(omopDatasetRegion.getValue()));
+                      equalTo(region.getValue()));
 
                   assertThat(
                       "dataset summary has Azure cloud platform",
@@ -1493,13 +1497,47 @@ public class AzureIntegrationTest extends UsersBase {
         .value();
   }
 
-  private void deleteStorageAccount(String storageAccount) {
-    logger.info("Deleting storage account {}", storageAccount);
-    AzureResourceManager client =
-        this.azureResourceConfiguration.getClient(testConfig.getTargetSubscriptionId());
-    client
+  private void deleteCloudResources(String storageAccountName) {
+    logger.info("Deleting log analytic workspace {}", storageAccountName);
+
+    LogAnalyticsManager clientLaw =
+        azureResourceConfiguration.getLogAnalyticsManagerClient(
+            azureResourceConfiguration.credentials().getHomeTenantId(),
+            testConfig.getTargetSubscriptionId());
+    clientLaw
+        .workspaces()
+        .delete(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+
+    logger.info("Deleting storage account {}", storageAccountName);
+    AzureResourceManager clientSa =
+        azureResourceConfiguration.getClient(testConfig.getTargetSubscriptionId());
+    clientSa
         .storageAccounts()
-        .deleteByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccount);
+        .deleteByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+  }
+
+  private void verifyCloudResourceRegions(String storageAccountName, AzureRegion expectedRegion) {
+    StorageAccount storageAccount =
+        azureResourceConfiguration
+            .getClient(testConfig.getTargetSubscriptionId())
+            .storageAccounts()
+            .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+    assertThat(
+        "storage account region is correct",
+        storageAccount.region().name(),
+        equalTo(expectedRegion.getValue()));
+
+    Workspace logAnalyticsWorkspace =
+        azureResourceConfiguration
+            .getLogAnalyticsManagerClient(
+                azureResourceConfiguration.credentials().getHomeTenantId(),
+                testConfig.getTargetSubscriptionId())
+            .workspaces()
+            .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+    assertThat(
+        "log analytics workspace region is correct",
+        logAnalyticsWorkspace.region().name(),
+        equalTo(expectedRegion.getValue()));
   }
 
   private void verifySignedUrl(String signedUrl, User user, String expectedPermissions) {
@@ -1530,23 +1568,29 @@ public class AzureIntegrationTest extends UsersBase {
     }
   }
 
-  private void recordStorageAccount(
+  private String recordStorageAccount(
       TestConfiguration.User user, CollectionType collectionType, UUID collectionId)
       throws Exception {
+    String storageAccountName = null;
     switch (collectionType) {
       case DATASET -> {
         DatasetModel dataset =
             dataRepoFixtures.getDataset(
                 user, collectionId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
-        storageAccounts.add(getStorageAccountName(dataset.getAccessInformation().getParquet()));
+        storageAccountName = getStorageAccountName(dataset.getAccessInformation().getParquet());
+        storageAccounts.add(storageAccountName);
+        return storageAccountName;
       }
       case SNAPSHOT -> {
         SnapshotModel snapshot =
             dataRepoFixtures.getSnapshot(
                 user, collectionId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
+        storageAccountName = getStorageAccountName(snapshot.getAccessInformation().getParquet());
         storageAccounts.add(getStorageAccountName(snapshot.getAccessInformation().getParquet()));
+        return storageAccountName;
       }
     }
+    return storageAccountName;
   }
 
   private String getStorageAccountName(AccessInfoParquetModel accessInfo) {

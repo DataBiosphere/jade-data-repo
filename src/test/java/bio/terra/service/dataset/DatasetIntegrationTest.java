@@ -262,7 +262,7 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "it-dataset-omop.json", CloudPlatform.GCP, true);
+            steward(), profileId, "it-dataset-omop.json", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());

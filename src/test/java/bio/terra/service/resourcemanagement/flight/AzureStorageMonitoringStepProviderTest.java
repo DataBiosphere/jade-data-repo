@@ -3,6 +3,7 @@ package bio.terra.service.resourcemanagement.flight;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.app.model.AzureRegion;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.stairway.Step;
 import java.util.List;
@@ -42,7 +43,9 @@ class AzureStorageMonitoringStepProviderTest {
   void testConfigureStandardSteps() {
     assertThat(
         "only standard steps returned",
-        stepProvider.configureSteps(false).stream().map(s -> s.step().getClass()).toList(),
+        stepProvider.configureSteps(false, AzureRegion.DEFAULT_AZURE_REGION).stream()
+            .map(s -> s.step().getClass())
+            .toList(),
         is(EXPECTED_STANDARD_STEPS));
   }
 
@@ -50,7 +53,9 @@ class AzureStorageMonitoringStepProviderTest {
   void testConfigureProtectedDataSteps() {
     assertThat(
         "protected data steps also returned",
-        stepProvider.configureSteps(true).stream().map(s -> s.step().getClass()).toList(),
+        stepProvider.configureSteps(true, AzureRegion.DEFAULT_AZURE_REGION).stream()
+            .map(s -> s.step().getClass())
+            .toList(),
         is(EXPECTED_PROTECTED_DATA_STEPS));
   }
 }

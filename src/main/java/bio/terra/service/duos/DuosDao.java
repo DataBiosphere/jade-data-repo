@@ -48,6 +48,10 @@ public class DuosDao {
     return retrieveFirecloudGroup(id);
   }
 
+  public int testMethodForCoverage() {
+    return 1;
+  }
+
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   private UUID insertFirecloudGroup(DuosFirecloudGroupModel created) {
     String sql =

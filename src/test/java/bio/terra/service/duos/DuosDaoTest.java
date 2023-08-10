@@ -73,6 +73,11 @@ public class DuosDaoTest {
   }
 
   @Test
+  public void testCoverageMethod() {
+    assertThat(duosDao.testMethodForCoverage(), equalTo(1));
+  }
+
+  @Test
   public void testRetrieveFirecloudGroupBeforeInsert() {
     assertNull(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID));
     assertThat(duosDao.retrieveFirecloudGroups(), empty());

@@ -162,10 +162,4 @@ spotbugsTest {
     }
 }
 
-project(":datarepo-clienttests") {
-    sonar {
-        skipProject = true
-    }
-}
-
 compileJava.dependsOn tasks.spotlessApply

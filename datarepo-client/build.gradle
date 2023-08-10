@@ -118,3 +118,9 @@ clean {
     delete "pom.xml"
     delete "src/"
 }
+
+project(":datarepo-client") {
+    sonar {
+        skipProject = true
+    }
+}

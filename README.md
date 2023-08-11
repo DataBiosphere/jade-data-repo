@@ -213,7 +213,7 @@ export SONAR_TOKEN=$(vault read -field=sonar_token secret/secops/ci/sonarcloud/d
 ./gradlew sonar
 ```
 
-Unlike SourceClear, running this task produces no output unless your project has errors. To always
+Running this task produces no output unless your project has errors. To always
 generate a report, run using `--info`:
 
 ```shell

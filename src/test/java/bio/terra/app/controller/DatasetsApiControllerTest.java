@@ -18,6 +18,7 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.SnapshotBuilderDatasetModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -66,8 +67,18 @@ public class DatasetsApiControllerTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
+  private static final String RETRIEVE_SNAPSHOT_BUILDER_DATASET_ENDPOINT =
+      "/api/repository/v1/datasets/snapshot-builder/{id}";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
+  private static final List<DatasetRequestAccessIncludeModel>
+      SNAPSHOT_BUILDER_DATASET_INCLUDE_LIST =
+          List.of(
+              DatasetRequestAccessIncludeModel.STORAGE,
+              DatasetRequestAccessIncludeModel.ACCESS_INFORMATION,
+              DatasetRequestAccessIncludeModel.PROPERTIES,
+              DatasetRequestAccessIncludeModel.SCHEMA,
+              DatasetRequestAccessIncludeModel.DATA_PROJECT);
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
@@ -109,6 +120,42 @@ public class DatasetsApiControllerTest {
     mvc.perform(
             get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
                 .queryParam("include", String.valueOf(INCLUDE)))
+        .andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+    verifyNoInteractions(datasetService);
+  }
+
+  @Test
+  void testRetrieveSnapshotBuilderDataset() throws Exception {
+    DatasetModel expected = new DatasetModel().id(DATASET_ID);
+    when(datasetService.retrieveDatasetModel(
+            DATASET_ID, TEST_USER, SNAPSHOT_BUILDER_DATASET_INCLUDE_LIST))
+        .thenReturn(expected);
+    SnapshotBuilderDatasetModel expectedSnapshotBuilderDataset =
+        new SnapshotBuilderDatasetModel().id(DATASET_ID);
+
+    String actualJson =
+        mvc.perform(get(RETRIEVE_SNAPSHOT_BUILDER_DATASET_ENDPOINT, DATASET_ID))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotBuilderDatasetModel actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderDatasetModel.class);
+    assertThat("Dataset model is returned", actual, equalTo(expectedSnapshotBuilderDataset));
+
+    verifyAuthorizationCall(IamAction.READ_DATASET);
+    verify(datasetService)
+        .retrieveDatasetModel(DATASET_ID, TEST_USER, SNAPSHOT_BUILDER_DATASET_INCLUDE_LIST);
+  }
+
+  @Test
+  void testRetrieveDatasetSnapshotBuilderForbidden() throws Exception {
+    IamAction iamAction = IamAction.READ_DATASET;
+    mockForbidden(iamAction);
+
+    mvc.perform(get(RETRIEVE_SNAPSHOT_BUILDER_DATASET_ENDPOINT, DATASET_ID))
         .andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);

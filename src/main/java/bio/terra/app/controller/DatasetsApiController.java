@@ -36,6 +36,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SnapshotBuilderDatasetModel;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel;
@@ -151,6 +152,25 @@ public class DatasetsApiController implements DatasetsApi {
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
     return ResponseEntity.ok(datasetService.retrieveDatasetModel(id, userRequest, include));
+  }
+
+  public ResponseEntity<SnapshotBuilderDatasetModel> retrieveSnapshotBuilderDataset(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+    DatasetModel datasetModel = datasetService.retrieveDatasetModel(id, userRequest, List.of(DatasetRequestAccessIncludeModel.STORAGE, DatasetRequestAccessIncludeModel.ACCESS_INFORMATION, DatasetRequestAccessIncludeModel.PROPERTIES, DatasetRequestAccessIncludeModel.SCHEMA, DatasetRequestAccessIncludeModel.DATA_PROJECT));
+    SnapshotBuilderDatasetModel snapshotBuilderDatasetModel = new SnapshotBuilderDatasetModel()
+        .createdDate(datasetModel.getCreatedDate())
+        .description(datasetModel.getDescription())
+        .accessInformation(datasetModel.getAccessInformation())
+        .name(datasetModel.getName())
+        .cloudPlatform(datasetModel.getCloudPlatform())
+        .id(datasetModel.getId())
+        .properties(datasetModel.getProperties())
+        .schema(datasetModel.getSchema());
+    // TODO: Fetch root concept from each concept table
+    // TODO: Figure out where to put the learn-more link
+    return ResponseEntity.ok(snapshotBuilderDatasetModel);
   }
 
   @Override

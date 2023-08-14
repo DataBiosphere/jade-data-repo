@@ -154,6 +154,7 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(datasetService.retrieveDatasetModel(id, userRequest, include));
   }
 
+  @Override
   public ResponseEntity<SnapshotBuilderDatasetModel> retrieveSnapshotBuilderDataset(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(

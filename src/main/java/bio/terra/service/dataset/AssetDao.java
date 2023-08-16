@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -25,11 +24,9 @@ public class AssetDao {
 
   @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
-  // part of a transaction propagated from DatasetDao
-  public List<UUID> createAssets(Dataset dataset) {
-    return dataset.getAssetSpecifications().stream()
-        .map(assetSpec -> create(assetSpec, dataset.getId()))
-        .collect(Collectors.toList());
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void createAssets(Dataset dataset) {
+    dataset.getAssetSpecifications().forEach(assetSpec -> create(assetSpec, dataset.getId()));
   }
 
   /**
@@ -38,10 +35,9 @@ public class AssetDao {
    *
    * @param assetSpecification the AssetSpecification being created
    * @param datasetId the ID of the dataset corresponding to the AssetSpecification being created
-   * @return
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public UUID create(AssetSpecification assetSpecification, UUID datasetId) {
+  public void create(AssetSpecification assetSpecification, UUID datasetId) {
     String sql =
         "INSERT INTO asset_specification (dataset_id, name, root_table_id, root_column_id) "
             + "VALUES (:dataset_id, :name, :root_table_id, :root_column_id)";
@@ -64,30 +60,28 @@ public class AssetDao {
 
     createAssetColumns(assetSpecification);
     createAssetRelationships(assetSpecification);
-    return assetSpecId;
   }
 
   private void createAssetColumns(AssetSpecification assetSpec) {
     assetSpec
         .getAssetTables()
         .forEach(
-            assetTable -> {
-              assetTable
-                  .getColumns()
-                  .forEach(
-                      assetCol -> {
-                        String sql =
-                            "INSERT INTO asset_column (asset_id, dataset_column_id) "
-                                + "VALUES (:asset_id, :dataset_column_id)";
-                        MapSqlParameterSource params = new MapSqlParameterSource();
-                        params.addValue("asset_id", assetSpec.getId());
-                        params.addValue("dataset_column_id", assetCol.getDatasetColumn().getId());
-                        DaoKeyHolder keyHolder = new DaoKeyHolder();
-                        jdbcTemplate.update(sql, params, keyHolder);
-                        UUID assetColumnId = keyHolder.getId();
-                        assetCol.id(assetColumnId);
-                      });
-            });
+            assetTable ->
+                assetTable
+                    .getColumns()
+                    .forEach(
+                        assetCol -> {
+                          String sql =
+                              "INSERT INTO asset_column (asset_id, dataset_column_id) "
+                                  + "VALUES (:asset_id, :dataset_column_id)";
+                          MapSqlParameterSource params = new MapSqlParameterSource();
+                          params.addValue("asset_id", assetSpec.getId());
+                          params.addValue("dataset_column_id", assetCol.getDatasetColumn().getId());
+                          DaoKeyHolder keyHolder = new DaoKeyHolder();
+                          jdbcTemplate.update(sql, params, keyHolder);
+                          UUID assetColumnId = keyHolder.getId();
+                          assetCol.id(assetColumnId);
+                        }));
   }
 
   private void createAssetRelationships(AssetSpecification assetSpec) {
@@ -131,7 +125,7 @@ public class AssetDao {
           UUID specId = rs.getObject("id", UUID.class);
           AssetSpecification spec = new AssetSpecification().id(specId).name(rs.getString("name"));
           spec.assetTables(
-              new ArrayList(
+              new ArrayList<>(
                   retrieveAssetTablesAndColumns(
                       spec,
                       rs.getObject("root_table_id", UUID.class),

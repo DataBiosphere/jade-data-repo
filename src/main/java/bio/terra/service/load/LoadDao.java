@@ -6,7 +6,6 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadResultModel;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -18,12 +17,12 @@ import java.util.Spliterator;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.commons.codec.binary.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -35,13 +34,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class LoadDao {
   private final Logger logger = LoggerFactory.getLogger(LoadDao.class);
 
-  private NamedParameterJdbcTemplate jdbcTemplate;
-  private ConfigurationService configService;
+  private final NamedParameterJdbcTemplate jdbcTemplate;
 
   @Autowired
-  public LoadDao(NamedParameterJdbcTemplate jdbcTemplate, ConfigurationService configService) {
+  public LoadDao(NamedParameterJdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
-    this.configService = configService;
   }
 
   // -- load tags public methods --
@@ -186,7 +183,7 @@ public class LoadDao {
     baseJdbcTemplate.batchUpdate(
         sql,
         new BatchPreparedStatementSetter() {
-          public void setValues(PreparedStatement ps, int i) throws SQLException {
+          public void setValues(@NotNull PreparedStatement ps, int i) throws SQLException {
             ps.setObject(1, loadId);
             ps.setString(2, loadFileModelList.get(i).getSourcePath());
             ps.setString(3, loadFileModelList.get(i).getTargetPath());
@@ -208,6 +205,7 @@ public class LoadDao {
    * @param loadId Load ID tying all these file ingests together
    * @param loadFileModelStream The stream to be chunked and processed over
    */
+  @Transactional
   public void populateFiles(
       UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream, int batchSize) {
     Spliterator<BulkLoadFileModel> split = loadFileModelStream.spliterator();
@@ -292,47 +290,34 @@ public class LoadDao {
     return jdbcTemplate.query(
         bulkLoadResultSql,
         params,
-        (ResultSetExtractor<BulkLoadResultModel>)
-            rs -> {
-              BulkLoadResultModel result =
-                  new BulkLoadResultModel()
-                      .succeededFiles(0)
-                      .failedFiles(0)
-                      .notTriedFiles(0)
-                      .totalFiles(0);
+        rs -> {
+          BulkLoadResultModel result =
+              new BulkLoadResultModel()
+                  .succeededFiles(0)
+                  .failedFiles(0)
+                  .notTriedFiles(0)
+                  .totalFiles(0);
 
-              while (rs.next()) {
-                BulkLoadFileState state = BulkLoadFileState.fromValue(rs.getString("state"));
-                if (state == null) {
-                  throw new CorruptMetadataException("Invalid file state");
-                }
-                switch (state) {
-                  case RUNNING:
-                    logger.info("Unexpected running loads: " + rs.getInt("statecount"));
-                    throw new CorruptMetadataException("No loads should be running!");
-
-                  case FAILED:
-                    result.setFailedFiles(rs.getInt("statecount"));
-                    break;
-
-                  case NOT_TRIED:
-                    result.setNotTriedFiles(rs.getInt("statecount"));
-                    break;
-
-                  case SUCCEEDED:
-                    result.setSucceededFiles(rs.getInt("statecount"));
-                    break;
-
-                  default:
-                    throw new CorruptMetadataException("Invalid load state");
-                }
-                result.setTotalFiles(
-                    result.getFailedFiles()
-                        + result.getNotTriedFiles()
-                        + result.getSucceededFiles());
+          while (rs.next()) {
+            BulkLoadFileState state = BulkLoadFileState.fromValue(rs.getString("state"));
+            if (state == null) {
+              throw new CorruptMetadataException("Invalid file state");
+            }
+            switch (state) {
+              case RUNNING -> {
+                logger.info("Unexpected running loads: " + rs.getInt("statecount"));
+                throw new CorruptMetadataException("No loads should be running!");
               }
-              return result;
-            });
+              case FAILED -> result.setFailedFiles(rs.getInt("statecount"));
+              case NOT_TRIED -> result.setNotTriedFiles(rs.getInt("statecount"));
+              case SUCCEEDED -> result.setSucceededFiles(rs.getInt("statecount"));
+              default -> throw new CorruptMetadataException("Invalid load state");
+            }
+            result.setTotalFiles(
+                result.getFailedFiles() + result.getNotTriedFiles() + result.getSucceededFiles());
+          }
+          return result;
+        });
   }
 
   public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {

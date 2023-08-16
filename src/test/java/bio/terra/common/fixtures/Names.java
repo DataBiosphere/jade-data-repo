@@ -7,7 +7,7 @@ public final class Names {
   private Names() {}
 
   public static String randomizeName(String baseName) {
-    String name = baseName + UUID.randomUUID().toString();
+    String name = baseName + UUID.randomUUID();
     return StringUtils.replaceChars(name, '-', '_');
   }
 

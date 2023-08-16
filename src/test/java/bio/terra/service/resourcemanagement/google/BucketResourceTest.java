@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -122,7 +123,9 @@ public class BucketResourceTest {
   @After
   public void teardown() throws Exception {
     for (GoogleBucketResource bucketResource : bucketResources) {
-      deleteBucket(bucketResource);
+      if (bucketResource != null) {
+        deleteBucket(bucketResource);
+      }
     }
     // Connected operations resets the configuration
     connectedOperations.teardown();
@@ -131,7 +134,7 @@ public class BucketResourceTest {
   @Test
   // create and delete the bucket, checking that the metadata and cloud state match what is expected
   public void createAndDeleteBucketTest() throws Exception {
-    String bucketName = "testbucket_createanddeletebuckettest";
+    String bucketName = createBucketName("createanddeletebuckettest");
     String flightId = "createAndDeleteBucketTest";
 
     // create the bucket and metadata
@@ -158,12 +161,11 @@ public class BucketResourceTest {
   // create buckets in different regions and see if they're actually created there.
   public void createBucketsInDifferentRegionsTest() throws Exception {
     for (GoogleRegion region : List.of(GoogleRegion.US_CENTRAL1, GoogleRegion.US_EAST1)) {
-      String bucketName = "testbucket_bucketregionstest_" + region;
+      String bucketName = createBucketName(region.toString());
       String flightId = "bucketRegionsTest_" + region;
 
       // create the bucket and metadata
-      GoogleBucketResource bucketResource =
-          createBucket(bucketName, projectResource, region, flightId, null, null, null, true);
+      createBucket(bucketName, projectResource, region, flightId, null, null, null, true);
 
       // Get the Bucket
       Bucket cloudBucket = bucketService.getCloudBucket(bucketName);
@@ -177,7 +179,7 @@ public class BucketResourceTest {
 
   @Test
   public void testMultiRegionalBucket() throws InterruptedException {
-    String bucketName = "testbucket_multiregiontest";
+    String bucketName = createBucketName("multiregiontest");
     String flightId = "testMultiRegionalBucket";
 
     // create the bucket and metadata
@@ -204,7 +206,7 @@ public class BucketResourceTest {
   // after it's been created, confirm it succeeds.
   public void twoThreadsCompeteForLockTest() throws Exception {
     String flightIdBase = "twoThreadsCompeteForLockTest";
-    String bucketName = "twothreadscompeteforlocktest";
+    String bucketName = createBucketName("twothreadscompetetest");
     GoogleRegion bucketRegion = GoogleRegion.DEFAULT_GOOGLE_REGION;
 
     BucketResourceLockTester resourceLockA =
@@ -278,7 +280,7 @@ public class BucketResourceTest {
         "property allowReuseExistingBuckets = {}",
         bucketResourceUtils.getAllowReuseExistingBuckets(configService));
 
-    String bucketName = "testbucket_bucketexistsbeforemetadatatest";
+    String bucketName = createBucketName("bucketbeforemetadatatest");
     String flightIdA = "bucketExistsBeforeMetadataTestA";
 
     // create the bucket and metadata
@@ -359,7 +361,7 @@ public class BucketResourceTest {
         "property allowReuseExistingBuckets = {}",
         bucketResourceUtils.getAllowReuseExistingBuckets(configService));
 
-    String bucketName = "testbucket_nobucketbutmetadataexiststest";
+    String bucketName = createBucketName("nobucketbutmetadatatest");
     String flightIdA = "noBucketButMetadataExistsTestA";
 
     // create the bucket and metadata
@@ -420,10 +422,10 @@ public class BucketResourceTest {
 
   @Test
   public void createBucketWithTtlTest() throws Exception {
-    String bucketWithTtlName = "testbucket_bucketwithttl";
+    String bucketWithTtlName = createBucketName("bucketwithttltest");
     String flightWithTtlId = "bucketwithttltest";
 
-    String bucketWithoutTtlName = "testbucket_bucketwithoutttl";
+    String bucketWithoutTtlName = createBucketName("bucketwithoutttltest");
     String flightWithoutTtlId = "bucketwithoutttltest";
 
     Integer deleteAge = 1;
@@ -479,7 +481,7 @@ public class BucketResourceTest {
 
   @Test
   public void testCreateBucketWithReaders() throws Exception {
-    String bucketName = "bucket_with_reader_groups";
+    String bucketName = createBucketName("bucketwithreadergroupstest");
     String flightId = "bucketWithReaderGroupsTest";
     List<String> readerGroups =
         new ArrayList<>(
@@ -520,7 +522,6 @@ public class BucketResourceTest {
       String dedicatedServiceAccount,
       boolean autoclassEnabled)
       throws InterruptedException {
-
     GoogleBucketResource bucketResource =
         bucketService.getOrCreateBucket(
             bucketName,
@@ -590,5 +591,20 @@ public class BucketResourceTest {
         GoogleRegion.DEFAULT_GOOGLE_REGION,
         Map.of("test-name", "bucket-resource-test"),
         CollectionType.DATASET);
+  }
+
+  /**
+   * @param baseName the desired prefix for a GCS bucket name
+   * @return a globally-unique GCS bucket name based off of the provided baseName
+   * @throws IllegalArgumentException if the resulting bucket name is known not to adhere to GCS
+   *     naming requirements (https://cloud.google.com/storage/docs/buckets#naming)
+   */
+  private String createBucketName(String baseName) throws IllegalArgumentException {
+    String globallyUniqueName = Names.randomizeName(baseName.toLowerCase());
+    assertThat(
+        "Bucket name follows GCS naming requirements",
+        globallyUniqueName,
+        matchesPattern("^[a-z0-9][a-z0-9\\-_]{1,61}[a-z0-9]$"));
+    return globallyUniqueName;
   }
 }

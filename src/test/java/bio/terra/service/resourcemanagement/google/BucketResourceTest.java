@@ -89,7 +89,6 @@ public class BucketResourceTest {
   private BillingProfileModel profile;
   private Storage storage;
   private List<GoogleBucketResource> bucketResources;
-  private boolean allowReuseExistingBuckets;
   private GoogleProjectResource projectResource;
   private UUID datasetId;
 
@@ -122,11 +121,7 @@ public class BucketResourceTest {
 
   @After
   public void teardown() throws Exception {
-    for (GoogleBucketResource bucketResource : bucketResources) {
-      if (bucketResource != null) {
-        deleteBucket(bucketResource);
-      }
-    }
+    bucketResources.forEach(this::deleteBucket);
     // Connected operations resets the configuration
     connectedOperations.teardown();
   }
@@ -551,10 +546,12 @@ public class BucketResourceTest {
   }
 
   private void deleteBucket(GoogleBucketResource bucketResource) {
-    // delete the bucket and update the metadata
-    storage.delete(bucketResource.getName());
-    bucketService.updateBucketMetadata(bucketResource.getName(), null);
-    datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResource.getResourceId());
+    if (bucketResource != null) {
+      // delete the bucket and update the metadata
+      storage.delete(bucketResource.getName());
+      bucketService.updateBucketMetadata(bucketResource.getName(), null);
+      datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResource.getResourceId());
+    }
   }
 
   private void checkBucketDeleted(String bucketName, UUID bucketResourceId) {
@@ -596,11 +593,11 @@ public class BucketResourceTest {
   /**
    * @param baseName the desired prefix for a GCS bucket name
    * @return a globally-unique GCS bucket name based off of the provided baseName
-   * @throws IllegalArgumentException if the resulting bucket name is known not to adhere to GCS
-   *     naming requirements (https://cloud.google.com/storage/docs/buckets#naming)
    */
-  private String createBucketName(String baseName) throws IllegalArgumentException {
+  private String createBucketName(String baseName) {
     String globallyUniqueName = Names.randomizeName(baseName.toLowerCase());
+    // For more information on GCS naming requirements:
+    // https://cloud.google.com/storage/docs/buckets#naming
     assertThat(
         "Bucket name follows GCS naming requirements",
         globallyUniqueName,

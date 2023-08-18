@@ -31,8 +31,14 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit4.SpringRunner;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class DatasetJsonConversionTest {
@@ -51,6 +57,8 @@ public class DatasetJsonConversionTest {
   private static final UUID DATASET_COLUMN_ID = UUID.randomUUID();
   private static final String DATASET_ASSET_NAME = "asset1";
   private static final UUID DATASET_ASSET_ID = UUID.randomUUID();
+
+  @Autowired private DatasetJsonConversion datasetJsonConversion;
 
   private Dataset dataset;
   private DatasetModel datasetModel;
@@ -154,7 +162,7 @@ public class DatasetJsonConversionTest {
   @Test
   public void populateDatasetModelFromDataset() {
     assertThat(
-        DatasetJsonConversion.populateDatasetModelFromDataset(
+        datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
@@ -168,7 +176,7 @@ public class DatasetJsonConversionTest {
   @Test
   public void populateDatasetModelFromDatasetNone() {
     assertThat(
-        DatasetJsonConversion.populateDatasetModelFromDataset(
+        datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(
                 DatasetRequestAccessIncludeModel.NONE, DatasetRequestAccessIncludeModel.PROFILE),
@@ -181,7 +189,7 @@ public class DatasetJsonConversionTest {
   public void populateDatasetModelFromDatasetAccessInfo() {
     String expectedDatasetName = "datarepo_" + DATASET_NAME;
     assertThat(
-        DatasetJsonConversion.populateDatasetModelFromDataset(
+        datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION),
             metadataDataAccessUtils,

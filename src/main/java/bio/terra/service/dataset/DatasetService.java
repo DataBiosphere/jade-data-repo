@@ -101,6 +101,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DatasetService {
   private static final Logger logger = LoggerFactory.getLogger(DatasetService.class);
+  private final DatasetJsonConversion datasetJsonConversion;
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
@@ -121,6 +122,7 @@ public class DatasetService {
 
   @Autowired
   public DatasetService(
+      DatasetJsonConversion datasetJsonConversion,
       DatasetDao datasetDao,
       JobService jobService,
       LoadService loadService,
@@ -138,6 +140,7 @@ public class DatasetService {
       IamService iamService,
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao) {
+    this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -233,7 +236,7 @@ public class DatasetService {
       Dataset dataset,
       AuthenticatedUserRequest userRequest,
       List<DatasetRequestAccessIncludeModel> include) {
-    return DatasetJsonConversion.populateDatasetModelFromDataset(
+    return datasetJsonConversion.populateDatasetModelFromDataset(
         dataset, include, metadataDataAccessUtils, userRequest);
   }
 

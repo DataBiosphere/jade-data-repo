@@ -4,8 +4,6 @@ import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Relationship;
 import bio.terra.service.dataset.exception.InvalidAssetException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,13 +123,12 @@ public class AssetDao {
           UUID specId = rs.getObject("id", UUID.class);
           AssetSpecification spec = new AssetSpecification().id(specId).name(rs.getString("name"));
           spec.assetTables(
-              new ArrayList<>(
-                  retrieveAssetTablesAndColumns(
-                      spec,
-                      rs.getObject("root_table_id", UUID.class),
-                      rs.getObject("root_column_id", UUID.class),
-                      allTables,
-                      allColumns)));
+              retrieveAssetTablesAndColumns(
+                  spec,
+                  rs.getObject("root_table_id", UUID.class),
+                  rs.getObject("root_column_id", UUID.class),
+                  allTables,
+                  allColumns));
           spec.assetRelationships(retrieveAssetRelationships(spec.getId(), allRelationships));
 
           return spec;
@@ -139,7 +136,7 @@ public class AssetDao {
   }
 
   // also retrieves columns
-  private Collection<AssetTable> retrieveAssetTablesAndColumns(
+  private List<AssetTable> retrieveAssetTablesAndColumns(
       AssetSpecification spec,
       UUID rootTableId,
       UUID rootColumnId,
@@ -172,7 +169,7 @@ public class AssetDao {
           // add the new column to the asset table object
           assetTable.getColumns().add(newColumn);
         });
-    return tables.values();
+    return tables.values().stream().toList();
   }
 
   private List<AssetRelationship> retrieveAssetRelationships(

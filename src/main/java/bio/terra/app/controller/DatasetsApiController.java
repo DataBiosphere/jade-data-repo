@@ -148,15 +148,12 @@ public class DatasetsApiController implements DatasetsApi {
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<DatasetRequestAccessIncludeModel> include) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
-    if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG)) {
-      iamService.verifyAuthorization(
-          userRequest,
-          IamResourceType.DATASET,
-          id.toString(),
-          IamAction.VIEW_SNAPSHOT_BUILDER_CONFIG);
-    }
+    iamService.verifyAuthorizations(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        datasetService.getRetrieveDatasetRequiredActions(include));
+
     return ResponseEntity.ok(datasetService.retrieveDatasetModel(id, userRequest, include));
   }
 

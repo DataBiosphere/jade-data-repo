@@ -4282,8 +4282,8 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
-        snapshotBuilderConfig:
-          $ref: '#/components/schemas/SnapshotBuilderConfig'
+        snapshotBuilderSettings:
+          $ref: '#/components/schemas/SnapshotBuilderSettings'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -6354,10 +6354,14 @@ components:
     ##############################################################################
     ## SNAPSHOT BUILDER API STANDARD MODELS
     ##############################################################################
-    SnapshotBuilderConfig:
+    SnapshotBuilderSettings:
       type: object
       description: >
         The configuration describing how to select criteria for issuing a snapshot builder request
+      required:
+        - domainOptions
+        - programDataOptions
+        - featureValueGroups
       properties:
         domainOptions:
           type: array
@@ -6381,6 +6385,9 @@ components:
       type: object
       description: >
         A concept set provided for the dataset, usually used to access tables that are not searchable as domains
+      required:
+        - name
+        - featureValueGroupName
       properties:
         name:
           type: string
@@ -6391,11 +6398,11 @@ components:
       type: object
       description: >
         An object describing high level information about a domain for use in the snapshot builder
+      required:
+        - id
+        - category
+        - root
       properties:
-        kind:
-          type: string
-          default: domain
-          enum: [ domain ]
         id:
           type: integer
         category:
@@ -6411,6 +6418,10 @@ components:
       type: object
       description: >
         An object describing a concept in the Snapshot Builder
+      required:
+        - id
+        - name
+        - hasChildren
       properties:
         id:
           type: integer
@@ -6425,6 +6436,10 @@ components:
       type: object
       description: >
         An object describing high level information about program data for use in the snapshot builder
+      required:
+        - id
+        - name
+        - kind
       properties:
         id:
           type: integer
@@ -6446,6 +6461,9 @@ components:
       type: object
       description: >
         An object describing a program data list option for the snapshot builder
+      required:
+        - id
+        - name
       properties:
         id:
           type: integer
@@ -6456,6 +6474,10 @@ components:
       type: object
       description: >
         Describes a set of columns for a table with given name
+      required:
+        - id
+        - name
+        - values
       properties:
         id:
           type: integer

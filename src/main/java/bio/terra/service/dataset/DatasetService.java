@@ -210,6 +210,13 @@ public class DatasetService {
     return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
   }
 
+  public List<IamAction> getRetrieveDatasetRequiredActions(
+      List<DatasetRequestAccessIncludeModel> include) {
+    return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG)
+        ? List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_CONFIG)
+        : List.of(IamAction.READ_DATASET);
+  }
+
   /**
    * Convenience wrapper to grab the dataset model from the dataset object, avoids having to
    * retrieve the dataset a second time if you already have it

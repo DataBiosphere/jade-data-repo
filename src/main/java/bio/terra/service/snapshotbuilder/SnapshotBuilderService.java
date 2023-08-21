@@ -9,11 +9,13 @@ import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderSettings;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
 
+  @Autowired
   public SnapshotBuilderService() {}
   /**
    * Fetch the snapshot builder settings for a given dataset

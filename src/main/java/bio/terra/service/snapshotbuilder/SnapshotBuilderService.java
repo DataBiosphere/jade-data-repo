@@ -9,15 +9,20 @@ import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderSettings;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
 
-  @Autowired
   public SnapshotBuilderService() {}
-
+  /**
+   * Fetch the snapshot builder settings for a given dataset
+   * Currently just returns dummy data for the sake of parallelizing UI and API development
+   * Will eventually be adapted to read from the DB
+   *
+   * @param datasetId in UUID format
+   * @return a SnapshotBuilderSettings = API output-friendly representation of the Dataset's snapshot builder settings
+   */
   public SnapshotBuilderSettings getSnapshotBuilderSettings(UUID datasetId) {
     return new SnapshotBuilderSettings()
         .domainOptions(

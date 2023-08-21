@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,6 +32,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
@@ -631,5 +633,32 @@ public class DatasetServiceTest {
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
+  }
+
+  @Test
+  public void getRetrieveDatasetRequiredActionsWithDefaults() {
+    List<IamAction> actions =
+        datasetService.getRetrieveDatasetRequiredActions(
+            List.of(
+                DatasetRequestAccessIncludeModel.SCHEMA,
+                DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.DATA_PROJECT,
+                DatasetRequestAccessIncludeModel.STORAGE));
+    assertThat("There is only one action", actions.size(), equalTo(1));
+    assertThat("The only required action is reader", actions.contains(IamAction.READ_DATASET), is(IamAction.READ_DATASET));
+  }
+
+  @Test
+  public void getRetrieveDatasetRequiredActionsWithSnapshotBuilderConfig() {
+    List<IamAction> actions =
+        datasetService.getRetrieveDatasetRequiredActions(
+            List.of(
+                DatasetRequestAccessIncludeModel.SCHEMA,
+                DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.DATA_PROJECT,
+                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG));
+    assertThat("There is only one action", actions.size(), is(2));
+    assertThat("The only required action is reader", actions.contains(IamAction.READ_DATASET), equalTo(true));
+    assertThat("The only required action is reader", actions.contains(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS), equalTo(true));
   }
 }

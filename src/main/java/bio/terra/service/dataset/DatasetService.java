@@ -212,11 +212,17 @@ public class DatasetService {
   public DatasetModel retrieveDatasetModel(UUID id, AuthenticatedUserRequest userRequest) {
     return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
   }
-
+  /**
+   * Helper method to retrieve the required actions to view the dataset
+   * retrieve the dataset a second time if you already have it
+   *
+   * @param include the list of dataset fields being requested
+   * @return a List<IamAction> = The list of required actions to read these dataset fields
+   */
   public List<IamAction> getRetrieveDatasetRequiredActions(
       List<DatasetRequestAccessIncludeModel> include) {
     return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG)
-        ? List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_CONFIG)
+        ? List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS)
         : List.of(IamAction.READ_DATASET);
   }
 

@@ -185,7 +185,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-appengine:v1-rev20230206-2.0.0'
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
-    implementation platform('com.google.cloud:libraries-bom:26.6.0')
+    implementation platform('com.google.cloud:libraries-bom:26.22.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'

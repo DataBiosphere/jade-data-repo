@@ -85,6 +85,8 @@ public class DatasetsApiControllerTest {
     DatasetModel expected = new DatasetModel().id(DATASET_ID);
     when(datasetService.retrieveDatasetModel(DATASET_ID, TEST_USER, List.of(INCLUDE)))
         .thenReturn(expected);
+    when(datasetService.getRetrieveDatasetRequiredActions(List.of(INCLUDE)))
+        .thenCallRealMethod();
 
     String actualJson =
         mvc.perform(
@@ -105,6 +107,8 @@ public class DatasetsApiControllerTest {
   void testRetrieveDatasetForbidden() throws Exception {
     IamAction iamAction = IamAction.READ_DATASET;
     mockForbidden(iamAction);
+    when(datasetService.getRetrieveDatasetRequiredActions(List.of(INCLUDE)))
+        .thenCallRealMethod();
 
     mvc.perform(
             get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)

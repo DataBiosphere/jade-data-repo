@@ -646,9 +646,7 @@ public class DatasetServiceTest {
                 DatasetRequestAccessIncludeModel.STORAGE));
     assertThat("There is only one action", actions.size(), equalTo(1));
     assertThat(
-        "The only required action is reader",
-        actions.contains(IamAction.READ_DATASET),
-        is(IamAction.READ_DATASET));
+        "The only required action is reader", actions.contains(IamAction.READ_DATASET), is(true));
   }
 
   @Test

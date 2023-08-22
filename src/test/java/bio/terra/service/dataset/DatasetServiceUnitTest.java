@@ -43,6 +43,7 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -79,6 +80,7 @@ public class DatasetServiceUnitTest {
 
   @Autowired private DatasetService datasetService;
 
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
   @MockBean private JobService jobService;
   @MockBean private LoadService loadService;
   @MockBean private ProfileDao profileDao;

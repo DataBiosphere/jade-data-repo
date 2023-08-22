@@ -4,6 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -20,10 +22,12 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -33,12 +37,13 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@ContextConfiguration(classes = {DatasetJsonConversion.class})
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class DatasetJsonConversionTest {
@@ -59,6 +64,8 @@ public class DatasetJsonConversionTest {
   private static final UUID DATASET_ASSET_ID = UUID.randomUUID();
 
   @Autowired private DatasetJsonConversion datasetJsonConversion;
+
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
 
   private Dataset dataset;
   private DatasetModel datasetModel;
@@ -154,6 +161,7 @@ public class DatasetJsonConversionTest {
                                 .rootTable(DATASET_TABLE_NAME)
                                 .rootColumn(DATASET_COLUMN_NAME)
                                 .follow(Collections.emptyList()))))
+            .snapshotBuilderSettings(new SnapshotBuilderSettings())
             .dataProject(DATASET_DATA_PROJECT);
 
     metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
@@ -161,16 +169,20 @@ public class DatasetJsonConversionTest {
 
   @Test
   public void populateDatasetModelFromDataset() {
+    when(snapshotBuilderService.getSnapshotBuilderSettings(DATASET_ID))
+        .thenReturn(new SnapshotBuilderSettings());
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
             metadataDataAccessUtils,
             testUser),
         equalTo(datasetModel));
+    verify(snapshotBuilderService).getSnapshotBuilderSettings(DATASET_ID);
   }
 
   @Test
@@ -182,7 +194,12 @@ public class DatasetJsonConversionTest {
                 DatasetRequestAccessIncludeModel.NONE, DatasetRequestAccessIncludeModel.PROFILE),
             metadataDataAccessUtils,
             testUser),
-        equalTo(datasetModel.dataProject(null).defaultProfileId(null).schema(null)));
+        equalTo(
+            datasetModel
+                .dataProject(null)
+                .defaultProfileId(null)
+                .schema(null)
+                .snapshotBuilderSettings(null)));
   }
 
   @Test
@@ -199,6 +216,7 @@ public class DatasetJsonConversionTest {
                 .dataProject(null)
                 .defaultProfileId(null)
                 .schema(null)
+                .snapshotBuilderSettings(null)
                 .accessInformation(
                     new AccessInfoModel()
                         .bigQuery(

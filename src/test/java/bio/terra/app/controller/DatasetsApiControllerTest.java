@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,6 +46,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
@@ -106,17 +108,21 @@ public class DatasetsApiControllerTest {
   @Test
   void testRetrieveDatasetForbidden() throws Exception {
     IamAction iamAction = IamAction.READ_DATASET;
-    mockForbidden(iamAction);
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), List.of(iamAction));
     when(datasetService.getRetrieveDatasetRequiredActions(List.of(INCLUDE)))
-        .thenReturn(List.of(IamAction.READ_DATASET));
+        .thenReturn(List.of(iamAction));
 
-    mvc.perform(
+    ResultActions resultActions = mvc.perform(
             get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
                 .queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isForbidden());
 
     verifyAuthorizationsCall(List.of(iamAction));
-    verifyNoInteractions(datasetService);
+    verify(datasetService).getRetrieveDatasetRequiredActions(List.of(INCLUDE));
+    verifyNoMoreInteractions(datasetService);
   }
 
   @ParameterizedTest

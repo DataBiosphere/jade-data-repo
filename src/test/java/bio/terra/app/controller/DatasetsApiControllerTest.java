@@ -46,7 +46,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
@@ -115,7 +114,7 @@ public class DatasetsApiControllerTest {
     when(datasetService.getRetrieveDatasetRequiredActions(List.of(INCLUDE)))
         .thenReturn(List.of(iamAction));
 
-    ResultActions resultActions = mvc.perform(
+    mvc.perform(
             get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
                 .queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isForbidden());

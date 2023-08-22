@@ -97,7 +97,7 @@ public class DatasetsApiControllerTest {
     DatasetModel actual = TestUtils.mapFromJson(actualJson, DatasetModel.class);
     assertThat("Dataset model is returned", actual, equalTo(expected));
 
-    verifyAuthorizationCall(IamAction.READ_DATASET);
+    verifyAuthorizationsCall(List.of(IamAction.READ_DATASET));
     verify(datasetService).retrieveDatasetModel(DATASET_ID, TEST_USER, List.of(INCLUDE));
   }
 
@@ -111,7 +111,7 @@ public class DatasetsApiControllerTest {
                 .queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isForbidden());
 
-    verifyAuthorizationCall(iamAction);
+    verifyAuthorizationsCall(List.of(iamAction));
     verifyNoInteractions(datasetService);
   }
 
@@ -187,5 +187,10 @@ public class DatasetsApiControllerTest {
   private void verifyAuthorizationCall(IamAction iamAction) {
     verify(iamService)
         .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
+  }
+
+  private void verifyAuthorizationsCall(List<IamAction> iamActions) {
+    verify(iamService)
+        .verifyAuthorizations(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
   }
 }

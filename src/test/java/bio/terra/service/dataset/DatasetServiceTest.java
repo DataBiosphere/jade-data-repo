@@ -645,7 +645,10 @@ public class DatasetServiceTest {
                 DatasetRequestAccessIncludeModel.DATA_PROJECT,
                 DatasetRequestAccessIncludeModel.STORAGE));
     assertThat("There is only one action", actions.size(), equalTo(1));
-    assertThat("The only required action is reader", actions.contains(IamAction.READ_DATASET), is(IamAction.READ_DATASET));
+    assertThat(
+        "The only required action is reader",
+        actions.contains(IamAction.READ_DATASET),
+        is(IamAction.READ_DATASET));
   }
 
   @Test
@@ -658,7 +661,13 @@ public class DatasetServiceTest {
                 DatasetRequestAccessIncludeModel.DATA_PROJECT,
                 DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG));
     assertThat("There is only one action", actions.size(), is(2));
-    assertThat("The only required action is reader", actions.contains(IamAction.READ_DATASET), equalTo(true));
-    assertThat("The only required action is reader", actions.contains(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS), equalTo(true));
+    assertThat(
+        "The only required action is reader",
+        actions.contains(IamAction.READ_DATASET),
+        equalTo(true));
+    assertThat(
+        "The only required action is reader",
+        actions.contains(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS),
+        equalTo(true));
   }
 }

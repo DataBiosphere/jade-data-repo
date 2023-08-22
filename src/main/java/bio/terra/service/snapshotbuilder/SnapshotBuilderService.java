@@ -18,12 +18,12 @@ public class SnapshotBuilderService {
   @Autowired
   public SnapshotBuilderService() {}
   /**
-   * Fetch the snapshot builder settings for a given dataset
-   * Currently just returns dummy data for the sake of parallelizing UI and API development
-   * Will eventually be adapted to read from the DB
+   * Fetch the snapshot builder settings for a given dataset Currently just returns dummy data for
+   * the sake of parallelizing UI and API development Will eventually be adapted to read from the DB
    *
    * @param datasetId in UUID format
-   * @return a SnapshotBuilderSettings = API output-friendly representation of the Dataset's snapshot builder settings
+   * @return a SnapshotBuilderSettings = API output-friendly representation of the Dataset's
+   *     snapshot builder settings
    */
   public SnapshotBuilderSettings getSnapshotBuilderSettings(UUID datasetId) {
     return new SnapshotBuilderSettings()

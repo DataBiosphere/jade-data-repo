@@ -191,6 +191,7 @@ public class DatasetsApiControllerTest {
 
   private void verifyAuthorizationsCall(List<IamAction> iamActions) {
     verify(iamService)
-        .verifyAuthorizations(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
   }
 }

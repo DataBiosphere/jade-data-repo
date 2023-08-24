@@ -48,6 +48,7 @@ public class ValidateAssetUnitTest {
   @Autowired private DatasetService datasetService;
 
   @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockBean private DatasetJsonConversion datasetJsonConversion;
   @MockBean private JobService jobService;
   @MockBean private LoadService loadService;
   @MockBean private ProfileDao profileDao;

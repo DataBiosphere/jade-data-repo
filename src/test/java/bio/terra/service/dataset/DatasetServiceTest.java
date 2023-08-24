@@ -646,8 +646,7 @@ public class DatasetServiceTest {
                 DatasetRequestAccessIncludeModel.PROFILE,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT,
                 DatasetRequestAccessIncludeModel.STORAGE));
-    assertThat(
-        "The only required action is reader", actions, contains(List.of(IamAction.READ_DATASET)));
+    assertThat("The only required action is reader", actions, contains(IamAction.READ_DATASET));
   }
 
   @Test
@@ -663,7 +662,6 @@ public class DatasetServiceTest {
     assertThat(
         "The only required action is reader",
         actions,
-        containsInAnyOrder(
-            List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS)));
+        containsInAnyOrder(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS));
   }
 }

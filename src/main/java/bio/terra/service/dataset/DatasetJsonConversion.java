@@ -145,7 +145,7 @@ public final class DatasetJsonConversion {
           metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
     }
 
-    if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG)) {
+    if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
       datasetModel.snapshotBuilderSettings(
           snapshotBuilderService.getSnapshotBuilderSettings(dataset.getId()));
     }

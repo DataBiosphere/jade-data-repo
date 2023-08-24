@@ -4447,7 +4447,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE, SNAPSHOT_BUILDER_CONFIG ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE, SNAPSHOT_BUILDER_SETTINGS ]
     EnumerateDatasetModel:
       type: object
       properties:

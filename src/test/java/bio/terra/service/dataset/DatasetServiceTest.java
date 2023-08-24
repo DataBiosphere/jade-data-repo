@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -657,10 +656,9 @@ public class DatasetServiceTest {
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT,
-                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG));
-    assertThat("There is only one action", actions.size(), is(2));
+                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS));
     assertThat(
-        "The only required action is reader",
+        "When requesting SnapshotBuilderSettings require VIEW_SNAPSHOT_BUILDER_SETTINGS permission",
         actions,
         containsInAnyOrder(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS));
   }

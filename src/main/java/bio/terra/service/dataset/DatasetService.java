@@ -220,7 +220,7 @@ public class DatasetService {
    */
   public List<IamAction> getRetrieveDatasetRequiredActions(
       List<DatasetRequestAccessIncludeModel> include) {
-    return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG)
+    return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)
         ? List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS)
         : List.of(IamAction.READ_DATASET);
   }

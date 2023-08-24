@@ -204,7 +204,12 @@ public class AzureMonitoringService {
         .define(storageAccount.getName())
         .withResource(getStorageAccountLoggingResourceId(storageAccount))
         .withLogAnalytics(workspaceId)
-        .withLogsAndMetrics(logCategories, METRIC_GRANULARITY, LOG_DATA_RETENTION_DAYS)
+        // See
+        // https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/migrate-to-azure-storage-lifecycle-policy
+        // Setting a non-zero retention period is no longer supported
+        // Setting a retention period of 0 days means that the logs will be deleted after the
+        // workspace default of 90 days
+        .withLogsAndMetrics(logCategories, METRIC_GRANULARITY, 0)
         .create()
         .id();
   }

@@ -1,6 +1,8 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -644,9 +646,8 @@ public class DatasetServiceTest {
                 DatasetRequestAccessIncludeModel.PROFILE,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT,
                 DatasetRequestAccessIncludeModel.STORAGE));
-    assertThat("There is only one action", actions.size(), equalTo(1));
     assertThat(
-        "The only required action is reader", actions.contains(IamAction.READ_DATASET), is(true));
+        "The only required action is reader", actions, contains(List.of(IamAction.READ_DATASET)));
   }
 
   @Test
@@ -661,11 +662,8 @@ public class DatasetServiceTest {
     assertThat("There is only one action", actions.size(), is(2));
     assertThat(
         "The only required action is reader",
-        actions.contains(IamAction.READ_DATASET),
-        equalTo(true));
-    assertThat(
-        "The only required action is reader",
-        actions.contains(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS),
-        equalTo(true));
+        actions,
+        containsInAnyOrder(
+            List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS)));
   }
 }

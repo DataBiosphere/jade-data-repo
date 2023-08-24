@@ -213,8 +213,7 @@ public class DatasetService {
     return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
   }
   /**
-   * Helper method to retrieve the required actions to view the dataset retrieve the dataset a
-   * second time if you already have it
+   * Helper method to retrieve the required actions to view the dataset's requested fields
    *
    * @param include the list of dataset fields being requested
    * @return a List<IamAction> = The list of required actions to read these dataset fields

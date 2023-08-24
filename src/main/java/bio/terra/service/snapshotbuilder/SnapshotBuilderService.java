@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotBuilderService {
 
-  @Autowired
   public SnapshotBuilderService() {}
   /**
    * Fetch the snapshot builder settings for a given dataset Currently just returns dummy data for

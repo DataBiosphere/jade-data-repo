@@ -177,7 +177,7 @@ public class DatasetJsonConversionTest {
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,
-                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_CONFIG,
+                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
             metadataDataAccessUtils,
             testUser),

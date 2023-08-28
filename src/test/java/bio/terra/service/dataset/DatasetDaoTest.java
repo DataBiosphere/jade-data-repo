@@ -880,6 +880,29 @@ public class DatasetDaoTest {
   }
 
   @Test
+  public void patchDatasetSecureMonitoring() throws Exception {
+    UUID datasetId = createDataset("dataset-create-test.json");
+    Dataset originalDataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "dataset secure monitoring is false before patch",
+        not(originalDataset.isSecureMonitoringEnabled()));
+
+    DatasetPatchRequestModel patchRequestSet =
+        new DatasetPatchRequestModel().secureMonitoringEnabled(true);
+    datasetDao.patch(datasetId, patchRequestSet, TEST_USER);
+    assertThat(
+        "dataset's secure monitoring boolean is set from patch",
+        datasetDao.retrieve(datasetId).isSecureMonitoringEnabled());
+
+    DatasetPatchRequestModel resetPatchRequestSet =
+        new DatasetPatchRequestModel().secureMonitoringEnabled(false);
+    datasetDao.patch(datasetId, resetPatchRequestSet, TEST_USER);
+    assertThat(
+        "dataset's secure monitoring boolean is reset from patch",
+        not(datasetDao.retrieve(datasetId).isSecureMonitoringEnabled()));
+  }
+
+  @Test
   public void patchDatasetPhsId() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json");
 
@@ -888,19 +911,24 @@ public class DatasetDaoTest {
     String phsIdSet = "phs000000";
     DatasetPatchRequestModel patchRequestSet = new DatasetPatchRequestModel().phsId(phsIdSet);
     datasetDao.patch(datasetId, patchRequestSet, TEST_USER);
+    Dataset dataset = datasetDao.retrieve(datasetId);
+    assertThat("dataset's PHS ID is set from patch", dataset.getPhsId(), equalTo(phsIdSet));
     assertThat(
-        "dataset's PHS ID is set from patch",
-        datasetDao.retrieve(datasetId).getPhsId(),
-        equalTo(phsIdSet));
+        "dataset secure monitoring is false before patch",
+        not(dataset.isSecureMonitoringEnabled()));
 
     String phsIdOverride = "phs111111";
     DatasetPatchRequestModel patchRequestOverride =
         new DatasetPatchRequestModel().phsId(phsIdOverride);
     datasetDao.patch(datasetId, patchRequestOverride, TEST_USER);
+    Dataset patchedDataset = datasetDao.retrieve(datasetId);
     assertThat(
         "dataset's PHS ID is overridden from patch",
-        datasetDao.retrieve(datasetId).getPhsId(),
+        patchedDataset.getPhsId(),
         equalTo(phsIdOverride));
+    assertThat(
+        "dataset secure monitoring not changed when patching another field",
+        not(patchedDataset.isSecureMonitoringEnabled()));
 
     datasetDao.patch(datasetId, new DatasetPatchRequestModel(), TEST_USER);
     assertThat(

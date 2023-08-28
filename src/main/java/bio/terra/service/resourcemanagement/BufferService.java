@@ -111,7 +111,7 @@ public class BufferService {
     }
   }
 
-  private void refolderProjectToSecureFolder(String projectId)
+  public void refolderProjectToSecureFolder(String projectId)
       throws IOException, GeneralSecurityException {
     CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
     var project = cloudResourceManager.projects().get(projectId).execute();

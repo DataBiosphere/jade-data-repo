@@ -41,8 +41,10 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -76,7 +78,8 @@ public class DatasetServiceUnitTest {
   private AuthenticatedUserRequest testUser;
   private String datasetTableName;
   @MockBean private DatasetDao datasetDao;
-
+  @MockBean private BufferService bufferService;
+  @MockBean private SnapshotService snapshotService;
   @Autowired private DatasetService datasetService;
 
   @MockBean private JobService jobService;

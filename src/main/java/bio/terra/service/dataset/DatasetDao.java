@@ -746,7 +746,7 @@ public class DatasetDao implements TaggableResourceDao {
   public boolean setSecureMonitoring(
       UUID id, boolean enableSecureMonitoring, AuthenticatedUserRequest userReq) {
     String sql =
-        "UPDATE dataset SET secure_monitoring = :enabledSecureMonitoring " + "WHERE id = :id";
+        "UPDATE dataset SET secure_monitoring = :enabledSecureMonitoring WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()

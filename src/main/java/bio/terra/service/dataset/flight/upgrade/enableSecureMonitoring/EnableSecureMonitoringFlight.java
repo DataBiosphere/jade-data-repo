@@ -11,6 +11,8 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.dataset.flight.upgrade.predictableFileIds.*;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.BufferService;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -26,8 +28,8 @@ public class EnableSecureMonitoringFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
-    //    SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
-    //    BufferService bufferService = appContext.getBean(BufferService.class);
+    SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
+    BufferService bufferService = appContext.getBean(BufferService.class);
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -45,6 +47,9 @@ public class EnableSecureMonitoringFlight extends Flight {
       addStep(new EnableSecureMonitoringFlipFlagStep(datasetId, datasetDao, userReq));
 
       // Refolder dataset and child snapshot GCP projects
+      addStep(
+          new EnableSecureMonitoringRefolderGCPProjectsStep(
+              dataset, snapshotService, bufferService, userReq));
 
       // Register snapshots in TPS
 

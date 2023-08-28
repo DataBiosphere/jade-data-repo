@@ -401,24 +401,6 @@ public class SnapshotService {
         .errors(errors);
   }
 
-  public List<String> enumerateDataProjectsForSourceDataset(
-      UUID datasetId, AuthenticatedUserRequest userReq) {
-    return enumerateSnapshots(
-            userReq,
-            0,
-            Integer.MAX_VALUE,
-            EnumerateSortByParam.NAME,
-            SqlSortDirection.ASC,
-            "",
-            "",
-            List.of(datasetId),
-            List.of())
-        .getItems()
-        .stream()
-        .map(snapshotSummaryModel -> snapshotSummaryModel.getDataProject())
-        .collect(Collectors.toList());
-  }
-
   /**
    * @param userReq authenticated user
    * @return accessible snapshot IDs mapped to the roles which confer access

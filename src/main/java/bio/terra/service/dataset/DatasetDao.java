@@ -713,14 +713,12 @@ public class DatasetDao implements TaggableResourceDao {
       UUID id, DatasetPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
     String sql =
         "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id), "
-            + "secure_monitoring = COALESCE(:secure_monitoring, secure_monitoring), "
             + "description = COALESCE(:description, description), "
             + "properties = COALESCE(cast(:properties as jsonb), properties) WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("phs_id", patchRequest.getPhsId())
-            .addValue("secure_monitoring", patchRequest.isSecureMonitoringEnabled())
             .addValue("description", patchRequest.getDescription())
             .addValue(
                 "properties",

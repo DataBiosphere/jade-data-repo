@@ -70,11 +70,9 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
-import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
@@ -85,10 +83,7 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -123,8 +118,6 @@ public class DatasetService {
   private final IamService iamService;
   private final DatasetTableDao datasetTableDao;
   private final AzureSynapsePdao azureSynapsePdao;
-  private final BufferService bufferService;
-  private final SnapshotService snapshotService;
 
   @Autowired
   public DatasetService(
@@ -144,9 +137,7 @@ public class DatasetService {
       UserLoggingMetrics loggingMetrics,
       IamService iamService,
       DatasetTableDao datasetTableDao,
-      AzureSynapsePdao azureSynapsePdao,
-      BufferService bufferService,
-      SnapshotService snapshotService) {
+      AzureSynapsePdao azureSynapsePdao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -164,8 +155,6 @@ public class DatasetService {
     this.iamService = iamService;
     this.datasetTableDao = datasetTableDao;
     this.azureSynapsePdao = azureSynapsePdao;
-    this.bufferService = bufferService;
-    this.snapshotService = snapshotService;
   }
 
   public String createDataset(
@@ -327,31 +316,7 @@ public class DatasetService {
     if (!patchSucceeded) {
       throw new RuntimeException("Dataset was not updated");
     }
-    // TODO - what should we do if they're turning off secure monitoring?
-    if (patchRequest.isSecureMonitoringEnabled()) {
-      enableSecureMonitoring(id, userReq);
-    }
     return datasetDao.retrieveSummaryById(id).toModel();
-  }
-
-  private void enableSecureMonitoring(UUID id, AuthenticatedUserRequest userReq) {
-    Dataset dataset = retrieve(id);
-    CloudPlatformWrapper platform =
-        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
-    if (platform.isGcp()) {
-      List<String> projectsToRefolder = new ArrayList<>();
-      DatasetSummary datasetSummary = dataset.getDatasetSummary();
-      projectsToRefolder.add(datasetSummary.getDataProject());
-      projectsToRefolder.addAll(snapshotService.enumerateDataProjectsForSourceDataset(id, userReq));
-      projectsToRefolder.forEach(
-          projectId -> {
-            try {
-              bufferService.refolderProjectToSecureFolder(projectId);
-            } catch (IOException | GeneralSecurityException e) {
-              throw new RuntimeException("Dataset was not updated - failed to refolder project", e);
-            }
-          });
-    }
   }
 
   public DatasetSummaryModel setPredictableFileIds(UUID id, boolean predictableFileIds) {

@@ -7,13 +7,8 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class EnableSecureMonitoringFlipFlagStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(EnableSecureMonitoringFlipFlagStep.class);
-
   private final UUID datasetId;
   private final DatasetDao datasetDao;
   private final AuthenticatedUserRequest userRequest;
@@ -36,6 +31,13 @@ public class EnableSecureMonitoringFlipFlagStep implements Step {
     return StepResult.getStepResultSuccess();
   }
 
+  /**
+   * Undo the flag until we have a successful run of entire flight
+   *
+   * @param context
+   * @return
+   * @throws InterruptedException
+   */
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     boolean patchSucceeded = datasetDao.setSecureMonitoring(datasetId, false, userRequest);

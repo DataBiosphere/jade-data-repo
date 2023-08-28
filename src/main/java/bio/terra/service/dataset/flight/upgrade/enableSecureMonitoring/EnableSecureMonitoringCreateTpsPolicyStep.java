@@ -54,6 +54,7 @@ public class EnableSecureMonitoringCreateTpsPolicyStep implements Step {
     return StepResult.getStepResultSuccess();
   }
 
+  // TODO - do we actually wan to delete the PAOs here?  Or just leave them in place?
   @Override
   public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
     List<UUID> snapshotsToCreatePolicies = enumerateSnapshotIdsForDataset();

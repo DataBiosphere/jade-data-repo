@@ -186,12 +186,12 @@ Download the team's projects:
 ```
 git clone git@github.com:DataBiosphere/jade-data-repo.git
 git clone git@github.com:DataBiosphere/jade-data-repo-ui.git
-git clone git@github.com:DataBiosphere/jade-data-repo-cli
-git clone git@github.com:broadinstitute/datarepo-helm
-git clone git@github.com:broadinstitute/datarepo-helm-definitions
-git clone git@github.com:broadinstitute/terra-helmfile
-git clone git@github.com:broadinstitute/terraform-ap-deployments
-git clone git@github.com:broadinstitute/terraform-jade
+git clone git@github.com:DataBiosphere/jade-data-repo-cli.git
+git clone git@github.com:broadinstitute/datarepo-helm.git
+git clone git@github.com:broadinstitute/datarepo-helm-definitions.git
+git clone git@github.com:broadinstitute/terra-helmfile.git
+git clone git@github.com:broadinstitute/terraform-ap-deployments.git
+git clone git@github.com:broadinstitute/terraform-jade.git
 ```
 
 ## 8. Set up your Development Environment
@@ -242,6 +242,8 @@ gcloud container clusters get-credentials dev-master --region us-central1 --proj
 
 4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
    bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
+
+Note: Make sure you are on the VPN, otherwise the helmfile apply will fail.
 
 ```
 cd datarepo-helm-definitions/dev/ZZ

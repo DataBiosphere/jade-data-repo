@@ -9,6 +9,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.snapshot.SnapshotService;
@@ -29,6 +30,7 @@ public class EnableSecureMonitoringFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BufferService bufferService = appContext.getBean(BufferService.class);
     PolicyService policyService = appContext.getBean(PolicyService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
@@ -48,6 +50,7 @@ public class EnableSecureMonitoringFlight extends Flight {
       addStep(
           new EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep(
               datasetId, snapshotService, policyService, userReq));
+      addStep(new EnableSecureMonitoringJournalEntryStep(datasetId, journalService, userReq));
       addStep(new UnlockDatasetStep(datasetService, datasetId, false));
     } else {
       throw new FeatureNotImplementedException(

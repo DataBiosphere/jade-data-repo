@@ -757,8 +757,6 @@ public class DatasetDao implements TaggableResourceDao {
 
     if (patchSucceeded) {
       logger.info("Dataset {} set secure monitoring to {}", id, enableSecureMonitoring);
-      journalService.recordUpdate(
-          userReq, id, IamResourceType.DATASET, "Secure Monitoring set", params.getValues());
     }
     return patchSucceeded;
   }

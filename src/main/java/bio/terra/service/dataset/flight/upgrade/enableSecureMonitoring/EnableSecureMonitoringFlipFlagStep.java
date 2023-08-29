@@ -37,7 +37,6 @@ public class EnableSecureMonitoringFlipFlagStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL,
           new Exception("Unable to update secure monitoring flag"));
     }
-    logger.info("Secure monitoring set to true for dataset {}", datasetId);
     return StepResult.getStepResultSuccess();
   }
 
@@ -57,7 +56,6 @@ public class EnableSecureMonitoringFlipFlagStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL,
           new Exception("Unable to update secure monitoring flag"));
     }
-    logger.info("Secure monitoring set back to {}", orginalFlagValue);
     return StepResult.getStepResultSuccess();
   }
 }

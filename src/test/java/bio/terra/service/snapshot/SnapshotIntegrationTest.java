@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.PdaoConstant;
@@ -452,5 +453,12 @@ public class SnapshotIntegrationTest extends UsersBase {
         "Discoverer added on snapshot creation",
         rolesToPolicies.get(IamRole.DISCOVERER.toString()),
         contains(discovererEmail));
+
+    // Test enabling secure monitoring on existing project
+    assertThat("Secure monitoring should be disabled", not(dataset.isSecureMonitoringEnabled()));
+    assertThat("Job completes", dataRepoFixtures.enableSecureMonitoring(steward(), datasetId));
+    assertThat(
+        "Secure monitoring should now be enabled",
+        dataRepoFixtures.getDataset(steward(), datasetId).isSecureMonitoringEnabled());
   }
 }

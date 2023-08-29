@@ -147,6 +147,24 @@ public class DatasetDaoTest {
   }
 
   @Test
+  public void setSecureMonitoringTest() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    Dataset dataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "Dataset should by default have secure monitoring set to false",
+        not(dataset.isSecureMonitoringEnabled()));
+
+    datasetDao.setSecureMonitoring(datasetId, true, TEST_USER);
+    dataset = datasetDao.retrieve(datasetId);
+    assertThat("Secure Monitoring should now be enabled", dataset.isSecureMonitoringEnabled());
+
+    datasetDao.setSecureMonitoring(datasetId, false, TEST_USER);
+    dataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "Secure Monitoring should now be disabled again", not(dataset.isSecureMonitoringEnabled()));
+  }
+
+  @Test
   public void enumerateTest() throws Exception {
     UUID datasetId1 = createDataset("dataset-minimal.json");
     Dataset dataset1 = datasetDao.retrieve(datasetId1);

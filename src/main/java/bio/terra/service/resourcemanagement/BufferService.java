@@ -111,17 +111,22 @@ public class BufferService {
     }
   }
 
-  private void refolderProjectToSecureFolder(String projectId)
+  public void refolderProjectToSecureFolder(String projectId)
       throws IOException, GeneralSecurityException {
     CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
     var project = cloudResourceManager.projects().get(projectId).execute();
 
+    if (project.getParent().getId().equals(googleConfig.secureFolderResourceId())) {
+      logger.info("Project {} is already in secure folder", projectId);
+      return;
+    }
     ResourceId resourceId =
         new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.secureFolderResourceId());
 
     project.setParent(resourceId);
 
     cloudResourceManager.projects().update(projectId, project).execute();
+    logger.info("Project {} moved to secure folder", projectId);
   }
 
   private void deleteProject(String projectId) throws IOException, GeneralSecurityException {

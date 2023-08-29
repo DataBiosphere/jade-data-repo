@@ -65,6 +65,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
+import bio.terra.model.UpgradeModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.filedata.DrsResponse;
@@ -247,6 +248,26 @@ public class DataRepoFixtures {
         dataRepoClient.post(
             user, "/api/repository/v1/datasets", json, new TypeReference<>() {}, usePetAccount);
     return waitForDatasetCreate(user, post);
+  }
+
+  public boolean enableSecureMonitoring(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    UpgradeModel requestModel =
+        new UpgradeModel()
+            .upgradeName("ENABLE_SECURE_MONITORING")
+            .upgradeType(UpgradeModel.UpgradeTypeEnum.CUSTOM)
+            .customName("ENABLE_SECURE_MONITORING")
+            .addCustomArgsItem(datasetId.toString());
+
+    String json = TestUtils.mapToJson(requestModel);
+    DataRepoResponse<JobModel> jobResponse =
+        dataRepoClient.post(
+            user, "/api/repository/v1/upgrade", json, new TypeReference<>() {}, false);
+    assertTrue("upgrade launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue("upgrade launch response is present", jobResponse.getResponseObject().isPresent());
+
+    dataRepoClient.waitForResponseLog(user, jobResponse, new TypeReference<>() {});
+    return true;
   }
 
   public DatasetSummaryModel createSelfHostedDataset(

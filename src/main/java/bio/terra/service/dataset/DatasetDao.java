@@ -737,6 +737,31 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   /**
+   * Set a dataset's secure_monitoring flag
+   *
+   * @param id dataset UUID
+   * @return whether the dataset record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean setSecureMonitoring(
+      UUID id, boolean enableSecureMonitoring, AuthenticatedUserRequest userReq) {
+    String sql = "UPDATE dataset SET secure_monitoring = :enabledSecureMonitoring WHERE id = :id";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("id", id)
+            .addValue("enabledSecureMonitoring", enableSecureMonitoring);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    boolean patchSucceeded = (rowsAffected == 1);
+
+    if (patchSucceeded) {
+      logger.info("Dataset {} set secure monitoring to {}", id, enableSecureMonitoring);
+    }
+    return patchSucceeded;
+  }
+
+  /**
    * Update a dataset's predictableFileIds flag
    *
    * @param id dataset UUID

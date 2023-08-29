@@ -402,29 +402,6 @@ public class SnapshotService {
   }
 
   /**
-   * List the GCP projects for snapshots created from a given dataset
-   *
-   * @return list of GCP projects
-   */
-  public List<String> enumerateGcpProjectsForSourceDataset(
-      UUID datasetId, AuthenticatedUserRequest userReq) {
-    return enumerateSnapshots(
-            userReq,
-            0,
-            Integer.MAX_VALUE,
-            EnumerateSortByParam.NAME,
-            SqlSortDirection.ASC,
-            "",
-            "",
-            List.of(datasetId),
-            List.of())
-        .getItems()
-        .stream()
-        .map(SnapshotSummaryModel::getDataProject)
-        .toList();
-  }
-
-  /**
    * @param userReq authenticated user
    * @return accessible snapshot IDs mapped to the roles which confer access
    */

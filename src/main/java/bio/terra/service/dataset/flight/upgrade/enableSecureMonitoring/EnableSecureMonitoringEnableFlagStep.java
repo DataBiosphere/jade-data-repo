@@ -2,35 +2,28 @@ package bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class EnableSecureMonitoringFlipFlagStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(EnableSecureMonitoringFlipFlagStep.class);
-  private final UUID datasetId;
-  private final boolean orginalFlagValue;
+public class EnableSecureMonitoringEnableFlagStep implements Step {
   private final DatasetDao datasetDao;
   private final AuthenticatedUserRequest userRequest;
 
-  public EnableSecureMonitoringFlipFlagStep(
-      UUID datasetId,
-      boolean originalFlagValue,
-      DatasetDao datasetDao,
-      AuthenticatedUserRequest userRequest) {
-    this.datasetId = datasetId;
-    this.orginalFlagValue = originalFlagValue;
+  public EnableSecureMonitoringEnableFlagStep(
+      DatasetDao datasetDao, AuthenticatedUserRequest userRequest) {
     this.datasetDao = datasetDao;
     this.userRequest = userRequest;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
+    UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     boolean patchSucceeded = datasetDao.setSecureMonitoring(datasetId, true, userRequest);
     if (!patchSucceeded) {
       return new StepResult(
@@ -49,8 +42,12 @@ public class EnableSecureMonitoringFlipFlagStep implements Step {
    */
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
+    UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+    boolean originalFlagValue =
+        workingMap.get(DatasetWorkingMapKeys.SECURE_MONITORING_ENABLED, Boolean.class);
     boolean patchSucceeded =
-        datasetDao.setSecureMonitoring(datasetId, orginalFlagValue, userRequest);
+        datasetDao.setSecureMonitoring(datasetId, originalFlagValue, userRequest);
     if (!patchSucceeded) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,

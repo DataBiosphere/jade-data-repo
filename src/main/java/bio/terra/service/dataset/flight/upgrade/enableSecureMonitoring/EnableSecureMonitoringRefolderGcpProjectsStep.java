@@ -17,13 +17,13 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EnableSecureMonitoringRefolderGCPProjectsStep extends DefaultUndoStep {
+public class EnableSecureMonitoringRefolderGcpProjectsStep extends DefaultUndoStep {
   private final Dataset dataset;
   private final BufferService bufferService;
   private final SnapshotService snapshotService;
   private final AuthenticatedUserRequest userRequest;
 
-  public EnableSecureMonitoringRefolderGCPProjectsStep(
+  public EnableSecureMonitoringRefolderGcpProjectsStep(
       Dataset dataset,
       SnapshotService snapshotService,
       BufferService bufferService,

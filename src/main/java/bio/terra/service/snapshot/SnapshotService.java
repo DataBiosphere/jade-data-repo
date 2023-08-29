@@ -420,8 +420,8 @@ public class SnapshotService {
             List.of())
         .getItems()
         .stream()
-        .map(snapshotSummaryModel -> snapshotSummaryModel.getDataProject())
-        .collect(Collectors.toList());
+        .map(SnapshotSummaryModel::getDataProject)
+        .toList();
   }
 
   /**

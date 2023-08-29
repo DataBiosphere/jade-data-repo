@@ -7,15 +7,24 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EnableSecureMonitoringFlipFlagStep implements Step {
+  private static final Logger logger =
+      LoggerFactory.getLogger(EnableSecureMonitoringFlipFlagStep.class);
   private final UUID datasetId;
+  private final boolean orginalFlagValue;
   private final DatasetDao datasetDao;
   private final AuthenticatedUserRequest userRequest;
 
   public EnableSecureMonitoringFlipFlagStep(
-      UUID datasetId, DatasetDao datasetDao, AuthenticatedUserRequest userRequest) {
+      UUID datasetId,
+      boolean originalFlagValue,
+      DatasetDao datasetDao,
+      AuthenticatedUserRequest userRequest) {
     this.datasetId = datasetId;
+    this.orginalFlagValue = originalFlagValue;
     this.datasetDao = datasetDao;
     this.userRequest = userRequest;
   }
@@ -28,6 +37,7 @@ public class EnableSecureMonitoringFlipFlagStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL,
           new Exception("Unable to update secure monitoring flag"));
     }
+    logger.info("Secure monitoring set to true for dataset {}", datasetId);
     return StepResult.getStepResultSuccess();
   }
 
@@ -40,12 +50,14 @@ public class EnableSecureMonitoringFlipFlagStep implements Step {
    */
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    boolean patchSucceeded = datasetDao.setSecureMonitoring(datasetId, false, userRequest);
+    boolean patchSucceeded =
+        datasetDao.setSecureMonitoring(datasetId, orginalFlagValue, userRequest);
     if (!patchSucceeded) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,
           new Exception("Unable to update secure monitoring flag"));
     }
+    logger.info("Secure monitoring set back to {}", orginalFlagValue);
     return StepResult.getStepResultSuccess();
   }
 }

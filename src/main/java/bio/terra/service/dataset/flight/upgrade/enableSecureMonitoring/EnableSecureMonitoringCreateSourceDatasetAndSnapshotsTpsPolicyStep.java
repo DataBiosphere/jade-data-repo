@@ -2,31 +2,34 @@ package bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.policy.exception.PolicyConflictException;
+import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EnableSecureMonitoringCreateTpsPolicyStep implements Step {
+public class EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep
+    extends DefaultUndoStep {
   private static final Logger logger =
-      LoggerFactory.getLogger(EnableSecureMonitoringCreateTpsPolicyStep.class);
+      LoggerFactory.getLogger(
+          EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep.class);
 
   private final UUID datasetId;
   private final PolicyService policyService;
   private final SnapshotService snapshotService;
   private final AuthenticatedUserRequest userRequest;
 
-  public EnableSecureMonitoringCreateTpsPolicyStep(
+  public EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep(
       UUID datasetId,
       SnapshotService snapshotService,
       PolicyService policyService,
@@ -47,20 +50,10 @@ public class EnableSecureMonitoringCreateTpsPolicyStep implements Step {
         snapshotId -> {
           try {
             policyService.createSnapshotPao(snapshotId, policyInputs);
-          } catch (PolicyConflictException ex) {
+            logger.info("Policy access object created for snapshot {}", snapshotId);
+          } catch (PolicyConflictException | PolicyServiceDuplicateException ex) {
             logger.warn("Policy access object already exists for snapshot {}", snapshotId);
           }
-        });
-    return StepResult.getStepResultSuccess();
-  }
-
-  // TODO - do we actually wan to delete the PAOs here?  Or just leave them in place?
-  @Override
-  public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
-    List<UUID> snapshotsToCreatePolicies = enumerateSnapshotIdsForDataset();
-    snapshotsToCreatePolicies.forEach(
-        snapshotId -> {
-          policyService.deletePaoIfExists(snapshotId);
         });
     return StepResult.getStepResultSuccess();
   }
@@ -79,7 +72,7 @@ public class EnableSecureMonitoringCreateTpsPolicyStep implements Step {
             List.of())
         .getItems()
         .stream()
-        .map(snapshotSummaryModel -> snapshotSummaryModel.getId())
-        .collect(Collectors.toList());
+        .map(SnapshotSummaryModel::getId)
+        .toList();
   }
 }

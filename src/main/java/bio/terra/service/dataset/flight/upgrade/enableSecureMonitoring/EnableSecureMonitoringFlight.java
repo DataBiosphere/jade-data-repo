@@ -29,7 +29,6 @@ public class EnableSecureMonitoringFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BufferService bufferService = appContext.getBean(BufferService.class);
     PolicyService policyService = appContext.getBean(PolicyService.class);
-
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
@@ -40,16 +39,19 @@ public class EnableSecureMonitoringFlight extends Flight {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (platform.isGcp()) {
       addStep(new LockDatasetStep(datasetService, datasetId, false));
-      addStep(new EnableSecureMonitoringFlipFlagStep(datasetId, datasetDao, userReq));
       addStep(
-          new EnableSecureMonitoringRefolderGCPProjectsStep(
+          new EnableSecureMonitoringFlipFlagStep(
+              datasetId, dataset.isSecureMonitoringEnabled(), datasetDao, userReq));
+      addStep(
+          new EnableSecureMonitoringRefolderGcpProjectsStep(
               dataset, snapshotService, bufferService, userReq));
       addStep(
-          new EnableSecureMonitoringCreateTpsPolicyStep(
+          new EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep(
               datasetId, snapshotService, policyService, userReq));
       addStep(new UnlockDatasetStep(datasetService, datasetId, false));
     } else {
-      throw new FeatureNotImplementedException("Secure monitoring is only supported on GCP");
+      throw new FeatureNotImplementedException(
+          "Updating an exisiting dataset to use secure monitoring is only supported on GCP");
     }
   }
 }

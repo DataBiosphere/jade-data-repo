@@ -126,6 +126,7 @@ public class BufferService {
     project.setParent(resourceId);
 
     cloudResourceManager.projects().update(projectId, project).execute();
+    logger.info("Project {} moved to secure folder", projectId);
   }
 
   private void deleteProject(String projectId) throws IOException, GeneralSecurityException {

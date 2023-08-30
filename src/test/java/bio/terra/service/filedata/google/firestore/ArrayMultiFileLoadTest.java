@@ -1,12 +1,12 @@
 package bio.terra.service.filedata.google.firestore;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static org.assertj.core.api.Fail.fail;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.oneOf;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -267,18 +267,20 @@ public class ArrayMultiFileLoadTest {
     String columnsToQuery = "state, file_id, error";
     TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnsToQuery);
     for (FieldValueList item : queryLoadHistoryTableResult.getValues()) {
-      String state = item.get(0).getStringValue();
-      assertThat(
-          "state should either be succeeded or failed",
-          state,
-          oneOf(BulkLoadFileState.SUCCEEDED.toString(), BulkLoadFileState.FAILED.toString()));
-      if (state.equals(BulkLoadFileState.SUCCEEDED.toString())) {
-        assertThat("file_id should have value", item.get(1).getStringValue(), not(emptyString()));
-        assertThat("error column should be empty", item.get(2).getStringValue(), emptyString());
-      } else if (state.equals(BulkLoadFileState.FAILED.toString())) {
-        assertThat("file_id should not have value", item.get(1).getStringValue(), emptyString());
-        assertThat(
-            "error column should have value", item.get(2).getStringValue(), not(emptyString()));
+      String stateValue = item.get(0).getStringValue();
+      BulkLoadFileState state = BulkLoadFileState.fromValue(stateValue);
+      assertNotNull("Can construct BulkLoadFileState from value " + stateValue, state);
+      switch (state) {
+        case SUCCEEDED -> {
+          assertThat("file_id should have value", item.get(1).getStringValue(), not(emptyString()));
+          assertThat("error column should be empty", item.get(2).getStringValue(), emptyString());
+        }
+        case FAILED -> {
+          assertThat("file_id should not have value", item.get(1).getStringValue(), emptyString());
+          assertThat(
+              "error column should have value", item.get(2).getStringValue(), not(emptyString()));
+        }
+        default -> fail("state should be succeeded or failed, but was " + state);
       }
     }
     List<BulkLoadFileModel> loadArray = arrayLoad.getLoadArray();

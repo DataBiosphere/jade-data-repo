@@ -169,7 +169,7 @@ public class AssetDao {
           // add the new column to the asset table object
           assetTable.getColumns().add(newColumn);
         });
-    return tables.values().stream().toList();
+    return List.copyOf(tables.values());
   }
 
   private List<AssetRelationship> retrieveAssetRelationships(

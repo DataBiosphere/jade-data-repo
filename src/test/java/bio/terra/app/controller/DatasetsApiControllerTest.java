@@ -86,8 +86,6 @@ public class DatasetsApiControllerTest {
     DatasetModel expected = new DatasetModel().id(DATASET_ID);
     when(datasetService.retrieveDatasetModel(DATASET_ID, TEST_USER, List.of(INCLUDE)))
         .thenReturn(expected);
-    when(DatasetService.getRetrieveDatasetRequiredActions(List.of(INCLUDE)))
-        .thenReturn(List.of(IamAction.READ_DATASET));
 
     String actualJson =
         mvc.perform(
@@ -111,8 +109,6 @@ public class DatasetsApiControllerTest {
         .when(iamService)
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), List.of(iamAction));
-    when(DatasetService.getRetrieveDatasetRequiredActions(List.of(INCLUDE)))
-        .thenReturn(List.of(iamAction));
 
     mvc.perform(
             get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)

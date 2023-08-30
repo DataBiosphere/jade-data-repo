@@ -175,6 +175,22 @@ public class DatasetJsonConversionTest {
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.DATA_PROJECT),
+            metadataDataAccessUtils,
+            testUser),
+        equalTo(datasetModel.snapshotBuilderSettings(null)));
+  }
+
+  @Test
+  public void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
+    when(snapshotBuilderService.getSnapshotBuilderSettings(DATASET_ID))
+        .thenReturn(new SnapshotBuilderSettings());
+    assertThat(
+        datasetJsonConversion.populateDatasetModelFromDataset(
+            dataset,
+            List.of(
+                DatasetRequestAccessIncludeModel.SCHEMA,
+                DatasetRequestAccessIncludeModel.PROFILE,
                 DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
             metadataDataAccessUtils,

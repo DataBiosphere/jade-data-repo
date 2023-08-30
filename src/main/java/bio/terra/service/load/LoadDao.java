@@ -303,14 +303,15 @@ public class LoadDao {
             if (state == null) {
               throw new CorruptMetadataException("Invalid file state");
             }
+            int statecount = rs.getInt("statecount");
             switch (state) {
               case RUNNING -> {
-                logger.info("Unexpected running loads: " + rs.getInt("statecount"));
+                logger.info("Unexpected running loads: {}", statecount);
                 throw new CorruptMetadataException("No loads should be running!");
               }
-              case FAILED -> result.setFailedFiles(rs.getInt("statecount"));
-              case NOT_TRIED -> result.setNotTriedFiles(rs.getInt("statecount"));
-              case SUCCEEDED -> result.setSucceededFiles(rs.getInt("statecount"));
+              case FAILED -> result.setFailedFiles(statecount);
+              case NOT_TRIED -> result.setNotTriedFiles(statecount);
+              case SUCCEEDED -> result.setSucceededFiles(statecount);
               default -> throw new CorruptMetadataException("Invalid load state");
             }
             result.setTotalFiles(

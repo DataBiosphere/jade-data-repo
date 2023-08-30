@@ -20,9 +20,7 @@ public class AclUtils {
   private static final int INITIAL_WAIT_SECONDS = 2;
   private static final Random RANDOM = new Random();
 
-  private AclUtils() {
-    throw new IllegalStateException("Utility classes are not meant to be instantiated");
-  }
+  private AclUtils() {}
 
   public static <T> T aclUpdateRetry(Callable<T> aclUpdate) throws InterruptedException {
     Throwable lastException = null;

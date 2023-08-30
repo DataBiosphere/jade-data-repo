@@ -6376,13 +6376,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
-        prepackagedConceptSets:
+        datasetConceptSets:
           type: array
           items:
             $ref:
-              '#/components/schemas/SnapshotBuilderPrepackagedConceptSets'
+              '#/components/schemas/SnapshotBuilderDatasetConceptSets'
 
-    SnapshotBuilderPrepackagedConceptSets:
+    SnapshotBuilderDatasetConceptSets:
       type: object
       description: >
         ⚠️ A concept set provided for the dataset, usually used to access tables that are not searchable as domains

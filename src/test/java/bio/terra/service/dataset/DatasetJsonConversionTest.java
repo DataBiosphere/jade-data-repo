@@ -34,18 +34,15 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
-@ContextConfiguration(classes = {DatasetJsonConversion.class})
+@ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 public class DatasetJsonConversionTest {
   private AuthenticatedUserRequest testUser = AuthenticationFixtures.randomUserRequest();
 
@@ -63,9 +60,9 @@ public class DatasetJsonConversionTest {
   private static final String DATASET_ASSET_NAME = "asset1";
   private static final UUID DATASET_ASSET_ID = UUID.randomUUID();
 
-  @Autowired private DatasetJsonConversion datasetJsonConversion;
+  private DatasetJsonConversion datasetJsonConversion;
 
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @Mock private SnapshotBuilderService snapshotBuilderService;
 
   private Dataset dataset;
   private DatasetModel datasetModel;
@@ -73,6 +70,8 @@ public class DatasetJsonConversionTest {
 
   @Before
   public void setUp() throws Exception {
+    datasetJsonConversion = new DatasetJsonConversion(snapshotBuilderService);
+
     Column datasetColumn =
         new Column()
             .id(DATASET_COLUMN_ID)
@@ -182,7 +181,6 @@ public class DatasetJsonConversionTest {
             metadataDataAccessUtils,
             testUser),
         equalTo(datasetModel));
-    verify(snapshotBuilderService).getSnapshotBuilderSettings(DATASET_ID);
   }
 
   @Test

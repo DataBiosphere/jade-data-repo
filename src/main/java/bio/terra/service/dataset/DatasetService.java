@@ -218,7 +218,7 @@ public class DatasetService {
    * @param include the list of dataset fields being requested
    * @return a List<IamAction> = The list of required actions to read these dataset fields
    */
-  public List<IamAction> getRetrieveDatasetRequiredActions(
+  public static List<IamAction> getRetrieveDatasetRequiredActions(
       List<DatasetRequestAccessIncludeModel> include) {
     return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)
         ? List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS)

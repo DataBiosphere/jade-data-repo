@@ -152,7 +152,7 @@ public class DatasetsApiController implements DatasetsApi {
         userRequest,
         IamResourceType.DATASET,
         id.toString(),
-        datasetService.getRetrieveDatasetRequiredActions(include));
+        DatasetService.getRetrieveDatasetRequiredActions(include));
 
     return ResponseEntity.ok(datasetService.retrieveDatasetModel(id, userRequest, include));
   }

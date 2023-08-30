@@ -1,10 +1,10 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderDatasetConceptSets;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderListOption;
-import bio.terra.model.SnapshotBuilderPrepackagedConceptSets;
 import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderSettings;
 import java.util.List;
@@ -124,12 +124,12 @@ public class SnapshotBuilderService {
                     .id(4)
                     .name("Person")
                     .values(List.of("Demographics Column 1", "Demographics Column 2"))))
-        .prepackagedConceptSets(
+        .datasetConceptSets(
             List.of(
-                new SnapshotBuilderPrepackagedConceptSets()
+                new SnapshotBuilderDatasetConceptSets()
                     .name("Demographics")
                     .featureValueGroupName("Person"),
-                new SnapshotBuilderPrepackagedConceptSets()
+                new SnapshotBuilderDatasetConceptSets()
                     .name("All surveys")
                     .featureValueGroupName("Surveys")));
   }

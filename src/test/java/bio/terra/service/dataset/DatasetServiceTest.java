@@ -639,7 +639,7 @@ public class DatasetServiceTest {
   @Test
   public void getRetrieveDatasetRequiredActionsWithDefaults() {
     List<IamAction> actions =
-        datasetService.getRetrieveDatasetRequiredActions(
+        DatasetService.getRetrieveDatasetRequiredActions(
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,
@@ -651,7 +651,7 @@ public class DatasetServiceTest {
   @Test
   public void getRetrieveDatasetRequiredActionsWithSnapshotBuilderConfig() {
     List<IamAction> actions =
-        datasetService.getRetrieveDatasetRequiredActions(
+        DatasetService.getRetrieveDatasetRequiredActions(
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,

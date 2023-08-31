@@ -1,11 +1,14 @@
 package bio.terra.service.filedata.google.firestore;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static org.assertj.core.api.Fail.fail;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -34,10 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -143,10 +143,8 @@ public class ArrayMultiFileLoadTest {
 
     assertThat(
         "getting load history has the same items as response from bulk file load",
-        loadHistoryList.getItems().stream()
-            .map(TestUtils::toBulkLoadFileResultModel)
-            .collect(Collectors.toSet()),
-        Matchers.equalTo(Set.copyOf(result.getLoadFileResults())));
+        loadHistoryList.getItems().stream().map(TestUtils::toBulkLoadFileResultModel).toList(),
+        containsInAnyOrder(result.getLoadFileResults().toArray()));
 
     Map<String, String> fileIdMap = new HashMap<>();
     for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
@@ -163,14 +161,9 @@ public class ArrayMultiFileLoadTest {
         .forEach(r -> ids.add(r.get(columnToQuery).getStringValue()));
 
     assertThat(
-        "Number of files in datarepo_load_history table match load summary",
-        ids.size(),
-        equalTo(fileCount));
-    for (String bq_file_id : ids) {
-      assertNotNull(
-          "fileIdMap should contain File_id from datarepo_load_history",
-          fileIdMap.containsValue(bq_file_id));
-    }
+        "fileIdMap should contain fileIds from datarepo_load_history",
+        fileIdMap.values(),
+        containsInAnyOrder(ids.toArray()));
 
     // retry successful load to make sure it still succeeds and does nothing
     BulkLoadArrayResultModel result2 =
@@ -200,7 +193,6 @@ public class ArrayMultiFileLoadTest {
   @Test
   public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
     int fileCount = 8;
-    int totalfileCount = fileCount * 2;
     BulkLoadArrayRequestModel arrayLoad1 =
         makeSuccessArrayLoad("arrayMultiDoubleSuccess", 0, fileCount);
     BulkLoadArrayRequestModel arrayLoad2 =
@@ -243,16 +235,10 @@ public class ArrayMultiFileLoadTest {
     queryLoadHistoryTableResult
         .iterateAll()
         .forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
-
     assertThat(
-        "Number of files in datarepo_load_history table match load summary",
-        totalfileCount,
-        equalTo(bq_fileIds.size()));
-    for (String bq_file_id : bq_fileIds) {
-      assertNotNull(
-          "fileIdMap should contain File_id from datarepo_load_history",
-          fileIds.contains(bq_file_id));
-    }
+        "fileIds should contain fileIds from datarepo_load_history",
+        fileIds,
+        containsInAnyOrder(bq_fileIds.toArray()));
   }
 
   @Test
@@ -281,21 +267,22 @@ public class ArrayMultiFileLoadTest {
     String columnsToQuery = "state, file_id, error";
     TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnsToQuery);
     for (FieldValueList item : queryLoadHistoryTableResult.getValues()) {
-      String state = item.get(0).getStringValue();
-      assertTrue(
-          "state should either be succeeded or failed.",
-          state.equals(BulkLoadFileState.SUCCEEDED.toString())
-              || state.equals(BulkLoadFileState.FAILED.toString()));
-      if (state.equals(BulkLoadFileState.SUCCEEDED.toString())) {
-        assertTrue("file_id should have value", item.get(1).getStringValue().length() > 0);
-        assertTrue("Error column should be empty", item.get(2).getStringValue().length() == 0);
-      } else if (state.equals(BulkLoadFileState.FAILED.toString())) {
-        assertTrue("file_id should NOT have value", item.get(1).getStringValue().length() == 0);
-        assertTrue("Error column should have value", item.get(2).getStringValue().length() > 0);
+      String stateValue = item.get(0).getStringValue();
+      BulkLoadFileState state = BulkLoadFileState.fromValue(stateValue);
+      assertNotNull("Can construct BulkLoadFileState from value " + stateValue, state);
+      switch (state) {
+        case SUCCEEDED -> {
+          assertThat("file_id should have value", item.get(1).getStringValue(), not(emptyString()));
+          assertThat("error column should be empty", item.get(2).getStringValue(), emptyString());
+        }
+        case FAILED -> {
+          assertThat("file_id should not have value", item.get(1).getStringValue(), emptyString());
+          assertThat(
+              "error column should have value", item.get(2).getStringValue(), not(emptyString()));
+        }
+        default -> fail("state should be succeeded or failed, but was " + state);
       }
     }
-    FieldValueList curr_result;
-
     List<BulkLoadFileModel> loadArray = arrayLoad.getLoadArray();
     BulkLoadFileResultModel fileResult = resultMap.get(loadArray.get(0).getTargetPath());
     checkFileResultSuccess(fileResult);

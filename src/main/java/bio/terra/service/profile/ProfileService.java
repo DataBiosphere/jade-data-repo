@@ -185,7 +185,8 @@ public class ProfileService {
    */
   public BillingProfileModel getProfileById(UUID id, AuthenticatedUserRequest user) {
     if (!iamService.hasAnyActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
-      throw new IamUnauthorizedException("unauthorized");
+      throw new IamUnauthorizedException(
+          "User '" + user.getEmail() + "' does not have access to billing profile '" + id + "'.");
     }
     return getProfileByIdNoCheck(id);
   }

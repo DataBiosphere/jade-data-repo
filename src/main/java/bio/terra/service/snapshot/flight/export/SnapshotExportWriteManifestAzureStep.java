@@ -67,7 +67,10 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
         FlightUtils.getTyped(workingMap, SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_PARQUET_PATHS);
 
     UUID billingProfileId = workingMap.get(JobMapKeys.BILLING_ID.getKeyName(), UUID.class);
-    BillingProfileModel billingProfile = profileService.getProfileById(billingProfileId, userReq);
+    // We do not check that the caller has direct access to the billing profile:
+    // It is sufficient that they hold the necessary action on the snapshot, which is checked
+    // before calling the flight.
+    BillingProfileModel billingProfile = profileService.getProfileByIdNoCheck(billingProfileId);
     AzureStorageAccountResource storageAccountResource =
         resourceService.getSnapshotStorageAccount(snapshotId);
     String exportManifestPath = "manifests/%s/manifest.json".formatted(context.getFlightId());

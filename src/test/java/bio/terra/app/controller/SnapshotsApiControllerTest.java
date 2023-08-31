@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.common.TestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -38,7 +39,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
 class SnapshotsApiControllerTest {
 
@@ -99,7 +100,10 @@ class SnapshotsApiControllerTest {
   @Test
   void testExportSnapshotForbidden() throws Exception {
     IamAction iamAction = IamAction.EXPORT_SNAPSHOT;
-    mockForbidden(iamAction);
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
 
     mvc.perform(
             get(EXPORT_SNAPSHOT_ENDPOINT, SNAPSHOT_ID)
@@ -111,14 +115,6 @@ class SnapshotsApiControllerTest {
 
     verifyAuthorizationCall(iamAction);
     verifyNoInteractions(snapshotService);
-  }
-
-  /** Mock so that the user does not hold `iamAction` on the dataset. */
-  private void mockForbidden(IamAction iamAction) {
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
   }
 
   /** Verify that snapshot authorization was checked. */

@@ -523,8 +523,6 @@ task testConnected(type: Test) {
         if (isCiServer) {
             maxRetries = 3
             maxFailures = 15
-        } else {
-            maxRetries = 2
         }
     }
     maxParallelForks = 4
@@ -544,8 +542,6 @@ task testIntegration(type: Test) {
         if (isCiServer) {
             maxRetries = 3
             maxFailures = 15
-        } else {
-            maxRetries = 2
         }
     }
     maxParallelForks = 8

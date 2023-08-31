@@ -40,7 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
 @Tag("bio.terra.common.category.Unit")
 @WebMvcTest
-public class SnapshotsApiControllerTest {
+class SnapshotsApiControllerTest {
 
   @Autowired private MockMvc mvc;
 

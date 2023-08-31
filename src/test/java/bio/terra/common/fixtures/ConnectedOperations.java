@@ -49,6 +49,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -143,6 +144,8 @@ public class ConnectedOperations {
     when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
     when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
     when(samService.createDatasetResource(any(), any(), any())).thenReturn(datasetPolicies);
+    when(samService.listActions(any(), eq(IamResourceType.DATASET), any()))
+        .thenReturn(List.of(IamAction.READ_DATASET.toString()));
 
     when(samService.retrievePolicyEmails(any(), eq(IamResourceType.DATASET), any()))
         .thenReturn(datasetPolicies);

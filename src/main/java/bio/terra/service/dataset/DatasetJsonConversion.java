@@ -19,6 +19,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,11 +30,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
+@Component
 public final class DatasetJsonConversion {
+  private final SnapshotBuilderService snapshotBuilderService;
 
-  // only allow use of static methods
-  private DatasetJsonConversion() {}
+  public DatasetJsonConversion(SnapshotBuilderService snapshotBuilderService) {
+    this.snapshotBuilderService = snapshotBuilderService;
+  }
 
   public static Dataset datasetRequestToDataset(
       DatasetRequestModel datasetRequest, UUID datasetId) {
@@ -89,7 +94,7 @@ public final class DatasetJsonConversion {
         .assetSpecifications(assetSpecifications);
   }
 
-  public static DatasetModel populateDatasetModelFromDataset(
+  public DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
       MetadataDataAccessUtils metadataDataAccessUtils,
@@ -136,6 +141,11 @@ public final class DatasetJsonConversion {
     if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
       datasetModel.accessInformation(
           metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
+    }
+
+    if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
+      datasetModel.snapshotBuilderSettings(
+          snapshotBuilderService.getSnapshotBuilderSettings(dataset.getId()));
     }
 
     return datasetModel;

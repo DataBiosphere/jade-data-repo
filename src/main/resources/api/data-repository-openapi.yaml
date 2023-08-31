@@ -4282,6 +4282,8 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
+        snapshotBuilderSettings:
+          $ref: '#/components/schemas/SnapshotBuilderSettings'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -4445,7 +4447,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE, SNAPSHOT_BUILDER_SETTINGS ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -6348,6 +6350,145 @@ components:
       properties:
         exclusive:
           $ref: '#/components/schemas/ShortIdProperty'
+
+    ##############################################################################
+    ## SNAPSHOT BUILDER API STANDARD MODELS
+    ## ⚠️ NOTE: ALL SNAPSHOT API MODELS ARE SUBJECT TO CHANGE
+    ##############################################################################
+    SnapshotBuilderSettings:
+      type: object
+      description: >
+        ⚠️ The configuration describing how to select criteria for issuing a snapshot builder request
+      required:
+        - domainOptions
+        - programDataOptions
+        - featureValueGroups
+      properties:
+        domainOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderDomainOption'
+        programDataOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
+        featureValueGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
+        datasetConceptSets:
+          type: array
+          items:
+            $ref:
+              '#/components/schemas/SnapshotBuilderDatasetConceptSets'
+
+    SnapshotBuilderDatasetConceptSets:
+      type: object
+      description: >
+        ⚠️ A concept set provided for the dataset, usually used to access tables that are not searchable as domains
+      required:
+        - name
+        - featureValueGroupName
+      properties:
+        name:
+          type: string
+        featureValueGroupName:
+          type: string
+
+    SnapshotBuilderDomainOption:
+      type: object
+      description: >
+        ⚠️ An object describing high level information about a domain for use in the snapshot builder
+      required:
+        - id
+        - category
+        - root
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        conceptCount:
+          type: integer
+        participantCount:
+          type: integer
+        root:
+          $ref: '#/components/schemas/SnapshotBuilderConcept'
+
+    SnapshotBuilderConcept:
+      type: object
+      description: >
+        ⚠️ An object describing a concept in the Snapshot Builder
+      required:
+        - id
+        - name
+        - hasChildren
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        count:
+          type: integer
+        hasChildren:
+          type: boolean
+
+    SnapshotBuilderProgramDataOption:
+      type: object
+      description: >
+        ⚠️ An object describing high level information about program data for use in the snapshot builder
+      required:
+        - id
+        - name
+        - kind
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [ range, list ]
+        min:
+          type: integer
+        max:
+          type: integer
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderListOption'
+
+    SnapshotBuilderListOption:
+      type: object
+      description: >
+        ⚠️ An object describing a program data list option for the snapshot builder
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    SnapshotBuilderFeatureValueGroup:
+      type: object
+      description: >
+        ⚠️ Describes a set of columns for a table with given name
+      required:
+        - id
+        - name
+        - values
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

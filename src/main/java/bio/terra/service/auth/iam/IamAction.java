@@ -38,7 +38,8 @@ public enum IamAction {
   UPDATE_BILLING_ACCOUNT,
   LINK,
   // journal
-  VIEW_JOURNAL;
+  VIEW_JOURNAL,
+  VIEW_SNAPSHOT_BUILDER_SETTINGS;
 
   private final String samActionName;
 

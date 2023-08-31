@@ -101,6 +101,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DatasetService {
   private static final Logger logger = LoggerFactory.getLogger(DatasetService.class);
+  private final DatasetJsonConversion datasetJsonConversion;
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
@@ -121,6 +122,7 @@ public class DatasetService {
 
   @Autowired
   public DatasetService(
+      DatasetJsonConversion datasetJsonConversion,
       DatasetDao datasetDao,
       JobService jobService,
       LoadService loadService,
@@ -138,6 +140,7 @@ public class DatasetService {
       IamService iamService,
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao) {
+    this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -209,6 +212,18 @@ public class DatasetService {
   public DatasetModel retrieveDatasetModel(UUID id, AuthenticatedUserRequest userRequest) {
     return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
   }
+  /**
+   * Helper method to retrieve the required actions to view the dataset's requested fields
+   *
+   * @param include the list of dataset fields being requested
+   * @return a List<IamAction> = The list of required actions to read these dataset fields
+   */
+  public static List<IamAction> getRetrieveDatasetRequiredActions(
+      List<DatasetRequestAccessIncludeModel> include) {
+    return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)
+        ? List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS)
+        : List.of(IamAction.READ_DATASET);
+  }
 
   /**
    * Convenience wrapper to grab the dataset model from the dataset object, avoids having to
@@ -226,7 +241,7 @@ public class DatasetService {
       Dataset dataset,
       AuthenticatedUserRequest userRequest,
       List<DatasetRequestAccessIncludeModel> include) {
-    return DatasetJsonConversion.populateDatasetModelFromDataset(
+    return datasetJsonConversion.populateDatasetModelFromDataset(
         dataset, include, metadataDataAccessUtils, userRequest);
   }
 

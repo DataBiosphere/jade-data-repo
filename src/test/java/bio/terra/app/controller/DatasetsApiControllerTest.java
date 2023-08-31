@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -97,22 +98,25 @@ public class DatasetsApiControllerTest {
     DatasetModel actual = TestUtils.mapFromJson(actualJson, DatasetModel.class);
     assertThat("Dataset model is returned", actual, equalTo(expected));
 
-    verifyAuthorizationCall(IamAction.READ_DATASET);
+    verifyAuthorizationsCall(List.of(IamAction.READ_DATASET));
     verify(datasetService).retrieveDatasetModel(DATASET_ID, TEST_USER, List.of(INCLUDE));
   }
 
   @Test
   void testRetrieveDatasetForbidden() throws Exception {
     IamAction iamAction = IamAction.READ_DATASET;
-    mockForbidden(iamAction);
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), List.of(iamAction));
 
     mvc.perform(
             get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
                 .queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isForbidden());
 
-    verifyAuthorizationCall(iamAction);
-    verifyNoInteractions(datasetService);
+    verifyAuthorizationsCall(List.of(iamAction));
+    verifyNoMoreInteractions(datasetService);
   }
 
   @ParameterizedTest
@@ -187,5 +191,11 @@ public class DatasetsApiControllerTest {
   private void verifyAuthorizationCall(IamAction iamAction) {
     verify(iamService)
         .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
+  }
+
+  private void verifyAuthorizationsCall(List<IamAction> iamActions) {
+    verify(iamService)
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
   }
 }

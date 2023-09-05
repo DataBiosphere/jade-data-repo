@@ -7,10 +7,8 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DataDeletionRequest;
-import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.auth.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
@@ -65,10 +63,6 @@ public class DatasetDataDeleteFlight extends Flight {
 
     DataDeletionRequest request =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
-
-    addStep(
-        new VerifyAuthorizationStep(
-            iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
 
     if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
       addStep(

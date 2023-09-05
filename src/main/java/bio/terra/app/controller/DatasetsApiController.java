@@ -269,6 +269,8 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> applyDatasetDataDeletion(
       UUID id, @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(
+        userReq, id.toString(), IamAction.SOFT_DELETE);
     String jobId = datasetService.deleteTabularData(id.toString(), dataDeletionRequest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -309,6 +311,8 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> bulkFileLoad(
       @PathVariable("id") UUID id, @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(
+        userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = fileService.ingestBulkFile(id.toString(), bulkFileLoad, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -318,6 +322,8 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @Valid @RequestBody BulkLoadArrayRequestModel bulkFileLoadArray) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(
+        userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = fileService.ingestBulkFileArray(id.toString(), bulkFileLoadArray, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }

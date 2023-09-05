@@ -1060,6 +1060,10 @@ public class ConnectedOperations {
     while (true) {
       MockHttpServletResponse response = result.getResponse();
       HttpStatus status = HttpStatus.valueOf(response.getStatus());
+      // When the status is not found, there is no job to poll
+      if (status == HttpStatus.NOT_FOUND) {
+        return result.getResponse();
+      }
       assertTrue(
           "expected jobs polling status, got " + status.toString(),
           (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));

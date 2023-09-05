@@ -46,7 +46,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
@@ -63,9 +62,6 @@ public class JobService {
   private static final Logger logger = LoggerFactory.getLogger(JobService.class);
   private static final int MIN_SHUTDOWN_TIMEOUT = 14;
   private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
-  // Maximum number of times that the flight sql DB will be searched while enumeratin
-  private static final int MAX_FLIGHT_SEARCH_QUERIES = 10;
-  private static final int FLIGHT_SEARCH_BATCH_SIZE = 1_000;
 
   private final IamService samService;
   private final ApplicationConfiguration appConfig;
@@ -206,6 +202,7 @@ public class JobService {
       try {
         stairway.submit(jobId, flightClass, parameterMap);
       } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
         throw new JobServiceShutdownException("Job service interrupted", ex);
       }
       return jobId;
@@ -245,6 +242,7 @@ public class JobService {
     try {
       stairway.waitForFlight(jobId, pollSeconds, null);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -316,25 +314,18 @@ public class JobService {
     FlightFilter filter = new FlightFilter(createFlightFilter(userReq, className));
     // Set the order to use to return values
     switch (direction) {
-      case ASC:
-        filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
-        break;
-      case DESC:
-        filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
-        break;
-      default:
-        throw new IllegalArgumentException(String.format("Unrecognized direction %s", direction));
+      case ASC -> filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
+      case DESC -> filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
     }
 
-    List<FlightState> flightStateList = null;
     try {
-      flightStateList = stairway.getFlights(offset, limit, filter);
+      return stairway.getFlights(offset, limit, filter).stream()
+          .map(this::mapFlightStateToJobModel)
+          .toList();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", e);
     }
-    return flightStateList.stream()
-        .map(this::mapFlightStateToJobModel)
-        .collect(Collectors.toList());
   }
 
   private FlightBooleanOperationExpression createFlightFilter(
@@ -346,8 +337,9 @@ public class JobService {
     if (!StringUtils.isEmpty(className)) {
       topLevelBooleans.add(makePredicateFlightClass(FlightFilterOp.EQUAL, className));
     }
-    if (!StringUtils.isEmpty(className) && !className.equals(FileIngestWorkerFlight.class.getName())
-        || StringUtils.isEmpty(className)) {
+    if (StringUtils.isEmpty(className)
+        || !StringUtils.isEmpty(className)
+            && !className.equals(FileIngestWorkerFlight.class.getName())) {
       topLevelBooleans.add(
           makePredicateFlightClass(FlightFilterOp.NOT_EQUAL, FileIngestWorkerFlight.class));
     }
@@ -404,6 +396,7 @@ public class JobService {
       FlightState flightState = stairway.getFlightState(jobId);
       return mapFlightStateToJobModel(flightState);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -443,6 +436,7 @@ public class JobService {
       }
       return retrieveJobResultWorker(jobId, resultClass);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -550,6 +544,7 @@ public class JobService {
     } catch (FlightNotFoundException ex) {
       throw new JobNotFoundException("Job not found", ex);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }

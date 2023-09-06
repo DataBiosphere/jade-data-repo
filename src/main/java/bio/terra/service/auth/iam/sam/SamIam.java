@@ -33,7 +33,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -663,12 +662,12 @@ public class SamIam implements IamProviderInterface {
   }
 
   AccessPolicyMembershipRequest createAccessPolicyOne(IamRole role, String email) {
-    return createAccessPolicy(role, Collections.singletonList(email));
+    return createAccessPolicy(role, List.of(email));
   }
 
   AccessPolicyMembershipRequest createAccessPolicy(IamRole role, List<String> emails) {
     AccessPolicyMembershipRequest membership =
-        new AccessPolicyMembershipRequest().roles(Collections.singletonList(role.toString()));
+        new AccessPolicyMembershipRequest().roles(List.of(role.toString()));
     if (emails != null) {
       membership.memberEmails(emails);
     }

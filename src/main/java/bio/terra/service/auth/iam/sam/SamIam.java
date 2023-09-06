@@ -49,6 +49,7 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
@@ -217,21 +218,20 @@ public class SamIam implements IamProviderInterface {
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
-        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.adminsGroupEmail()));
+        createAccessPolicyOne(IamRole.ADMIN, samConfig.adminsGroupEmail()));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
-    req.putPoliciesItem(
-        IamRole.STEWARD.toString(), createAccessPolicyV2(IamRole.STEWARD, stewards));
+    req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));
 
     req.putPoliciesItem(
         IamRole.CUSTODIAN.toString(),
-        createAccessPolicyV2(IamRole.CUSTODIAN, policies.getCustodians()));
+        createAccessPolicy(IamRole.CUSTODIAN, policies.getCustodians()));
 
     req.putPoliciesItem(
         IamRole.SNAPSHOT_CREATOR.toString(),
-        createAccessPolicyV2(IamRole.SNAPSHOT_CREATOR, policies.getSnapshotCreators()));
+        createAccessPolicy(IamRole.SNAPSHOT_CREATOR, policies.getSnapshotCreators()));
 
     req.authDomain(List.of());
     logger.debug("SAM request: " + req);
@@ -285,20 +285,19 @@ public class SamIam implements IamProviderInterface {
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
-        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.adminsGroupEmail()));
+        createAccessPolicyOne(IamRole.ADMIN, samConfig.adminsGroupEmail()));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
     stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
-    req.putPoliciesItem(
-        IamRole.STEWARD.toString(), createAccessPolicyV2(IamRole.STEWARD, stewards));
+    req.putPoliciesItem(IamRole.STEWARD.toString(), createAccessPolicy(IamRole.STEWARD, stewards));
 
     req.putPoliciesItem(
-        IamRole.READER.toString(), createAccessPolicyV2(IamRole.READER, policies.getReaders()));
+        IamRole.READER.toString(), createAccessPolicy(IamRole.READER, policies.getReaders()));
 
     req.putPoliciesItem(
         IamRole.DISCOVERER.toString(),
-        createAccessPolicyV2(IamRole.DISCOVERER, policies.getDiscoverers()));
+        createAccessPolicy(IamRole.DISCOVERER, policies.getDiscoverers()));
 
     req.authDomain(List.of());
     logger.debug("SAM request: " + req);
@@ -345,11 +344,11 @@ public class SamIam implements IamProviderInterface {
     req.setResourceId(profileId);
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
-        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.adminsGroupEmail()));
+        createAccessPolicyOne(IamRole.ADMIN, samConfig.adminsGroupEmail()));
     req.putPoliciesItem(
         IamRole.OWNER.toString(),
-        createAccessPolicyOneV2(IamRole.OWNER, userStatusInfo.getUserEmail()));
-    req.putPoliciesItem(IamRole.USER.toString(), createAccessPolicyV2(IamRole.USER, null));
+        createAccessPolicyOne(IamRole.OWNER, userStatusInfo.getUserEmail()));
+    req.putPoliciesItem(IamRole.USER.toString(), createAccessPolicy(IamRole.USER, null));
     req.authDomain(List.of());
 
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
@@ -649,7 +648,8 @@ public class SamIam implements IamProviderInterface {
         new SignedUrlRequest()
             .bucketName(blobId.getBucket())
             .blobName(blobId.getName())
-            .duration(BigDecimal.valueOf(duration.toMinutes()));
+            .duration(BigDecimal.valueOf(duration.toMinutes()))
+            .requesterPays(true);
     return samApiService.googleApi(userReq.getToken()).getSignedUrlForBlob(project, request);
   }
 
@@ -662,13 +662,13 @@ public class SamIam implements IamProviderInterface {
     return userStatusInfo;
   }
 
-  AccessPolicyMembershipV2 createAccessPolicyOneV2(IamRole role, String email) {
-    return createAccessPolicyV2(role, Collections.singletonList(email));
+  AccessPolicyMembershipRequest createAccessPolicyOne(IamRole role, String email) {
+    return createAccessPolicy(role, Collections.singletonList(email));
   }
 
-  AccessPolicyMembershipV2 createAccessPolicyV2(IamRole role, List<String> emails) {
-    AccessPolicyMembershipV2 membership =
-        new AccessPolicyMembershipV2().roles(Collections.singletonList(role.toString()));
+  AccessPolicyMembershipRequest createAccessPolicy(IamRole role, List<String> emails) {
+    AccessPolicyMembershipRequest membership =
+        new AccessPolicyMembershipRequest().roles(Collections.singletonList(role.toString()));
     if (emails != null) {
       membership.memberEmails(emails);
     }

@@ -47,6 +47,7 @@ import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
@@ -195,19 +196,19 @@ public class SamIamTest {
         containsInAnyOrder(
             IamRole.ADMIN, IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR));
 
-    AccessPolicyMembershipV2 admin = req.getPolicies().get(IamRole.ADMIN.toString());
+    AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
     assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
     assertThat(admin.getMemberEmails(), contains(ADMIN_EMAIL));
 
-    AccessPolicyMembershipV2 steward = req.getPolicies().get(IamRole.STEWARD.toString());
+    AccessPolicyMembershipRequest steward = req.getPolicies().get(IamRole.STEWARD.toString());
     assertThat(steward.getRoles(), contains(IamRole.STEWARD.toString()));
     assertThat(steward.getMemberEmails(), contains(userEmail, stewardEmail1, stewardEmail2));
 
-    AccessPolicyMembershipV2 custodian = req.getPolicies().get(IamRole.CUSTODIAN.toString());
+    AccessPolicyMembershipRequest custodian = req.getPolicies().get(IamRole.CUSTODIAN.toString());
     assertThat(custodian.getRoles(), contains(IamRole.CUSTODIAN.toString()));
     assertThat(custodian.getMemberEmails(), contains(custodianEmail));
 
-    AccessPolicyMembershipV2 snapshotCreator =
+    AccessPolicyMembershipRequest snapshotCreator =
         req.getPolicies().get(IamRole.SNAPSHOT_CREATOR.toString());
     assertThat(snapshotCreator.getRoles(), contains(IamRole.SNAPSHOT_CREATOR.toString()));
     assertThat(snapshotCreator.getMemberEmails(), contains(snapshotCreatorEmail));
@@ -236,19 +237,20 @@ public class SamIamTest {
           policyKeys,
           containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER));
 
-      AccessPolicyMembershipV2 admin = req.getPolicies().get(IamRole.ADMIN.toString());
+      AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
       assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
       assertThat(admin.getMemberEmails(), contains(ADMIN_EMAIL));
 
-      AccessPolicyMembershipV2 steward = req.getPolicies().get(IamRole.STEWARD.toString());
+      AccessPolicyMembershipRequest steward = req.getPolicies().get(IamRole.STEWARD.toString());
       assertThat(steward.getRoles(), contains(IamRole.STEWARD.toString()));
       assertThat(steward.getMemberEmails(), contains(userEmail));
 
-      AccessPolicyMembershipV2 reader = req.getPolicies().get(IamRole.READER.toString());
+      AccessPolicyMembershipRequest reader = req.getPolicies().get(IamRole.READER.toString());
       assertThat(reader.getRoles(), contains(IamRole.READER.toString()));
       assertThat(reader.getMemberEmails(), empty());
 
-      AccessPolicyMembershipV2 discoverer = req.getPolicies().get(IamRole.DISCOVERER.toString());
+      AccessPolicyMembershipRequest discoverer =
+          req.getPolicies().get(IamRole.DISCOVERER.toString());
       assertThat(discoverer.getRoles(), contains(IamRole.DISCOVERER.toString()));
       assertThat(discoverer.getMemberEmails(), empty());
     }
@@ -282,19 +284,19 @@ public class SamIamTest {
         policyKeys,
         containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER));
 
-    AccessPolicyMembershipV2 admin = req.getPolicies().get(IamRole.ADMIN.toString());
+    AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
     assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
     assertThat(admin.getMemberEmails(), contains(ADMIN_EMAIL));
 
-    AccessPolicyMembershipV2 steward = req.getPolicies().get(IamRole.STEWARD.toString());
+    AccessPolicyMembershipRequest steward = req.getPolicies().get(IamRole.STEWARD.toString());
     assertThat(steward.getRoles(), contains(IamRole.STEWARD.toString()));
     assertThat(steward.getMemberEmails(), contains(userEmail, stewardEmail1, stewardEmail2));
 
-    AccessPolicyMembershipV2 reader = req.getPolicies().get(IamRole.READER.toString());
+    AccessPolicyMembershipRequest reader = req.getPolicies().get(IamRole.READER.toString());
     assertThat(reader.getRoles(), contains(IamRole.READER.toString()));
     assertThat(reader.getMemberEmails(), contains(readerEmail));
 
-    AccessPolicyMembershipV2 discoverer = req.getPolicies().get(IamRole.DISCOVERER.toString());
+    AccessPolicyMembershipRequest discoverer = req.getPolicies().get(IamRole.DISCOVERER.toString());
     assertThat(discoverer.getRoles(), contains(IamRole.DISCOVERER.toString()));
     assertThat(discoverer.getMemberEmails(), contains(discovererEmail));
   }
@@ -323,19 +325,19 @@ public class SamIamTest {
           containsInAnyOrder(
               IamRole.ADMIN, IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR));
 
-      AccessPolicyMembershipV2 admin = req.getPolicies().get(IamRole.ADMIN.toString());
+      AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
       assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
       assertThat(admin.getMemberEmails(), contains(ADMIN_EMAIL));
 
-      AccessPolicyMembershipV2 steward = req.getPolicies().get(IamRole.STEWARD.toString());
+      AccessPolicyMembershipRequest steward = req.getPolicies().get(IamRole.STEWARD.toString());
       assertThat(steward.getRoles(), contains(IamRole.STEWARD.toString()));
       assertThat(steward.getMemberEmails(), contains(userEmail));
 
-      AccessPolicyMembershipV2 custodian = req.getPolicies().get(IamRole.CUSTODIAN.toString());
+      AccessPolicyMembershipRequest custodian = req.getPolicies().get(IamRole.CUSTODIAN.toString());
       assertThat(custodian.getRoles(), contains(IamRole.CUSTODIAN.toString()));
       assertThat(custodian.getMemberEmails(), empty());
 
-      AccessPolicyMembershipV2 snapshotCreator =
+      AccessPolicyMembershipRequest snapshotCreator =
           req.getPolicies().get(IamRole.SNAPSHOT_CREATOR.toString());
       assertThat(snapshotCreator.getRoles(), contains(IamRole.SNAPSHOT_CREATOR.toString()));
       assertThat(snapshotCreator.getMemberEmails(), empty());
@@ -370,6 +372,7 @@ public class SamIamTest {
             new SignedUrlRequest()
                 .bucketName("bucket")
                 .blobName("path/to/file")
+                .requesterPays(true)
                 .duration(BigDecimal.valueOf(15)));
   }
 
@@ -546,17 +549,17 @@ public class SamIamTest {
       req.setResourceId(profileId.toString());
       req.putPoliciesItem(
           IamRole.ADMIN.toString(),
-          new AccessPolicyMembershipV2()
+          new AccessPolicyMembershipRequest()
               .memberEmails(List.of(samConfig.adminsGroupEmail()))
               .roles(List.of(IamRole.ADMIN.toString())));
       req.putPoliciesItem(
           IamRole.OWNER.toString(),
-          new AccessPolicyMembershipV2()
+          new AccessPolicyMembershipRequest()
               .memberEmails(List.of(userEmail))
               .roles(List.of(IamRole.OWNER.toString())));
       req.putPoliciesItem(
           IamRole.USER.toString(),
-          new AccessPolicyMembershipV2().roles(List.of(IamRole.USER.toString())));
+          new AccessPolicyMembershipRequest().roles(List.of(IamRole.USER.toString())));
       req.authDomain(List.of());
       samIam.createProfileResource(TEST_USER, profileId.toString());
       verify(samResourceApi).createResourceV2(IamResourceType.SPEND_PROFILE.toString(), req);

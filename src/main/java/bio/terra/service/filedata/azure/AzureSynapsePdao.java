@@ -89,6 +89,7 @@ public class AzureSynapsePdao {
   private static final String DEFAULT_CSV_QUOTE = "\"";
   private static final String EMPTY_TABLE_ERROR_MESSAGE =
       "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
+  private static final String MAX_BIG_INT = "9223372036854770000";
 
   private static final String DB_CREATION_TEMPLATE =
       """
@@ -245,6 +246,8 @@ public class AzureSynapsePdao {
               DATA_SOURCE = [<destinationDataSourceName>],
               FILE_FORMAT = [<fileFormat>]
           ) AS SELECT
+          /* TOP forces synapse not to over-scatter writes by forcing a table scan  on the source */
+          TOP <maxBigInt>
           <if(isCSV)>newid() as datarepo_row_id,
           <columns:{c|[<c.name>]}; separator=",">
           <else>
@@ -541,6 +544,7 @@ public class AzureSynapsePdao {
       sqlCreateTableTemplate.add(
           "csvQuote", Objects.requireNonNullElse(csvStringDelimiter, DEFAULT_CSV_QUOTE));
     }
+    sqlCreateTableTemplate.add("maxBigInt", MAX_BIG_INT);
     sqlCreateTableTemplate.add("tableName", scratchTableName);
     sqlCreateTableTemplate.add("destinationParquetFile", scratchParquetFile);
     sqlCreateTableTemplate.add("destinationDataSourceName", scratchDataSourceName);

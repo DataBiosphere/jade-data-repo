@@ -4,6 +4,7 @@ import static bio.terra.service.filedata.azure.util.AzureConstants.BAD_REQUEST_C
 import static bio.terra.service.filedata.azure.util.AzureConstants.NOT_FOUND_CODE;
 import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
 
+import bio.terra.common.ErrorCollector;
 import bio.terra.model.BillingProfileModel;
 import com.azure.core.management.Region;
 import com.azure.core.management.exception.ManagementException;
@@ -30,6 +31,7 @@ import com.azure.resourcemanager.securityinsights.models.TriggersWhen;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -43,7 +45,7 @@ public class AzureMonitoringService {
   private static final Duration METRIC_GRANULARITY = Duration.ofMinutes(5);
   private static final String UNAUTHORIZED_ACCESS_ALERT_NAME = "UnauthorizedAccess";
   private static final String SENTINEL_ONBOARD_STATE_NAME = "default";
-  private static final String SLACK_ALERT_RULE_NAME = "runSendSlackNotificationPlaybook";
+  public static final String SLACK_ALERT_RULE_NAME = "runSendSlackNotificationPlaybook";
   // Leaving this as static as opposed to config since these do not change from one environment to
   // the next
   private static final List<String> TABLES_TO_EXPORT =
@@ -226,6 +228,29 @@ public class AzureMonitoringService {
     logger.info("Deleting Log Analytics Workspace Diagnostic settings {}", id);
 
     client.diagnosticSettings().deleteById(id);
+  }
+
+  public void deleteSentinelNotification(
+      UUID subscriptionId,
+      String managedResourceGroupName,
+      String storageAccountName,
+      ErrorCollector errorCollector) {
+    try {
+      logger.info("deleting the sentinel notification");
+      SecurityInsightsManager client =
+          resourceConfiguration.getSecurityInsightsManagerClient(
+              resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
+      client
+          .automationRules()
+          .delete(managedResourceGroupName, storageAccountName, SLACK_ALERT_RULE_NAME);
+    } catch (Exception e) {
+      String errorMsg =
+          String.format(
+              "Failed to delete Sentinel notification for storage account %s in resource group %s",
+              storageAccountName, managedResourceGroupName);
+      logger.warn(errorMsg, e);
+      errorCollector.record(errorMsg, e);
+    }
   }
 
   /**

@@ -3,6 +3,7 @@ package bio.terra.service.resourcemanagement.azure;
 import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.ErrorCollector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
@@ -10,6 +11,8 @@ import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundExcep
 import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
+import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.resourcemanager.loganalytics.LogAnalyticsManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,15 +33,18 @@ public class AzureStorageAccountService {
   private final AzureResourceDao resourceDao;
   private final AzureResourceConfiguration resourceConfiguration;
   private final ProfileDao profileDao;
+  private AzureMonitoringService monitoringService;
 
   @Autowired
   public AzureStorageAccountService(
       AzureResourceDao resourceDao,
       AzureResourceConfiguration resourceConfiguration,
-      ProfileDao profileDao) {
+      ProfileDao profileDao,
+      AzureMonitoringService azureMonitoringService) {
     this.resourceDao = resourceDao;
     this.resourceConfiguration = resourceConfiguration;
     this.profileDao = profileDao;
+    this.monitoringService = azureMonitoringService;
   }
 
   /**
@@ -215,6 +221,58 @@ public class AzureStorageAccountService {
         resourceDao.deleteStorageAccountMetadata(
             storageAccountResourceName, topLevelContainer, flightId);
     logger.info("Metadata removed: {}", deleted);
+  }
+
+  public void deleteLogAnalyticWorkspace(
+      String storageAccountName,
+      UUID subscriptionId,
+      String managedResourceGroupName,
+      ErrorCollector errorCollector) {
+    logger.info("Deleting log analytic workspace {}", storageAccountName);
+    try {
+      LogAnalyticsManager clientLaw =
+          resourceConfiguration.getLogAnalyticsManagerClient(
+              resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
+      clientLaw.workspaces().delete(managedResourceGroupName, storageAccountName);
+    } catch (Exception e) {
+      String errorMsg =
+          String.format("Error deleting log analytic workspace %s", storageAccountName);
+      logger.error(errorMsg, storageAccountName, e);
+      errorCollector.record(errorMsg, e);
+    }
+  }
+
+  public void deleteCloudStorageAccount(
+      String storageAccountName,
+      UUID subscriptionId,
+      String managedResourceGroupName,
+      ErrorCollector errorCollector) {
+    try {
+      logger.info("Deleting storage account {}", storageAccountName);
+      AzureResourceManager clientSa = resourceConfiguration.getClient(subscriptionId);
+      clientSa
+          .storageAccounts()
+          .deleteByResourceGroup(managedResourceGroupName, storageAccountName);
+    } catch (Exception e) {
+      String errorMsg = String.format("Error deleting storage account %s", storageAccountName);
+      logger.error(errorMsg, storageAccountName, e);
+      errorCollector.record(errorMsg, e);
+    }
+  }
+
+  public void deleteStorageAccountAndCloudResources(
+      String storageAccountName, UUID subscriptionId, String managedResourceGroupName) {
+    ErrorCollector errorCollector = new ErrorCollector(3, "deleteStorageAccount");
+    // TODO - check if storage account is an orphan
+    // Only delete if an orphan
+    monitoringService.deleteSentinelNotification(
+        subscriptionId, managedResourceGroupName, storageAccountName, errorCollector);
+
+    deleteLogAnalyticWorkspace(
+        storageAccountName, subscriptionId, managedResourceGroupName, errorCollector);
+
+    deleteCloudStorageAccount(
+        storageAccountName, subscriptionId, managedResourceGroupName, errorCollector);
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {

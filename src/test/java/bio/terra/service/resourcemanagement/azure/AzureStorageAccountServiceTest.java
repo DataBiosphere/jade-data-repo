@@ -59,6 +59,7 @@ public class AzureStorageAccountServiceTest {
   @Mock private StorageAccounts storageAccounts;
   @Mock private StorageAccount storageAccount;
   @Mock private AzureResourceManager client;
+  @Mock private AzureMonitoringService monitoringService;
 
   private BillingProfileModel billingProfileModel;
   private AzureApplicationDeploymentResource applicationResource;
@@ -67,7 +68,9 @@ public class AzureStorageAccountServiceTest {
 
   @Before
   public void setUp() throws Exception {
-    service = new AzureStorageAccountService(resourceDao, resourceConfiguration, profileDao);
+    service =
+        new AzureStorageAccountService(
+            resourceDao, resourceConfiguration, profileDao, monitoringService);
 
     billingProfileModel = ProfileFixtures.randomAzureBillingProfile();
     when(profileDao.getBillingProfileById(billingProfileModel.getId()))

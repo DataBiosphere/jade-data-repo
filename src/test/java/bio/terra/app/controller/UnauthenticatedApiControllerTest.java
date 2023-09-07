@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.configuration.DuosConfiguration;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
@@ -34,6 +35,7 @@ public class UnauthenticatedApiControllerTest {
   @MockBean private StatusService statusService;
   @MockBean private TerraConfiguration terraConfiguration;
   @MockBean private SamConfiguration samConfiguration;
+  @MockBean private DuosConfiguration duosConfiguration;
 
   private void mockGetStatus(boolean ok) {
     when(statusService.getStatus()).thenReturn(new RepositoryStatusModel().ok(ok));
@@ -58,12 +60,14 @@ public class UnauthenticatedApiControllerTest {
     String terraUrl = "terra.base.url";
     String samUrl = "sam.base.url";
     String oidcAuthorityEndpoint = "/oidc/authority/endpoint";
+    String duosUrl = "duos.base.url";
 
     when(oauthConfig.clientId()).thenReturn(oauthClientId);
     when(openIDConnectConfiguration.getClientId()).thenReturn(oidcClientId);
     when(terraConfiguration.basePath()).thenReturn(terraUrl);
     when(samConfiguration.basePath()).thenReturn(samUrl);
     when(openIDConnectConfiguration.getAuthorityEndpoint()).thenReturn(oidcAuthorityEndpoint);
+    when(duosConfiguration.basePath()).thenReturn(duosUrl);
 
     mvc.perform(get("/configuration"))
         .andExpect(status().isOk())
@@ -71,6 +75,7 @@ public class UnauthenticatedApiControllerTest {
         .andExpect(jsonPath("$.oidcClientId").value(oidcClientId))
         .andExpect(jsonPath("$.terraUrl").value(terraUrl))
         .andExpect(jsonPath("$.samUrl").value(samUrl))
-        .andExpect(jsonPath("$.authorityEndpoint").value(oidcAuthorityEndpoint));
+        .andExpect(jsonPath("$.authorityEndpoint").value(oidcAuthorityEndpoint))
+        .andExpect(jsonPath("$.duosUrl").value(duosUrl));
   }
 }

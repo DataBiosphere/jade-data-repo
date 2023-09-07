@@ -699,6 +699,8 @@ public class SnapshotService {
 
   /** Throw if the user cannot read the snapshot. */
   public void verifySnapshotReadable(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    // check if snapshot exists
+    retrieveSnapshotSummary(snapshotId);
     IamAuthorizedCall canRead =
         () ->
             iamService.verifyAuthorization(
@@ -711,6 +713,8 @@ public class SnapshotService {
    * enumeration).
    */
   public void verifySnapshotListable(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    // check if snapshot exists
+    retrieveSnapshotSummary(snapshotId);
     IamAuthorizedCall canList =
         () ->
             iamService.verifyAuthorization(

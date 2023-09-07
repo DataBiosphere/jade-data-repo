@@ -19,6 +19,7 @@ import bio.terra.model.JobModel.JobStatusEnum;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +49,8 @@ public class ProfileAPIControllerTest {
   @Mock private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @Mock private JobService jobService;
 
+  @Mock private IamService iamService;
+
   private ProfileApiController apiController;
   private AuthenticatedUserRequest user;
 
@@ -62,7 +65,8 @@ public class ProfileAPIControllerTest {
             profileUpdateRequestValidator,
             policyMemberValidator,
             jobService,
-            authenticatedUserRequestFactory);
+            authenticatedUserRequestFactory,
+            iamService);
     user =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DatasetUnit")

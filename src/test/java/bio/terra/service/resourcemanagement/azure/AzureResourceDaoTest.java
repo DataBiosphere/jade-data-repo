@@ -2,6 +2,8 @@ package bio.terra.service.resourcemanagement.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -138,5 +140,21 @@ public class AzureResourceDaoTest {
                   sa.getApplicationResource().getAzureApplicationDeploymentName()),
               equalTo(sa));
         });
+  }
+
+  @Test
+  public void getStorageAccountByName() {
+    String storageAccountName = storageAccounts.get(0).getName();
+    String resourceGroupName = applicationDeployments.get(0).getAzureResourceGroupName();
+    assertThat(
+        "Storage Account is correctly retrieved by name",
+        azureResourceDao.getStorageAccountByNameAndResourceGroup(
+            storageAccountName, resourceGroupName),
+        notNullValue());
+
+    assertThat(
+        "Invalid storage account name returns null",
+        azureResourceDao.getStorageAccountByNameAndResourceGroup("invalid", resourceGroupName),
+        nullValue());
   }
 }

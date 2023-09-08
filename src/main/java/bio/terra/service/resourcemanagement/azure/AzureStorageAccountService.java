@@ -223,26 +223,24 @@ public class AzureStorageAccountService {
     logger.info("Metadata removed: {}", deleted);
   }
 
-  public void deleteLogAnalyticWorkspace(
+  private void deleteLogAnalyticWorkspace(
       String storageAccountName,
       UUID subscriptionId,
       String managedResourceGroupName,
       ErrorCollector errorCollector) {
-    logger.info("Deleting log analytic workspace {}", storageAccountName);
     try {
       LogAnalyticsManager clientLaw =
           resourceConfiguration.getLogAnalyticsManagerClient(
               resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
       clientLaw.workspaces().delete(managedResourceGroupName, storageAccountName);
+      logger.info("Deleted log analytic workspace {}", storageAccountName);
     } catch (Exception e) {
-      String errorMsg =
-          String.format("Error deleting log analytic workspace %s", storageAccountName);
-      logger.error(errorMsg, storageAccountName, e);
-      errorCollector.record(errorMsg, e);
+      errorCollector.record(
+          String.format("Error deleting log analytic workspace %s", storageAccountName), e);
     }
   }
 
-  public void deleteCloudStorageAccount(
+  private void deleteCloudStorageAccount(
       String storageAccountName,
       UUID subscriptionId,
       String managedResourceGroupName,
@@ -260,11 +258,34 @@ public class AzureStorageAccountService {
     }
   }
 
-  public void deleteStorageAccountAndCloudResources(
+  private boolean storageAccountOrphaned(
+      String storageAccountName, String managedResourceGroupName) {
+    return resourceDao.getStorageAccountByNameAndResourceGroup(
+            storageAccountName, managedResourceGroupName)
+        == null;
+  }
+
+  /***
+   * Delete a storage account and all associated cloud resources.
+   * Only proceeds if we've confirmed that the storage account is not associated with a TDR resource.
+   * On deleting a TDR resource, we delete everything except the storage account so that logs still exist.
+   * This method is intended to only be used an admin tool to fully clean up resources that we no longer need logs for, such as test storage accounts
+   * @param storageAccountName
+   * @param subscriptionId
+   * @param managedResourceGroupName
+   * @return
+   */
+  public ErrorCollector deleteStorageAccountAndCloudResources(
       String storageAccountName, UUID subscriptionId, String managedResourceGroupName) {
     ErrorCollector errorCollector = new ErrorCollector(3, "deleteStorageAccount");
-    // TODO - check if storage account is an orphan
-    // Only delete if an orphan
+    if (!storageAccountOrphaned(storageAccountName, managedResourceGroupName)) {
+      errorCollector.record(
+          String.format(
+              "Attempting to delete storage account %s that is still linked to a TDR resource.",
+              storageAccountName));
+      return errorCollector;
+    }
+
     monitoringService.deleteSentinelNotification(
         subscriptionId, managedResourceGroupName, storageAccountName, errorCollector);
 
@@ -273,6 +294,7 @@ public class AzureStorageAccountService {
 
     deleteCloudStorageAccount(
         storageAccountName, subscriptionId, managedResourceGroupName, errorCollector);
+    return errorCollector;
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {

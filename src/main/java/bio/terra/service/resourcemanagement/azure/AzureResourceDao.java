@@ -57,7 +57,11 @@ public class AzureResourceDao {
           + "WHERE sa.marked_for_delete = false";
   private static final String sqlStorageAccountRetrievedById =
       sqlStorageAccountRetrieve + " AND sa.id = :id";
-  private static final String sqlStorageAccountRetrievedByName =
+
+  private static final String sqlStorageAccountRetrievedByNameAndResourceGroup =
+      sqlStorageAccountRetrieve
+          + " AND sa.name = :name AND da.azure_resource_group_name = :azure_resource_group_name";
+  private static final String sqlStorageAccountRetrievedByNameAndTopLevelContainer =
       sqlStorageAccountRetrieve
           + " AND sa.name = :name AND sa.toplevelcontainer = :toplevelcontainer";
 
@@ -375,6 +379,26 @@ public class AzureResourceDao {
   }
 
   /**
+   * Fetch an existing storage_account_resource metadata row using the name amd resource group name.
+   * This method expects that there is exactly one row matching the provided name and application
+   * name.
+   *
+   * @param storageAccountName name of the storage account
+   * @param azureResourceGroupName name of the resource group where the storage account resides
+   * @return a reference to the storage account as a POJO {@link AzureStorageAccountResource} or
+   *     null if not found
+   */
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public AzureStorageAccountResource getStorageAccountByNameAndResourceGroup(
+      String storageAccountName, String azureResourceGroupName) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("name", storageAccountName)
+            .addValue("azure_resource_group_name", azureResourceGroupName);
+    return retrieveStorageAccountBy(sqlStorageAccountRetrievedByNameAndResourceGroup, params);
+  }
+
+  /**
    * Fetch an existing storage_account_resource metadata row using the name amd application
    * deployment name. This method expects that there is exactly one row matching the provided name
    * and application name.
@@ -396,7 +420,7 @@ public class AzureResourceDao {
             .addValue("name", storageAccountName)
             .addValue("toplevelcontainer", collectionId);
     AzureStorageAccountResource storageAccountResource =
-        retrieveStorageAccountBy(sqlStorageAccountRetrievedByName, params);
+        retrieveStorageAccountBy(sqlStorageAccountRetrievedByNameAndTopLevelContainer, params);
     if (storageAccountResource == null) {
       return null;
     }

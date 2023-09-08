@@ -236,20 +236,20 @@ public class AzureMonitoringService {
       String storageAccountName,
       ErrorCollector errorCollector) {
     try {
-      logger.info("deleting the sentinel notification");
       SecurityInsightsManager client =
           resourceConfiguration.getSecurityInsightsManagerClient(
               resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
       client
           .automationRules()
           .delete(managedResourceGroupName, storageAccountName, SLACK_ALERT_RULE_NAME);
+      logger.info(
+          "Successfully deleted sentinel notification for storage account {}", storageAccountName);
     } catch (Exception e) {
-      String errorMsg =
+      errorCollector.record(
           String.format(
               "Failed to delete Sentinel notification for storage account %s in resource group %s",
-              storageAccountName, managedResourceGroupName);
-      logger.warn(errorMsg, e);
-      errorCollector.record(errorMsg, e);
+              storageAccountName, managedResourceGroupName),
+          e);
     }
   }
 

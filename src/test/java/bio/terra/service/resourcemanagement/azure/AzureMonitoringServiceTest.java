@@ -2,12 +2,14 @@ package bio.terra.service.resourcemanagement.azure;
 
 import static bio.terra.service.filedata.azure.util.AzureConstants.NOT_FOUND_CODE;
 import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
+import static bio.terra.service.resourcemanagement.azure.AzureMonitoringService.SLACK_ALERT_RULE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.ErrorCollector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration.Credentials;
@@ -273,5 +275,19 @@ class AzureMonitoringServiceTest {
 
   private void mockArmClient() {
     when(resourceConfiguration.getClient(SUBSCRIPTION_ID)).thenReturn(azureResourceManager);
+  }
+
+  @Test
+  void deleteSentinelNotification() {
+    mockSecurityInsightsClient();
+    AutomationRules automationRulesClient = mock(AutomationRules.class);
+    when(securityInsightsManager.automationRules()).thenReturn(automationRulesClient);
+    when(automationRulesClient.delete(RESOURCE_GROUP, STORAGE_ACCOUNT_NAME, SLACK_ALERT_RULE_NAME))
+        .thenReturn(true);
+    service.deleteSentinelNotification(
+        UUID.randomUUID(),
+        RESOURCE_GROUP,
+        STORAGE_ACCOUNT_NAME,
+        new ErrorCollector(3, "deleteStorageAccountTest"));
   }
 }

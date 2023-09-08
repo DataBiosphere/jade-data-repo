@@ -6095,11 +6095,15 @@ components:
         samUrl:
           type: string
           format: uri
-          description: the URI of SAM this instance uses
+          description: the URI of Sam this instance uses
         authorityEndpoint:
           type: string
           format: uri
           description: the URI of oauth authority for the UI to use (e.g. .well-known/openid-configuration gets appended to it)
+        duosUrl:
+          type: string
+          format: uri
+          description: the URI of DUOS this instance uses
     DrsAliasModel:
       type: object
       properties:

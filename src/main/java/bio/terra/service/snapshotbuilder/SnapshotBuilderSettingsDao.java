@@ -42,12 +42,12 @@ public class SnapshotBuilderSettingsDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-  public SnapshotBuilderSettings getSnapshotBuilderSettingsByDatasetId(UUID id) {
+  public SnapshotBuilderSettings getSnapshotBuilderSettingsByDatasetId(UUID datasetId) {
     try {
 
       return jdbcTemplate.queryForObject(
-          "SELECT settings FROM snapshot_builder_settings WHERE dataset_id = :id",
-          new MapSqlParameterSource().addValue("id", id),
+          "SELECT settings FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
+          new MapSqlParameterSource().addValue("dataset_id", datasetId),
           new SnapshotBuilderSettingsMapper());
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot builder settings found for dataset", ex);
@@ -56,20 +56,33 @@ public class SnapshotBuilderSettingsDao {
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public SnapshotBuilderSettings upsertSnapshotBuilderSettingsByDataset(
-      UUID id, SnapshotBuilderSettings settings) {
+      UUID datasetId, SnapshotBuilderSettings settings) {
     Gson gson = new Gson();
     MapSqlParameterSource mapSqlParameterSource =
-        new MapSqlParameterSource().addValue("id", id).addValue("settings", gson.toJson(settings));
+        new MapSqlParameterSource()
+            .addValue("dataset_id", datasetId)
+            .addValue("settings", gson.toJson(settings));
     try {
-      getSnapshotBuilderSettingsByDatasetId(id);
+      getSnapshotBuilderSettingsByDatasetId(datasetId);
       jdbcTemplate.update(
-          "UPDATE snapshot_builder_settings SET settings = :settings WHERE dataset_id = :id",
+          "UPDATE snapshot_builder_settings SET settings = cast(:settings as jsonb) WHERE dataset_id = :dataset_id",
           mapSqlParameterSource);
     } catch (NotFoundException ex) {
       jdbcTemplate.update(
-          "INSERT INTO snapshot_builder_settings (dataset_id, settings) VALUES (:id, :settings)",
+          "INSERT INTO snapshot_builder_settings (dataset_id, settings) VALUES (:dataset_id, cast(:settings as jsonb))",
           mapSqlParameterSource);
     }
-    return getSnapshotBuilderSettingsByDatasetId(id);
+    return getSnapshotBuilderSettingsByDatasetId(datasetId);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void delete(UUID datasetId) {
+    try {
+      jdbcTemplate.update(
+          "DELETE FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
+          new MapSqlParameterSource().addValue("dataset_id", datasetId));
+    } catch (EmptyResultDataAccessException ex) {
+      throw new NotFoundException("No snapshot builder settings found for dataset", ex);
+    }
   }
 }

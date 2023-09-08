@@ -119,22 +119,20 @@ public class SnapshotBuilderSettingsDaoTest {
 
   @Test
   public void upsertSnapshotBuilderSettingsUpdatesWhenExisting() {
-    snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
-        dataset.getId(), new SnapshotBuilderSettings());
     assertThat(
         "Snapshot builder settings should be the new upserted value",
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()),
+        snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
+            dataset.getId(), new SnapshotBuilderSettings()),
         equalTo(new SnapshotBuilderSettings()));
   }
 
   @Test
   public void upsertSnapshotBuilderSettingsCreatesWhenNotExisting() {
     snapshotBuilderSettingsDao.delete(dataset.getId());
-    snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
-        dataset.getId(), SAMPLE_SNAPSHOT_BUILDER_SETTINGS);
     assertThat(
         "Snapshot builder settings should be the same as the example",
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()),
+        snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
+            dataset.getId(), SAMPLE_SNAPSHOT_BUILDER_SETTINGS),
         equalTo(SAMPLE_SNAPSHOT_BUILDER_SETTINGS));
   }
 

@@ -3,10 +3,10 @@ package bio.terra.service.snapshotbuilder;
 import bio.terra.model.SnapshotBuilderSettings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.ServerErrorException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,11 +57,16 @@ public class SnapshotBuilderSettingsDao {
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public SnapshotBuilderSettings upsertSnapshotBuilderSettingsByDataset(
       UUID datasetId, SnapshotBuilderSettings settings) {
-    Gson gson = new Gson();
+    String jsonValue;
+    try {
+      jsonValue = objectMapper.writeValueAsString(settings);
+    } catch (JsonProcessingException e) {
+      throw new BadRequestException("Could not write settings to json", e);
+    }
     MapSqlParameterSource mapSqlParameterSource =
         new MapSqlParameterSource()
             .addValue("dataset_id", datasetId)
-            .addValue("settings", gson.toJson(settings));
+            .addValue("settings", jsonValue);
     try {
       getSnapshotBuilderSettingsByDatasetId(datasetId);
       jdbcTemplate.update(

@@ -67,16 +67,9 @@ public class SnapshotBuilderSettingsDao {
         new MapSqlParameterSource()
             .addValue("dataset_id", datasetId)
             .addValue("settings", jsonValue);
-    try {
-      getSnapshotBuilderSettingsByDatasetId(datasetId);
-      jdbcTemplate.update(
-          "UPDATE snapshot_builder_settings SET settings = cast(:settings as jsonb) WHERE dataset_id = :dataset_id",
-          mapSqlParameterSource);
-    } catch (NotFoundException ex) {
-      jdbcTemplate.update(
-          "INSERT INTO snapshot_builder_settings (dataset_id, settings) VALUES (:dataset_id, cast(:settings as jsonb))",
-          mapSqlParameterSource);
-    }
+    jdbcTemplate.update(
+        "INSERT INTO snapshot_builder_settings (dataset_id, settings) VALUES (:dataset_id, cast(:settings as jsonb)) ON CONFLICT ON CONSTRAINT snapshot_builder_settings_dataset_id_key DO UPDATE SET settings = cast(:settings as jsonb)",
+        mapSqlParameterSource);
     return getSnapshotBuilderSettingsByDatasetId(datasetId);
   }
 

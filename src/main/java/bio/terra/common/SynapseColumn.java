@@ -73,9 +73,8 @@ public class SynapseColumn extends Column {
       case FLOAT64:
         return "float";
       case INTEGER:
-        return "int";
       case INT64:
-        return "bigint";
+        return "numeric";
       case NUMERIC:
         return "real";
       case TEXT:

@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SnapshotBuilderSettingsDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private static final ObjectMapper objectMapper = new ObjectMapper();
+  private final String datasetIdField = "dataset_id";
 
   private static final RowMapper<SnapshotBuilderSettings> MAPPER =
       (rs, rowNum) -> {
@@ -43,7 +44,7 @@ public class SnapshotBuilderSettingsDao {
 
       return jdbcTemplate.queryForObject(
           "SELECT settings FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
-          Map.of("dataset_id", datasetId),
+          Map.of(datasetIdField, datasetId),
           MAPPER);
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot builder settings found for dataset", ex);
@@ -65,7 +66,7 @@ public class SnapshotBuilderSettingsDao {
             + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_dataset_id_key"
             + " DO UPDATE SET settings = cast(:settings as jsonb)",
         Map.of(
-            "dataset_id", datasetId,
+            datasetIdField, datasetId,
             "settings", jsonValue));
     return getSnapshotBuilderSettingsByDatasetId(datasetId);
   }
@@ -75,7 +76,7 @@ public class SnapshotBuilderSettingsDao {
     try {
       jdbcTemplate.update(
           "DELETE FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
-          Map.of("dataset_id", datasetId));
+          Map.of(datasetIdField, datasetId));
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot builder settings found for dataset", ex);
     }

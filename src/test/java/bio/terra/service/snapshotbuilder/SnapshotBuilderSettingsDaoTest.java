@@ -1,9 +1,9 @@
 package bio.terra.service.snapshotbuilder;
 
 import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SAMPLE_SNAPSHOT_BUILDER_SETTINGS;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -33,7 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class SnapshotBuilderSettingsDaoTest {
+class SnapshotBuilderSettingsDaoTest {
 
   @Autowired private DaoOperations daoOperations;
   @Autowired private ProfileDao profileDao;
@@ -68,9 +68,10 @@ public class SnapshotBuilderSettingsDaoTest {
 
   @Test
   void getSnapshotBuilderSettingsForDatasetThatDoesNotExistErrors() {
+    UUID unusedUUID = UUID.randomUUID();
     assertThrows(
         NotFoundException.class,
-        () -> snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(UUID.randomUUID()));
+        () -> snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(unusedUUID));
   }
 
   @Test

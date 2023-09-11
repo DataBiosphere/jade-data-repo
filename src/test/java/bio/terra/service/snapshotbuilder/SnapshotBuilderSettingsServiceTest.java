@@ -3,32 +3,31 @@ package bio.terra.service.snapshotbuilder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDatasetConceptSets;
 import bio.terra.model.SnapshotBuilderSettings;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@RunWith(MockitoJUnitRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
+@EmbeddedDatabaseTest
 public class SnapshotBuilderSettingsServiceTest {
   @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
   private SnapshotBuilderService snapshotBuilderService;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     snapshotBuilderService = new SnapshotBuilderService(snapshotBuilderSettingsDao);
   }
@@ -47,7 +46,6 @@ public class SnapshotBuilderSettingsServiceTest {
         new SnapshotBuilderSettings()
             .datasetConceptSets(List.of(new SnapshotBuilderDatasetConceptSets()));
     snapshotBuilderService.updateSnapshotBuilderSettings(datasetId, settings);
-    verify(snapshotBuilderSettingsDao, times(1))
-        .upsertSnapshotBuilderSettingsByDataset(datasetId, settings);
+    verify(snapshotBuilderSettingsDao).upsertSnapshotBuilderSettingsByDataset(datasetId, settings);
   }
 }

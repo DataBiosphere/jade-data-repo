@@ -65,9 +65,7 @@ public class SnapshotBuilderSettingsDao {
             + " VALUES (:dataset_id, cast(:settings as jsonb))"
             + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_dataset_id_key"
             + " DO UPDATE SET settings = cast(:settings as jsonb)",
-        Map.of(
-            datasetIdField, datasetId,
-            "settings", jsonValue));
+        Map.of(datasetIdField, datasetId, "settings", jsonValue));
     return getSnapshotBuilderSettingsByDatasetId(datasetId);
   }
 

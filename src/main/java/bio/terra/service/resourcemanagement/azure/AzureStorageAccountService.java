@@ -223,79 +223,22 @@ public class AzureStorageAccountService {
     logger.info("Metadata removed: {}", deleted);
   }
 
-  private void deleteLogAnalyticWorkspace(
-      String storageAccountName,
+  public void deleteCloudStorageAccount(
       UUID subscriptionId,
       String managedResourceGroupName,
-      ErrorCollector errorCollector) {
-    try {
-      LogAnalyticsManager clientLaw =
-          resourceConfiguration.getLogAnalyticsManagerClient(
-              resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
-      clientLaw.workspaces().delete(managedResourceGroupName, storageAccountName);
-      logger.info("Deleted log analytic workspace {}", storageAccountName);
-    } catch (Exception e) {
-      errorCollector.record(
-          String.format("Error deleting log analytic workspace %s", storageAccountName), e);
-    }
-  }
-
-  private void deleteCloudStorageAccount(
-      String storageAccountName,
-      UUID subscriptionId,
-      String managedResourceGroupName,
-      ErrorCollector errorCollector) {
-    try {
+      String storageAccountName) {
       logger.info("Deleting storage account {}", storageAccountName);
       AzureResourceManager clientSa = resourceConfiguration.getClient(subscriptionId);
       clientSa
           .storageAccounts()
           .deleteByResourceGroup(managedResourceGroupName, storageAccountName);
-    } catch (Exception e) {
-      String errorMsg = String.format("Error deleting storage account %s", storageAccountName);
-      logger.error(errorMsg, storageAccountName, e);
-      errorCollector.record(errorMsg, e);
-    }
   }
 
-  private boolean storageAccountOrphaned(
+  public boolean storageAccountOrphaned(
       String storageAccountName, String managedResourceGroupName) {
     return resourceDao.getStorageAccountByNameAndResourceGroup(
             storageAccountName, managedResourceGroupName)
         == null;
-  }
-
-  /***
-   * Delete a storage account and all associated cloud resources.
-   * We want to undo all steps taken in AzureStorageMonitoringStepProvider
-   * Only proceeds if we've confirmed that the storage account is not associated with a TDR resource.
-   * On deleting a TDR resource, we delete everything except the storage account so that logs still exist.
-   * This method is intended to only be used an admin tool to fully clean up resources that we no longer need logs for, such as test storage accounts
-   * @param storageAccountName
-   * @param subscriptionId
-   * @param managedResourceGroupName
-   * @return
-   */
-  public ErrorCollector deleteStorageAccountAndCloudResources(
-      String storageAccountName, UUID subscriptionId, String managedResourceGroupName) {
-    ErrorCollector errorCollector = new ErrorCollector(3, "deleteStorageAccount");
-    if (!storageAccountOrphaned(storageAccountName, managedResourceGroupName)) {
-      errorCollector.record(
-          String.format(
-              "Attempting to delete storage account %s that is still linked to a TDR resource.",
-              storageAccountName));
-      return errorCollector;
-    }
-
-    monitoringService.deleteSentinelNotification(
-        subscriptionId, managedResourceGroupName, storageAccountName, errorCollector);
-
-    deleteLogAnalyticWorkspace(
-        storageAccountName, subscriptionId, managedResourceGroupName, errorCollector);
-
-    deleteCloudStorageAccount(
-        storageAccountName, subscriptionId, managedResourceGroupName, errorCollector);
-    return errorCollector;
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {
@@ -392,13 +335,28 @@ public class AzureStorageAccountService {
     if (storageAccountResource == null) {
       return null;
     }
+    return getCloudStorageAccount(profileModel.getSubscriptionId(), storageAccountResource.getApplicationResource().getAzureResourceGroupName(), storageAccountResource.getName());
+  }
+
+  /**
+   * Fetch an existing storage account cloud resource. Note this method does not check any
+   * associated metadata in the storage_account_resource table.
+   *
+   * @param subscriptionId
+   * @param resourceGroupName
+   * @param storageAccountName
+   * @return a reference to the storage account as an Azure storage account object, null if not
+   *     found
+   */
+  public StorageAccount getCloudStorageAccount(
+      UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     try {
       return resourceConfiguration
-          .getClient(profileModel.getSubscriptionId())
+          .getClient(subscriptionId)
           .storageAccounts()
           .getByResourceGroup(
-              storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-              storageAccountResource.getName());
+              resourceGroupName,
+              storageAccountName);
     } catch (ManagementException e) {
       if (e.getValue().getCode().equals(RESOURCE_NOT_FOUND_CODE)) {
         return null;

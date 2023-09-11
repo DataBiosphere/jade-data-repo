@@ -26,6 +26,7 @@ public class AzureStorageAccountCleanupFlight extends Flight {
         inputParameters.get(JobMapKeys.STORAGE_ACCOUNT_NAME.getKeyName(), String.class);
     ErrorCollector errorCollector = new ErrorCollector(3, "StorageAccountCleanupFlight");
 
+    //TODO - auth check - User must be admin in order to complete this request
 
     AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
         new AzureStorageMonitoringStepProvider(monitoringService);

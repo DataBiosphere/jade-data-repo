@@ -3318,6 +3318,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/admin/cleanup-azure-storage-accounts:
+    delete:
+        tags:
+            - admin
+            - repository
+        description: >
+            Cleanup Azure Storage Accounts that are no longer in use by TDR.
+        operationId: cleanupAzureStorageAccounts
+        parameters:
+        - name: subscriptionId
+          in: query
+          required: true
+          description: The UUID subscription id associated with the storage account to be deleted
+          schema:
+            type: string
+        - name: resourceGroupName
+          in: query
+          required: true
+          description: The Azure resource group name of the storage account to be deleted
+          schema:
+            type: string
+        - name: storageAccountName
+          in: query
+          required: true
+          description: The name of the storage account to be deleted
+          schema:
+            type: string
+        responses:
+          200:
+            description: Cleanup Azure Storage Accounts job submitted
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/JobModel'
+          500:
+            description: An unexpected error occurred.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/configs/{name}:
     get:
       tags:

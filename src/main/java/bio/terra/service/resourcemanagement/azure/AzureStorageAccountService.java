@@ -267,6 +267,7 @@ public class AzureStorageAccountService {
 
   /***
    * Delete a storage account and all associated cloud resources.
+   * We want to undo all steps taken in AzureStorageMonitoringStepProvider
    * Only proceeds if we've confirmed that the storage account is not associated with a TDR resource.
    * On deleting a TDR resource, we delete everything except the storage account so that logs still exist.
    * This method is intended to only be used an admin tool to fully clean up resources that we no longer need logs for, such as test storage accounts

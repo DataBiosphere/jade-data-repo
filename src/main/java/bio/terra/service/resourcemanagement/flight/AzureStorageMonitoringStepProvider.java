@@ -65,5 +65,45 @@ public class AzureStorageMonitoringStepProvider {
     return steps;
   }
 
+  public List<StepDef> configureUndoSteps() {
+    List<StepDef> steps = new ArrayList<>();
+    RetryRuleNone noRetry = getRetryRuleNone();
+
+    // The following steps are only needed for storage accounts with secure monitoring enabled
+    // We won't know if this is turned on, so we'll attempt to remove any related settings anyway
+
+      // Delete the notification playbook rule to the Sentinel instance.  This ensures that a Slack
+      // notification is sent when an alert is triggered.
+      steps.add(
+          new StepDef(new DeleteSentinelNotificationRuleStep(monitoringService), noRetry));
+
+    // Delete rules to Sentinel that will detect events of interest.
+    steps.add(
+        new StepDef(
+            new DeleteSentinelAlertRulesStep(monitoringService), noRetry));
+
+    // Delete the Sentinel Workspace
+    steps.add(new StepDef(new DeleteSentinelStep(monitoringService), noRetry));
+
+    // Delete the rule to send the Log Analytics logs to a central storage account where the logs
+    // will be retained for longer than the default 90 day minimum that the Log Analytics
+    // Workspace stores
+    steps.add(new StepDef(new DeleteExportRuleStep(monitoringService), noRetry));
+
+    // These last steps are required for any storage account with logging enabled,
+    // Not just those with secure monitoring enabled
+
+    // Delete diagnostic setting for the storage account
+    // This is what tells the storage account to send logs to the Log Analytics Workspace
+    // TODO - I think I can skip this step since we're deleting the storage account
+    //
+//    steps.add(new StepDef(new DeleteDiagnosticSettingStep(monitoringService, region), noRetry));
+
+    // Finally, delete the Log Analytics Workspace
+    steps.add(new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService), noRetry));
+    return steps;
+  }
+
+
   public record StepDef(Step step, RetryRule retryRule) {}
 }

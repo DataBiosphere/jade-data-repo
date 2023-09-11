@@ -522,6 +522,7 @@ public class AzureMonitoringService {
         .id();
   }
 
+  // TODO also delete the sentinel alert
   /**
    * Delete the Sentinel alert rule for the Sentinel instance monitoring the given Storage Account.
    * Note: this is for the rule that track unauthorized access to the storage account's files
@@ -561,13 +562,17 @@ public class AzureMonitoringService {
         resourceConfiguration.getSecurityInsightsManagerClient(
             resourceConfiguration.credentials().getHomeTenantId(),
             profileModel.getSubscriptionId());
+    return getNotificationRule(client, storageAccount.getApplicationResource().getAzureResourceGroupName(), storageAccount.getName());
+  }
+
+  private AutomationRule getNotificationRule(SecurityInsightsManager client, String azureResourceGroupName, String storageAccountName) {
     try {
       AutomationRule automationRule =
           client
               .automationRules()
               .get(
-                  storageAccount.getApplicationResource().getAzureResourceGroupName(),
-                  storageAccount.getName(),
+                  azureResourceGroupName,
+                  storageAccountName,
                   SLACK_ALERT_RULE_NAME);
       logger.debug("Found Sentinel alert rule");
       return automationRule;

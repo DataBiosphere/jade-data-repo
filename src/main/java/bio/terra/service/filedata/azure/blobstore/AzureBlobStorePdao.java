@@ -73,7 +73,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
 
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
 
-  private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
+  public static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
 
   private static final int LOG_RETENTION_DAYS = 90;
 

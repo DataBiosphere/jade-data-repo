@@ -83,7 +83,6 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -797,7 +796,7 @@ public class DatasetService {
               storageAccount,
               tempFilePath,
               new BlobSasTokenOptions(
-                  Duration.ofHours(1),
+                  AzureBlobStorePdao.DEFAULT_SAS_TOKEN_EXPIRATION,
                   new BlobSasPermission().setReadPermission(true).setWritePermission(true),
                   userRequest.getEmail()));
       azureBlobStorePdao.writeBlobLines(signedPath, mapLines(data));

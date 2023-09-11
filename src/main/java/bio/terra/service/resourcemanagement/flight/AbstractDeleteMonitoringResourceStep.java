@@ -10,27 +10,51 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
+import bio.terra.stairway.StepResult;
+import bio.terra.stairway.exception.RetryException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.UUID;
 
 public abstract class AbstractDeleteMonitoringResourceStep extends DefaultUndoStep {
+  private static final Logger logger =
+      LoggerFactory.getLogger(AbstractDeleteMonitoringResourceStep.class);
 
   protected final AzureMonitoringService monitoringService;
-  protected UUID subscriptionId = null;
-  protected String resourceGroupName = null;
-  protected String storageAccountName = null;
-  protected ErrorCollector errorCollector = null;
 
   public AbstractDeleteMonitoringResourceStep(
       AzureMonitoringService monitoringService) {
     this.monitoringService = monitoringService;
   }
 
-  void populateVariables(FlightContext context) {
+  String resourceName;
+
+  abstract boolean resourceExists(UUID subscriptionId, String resourceGroupName, String storageAccountName);
+
+  abstract void deleteResource(UUID subscriptionId, String resourceGroupName, String storageAccountName);
+
+  @Override
+  public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    subscriptionId = workingMap.get(AzureStorageMapKeys.SUBSCRIPTION_ID, UUID.class);
-    resourceGroupName = workingMap.get(AzureStorageMapKeys.RESOURCE_GROUP_NAME, String.class);
-    storageAccountName = workingMap.get(AzureStorageMapKeys.STORAGE_ACCOUNT_NAME, String.class);
-    errorCollector = workingMap.get(AzureStorageMapKeys.ERROR_COLLECTOR, ErrorCollector.class);
+    UUID subscriptionId = workingMap.get(AzureStorageMapKeys.SUBSCRIPTION_ID, UUID.class);
+    String resourceGroupName = workingMap.get(AzureStorageMapKeys.RESOURCE_GROUP_NAME, String.class);
+    String storageAccountName = workingMap.get(AzureStorageMapKeys.STORAGE_ACCOUNT_NAME, String.class);
+    ErrorCollector errorCollector = workingMap.get(AzureStorageMapKeys.ERROR_COLLECTOR, ErrorCollector.class);
+    if (resourceExists(subscriptionId, resourceGroupName, storageAccountName)) {
+      logger.info("{} not found, skipping deletion", resourceName);
+      return StepResult.getStepResultSuccess();
+    }
+    try {
+      deleteResource(subscriptionId, resourceGroupName, storageAccountName);
+      logger.info("{} deleted for storage account {}", resourceName, storageAccountName);
+    } catch (Exception e) {
+      errorCollector.record(
+          String.format(
+              "Failed to delete {} for storage account %s in resource group %s",
+              resourceName, storageAccountName, resourceGroupName),
+          e);
+    }
+    return StepResult.getStepResultSuccess();
   }
 
 

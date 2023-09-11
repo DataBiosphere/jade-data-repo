@@ -549,9 +549,11 @@ public class AzureIntegrationTest extends UsersBase {
         azureBlobIOTestUtility.uploadFileWithContents(
             csvDatasetIngestControlFileBlob,
             String.format(
+                // Note: the vocabulary_concept_id values are integers but have periods.  This is
+                // to ensure that ingest properly handles truncating data in this case
                 "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id%n"
-                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1%n"
-                    + "\"2\",\"vocab2\",\"%s\",\"v2\",2",
+                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1.0%n"
+                    + "\"2\",\"vocab2\",\"%s\",\"v2\",2.0",
                 file1Model.getFileId(), file3Model.getFileId()));
     IngestRequestModel ingestRequestCSV =
         new IngestRequestModel()

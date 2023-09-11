@@ -1,18 +1,16 @@
 package bio.terra.service.snapshotbuilder;
 
+import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.model.SnapshotBuilderSettings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.Map;
 import java.util.UUID;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.ServerErrorException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
@@ -22,19 +20,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class SnapshotBuilderSettingsDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
-  private static ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  private static class SnapshotBuilderSettingsMapper implements RowMapper<SnapshotBuilderSettings> {
-
-    public SnapshotBuilderSettings mapRow(ResultSet rs, int rowNum) throws SQLException {
-
-      try {
-        return objectMapper.readValue(rs.getString("settings"), SnapshotBuilderSettings.class);
-      } catch (JsonProcessingException e) {
-        throw new ServerErrorException("Settings not stored as properly formatted json", 500, e);
-      }
-    }
-  }
+  private static final RowMapper<SnapshotBuilderSettings> MAPPER =
+      (rs, rowNum) -> {
+        try {
+          return objectMapper.readValue(rs.getString("settings"), SnapshotBuilderSettings.class);
+        } catch (JsonProcessingException e) {
+          throw new InternalServerErrorException(
+              "Settings not stored as properly formatted json", e);
+        }
+      };
 
   @Autowired
   public SnapshotBuilderSettingsDao(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -47,8 +43,8 @@ public class SnapshotBuilderSettingsDao {
 
       return jdbcTemplate.queryForObject(
           "SELECT settings FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
-          new MapSqlParameterSource().addValue("dataset_id", datasetId),
-          new SnapshotBuilderSettingsMapper());
+          Map.of("dataset_id", datasetId),
+          MAPPER);
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot builder settings found for dataset", ex);
     }
@@ -63,13 +59,14 @@ public class SnapshotBuilderSettingsDao {
     } catch (JsonProcessingException e) {
       throw new BadRequestException("Could not write settings to json", e);
     }
-    MapSqlParameterSource mapSqlParameterSource =
-        new MapSqlParameterSource()
-            .addValue("dataset_id", datasetId)
-            .addValue("settings", jsonValue);
     jdbcTemplate.update(
-        "INSERT INTO snapshot_builder_settings (dataset_id, settings) VALUES (:dataset_id, cast(:settings as jsonb)) ON CONFLICT ON CONSTRAINT snapshot_builder_settings_dataset_id_key DO UPDATE SET settings = cast(:settings as jsonb)",
-        mapSqlParameterSource);
+        "INSERT INTO snapshot_builder_settings (dataset_id, settings)"
+            + " VALUES (:dataset_id, cast(:settings as jsonb))"
+            + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_dataset_id_key"
+            + " DO UPDATE SET settings = cast(:settings as jsonb)",
+        Map.of(
+            "dataset_id", datasetId,
+            "settings", jsonValue));
     return getSnapshotBuilderSettingsByDatasetId(datasetId);
   }
 
@@ -78,7 +75,7 @@ public class SnapshotBuilderSettingsDao {
     try {
       jdbcTemplate.update(
           "DELETE FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
-          new MapSqlParameterSource().addValue("dataset_id", datasetId));
+          Map.of("dataset_id", datasetId));
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot builder settings found for dataset", ex);
     }

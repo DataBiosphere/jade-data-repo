@@ -4070,7 +4070,7 @@ paths:
   ## SNAPSHOT BUILDER API ENDPOINTS
   ## ⚠️ NOTE: ALL SNAPSHOT APIS ARE SUBJECT TO CHANGE
   ##############################################################################
-  /api/repository/v1/datasets/{id}/snapshot-builder/settings:
+  /api/repository/v1/datasets/{id}/snapshotBuilder/settings:
     post:
       tags:
         - datasets

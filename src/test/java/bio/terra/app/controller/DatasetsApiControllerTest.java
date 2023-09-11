@@ -37,7 +37,6 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -77,7 +76,7 @@ public class DatasetsApiControllerTest {
       DatasetRequestAccessIncludeModel.NONE;
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshot-builder/settings";
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final int LIMIT = 10;
@@ -198,6 +197,11 @@ public class DatasetsApiControllerTest {
     when(snapshotBuilderService.updateSnapshotBuilderSettings(
             DATASET_ID, SAMPLE_SNAPSHOT_BUILDER_SETTINGS))
         .thenReturn(SAMPLE_SNAPSHOT_BUILDER_SETTINGS);
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
+    when(datasetRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
 
     mvc.perform(
             post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)

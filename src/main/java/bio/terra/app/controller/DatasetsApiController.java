@@ -170,7 +170,7 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<DatasetModel> updateDatasetSnapshotBuilderSettings(
-      UUID id, SnapshotBuilderSettings settings) {
+      @PathVariable("id") UUID id, @Valid @RequestBody SnapshotBuilderSettings settings) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,

@@ -218,7 +218,6 @@ dependencies {
     implementation 'javax.servlet:jstl:1.2'
 
     implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.0'
-    implementation 'org.elasticsearch:elasticsearch:7.10.0'
 
     implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '9.2.1.jre11'
 

@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.configuration.DuosConfiguration;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
@@ -36,6 +37,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   private final StatusService statusService;
   private final SamConfiguration samConfiguration;
   private final TerraConfiguration terraConfiguration;
+  private final DuosConfiguration duosConfiguration;
 
   private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
   private static final String DEFAULT_GITHASH = "00000000";
@@ -50,7 +52,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
       Environment env,
       StatusService statusService,
       TerraConfiguration terraConfiguration,
-      SamConfiguration samConfiguration) {
+      SamConfiguration samConfiguration,
+      DuosConfiguration duosConfiguration) {
     this.oauthConfig = oauthConfig;
     this.openIDConnectConfiguration = openIDConnectConfiguration;
     this.jobService = jobService;
@@ -58,6 +61,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     this.statusService = statusService;
     this.terraConfiguration = terraConfiguration;
     this.samConfiguration = samConfiguration;
+    this.duosConfiguration = duosConfiguration;
 
     Properties properties = new Properties();
     try (InputStream versionFile =
@@ -88,7 +92,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             .gitHash(gitHash)
             .terraUrl(terraConfiguration.basePath())
             .samUrl(samConfiguration.basePath())
-            .authorityEndpoint(openIDConnectConfiguration.getAuthorityEndpoint());
+            .authorityEndpoint(openIDConnectConfiguration.getAuthorityEndpoint())
+            .duosUrl(duosConfiguration.basePath());
 
     return new ResponseEntity<>(configurationModel, HttpStatus.OK);
   }

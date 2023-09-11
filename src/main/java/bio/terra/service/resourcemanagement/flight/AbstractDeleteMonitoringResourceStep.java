@@ -21,10 +21,18 @@ public abstract class AbstractDeleteMonitoringResourceStep extends DefaultUndoSt
       LoggerFactory.getLogger(AbstractDeleteMonitoringResourceStep.class);
 
   protected final AzureMonitoringService monitoringService;
+  private final UUID subscriptionId;
+  private final String resourceGroupName;
+  private final String storageAccountName;
+  private final ErrorCollector errorCollector;
 
   public AbstractDeleteMonitoringResourceStep(
-      AzureMonitoringService monitoringService) {
+      AzureMonitoringService monitoringService, UUID subscriptionId, String resourceGroupName, String storageAccountName, ErrorCollector errorCollector) {
     this.monitoringService = monitoringService;
+    this.subscriptionId = subscriptionId;
+    this.resourceGroupName = resourceGroupName;
+    this.storageAccountName = storageAccountName;
+    this.errorCollector = errorCollector;
   }
 
   String resourceName;
@@ -35,11 +43,6 @@ public abstract class AbstractDeleteMonitoringResourceStep extends DefaultUndoSt
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID subscriptionId = workingMap.get(AzureStorageMapKeys.SUBSCRIPTION_ID, UUID.class);
-    String resourceGroupName = workingMap.get(AzureStorageMapKeys.RESOURCE_GROUP_NAME, String.class);
-    String storageAccountName = workingMap.get(AzureStorageMapKeys.STORAGE_ACCOUNT_NAME, String.class);
-    ErrorCollector errorCollector = workingMap.get(AzureStorageMapKeys.ERROR_COLLECTOR, ErrorCollector.class);
     if (resourceExists(subscriptionId, resourceGroupName, storageAccountName)) {
       logger.info("{} not found, skipping deletion", resourceName);
       return StepResult.getStepResultSuccess();

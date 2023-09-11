@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import static bio.terra.stairway.RetryRuleNone.getRetryRuleNone;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.ErrorCollector;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
@@ -11,6 +12,7 @@ import bio.terra.stairway.RetryRuleNone;
 import bio.terra.stairway.Step;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * This class provides methods to generate the steps needed to configure storage account logging and
@@ -65,13 +67,13 @@ public class AzureStorageMonitoringStepProvider {
     return steps;
   }
 
-  public List<StepDef> configureUndoSteps() {
+  public List<StepDef> configureUndoSteps(UUID subscriptionId, String resourceGroupName, String storageAccountName, ErrorCollector errorCollector) {
     List<StepDef> steps = new ArrayList<>();
     RetryRuleNone noRetry = getRetryRuleNone();
 
-    steps.add(new StepDef(new DeleteSentinelStep(monitoringService), noRetry));
+    steps.add(new StepDef(new DeleteSentinelStep(monitoringService, subscriptionId, resourceGroupName, storageAccountName, errorCollector), noRetry));
 
-    steps.add(new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService), noRetry));
+    steps.add(new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService, subscriptionId, resourceGroupName, storageAccountName, errorCollector), noRetry));
     return steps;
   }
 

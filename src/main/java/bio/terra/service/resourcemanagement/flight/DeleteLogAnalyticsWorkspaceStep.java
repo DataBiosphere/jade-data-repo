@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.flight;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.ErrorCollector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
@@ -15,8 +16,8 @@ import java.util.UUID;
 
 public class DeleteLogAnalyticsWorkspaceStep extends AbstractDeleteMonitoringResourceStep {
   public DeleteLogAnalyticsWorkspaceStep(
-      AzureMonitoringService monitoringService) {
-    super(monitoringService);
+      AzureMonitoringService monitoringService, UUID subscriptionId, String resourceGroupName, String storageAccountName, ErrorCollector errorCollector) {
+    super(monitoringService, subscriptionId, resourceGroupName, storageAccountName, errorCollector);
     resourceName = "Log Analytics Workspace";
   }
 

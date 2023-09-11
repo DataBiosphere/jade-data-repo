@@ -21,7 +21,10 @@ public enum JobMapKeys {
   SNAPSHOT_ID("snapshotId"),
   FILE_ID("fileId"),
   ASSET_ID("assetId"),
-  TRANSACTION_ID("transactionId");
+  TRANSACTION_ID("transactionId"),
+  SUBSCRIPTION_ID("subscriptionId"),
+  RESOURCE_GROUP_NAME("resourceGroupName"),
+  STORAGE_ACCOUNT_NAME("storageAccountName");
 
   private String keyName;
 

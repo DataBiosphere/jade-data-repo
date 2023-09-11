@@ -62,23 +62,17 @@ public class SynapseColumn extends Column {
         return "varbinary";
       case DATE:
         return "date";
-      case DATETIME:
-      case TIMESTAMP:
+      case DATETIME, TIMESTAMP:
         return "datetime2";
-      case DIRREF:
-      case FILEREF:
+      case DIRREF, FILEREF:
         return "varchar(36)";
-      case FLOAT:
+      case FLOAT, FLOAT64:
         return "float";
-      case FLOAT64:
-        return "float";
-      case INTEGER:
-      case INT64:
+      case INTEGER, INT64:
         return "numeric";
       case NUMERIC:
         return "real";
-      case TEXT:
-      case STRING:
+      case TEXT, STRING:
         return "varchar(8000)";
       case TIME:
         return "time";

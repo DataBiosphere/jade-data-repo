@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SETTINGS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -33,6 +35,7 @@ import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +46,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -63,6 +67,7 @@ public class DatasetsApiControllerTest {
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
   @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -70,6 +75,8 @@ public class DatasetsApiControllerTest {
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
+  private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final int LIMIT = 10;
@@ -199,6 +206,32 @@ public class DatasetsApiControllerTest {
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
         .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+  }
+
+  @Test
+  void testUpdateSnapshotBuilderSettings() throws Exception {
+    when(datasetService.retrieveDatasetModel(
+            DATASET_ID,
+            TEST_USER,
+            List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
+        .thenReturn(new DatasetModel());
+    when(snapshotBuilderService.updateSnapshotBuilderSettings(DATASET_ID, SETTINGS))
+        .thenReturn(SETTINGS);
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
+    when(datasetRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+
+    mvc.perform(
+            post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(SETTINGS)))
+        .andExpect(status().is2xxSuccessful())
+        .andReturn();
+
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */

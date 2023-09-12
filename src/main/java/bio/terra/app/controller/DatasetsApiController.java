@@ -35,6 +35,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -54,6 +55,7 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -85,11 +87,11 @@ public class DatasetsApiController implements DatasetsApi {
   private final DatasetService datasetService;
   private final IamService iamService;
   private final FileService fileService;
+  private final SnapshotBuilderService snapshotBuilderService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
   private final IngestRequestValidator ingestRequestValidator;
   private final DataDeletionRequestValidator dataDeletionRequestValidator;
-
   private final DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
 
   @Autowired
@@ -100,6 +102,7 @@ public class DatasetsApiController implements DatasetsApi {
       DatasetService datasetService,
       IamService iamService,
       FileService fileService,
+      SnapshotBuilderService snapshotBuilderService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
       IngestRequestValidator ingestRequestValidator,
@@ -111,6 +114,7 @@ public class DatasetsApiController implements DatasetsApi {
     this.datasetService = datasetService;
     this.iamService = iamService;
     this.fileService = fileService;
+    this.snapshotBuilderService = snapshotBuilderService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
     this.ingestRequestValidator = ingestRequestValidator;
@@ -160,6 +164,21 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     verifyDatasetAuthorization(userRequest, id.toString(), null);
     return ResponseEntity.ok(datasetService.retrieveDatasetSummary(id));
+  }
+
+  @Override
+  public ResponseEntity<DatasetModel> updateDatasetSnapshotBuilderSettings(
+      @PathVariable("id") UUID id, @Valid @RequestBody SnapshotBuilderSettings settings) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    snapshotBuilderService.updateSnapshotBuilderSettings(id, settings);
+    return ResponseEntity.ok(
+        datasetService.retrieveDatasetModel(
+            id, userRequest, List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)));
   }
 
   @Override

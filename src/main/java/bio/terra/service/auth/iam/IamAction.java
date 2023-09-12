@@ -39,7 +39,8 @@ public enum IamAction {
   LINK,
   // journal
   VIEW_JOURNAL,
-  VIEW_SNAPSHOT_BUILDER_SETTINGS;
+  VIEW_SNAPSHOT_BUILDER_SETTINGS,
+  UPDATE_SNAPSHOT_BUILDER_SETTINGS;
 
   private final String samActionName;
 

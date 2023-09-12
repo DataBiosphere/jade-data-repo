@@ -590,6 +590,12 @@ public class SnapshotServiceTest {
     verify(ecmService, never()).validatePassport(any());
   }
 
+  private void mockSnapshotSummary() {
+    SnapshotSummary snapshotSummary =
+        new SnapshotSummary().id(snapshotId).createdDate(createdDate).storage(List.of());
+    when(snapshotDao.retrieveSummaryById(snapshotId)).thenReturn(snapshotSummary);
+  }
+
   private void mockSnapshotSummaryWithPassportCriteria() {
     SnapshotSummary snapshotSummary =
         new SnapshotSummary()
@@ -774,6 +780,7 @@ public class SnapshotServiceTest {
 
   @Test
   public void verifySnapshotListableBySam() {
+    mockSnapshotSummary();
     service.verifySnapshotListable(snapshotId, TEST_USER);
 
     verify(iamService)
@@ -784,6 +791,7 @@ public class SnapshotServiceTest {
 
   @Test
   public void verifySnapshotReadableBySam() {
+    mockSnapshotSummary();
     service.verifySnapshotReadable(snapshotId, TEST_USER);
 
     verify(iamService)

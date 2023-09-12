@@ -7,10 +7,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DataDeletionRequest;
-import bio.terra.service.auth.iam.IamAction;
-import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.auth.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
@@ -44,7 +41,6 @@ public class DatasetDataDeleteFlight extends Flight {
     BigQueryTransactionPdao bigQueryTransactionPdao =
         appContext.getBean(BigQueryTransactionPdao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
-    IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -65,10 +61,6 @@ public class DatasetDataDeleteFlight extends Flight {
 
     DataDeletionRequest request =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
-
-    addStep(
-        new VerifyAuthorizationStep(
-            iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
 
     if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
       addStep(

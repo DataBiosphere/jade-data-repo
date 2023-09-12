@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +30,7 @@ import bio.terra.service.dataset.DatasetSchemaUpdateValidator;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.dataset.exception.DatasetDataException;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import java.util.List;
@@ -103,6 +103,16 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
+  void testRetrieveDatasetNotFound() throws Exception {
+    mockNotFound();
+    mvc.perform(
+            get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
+                .queryParam("include", String.valueOf(INCLUDE)))
+        .andExpect(status().isNotFound());
+    verifyNoInteractions(iamService);
+  }
+
+  @Test
   void testRetrieveDatasetForbidden() throws Exception {
     IamAction iamAction = IamAction.READ_DATASET;
     doThrow(IamForbiddenException.class)
@@ -116,7 +126,6 @@ public class DatasetsApiControllerTest {
         .andExpect(status().isForbidden());
 
     verifyAuthorizationsCall(List.of(iamAction));
-    verifyNoMoreInteractions(datasetService);
   }
 
   @ParameterizedTest
@@ -142,6 +151,19 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
+  void testDatasetViewDataNotFound() throws Exception {
+    mockNotFound();
+    mvc.perform(
+            get(GET_PREVIEW_ENDPOINT, DATASET_ID, "table")
+                .queryParam("limit", String.valueOf(LIMIT))
+                .queryParam("offset", String.valueOf(OFFSET))
+                .queryParam("sort", "column")
+                .queryParam("direction", DIRECTION.name()))
+        .andExpect(status().isNotFound());
+    verifyNoInteractions(iamService);
+  }
+
+  @Test
   void testDatasetViewDataForbidden() throws Exception {
     IamAction iamAction = IamAction.READ_DATA;
     mockForbidden(iamAction);
@@ -155,7 +177,6 @@ public class DatasetsApiControllerTest {
         .andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
-    verifyNoInteractions(datasetService);
   }
 
   @Test
@@ -178,6 +199,11 @@ public class DatasetsApiControllerTest {
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
         .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+  }
+
+  /** Mock so that the user does not hold `iamAction` on the dataset. */
+  private void mockNotFound() {
+    doThrow(DatasetNotFoundException.class).when(datasetService).retrieveDatasetSummary(DATASET_ID);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */

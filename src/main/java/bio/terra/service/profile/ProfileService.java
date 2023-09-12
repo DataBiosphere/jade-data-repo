@@ -101,12 +101,6 @@ public class ProfileService {
    */
   public String updateProfile(
       BillingProfileUpdateModel billingProfileRequest, AuthenticatedUserRequest user) {
-    iamService.verifyAuthorization(
-        user,
-        IamResourceType.SPEND_PROFILE,
-        billingProfileRequest.getId().toString(),
-        IamAction.UPDATE_BILLING_ACCOUNT);
-
     String description =
         String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
     return jobService
@@ -132,8 +126,6 @@ public class ProfileService {
    * @return jobId of the submitted stairway job
    */
   public String deleteProfile(UUID id, AuthenticatedUserRequest user) {
-    iamService.verifyAuthorization(
-        user, IamResourceType.SPEND_PROFILE, id.toString(), IamAction.DELETE);
     CloudPlatform platform;
     try {
       BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);

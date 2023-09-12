@@ -26,6 +26,7 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -98,6 +99,21 @@ class SnapshotsApiControllerTest {
   }
 
   @Test
+  void testExportSnapshotNotFound() throws Exception {
+    doThrow(SnapshotNotFoundException.class)
+        .when(snapshotService)
+        .retrieveSnapshotSummary(SNAPSHOT_ID);
+    mvc.perform(
+            get(EXPORT_SNAPSHOT_ENDPOINT, SNAPSHOT_ID)
+                .queryParam("exportGsPaths", String.valueOf(EXPORT_GCS_PATHS))
+                .queryParam(
+                    "validatePrimaryKeyUniqueness",
+                    String.valueOf(VALIDATE_PRIMARY_KEY_UNIQUENESS)))
+        .andExpect(status().isNotFound());
+    verifyNoInteractions(iamService);
+  }
+
+  @Test
   void testExportSnapshotForbidden() throws Exception {
     IamAction iamAction = IamAction.EXPORT_SNAPSHOT;
     doThrow(IamForbiddenException.class)
@@ -114,7 +130,6 @@ class SnapshotsApiControllerTest {
         .andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
-    verifyNoInteractions(snapshotService);
   }
 
   /** Verify that snapshot authorization was checked. */

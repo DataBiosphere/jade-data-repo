@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,11 +35,15 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
+import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -144,20 +150,41 @@ public class ProfileAPIControllerTest {
     verify(profileService, times(0)).updateProfile(eq(billingProfileUpdateModel), eq(user));
   }
 
-  @Test
-  void testDeleteProfile() {
+  @ParameterizedTest
+  @MethodSource
+  void testDeleteProfile(boolean deleteCloudResources, int expectedAdminAuthNumberOfInvocations) {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
-    when(profileService.deleteProfile(eq(deleteId), eq(false), eq(user))).thenReturn(jobId);
+    when(profileService.deleteProfile(eq(deleteId), eq(deleteCloudResources), eq(user)))
+        .thenReturn(jobId);
+    when(profileService.getProfileByIdNoCheck(deleteId))
+        .thenReturn(new BillingProfileModel().id(deleteId));
+    doNothing().when(iamService).verifyAuthorization(any(), any(), any(), any());
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
     when(jobService.retrieveJob(eq(jobId), eq(user))).thenReturn(jobModel);
 
-    ResponseEntity entity = apiController.deleteProfile(deleteId, false);
-    verify(profileService, times(1)).deleteProfile(eq(deleteId), eq(false), eq(user));
+    ResponseEntity entity = apiController.deleteProfile(deleteId, deleteCloudResources);
+    // Only check for admin auth if deleteCloudResources is true
+    verify(iamService, times(expectedAdminAuthNumberOfInvocations))
+        .verifyAuthorization(
+            eq(user), eq(IamResourceType.DATAREPO), any(), eq(IamAction.CONFIGURE));
+    // Always check that the user has access on the spend profile
+    verify(iamService, times(1))
+        .verifyAuthorization(
+            eq(user),
+            eq(IamResourceType.SPEND_PROFILE),
+            eq(deleteId.toString()),
+            eq(IamAction.DELETE));
+    verify(profileService, times(1))
+        .deleteProfile(eq(deleteId), eq(deleteCloudResources), eq(user));
     assertNotNull(entity);
+  }
+
+  private static Stream<Arguments> testDeleteProfile() {
+    return Stream.of(arguments(true, 1), arguments(false, 0));
   }
 
   @Test

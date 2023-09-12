@@ -12,6 +12,8 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import io.swagger.annotations.Api;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
@@ -29,6 +31,8 @@ public class AdminApiController implements AdminApi {
   private final DrsService drsService;
   private final IamService iamService;
   private final ApplicationConfiguration appConfig;
+  private final AzureStorageAccountService storageAccountService;
+  private final AzureMonitoringService monitoringService;
 
   @Autowired
   public AdminApiController(
@@ -37,12 +41,16 @@ public class AdminApiController implements AdminApi {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       DrsService drsService,
       IamService iamService,
+      AzureStorageAccountService storageAccountService,
+      AzureMonitoringService monitoringService,
       ApplicationConfiguration appConfig) {
     this.request = request;
     this.jobService = jobService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.drsService = drsService;
     this.iamService = iamService;
+    this.monitoringService = monitoringService;
+    this.storageAccountService = storageAccountService;
     this.appConfig = appConfig;
   }
 
@@ -59,4 +67,17 @@ public class AdminApiController implements AdminApi {
     String jobId = drsService.registerDrsAliases(aliases, userReq);
     return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
+
+  //  @Override
+  //  public ResponseEntity<JobModel> cleanupAzureStorageAccount(
+  //      String subscriptionId, String resourceGroupName, String storageAccountName) {
+  //    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+  //    // Make sure the user is an admin by checking for configure action
+  //    iamService.verifyAuthorization(
+  //        userReq, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.CONFIGURE);
+  //    String jobId =
+  //        storageAccountService.storageAccountCleanup(
+  //            UUID.fromString(subscriptionId), resourceGroupName, storageAccountName, userReq);
+  //    return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
+  //  }
 }

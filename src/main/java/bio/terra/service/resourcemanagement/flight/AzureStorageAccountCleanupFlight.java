@@ -5,8 +5,8 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.stairway.*;
-import org.springframework.context.ApplicationContext;
 import java.util.UUID;
+import org.springframework.context.ApplicationContext;
 
 public class AzureStorageAccountCleanupFlight extends Flight {
 
@@ -18,15 +18,14 @@ public class AzureStorageAccountCleanupFlight extends Flight {
     AzureStorageAccountService azureStorageAccountService =
         appContext.getBean(AzureStorageAccountService.class);
 
-    UUID subscriptionId =
-        inputParameters.get(JobMapKeys.SUBSCRIPTION_ID.getKeyName(), UUID.class);
+    UUID subscriptionId = inputParameters.get(JobMapKeys.SUBSCRIPTION_ID.getKeyName(), UUID.class);
     String resourceGroupName =
         inputParameters.get(JobMapKeys.RESOURCE_GROUP_NAME.getKeyName(), String.class);
     String storageAccountName =
         inputParameters.get(JobMapKeys.STORAGE_ACCOUNT_NAME.getKeyName(), String.class);
     ErrorCollector errorCollector = new ErrorCollector(3, "StorageAccountCleanupFlight");
 
-    //TODO - auth check - User must be admin in order to complete this request
+    // TODO - auth check - User must be admin in order to complete this request
 
     AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
         new AzureStorageMonitoringStepProvider(monitoringService);
@@ -42,8 +41,13 @@ public class AzureStorageAccountCleanupFlight extends Flight {
           .configureUndoSteps(subscriptionId, resourceGroupName, storageAccountName, errorCollector)
           .forEach(s -> this.addStep(s.step()));
 
-      addStep(new DeleteCloudStorageAccountStep(azureStorageAccountService, subscriptionId, resourceGroupName, storageAccountName, errorCollector));
+      addStep(
+          new DeleteCloudStorageAccountStep(
+              azureStorageAccountService,
+              subscriptionId,
+              resourceGroupName,
+              storageAccountName,
+              errorCollector));
     }
   }
-
 }

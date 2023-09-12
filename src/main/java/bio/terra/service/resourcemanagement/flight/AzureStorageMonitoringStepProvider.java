@@ -67,16 +67,35 @@ public class AzureStorageMonitoringStepProvider {
     return steps;
   }
 
-  public List<StepDef> configureUndoSteps(UUID subscriptionId, String resourceGroupName, String storageAccountName, ErrorCollector errorCollector) {
+  public List<StepDef> configureUndoSteps(
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountName,
+      ErrorCollector errorCollector) {
     List<StepDef> steps = new ArrayList<>();
     RetryRuleNone noRetry = getRetryRuleNone();
 
-    steps.add(new StepDef(new DeleteSentinelStep(monitoringService, subscriptionId, resourceGroupName, storageAccountName, errorCollector), noRetry));
+    steps.add(
+        new StepDef(
+            new DeleteSentinelStep(
+                monitoringService,
+                subscriptionId,
+                resourceGroupName,
+                storageAccountName,
+                errorCollector),
+            noRetry));
 
-    steps.add(new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService, subscriptionId, resourceGroupName, storageAccountName, errorCollector), noRetry));
+    steps.add(
+        new StepDef(
+            new DeleteLogAnalyticsWorkspaceStep(
+                monitoringService,
+                subscriptionId,
+                resourceGroupName,
+                storageAccountName,
+                errorCollector),
+            noRetry));
     return steps;
   }
-
 
   public record StepDef(Step step, RetryRule retryRule) {}
 }

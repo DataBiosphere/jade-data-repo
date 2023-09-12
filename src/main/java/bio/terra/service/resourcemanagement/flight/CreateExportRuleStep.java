@@ -39,7 +39,7 @@ public class CreateExportRuleStep extends AbstractCreateMonitoringResourceStep {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String exportRuleId = workingMap.get(AzureMonitoringMapKeys.EXPORT_RULE_ID, String.class);
     if (exportRuleId != null) {
-      monitoringService.deleteDataExportRule(profileModel, exportRuleId);
+      monitoringService.deleteDataExportRuleById(profileModel, exportRuleId);
     }
     return StepResult.getStepResultSuccess();
   }

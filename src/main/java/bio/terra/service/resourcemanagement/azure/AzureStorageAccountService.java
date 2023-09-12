@@ -3,16 +3,18 @@ package bio.terra.service.resourcemanagement.azure;
 import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
 
 import bio.terra.app.model.AzureRegion;
-import bio.terra.common.ErrorCollector;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
+import bio.terra.service.resourcemanagement.flight.AzureStorageAccountCleanupFlight;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.AzureResourceManager;
-import com.azure.resourcemanager.loganalytics.LogAnalyticsManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,16 +37,20 @@ public class AzureStorageAccountService {
   private final ProfileDao profileDao;
   private AzureMonitoringService monitoringService;
 
+  private JobService jobService;
+
   @Autowired
   public AzureStorageAccountService(
       AzureResourceDao resourceDao,
       AzureResourceConfiguration resourceConfiguration,
       ProfileDao profileDao,
-      AzureMonitoringService azureMonitoringService) {
+      AzureMonitoringService azureMonitoringService,
+      JobService jobService) {
     this.resourceDao = resourceDao;
     this.resourceConfiguration = resourceConfiguration;
     this.profileDao = profileDao;
     this.monitoringService = azureMonitoringService;
+    this.jobService = jobService;
   }
 
   /**
@@ -224,14 +230,10 @@ public class AzureStorageAccountService {
   }
 
   public void deleteCloudStorageAccount(
-      UUID subscriptionId,
-      String managedResourceGroupName,
-      String storageAccountName) {
-      logger.info("Deleting storage account {}", storageAccountName);
-      AzureResourceManager clientSa = resourceConfiguration.getClient(subscriptionId);
-      clientSa
-          .storageAccounts()
-          .deleteByResourceGroup(managedResourceGroupName, storageAccountName);
+      UUID subscriptionId, String managedResourceGroupName, String storageAccountName) {
+    logger.info("Deleting storage account {}", storageAccountName);
+    AzureResourceManager clientSa = resourceConfiguration.getClient(subscriptionId);
+    clientSa.storageAccounts().deleteByResourceGroup(managedResourceGroupName, storageAccountName);
   }
 
   public boolean storageAccountOrphaned(
@@ -335,7 +337,10 @@ public class AzureStorageAccountService {
     if (storageAccountResource == null) {
       return null;
     }
-    return getCloudStorageAccount(profileModel.getSubscriptionId(), storageAccountResource.getApplicationResource().getAzureResourceGroupName(), storageAccountResource.getName());
+    return getCloudStorageAccount(
+        profileModel.getSubscriptionId(),
+        storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+        storageAccountResource.getName());
   }
 
   /**
@@ -354,9 +359,7 @@ public class AzureStorageAccountService {
       return resourceConfiguration
           .getClient(subscriptionId)
           .storageAccounts()
-          .getByResourceGroup(
-              resourceGroupName,
-              storageAccountName);
+          .getByResourceGroup(resourceGroupName, storageAccountName);
     } catch (ManagementException e) {
       if (e.getValue().getCode().equals(RESOURCE_NOT_FOUND_CODE)) {
         return null;
@@ -365,5 +368,19 @@ public class AzureStorageAccountService {
     } catch (Exception e) {
       throw new AzureResourceException("Could not check storage account existence", e);
     }
+  }
+
+  public String storageAccountCleanup(
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountName,
+      AuthenticatedUserRequest userReq) {
+    return jobService
+        .newJob(
+            "Cleanup Azure Storage Account", AzureStorageAccountCleanupFlight.class, null, userReq)
+        .addParameter(JobMapKeys.SUBSCRIPTION_ID.getKeyName(), subscriptionId)
+        .addParameter(JobMapKeys.RESOURCE_GROUP_NAME.getKeyName(), resourceGroupName)
+        .addParameter(JobMapKeys.STORAGE_ACCOUNT_NAME.getKeyName(), storageAccountName)
+        .submit();
   }
 }

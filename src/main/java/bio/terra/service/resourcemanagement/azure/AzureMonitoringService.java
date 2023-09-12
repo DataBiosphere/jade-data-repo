@@ -4,7 +4,6 @@ import static bio.terra.service.filedata.azure.util.AzureConstants.BAD_REQUEST_C
 import static bio.terra.service.filedata.azure.util.AzureConstants.NOT_FOUND_CODE;
 import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
 
-import bio.terra.common.ErrorCollector;
 import bio.terra.model.BillingProfileModel;
 import com.azure.core.management.Region;
 import com.azure.core.management.exception.ManagementException;
@@ -75,7 +74,10 @@ public class AzureMonitoringService {
    */
   public Workspace getLogAnalyticsWorkspace(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
-    return getLogAnalyticsWorkspace(profileModel.getSubscriptionId(), storageAccount.getApplicationResource().getAzureResourceGroupName(), storageAccount.getName());
+    return getLogAnalyticsWorkspace(
+        profileModel.getSubscriptionId(),
+        storageAccount.getApplicationResource().getAzureResourceGroupName(),
+        storageAccount.getName());
   }
 
   /**
@@ -91,15 +93,10 @@ public class AzureMonitoringService {
       UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
     try {
       Workspace byResourceGroup =
-          client
-              .workspaces()
-              .getByResourceGroup(
-                  resourceGroupName,
-                  storageAccountName);
+          client.workspaces().getByResourceGroup(resourceGroupName, storageAccountName);
       logger.debug("Found Log Analytics Workspace");
       return byResourceGroup;
     } catch (ManagementException e) {
@@ -166,15 +163,17 @@ public class AzureMonitoringService {
    * @param subscriptionId The subscription for the dataset or snapshot being logged
    * @param resourceGroupName The resource group where the storage account lives
    * @param storageAccountName The Storage Account being monitored
-   *
    */
-  public void deleteLogAnalyticsWorkspaceByName(UUID subscriptionId, String resourceGroupName, String storageAccountName) {
+  public void deleteLogAnalyticsWorkspaceByName(
+      UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
 
-    logger.info("Deleting Log Analytics Workspace for resource group {} and storage account {}", resourceGroupName, storageAccountName);
+    logger.info(
+        "Deleting Log Analytics Workspace for resource group {} and storage account {}",
+        resourceGroupName,
+        storageAccountName);
 
     client.workspaces().delete(resourceGroupName, storageAccountName);
   }
@@ -264,8 +263,6 @@ public class AzureMonitoringService {
     client.diagnosticSettings().deleteById(id);
   }
 
-
-
   /**
    * Retrieve an existing data export rule for the given Log Analytics workspace
    *
@@ -276,7 +273,10 @@ public class AzureMonitoringService {
    */
   public DataExport getDataExportRule(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
-return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApplicationResource().getAzureResourceGroupName(), storageAccount.getName());
+    return getDataExportRule(
+        profileModel.getSubscriptionId(),
+        storageAccount.getApplicationResource().getAzureResourceGroupName(),
+        storageAccount.getName());
   }
 
   /**
@@ -293,17 +293,11 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
 
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
 
     try {
       DataExport dataExport =
-          client
-              .dataExports()
-              .get(
-                  resourceGroupName,
-                  storageAccountName,
-                  storageAccountName);
+          client.dataExports().get(resourceGroupName, storageAccountName, storageAccountName);
       logger.debug("Found Log Analytics Workspace data export rule");
       return dataExport;
     } catch (ManagementException e) {
@@ -385,11 +379,11 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
    * @param resourceGroupName The resource group where the storage account lives
    * @param storageAccountName The Storage Account being monitored
    */
-  public void deleteDataExportRuleByName(UUID subscriptionId, String resourceGroupName, String storageAccountName) {
+  public void deleteDataExportRuleByName(
+      UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     LogAnalyticsManager client =
         resourceConfiguration.getLogAnalyticsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
 
     logger.info("Deleting Log Analytics Workspace data export rule {}", storageAccountName);
 
@@ -409,17 +403,13 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
       UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
 
     try {
       SentinelOnboardingState sentinelOnboardingState =
           client
               .sentinelOnboardingStates()
-              .get(
-                  resourceGroupName,
-                  storageAccountName,
-                  SENTINEL_ONBOARD_STATE_NAME);
+              .get(resourceGroupName, storageAccountName, SENTINEL_ONBOARD_STATE_NAME);
       logger.debug("Found Sentinel instance");
       return sentinelOnboardingState;
     } catch (ManagementException e) {
@@ -442,7 +432,10 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
    */
   public SentinelOnboardingState getSentinel(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
-    return getSentinel(profileModel.getSubscriptionId(), storageAccount.getApplicationResource().getAzureResourceGroupName(), storageAccount.getName());
+    return getSentinel(
+        profileModel.getSubscriptionId(),
+        storageAccount.getApplicationResource().getAzureResourceGroupName(),
+        storageAccount.getName());
   }
 
   /**
@@ -502,16 +495,18 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
    * @param resourceGroupName The resource group where the storage account lives
    * @param storageAccountName The Storage Account being monitored
    */
-  public void deleteSentinel(UUID subscriptionId, String resourceGroupName, String storageAccountName) {
+  public void deleteSentinel(
+      UUID subscriptionId, String resourceGroupName, String storageAccountName) {
 
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
 
     logger.info("Deleting Sentinel instance for storage account {}", storageAccountName);
 
-    client.sentinelOnboardingStates().delete(resourceGroupName, storageAccountName, SENTINEL_ONBOARD_STATE_NAME);
+    client
+        .sentinelOnboardingStates()
+        .delete(resourceGroupName, storageAccountName, SENTINEL_ONBOARD_STATE_NAME);
   }
 
   /**
@@ -524,7 +519,10 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
    */
   public AlertRule getSentinelRuleUnauthorizedAccess(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
-    return getSentinelRuleUnauthorizedAccess(profileModel.getSubscriptionId(), storageAccount.getApplicationResource().getAzureResourceGroupName(), storageAccount.getName());
+    return getSentinelRuleUnauthorizedAccess(
+        profileModel.getSubscriptionId(),
+        storageAccount.getApplicationResource().getAzureResourceGroupName(),
+        storageAccount.getName());
   }
 
   /**
@@ -540,16 +538,12 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
       UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
     try {
       AlertRule alertRule =
           client
               .alertRules()
-              .get(
-                  resourceGroupName,
-                  storageAccountName,
-                  UNAUTHORIZED_ACCESS_ALERT_NAME);
+              .get(resourceGroupName, storageAccountName, UNAUTHORIZED_ACCESS_ALERT_NAME);
       logger.debug("Found Sentinel UnauthorizedAccess alert rule");
       return alertRule;
     } catch (ManagementException e) {
@@ -623,7 +617,10 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
    */
   public void deleteSentinelRuleUnauthorizedAccess(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
-    deleteSentinelRuleUnauthorizedAccess(profileModel.getSubscriptionId(), storageAccount.getApplicationResource().getAzureResourceGroupName(), storageAccount.getName());
+    deleteSentinelRuleUnauthorizedAccess(
+        profileModel.getSubscriptionId(),
+        storageAccount.getApplicationResource().getAzureResourceGroupName(),
+        storageAccount.getName());
   }
 
   /**
@@ -638,18 +635,14 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
       UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
 
     logger.info(
         "Deleting Sentinel UnauthorizedAccess alert rule for Storage Account {}",
         storageAccountName);
     client
         .alertRules()
-        .delete(
-            resourceGroupName,
-            storageAccountName,
-            UNAUTHORIZED_ACCESS_ALERT_NAME);
+        .delete(resourceGroupName, storageAccountName, UNAUTHORIZED_ACCESS_ALERT_NAME);
   }
 
   /**
@@ -662,27 +655,27 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
    */
   public AutomationRule getNotificationRule(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccount) {
-    return getNotificationRule(profileModel.getSubscriptionId(), storageAccount.getApplicationResource().getAzureResourceGroupName(), storageAccount.getName());
+    return getNotificationRule(
+        profileModel.getSubscriptionId(),
+        storageAccount.getApplicationResource().getAzureResourceGroupName(),
+        storageAccount.getName());
   }
 
   public AutomationRule getNotificationRule(
       UUID subscriptionId, String resourceGroupName, String storageAccountName) {
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
-            resourceConfiguration.credentials().getHomeTenantId(),
-            subscriptionId);
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
     return getNotificationRule(client, resourceGroupName, storageAccountName);
   }
 
-  private AutomationRule getNotificationRule(SecurityInsightsManager client, String azureResourceGroupName, String storageAccountName) {
+  private AutomationRule getNotificationRule(
+      SecurityInsightsManager client, String azureResourceGroupName, String storageAccountName) {
     try {
       AutomationRule automationRule =
           client
               .automationRules()
-              .get(
-                  azureResourceGroupName,
-                  storageAccountName,
-                  SLACK_ALERT_RULE_NAME);
+              .get(azureResourceGroupName, storageAccountName, SLACK_ALERT_RULE_NAME);
       logger.debug("Found Sentinel alert rule");
       return automationRule;
     } catch (ManagementException e) {
@@ -761,22 +754,22 @@ return getDataExportRule(profileModel.getSubscriptionId(), storageAccount.getApp
   }
 
   /**
-   * When we're cleaning up storage accounts, we don't know the notification id
-   * So, we need to get the notification based on the name of the notification (which is created above in createNotificationRule)
+   * When we're cleaning up storage accounts, we don't know the notification id So, we need to get
+   * the notification based on the name of the notification (which is created above in
+   * createNotificationRule)
+   *
    * @param subscriptionId
    * @param managedResourceGroupName
    * @param storageAccountName
    */
   public void deleteNotificationRule(
-      UUID subscriptionId,
-      String managedResourceGroupName,
-      String storageAccountName) {
-      SecurityInsightsManager client =
-          resourceConfiguration.getSecurityInsightsManagerClient(
-              resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
-      client
-          .automationRules()
-          .delete(managedResourceGroupName, storageAccountName, SLACK_ALERT_RULE_NAME);
+      UUID subscriptionId, String managedResourceGroupName, String storageAccountName) {
+    SecurityInsightsManager client =
+        resourceConfiguration.getSecurityInsightsManagerClient(
+            resourceConfiguration.credentials().getHomeTenantId(), subscriptionId);
+    client
+        .automationRules()
+        .delete(managedResourceGroupName, storageAccountName, SLACK_ALERT_RULE_NAME);
   }
 
   private String getStorageAccountLoggingResourceId(AzureStorageAccountResource storageAccount) {

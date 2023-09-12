@@ -16,6 +16,7 @@ import bio.terra.app.model.AzureStorageAccountSkuType;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -60,6 +61,7 @@ public class AzureStorageAccountServiceTest {
   @Mock private StorageAccount storageAccount;
   @Mock private AzureResourceManager client;
   @Mock private AzureMonitoringService monitoringService;
+  @Mock private JobService jobService;
 
   private BillingProfileModel billingProfileModel;
   private AzureApplicationDeploymentResource applicationResource;
@@ -70,7 +72,7 @@ public class AzureStorageAccountServiceTest {
   public void setUp() throws Exception {
     service =
         new AzureStorageAccountService(
-            resourceDao, resourceConfiguration, profileDao, monitoringService);
+            resourceDao, resourceConfiguration, profileDao, monitoringService, jobService);
 
     billingProfileModel = ProfileFixtures.randomAzureBillingProfile();
     when(profileDao.getBillingProfileById(billingProfileModel.getId()))

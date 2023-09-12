@@ -1,20 +1,14 @@
 package bio.terra.service.resourcemanagement.flight;
 
-import bio.terra.app.model.AzureRegion;
 import bio.terra.common.ErrorCollector;
-import bio.terra.common.exception.NotFoundException;
-import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.UUID;
 
 public abstract class AbstractDeleteMonitoringResourceStep extends DefaultUndoStep {
   private static final Logger logger =
@@ -27,7 +21,11 @@ public abstract class AbstractDeleteMonitoringResourceStep extends DefaultUndoSt
   private final ErrorCollector errorCollector;
 
   public AbstractDeleteMonitoringResourceStep(
-      AzureMonitoringService monitoringService, UUID subscriptionId, String resourceGroupName, String storageAccountName, ErrorCollector errorCollector) {
+      AzureMonitoringService monitoringService,
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountName,
+      ErrorCollector errorCollector) {
     this.monitoringService = monitoringService;
     this.subscriptionId = subscriptionId;
     this.resourceGroupName = resourceGroupName;
@@ -37,9 +35,11 @@ public abstract class AbstractDeleteMonitoringResourceStep extends DefaultUndoSt
 
   String resourceName;
 
-  abstract boolean resourceExists(UUID subscriptionId, String resourceGroupName, String storageAccountName);
+  abstract boolean resourceExists(
+      UUID subscriptionId, String resourceGroupName, String storageAccountName);
 
-  abstract void deleteResource(UUID subscriptionId, String resourceGroupName, String storageAccountName);
+  abstract void deleteResource(
+      UUID subscriptionId, String resourceGroupName, String storageAccountName);
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
@@ -59,6 +59,4 @@ public abstract class AbstractDeleteMonitoringResourceStep extends DefaultUndoSt
     }
     return StepResult.getStepResultSuccess();
   }
-
-
 }

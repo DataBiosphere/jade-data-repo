@@ -42,7 +42,7 @@ public class CreateLogAnalyticsWorkspaceStep extends AbstractCreateMonitoringRes
     String logAnalyticsWorkspaceId =
         workingMap.get(AzureMonitoringMapKeys.LOG_ANALYTICS_WORKSPACE_ID, String.class);
     if (logAnalyticsWorkspaceId != null) {
-      monitoringService.deleteLogAnalyticsWorkspace(profileModel, logAnalyticsWorkspaceId);
+      monitoringService.deleteLogAnalyticsWorkspaceById(profileModel, logAnalyticsWorkspaceId);
     }
     return StepResult.getStepResultSuccess();
   }

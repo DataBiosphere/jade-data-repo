@@ -3318,14 +3318,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/admin/cleanup-azure-storage-accounts:
+  /api/repository/v1/admin/cleanup-azure-storage-account:
     delete:
         tags:
             - admin
             - repository
         description: >
             Cleanup Azure Storage Accounts that are no longer in use by TDR.
-        operationId: cleanupAzureStorageAccounts
+        operationId: cleanupAzureStorageAccount
         parameters:
         - name: subscriptionId
           in: query

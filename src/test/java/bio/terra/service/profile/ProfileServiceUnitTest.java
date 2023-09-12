@@ -1,9 +1,11 @@
 package bio.terra.service.profile;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,6 +21,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -30,17 +33,17 @@ import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
 public class ProfileServiceUnitTest {
 
   @Mock private ProfileDao profileDao;
@@ -52,19 +55,13 @@ public class ProfileServiceUnitTest {
 
   private ProfileService profileService;
   private AuthenticatedUserRequest user;
-
   private static final UUID PROFILE_ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeEach
+  void setup() {
     profileService =
         new ProfileService(
-            profileDao,
-            iamService,
-            jobService,
-            googleBillingService,
-            azureAuthzService,
-            applicationConfiguration);
+            profileDao, iamService, jobService, googleBillingService, azureAuthzService);
     user =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DatasetUnit")
@@ -74,7 +71,7 @@ public class ProfileServiceUnitTest {
   }
 
   @Test
-  public void testCreateProfile() {
+  void testCreateProfile() {
     var jobBuilder = mock(JobBuilder.class);
     String jobId = "jobId";
     when(jobBuilder.submit()).thenReturn(jobId);
@@ -92,7 +89,7 @@ public class ProfileServiceUnitTest {
   }
 
   @Test
-  public void testUpdateProfile() {
+  void testUpdateProfile() {
     var billingProfileUpdateModel = new BillingProfileUpdateModel();
     UUID updateId = PROFILE_ID;
     billingProfileUpdateModel.setId(updateId);
@@ -122,7 +119,7 @@ public class ProfileServiceUnitTest {
   }
 
   @Test
-  public void testDeleteProfile() {
+  void testDeleteProfile() {
     var jobBuilder = mock(JobBuilder.class);
 
     String jobId = "id";
@@ -156,17 +153,20 @@ public class ProfileServiceUnitTest {
   }
 
   @Test
-  public void testDeleteProfileNoAccess() {
+  void testDeleteProfileNoAccess() {
     doThrow(IamForbiddenException.class)
         .when(iamService)
         .verifyAuthorization(
             eq(user), eq(IamResourceType.SPEND_PROFILE), any(), eq(IamAction.DELETE));
-    assertThrows(IamForbiddenException.class, () -> profileService.deleteProfile(
-        UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), false, user));
+    assertThrows(
+        IamForbiddenException.class,
+        () ->
+            profileService.deleteProfile(
+                UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), false, user));
   }
 
   @Test
-  public void testVerifyAccountHasAccess() {
+  void testVerifyAccountHasAccess() {
     String id = "id";
 
     when(googleBillingService.canAccess(any(), eq(id))).thenReturn(true);
@@ -174,12 +174,13 @@ public class ProfileServiceUnitTest {
     profileService.verifyAccount(id, user);
   }
 
-  @Test(expected = InaccessibleBillingAccountException.class)
-  public void testVerifyAccountNoAccess() {
+  @Test
+  void testVerifyAccountNoAccess() {
     String id = "id";
 
     when(googleBillingService.canAccess(any(), eq(id))).thenReturn(false);
 
-    profileService.verifyAccount(id, user);
+    assertThrows(
+        InaccessibleBillingAccountException.class, () -> profileService.verifyAccount(id, user));
   }
 }

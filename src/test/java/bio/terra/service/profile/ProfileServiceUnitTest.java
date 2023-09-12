@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
@@ -47,6 +48,7 @@ public class ProfileServiceUnitTest {
   @Mock private JobService jobService;
   @Mock private GoogleBillingService googleBillingService;
   @Mock private AzureAuthzService azureAuthzService;
+  @Mock private ApplicationConfiguration applicationConfiguration;
 
   private ProfileService profileService;
   private AuthenticatedUserRequest user;
@@ -57,7 +59,12 @@ public class ProfileServiceUnitTest {
   public void setup() throws Exception {
     profileService =
         new ProfileService(
-            profileDao, iamService, jobService, googleBillingService, azureAuthzService);
+            profileDao,
+            iamService,
+            jobService,
+            googleBillingService,
+            azureAuthzService,
+            applicationConfiguration);
     user =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DatasetUnit")
@@ -133,6 +140,8 @@ public class ProfileServiceUnitTest {
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(eq(JobMapKeys.IAM_ACTION.getKeyName()), eq(IamAction.DELETE)))
         .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(eq(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName()), eq(false)))
+        .thenReturn(jobBuilder);
 
     var billingProfileModel = new BillingProfileModel();
     billingProfileModel.setCloudPlatform(CloudPlatform.GCP);
@@ -141,9 +150,19 @@ public class ProfileServiceUnitTest {
     when(jobService.newJob(anyString(), eq(ProfileDeleteFlight.class), eq(null), eq(user)))
         .thenReturn(jobBuilder);
 
-    String result = profileService.deleteProfile(deleteId, user);
+    String result = profileService.deleteProfile(deleteId, false, user);
     verify(jobBuilder, times(1)).submit();
     assertEquals(result, jobId);
+  }
+
+  @Test
+  public void testDeleteProfileNoAccess() {
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(
+            eq(user), eq(IamResourceType.SPEND_PROFILE), any(), eq(IamAction.DELETE));
+    assertThrows(IamForbiddenException.class, () -> profileService.deleteProfile(
+        UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), false, user));
   }
 
   @Test

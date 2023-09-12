@@ -2,6 +2,7 @@ package bio.terra.service.profile;
 
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -51,6 +52,7 @@ public class ProfileApiController implements ProfilesApi {
   private final JobService jobService;
 
   private final IamService iamService;
+  private final ApplicationConfiguration applicationConfiguration;
 
   @Autowired
   public ProfileApiController(
@@ -62,7 +64,8 @@ public class ProfileApiController implements ProfilesApi {
       PolicyMemberValidator policyMemberValidator,
       JobService jobService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-      IamService iamService) {
+      IamService iamService,
+      ApplicationConfiguration applicationConfiguration) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.profileService = profileService;
@@ -72,6 +75,7 @@ public class ProfileApiController implements ProfilesApi {
     this.jobService = jobService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.iamService = iamService;
+    this.applicationConfiguration = applicationConfiguration;
   }
 
   @Override
@@ -110,10 +114,13 @@ public class ProfileApiController implements ProfilesApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> deleteProfile(UUID id) {
+  public ResponseEntity<JobModel> deleteProfile(UUID id, Boolean deleteCloudResources) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+    if (deleteCloudResources) {
+      verifyAdminAuthorization(user);
+    }
     verifyProfileAuthorization(user, id.toString(), IamAction.DELETE);
-    String jobId = profileService.deleteProfile(id, user);
+    String jobId = profileService.deleteProfile(id, deleteCloudResources, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
 
@@ -172,5 +179,13 @@ public class ProfileApiController implements ProfilesApi {
     profileService.getProfileByIdNoCheck(UUID.fromString(resourceId));
     // Verify profile permissions
     iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
+  }
+
+  private void verifyAdminAuthorization(AuthenticatedUserRequest userReq) {
+    iamService.verifyAuthorization(
+        userReq,
+        IamResourceType.DATAREPO,
+        applicationConfiguration.getResourceId(),
+        IamAction.CONFIGURE);
   }
 }

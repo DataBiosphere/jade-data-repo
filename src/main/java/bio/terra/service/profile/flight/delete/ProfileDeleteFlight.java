@@ -74,6 +74,12 @@ public class ProfileDeleteFlight extends Flight {
       addStep(
           new DeleteProfileMarkUnusedApplicationDeployments(
               profileService, resourceService, user, profileId));
+      if (inputParameters.get(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), Boolean.class)) {
+        // TODO - add steps to delete azure cloud resources
+        // Delete sentinel instance
+        // Delete log workspace
+        // Delete storage account
+      }
       addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService));
     }
 

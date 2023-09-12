@@ -122,10 +122,13 @@ public class ProfileService {
    * </ul>
    *
    * @param id the unique id of the bill profile
+   * @param deleteCloudResources flag to also delete azure cloud resources such as storage account
+   *     and monitoring resources
    * @param user the user attempting the delete
    * @return jobId of the submitted stairway job
    */
-  public String deleteProfile(UUID id, AuthenticatedUserRequest user) {
+
+  public String deleteProfile(UUID id, Boolean deleteCloudResources, AuthenticatedUserRequest user) {
     CloudPlatform platform;
     try {
       BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);
@@ -145,6 +148,7 @@ public class ProfileService {
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
+        .addParameter(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), deleteCloudResources)
         .submit();
   }
 

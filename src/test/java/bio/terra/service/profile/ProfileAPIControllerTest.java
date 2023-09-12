@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -58,6 +59,7 @@ public class ProfileAPIControllerTest {
   @Mock private JobService jobService;
 
   @Mock private IamService iamService;
+  @Mock private ApplicationConfiguration applicationConfiguration;
 
   private ProfileApiController apiController;
   private AuthenticatedUserRequest user;
@@ -74,7 +76,8 @@ public class ProfileAPIControllerTest {
             policyMemberValidator,
             jobService,
             authenticatedUserRequestFactory,
-            iamService);
+            iamService,
+            applicationConfiguration);
     user =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DatasetUnit")
@@ -146,14 +149,14 @@ public class ProfileAPIControllerTest {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
-    when(profileService.deleteProfile(eq(deleteId), eq(user))).thenReturn(jobId);
+    when(profileService.deleteProfile(eq(deleteId), eq(false), eq(user))).thenReturn(jobId);
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
     when(jobService.retrieveJob(eq(jobId), eq(user))).thenReturn(jobModel);
 
-    ResponseEntity entity = apiController.deleteProfile(deleteId);
-    verify(profileService, times(1)).deleteProfile(eq(deleteId), eq(user));
+    ResponseEntity entity = apiController.deleteProfile(deleteId, false);
+    verify(profileService, times(1)).deleteProfile(eq(deleteId), eq(false), eq(user));
     assertNotNull(entity);
   }
 
@@ -161,9 +164,10 @@ public class ProfileAPIControllerTest {
   public void testDeleteProfileNotFound() {
     UUID profileId = UUID.randomUUID();
     doThrow(ProfileNotFoundException.class).when(profileService).getProfileByIdNoCheck(profileId);
-    assertThrows(ProfileNotFoundException.class, () -> apiController.deleteProfile(profileId));
+    assertThrows(
+        ProfileNotFoundException.class, () -> apiController.deleteProfile(profileId, false));
     verifyNoInteractions(iamService);
-    verify(profileService, times(0)).deleteProfile(eq(profileId), eq(user));
+    verify(profileService, times(0)).deleteProfile(eq(profileId), eq(false), eq(user));
   }
 
   @Test
@@ -173,8 +177,8 @@ public class ProfileAPIControllerTest {
     when(profileService.getProfileByIdNoCheck(profileId))
         .thenReturn(new BillingProfileModel().id(profileId));
     mockProfileForbidden(profileId, IamAction.DELETE);
-    assertThrows(IamForbiddenException.class, () -> apiController.deleteProfile(profileId));
-    verify(profileService, times(0)).deleteProfile(eq(profileId), eq(user));
+    assertThrows(IamForbiddenException.class, () -> apiController.deleteProfile(profileId, false));
+    verify(profileService, times(0)).deleteProfile(eq(profileId), eq(false), eq(user));
   }
 
   @Test

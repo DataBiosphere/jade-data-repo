@@ -273,6 +273,7 @@ paths:
           schema:
             type: boolean
             default: false
+            required: false
       responses:
         200:
           description: Redirect for profile delete result

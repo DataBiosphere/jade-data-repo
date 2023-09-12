@@ -267,6 +267,12 @@ paths:
       operationId: deleteProfile
       parameters:
         - $ref: '#/components/parameters/Id'
+        - name: deleteCloudResources
+          in: query
+          description: ADMIN ONLY - Delete all Azure cloud resources along with billing profile.
+          schema:
+            type: boolean
+            default: false
       responses:
         200:
           description: Redirect for profile delete result

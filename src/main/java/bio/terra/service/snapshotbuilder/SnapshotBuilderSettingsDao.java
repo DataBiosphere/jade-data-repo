@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SnapshotBuilderSettingsDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private final String datasetIdField = "dataset_id";
+  private static final String datasetIdField = "dataset_id";
 
   private static final RowMapper<SnapshotBuilderSettings> MAPPER =
       (rs, rowNum) -> {

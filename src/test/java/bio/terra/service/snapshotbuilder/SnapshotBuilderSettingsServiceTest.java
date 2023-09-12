@@ -1,13 +1,9 @@
 package bio.terra.service.snapshotbuilder;
 
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
-import bio.terra.model.SnapshotBuilderDatasetConceptSets;
-import bio.terra.model.SnapshotBuilderSettings;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -36,16 +32,15 @@ public class SnapshotBuilderSettingsServiceTest {
   public void testGetSnapshotBuilderSettings() {
     UUID datasetId = UUID.randomUUID();
     snapshotBuilderService.getSnapshotBuilderSettings(datasetId);
-    verify(snapshotBuilderSettingsDao, times(1)).getSnapshotBuilderSettingsByDatasetId(datasetId);
+    verify(snapshotBuilderSettingsDao).getSnapshotBuilderSettingsByDatasetId(datasetId);
   }
 
   @Test
   public void testUpdateSnapshotBuilderSettings() {
     UUID datasetId = UUID.randomUUID();
-    SnapshotBuilderSettings settings =
-        new SnapshotBuilderSettings()
-            .datasetConceptSets(List.of(new SnapshotBuilderDatasetConceptSets()));
-    snapshotBuilderService.updateSnapshotBuilderSettings(datasetId, settings);
-    verify(snapshotBuilderSettingsDao).upsertSnapshotBuilderSettingsByDataset(datasetId, settings);
+    snapshotBuilderService.updateSnapshotBuilderSettings(
+        datasetId, SnapshotBuilderTestData.SETTINGS);
+    verify(snapshotBuilderSettingsDao)
+        .upsertSnapshotBuilderSettingsByDataset(datasetId, SnapshotBuilderTestData.SETTINGS);
   }
 }

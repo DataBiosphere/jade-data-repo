@@ -10,7 +10,7 @@ import bio.terra.model.SnapshotBuilderSettings;
 import java.util.List;
 
 public class SnapshotBuilderTestData {
-  public static final SnapshotBuilderSettings SAMPLE_SNAPSHOT_BUILDER_SETTINGS =
+  public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
           .domainOptions(
               List.of(

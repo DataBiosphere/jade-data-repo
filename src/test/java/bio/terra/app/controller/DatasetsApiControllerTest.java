@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SAMPLE_SNAPSHOT_BUILDER_SETTINGS;
+import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SETTINGS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -194,9 +194,8 @@ public class DatasetsApiControllerTest {
             TEST_USER,
             List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
         .thenReturn(new DatasetModel());
-    when(snapshotBuilderService.updateSnapshotBuilderSettings(
-            DATASET_ID, SAMPLE_SNAPSHOT_BUILDER_SETTINGS))
-        .thenReturn(SAMPLE_SNAPSHOT_BUILDER_SETTINGS);
+    when(snapshotBuilderService.updateSnapshotBuilderSettings(DATASET_ID, SETTINGS))
+        .thenReturn(SETTINGS);
     when(ingestRequestValidator.supports(any())).thenReturn(true);
     when(datasetRequestValidator.supports(any())).thenReturn(true);
     when(assetModelValidator.supports(any())).thenReturn(true);
@@ -206,13 +205,12 @@ public class DatasetsApiControllerTest {
     mvc.perform(
             post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(SAMPLE_SNAPSHOT_BUILDER_SETTINGS)))
+                .content(TestUtils.mapToJson(SETTINGS)))
         .andExpect(status().is2xxSuccessful())
         .andReturn();
 
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService)
-        .updateSnapshotBuilderSettings(DATASET_ID, SAMPLE_SNAPSHOT_BUILDER_SETTINGS);
+    verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */

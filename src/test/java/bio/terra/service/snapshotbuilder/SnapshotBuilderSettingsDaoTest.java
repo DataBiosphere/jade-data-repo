@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SAMPLE_SNAPSHOT_BUILDER_SETTINGS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,7 +12,6 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -55,7 +53,7 @@ class SnapshotBuilderSettingsDaoTest {
 
     dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectId);
     snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
-        dataset.getId(), SAMPLE_SNAPSHOT_BUILDER_SETTINGS);
+        dataset.getId(), SnapshotBuilderTestData.SETTINGS);
   }
 
   @Test
@@ -63,7 +61,7 @@ class SnapshotBuilderSettingsDaoTest {
     assertThat(
         "Snapshot builder settings should be the same as the example",
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()),
-        equalTo(SAMPLE_SNAPSHOT_BUILDER_SETTINGS));
+        equalTo(SnapshotBuilderTestData.SETTINGS));
   }
 
   @Test
@@ -79,8 +77,8 @@ class SnapshotBuilderSettingsDaoTest {
     assertThat(
         "Snapshot builder settings should be the new upserted value",
         snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
-            dataset.getId(), new SnapshotBuilderSettings()),
-        equalTo(new SnapshotBuilderSettings()));
+            dataset.getId(), SnapshotBuilderTestData.SETTINGS),
+        equalTo(SnapshotBuilderTestData.SETTINGS));
   }
 
   @Test
@@ -89,7 +87,7 @@ class SnapshotBuilderSettingsDaoTest {
     assertThat(
         "Snapshot builder settings should be the same as the example",
         snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
-            dataset.getId(), SAMPLE_SNAPSHOT_BUILDER_SETTINGS),
-        equalTo(SAMPLE_SNAPSHOT_BUILDER_SETTINGS));
+            dataset.getId(), SnapshotBuilderTestData.SETTINGS),
+        equalTo(SnapshotBuilderTestData.SETTINGS));
   }
 }

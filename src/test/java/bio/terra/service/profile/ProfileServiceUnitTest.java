@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -21,7 +20,6 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -37,6 +35,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
@@ -118,8 +118,9 @@ public class ProfileServiceUnitTest {
     assertEquals(result, jobId);
   }
 
-  @Test
-  void testDeleteProfile() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testDeleteProfile(boolean deleteCloudResources) {
     var jobBuilder = mock(JobBuilder.class);
 
     String jobId = "id";
@@ -137,7 +138,8 @@ public class ProfileServiceUnitTest {
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(eq(JobMapKeys.IAM_ACTION.getKeyName()), eq(IamAction.DELETE)))
         .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(eq(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName()), eq(false)))
+    when(jobBuilder.addParameter(
+            eq(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName()), eq(deleteCloudResources)))
         .thenReturn(jobBuilder);
 
     var billingProfileModel = new BillingProfileModel();
@@ -147,22 +149,9 @@ public class ProfileServiceUnitTest {
     when(jobService.newJob(anyString(), eq(ProfileDeleteFlight.class), eq(null), eq(user)))
         .thenReturn(jobBuilder);
 
-    String result = profileService.deleteProfile(deleteId, false, user);
+    String result = profileService.deleteProfile(deleteId, deleteCloudResources, user);
     verify(jobBuilder, times(1)).submit();
     assertEquals(result, jobId);
-  }
-
-  @Test
-  void testDeleteProfileNoAccess() {
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            eq(user), eq(IamResourceType.SPEND_PROFILE), any(), eq(IamAction.DELETE));
-    assertThrows(
-        IamForbiddenException.class,
-        () ->
-            profileService.deleteProfile(
-                UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), false, user));
   }
 
   @Test

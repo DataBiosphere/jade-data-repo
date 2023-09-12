@@ -1,9 +1,9 @@
 package bio.terra.service.profile;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -34,19 +34,19 @@ import bio.terra.service.profile.exception.ProfileNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
 public class ProfileAPIControllerTest {
 
   @Mock private ObjectMapper objectMapper;
@@ -64,8 +64,8 @@ public class ProfileAPIControllerTest {
   private ProfileApiController apiController;
   private AuthenticatedUserRequest user;
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeEach
+  void setup() {
     apiController =
         new ProfileApiController(
             objectMapper,
@@ -87,7 +87,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testCreateProfile() {
+  void testCreateProfile() {
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     var billingProfileRequestModel = new BillingProfileRequestModel();
     String jobId = "jobId";
@@ -104,7 +104,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testUpdateProfile() {
+  void testUpdateProfile() {
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     var billingProfileUpdateModel = new BillingProfileUpdateModel().id(UUID.randomUUID());
     String jobId = "jobId";
@@ -120,7 +120,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testUpdateProfileNotFound() {
+  void testUpdateProfileNotFound() {
     UUID profileId = UUID.randomUUID();
     doThrow(ProfileNotFoundException.class).when(profileService).getProfileByIdNoCheck(profileId);
     var billingProfileUpdateModel = new BillingProfileUpdateModel().id(profileId);
@@ -132,7 +132,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testUpdateProfileForbidden() {
+  void testUpdateProfileForbidden() {
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     UUID profileId = UUID.randomUUID();
     when(profileService.getProfileByIdNoCheck(profileId))
@@ -145,7 +145,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testDeleteProfile() {
+  void testDeleteProfile() {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
@@ -161,7 +161,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testDeleteProfileNotFound() {
+  void testDeleteProfileNotFound() {
     UUID profileId = UUID.randomUUID();
     doThrow(ProfileNotFoundException.class).when(profileService).getProfileByIdNoCheck(profileId);
     assertThrows(
@@ -171,7 +171,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testDeleteProfileForbidden() {
+  void testDeleteProfileForbidden() {
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     UUID profileId = UUID.randomUUID();
     when(profileService.getProfileByIdNoCheck(profileId))
@@ -182,7 +182,7 @@ public class ProfileAPIControllerTest {
   }
 
   @Test
-  public void testAddProfilePolicyMember() {
+  void testAddProfilePolicyMember() {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
 
     UUID id = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");

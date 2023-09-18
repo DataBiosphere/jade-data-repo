@@ -10,6 +10,7 @@ import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundExcep
 import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
+import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import java.util.ArrayList;
 import java.util.List;
@@ -219,14 +220,26 @@ public class AzureStorageAccountService {
     logger.info("Metadata removed: {}", deleted);
   }
 
+  /**
+   * Delete the Azure cloud storage account resource.
+   * @param profileModel the TDR billing profile associated with this storage account
+   * @param storageAccountResource
+   */
+  public void deleteCloudStorageAccount(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    logger.info("Deleting storage account {}", storageAccountResource.getName());
+    AzureResourceManager clientSa = resourceConfiguration.getClient(profileModel.getSubscriptionId());
+    clientSa.storageAccounts().deleteByResourceGroup(storageAccountResource.getApplicationResource().getAzureResourceGroupName(), storageAccountResource.getName());
+  }
+
   public List<AzureStorageAccountResource> listStorageAccountIdsPerAppDeployment(
-      List<UUID> applicationResourceIds) {
+      List<UUID> applicationResourceIds, boolean markedForDelete) {
     List<AzureStorageAccountResource> resources = new ArrayList<>();
     applicationResourceIds.stream()
         .forEach(
             applicationResourceId -> {
               resources.addAll(
-                  resourceDao.retrieveStorageAccountsByApplicationResource(applicationResourceId));
+                  resourceDao.retrieveStorageAccountsByApplicationResource(applicationResourceId, markedForDelete));
             });
     return resources;
   }

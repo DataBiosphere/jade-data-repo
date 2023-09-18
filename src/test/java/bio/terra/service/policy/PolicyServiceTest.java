@@ -2,17 +2,14 @@ package bio.terra.service.policy;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.app.configuration.PolicyServiceConfiguration;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.api.TpsApi;
@@ -42,7 +39,6 @@ import org.springframework.test.context.ActiveProfiles;
 @Tag("bio.terra.common.category.Unit")
 public class PolicyServiceTest {
 
-  @Mock private PolicyServiceConfiguration policyServiceConfiguration;
   @Mock private PolicyApiService policyApiService;
   @Mock private TpsApi tpsApi;
   @Mock private PublicApi tpsUnauthApi;
@@ -54,11 +50,7 @@ public class PolicyServiceTest {
 
   @BeforeEach
   public void setup() throws Exception {
-    policyService = new PolicyService(policyServiceConfiguration, policyApiService);
-  }
-
-  private void mockPolicyServiceConfiguration() {
-    when(policyServiceConfiguration.enabled()).thenReturn(true);
+    policyService = new PolicyService(policyApiService);
   }
 
   private void mockPolicyApi() {
@@ -81,7 +73,6 @@ public class PolicyServiceTest {
 
   @Test
   void testCreateSnapshotPao() throws Exception {
-    mockPolicyServiceConfiguration();
     mockPolicyApi();
     policyService.createSnapshotPao(snapshotId, policies);
     verify(tpsApi)
@@ -94,34 +85,14 @@ public class PolicyServiceTest {
   }
 
   @Test
-  void testCreatePaoPolicyServiceNotEnabled() throws Exception {
-    policyService.createSnapshotPao(snapshotId, policies);
-    verify(tpsApi, never())
-        .createPao(
-            new TpsPaoCreateRequest()
-                .objectId(snapshotId)
-                .component(TpsComponent.TDR)
-                .objectType(TpsObjectType.SNAPSHOT)
-                .attributes(policies));
-  }
-
-  @Test
   void testDeleteSnapshotPao() throws Exception {
-    mockPolicyServiceConfiguration();
     mockPolicyApi();
     policyService.deletePaoIfExists(snapshotId);
     verify(tpsApi).deletePao(snapshotId);
   }
 
   @Test
-  void testDeletePaoPolicyServiceNotEnabled() throws Exception {
-    policyService.deletePaoIfExists(snapshotId);
-    verify(tpsApi, never()).deletePao(snapshotId);
-  }
-
-  @Test
   void testDeleteSnapshotPaoIgnoresNotFoundException() throws Exception {
-    mockPolicyServiceConfiguration();
     mockPolicyApi();
     var exception = new ApiException(HttpStatus.NOT_FOUND.value(), "Policy object not found");
     doThrow(exception).when(tpsApi).deletePao(snapshotId);
@@ -159,23 +130,21 @@ public class PolicyServiceTest {
 
   @Test
   void testStatusOk() {
-    mockPolicyServiceConfiguration();
     mockUnauthPolicyApi();
     RepositoryStatusModelSystems status = policyService.status();
     assertTrue(status.isOk());
-    assertThat(status.isCritical(), equalTo(policyServiceConfiguration.enabled()));
+    assertTrue(status.isCritical());
     assertThat(status.getMessage(), containsString("Terra Policy Service status ok"));
   }
 
   @Test
   void testStatusNotOk() throws Exception {
-    mockPolicyServiceConfiguration();
     mockUnauthPolicyApi();
     var exception = new ApiException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "TPS error");
     doThrow(exception).when(tpsUnauthApi).getStatus();
     RepositoryStatusModelSystems status = policyService.status();
     assertFalse(status.isOk());
-    assertThat(status.isCritical(), equalTo(policyServiceConfiguration.enabled()));
+    assertTrue(status.isCritical());
     assertThat(status.getMessage(), containsString(exception.getMessage()));
   }
 }

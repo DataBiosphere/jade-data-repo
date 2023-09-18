@@ -44,7 +44,7 @@ public class StatusServiceTest {
     when(iamProviderInterface.samStatus()).thenReturn(ok());
     when(bufferService.status()).thenReturn(ok().critical(false));
     when(duosService.status()).thenReturn(ok().critical(false));
-    when(policyService.status()).thenReturn(ok().critical(false));
+    when(policyService.status()).thenReturn(ok().critical(true));
   }
 
   private static RepositoryStatusModelSystems ok() {
@@ -95,9 +95,9 @@ public class StatusServiceTest {
         systems.get(StatusService.DUOS),
         equalTo(ok().critical(false)));
     assertThat(
-        "TPS is up and not critical by default",
+        "TPS is up and is critical by default",
         systems.get(StatusService.TPS),
-        equalTo(ok().critical(false)));
+        equalTo(ok().critical(true)));
 
     verifySystemStatusCalls();
   }
@@ -136,9 +136,9 @@ public class StatusServiceTest {
         systems.get(StatusService.DUOS),
         equalTo(ok().critical(false)));
     assertThat(
-        "TPS is up and not critical by default",
+        "TPS is up and is critical by default",
         systems.get(StatusService.TPS),
-        equalTo(ok().critical(false)));
+        equalTo(ok().critical(true)));
 
     verifySystemStatusCalls();
   }
@@ -177,9 +177,9 @@ public class StatusServiceTest {
         systems.get(StatusService.DUOS),
         equalTo(notOk().critical(false)));
     assertThat(
-        "TPS is up and not critical by default",
+        "TPS is up and is critical by default",
         systems.get(StatusService.TPS),
-        equalTo(ok().critical(false)));
+        equalTo(ok().critical(true)));
 
     verifySystemStatusCalls();
   }

@@ -1,6 +1,5 @@
 package bio.terra.service.policy;
 
-import bio.terra.app.configuration.PolicyServiceConfiguration;
 import bio.terra.common.ExceptionUtils;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.policy.api.PublicApi;
@@ -30,12 +29,10 @@ public class PolicyService {
   public static final String POLICY_NAMESPACE = "terra";
   public static final String PROTECTED_DATA_POLICY_NAME = "protected-data";
   private static final Logger logger = LoggerFactory.getLogger(PolicyService.class);
-  private final PolicyServiceConfiguration policyServiceConfiguration;
+
   private final PolicyApiService policyApiService;
 
-  public PolicyService(
-      PolicyServiceConfiguration policyServiceConfiguration, PolicyApiService policyApiService) {
-    this.policyServiceConfiguration = policyServiceConfiguration;
+  public PolicyService(PolicyApiService policyApiService) {
     this.policyApiService = policyApiService;
   }
 
@@ -50,12 +47,7 @@ public class PolicyService {
 
   public void createPao(
       UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
-    if (!policyServiceConfiguration.enabled()) {
-      logger.info("Terra Policy Service is not enabled.");
-      return;
-    }
     TpsPolicyInputs inputs = (policyInputs == null) ? new TpsPolicyInputs() : policyInputs;
-
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
       tpsApi.createPao(
@@ -74,10 +66,6 @@ public class PolicyService {
    * the PolicyServiceNotFoundException exception.
    */
   public void deletePaoIfExists(UUID resourceId) {
-    if (!policyServiceConfiguration.enabled()) {
-      logger.info("Terra Policy Service is not enabled.");
-      return;
-    }
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
       tpsApi.deletePao(resourceId);
@@ -119,14 +107,14 @@ public class PolicyService {
       publicApi.getStatus();
       return new RepositoryStatusModelSystems()
           .ok(true)
-          .critical(policyServiceConfiguration.enabled())
+          .critical(true)
           .message("Terra Policy Service status ok");
     } catch (Exception ex) {
       String errorMsg = "Terra Policy Service status check failed";
       logger.error(errorMsg, ex);
       return new RepositoryStatusModelSystems()
           .ok(false)
-          .critical(policyServiceConfiguration.enabled())
+          .critical(true)
           .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
     }
   }

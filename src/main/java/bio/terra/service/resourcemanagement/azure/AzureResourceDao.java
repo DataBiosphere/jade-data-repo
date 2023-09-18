@@ -56,7 +56,7 @@ public class AzureResourceDao {
           + "LEFT JOIN storage_resource sr on dsa.dataset_id = sr.dataset_id AND sr.cloud_resource='STORAGE_ACCOUNT' ";
 
   private static final String sqlStorageAccountRetrievedByApplicationResource =
-      sqlStorageAccountRetrieve + "WHERE application_resource_id = :application_resource_id";
+      sqlStorageAccountRetrieve + "WHERE sa.marked_for_delete = :marked_for_delete AND application_resource_id = :application_resource_id";
   private static final String sqlStorageAccountRetrievedById =
       sqlStorageAccountRetrieve + "WHERE sa.marked_for_delete = false AND sa.id = :id";
   private static final String sqlStorageAccountRetrievedByName =
@@ -162,9 +162,11 @@ public class AzureResourceDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public List<AzureStorageAccountResource> retrieveStorageAccountsByApplicationResource(
-      UUID applicationResourceId) {
+      UUID applicationResourceId,
+      boolean markedForDelete) {
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("application_resource_id", applicationResourceId);
+        new MapSqlParameterSource().addValue("application_resource_id", applicationResourceId)
+            .addValue("marked_for_delete", markedForDelete);
     return retrieveStorageAccountsBy(sqlStorageAccountRetrievedByApplicationResource, params);
   }
 

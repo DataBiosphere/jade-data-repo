@@ -33,7 +33,7 @@ public class DeleteSentinelStep extends DefaultUndoStep {
     List<UUID> appIdList =
         workingMap.get(ProfileMapKeys.PROFILE_APPLICATION_DEPLOYMENT_ID_LIST, List.class);
     List<AzureStorageAccountResource> storageAccounts =
-        azureStorageAccountService.listStorageAccountIdsPerAppDeployment(appIdList);
+        azureStorageAccountService.listStorageAccountIdsPerAppDeployment(appIdList, true);
     workingMap.put(ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, storageAccounts);
 
     BillingProfileModel profileModel =

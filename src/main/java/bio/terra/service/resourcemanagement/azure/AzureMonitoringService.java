@@ -144,6 +144,31 @@ public class AzureMonitoringService {
   }
 
   /**
+   * Delete an existing Log Analytics workspace
+   *
+   * @param profileModel The billing profile for the dataset or snapshot being logged
+   * @param storageAccountResource The AzureStorageAccountResource associated with the Log Analytics
+   *     workspace to delete
+   */
+  public void deleteLogAnalyticsWorkspace(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    LogAnalyticsManager client =
+        resourceConfiguration.getLogAnalyticsManagerClient(
+            resourceConfiguration.credentials().getHomeTenantId(),
+            profileModel.getSubscriptionId());
+
+    logger.info(
+        "Deleting Log Analytics Workspace for storage account {}",
+        storageAccountResource.getName());
+
+    client
+        .workspaces()
+        .delete(
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
+  }
+
+  /**
    * Retrieve an existing Log Analytics diagnostic setting
    *
    * @param profileModel The billing profile for the dataset or snapshot being logged
@@ -394,12 +419,12 @@ public class AzureMonitoringService {
   }
 
   /**
-   * Delete a Sentinel instance
+   * Delete a Sentinel instance by the Sentinel Id
    *
    * @param profileModel The billing profile for the dataset or snapshot being monitored
    * @param id The azure id of the Sentinel instance to delete
    */
-  public void deleteSentinel(BillingProfileModel profileModel, String id) {
+  public void deleteSentinelById(BillingProfileModel profileModel, String id) {
 
     SecurityInsightsManager client =
         resourceConfiguration.getSecurityInsightsManagerClient(
@@ -409,6 +434,31 @@ public class AzureMonitoringService {
     logger.info("Deleting Sentinel instance {}", id);
 
     client.sentinelOnboardingStates().deleteById(id);
+  }
+
+  /**
+   * Delete a Sentinel instance
+   *
+   * @param profileModel The billing profile for the dataset or snapshot being monitored
+   * @param storageAccountResource
+   */
+  public void deleteSentinelByStorageAccount(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+
+    SecurityInsightsManager client =
+        resourceConfiguration.getSecurityInsightsManagerClient(
+            resourceConfiguration.credentials().getHomeTenantId(),
+            profileModel.getSubscriptionId());
+
+    logger.info(
+        "Deleting Sentinel instance on storage account {}", storageAccountResource.getName());
+
+    client
+        .sentinelOnboardingStates()
+        .delete(
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName(),
+            SENTINEL_ONBOARD_STATE_NAME);
   }
 
   /**

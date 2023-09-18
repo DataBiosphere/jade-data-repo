@@ -53,13 +53,15 @@ public class AzureResourceDao {
           + "FROM storage_account_resource sa "
           + "JOIN application_deployment_resource da ON sa.application_resource_id = da.id "
           + "LEFT JOIN dataset_storage_account dsa on sa.id = dsa.storage_account_resource_id "
-          + "LEFT JOIN storage_resource sr on dsa.dataset_id = sr.dataset_id AND sr.cloud_resource='STORAGE_ACCOUNT' "
-          + "WHERE sa.marked_for_delete = false";
+          + "LEFT JOIN storage_resource sr on dsa.dataset_id = sr.dataset_id AND sr.cloud_resource='STORAGE_ACCOUNT' ";
+
+  private static final String sqlStorageAccountRetrievedByApplicationResource =
+      sqlStorageAccountRetrieve + "WHERE application_resource_id = :application_resource_id";
   private static final String sqlStorageAccountRetrievedById =
-      sqlStorageAccountRetrieve + " AND sa.id = :id";
+      sqlStorageAccountRetrieve + "WHERE sa.marked_for_delete = false AND sa.id = :id";
   private static final String sqlStorageAccountRetrievedByName =
       sqlStorageAccountRetrieve
-          + " AND sa.name = :name AND sa.toplevelcontainer = :toplevelcontainer";
+          + "WHERE sa.marked_for_delete = false AND sa.name = :name AND sa.toplevelcontainer = :toplevelcontainer";
 
   // Given a profile id, compute the count of all references to projects associated with the profile
   private static final String sqlProfileProjectRefs =
@@ -153,6 +155,17 @@ public class AzureResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("azure_application_deployment_name", applicationName);
     return retrieveApplicationDeploymentBy(sqlApplicationRetrieveByDepName, params);
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<AzureStorageAccountResource> retrieveStorageAccountsByApplicationResource(
+      UUID applicationResourceId) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("application_resource_id", applicationResourceId);
+    return retrieveStorageAccountsBy(sqlStorageAccountRetrievedByApplicationResource, params);
   }
 
   @Transactional(
@@ -466,6 +479,19 @@ public class AzureResourceDao {
   private AzureStorageAccountResource retrieveStorageAccountBy(
       String sql, MapSqlParameterSource params) {
     List<AzureStorageAccountResource> storageAccountResources =
+        retrieveStorageAccountsBy(sql, params);
+    if (storageAccountResources.size() > 1) {
+      throw new CorruptMetadataException(
+          "Found more than one result for storage account resource: "
+              + storageAccountResources.get(0).getName());
+    }
+
+    return (storageAccountResources.size() == 0 ? null : storageAccountResources.get(0));
+  }
+
+  private List<AzureStorageAccountResource> retrieveStorageAccountsBy(
+      String sql, MapSqlParameterSource params) {
+    List<AzureStorageAccountResource> storageAccountResources =
         jdbcTemplate.query(
             sql,
             params,
@@ -507,12 +533,6 @@ public class AzureResourceDao {
                   .region(region);
             });
 
-    if (storageAccountResources.size() > 1) {
-      throw new CorruptMetadataException(
-          "Found more than one result for storage account resource: "
-              + storageAccountResources.get(0).getName());
-    }
-
-    return (storageAccountResources.size() == 0 ? null : storageAccountResources.get(0));
+    return storageAccountResources;
   }
 }

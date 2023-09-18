@@ -11,6 +11,8 @@ import bio.terra.service.resourcemanagement.exception.StorageAccountLockExceptio
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.storage.models.StorageAccount;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -215,6 +217,18 @@ public class AzureStorageAccountService {
         resourceDao.deleteStorageAccountMetadata(
             storageAccountResourceName, topLevelContainer, flightId);
     logger.info("Metadata removed: {}", deleted);
+  }
+
+  public List<AzureStorageAccountResource> listStorageAccountIdsPerAppDeployment(
+      List<UUID> applicationResourceIds) {
+    List<AzureStorageAccountResource> resources = new ArrayList<>();
+    applicationResourceIds.stream()
+        .forEach(
+            applicationResourceId -> {
+              resources.addAll(
+                  resourceDao.retrieveStorageAccountsByApplicationResource(applicationResourceId));
+            });
+    return resources;
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {

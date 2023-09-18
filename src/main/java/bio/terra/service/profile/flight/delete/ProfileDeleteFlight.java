@@ -9,6 +9,9 @@ import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -23,6 +26,9 @@ public class ProfileDeleteFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
+    AzureStorageAccountService azureStorageAccountService =
+        appContext.getBean(AzureStorageAccountService.class);
 
     UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 
@@ -32,6 +38,9 @@ public class ProfileDeleteFlight extends Flight {
     var platform =
         CloudPlatformWrapper.of(
             inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
+
+    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+        new AzureStorageMonitoringStepProvider(monitoringService);
 
     // We do not delete unused Google projects at the point where they become unused; that is, the
     // last
@@ -75,9 +84,10 @@ public class ProfileDeleteFlight extends Flight {
           new DeleteProfileMarkUnusedApplicationDeployments(
               profileService, resourceService, user, profileId));
       if (inputParameters.get(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), Boolean.class)) {
-        // TODO - add steps to delete azure cloud resources
-        // Delete sentinel instance
-        // Delete log workspace
+        // delete monitoring resources
+        azureStorageMonitoringStepProvider
+            .configureDeleteSteps(azureStorageAccountService)
+            .forEach(s -> this.addStep(s.step(), s.retryRule()));
         // Delete storage account
       }
       addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService));

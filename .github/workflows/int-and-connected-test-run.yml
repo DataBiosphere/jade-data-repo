@@ -209,7 +209,7 @@ jobs:
         id: configuration
         run: |
           git_hash=$(git rev-parse --short HEAD)
-          echo "::set-output name=git_hash::$git_hash"
+          echo "git_hash=${git_hash}" >> $GITHUB_OUTPUT
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.69.0

@@ -107,7 +107,7 @@ jobs:
           ((a[2]++))
           printf "increase default api version: ${a[2]}\n\n"
           chartversion="${a[0]}.${a[1]}.${a[2]}"
-          echo "::set-output name=chartversion::$chartversion"
+          echo "chartversion=${chartversion}" >> $GITHUB_OUTPUT
       - name: "[datarepo-helm] [Chart.yaml] Update chart version"
         uses: docker://mikefarah/yq:3
         with:

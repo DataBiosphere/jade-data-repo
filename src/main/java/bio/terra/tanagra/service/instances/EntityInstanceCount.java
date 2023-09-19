@@ -52,7 +52,7 @@ public final class EntityInstanceCount {
                         .getMapping(Underlay.MappingType.INDEX)
                         .getDisplayMappingAlias())
                 .getString()
-                .get();
+                .orElseThrow();
         attributeValues.put(selectedAttribute, new ValueDisplay(valueOpt.get(), display));
       } else {
         throw new SystemException("Unknown attribute type: " + selectedAttribute.getType());

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.runners.direct.DirectRunner;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryOptions;
@@ -148,7 +149,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
         selectQuery.getSelect().stream()
             .filter(fv -> fv.getAliasOrColumnName().equals(selectIdFieldName))
             .findFirst()
-            .get();
+            .orElseThrow();
 
     var rows = executors.source().readTableRows(selectQuery);
 
@@ -203,15 +204,16 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
 
   /** Build a name for the Dataflow job that will be visible in the Cloud Console. */
   private String getDataflowJobName() {
+    Pattern pattern = Pattern.compile("[^a-z0-9]");
     String underlayName = entity.getUnderlay().getName();
-    String normalizedUnderlayName = underlayName.toLowerCase().replaceAll("[^a-z0-9]", "-");
+    String normalizedUnderlayName = pattern.matcher(underlayName.toLowerCase()).replaceAll("-");
     String jobDisplayName = getName();
     String normalizedJobDisplayName =
-        jobDisplayName == null || jobDisplayName.length() == 0
+        jobDisplayName == null || jobDisplayName.isEmpty()
             ? "t-BQIndexingJob"
-            : "t-" + jobDisplayName.toLowerCase().replaceAll("[^a-z0-9]", "-");
+            : "t-" + pattern.matcher(jobDisplayName.toLowerCase()).replaceAll("-");
     String userName = MoreObjects.firstNonNull(System.getProperty("user.name"), "");
-    String normalizedUserName = userName.toLowerCase().replaceAll("[^a-z0-9]", "0");
+    String normalizedUserName = pattern.matcher(userName.toLowerCase()).replaceAll("0");
     String datePart = FORMATTER.print(DateTimeUtils.currentTimeMillis());
 
     String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());

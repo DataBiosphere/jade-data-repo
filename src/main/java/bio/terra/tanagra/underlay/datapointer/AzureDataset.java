@@ -85,7 +85,10 @@ public final class AzureDataset extends DataPointer {
           .getColumnByName(columnName)
           .map(Column::getType)
           .map(AzureDataset::toDataType)
-          .orElseThrow();
+          .orElseThrow(
+              () ->
+                  new RuntimeException(
+                      "couldn't find %s in %s".formatted(columnName, tablePointer.getTableName())));
     }
   }
 

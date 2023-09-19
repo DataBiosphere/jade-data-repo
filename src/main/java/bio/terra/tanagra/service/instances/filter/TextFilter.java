@@ -41,7 +41,7 @@ public class TextFilter extends EntityFilter {
         throw new InvalidQueryException(
             "Only text search mapping to a single search string field is currently supported");
       }
-      if (functionTemplate.equals(FunctionFilterVariable.FunctionTemplate.TEXT_FUZZY_MATCH)) {
+      if (functionTemplate == FunctionFilterVariable.FunctionTemplate.TEXT_FUZZY_MATCH) {
         throw new InvalidQueryException(
             "Only fuzzy matching against a specific attribute is currently supported");
       }
@@ -50,7 +50,7 @@ public class TextFilter extends EntityFilter {
     } else {
       // search against a specific attribute
       AttributeMapping attributeMapping = attribute.getMapping(Underlay.MappingType.INDEX);
-      if (attribute.getType().equals(Attribute.Type.KEY_AND_DISPLAY)) {
+      if (attribute.getType() == Attribute.Type.KEY_AND_DISPLAY) {
         // use the display field
         textSearchFieldVar = attributeMapping.getDisplay().buildVariable(entityTableVar, tableVars);
       } else {

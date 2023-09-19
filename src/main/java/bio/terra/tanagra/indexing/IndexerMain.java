@@ -3,8 +3,6 @@ package bio.terra.tanagra.indexing;
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.indexing.jobexecutor.JobRunner;
 import bio.terra.tanagra.query.azure.AzureExecutor;
-import bio.terra.tanagra.underlay.DataPointer;
-import bio.terra.tanagra.underlay.datapointer.AzureDataset;
 import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
 import bio.terra.tanagra.utils.FileIO;
 import bio.terra.tanagra.utils.FileUtils;
@@ -43,11 +41,13 @@ public final class IndexerMain {
     Indexer indexer =
         Indexer.deserializeUnderlay(Path.of(underlayFilePath).getFileName().toString());
 
+    /*
     for (DataPointer dataPointer : indexer.getUnderlay().getDataPointers().values()) {
       if (dataPointer instanceof AzureDataset azureDataset) {
         azureExecutor.setupAccess(azureDataset);
       }
     }
+    */
 
     // FIXME: should derive this from mapping attribute of table.
     Indexer.Executors executors =

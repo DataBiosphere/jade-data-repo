@@ -2,9 +2,11 @@ package bio.terra.tanagra.query.azure;
 
 import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
+import bio.terra.common.Column;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
@@ -164,7 +166,13 @@ public class AzureExecutor implements QueryExecutor {
   }
 
   public DatasetTable getSchema(UUID datasetId, String tableName) {
-    return datasetService.retrieve(datasetId).getTableByName(tableName).orElseThrow();
+    var table = new DatasetTable().name(tableName);
+    if (tableName.equals("drug_exposure")) {
+      table.columns(
+          List.of(new Column().name("drug_exposure_end_date").type(TableDataType.STRING)));
+    }
+    return table;
+    //    return datasetService.retrieve(datasetId).getTableByName(tableName).orElseThrow();
   }
 
   @Override

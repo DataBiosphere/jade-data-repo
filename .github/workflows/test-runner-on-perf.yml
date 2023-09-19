@@ -23,13 +23,13 @@ jobs:
         run: |
           CURRENT_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Current Version: $CURRENT_VERSION"
-          echo "::set-output name=CURRENT_SEMVER::$CURRENT_VERSION"
+          echo "CURRENT_SEMVER=${$CURRENT_VERSION}" >> $GITHUB_OUTPUT
           LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
-          echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
+          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_OUTPUT
           LATEST_GITHASH=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           echo "Latest git hash: $LATEST_GITHASH"
-          echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
+          echo "LATEST_GITHASH=${$LATEST_GITHASH}" >> $GITHUB_OUTPUT
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
         uses: actions/checkout@v3
         with:

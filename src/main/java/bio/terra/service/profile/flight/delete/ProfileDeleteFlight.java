@@ -12,6 +12,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
+import bio.terra.service.resourcemanagement.flight.DeleteAzureStorageAccountStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -89,6 +90,7 @@ public class ProfileDeleteFlight extends Flight {
             .configureDeleteSteps(azureStorageAccountService)
             .forEach(s -> this.addStep(s.step(), s.retryRule()));
         // Delete storage account
+        addStep(new DeleteAzureStorageAccountStep(azureStorageAccountService));
       }
       addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService));
     }

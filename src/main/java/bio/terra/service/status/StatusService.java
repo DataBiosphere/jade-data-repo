@@ -49,7 +49,7 @@ public class StatusService {
     statusModel.putSystemsItem(SAM, iamProviderInterface.samStatus().critical(true));
     statusModel.putSystemsItem(RBS, bufferService.status());
     statusModel.putSystemsItem(DUOS, duosService.status());
-    statusModel.putSystemsItem(TPS, policyService.status());
+    statusModel.putSystemsItem(TPS, policyService.status().critical(true));
 
     // if all critical systems are ok, then isOk = true
     // if any one critical system is down, then isOk = false

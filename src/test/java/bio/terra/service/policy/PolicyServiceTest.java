@@ -133,7 +133,6 @@ public class PolicyServiceTest {
     mockUnauthPolicyApi();
     RepositoryStatusModelSystems status = policyService.status();
     assertTrue(status.isOk());
-    assertTrue(status.isCritical());
     assertThat(status.getMessage(), containsString("Terra Policy Service status ok"));
   }
 
@@ -144,7 +143,6 @@ public class PolicyServiceTest {
     doThrow(exception).when(tpsUnauthApi).getStatus();
     RepositoryStatusModelSystems status = policyService.status();
     assertFalse(status.isOk());
-    assertTrue(status.isCritical());
     assertThat(status.getMessage(), containsString(exception.getMessage()));
   }
 }

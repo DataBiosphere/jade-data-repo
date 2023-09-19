@@ -222,14 +222,20 @@ public class AzureStorageAccountService {
 
   /**
    * Delete the Azure cloud storage account resource.
+   *
    * @param profileModel the TDR billing profile associated with this storage account
    * @param storageAccountResource
    */
   public void deleteCloudStorageAccount(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     logger.info("Deleting storage account {}", storageAccountResource.getName());
-    AzureResourceManager clientSa = resourceConfiguration.getClient(profileModel.getSubscriptionId());
-    clientSa.storageAccounts().deleteByResourceGroup(storageAccountResource.getApplicationResource().getAzureResourceGroupName(), storageAccountResource.getName());
+    AzureResourceManager clientSa =
+        resourceConfiguration.getClient(profileModel.getSubscriptionId());
+    clientSa
+        .storageAccounts()
+        .deleteByResourceGroup(
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
   }
 
   public List<AzureStorageAccountResource> listStorageAccountIdsPerAppDeployment(
@@ -239,7 +245,8 @@ public class AzureStorageAccountService {
         .forEach(
             applicationResourceId -> {
               resources.addAll(
-                  resourceDao.retrieveStorageAccountsByApplicationResource(applicationResourceId, markedForDelete));
+                  resourceDao.retrieveStorageAccountsByApplicationResource(
+                      applicationResourceId, markedForDelete));
             });
     return resources;
   }

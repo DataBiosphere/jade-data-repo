@@ -3,7 +3,6 @@ package bio.terra.service.resourcemanagement.flight;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.stairway.FlightContext;
@@ -16,8 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DeleteAzureStorageAccountStep extends DefaultUndoStep {
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteAzureStorageAccountStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeleteAzureStorageAccountStep.class);
   private AzureStorageAccountService azureStorageAccountService;
 
   public DeleteAzureStorageAccountStep(AzureStorageAccountService azureStorageAccountService) {}
@@ -32,11 +30,11 @@ public class DeleteAzureStorageAccountStep extends DefaultUndoStep {
             ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, new TypeReference<>() {});
 
     for (AzureStorageAccountResource storageAccountResource : storageAccounts) {
-      if (azureStorageAccountService.retrieveStorageAccountById(storageAccountResource.getResourceId())
+      if (azureStorageAccountService.retrieveStorageAccountById(
+              storageAccountResource.getResourceId())
           != null) {
         logger.info(
-            "Azure storage account {} found; Attempting delete.",
-            storageAccountResource.getName());
+            "Azure storage account {} found; Attempting delete.", storageAccountResource.getName());
         // TODO - how should we do error handling?
         azureStorageAccountService.deleteCloudStorageAccount(profileModel, storageAccountResource);
       } else {

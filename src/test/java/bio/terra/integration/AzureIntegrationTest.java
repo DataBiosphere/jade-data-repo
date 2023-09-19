@@ -193,7 +193,7 @@ public class AzureIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteDataset(steward, datasetId);
     }
     if (profileId != null) {
-      dataRepoFixtures.deleteProfile(steward, profileId);
+      dataRepoFixtures.deleteProfileWithCloudResourceDelete(steward, profileId);
     }
     if (storageAccounts != null) {
       storageAccounts.forEach(this::deleteCloudResources);

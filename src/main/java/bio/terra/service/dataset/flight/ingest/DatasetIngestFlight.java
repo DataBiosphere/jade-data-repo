@@ -24,6 +24,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionCommitStep;
 import bio.terra.service.dataset.flight.transactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.transactions.TransactionUnlockStep;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -34,6 +35,7 @@ import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFi
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToStorageTableStep;
+import bio.terra.service.filedata.flight.ingest.IngestCreateAzureContainerStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileAzureMakeStorageAccountLinkStep;
@@ -56,7 +58,8 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -95,6 +98,7 @@ public class DatasetIngestFlight extends Flight {
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -105,6 +109,9 @@ public class DatasetIngestFlight extends Flight {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+        new AzureStorageMonitoringStepProvider(monitoringService);
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -127,6 +134,12 @@ public class DatasetIngestFlight extends Flight {
               profileService, ingestRequestModel.getProfileId(), userReq));
 
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
+      addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
+      // Turn on logging and monitoring for the storage account associated with the dataset and
+      // billing profile
+      azureStorageMonitoringStepProvider
+          .configureSteps(dataset.isSecureMonitoringEnabled(), dataset.getStorageAccountRegion())
+          .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
@@ -155,7 +168,14 @@ public class DatasetIngestFlight extends Flight {
       autocommit = true;
     }
 
-    addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
+    addStep(new IngestSetupStep(datasetService, cloudPlatform));
+
+    CloudFileReader cloudFileReader = (cloudPlatform.isGcp()) ? gcsPdao : azureBlobStorePdao;
+    // Verify that the user is allowed to access the bucket where a control file lives:
+    // the step will figure out if this is necessary depending on ingest type and cloud platform.
+    addStep(
+        new ValidateBucketAccessStep(cloudFileReader, userReq, dataset),
+        getDefaultExponentialBackoffRetryRule());
 
     if (IngestUtils.isJsonTypeIngest(inputParameters)) {
       int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
@@ -252,12 +272,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(
           new IngestCreateIngestRequestDataSourceStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));
-      addStep(
-          new IngestCreateTargetDataSourceStep(
-              azureSynapsePdao, azureBlobStorePdao, ContainerType.METADATA, userReq));
-      addStep(
-          new IngestCreateTargetDataSourceStep(
-              azureSynapsePdao, azureBlobStorePdao, ContainerType.SCRATCH, userReq));
+      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao, userReq));
       addStep(
           new IngestCreateScratchParquetFilesStep(
               azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
@@ -343,12 +358,6 @@ public class DatasetIngestFlight extends Flight {
     ExecutorService executor = appContext.getBean("performanceThreadpool", ExecutorService.class);
 
     var platform = CloudPlatform.GCP;
-
-    // Verify that the user is allowed to access the bucket where the control file lives
-    addStep(
-        new ValidateBucketAccessStep(
-            gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
-        getDefaultExponentialBackoffRetryRule());
 
     // Parse the JSON file and see if there's actually any files to load.
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`

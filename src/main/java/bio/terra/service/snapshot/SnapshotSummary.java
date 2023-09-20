@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.dataset.StorageResource;
@@ -8,7 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class SnapshotSummary {
   private UUID id;
@@ -25,6 +26,8 @@ public class SnapshotSummary {
   private String phsId;
   private boolean selfHosted;
   private boolean globalFileIds;
+  private List<String> tags;
+  private ResourceLocks resourceLocks;
 
   public UUID getId() {
     return id;
@@ -152,6 +155,24 @@ public class SnapshotSummary {
     return this;
   }
 
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public SnapshotSummary tags(List<String> tags) {
+    this.tags = tags;
+    return this;
+  }
+
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
+  }
+
+  public SnapshotSummary resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
+    return this;
+  }
+
   public SnapshotSummaryModel toModel() {
     return new SnapshotSummaryModel()
         .id(getId())
@@ -167,7 +188,9 @@ public class SnapshotSummary {
         .consentCode(getConsentCode())
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
-        .globalFileIds(isGlobalFileIds());
+        .globalFileIds(isGlobalFileIds())
+        .tags(getTags())
+        .resourceLocks(getResourceLocks());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

@@ -8,11 +8,11 @@ import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -206,9 +206,8 @@ public interface IamProviderInterface {
    * token
    *
    * @param accessToken valid oauth token for user that is being registered in Terra
-   * @return the fully registered user
    */
-  UserStatus registerUser(String accessToken) throws InterruptedException;
+  void registerUser(String accessToken) throws InterruptedException;
 
   /**
    * Get Sam Status
@@ -240,4 +239,20 @@ public interface IamProviderInterface {
    * @param groupName name of Firecloud managed group to delete
    */
   void deleteGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * Gets a signed URL for the given blob, signed by the Pet Service account of the calling user.
+   * The signed URL is scoped to the permissions of the signing Pet Service Account. Will provide a
+   * signed URL for any object path, even if that object does not exist.
+   *
+   * @param userReq authenticated user
+   * @param project Google project to use to sign blob
+   * @param path path to blob to sign
+   * @param duration duration of the signed URL
+   * @return signed URL containing the project as well as the email address of the user who
+   *     requested the URL for auditing purposes
+   */
+  String signUrlForBlob(
+      AuthenticatedUserRequest userReq, String project, String path, Duration duration)
+      throws InterruptedException;
 }

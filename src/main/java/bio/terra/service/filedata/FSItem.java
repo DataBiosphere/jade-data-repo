@@ -14,7 +14,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  *   <li>FSDir - describes a directory and, optionally, its contents
  * </ul>
  */
-public class FSItem {
+public class FSItem implements ChecksumInterface {
   private UUID fileId;
   private UUID collectionId;
   private Instant createdDate;

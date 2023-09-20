@@ -1,12 +1,12 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -43,6 +43,8 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private DuosFirecloudGroupModel duosFirecloudGroup;
   private boolean globalFileIds;
   private String compactIdPrefix;
+  private List<String> tags;
+  private ResourceLocks resourceLocks;
 
   @Override
   public CollectionType getCollectionType() {
@@ -118,10 +120,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   }
 
   public Dataset getSourceDataset() {
-    if (snapshotSources.isEmpty()) {
-      throw new CorruptMetadataException("Snapshot sources should never be empty!");
-    }
-    return snapshotSources.get(0).getDataset();
+    return getFirstSnapshotSource().getDataset();
   }
 
   public Optional<SnapshotTable> getTableById(UUID id) {
@@ -231,10 +230,6 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return FireStoreProject.get(datasetProjectId);
   }
 
-  public AzureRegion getStorageAccountRegion() {
-    return getSourceDataset().getStorageAccountRegion();
-  }
-
   public boolean isSecureMonitoringEnabled() {
     return getSourceDataset().isSecureMonitoringEnabled();
   }
@@ -270,6 +265,24 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public Snapshot tags(List<String> tags) {
+    this.tags = tags;
+    return this;
+  }
+
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
+  }
+
+  public Snapshot resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
+    return this;
+  }
+
   @Override
   public CloudPlatform getCloudPlatform() {
     return getSourceDataset().getCloudPlatform();
@@ -278,5 +291,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());
+  }
+
+  @Override
+  public boolean isSnapshot() {
+    return true;
+  }
+
+  @Override
+  public boolean isDataset() {
+    return false;
   }
 }

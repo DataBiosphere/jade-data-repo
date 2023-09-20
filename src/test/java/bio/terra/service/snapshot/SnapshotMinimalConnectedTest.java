@@ -214,6 +214,8 @@ public class SnapshotMinimalConnectedTest {
         resourceType.equals(ConnectedOperations.TdrResourceType.DATASET) ? PDAO_PREFIX : "";
     String joinClause =
         "JOIN " + prefix + resourceName + ".sample ON " + prefix + "sample.participant_id = id";
+    // if the user provided filter doesn't start with "WHERE", we append it
+    // We then parse the filter, so this fails because the filter starts with "WHERE JOIN..."
     ErrorModel previewError =
         connectedOperations.retrieveDataFailure(
             resourceType,
@@ -223,11 +225,11 @@ public class SnapshotMinimalConnectedTest {
             0,
             joinClause,
             null,
-            HttpStatus.INTERNAL_SERVER_ERROR);
+            HttpStatus.BAD_REQUEST);
 
     assertTrue(
         "JOIN with sample table fails",
-        previewError.getMessage().contains("Failure executing query"));
+        previewError.getMessage().contains("Unable to parse user provided filter"));
   }
 
   @Test

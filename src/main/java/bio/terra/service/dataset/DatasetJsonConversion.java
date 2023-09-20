@@ -19,6 +19,8 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,13 +30,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
+@Component
 public final class DatasetJsonConversion {
+  private final SnapshotBuilderService snapshotBuilderService;
 
-  // only allow use of static methods
-  private DatasetJsonConversion() {}
+  public DatasetJsonConversion(SnapshotBuilderService snapshotBuilderService) {
+    this.snapshotBuilderService = snapshotBuilderService;
+  }
 
-  public static Dataset datasetRequestToDataset(DatasetRequestModel datasetRequest) {
+  public static Dataset datasetRequestToDataset(
+      DatasetRequestModel datasetRequest, UUID datasetId) {
     Map<String, DatasetTable> tablesMap = new HashMap<>();
     Map<String, Relationship> relationshipsMap = new HashMap<>();
     List<AssetSpecification> assetSpecifications = new ArrayList<>();
@@ -71,6 +78,7 @@ public final class DatasetJsonConversion {
 
     return new Dataset(
             new DatasetSummary()
+                .id(datasetId)
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)
@@ -79,13 +87,14 @@ public final class DatasetJsonConversion {
                 .phsId(datasetRequest.getPhsId())
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
-                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds()))
+                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
+                .tags(TagUtils.sanitizeTags(datasetRequest.getTags())))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
   }
 
-  public static DatasetModel populateDatasetModelFromDataset(
+  public DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
       MetadataDataAccessUtils metadataDataAccessUtils,
@@ -99,7 +108,9 @@ public final class DatasetJsonConversion {
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
             .phsId(dataset.getPhsId())
             .selfHosted(dataset.isSelfHosted())
-            .predictableFileIds(dataset.hasPredictableFileIds());
+            .predictableFileIds(dataset.hasPredictableFileIds())
+            .tags(dataset.getTags())
+            .resourceLocks(dataset.getResourceLocks());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;
@@ -130,6 +141,11 @@ public final class DatasetJsonConversion {
     if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
       datasetModel.accessInformation(
           metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
+    }
+
+    if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
+      datasetModel.snapshotBuilderSettings(
+          snapshotBuilderService.getSnapshotBuilderSettings(dataset.getId()));
     }
 
     return datasetModel;

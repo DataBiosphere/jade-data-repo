@@ -81,7 +81,7 @@ public class IngestFileAzureDirectoryStep implements Step {
                 .datasetId(datasetId.toString())
                 .loadTag(loadModel.getLoadTag());
         tableDao.createDirectoryEntry(
-            newEntry, storageAuthInfo, datasetId, StorageTableName.DATASET.toTableName());
+            newEntry, storageAuthInfo, datasetId, StorageTableName.DATASET.toTableName(datasetId));
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)) {
         FireStoreDirectoryEntry existingEntry =
             workingMap.get(FileMapKeys.FIRESTORE_DIRECTORY_ENTRY, FireStoreDirectoryEntry.class);
@@ -89,7 +89,8 @@ public class IngestFileAzureDirectoryStep implements Step {
           // (b) We are in a re-run of a load job. Try to get the file entry.
           fileId = existingEntry.getFileId();
           workingMap.put(FileMapKeys.FILE_ID, fileId);
-          FireStoreFile fileEntry = tableDao.lookupFile(fileId, storageAuthInfo);
+          FireStoreFile fileEntry =
+              tableDao.lookupFile(datasetId.toString(), fileId, storageAuthInfo);
           if (fileEntry != null) {
             // (b)(i) We successfully loaded this file already
             workingMap.put(FileMapKeys.LOAD_COMPLETED, true);
@@ -116,7 +117,10 @@ public class IngestFileAzureDirectoryStep implements Step {
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
         tableDao.deleteDirectoryEntry(
-            fileId, storageAuthInfo, dataset.getId(), StorageTableName.DATASET.toTableName());
+            fileId,
+            storageAuthInfo,
+            dataset.getId(),
+            StorageTableName.DATASET.toTableName(dataset.getId()));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

@@ -21,6 +21,7 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
@@ -46,6 +47,8 @@ public class ValidateAssetUnitTest {
 
   @Autowired private DatasetService datasetService;
 
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockBean private DatasetJsonConversion datasetJsonConversion;
   @MockBean private JobService jobService;
   @MockBean private LoadService loadService;
   @MockBean private ProfileDao profileDao;

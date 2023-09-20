@@ -26,7 +26,7 @@ jobs:
         id: configuration
         run: |
           staging_version=$(curl -s -X GET "https://data.staging.envs-terra.bio/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          echo "::set-output name=staging_version::$staging_version"
+          echo "staging_version=${staging_version}" >> $GITHUB_OUTPUT
           echo "Staging Version: $staging_version"
       - name: "Checkout tag for DataBiosphere/jade-data-repo"
         if: github.ref == 'refs/heads/develop'

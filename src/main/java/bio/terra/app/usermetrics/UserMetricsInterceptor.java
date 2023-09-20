@@ -46,8 +46,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
 
   @Override
   public void afterCompletion(
-      HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
-      throws Exception {
+      HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
     String method = request.getMethod().toUpperCase();
     String path = request.getRequestURI();
     AuthenticatedUserRequest userRequest;
@@ -59,7 +58,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     }
 
     // Don't log metrics if bard isn't configured or the path is part of the ignore-list
-    if (StringUtils.isEmpty(metricsConfig.getBardBasePath()) || ignoreEventForPath(path)) {
+    if (StringUtils.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
 
@@ -79,13 +78,12 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 new BardEvent(
                     API_EVENT_NAME,
                     bardEventProperties,
-                    metricsConfig.getAppId(),
+                    metricsConfig.appId(),
                     applicationConfiguration.getDnsName())));
   }
 
   /** Should we actually ignore sending a tracking event for this path */
   private boolean ignoreEventForPath(String path) {
-    return metricsConfig.getIgnorePaths().stream()
-        .anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
+    return metricsConfig.ignorePaths().stream().anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
   }
 }

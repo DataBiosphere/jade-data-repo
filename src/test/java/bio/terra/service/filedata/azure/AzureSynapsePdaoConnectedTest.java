@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
@@ -26,13 +27,12 @@ import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotTable;
 import com.azure.storage.blob.BlobUrlParts;
-import java.sql.Date;
 import java.sql.Time;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -76,8 +76,8 @@ public class AzureSynapsePdaoConnectedTest {
       List.of(
           Stream.of(
                   Map.entry("boolCol", true),
-                  Map.entry("dateCol", Date.valueOf("2021-08-01")),
-                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("dateCol", "2021-08-01"),
+                  Map.entry("dateTimeCol", "2021-08-01 23:59:59.9999990"),
                   Map.entry("dirRefCol", UUID.fromString("7a1e4648-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("file", UUID.fromString("816ca5ca-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("float64Col", 1.79E+308D),
@@ -88,13 +88,13 @@ public class AzureSynapsePdaoConnectedTest {
                   Map.entry("first_name", "Bob"),
                   Map.entry("textCol", "Dao"),
                   Map.entry("timeCol", Time.valueOf("01:01:00")),
-                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("timestampCol", "2021-08-01 23:59:59.9999990"),
                   Map.entry("arrayCol", List.of("lion", "tiger")))
               .collect(Collectors.toMap(Entry::getKey, e -> Optional.of(e.getValue()))),
           Stream.of(
                   Map.entry("boolCol", false),
-                  Map.entry("dateCol", Date.valueOf("2021-01-01")),
-                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("dateCol", "2021-01-01"),
+                  Map.entry("dateTimeCol", "2021-08-01 23:59:59.9999990"),
                   Map.entry("dirRefCol", UUID.fromString("856d0926-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("file", UUID.fromString("89875e76-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("float64Col", -1.79E+308D),
@@ -105,7 +105,7 @@ public class AzureSynapsePdaoConnectedTest {
                   Map.entry("first_name", "Sally"),
                   Map.entry("textCol", "Jones"),
                   Map.entry("timeCol", Time.valueOf("01:01:00")),
-                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("timestampCol", "2021-08-01 23:59:59.9999990"),
                   Map.entry("arrayCol", List.of("horse", "dog")))
               .collect(Collectors.toMap(Entry::getKey, e -> Optional.of(e.getValue()))));
   private static final List<Map<String, Optional<Object>>> SAMPLE_DATA_CSV =
@@ -192,7 +192,8 @@ public class AzureSynapsePdaoConnectedTest {
 
     List<String> textCols =
         synapseUtils.readParquetFileStringColumn(
-            IngestUtils.getParquetFilePath("all_data_types", randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath("all_data_types", randomFlightId)),
             IngestUtils.getTargetDataSourceName(randomFlightId),
             "textCol",
             true);
@@ -256,7 +257,7 @@ public class AzureSynapsePdaoConnectedTest {
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
     // Test that parquet files are correctly generated
     String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, destinationTable.getName());
+        IngestUtils.getSnapshotParquetFilePathForQuery(destinationTable.getName());
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
             snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
@@ -264,10 +265,18 @@ public class AzureSynapsePdaoConnectedTest {
         "List of names in snapshot should equal the dataset names",
         snapshotFirstNames,
         equalTo(List.of("Bob", "Sally")));
+    long expectedNumberOfRows = 2L;
     assertThat(
         "Table row count should equal 2 for destination table",
         tableRowCounts.get(destinationTable.getName()),
         equalTo(2L));
+    int rowCount =
+        azureSynapsePdao.getTableTotalRowCount(
+            destinationTable.getName(), snapshotDataSourceName, snapshotParquetFileName);
+    assertThat(
+        "Correct number of rows are returned from table",
+        rowCount,
+        equalTo((int) expectedNumberOfRows));
 
     // CreateSnapshotParquetFilesAzureStep part 2
     // Create snapshot row ids parquet file via external table
@@ -276,7 +285,7 @@ public class AzureSynapsePdaoConnectedTest {
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE));
     // Test that parquet files are correctly generated
     String snapshotRowIdsParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, PDAO_ROW_ID_TABLE);
+        IngestUtils.getSnapshotParquetFilePathForQuery(PDAO_ROW_ID_TABLE);
     synapseUtils.addParquetFileName(snapshotRowIdsParquetFileName, snapshotStorageAccountResource);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
@@ -302,19 +311,24 @@ public class AzureSynapsePdaoConnectedTest {
         AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
+    List<SynapseDataResultModel> results =
+        azureSynapsePdao.getTableData(
+            snapshotTable,
+            snapshotTable.getName(),
+            snapshotQueryDataSourceName,
+            IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
+            10,
+            0,
+            "first_name",
+            SqlSortDirection.ASC,
+            "",
+            CollectionType.SNAPSHOT);
+    assertThat(
+        "We should not include total row count for snapshots",
+        results.get(0).getTotalCount(),
+        equalTo(0));
     List<Map<String, Optional<Object>>> tableData =
-        prepQueryResultForComparison(
-            azureSynapsePdao.getTableData(
-                snapshotTable,
-                snapshotTable.getName(),
-                snapshotQueryDataSourceName,
-                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
-                10,
-                0,
-                "first_name",
-                SqlSortDirection.ASC,
-                ""),
-            isGlobalFileIds);
+        prepQueryResultForComparison(results, isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (ascending by first name)",
         tableData,
@@ -327,12 +341,13 @@ public class AzureSynapsePdaoConnectedTest {
                 snapshotTable,
                 snapshotTable.getName(),
                 snapshotQueryDataSourceName,
-                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
                 SqlSortDirection.DESC,
-                ""),
+                "",
+                CollectionType.SNAPSHOT),
             isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (descending by first name)",
@@ -346,12 +361,13 @@ public class AzureSynapsePdaoConnectedTest {
                 snapshotTable,
                 snapshotTable.getName(),
                 snapshotQueryDataSourceName,
-                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
                 SqlSortDirection.ASC,
-                "upper(first_name)='SALLY'"),
+                "upper(first_name)='SALLY'",
+                CollectionType.SNAPSHOT),
             isGlobalFileIds);
     assertThat(
         "table query contains only a single record", tableData, contains(expectedData.get(1)));
@@ -379,8 +395,9 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   private List<Map<String, Optional<Object>>> prepQueryResultForComparison(
-      List<Map<String, Optional<Object>>> tableData, Boolean isGlobalFileIds) {
+      List<SynapseDataResultModel> tableData, Boolean isGlobalFileIds) {
     return tableData.stream()
+        .map(SynapseDataResultModel::getRowResult)
         // Remove datarepo_row_id since it's random
         .peek(r -> r.remove(PDAO_ROW_ID_COLUMN))
         // Replace the DRS id with its file ID for easier comparison

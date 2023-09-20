@@ -58,4 +58,15 @@ public class StorageTableService {
     return storageTableDao.getLoadHistory(
         tableServiceClient, dataset.getId(), loadTag, offset, limit);
   }
+
+  public void dropLoadHistoryTable(Dataset dataset) {
+    var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
+    var storageAccountResource = resourceService.getDatasetStorageAccount(dataset, billingProfile);
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
+    storageTableDao.dropLoadHistoryTable(tableServiceClient, dataset.getId());
+  }
 }

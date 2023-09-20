@@ -49,7 +49,7 @@ public class AzureAuthzServiceTest {
         .thenReturn(Map.of("parameters", Map.of(AUTH_PARAM_KEY, Map.of("value", USER_EMAIL))));
     when(resourceManager.genericResources()).thenReturn(genericResources);
     when(resourceConfiguration.getClient(SUBSCRIPTION_ID)).thenReturn(resourceManager);
-    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.getApiVersion()))
+    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.apiVersion()))
         .thenReturn(genericResource);
     azureAuthzService = new AzureAuthzService(resourceConfiguration);
   }
@@ -86,7 +86,7 @@ public class AzureAuthzServiceTest {
 
   @Test
   public void testValidateResourceNotFound() {
-    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.getApiVersion()))
+    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.apiVersion()))
         .thenThrow(ResourceManagerException.class);
 
     assertThat(

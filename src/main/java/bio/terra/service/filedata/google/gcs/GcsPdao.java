@@ -2,11 +2,14 @@ package bio.terra.service.filedata.google.gcs;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM_TDR;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.AclUtils;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FutureUtils;
+import bio.terra.common.UriUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoFileLinkException;
@@ -68,6 +71,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -105,7 +109,7 @@ public class GcsPdao implements CloudFileReader {
       "roles/serviceusage.serviceUsageConsumer";
 
   private static final String PSA_SEPARATOR = "|";
-  // Cache of pet service account tokens keys on a given user's actual access_token + separator +
+  // Cache of pet service account tokens keyed on a given user's actual access_token + separator +
   // projectid combo
   private final Map<String, Tokeninfo> petAccountTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(30, TimeUnit.MINUTES));
@@ -291,33 +295,58 @@ public class GcsPdao implements CloudFileReader {
   }
 
   /**
-   * Given a list a source paths, validate that the specified user has a pat service account with
-   * read permissions
+   * Given a list of source paths, validate that the specified user has a pet service account with
+   * read permissions. This method is a no-op if the destination dataset does not necessitate access
+   * validation.
    *
    * @param sourcePaths A list of gs:// formatted paths
    * @param cloudEncapsulationId The dataset project to bill to if any of the source buckets are
    *     configured to use requester pays
    * @param user An authenticated user
+   * @param dataset destination dataset for this ingestion
    * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
    * @throws IllegalArgumentException if the source path is not a valid blob url
    */
   public void validateUserCanRead(
-      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
+      List<String> sourcePaths,
+      String cloudEncapsulationId,
+      AuthenticatedUserRequest user,
+      Dataset dataset) {
     // If the connected profile is used, skip this check since we don't specify users when mocking
     // requests
     if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
       return;
     }
+    // If a dataset has a dedicated GCP SA, it is unique to that dataset. Ingests will correctly
+    // fail if the account lacks needed permission on the GCS files to ingest.
+    // Otherwise, we must ensure that a user does not ingest files inaccessible to them, but
+    // accessible to the general TDR SA.
+    if (dataset.hasDedicatedGcpServiceAccount()) {
+      return;
+    }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
+    String tokenKey;
+    if (cloudEncapsulationId == null) {
+      tokenKey = user.getToken();
+    } else {
+      tokenKey = String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId);
+    }
     Tokeninfo token =
         petAccountTokens.computeIfAbsent(
-            String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId),
+            tokenKey,
             t -> {
               try {
                 String oauthToken = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
                 Tokeninfo tokeninfo =
                     GoogleOauthUtils.getOauth2TokenInfo(oauthToken).set(TOKEN_FIELD, oauthToken);
-                addPetServiceAccountToDatasetProject(cloudEncapsulationId, tokeninfo.getEmail());
+                // Ingests to GCP-backed datasets require that the user's pet service account be
+                // granted permissions on the dataset's project so that it can be used to ingest
+                // data.
+                // Azure-backed datasets have no such bucket and their ingest mechanism does not
+                // require it.
+                if (CloudPlatformWrapper.of(dataset.getCloudPlatform()).isGcp()) {
+                  addPetServiceAccountToDatasetProject(cloudEncapsulationId, tokeninfo.getEmail());
+                }
                 return tokeninfo;
               } catch (InterruptedException e) {
                 throw new PdaoException("Error obtaining a pet service account token");
@@ -331,15 +360,17 @@ public class GcsPdao implements CloudFileReader {
               }
             });
 
-    Storage storageAsPet =
+    StorageOptions.Builder storageAsPetBuilder =
         StorageOptions.newBuilder()
             .setCredentials(
                 OAuth2Credentials.create(
                     new AccessToken(
                         token.get(TOKEN_FIELD).toString(),
-                        Date.from(Instant.now().plusSeconds(token.getExpiresIn())))))
-            .build()
-            .getService();
+                        Date.from(Instant.now().plusSeconds(token.getExpiresIn())))));
+    if (cloudEncapsulationId != null) {
+      storageAsPetBuilder.setProjectId(cloudEncapsulationId);
+    }
+    Storage storageAsPet = storageAsPetBuilder.build().getService();
 
     Set<String> buckets =
         sourcePaths.stream()
@@ -352,9 +383,18 @@ public class GcsPdao implements CloudFileReader {
             .orElseGet(() -> new BucketSourceOption[0]);
 
     for (String bucket : buckets) {
-      List<Boolean> permissions =
-          storageAsPet.testIamPermissions(
-              bucket, List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION), options);
+      List<Boolean> permissions = List.of();
+      try {
+        permissions =
+            storageAsPet.testIamPermissions(
+                bucket, List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION), options);
+      } catch (StorageException e) {
+        // This is a potential failure mode for permissions checking: not being able to make the
+        // permissions check call at all
+        if (e.getCode() != HttpStatus.SC_FORBIDDEN) {
+          throw e;
+        }
+      }
 
       if (!permissions.equals(List.of(true))) {
         String proxyGroup;
@@ -367,8 +407,11 @@ public class GcsPdao implements CloudFileReader {
         }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account or your dataset's ingest service account and your Terra proxy user group (%s)",
-                bucket, user.getEmail(), proxyGroup));
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to your dataset's ingest service account (%s) and your Terra proxy user group (%s)",
+                bucket,
+                user.getEmail(),
+                dataset.getProjectResource().getServiceAccount(),
+                proxyGroup));
       }
     }
   }
@@ -679,12 +722,26 @@ public class GcsPdao implements CloudFileReader {
 
     // Provide the project of the destination of the file copy to pay if the
     // source bucket is requester pays.
-    Blob sourceBlob = storage.get(locator, Storage.BlobGetOption.userProject(targetProjectId));
+    BlobGetOption[] getOptions = new BlobGetOption[0];
+    if (targetProjectId != null) {
+      getOptions = new BlobGetOption[] {BlobGetOption.userProject(targetProjectId)};
+    }
+    Blob sourceBlob = storage.get(locator, getOptions);
     if (sourceBlob == null) {
       throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
     }
 
     return sourceBlob;
+  }
+
+  /**
+   * Extract the project to use to access a blob (using the userProject query param)
+   *
+   * @param gspath a gs:// path to a file with optional query parameters
+   * @return the value of the userProject query parameter or null
+   */
+  public static String getProjectIdFromGsPath(String gspath) {
+    return UriUtils.getValueFromQueryParameter(gspath, USER_PROJECT_QUERY_PARAM_TDR);
   }
 
   public static String getBlobContents(Storage storage, String projectId, BlobInfo blobInfo) {
@@ -724,11 +781,14 @@ public class GcsPdao implements CloudFileReader {
       AclOp op, Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
       throws InterruptedException {
 
-    // Build all the groups that need to get read access to the files
-    List<Acl.Group> groups = new LinkedList<>();
-    groups.add(new Acl.Group(policies.get(IamRole.READER)));
-    groups.add(new Acl.Group(policies.get(IamRole.CUSTODIAN)));
-    groups.add(new Acl.Group(policies.get(IamRole.STEWARD)));
+    // Build all the groups that need to get read access to the files, ignoring null policies
+    List<Acl.Group> groups =
+        Stream.of(IamRole.READER, IamRole.CUSTODIAN, IamRole.STEWARD)
+            .map(policies::get)
+            // Filter out cases where no policies were passed in
+            .filter(Objects::nonNull)
+            .map(Acl.Group::new)
+            .toList();
 
     // build acls if necessary
     List<Acl> acls = new LinkedList<>();

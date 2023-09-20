@@ -30,7 +30,10 @@ public class DeleteFileAzureDirectoryStep implements Step {
     try {
       boolean found =
           tableDao.deleteDirectoryEntry(
-              fileId, storageAuthInfo, dataset.getId(), StorageTableName.DATASET.toTableName());
+              fileId,
+              storageAuthInfo,
+              dataset.getId(),
+              StorageTableName.DATASET.toTableName(dataset.getId()));
       DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED

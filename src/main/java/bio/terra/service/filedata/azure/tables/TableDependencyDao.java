@@ -58,7 +58,7 @@ public class TableDependencyDao {
               List<String> existing =
                   entities.stream()
                       .map(e -> e.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME).toString())
-                      .collect(Collectors.toList());
+                      .toList();
               // Create any entities that do not already exist
               List<TableTransactionAction> batchEntities =
                   refIdChunk.stream()
@@ -77,8 +77,13 @@ public class TableDependencyDao {
                                 TableTransactionActionType.UPSERT_REPLACE,
                                 fireStoreDependencyEntity);
                           })
-                      .collect(Collectors.toList());
-              tableClient.submitTransaction(batchEntities);
+                      .toList();
+              if (!batchEntities.isEmpty()) {
+                // This can happen if retrying a failed transaction.  This would cause an
+                // IllegalArgumentException with message "A transaction must contain at least one
+                // operation"
+                tableClient.submitTransaction(batchEntities);
+              }
             });
   }
 

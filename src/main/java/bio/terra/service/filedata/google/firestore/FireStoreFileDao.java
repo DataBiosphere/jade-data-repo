@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
@@ -10,13 +11,17 @@ import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.Transaction;
 import com.google.cloud.firestore.WriteResult;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
@@ -56,15 +61,12 @@ class FireStoreFileDao {
    * Upserts a file metadata object into Firestore (e.g. this is the metadata that contains size,
    * checksum, cloud location etc.) of a file, as opposed to the path information for the file
    */
-  void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile)
+  void upsertFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile)
       throws InterruptedException {
     String collectionId = makeCollectionId(datasetId);
     fireStoreUtils.runTransactionWithRetry(
         firestore,
-        xn -> {
-          xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
-          return null;
-        },
+        upsertSingleFileFunction(firestore, collectionId, newFile),
         "createFileMetadata",
         " creating file metadata for dataset Id: " + datasetId);
   }
@@ -73,16 +75,54 @@ class FireStoreFileDao {
    * Upserts file metadata objects into Firestore (e.g. this is the metadata that contains size,
    * checksum, cloud location etc.) of a file, as opposed to the path information for the file
    */
-  void createFileMetadata(Firestore firestore, String datasetId, List<FireStoreFile> newFiles)
+  void upsertFileMetadata(Firestore firestore, String datasetId, List<FireStoreFile> newFiles)
       throws InterruptedException {
     String collectionId = makeCollectionId(datasetId);
     fireStoreUtils.batchOperation(
         newFiles,
         newFile ->
+            firestore.runTransaction(upsertSingleFileFunction(firestore, collectionId, newFile)));
+  }
+
+  private <T> Transaction.Function<T> upsertSingleFileFunction(
+      Firestore firestore, String collectionId, FireStoreFile newFile) {
+    return xn -> {
+      DocumentReference fileDocRef = getFileDocRef(firestore, collectionId, newFile.getFileId());
+      DocumentSnapshot documentSnapshot = xn.get(fileDocRef).get();
+      if (documentSnapshot.exists()) {
+        FireStoreFile existingFile = documentSnapshot.toObject(FireStoreFile.class);
+        if (!Objects.equals(existingFile.getLoadTag(), newFile.getLoadTag())) {
+          throw new FileAlreadyExistsException(
+              "File %s already exists with different load tag %s"
+                  .formatted(existingFile.getGspath(), existingFile.getLoadTag()));
+        }
+      }
+      xn.set(fileDocRef, newFile);
+      return null;
+    };
+  }
+
+  /** Updates the ID of a file's metadata (effectively, this is a move operation) */
+  void moveFileMetadata(Firestore firestore, String datasetId, Map<UUID, UUID> idMappings)
+      throws InterruptedException {
+    String collectionId = makeCollectionId(datasetId);
+    fireStoreUtils.batchOperation(
+        new ArrayList<>(idMappings.entrySet()),
+        entry ->
             firestore.runTransaction(
                 xn -> {
+                  // Retrieve the current object
+                  FireStoreFile newFile =
+                      xn.get(getFileDocRef(firestore, collectionId, entry.getKey().toString()))
+                          .get()
+                          .toObject(FireStoreFile.class);
+                  // Update the ID
+                  newFile.fileId(entry.getValue().toString());
+                  // Create the new entry
                   xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
-                  return null;
+                  // Delete the original entry
+                  xn.delete(getFileDocRef(firestore, collectionId, entry.getKey().toString()));
+                  return newFile;
                 }));
   }
 
@@ -172,6 +212,20 @@ class FireStoreFileDao {
     return files;
   }
 
+  /** Enumerate all file entries in a dataset's file collection */
+  List<FireStoreFile> enumerateAll(Firestore firestore, String datasetId)
+      throws InterruptedException {
+    CollectionReference fileColl = firestore.collection(makeCollectionId(datasetId));
+    return fireStoreUtils.query(fileColl, FireStoreFile.class);
+  }
+
+  List<FireStoreFile> enumerateAllWithEmptyField(
+      Firestore firestore, String datasetId, String fieldName) throws InterruptedException {
+    Query fileColl =
+        firestore.collection(makeCollectionId(datasetId)).whereEqualTo(fieldName, null);
+    return fireStoreUtils.query(fileColl, FireStoreFile.class);
+  }
+
   private DocumentSnapshot lookupByFileId(
       Firestore firestore, String collectionId, String fileId, Transaction xn)
       throws InterruptedException {
@@ -189,7 +243,7 @@ class FireStoreFileDao {
       throws InterruptedException {
 
     String collectionId = makeCollectionId(datasetId);
-    fireStoreUtils.scanCollectionObjects(
+    fireStoreUtils.scanCollectionObjectsForDelete(
         firestore,
         collectionId,
         FireStoreUtils.MAX_FIRESTORE_BATCH_SIZE,

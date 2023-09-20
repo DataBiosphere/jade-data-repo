@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -16,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -36,6 +38,7 @@ import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -48,10 +51,13 @@ import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
@@ -70,6 +76,7 @@ import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobBuilder;
@@ -82,13 +89,18 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.SnapshotService.SnapshotAccessibleResult;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -97,6 +109,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.function.ThrowingRunnable;
 import org.junit.runner.RunWith;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
@@ -132,14 +146,14 @@ public class SnapshotServiceTest {
   @MockBean private DatasetService datasetService;
   @MockBean private FireStoreDependencyDao dependencyDao;
   @MockBean private BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  @Autowired private MetadataDataAccessUtils metadataDataAccessUtils;
+  @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
   @MockBean private ResourceService resourceService;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private ProfileService profileService;
   @MockBean private SnapshotDao snapshotDao;
   @MockBean private SnapshotTableDao snapshotTableDao;
   @MockBean private IamService iamService;
-  @MockBean private AzureSynapsePdao synapsePdao;
+  @MockBean private AzureSynapsePdao azureSynapsePdao;
   @MockBean private EcmService ecmService;
   @MockBean private RawlsService rawlsService;
   @MockBean private DuosClient duosClient;
@@ -158,7 +172,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshot() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER),
+        service.retrieveSnapshotModel(snapshotId, TEST_USER),
         equalTo(
             expectedMockSnapshotModelBase()
                 .source(
@@ -199,7 +213,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshotNoFields() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.NONE), TEST_USER),
         equalTo(expectedMockSnapshotModelBase()));
   }
@@ -208,7 +222,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshotDefaultFields() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId,
             List.of(
                 SnapshotRetrieveIncludeModel.SOURCES,
@@ -218,14 +232,14 @@ public class SnapshotServiceTest {
                 SnapshotRetrieveIncludeModel.DATA_PROJECT,
                 SnapshotRetrieveIncludeModel.DUOS),
             TEST_USER),
-        equalTo(service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER)));
+        equalTo(service.retrieveSnapshotModel(snapshotId, TEST_USER)));
   }
 
   @Test
   public void testRetrieveSnapshotOnlyCreationInfo() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.CREATION_INFORMATION), TEST_USER),
         equalTo(
             expectedMockSnapshotModelBase()
@@ -238,18 +252,33 @@ public class SnapshotServiceTest {
   @Test
   public void testRetrieveSnapshotOnlyAccessInfo() {
     mockSnapshot();
-    assertThat(
-        service.retrieveAvailableSnapshotModel(
-            snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION), TEST_USER),
-        equalTo(
-            expectedMockSnapshotModelBase()
-                .accessInformation(
-                    new AccessInfoModel()
-                        .bigQuery(
-                            new AccessInfoBigQueryModel()
-                                .datasetName(SNAPSHOT_NAME)
-                                .datasetId(SNAPSHOT_DATA_PROJECT + ":" + SNAPSHOT_NAME)
-                                .projectId(SNAPSHOT_DATA_PROJECT)
+    AccessInfoModel accessInfoModel =
+        new AccessInfoModel()
+            .bigQuery(
+                new AccessInfoBigQueryModel()
+                    .datasetName(SNAPSHOT_NAME)
+                    .datasetId(SNAPSHOT_DATA_PROJECT + ":" + SNAPSHOT_NAME)
+                    .projectId(SNAPSHOT_DATA_PROJECT)
+                    .link(
+                        "https://console.cloud.google.com/bigquery?project="
+                            + SNAPSHOT_DATA_PROJECT
+                            + "&ws=!"
+                            + SNAPSHOT_NAME
+                            + "&d="
+                            + SNAPSHOT_NAME
+                            + "&p="
+                            + SNAPSHOT_DATA_PROJECT
+                            + "&page=dataset")
+                    .tables(
+                        List.of(
+                            new AccessInfoBigQueryModelTable()
+                                .name(SNAPSHOT_TABLE_NAME)
+                                .qualifiedName(
+                                    SNAPSHOT_DATA_PROJECT
+                                        + "."
+                                        + SNAPSHOT_NAME
+                                        + "."
+                                        + SNAPSHOT_TABLE_NAME)
                                 .link(
                                     "https://console.cloud.google.com/bigquery?project="
                                         + SNAPSHOT_DATA_PROJECT
@@ -259,49 +288,34 @@ public class SnapshotServiceTest {
                                         + SNAPSHOT_NAME
                                         + "&p="
                                         + SNAPSHOT_DATA_PROJECT
-                                        + "&page=dataset")
-                                .tables(
-                                    List.of(
-                                        new AccessInfoBigQueryModelTable()
-                                            .name(SNAPSHOT_TABLE_NAME)
-                                            .qualifiedName(
-                                                SNAPSHOT_DATA_PROJECT
-                                                    + "."
-                                                    + SNAPSHOT_NAME
-                                                    + "."
-                                                    + SNAPSHOT_TABLE_NAME)
-                                            .link(
-                                                "https://console.cloud.google.com/bigquery?project="
-                                                    + SNAPSHOT_DATA_PROJECT
-                                                    + "&ws=!"
-                                                    + SNAPSHOT_NAME
-                                                    + "&d="
-                                                    + SNAPSHOT_NAME
-                                                    + "&p="
-                                                    + SNAPSHOT_DATA_PROJECT
-                                                    + "&page=table&t="
-                                                    + SNAPSHOT_TABLE_NAME)
-                                            .id(
-                                                SNAPSHOT_DATA_PROJECT
-                                                    + ":"
-                                                    + SNAPSHOT_NAME
-                                                    + "."
-                                                    + SNAPSHOT_TABLE_NAME)
-                                            .sampleQuery(
-                                                "SELECT * FROM `"
-                                                    + SNAPSHOT_DATA_PROJECT
-                                                    + "."
-                                                    + SNAPSHOT_NAME
-                                                    + "."
-                                                    + SNAPSHOT_TABLE_NAME
-                                                    + "`")))))));
+                                        + "&page=table&t="
+                                        + SNAPSHOT_TABLE_NAME)
+                                .id(
+                                    SNAPSHOT_DATA_PROJECT
+                                        + ":"
+                                        + SNAPSHOT_NAME
+                                        + "."
+                                        + SNAPSHOT_TABLE_NAME)
+                                .sampleQuery(
+                                    "SELECT * FROM `"
+                                        + SNAPSHOT_DATA_PROJECT
+                                        + "."
+                                        + SNAPSHOT_NAME
+                                        + "."
+                                        + SNAPSHOT_TABLE_NAME
+                                        + "`"))));
+    when(metadataDataAccessUtils.accessInfoFromSnapshot(any(), any())).thenReturn(accessInfoModel);
+    assertThat(
+        service.retrieveSnapshotModel(
+            snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION), TEST_USER),
+        equalTo(expectedMockSnapshotModelBase().accessInformation(accessInfoModel)));
   }
 
   @Test
   public void testRetrieveSnapshotOnlyDuos() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.DUOS), TEST_USER),
         equalTo(expectedMockSnapshotModelBase().duosFirecloudGroup(duosFirecloudGroup)));
   }
@@ -310,7 +324,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshotMultiInfo() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId,
             List.of(
                 SnapshotRetrieveIncludeModel.PROFILE, SnapshotRetrieveIncludeModel.DATA_PROJECT),
@@ -322,7 +336,7 @@ public class SnapshotServiceTest {
   }
 
   private void mockSnapshot() {
-    when(snapshotDao.retrieveAvailableSnapshot(snapshotId))
+    when(snapshotDao.retrieveSnapshot(snapshotId))
         .thenReturn(
             new Snapshot()
                 .id(snapshotId)
@@ -390,9 +404,18 @@ public class SnapshotServiceTest {
     MetadataEnumeration<SnapshotSummary> metadataEnumeration = new MetadataEnumeration<>();
     metadataEnumeration.items(List.of(summary));
     when(snapshotDao.retrieveSnapshots(
-            anyInt(), anyInt(), any(), any(), any(), any(), any(), eq(resourcesAndRoles.keySet())))
+            anyInt(),
+            anyInt(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            eq(resourcesAndRoles.keySet()),
+            any()))
         .thenReturn(metadataEnumeration);
-    var snapshots = service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of());
+    var snapshots =
+        service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of(), null);
     assertThat(snapshots.getItems().get(0).getId(), equalTo(snapshotId));
     assertThat(snapshots.getRoleMap(), hasEntry(snapshotId.toString(), List.of(role.toString())));
   }
@@ -565,6 +588,12 @@ public class SnapshotServiceTest {
         InvalidAuthorizationMethod.class,
         () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
     verify(ecmService, never()).validatePassport(any());
+  }
+
+  private void mockSnapshotSummary() {
+    SnapshotSummary snapshotSummary =
+        new SnapshotSummary().id(snapshotId).createdDate(createdDate).storage(List.of());
+    when(snapshotDao.retrieveSummaryById(snapshotId)).thenReturn(snapshotSummary);
   }
 
   private void mockSnapshotSummaryWithPassportCriteria() {
@@ -751,6 +780,7 @@ public class SnapshotServiceTest {
 
   @Test
   public void verifySnapshotListableBySam() {
+    mockSnapshotSummary();
     service.verifySnapshotListable(snapshotId, TEST_USER);
 
     verify(iamService)
@@ -761,6 +791,7 @@ public class SnapshotServiceTest {
 
   @Test
   public void verifySnapshotReadableBySam() {
+    mockSnapshotSummary();
     service.verifySnapshotReadable(snapshotId, TEST_USER);
 
     verify(iamService)
@@ -866,6 +897,59 @@ public class SnapshotServiceTest {
 
     verify(ecmService).getRasProviderPassport(TEST_USER);
     verify(ecmService).validatePassport(any());
+  }
+
+  private SnapshotRequestModel getDuosSnapshotRequestModel(String duosId) {
+    String sourceDatasetName = "TestSourceDataset";
+    Dataset sourceDataset = new Dataset().name(sourceDatasetName);
+    when(datasetService.retrieveByName(sourceDatasetName)).thenReturn(sourceDataset);
+    return new SnapshotRequestModel()
+        .name("TestSnapshot")
+        .profileId(UUID.randomUUID())
+        .duosId(duosId)
+        .contents(List.of(new SnapshotRequestContentsModel().datasetName(sourceDatasetName)));
+  }
+
+  @Test
+  public void testCreateSnapshotWithoutDuosDataset() {
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(null);
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    String jobId = String.valueOf(UUID.randomUUID());
+    when(jobBuilder.submit()).thenReturn(jobId);
+
+    String result = service.createSnapshot(request, TEST_USER);
+    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
+    verify(jobBuilder).submit();
+  }
+
+  @Test
+  public void testCreateSnapshotWithDuosDataset() {
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    String jobId = String.valueOf(UUID.randomUUID());
+    when(jobBuilder.submit()).thenReturn(jobId);
+
+    String result = service.createSnapshot(request, TEST_USER);
+    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    verify(duosClient).getDataset(DUOS_ID, TEST_USER);
+    verify(jobBuilder).submit();
+  }
+
+  @Test
+  public void testCreateSnapshotThrowsWhenDuosClientThrows() {
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
+    HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+    when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
+    assertThrows(HttpClientErrorException.class, () -> service.createSnapshot(request, TEST_USER));
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    verifyNoInteractions(jobBuilder);
   }
 
   private void mockSnapshotWithDuosDataset() {
@@ -1030,5 +1114,131 @@ public class SnapshotServiceTest {
         "Snapshot ID maps to its roles",
         roleMap.get(snapshotId.toString()),
         contains(role.toString()));
+  }
+
+  @Test
+  public void testRetrievePreviewGCPNoRows() {
+    mockSnapshotForPreview(CloudPlatform.GCP, 0);
+    testSnapshotPreviewRowCountsGCP(0, 0);
+  }
+
+  @Test
+  public void testRetrievePreviewGCPNoFilteredRows() {
+    mockSnapshotForPreview(CloudPlatform.GCP, 10);
+    testSnapshotPreviewRowCountsGCP(10, 0);
+  }
+
+  @Test
+  public void testRetrievePreviewGCP() {
+    mockSnapshotForPreview(CloudPlatform.GCP, 10);
+    testSnapshotPreviewRowCountsGCP(10, 4);
+  }
+
+  @Test
+  public void testRetrievePreviewAzurePNoRows() throws SQLException {
+    mockSnapshotForPreview(CloudPlatform.AZURE, 0);
+    testSnapshotPreviewRowCountsAzure(0, 0);
+  }
+
+  @Test
+  public void testRetrievePreviewAzureNoFilteredRows() throws SQLException {
+    mockSnapshotForPreview(CloudPlatform.AZURE, 10);
+    testSnapshotPreviewRowCountsAzure(10, 0);
+  }
+
+  @Test
+  public void testRetrievePreviewAzure() throws SQLException {
+    mockSnapshotForPreview(CloudPlatform.AZURE, 10);
+    testSnapshotPreviewRowCountsAzure(10, 4);
+  }
+
+  private void testPreview(int totalRowCount, int filteredRowCount) {
+    SnapshotPreviewModel snapshotPreviewModel =
+        service.retrievePreview(
+            TEST_USER,
+            snapshotId,
+            SNAPSHOT_TABLE_NAME,
+            10,
+            0,
+            PDAO_ROW_ID_COLUMN,
+            SqlSortDirection.ASC,
+            "");
+    assertThat(
+        "Correct total row count", snapshotPreviewModel.getTotalRowCount(), equalTo(totalRowCount));
+    assertThat(
+        "Correct filtered row count",
+        snapshotPreviewModel.getFilteredRowCount(),
+        equalTo(filteredRowCount));
+  }
+
+  private void testSnapshotPreviewRowCountsAzure(int totalRowCount, int filteredRowCount)
+      throws SQLException {
+    List<SynapseDataResultModel> values = new ArrayList<>();
+    if (filteredRowCount > 0) {
+      values.add(
+          new SynapseDataResultModel()
+              .filteredCount(filteredRowCount)
+              .totalCount(totalRowCount)
+              .rowResult(new HashMap<>()));
+    }
+    when(metadataDataAccessUtils.accessInfoFromSnapshot(any(), any(), any()))
+        .thenReturn(
+            new AccessInfoModel()
+                .parquet(
+                    new AccessInfoParquetModel()
+                        .url("test.parquet.url")
+                        .sasToken("test.sas.token")));
+    doNothing().when(azureSynapsePdao).getOrCreateExternalDataSource(anyString(), any(), any());
+    when(azureSynapsePdao.getTableData(
+            any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any()))
+        .thenReturn(values);
+    testPreview(totalRowCount, filteredRowCount);
+  }
+
+  private void testSnapshotPreviewRowCountsGCP(int totalRowCount, int filteredRowCount) {
+    List<BigQueryDataResultModel> values = new ArrayList<>();
+    if (filteredRowCount > 0) {
+      values.add(
+          new BigQueryDataResultModel()
+              .filteredCount(filteredRowCount)
+              .totalCount(totalRowCount)
+              .rowResult(new HashMap<>()));
+    }
+    try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
+      utilities
+          .when(
+              () ->
+                  BigQueryPdao.getTable(
+                      any(), any(), any(), anyInt(), anyInt(), any(), any(), any()))
+          .thenReturn(values);
+      testPreview(totalRowCount, filteredRowCount);
+    }
+  }
+
+  private void mockSnapshotForPreview(CloudPlatform cloudPlatform, int totalRowCount) {
+    List<Column> columns =
+        List.of(
+            new Column()
+                .name(SNAPSHOT_COLUMN_NAME)
+                .type(TableDataType.STRING)
+                .arrayOf(true)
+                .required(true));
+    when(snapshotDao.retrieveSnapshot(any()))
+        .thenReturn(
+            new Snapshot()
+                .name(SNAPSHOT_NAME)
+                .snapshotTables(
+                    List.of(
+                        new SnapshotTable()
+                            .name(SNAPSHOT_TABLE_NAME)
+                            .id(snapshotTableId)
+                            .columns(columns)
+                            .rowCount(totalRowCount)))
+                .snapshotSources(
+                    List.of(
+                        new SnapshotSource()
+                            .dataset(
+                                new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))))));
+    when(snapshotTableDao.retrieveColumns(any())).thenReturn(columns);
   }
 }

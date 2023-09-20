@@ -251,7 +251,8 @@ public final class DataRepoUtils {
       CloudPlatform cloudPlatform,
       String apipayloadFilename,
       TestUserSpecification testUser,
-      boolean randomizeName)
+      boolean randomizeName,
+      boolean dedicatedIngestServiceAccount)
       throws Exception {
     logger.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
@@ -262,6 +263,7 @@ public final class DataRepoUtils {
         objectMapper.readValue(datasetRequestFile, DatasetRequestModel.class);
     createDatasetRequest.defaultProfileId(profileId);
     createDatasetRequest.setCloudPlatform(cloudPlatform);
+    createDatasetRequest.dedicatedIngestServiceAccount(dedicatedIngestServiceAccount);
 
     if (randomizeName) {
       createDatasetRequest.setName(FileUtils.randomizeName(createDatasetRequest.getName()));

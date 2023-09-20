@@ -1,9 +1,10 @@
 package bio.terra.integration;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
+import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
@@ -16,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -36,9 +37,11 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSpecificationModel;
@@ -51,6 +54,7 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -64,9 +68,13 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
-import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
+import bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility;
+import bio.terra.service.filedata.google.util.GcsBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.resourcemanager.loganalytics.LogAnalyticsManager;
+import com.azure.resourcemanager.loganalytics.models.Workspace;
+import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
@@ -82,10 +90,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -113,14 +123,11 @@ import org.springframework.util.ResourceUtils;
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class AzureIntegrationTest extends UsersBase {
+  private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
-  private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
-  private static final String omopDatasetGcpRegionName =
-      GoogleRegion.DEFAULT_GOOGLE_REGION.toString();
-  private static Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
@@ -135,8 +142,10 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID datasetId;
   private List<UUID> snapshotIds;
   private UUID profileId;
-  private BlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility azureBlobIOTestUtility;
+  private GcsBlobIOTestUtility gcsBlobIOTestUtility;
   private RequestRetryOptions retryOptions;
+  private Set<String> storageAccounts;
 
   @Before
   public void setup() throws Exception {
@@ -149,18 +158,20 @@ public class AzureIntegrationTest extends UsersBase {
     retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
-            azureResourceConfiguration.getMaxRetries(),
-            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            azureResourceConfiguration.maxRetries(),
+            azureResourceConfiguration.retryTimeoutSeconds(),
             null,
             null,
             null);
-    blobIOTestUtility =
-        new BlobIOTestUtility(
+    azureBlobIOTestUtility =
+        new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
             testConfig.getSourceStorageAccountName(),
             null,
             retryOptions);
+    gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
     snapshotIds = new ArrayList<>();
+    storageAccounts = new TreeSet<>();
   }
 
   @After
@@ -184,15 +195,24 @@ public class AzureIntegrationTest extends UsersBase {
     if (profileId != null) {
       dataRepoFixtures.deleteProfile(steward, profileId);
     }
+    if (storageAccounts != null) {
+      storageAccounts.forEach(this::deleteCloudResources);
+    }
+    azureBlobIOTestUtility.teardown();
+    gcsBlobIOTestUtility.teardown();
   }
 
   @Test
   public void datasetsHappyPath() throws Exception {
+    // Note: this region should not be the same as the default region in the application deployment
+    // (eastus by default)
+    AzureRegion region = AzureRegion.SOUTH_CENTRAL_US;
+
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE, false, region);
     datasetId = summaryModel.getId();
-
+    String storageAccountName = recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     logger.info("dataset id is " + summaryModel.getId());
     assertThat(summaryModel.getName(), startsWith(omopDatasetName));
     assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
@@ -223,11 +243,13 @@ public class AzureIntegrationTest extends UsersBase {
                               Collectors.toMap(
                                   StorageResourceModel::getCloudResource, Function.identity()));
 
-                  AzureRegion omopDatasetRegion = AzureRegion.fromValue(omopDatasetRegionName);
-                  assertThat(omopDatasetRegion, notNullValue());
+                  // Verify that the real region of the storage account and the log analytics
+                  // workspace matches the region of the dataset
+                  verifyCloudResourceRegions(storageAccountName, region);
 
+                  // TODO<DR-3163> The values are currently not necessarily correct
                   assertThat(
-                      "Bucket storage matches",
+                      "Application deployment matches",
                       storageMap.entrySet().stream()
                           .filter(
                               e ->
@@ -236,10 +258,10 @@ public class AzureIntegrationTest extends UsersBase {
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(omopDatasetRegion.getValue()));
+                      equalTo(region.getValue()));
 
                   assertThat(
-                      "Firestore storage matches",
+                      "Synapse matches",
                       storageMap.entrySet().stream()
                           .filter(
                               e ->
@@ -248,7 +270,7 @@ public class AzureIntegrationTest extends UsersBase {
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(omopDatasetRegion.getValue()));
+                      equalTo(region.getValue()));
 
                   assertThat(
                       "Storage account storage matches",
@@ -258,7 +280,7 @@ public class AzureIntegrationTest extends UsersBase {
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(omopDatasetRegion.getValue()));
+                      equalTo(region.getValue()));
 
                   assertThat(
                       "dataset summary has Azure cloud platform",
@@ -297,6 +319,7 @@ public class AzureIntegrationTest extends UsersBase {
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
         "Original dataset is still there",
@@ -308,8 +331,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "New dataset was deleted",
         dataRepoFixtures.getDatasetRaw(steward, summaryModel2.getId()).getStatusCode().value(),
-        // TODO: fix bug where this shows up as a 403 and not a 404 since it's not longer in Sam
-        equalTo(403));
+        equalTo(404));
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
@@ -317,36 +339,44 @@ public class AzureIntegrationTest extends UsersBase {
   public void datasetIngestFileHappyPath() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
-    String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    String sourceFileAzure = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    String sourceFileGcs = gcsBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     Map<String, Integer> tableRowCount = new HashMap<>();
 
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath("/test/target.txt");
     BulkLoadFileModel fileLoadModelAlt1 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath("/test/target_alt1.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
-                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
+                azureBlobIOTestUtility.createSourceSignedPath(
+                    sourceFileAzure, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadFileModel fileLoadModelAlt2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath("/test/target_alt2.txt");
+    BulkLoadFileModel fileLoadModelGcs =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(gcsBlobIOTestUtility.getFullyQualifiedBlobName(sourceFileGcs))
+            .targetPath("/test/target_gcs.txt");
+
     BulkLoadArrayResultModel result =
         dataRepoFixtures.bulkLoadArray(
             steward,
@@ -357,9 +387,10 @@ public class AzureIntegrationTest extends UsersBase {
                 .addLoadArrayItem(fileLoadModel)
                 .addLoadArrayItem(fileLoadModelAlt1)
                 .addLoadArrayItem(fileLoadModelSas)
-                .addLoadArrayItem(fileLoadModelAlt2));
+                .addLoadArrayItem(fileLoadModelAlt2)
+                .addLoadArrayItem(fileLoadModelGcs));
 
-    assertThat(result.getLoadSummary().getSucceededFiles(), equalTo(4));
+    assertThat(result.getLoadSummary().getSucceededFiles(), equalTo(5));
 
     assertThat(
         "file size matches",
@@ -388,6 +419,17 @@ public class AzureIntegrationTest extends UsersBase {
     FileModel file4Model =
         dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(3).getFileId());
 
+    // test the gcs file
+    FileModel file5Model =
+        dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(4).getFileId());
+    assertThat(
+        "ensure that there is a non empty md5 present",
+        file5Model.getChecksums().stream()
+            .filter(
+                c -> c.getType().equalsIgnoreCase("md5") && !StringUtils.isEmpty(c.getChecksum()))
+            .toList(),
+        hasSize(1));
+
     // ingest via control file
     String flightId = UUID.randomUUID().toString();
     String controlFileBlob = flightId + "/file-ingest-request.json";
@@ -395,16 +437,16 @@ public class AzureIntegrationTest extends UsersBase {
     bulkLoadFileModelList.add(
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath(String.format("/%s/%s", flightId, "target.txt")));
     bulkLoadFileModelList.add(
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath(String.format("/%s/%s", flightId, "target2.txt")));
 
     String controlFileUrl =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             controlFileBlob, TestUtils.readControlFile(bulkLoadFileModelList));
 
     String bulkLoadTag = Names.randomizeName("loadTag");
@@ -434,7 +476,16 @@ public class AzureIntegrationTest extends UsersBase {
         datasetModel.getAccessInformation().getParquet();
 
     DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
+
     // dataset ingest
+    // Ingest Metadata - 1 row in ARRAY mode
+    String arrayIngestTableName = "person";
+    String personIdField = "person_id";
+    String personYearOfBirthField = "year_of_birth";
+    Map<String, Integer> records = Map.of(personIdField, 1, personYearOfBirthField, 1980);
+    testMetadataArrayIngest(arrayIngestTableName, records);
+    tableRowCount.put(arrayIngestTableName, 1);
+
     // Ingest Metadata - 1 row from JSON file
     String datasetIngestFlightId = UUID.randomUUID().toString();
     String datasetIngestControlFileBlob =
@@ -450,7 +501,7 @@ public class AzureIntegrationTest extends UsersBase {
             Map.entry("domain_files_custom_2", List.of(file2Model.getFileId())),
             Map.entry("domain_files_custom_3", file4Model.getFileId()));
     String ingestRequestPathJSON =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             datasetIngestControlFileBlob,
             Objects.requireNonNull(TestUtils.mapToJson(domainRowData)));
 
@@ -471,7 +522,10 @@ public class AzureIntegrationTest extends UsersBase {
     // assert correct row data was ingested into domain table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
     Object firstDomainRow =
-        dataRepoFixtures.retrieveDatasetData(steward, datasetId, "domain", 0, 1, null).get(0);
+        dataRepoFixtures
+            .retrieveDatasetData(steward, datasetId, "domain", 0, 1, null)
+            .getResult()
+            .get(0);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
@@ -491,12 +545,14 @@ public class AzureIntegrationTest extends UsersBase {
     String csvDatasetIngestControlFileBlob =
         csvDatasetIngestFlightId + "/azure-vocab-ingest-request.csv";
     String ingestRequestPathCSV =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             csvDatasetIngestControlFileBlob,
             String.format(
+                // Note: the vocabulary_concept_id values are integers but have periods.  This is
+                // to ensure that ingest properly handles truncating data in this case
                 "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id%n"
-                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1%n"
-                    + "\"2\",\"vocab2\",\"%s\",\"v2\",2",
+                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1.0%n"
+                    + "\"2\",\"vocab2\",\"%s\",\"v2\",2.0",
                 file1Model.getFileId(), file3Model.getFileId()));
     IngestRequestModel ingestRequestCSV =
         new IngestRequestModel()
@@ -515,15 +571,17 @@ public class AzureIntegrationTest extends UsersBase {
     // assert correct data returns from view data endpoint
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
     List<Object> vocabRows =
-        dataRepoFixtures.retrieveDatasetData(
-            steward,
-            datasetId,
-            "vocabulary",
-            0,
-            2,
-            null,
-            "vocabulary_id",
-            String.valueOf(SqlSortDirection.ASC));
+        dataRepoFixtures
+            .retrieveDatasetData(
+                steward,
+                datasetId,
+                "vocabulary",
+                0,
+                2,
+                null,
+                "vocabulary_id",
+                String.valueOf(SqlSortDirection.ASC))
+            .getResult();
     assertThat(
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(0)).get("vocabulary_id").toString(),
@@ -532,34 +590,63 @@ public class AzureIntegrationTest extends UsersBase {
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
         equalTo("2"));
+    List<String> vocabList =
+        dataRepoFixtures.retrieveColumnTextValues(
+            steward, datasetId, "vocabulary", "vocabulary_id");
+    assertThat(
+        "Vocabulary table contains correct vocabulary_ids",
+        vocabList,
+        containsInAnyOrder("1", "2"));
+    ColumnStatisticsIntModel intModel =
+        dataRepoFixtures.retrieveColumnIntStats(
+            steward, datasetId, "vocabulary", "vocabulary_concept_id", null);
+    assertThat("Correct max values in vocabulary_concept_id", intModel.getMaxValue(), equalTo(2));
+    assertThat("Correct min values in vocabulary_concept_id", intModel.getMinValue(), equalTo(1));
     List<Object> flippedVocabRows =
-        dataRepoFixtures.retrieveDatasetData(
-            steward,
-            datasetId,
-            "vocabulary",
-            0,
-            2,
-            null,
-            "vocabulary_id",
-            String.valueOf(SqlSortDirection.DESC));
+        dataRepoFixtures
+            .retrieveDatasetData(
+                steward,
+                datasetId,
+                "vocabulary",
+                0,
+                2,
+                null,
+                "vocabulary_id",
+                String.valueOf(SqlSortDirection.DESC))
+            .getResult();
     assertThat(
         "correct vocabulary_id returned",
         ((LinkedHashMap) flippedVocabRows.get(0)).get("vocabulary_id").toString(),
         equalTo("2"));
     String qualifiedVocabTableName = datasetModel.getName() + ".vocabulary";
-    List<Object> filteredVocabRows =
+    DatasetDataModel filteredVocabRows =
         dataRepoFixtures.retrieveDatasetData(
             steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = '1'");
-    assertThat("correct number of rows returned after filtering", filteredVocabRows, hasSize(1));
+    assertThat(
+        "correct number of rows returned after filtering",
+        filteredVocabRows.getResult(),
+        hasSize(1));
+    assertThat("filter row count is correct", filteredVocabRows.getFilteredRowCount(), equalTo(1));
+    assertThat("total row count is correct", filteredVocabRows.getTotalRowCount(), equalTo(2));
     assertThat(
         "Correct row is returned",
-        ((LinkedHashMap) filteredVocabRows.get(0)).get("vocabulary_id").toString(),
+        ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
         equalTo("1"));
 
     // test handling of empty dataset table
-    List<Object> emptyTable =
-        dataRepoFixtures.retrieveDatasetData(steward, datasetId, "concept", 0, 2, null);
-    assertThat("empty table should return an empty list", emptyTable, hasSize(0));
+    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "concept", 0);
+
+    // test handling of not-empty dataset table filtered to empty
+    DatasetDataModel emptyFilteredVocabRows =
+        dataRepoFixtures.retrieveDatasetData(
+            steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = 'xy'");
+    assertThat(
+        "correct number of rows returned after filtering",
+        emptyFilteredVocabRows.getResult(),
+        hasSize(0));
+    assertThat(
+        "filter row count is correct", emptyFilteredVocabRows.getFilteredRowCount(), equalTo(0));
+    assertThat("total row count is correct", emptyFilteredVocabRows.getTotalRowCount(), equalTo(2));
 
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
@@ -614,6 +701,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, requestModelAll);
     UUID snapshotByFullViewId = snapshotSummaryAll.getId();
     snapshotIds.add(snapshotByFullViewId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
     // Ensure that export works
@@ -648,8 +736,10 @@ public class AzureIntegrationTest extends UsersBase {
     // Vocabulary Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "vocabulary", 2);
     List<Object> vocabSnapshotRows =
-        dataRepoFixtures.retrieveSnapshotPreviewById(
-            steward, snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id");
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id")
+            .getResult();
     List<String> drsIds =
         vocabSnapshotRows.stream()
             .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
@@ -666,12 +756,61 @@ public class AzureIntegrationTest extends UsersBase {
         ((LinkedHashMap) secondVocabRow).get("vocabulary_id").toString(),
         equalTo("2"));
 
+    // Test filtering results from snapshot preview endpoint and check row counts
+    // filtered so that filtered row count > 0, but not equal to total row count
+    SnapshotPreviewModel filteredVocabSnapshotRows =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward,
+            snapshotAll.getId(),
+            "vocabulary",
+            0,
+            2,
+            "vocabulary_id = '1'",
+            "vocabulary_id");
+    assertThat(
+        "correct number of rows returned after filtering",
+        filteredVocabSnapshotRows.getResult(),
+        hasSize(1));
+    assertThat(
+        "filter row count is correct", filteredVocabSnapshotRows.getFilteredRowCount(), equalTo(1));
+    assertThat(
+        "total row count is correct", filteredVocabSnapshotRows.getTotalRowCount(), equalTo(2));
+    assertThat(
+        "Correct row is returned",
+        ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
+        equalTo("1"));
+
+    // test handling of empty snapshot table
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "concept", 0);
+
+    // test handling of not-empty snapshot table filtered to empty
+    SnapshotPreviewModel emptyFilteredVocabSnapshotRows =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward,
+            snapshotAll.getId(),
+            "vocabulary",
+            0,
+            2,
+            "vocabulary_id = 'xy'",
+            "vocabulary_id");
+    assertThat(
+        "correct number of rows returned after filtering",
+        emptyFilteredVocabSnapshotRows.getResult(),
+        hasSize(0));
+    assertThat(
+        "filter row count is correct",
+        emptyFilteredVocabSnapshotRows.getFilteredRowCount(),
+        equalTo(0));
+    assertThat(
+        "total row count is correct",
+        emptyFilteredVocabSnapshotRows.getTotalRowCount(),
+        equalTo(2));
+
     // Domain Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);
     Object firstSnapshotDomainRow =
-        dataRepoFixtures
-            .retrieveSnapshotPreviewById(steward, snapshotAll.getId(), "domain", 0, 1, null)
-            .get(0);
+        dataRepoFixtures.retrieveFirstResultSnapshotPreviewById(
+            steward, snapshotAll.getId(), "domain", 0, 1, null);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstSnapshotDomainRow).get("domain_id").toString(),
@@ -713,10 +852,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat("2 drs ids are present", drsIds, hasSize(2));
     // Ensure that all DRS can be parsed
     List<String> drsObjectIds =
-        drsIds.stream()
-            .map(DrsIdService::fromUri)
-            .map(DrsId::toDrsObjectId)
-            .collect(Collectors.toList());
+        drsIds.stream().map(DrsIdService::fromUri).map(DrsId::toDrsObjectId).toList();
 
     String fileId = result.getLoadFileResults().get(0).getFileId();
     String filePath = result.getLoadFileResults().get(0).getTargetPath();
@@ -773,6 +909,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, snapshotByQueryModel);
     UUID snapshotByQueryId = snapshotSummaryByQuery.getId();
     snapshotIds.add(snapshotByQueryId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByQueryId);
     assertThat(
         "Snapshot by query exists",
         snapshotSummaryByQuery.getName(),
@@ -826,6 +963,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, snapshotByAssetModel);
     UUID snapshotByAssetId = snapshotSummaryByAsset.getId();
     snapshotIds.add(snapshotByAssetId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByAssetId);
     assertThat(
         "Snapshot by asset exists",
         snapshotSummaryByAsset.getName(),
@@ -862,6 +1000,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, snapshotByRowIdModel);
     UUID snapshotByRowId = snapshotSummaryByRowId.getId();
     snapshotIds.add(snapshotByRowId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRowId);
     assertThat(
         "Snapshot exists",
         snapshotSummaryByRowId.getName(),
@@ -915,6 +1054,10 @@ public class AzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(signedUrlForByRowId, Map.of());
     verifySignedUrl(signedUrlForByRowId, steward, "r");
 
+    // Make sure that only 1 storage account was created
+    // record the storage account
+    assertThat("only one storage account exists", storageAccounts, hasSize(1));
+
     // Delete dataset should fail
     dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);
 
@@ -949,14 +1092,14 @@ public class AzureIntegrationTest extends UsersBase {
     datasetId = null;
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.deleteContainers();
+    azureBlobIOTestUtility.teardown();
   }
 
   @Test
   public void testDatasetFileIngestLoadHistory() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
-    String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    String sourceFile = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
@@ -965,13 +1108,13 @@ public class AzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
+                azureBlobIOTestUtility.createSourceSignedPath(
                     sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadArrayResultModel bulkLoadResult1 =
@@ -987,13 +1130,13 @@ public class AzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target2.txt");
     BulkLoadFileModel fileLoadModelSas2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
+                azureBlobIOTestUtility.createSourceSignedPath(
                     sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas2.txt");
 
@@ -1010,13 +1153,13 @@ public class AzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel3 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target3.txt");
     BulkLoadFileModel fileLoadModelSas3 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
+                azureBlobIOTestUtility.createSourceSignedPath(
                     sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas3.txt");
     dataRepoFixtures.bulkLoadArray(
@@ -1065,7 +1208,7 @@ public class AzureIntegrationTest extends UsersBase {
     }
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.deleteContainers();
+    azureBlobIOTestUtility.teardown();
   }
 
   @Test
@@ -1074,12 +1217,14 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-azure-fileref.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     String noFilesContents =
         "sample_name,data_type,vcf_file_ref,vcf_index_file_ref\n"
             + String.format("NA12878_none,none,%s,%s", UUID.randomUUID(), UUID.randomUUID());
     String noFilesControlFile =
-        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest-fail.csv", noFilesContents);
+        azureBlobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest-fail.csv", noFilesContents);
 
     IngestRequestModel noFilesIngestRequest =
         new IngestRequestModel()
@@ -1114,9 +1259,9 @@ public class AzureIntegrationTest extends UsersBase {
             "NA12878_PLUMBING_wgs.g.vcf.gz.tbi")
         .map(
             name -> {
-              String sourceFile = blobIOTestUtility.uploadSourceFile(name, fileSize);
+              String sourceFile = azureBlobIOTestUtility.uploadSourceFile(name, fileSize);
               return new BulkLoadFileModel()
-                  .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+                  .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
                   .targetPath("/vcfs/downsampled/" + name)
                   .description("Test file for " + name)
                   .mimeType("text/plain");
@@ -1148,7 +1293,8 @@ public class AzureIntegrationTest extends UsersBase {
             .replaceFirst("WGS_VCF_INDEX_FILE_REF", wgsVcfIndex.getFileId());
 
     String controlFile =
-        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest.csv", metadataWithFileIds);
+        azureBlobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest.csv", metadataWithFileIds);
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.CSV)
@@ -1192,7 +1338,7 @@ public class AzureIntegrationTest extends UsersBase {
         hasSize(2));
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.deleteContainers();
+    azureBlobIOTestUtility.teardown();
   }
 
   @Test
@@ -1204,6 +1350,7 @@ public class AzureIntegrationTest extends UsersBase {
             "dataset-ingest-combined-azure-required-columns.json",
             CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     String controlFileContents;
     try (var resourceStream =
@@ -1212,7 +1359,7 @@ public class AzureIntegrationTest extends UsersBase {
     }
 
     String controlFile =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             "dataset-files-ingest-combined.json", controlFileContents);
 
     IngestRequestModel ingestRequest =
@@ -1273,6 +1420,7 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-combined-azure.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     String controlFileContents;
     try (var resourceStream =
@@ -1290,7 +1438,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     if (ingestFromFile) {
       String controlFile =
-          blobIOTestUtility.uploadFileWithContents(
+          azureBlobIOTestUtility.uploadFileWithContents(
               "dataset-files-ingest-combined.json", controlFileContents);
       ingestRequest.path(controlFile).format(IngestRequestModel.FormatEnum.JSON);
     } else {
@@ -1309,6 +1457,32 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
   }
 
+  public void testMetadataArrayIngest(String arrayIngestTableName, Map<String, Integer> records)
+      throws Exception {
+    IngestRequestModel arrayIngestRequest =
+        new IngestRequestModel()
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table(arrayIngestTableName)
+            .profileId(profileId)
+            .addRecordsItem(records)
+            .format(IngestRequestModel.FormatEnum.ARRAY)
+            .loadTag(Names.randomizeName("azureArrayIngest"));
+
+    IngestResponseModel arrayIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward, datasetId, arrayIngestRequest);
+    assertThat("1 row was ingested", arrayIngestResponse.getRowCount(), equalTo(1L));
+
+    @SuppressWarnings("unchecked")
+    Map<Object, Object> firstPersonRow =
+        (Map<Object, Object>)
+            dataRepoFixtures
+                .retrieveDatasetData(steward, datasetId, arrayIngestTableName, 0, 1, null)
+                .getResult()
+                .get(0);
+    records.forEach((key, value) -> assertThat(firstPersonRow, hasEntry(key, value)));
+  }
+
   private String getSourceStorageAccountPrimarySharedKey() {
     AzureResourceManager client =
         this.azureResourceConfiguration.getClient(
@@ -1322,6 +1496,49 @@ public class AzureIntegrationTest extends UsersBase {
         .iterator()
         .next()
         .value();
+  }
+
+  private void deleteCloudResources(String storageAccountName) {
+    logger.info("Deleting log analytic workspace {}", storageAccountName);
+
+    LogAnalyticsManager clientLaw =
+        azureResourceConfiguration.getLogAnalyticsManagerClient(
+            azureResourceConfiguration.credentials().getHomeTenantId(),
+            testConfig.getTargetSubscriptionId());
+    clientLaw
+        .workspaces()
+        .delete(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+
+    logger.info("Deleting storage account {}", storageAccountName);
+    AzureResourceManager clientSa =
+        azureResourceConfiguration.getClient(testConfig.getTargetSubscriptionId());
+    clientSa
+        .storageAccounts()
+        .deleteByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+  }
+
+  private void verifyCloudResourceRegions(String storageAccountName, AzureRegion expectedRegion) {
+    StorageAccount storageAccount =
+        azureResourceConfiguration
+            .getClient(testConfig.getTargetSubscriptionId())
+            .storageAccounts()
+            .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+    assertThat(
+        "storage account region is correct",
+        storageAccount.region().name(),
+        equalTo(expectedRegion.getValue()));
+
+    Workspace logAnalyticsWorkspace =
+        azureResourceConfiguration
+            .getLogAnalyticsManagerClient(
+                azureResourceConfiguration.credentials().getHomeTenantId(),
+                testConfig.getTargetSubscriptionId())
+            .workspaces()
+            .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
+    assertThat(
+        "log analytics workspace region is correct",
+        logAnalyticsWorkspace.region().name(),
+        equalTo(expectedRegion.getValue()));
   }
 
   private void verifySignedUrl(String signedUrl, User user, String expectedPermissions) {
@@ -1350,5 +1567,34 @@ public class AzureIntegrationTest extends UsersBase {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private String recordStorageAccount(
+      TestConfiguration.User user, CollectionType collectionType, UUID collectionId)
+      throws Exception {
+    String storageAccountName = null;
+    switch (collectionType) {
+      case DATASET -> {
+        DatasetModel dataset =
+            dataRepoFixtures.getDataset(
+                user, collectionId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+        storageAccountName = getStorageAccountName(dataset.getAccessInformation().getParquet());
+        storageAccounts.add(storageAccountName);
+        return storageAccountName;
+      }
+      case SNAPSHOT -> {
+        SnapshotModel snapshot =
+            dataRepoFixtures.getSnapshot(
+                user, collectionId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
+        storageAccountName = getStorageAccountName(snapshot.getAccessInformation().getParquet());
+        storageAccounts.add(getStorageAccountName(snapshot.getAccessInformation().getParquet()));
+        return storageAccountName;
+      }
+    }
+    return storageAccountName;
+  }
+
+  private String getStorageAccountName(AccessInfoParquetModel accessInfo) {
+    return accessInfo.getDatasetId().split("\\.")[0];
   }
 }

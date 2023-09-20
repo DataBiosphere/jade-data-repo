@@ -76,7 +76,7 @@ public class FileIngestWorkerFlight extends FileIngestTypeFlight {
 
     addStep(new ValidateIngestFileLoadModelStep());
 
-    addStep(new IngestFileIdStep(configService));
+    addStep(new IngestFileIdStep());
 
     if (platform.isGcp()) {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));

@@ -6,7 +6,6 @@ import bio.terra.buffer.api.UnauthenticatedApi;
 import bio.terra.buffer.client.ApiClient;
 import bio.terra.buffer.client.ApiException;
 import bio.terra.buffer.model.HandoutRequestBody;
-import bio.terra.buffer.model.PoolInfo;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.buffer.model.SystemStatus;
 import bio.terra.buffer.model.SystemStatusSystems;
@@ -22,6 +21,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.UUID;
+import javax.ws.rs.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +38,8 @@ public class BufferService {
   private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
   private final GoogleResourceConfiguration googleConfig;
   private final GoogleResourceManagerService googleResourceManagerService;
+  /** Clients should be shared among requests to reduce latency and save memory * */
+  private final Client sharedHttpClient;
 
   @Autowired
   public BufferService(
@@ -47,51 +49,23 @@ public class BufferService {
     this.bufferServiceConfiguration = bufferServiceConfiguration;
     this.googleConfig = googleConfig;
     this.googleResourceManagerService = googleResourceManagerService;
+    this.sharedHttpClient = new ApiClient().getHttpClient();
   }
 
-  private ApiClient getApiClient(String accessToken) {
-    ApiClient client = new ApiClient();
+  private ApiClient createUnauthApiClient() {
+    return new ApiClient()
+        .setHttpClient(sharedHttpClient)
+        .setBasePath(bufferServiceConfiguration.instanceUrl());
+  }
+
+  private ApiClient createApiClient(String accessToken) {
+    ApiClient client = createUnauthApiClient();
     client.setAccessToken(accessToken);
-    client.setBasePath(bufferServiceConfiguration.getInstanceUrl());
     return client;
   }
 
-  private ApiClient getUnAuthApiClient() {
-    ApiClient client = new ApiClient();
-    client.setBasePath(bufferServiceConfiguration.getInstanceUrl());
-    return client;
-  }
-
-  private BufferApi bufferApi(String instanceUrl) throws IOException {
-    return new BufferApi(
-        getApiClient(bufferServiceConfiguration.getAccessToken()).setBasePath(instanceUrl));
-  }
-
-  /**
-   * Return the PoolInfo object for the ResourceBuffer pool that we are using to create Google Cloud
-   * projects. Note that this is configured once per Workspace Manager instance (both the instance
-   * of RBS to use and which pool) so no configuration happens here.
-   *
-   * @return PoolInfo
-   */
-  public PoolInfo getPoolInfo() {
-    try {
-      BufferApi bufferApi = bufferApi(bufferServiceConfiguration.getInstanceUrl());
-      PoolInfo info = bufferApi.getPoolInfo(bufferServiceConfiguration.getPoolId());
-      logger.info(
-          "Retrieved pool {} on Buffer Service instance {}",
-          bufferServiceConfiguration.getPoolId(),
-          bufferServiceConfiguration.getInstanceUrl());
-      return info;
-    } catch (IOException e) {
-      throw new BufferServiceAuthorizationException("Error reading or parsing credentials file", e);
-    } catch (ApiException e) {
-      if (e.getCode() == HttpStatus.UNAUTHORIZED.value()) {
-        throw new BufferServiceAuthorizationException("Not authorized to access Buffer Service", e);
-      } else {
-        throw new BufferServiceAPIException(e);
-      }
-    }
+  private BufferApi bufferApi() throws IOException {
+    return new BufferApi(createApiClient(bufferServiceConfiguration.getAccessToken()));
   }
 
   /**
@@ -105,13 +79,13 @@ public class BufferService {
     logger.info("Using request ID: {} to get project from RBS", handoutRequestId);
     HandoutRequestBody requestBody = new HandoutRequestBody().handoutRequestId(handoutRequestId);
     try {
-      BufferApi bufferApi = bufferApi(bufferServiceConfiguration.getInstanceUrl());
+      BufferApi bufferApi = bufferApi();
       ResourceInfo info =
-          bufferApi.handoutResource(requestBody, bufferServiceConfiguration.getPoolId());
+          bufferApi.handoutResource(requestBody, bufferServiceConfiguration.poolId());
       logger.info(
           "Retrieved resource from pool {} on Buffer Service instance {}",
-          bufferServiceConfiguration.getPoolId(),
-          bufferServiceConfiguration.getInstanceUrl());
+          bufferServiceConfiguration.poolId(),
+          bufferServiceConfiguration.instanceUrl());
 
       if (enableSecureMonitoring) {
         var projectId = info.getCloudResourceUid().getGoogleProjectUid().getProjectId();
@@ -137,17 +111,22 @@ public class BufferService {
     }
   }
 
-  private void refolderProjectToSecureFolder(String projectId)
+  public void refolderProjectToSecureFolder(String projectId)
       throws IOException, GeneralSecurityException {
     CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
     var project = cloudResourceManager.projects().get(projectId).execute();
 
+    if (project.getParent().getId().equals(googleConfig.secureFolderResourceId())) {
+      logger.info("Project {} is already in secure folder", projectId);
+      return;
+    }
     ResourceId resourceId =
-        new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.getSecureFolderResourceId());
+        new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.secureFolderResourceId());
 
     project.setParent(resourceId);
 
     cloudResourceManager.projects().update(projectId, project).execute();
+    logger.info("Project {} moved to secure folder", projectId);
   }
 
   private void deleteProject(String projectId) throws IOException, GeneralSecurityException {
@@ -156,18 +135,18 @@ public class BufferService {
   }
 
   public RepositoryStatusModelSystems status() {
-    UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(getUnAuthApiClient());
+    UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(createUnauthApiClient());
     try {
       SystemStatus status = unauthenticatedApi.serviceStatus();
       Map<String, SystemStatusSystems> subsystemStatusMap = status.getSystems();
       return new RepositoryStatusModelSystems()
           .ok(status.isOk())
-          .critical(bufferServiceConfiguration.getEnabled())
+          .critical(bufferServiceConfiguration.enabled())
           .message(subsystemStatusMap.toString());
     } catch (ApiException e) {
       return new RepositoryStatusModelSystems()
           .ok(false)
-          .critical(bufferServiceConfiguration.getEnabled())
+          .critical(bufferServiceConfiguration.enabled())
           .message(e.getResponseBody());
     }
   }

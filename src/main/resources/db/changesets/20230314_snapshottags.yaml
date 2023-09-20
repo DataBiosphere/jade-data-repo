@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_tags
+      author: okotsopo
+      changes:
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: tags
+              type: text[]
+              constraints:
+                nullable: true

@@ -119,7 +119,7 @@ public class ResourceServiceUnitTest {
 
   @Test
   public void testGetOrCreateStorageAccount() throws Exception {
-    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any()))
+    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any(), any()))
         .thenReturn(storageAccountResource);
     when(storageAccountService.getStorageAccountResourceById(storageAccountId, true))
         .thenReturn(storageAccountResource);

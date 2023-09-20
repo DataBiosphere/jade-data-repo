@@ -2,6 +2,7 @@
   "name":        "DatasetSimple",
   "description": "Simple dataset definition",
   "defaultProfileId": "",
+  "dedicatedIngestServiceAccount": false,
   "schema":      {
     "tables":        [
       {

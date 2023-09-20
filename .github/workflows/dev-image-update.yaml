@@ -21,6 +21,8 @@ on:
       - '.swagger-codegen-ignore'
 jobs:
   update_image:
+    outputs:
+      api_image_tag: ${{ steps.bumperstep.outputs.tag }}
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -40,7 +42,7 @@ jobs:
           path: datarepo-helm-definitions
       - name: "Bump the tag to a new version"
         id: bumperstep
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         with:
           actions_subcommand: 'bumper'
           role_id: ${{ secrets.ROLE_ID }}
@@ -57,13 +59,13 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ENABLE_SUBPROJECT_TASKS: true
       - name: "Build new delevop docker image"
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         with:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Update Version in helm for Dev Env"
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
@@ -84,13 +86,36 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Release Candidate Container Build: Create release candidate images'
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          alpharelease: ${{ steps.bumperstep.outputs.tag }}
+          alpharelease: ${{ steps.bumperstep.outputs.tag }} # creates gcr build with semver tag
           gcr_google_project: 'broad-jade-dev'
+  report-to-sherlock:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs:
+      - update_image
+    with:
+      new-version: ${{ needs.update_image.outputs.api_image_tag }}
+      chart-name: 'datarepo'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+  set-app-version-in-environment:
+    uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
+    needs:
+      - update_image
+      - report-to-sherlock
+    with:
+      new-version: ${{ needs.update_image.outputs.api_image_tag }}
+      chart-name: 'datarepo'
+      environment-name: 'datarepo-latest'
+    secrets:
+      sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
+    permissions:
+      id-token: 'write'
   helm_tag_bumper:
     needs: update_image
     uses: ./.github/workflows/helmtagbumper.yaml

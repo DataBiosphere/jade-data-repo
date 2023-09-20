@@ -43,12 +43,12 @@ public class DuosDao {
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public DuosFirecloudGroupModel insertAndRetrieveFirecloudGroup(DuosFirecloudGroupModel created) {
     UUID id = insertFirecloudGroup(created);
     return retrieveFirecloudGroup(id);
   }
 
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   private UUID insertFirecloudGroup(DuosFirecloudGroupModel created) {
     String sql =
         """
@@ -123,6 +123,7 @@ public class DuosDao {
     }
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean updateFirecloudGroupLastSyncedDate(UUID id, Instant lastSyncedDate) {
     return updateFirecloudGroupsLastSyncedDate(List.of(id), lastSyncedDate) > 0;
   }

@@ -1,6 +1,8 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
@@ -31,6 +33,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
@@ -43,10 +46,13 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import com.azure.resourcemanager.loganalytics.models.Workspace;
+import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import java.io.IOException;
@@ -111,6 +117,7 @@ public class DatasetServiceTest {
   @MockBean private GcsPdao gcsPdao;
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
+  @MockBean private AzureMonitoringService azureMonitoringService;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
   @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
@@ -119,13 +126,6 @@ public class DatasetServiceTest {
   private UUID projectId;
   private ArrayList<String> flightIdsList;
   private ArrayList<UUID> datasetIdList;
-
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
 
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
       throws IOException, SQLException {
@@ -137,7 +137,7 @@ public class DatasetServiceTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(datasetId, createFlightId);
     datasetIdList.add(datasetId);
     return datasetId;
@@ -174,7 +174,7 @@ public class DatasetServiceTest {
   @After
   public void teardown() {
     for (UUID datasetId : datasetIdList) {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(billingProfile.getId());
@@ -188,8 +188,7 @@ public class DatasetServiceTest {
   @Test(expected = DatasetNotFoundException.class)
   public void datasetDeleteTest() throws IOException, SQLException {
     UUID datasetId = createDataset("dataset-create-test.json");
-    assertThat(
-        "dataset delete signals success", datasetDao.delete(datasetId, TEST_USER), equalTo(true));
+    assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
     datasetDao.retrieve(datasetId);
   }
 
@@ -243,7 +242,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -336,7 +335,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -421,8 +420,8 @@ public class DatasetServiceTest {
         dataset2.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId1, TEST_USER);
-    datasetDao.delete(datasetId2, TEST_USER);
+    datasetDao.delete(datasetId1);
+    datasetDao.delete(datasetId2);
   }
 
   @Test
@@ -481,7 +480,7 @@ public class DatasetServiceTest {
             equalTo(2));
       }
     } finally {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
   }
 
@@ -525,7 +524,7 @@ public class DatasetServiceTest {
     assertThat(
         "dataset has one less asset spec", dataset.getAssetSpecifications().size(), equalTo(1));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -599,15 +598,14 @@ public class DatasetServiceTest {
     when(storageAccountResource.getApplicationResource()).thenReturn(applicationResource);
     when(resourceService.getOrCreateDatasetStorageAccount(any(), any(), any()))
         .thenReturn(storageAccountResource);
-    when(azureContainerPdao.getOrCreateContainer(
-            any(), any(), eq(AzureStorageAccountResource.ContainerType.SCRATCH)))
-        .thenReturn(containerClient);
-    when(azureBlobStorePdao.signFile(
-            any(),
-            eq(storageAccountResource),
-            eq(filePath),
-            eq(AzureStorageAccountResource.ContainerType.SCRATCH),
-            any()))
+    // Mock that the monitoring stack already exists so creation steps are skipped
+    when(azureMonitoringService.getLogAnalyticsWorkspace(any(), any()))
+        .thenReturn(mock(Workspace.class));
+    when(azureMonitoringService.getDiagnosticSetting(any(), any()))
+        .thenReturn(mock(DiagnosticSetting.class));
+    when(azureContainerPdao.getContainer(any(), any())).thenReturn(containerClient);
+    when(azureContainerPdao.getOrCreateContainer(any(), any())).thenReturn(containerClient);
+    when(azureBlobStorePdao.signFile(any(), eq(storageAccountResource), eq(filePath), any()))
         .thenReturn(signedPath);
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel()
@@ -636,5 +634,32 @@ public class DatasetServiceTest {
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
+  }
+
+  @Test
+  public void getRetrieveDatasetRequiredActionsWithDefaults() {
+    List<IamAction> actions =
+        DatasetService.getRetrieveDatasetRequiredActions(
+            List.of(
+                DatasetRequestAccessIncludeModel.SCHEMA,
+                DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.DATA_PROJECT,
+                DatasetRequestAccessIncludeModel.STORAGE));
+    assertThat("The only required action is reader", actions, contains(IamAction.READ_DATASET));
+  }
+
+  @Test
+  public void getRetrieveDatasetRequiredActionsWithSnapshotBuilderConfig() {
+    List<IamAction> actions =
+        DatasetService.getRetrieveDatasetRequiredActions(
+            List.of(
+                DatasetRequestAccessIncludeModel.SCHEMA,
+                DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.DATA_PROJECT,
+                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS));
+    assertThat(
+        "When requesting SnapshotBuilderSettings require VIEW_SNAPSHOT_BUILDER_SETTINGS permission",
+        actions,
+        containsInAnyOrder(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS));
   }
 }

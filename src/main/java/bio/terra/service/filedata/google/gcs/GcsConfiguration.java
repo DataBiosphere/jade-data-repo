@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.google.gcs;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Profile;
 
 /**
@@ -9,44 +9,8 @@ import org.springframework.context.annotation.Profile;
  * That way, implementation specifics can be separated from the interface. We'll see if it works out
  * that way.
  */
-@Configuration
+@ConstructorBinding
 @Profile("google")
 @ConfigurationProperties(prefix = "datarepo.gcs")
-public class GcsConfiguration {
-  private String bucket;
-  private String region;
-  private int connectTimeoutSeconds;
-  private int readTimeoutSeconds;
-
-  public String getBucket() {
-    return bucket;
-  }
-
-  public void setBucket(String bucket) {
-    this.bucket = bucket;
-  }
-
-  public String getRegion() {
-    return region;
-  }
-
-  public void setRegion(String region) {
-    this.region = region;
-  }
-
-  public int getConnectTimeoutSeconds() {
-    return connectTimeoutSeconds;
-  }
-
-  public void setConnectTimeoutSeconds(int connectTimeoutSeconds) {
-    this.connectTimeoutSeconds = connectTimeoutSeconds;
-  }
-
-  public int getReadTimeoutSeconds() {
-    return readTimeoutSeconds;
-  }
-
-  public void setReadTimeoutSeconds(int readTimeoutSeconds) {
-    this.readTimeoutSeconds = readTimeoutSeconds;
-  }
-}
+public record GcsConfiguration(
+    String bucket, String region, int connectTimeoutSeconds, int readTimeoutSeconds) {}

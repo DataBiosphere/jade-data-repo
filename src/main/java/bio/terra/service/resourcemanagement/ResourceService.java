@@ -11,10 +11,14 @@ import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
+import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
@@ -59,6 +63,8 @@ public class ResourceService {
   private final DatasetStorageAccountDao datasetStorageAccountDao;
   private final SnapshotStorageAccountDao snapshotStorageAccountDao;
   private final GoogleResourceManagerService resourceManagerService;
+  private final AzureContainerPdao azureContainerPdao;
+  private final ProfileDao profileDao;
 
   @Autowired
   public ResourceService(
@@ -70,7 +76,9 @@ public class ResourceService {
       SamConfiguration samConfiguration,
       DatasetStorageAccountDao datasetStorageAccountDao,
       SnapshotStorageAccountDao snapshotStorageAccountDao,
-      GoogleResourceManagerService resourceManagerService) {
+      GoogleResourceManagerService resourceManagerService,
+      AzureContainerPdao azureContainerPdao,
+      ProfileDao profileDao) {
     this.azureDataLocationSelector = azureDataLocationSelector;
     this.projectService = projectService;
     this.bucketService = bucketService;
@@ -80,6 +88,8 @@ public class ResourceService {
     this.datasetStorageAccountDao = datasetStorageAccountDao;
     this.snapshotStorageAccountDao = snapshotStorageAccountDao;
     this.resourceManagerService = resourceManagerService;
+    this.azureContainerPdao = azureContainerPdao;
+    this.profileDao = profileDao;
   }
 
   /**
@@ -263,30 +273,38 @@ public class ResourceService {
             .orElse(
                 azureDataLocationSelector.createStorageAccountName(
                     applicationResource.getStorageAccountPrefix(),
-                    dataset.getName(),
-                    billingProfile));
+                    dataset.getStorageAccountRegion(),
+                    billingProfile,
+                    dataset.isSecureMonitoringEnabled()));
 
     return storageAccountService.getOrCreateStorageAccount(
-        storageAccountName, applicationResource, region, flightId);
+        storageAccountName, dataset.getId().toString(), applicationResource, region, flightId);
   }
 
   public AzureStorageAccountResource createSnapshotStorageAccount(
-      String snapshotName,
       UUID snapshotId,
-      AzureRegion sourceDatasetAzureRegion,
+      AzureRegion datasetAzureRegion,
       BillingProfileModel billingProfile,
-      String flightId)
+      String flightId,
+      boolean isSecureMonitoringEnabled)
       throws InterruptedException {
 
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
     String computedStorageAccountName =
         azureDataLocationSelector.createStorageAccountName(
-            applicationResource.getStorageAccountPrefix(), snapshotName, billingProfile);
+            applicationResource.getStorageAccountPrefix(),
+            datasetAzureRegion,
+            billingProfile,
+            isSecureMonitoringEnabled);
 
     AzureStorageAccountResource storageAccountResource =
         storageAccountService.getOrCreateStorageAccount(
-            computedStorageAccountName, applicationResource, sourceDatasetAzureRegion, flightId);
+            computedStorageAccountName,
+            snapshotId.toString(),
+            applicationResource,
+            datasetAzureRegion,
+            flightId);
 
     snapshotStorageAccountDao.createSnapshotStorageAccountLink(
         snapshotId, storageAccountResource.getResourceId());
@@ -337,33 +355,79 @@ public class ResourceService {
     return storageAccountResource;
   }
 
-  public Optional<AzureStorageAccountResource> getSnapshotStorageAccount(UUID snapshotId) {
+  public AzureStorageAccountResource getSnapshotStorageAccount(UUID snapshotId) {
     return snapshotStorageAccountDao
         .getStorageAccountResourceIdForSnapshotId(snapshotId)
-        .map(this::lookupStorageAccount);
+        .map(this::lookupStorageAccount)
+        .orElseThrow(
+            () -> new StorageResourceNotFoundException("Snapshot storage account was not found"));
+  }
+
+  public AzureStorageAuthInfo getDatasetStorageAuthInfo(Dataset dataset) {
+    BillingProfileModel billingProfileModel =
+        profileDao.getBillingProfileById(dataset.getDefaultProfileId());
+    AzureStorageAccountResource storageAccountResource =
+        getDatasetStorageAccount(dataset, billingProfileModel);
+    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+        billingProfileModel, storageAccountResource);
+  }
+
+  public AzureStorageAuthInfo getSnapshotStorageAuthInfo(Snapshot snapshot) {
+    return getSnapshotStorageAuthInfo(snapshot.getProfileId(), snapshot.getId());
+  }
+
+  public AzureStorageAuthInfo getSnapshotStorageAuthInfo(UUID billingProfileId, UUID snapshotId) {
+    BillingProfileModel billingProfileModel = profileDao.getBillingProfileById(billingProfileId);
+    AzureStorageAccountResource storageAccountResource = getSnapshotStorageAccount(snapshotId);
+    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+        billingProfileModel, storageAccountResource);
   }
 
   /**
-   * Delete the metadata and cloud storage account. Note: this will not check references and delete
-   * the storage even if it contains data
+   * Delete the metadata and cloud storage container. Note: this will not check references and
+   * delete the storage even if it contains data
    *
    * @param dataset The dataset whose storage account to delete
    * @param flightId The flight that might potentially have the storage account locked
    */
-  public void deleteStorageAccount(Dataset dataset, String flightId) {
+  public void deleteStorageContainer(Dataset dataset, String flightId) {
     // Get list of linked accounts
     List<UUID> sasToDelete =
         datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
 
     sasToDelete.forEach(
         s -> {
-          logger.info("Deleting storage account id {}", s);
+          logger.info("Deleting dataset storage account and container id {}", s);
           AzureStorageAccountResource storageAccountResource =
               storageAccountService.retrieveStorageAccountById(s);
-          storageAccountService.deleteCloudStorageAccount(storageAccountResource);
+          azureContainerPdao.deleteContainer(
+              dataset.getDatasetSummary().getDefaultBillingProfile(), storageAccountResource);
           storageAccountService.deleteCloudStorageAccountMetadata(
-              storageAccountResource.getName(), flightId);
+              storageAccountResource.getName(),
+              storageAccountResource.getTopLevelContainer(),
+              flightId);
         });
+  }
+
+  /**
+   * Delete the metadata and cloud storage container. Note: this will not check references and
+   * delete the storage even if it contains data
+   *
+   * @param storageResourceId The id of the snapshot's storage account. When this gets called, tha
+   *     snapshot has already been deleted so we can't look up this id in the db
+   * @param profileId The id of the snapshot's billing profile
+   * @param flightId The flight that might potentially have the storage account locked
+   */
+  public void deleteStorageContainer(UUID storageResourceId, UUID profileId, String flightId) {
+    logger.info("Deleting snapshot storage account id {}", storageResourceId);
+    BillingProfileModel snapshotBillingProfile = profileDao.getBillingProfileById(profileId);
+    // get container
+    AzureStorageAccountResource storageAccountResource =
+        storageAccountService.retrieveStorageAccountById(storageResourceId);
+    azureContainerPdao.deleteContainer(snapshotBillingProfile, storageAccountResource);
+
+    storageAccountService.deleteCloudStorageAccountMetadata(
+        storageAccountResource.getName(), storageAccountResource.getTopLevelContainer(), flightId);
   }
 
   private boolean storageAccountIsForBillingProfile(
@@ -584,7 +648,7 @@ public class ResourceService {
 
   private Map<String, List<String>> getStewardPolicy() {
     // get steward emails and add to policy
-    String stewardsGroupEmail = formatEmailForPolicy(samConfiguration.getStewardsGroupEmail());
+    String stewardsGroupEmail = formatEmailForPolicy(samConfiguration.stewardsGroupEmail());
     Map<String, List<String>> policyMap = new HashMap<>();
     policyMap.put(BQ_JOB_USER_ROLE, Collections.singletonList(stewardsGroupEmail));
     return Collections.unmodifiableMap(policyMap);

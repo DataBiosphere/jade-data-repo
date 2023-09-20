@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
+import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -45,7 +45,7 @@ public class SasUrlFactoriesTest {
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
 
-  private BlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility blobIOTestUtility;
   private String accountName;
   private String containerName;
   private String blobName;
@@ -56,13 +56,13 @@ public class SasUrlFactoriesTest {
     RequestRetryOptions retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
-            azureResourceConfiguration.getMaxRetries(),
-            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            azureResourceConfiguration.maxRetries(),
+            azureResourceConfiguration.retryTimeoutSeconds(),
             null,
             null,
             null);
     blobIOTestUtility =
-        new BlobIOTestUtility(
+        new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName(),
@@ -80,7 +80,7 @@ public class SasUrlFactoriesTest {
 
   @After
   public void tearDown() {
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtility.teardown();
   }
 
   @Test

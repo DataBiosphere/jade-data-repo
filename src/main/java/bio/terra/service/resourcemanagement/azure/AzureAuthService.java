@@ -37,13 +37,13 @@ public class AzureAuthService {
   @Autowired
   public AzureAuthService(AzureResourceConfiguration configuration) {
     this.configuration = configuration;
-    var maxRetries = configuration.getMaxRetries();
-    var retryTimeoutSeconds = configuration.getRetryTimeoutSeconds();
+    var maxRetries = configuration.maxRetries();
+    var retryTimeoutSeconds = configuration.retryTimeoutSeconds();
     retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);
     // wrap the cache map with a synchronized map to safely share the cache across threads
-    authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(24, TimeUnit.HOURS));
+    authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
   }
 
   /**

@@ -1,7 +1,9 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
@@ -13,6 +15,10 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.duos.DuosDao;
+import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -24,6 +30,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
@@ -31,11 +38,19 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.snapshot.flight.duos.CreateDuosFirecloudGroupStep;
+import bio.terra.service.snapshot.flight.duos.IfNoGroupRetrievedStep;
+import bio.terra.service.snapshot.flight.duos.RecordDuosFirecloudGroupStep;
+import bio.terra.service.snapshot.flight.duos.RetrieveDuosFirecloudGroupStep;
+import bio.terra.service.snapshot.flight.duos.SyncDuosFirecloudGroupStep;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -78,6 +93,14 @@ public class SnapshotCreateFlight extends Flight {
     String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
     DrsIdService drsIdService = appContext.getBean(DrsIdService.class);
     DrsService drsService = appContext.getBean(DrsService.class);
+    DuosDao duosDao = appContext.getBean(DuosDao.class);
+    DuosService duosService = appContext.getBean(DuosService.class);
+    PolicyService policyService = appContext.getBean(PolicyService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
+    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+        new AzureStorageMonitoringStepProvider(monitoringService);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -85,6 +108,9 @@ public class SnapshotCreateFlight extends Flight {
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // TODO note that with multi-dataset snapshots this will need to change
     List<Dataset> sourceDatasets =
@@ -95,6 +121,10 @@ public class SnapshotCreateFlight extends Flight {
 
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
+
+    // Take out a shared lock on the source dataset, to guard against it being deleted out from
+    // under us (for example)
+    addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
 
     // Make sure this user is authorized to use the billing profile in SAM
     addStep(
@@ -119,15 +149,33 @@ public class SnapshotCreateFlight extends Flight {
           getDefaultExponentialBackoffRetryRule());
     }
 
+    // if DUOS id in request, get/create firecloud group (needed for CreateSnapshotMetadataStep)
+    String duosId = snapshotReq.getDuosId();
+    if (duosId != null) {
+      addStep(new RetrieveDuosFirecloudGroupStep(duosDao, duosId));
+      addStep(
+          new IfNoGroupRetrievedStep(
+              new CreateDuosFirecloudGroupStep(duosService, iamClient, duosId)));
+      addStep(new IfNoGroupRetrievedStep(new RecordDuosFirecloudGroupStep(duosDao)));
+      addStep(new IfNoGroupRetrievedStep(new SyncDuosFirecloudGroupStep(duosService, duosId)));
+      // the DUOS Firecloud group is added as a reader in SnapshotAuthzIamStep
+    }
+
     // create the snapshot metadata object in postgres and lock it
     addStep(
-        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq, userReq),
+        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq),
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
-      addStep(
-          new CreateSnapshotCreateAzureStorageAccountStep(
-              resourceService, sourceDataset, snapshotReq));
+      addStep(new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
+      addStep(new CreateSnapshotCreateAzureContainerStep(resourceService, azureContainerPdao));
+
+      // Turn on logging and monitoring for the storage account associated with the snapshot
+      azureStorageMonitoringStepProvider
+          .configureSteps(
+              sourceDataset.isSecureMonitoringEnabled(), sourceDataset.getStorageAccountRegion())
+          .forEach(s -> this.addStep(s.step(), s.retryRule()));
+
       addStep(
           new CreateSnapshotSourceDatasetDataSourceAzureStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));
@@ -298,8 +346,14 @@ public class SnapshotCreateFlight extends Flight {
       addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService));
     }
 
-    // unlock the snapshot metadata row
+    addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
+
+    // unlock the resource metadata rows
     addStep(new UnlockSnapshotStep(snapshotDao, null));
+    addStep(new UnlockDatasetStep(datasetService, datasetId, true));
+    // once unlocked, the snapshot summary can be written as the job response
+    addStep(new CreateSnapshotSetResponseStep(snapshotService));
+
     addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
     addStep(
         new JournalRecordUpdateEntryStep(

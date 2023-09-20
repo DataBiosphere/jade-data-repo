@@ -7,6 +7,7 @@ import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
@@ -19,7 +20,6 @@ import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.ColumnModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ErrorModel;
@@ -44,6 +44,9 @@ import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
+import bio.terra.model.TagCount;
+import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -60,17 +63,16 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
@@ -78,8 +80,10 @@ import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import bio.terra.service.tags.TagUtils;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
@@ -91,7 +95,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -100,7 +103,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -119,7 +121,6 @@ public class SnapshotService {
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
 
-  @Autowired
   public SnapshotService(
       JobService jobService,
       DatasetService datasetService,
@@ -151,8 +152,7 @@ public class SnapshotService {
    * Kick-off snapshot creation Pre-condition: the snapshot request has been syntax checked by the
    * validator
    *
-   * @param snapshotRequestModel
-   * @returns jobId (flightId) of the job
+   * @return jobId (flightId) of the job
    */
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
@@ -166,6 +166,11 @@ public class SnapshotService {
           userReq.getEmail(),
           snapshotRequestModel.getName(),
           dataset.getDefaultProfileId());
+    }
+    String duosId = snapshotRequestModel.getDuosId();
+    if (duosId != null) {
+      // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
+      duosClient.getDataset(duosId, userReq);
     }
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
@@ -191,7 +196,7 @@ public class SnapshotService {
    * Kick-off snapshot deletion
    *
    * @param id snapshot id to delete
-   * @returns jobId (flightId) of the job
+   * @return jobId (flightId) of the job
    */
   public String deleteSnapshot(UUID id, AuthenticatedUserRequest userReq) {
     String description = "Delete snapshot " + id;
@@ -225,6 +230,26 @@ public class SnapshotService {
     boolean patchSucceeded = snapshotDao.patch(id, patchRequest, userReq);
     if (!patchSucceeded) {
       throw new RuntimeException("Snapshot was not updated");
+    }
+    return snapshotDao.retrieveSummaryById(id).toModel();
+  }
+
+  public TagCountResultModel getTags(
+      AuthenticatedUserRequest userReq, String filter, Integer limit) {
+    List<ErrorModel> errors = new ArrayList<>();
+    Map<UUID, Set<IamRole>> authorizedSnapshots = listAuthorizedSnapshots(userReq, errors);
+    if (authorizedSnapshots.isEmpty()) {
+      return new TagCountResultModel().tags(List.of());
+    }
+
+    List<TagCount> tags = snapshotDao.getTags(authorizedSnapshots.keySet(), filter, limit);
+    return new TagCountResultModel().tags(tags).errors(errors);
+  }
+
+  public SnapshotSummaryModel updateTags(UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    boolean updateSucceeded = snapshotDao.updateTags(id, tagUpdateRequest);
+    if (!updateSucceeded) {
+      throw new RuntimeException("Snapshot tags were not updated");
     }
     return snapshotDao.retrieveSummaryById(id).toModel();
   }
@@ -337,8 +362,6 @@ public class SnapshotService {
   /**
    * Enumerate a range of snapshots ordered by created date for consistent offset processing
    *
-   * @param offset
-   * @param limit
    * @return list of summary models of snapshot
    */
   public EnumerateSnapshotModel enumerateSnapshots(
@@ -349,7 +372,8 @@ public class SnapshotService {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<UUID> datasetIds) {
+      List<UUID> datasetIds,
+      List<String> tags) {
     List<ErrorModel> errors = new ArrayList<>();
     Map<UUID, Set<IamRole>> idsAndRoles = listAuthorizedSnapshots(userReq, errors);
     if (idsAndRoles.isEmpty()) {
@@ -357,7 +381,7 @@ public class SnapshotService {
     }
     var enumeration =
         snapshotDao.retrieveSnapshots(
-            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet());
+            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet(), tags);
     List<SnapshotSummaryModel> models =
         enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
 
@@ -402,10 +426,9 @@ public class SnapshotService {
   }
 
   /**
-   * Return a single snapshot summary given the snapshot id. This is used in the create snapshot
+   * Return a single snapshot summary given the snapshot id. This is used in the snapshot creation
    * flight to build the model response of the asynchronous job.
    *
-   * @param id
    * @return summary model of the snapshot
    */
   public SnapshotSummaryModel retrieveSnapshotSummary(UUID id) {
@@ -418,38 +441,27 @@ public class SnapshotService {
    * object. Unlike the Snapshot object, the Model object includes a reference to the associated
    * cloud project.
    *
-   * <p>Note that this method will only return a snapshot if it is NOT exclusively locked. It is
-   * intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may
-   * require an exclusively locked snapshot to be returned (e.g. snapshot deletion).
-   *
    * @param id in UUID format
    * @param userRequest Authenticated user object
    * @return a SnapshotModel = API output-friendly representation of the Snapshot
    */
-  public SnapshotModel retrieveAvailableSnapshotModel(
-      UUID id, AuthenticatedUserRequest userRequest) {
-    return retrieveAvailableSnapshotModel(id, getDefaultIncludes(), userRequest);
+  public SnapshotModel retrieveSnapshotModel(UUID id, AuthenticatedUserRequest userRequest) {
+    return retrieveSnapshotModel(id, getDefaultIncludes(), userRequest);
   }
 
   /**
    * Convenience wrapper around fetching an existing Snapshot object and converting it to a Model
-   * object.
-   *
-   * <p>Unlike the Snapshot object, the Model object includes a reference to the associated cloud
-   * project.
-   *
-   * <p>Note that this method will only return a snapshot if it is NOT exclusively locked. It is
-   * intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may
-   * require an exclusively locked snapshot to be returned (e.g. snapshot deletion).
+   * object. Unlike the Snapshot object, the Model object includes a reference to the associated
+   * cloud project.
    *
    * @param id in UUID format
    * @param include a list of what information to include
    * @param userRequest Authenticated user object
    * @return an API output-friendly representation of the Snapshot
    */
-  public SnapshotModel retrieveAvailableSnapshotModel(
+  public SnapshotModel retrieveSnapshotModel(
       UUID id, List<SnapshotRetrieveIncludeModel> include, AuthenticatedUserRequest userRequest) {
-    Snapshot snapshot = retrieveAvailable(id);
+    Snapshot snapshot = retrieve(id);
     return populateSnapshotModelFromSnapshot(snapshot, include, userRequest);
   }
 
@@ -474,29 +486,18 @@ public class SnapshotService {
   }
 
   /**
-   * Fetch existing Snapshot object that is NOT exclusively locked.
+   * Fetch existing Snapshot object's project.
    *
    * @param id in UUID format
-   * @return a Snapshot object
+   * @return a Snapshot object's project
    */
-  public Snapshot retrieveAvailable(UUID id) {
-    return snapshotDao.retrieveAvailableSnapshot(id);
-  }
-
-  /**
-   * Fetch existing Snapshot object that is NOT exclusively locked.
-   *
-   * @param id in UUID format
-   * @return a Snapshot object
-   */
-  public SnapshotProject retrieveAvailableSnapshotProject(UUID id) {
-    return snapshotDao.retrieveAvailableSnapshotProject(id);
+  public SnapshotProject retrieveSnapshotProject(UUID id) {
+    return snapshotDao.retrieveSnapshotProject(id);
   }
 
   /**
    * Fetch existing Snapshot object using the name.
    *
-   * @param name
    * @return a Snapshot object
    */
   public Snapshot retrieveByName(String name) {
@@ -508,11 +509,10 @@ public class SnapshotService {
    * the structure does not have UUIDs or created dates filled in. Those are updated by the DAO when
    * it stores the snapshot in the repository metadata.
    *
-   * @param snapshotRequestModel
    * @return Snapshot
    */
   public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
-    // Make this early so we can hook up back links to it
+    // Make this early, so we can hook up back links to it
     Snapshot snapshot = new Snapshot();
     List<SnapshotRequestContentsModel> requestContentsList = snapshotRequestModel.getContents();
     // TODO: for MVM we only allow one source list
@@ -524,7 +524,7 @@ public class SnapshotService {
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
     SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
     switch (snapshotRequestModel.getContents().get(0).getMode()) {
-      case BYASSET:
+      case BYASSET -> {
         // TODO: When we implement explicit definition of snapshot tables, we will handle that here.
         // For now, we generate the snapshot tables directly from the asset tables of the one source
         // allowed in a snapshot.
@@ -532,11 +532,9 @@ public class SnapshotService {
         snapshotSource.assetSpecification(assetSpecification);
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
-        break;
-      case BYFULLVIEW:
-        conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
-        break;
-      case BYQUERY:
+      }
+      case BYFULLVIEW -> conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
+      case BYQUERY -> {
         SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
         String assetName = queryModel.getAssetName();
         String snapshotQuery = queryModel.getQuery();
@@ -552,16 +550,14 @@ public class SnapshotService {
                             "This dataset does not have an asset specification with name: "
                                 + assetName));
         snapshotSource.assetSpecification(queryAssetSpecification);
-        // TODO this is wrong? why dont we just pass the assetSpecification?
+        // TODO this is wrong? why don't we just pass the assetSpecification?
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
-        break;
-      case BYROWID:
+      }
+      case BYROWID -> {
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
-        break;
-      default:
-        throw new InvalidSnapshotException("Snapshot does not have required mode information");
+      }
     }
 
     return snapshot
@@ -574,7 +570,8 @@ public class SnapshotService {
         .consentCode(snapshotRequestModel.getConsentCode())
         .properties(snapshotRequestModel.getProperties())
         .globalFileIds(snapshotRequestModel.isGlobalFileIds())
-        .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix());
+        .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix())
+        .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
@@ -626,8 +623,9 @@ public class SnapshotService {
    *     user's linked RAS passport.
    */
   public List<String> retrieveUserSnapshotRoles(UUID snapshotId, AuthenticatedUserRequest userReq) {
-    List<String> roles = new ArrayList<>();
-    roles.addAll(iamService.retrieveUserRoles(userReq, IamResourceType.DATASNAPSHOT, snapshotId));
+    List<String> roles =
+        new ArrayList<>(
+            iamService.retrieveUserRoles(userReq, IamResourceType.DATASNAPSHOT, snapshotId));
     if (!roles.contains(IamRole.READER.toString())
         && snapshotAccessibleByPassport(snapshotId, userReq).accessible()) {
       roles.add(IamRole.READER.toString());
@@ -636,7 +634,6 @@ public class SnapshotService {
   }
 
   /**
-   * @param snapshotSummary
    * @param passports RAS passports as JWT tokens
    * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via
    *     one of the supplied RAS passports
@@ -702,6 +699,8 @@ public class SnapshotService {
 
   /** Throw if the user cannot read the snapshot. */
   public void verifySnapshotReadable(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    // check if snapshot exists
+    retrieveSnapshotSummary(snapshotId);
     IamAuthorizedCall canRead =
         () ->
             iamService.verifyAuthorization(
@@ -714,6 +713,8 @@ public class SnapshotService {
    * enumeration).
    */
   public void verifySnapshotListable(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    // check if snapshot exists
+    retrieveSnapshotSummary(snapshotId);
     IamAuthorizedCall canList =
         () ->
             iamService.verifyAuthorization(
@@ -787,12 +788,14 @@ public class SnapshotService {
       try {
         List<String> columns =
             snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
-        String bqFormattedTableName = snapshot.getName() + "." + tableName;
-        List<Map<String, Object>> values =
+        List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
-                snapshot, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
-
-        return new SnapshotPreviewModel().result(List.copyOf(values));
+                snapshot, tableName, columns, limit, offset, sort, direction, filter);
+        return new SnapshotPreviewModel()
+            .result(
+                List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))
+            .totalRowCount(table.getRowCount().intValue())
+            .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new SnapshotPreviewException(
@@ -815,19 +818,23 @@ public class SnapshotService {
       } catch (Exception e) {
         throw new RuntimeException("Could not configure external datasource", e);
       }
-
-      List<Map<String, Optional<Object>>> values =
+      String parquetFilePath = IngestUtils.getSnapshotParquetFilePathForQuery(tableName);
+      List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
               tableName,
               datasourceName,
-              IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, tableName),
+              parquetFilePath,
               limit,
               offset,
               sort,
               direction,
-              filter);
-      return new SnapshotPreviewModel().result(List.copyOf(values));
+              filter,
+              CollectionType.SNAPSHOT);
+      return new SnapshotPreviewModel()
+          .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
+          .totalRowCount(table.getRowCount().intValue())
+          .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
     }
@@ -838,16 +845,12 @@ public class SnapshotService {
     SnapshotRequestAssetModel requestAssetModel = requestContents.getAssetSpec();
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
 
-    Optional<AssetSpecification> optAsset =
-        dataset.getAssetSpecificationByName(requestAssetModel.getAssetName());
-    if (!optAsset.isPresent()) {
-      throw new AssetNotFoundException(
-          "Asset specification not found: " + requestAssetModel.getAssetName());
-    }
-
-    // the map construction will go here. For MVM, we generate the mapping data directly from the
-    // asset spec.
-    return optAsset.get();
+    return dataset
+        .getAssetSpecificationByName(requestAssetModel.getAssetName())
+        .orElseThrow(
+            () ->
+                new AssetNotFoundException(
+                    "Asset specification not found: " + requestAssetModel.getAssetName()));
   }
 
   /**
@@ -1060,7 +1063,9 @@ public class SnapshotService {
             .consentCode(snapshot.getConsentCode())
             .cloudPlatform(snapshot.getCloudPlatform())
             .globalFileIds(snapshot.hasGlobalFileIds())
-            .compactIdPrefix(snapshot.getCompactIdPrefix());
+            .compactIdPrefix(snapshot.getCompactIdPrefix())
+            .tags(snapshot.getTags())
+            .resourceLocks(snapshot.getResourceLocks());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {
@@ -1123,25 +1128,11 @@ public class SnapshotService {
   }
 
   private SnapshotSourceModel makeSourceModelFromSource(SnapshotSource source) {
-    // TODO: when source summary methods are available, use those. Here I roll my own
     Dataset dataset = source.getDataset();
-    DatasetSummaryModel summaryModel =
-        new DatasetSummaryModel()
-            .id(dataset.getId())
-            .name(dataset.getName())
-            .description(dataset.getDescription())
-            .defaultProfileId(dataset.getDefaultProfileId())
-            .createdDate(dataset.getCreatedDate().toString())
-            .storage(
-                dataset.getDatasetSummary().getStorage().stream()
-                    .map(StorageResource::toModel)
-                    .collect(Collectors.toList()))
-            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
-            .phsId(dataset.getPhsId())
-            .selfHosted(dataset.isSelfHosted());
-
     SnapshotSourceModel sourceModel =
-        new SnapshotSourceModel().dataset(summaryModel).datasetProperties(dataset.getProperties());
+        new SnapshotSourceModel()
+            .dataset(dataset.getDatasetSummary().toModel())
+            .datasetProperties(dataset.getProperties());
 
     AssetSpecification assetSpec = source.getAssetSpecification();
     if (assetSpec != null) {

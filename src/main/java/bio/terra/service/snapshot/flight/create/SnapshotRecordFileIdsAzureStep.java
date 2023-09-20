@@ -39,6 +39,6 @@ public class SnapshotRecordFileIdsAzureStep extends SnapshotRecordFileIdsStep {
     TableServiceClient snapshotTableServiceClient =
         azureAuthService.getTableServiceClient(snapshotStorageAuthInfo);
 
-    return tableDao.retrieveAllFileIds(snapshotTableServiceClient);
+    return tableDao.retrieveAllFileIds(snapshotTableServiceClient, snapshot.getId());
   }
 }

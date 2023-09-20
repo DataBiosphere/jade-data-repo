@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
@@ -8,7 +7,8 @@ import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.ForbiddenException;
+import bio.terra.common.CollectionType;
+import bio.terra.common.Column;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
@@ -16,6 +16,7 @@ import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnStatisticsModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
@@ -29,6 +30,9 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TagCount;
+import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -36,10 +40,11 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -54,6 +59,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -69,6 +75,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
@@ -76,14 +83,11 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -96,6 +100,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DatasetService {
   private static final Logger logger = LoggerFactory.getLogger(DatasetService.class);
+  private final DatasetJsonConversion datasetJsonConversion;
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
@@ -116,6 +121,7 @@ public class DatasetService {
 
   @Autowired
   public DatasetService(
+      DatasetJsonConversion datasetJsonConversion,
       DatasetDao datasetDao,
       JobService jobService,
       LoadService loadService,
@@ -133,6 +139,7 @@ public class DatasetService {
       IamService iamService,
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao) {
+    this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -176,16 +183,6 @@ public class DatasetService {
   }
 
   /**
-   * Fetch existing Dataset object that is NOT exclusively locked.
-   *
-   * @param id in UUID format
-   * @return a Dataset object
-   */
-  public Dataset retrieveAvailable(UUID id) {
-    return datasetDao.retrieveAvailable(id);
-  }
-
-  /**
    * Fetch existing Dataset object using the name.
    *
    * @param name
@@ -200,19 +197,31 @@ public class DatasetService {
    * object. Unlike the Dataset object, the Model object includes a reference to the associated
    * cloud project.
    *
-   * <p>Note that this method will only return a dataset if it is NOT exclusively locked. It is
-   * intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may
-   * require an exclusively locked dataset to be returned (e.g. dataset deletion).
-   *
    * @param id in UUID format
    * @return a DatasetModel = API output-friendly representation of the Dataset
    */
-  public DatasetModel retrieveAvailableDatasetModel(
+  public DatasetModel retrieveDatasetModel(
       UUID id,
       AuthenticatedUserRequest userRequest,
       List<DatasetRequestAccessIncludeModel> include) {
-    Dataset dataset = retrieveAvailable(id);
+    Dataset dataset = retrieve(id);
     return retrieveModel(dataset, userRequest, include);
+  }
+
+  public DatasetModel retrieveDatasetModel(UUID id, AuthenticatedUserRequest userRequest) {
+    return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
+  }
+  /**
+   * Helper method to retrieve the required actions to view the dataset's requested fields
+   *
+   * @param include the list of dataset fields being requested
+   * @return a List<IamAction> = The list of required actions to read these dataset fields
+   */
+  public static List<IamAction> getRetrieveDatasetRequiredActions(
+      List<DatasetRequestAccessIncludeModel> include) {
+    return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)
+        ? List.of(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS)
+        : List.of(IamAction.READ_DATASET);
   }
 
   /**
@@ -231,7 +240,7 @@ public class DatasetService {
       Dataset dataset,
       AuthenticatedUserRequest userRequest,
       List<DatasetRequestAccessIncludeModel> include) {
-    return DatasetJsonConversion.populateDatasetModelFromDataset(
+    return datasetJsonConversion.populateDatasetModelFromDataset(
         dataset, include, metadataDataAccessUtils, userRequest);
   }
 
@@ -250,12 +259,14 @@ public class DatasetService {
       SqlSortDirection direction,
       String filter,
       String region,
-      Map<UUID, Set<IamRole>> idsAndRoles) {
+      Map<UUID, Set<IamRole>> idsAndRoles,
+      List<String> tags) {
     if (idsAndRoles.isEmpty()) {
       return new EnumerateDatasetModel().total(0).items(List.of());
     }
     var datasetEnum =
-        datasetDao.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles.keySet());
+        datasetDao.enumerate(
+            offset, limit, sort, direction, filter, region, idsAndRoles.keySet(), tags);
 
     List<DatasetSummaryModel> summaries =
         datasetEnum.getItems().stream().map(DatasetSummary::toModel).collect(Collectors.toList());
@@ -322,21 +333,32 @@ public class DatasetService {
     return datasetDao.retrieveSummaryById(id).toModel();
   }
 
+  public DatasetSummaryModel setPredictableFileIds(UUID id, boolean predictableFileIds) {
+    datasetDao.setPredictableFileId(id, predictableFileIds);
+    return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
   public String ingestDataset(
       String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
     // Fill in a default load id if the caller did not provide one in the ingest request.
     String loadTag = loadService.computeLoadTag(ingestRequestModel.getLoadTag());
     ingestRequestModel.setLoadTag(loadTag);
 
+    Dataset dataset = null;
+    // Set the profile id to the dataset's default if not specified
+    if (ingestRequestModel.getProfileId() == null) {
+      dataset = datasetDao.retrieve(UUID.fromString(id));
+      ingestRequestModel.setProfileId(dataset.getDefaultProfileId());
+    }
     String description;
     // Note: we are writing ingested to a bucket if specified before the flight starts so that the
     // data does not get materialized in the flight DB. This means that we also need to edit the
     // request to remove data that shouldn't get stored
     if (ingestRequestModel.getFormat().equals(FormatEnum.ARRAY)) {
-      Dataset dataset = datasetDao.retrieve(UUID.fromString(id));
-      ingestRequestModel.setProfileId(
-          Optional.ofNullable(ingestRequestModel.getProfileId())
-              .orElse(dataset.getDefaultProfileId()));
+      // get the dataset if it hasn't already been read
+      if (dataset == null) {
+        dataset = datasetDao.retrieve(UUID.fromString(id));
+      }
       // Create staging area if needed and get the path where the temp file will live
       String tempFilePath =
           jobService
@@ -464,35 +486,6 @@ public class DatasetService {
     }
   }
 
-  @FunctionalInterface
-  public interface IamAuthorizedCall {
-    void get() throws IamForbiddenException;
-  }
-
-  /**
-   * Throw if the user cannot access the dataset via SAM permissions.
-   *
-   * @param iamAuthorizedCall throws if dataset inaccessible via SAM permissions
-   */
-  void verifyDatasetAccessible(IamAuthorizedCall iamAuthorizedCall) {
-    try {
-      iamAuthorizedCall.get();
-    } catch (Exception iamEx) {
-      throw new ForbiddenException(
-          "Error accessing dataset: see errorDetails",
-          Collections.singletonList(iamEx.getMessage()));
-    }
-  }
-
-  /** Throw if the user cannot read the dataset. */
-  public void verifyDatasetReadable(UUID datasetId, AuthenticatedUserRequest userReq) {
-    IamAuthorizedCall canRead =
-        () ->
-            iamService.verifyAuthorization(
-                userReq, IamResourceType.DATASET, datasetId.toString(), IamAction.READ_DATA);
-    verifyDatasetAccessible(canRead);
-  }
-
   public DatasetDataModel retrieveData(
       AuthenticatedUserRequest userRequest,
       UUID datasetId,
@@ -528,14 +521,18 @@ public class DatasetService {
     if (cloudPlatformWrapper.isGcp()) {
       try {
         List<String> columns = datasetTableDao.retrieveColumnNames(table, true);
-        String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
-        List<Map<String, Object>> values =
+        List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
-                dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
-
-        return new DatasetDataModel().result(List.copyOf(values));
+                dataset, tableName, columns, limit, offset, sort, direction, filter);
+        return new DatasetDataModel()
+            .result(
+                List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))
+            .totalRowCount(
+                values.isEmpty()
+                    ? BigQueryPdao.getTableTotalRowCount(dataset, tableName)
+                    : values.get(0).getTotalCount())
+            .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
@@ -548,6 +545,7 @@ public class DatasetService {
               .formatted(
                   accessInfoModel.getParquet().getUrl(),
                   accessInfoModel.getParquet().getSasToken());
+      String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
 
       try {
         azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
@@ -555,18 +553,99 @@ public class DatasetService {
         throw new RuntimeException("Could not configure external datasource", e);
       }
 
-      List<Map<String, Optional<Object>>> values =
+      List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
               tableName,
               datasourceName,
-              IngestUtils.getSourceDatasetParquetFilePath(tableName),
+              sourceParquetFilePath,
               limit,
               offset,
               sort,
               direction,
-              filter);
-      return new DatasetDataModel().result(List.copyOf(values));
+              filter,
+              CollectionType.DATASET);
+      return new DatasetDataModel()
+          .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
+          .totalRowCount(
+              values.isEmpty()
+                  ? azureSynapsePdao.getTableTotalRowCount(
+                      tableName, datasourceName, sourceParquetFilePath)
+                  : values.get(0).getTotalCount())
+          .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
+    } else {
+      throw new DatasetDataException("Cloud not supported");
+    }
+  }
+
+  public ColumnStatisticsModel retrieveColumnStatistics(
+      AuthenticatedUserRequest userRequest,
+      UUID datasetId,
+      String tableName,
+      String columnName,
+      String filter) {
+    Dataset dataset = retrieve(datasetId);
+
+    Column column =
+        dataset
+            .getTableByName(tableName)
+            .orElseThrow(
+                () ->
+                    new InvalidTableException(
+                        "No dataset table exists with the name: " + tableName))
+            .getColumnByName(columnName)
+            .orElseThrow(
+                () ->
+                    new InvalidColumnException(
+                        "No column exists in table "
+                            + tableName
+                            + " with column name: "
+                            + columnName));
+
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        if (column.isDoubleType()) {
+          return BigQueryPdao.getStatsForDoubleColumn(dataset, tableName, column, filter);
+        } else if (column.isIntType()) {
+          return BigQueryPdao.getStatsForIntColumn(dataset, tableName, column, filter);
+        } else if (column.isTextType()) {
+          return BigQueryPdao.getStatsForTextColumn(dataset, tableName, column, filter);
+        }
+        return new ColumnStatisticsModel();
+      } catch (InterruptedException e) {
+        throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
+      }
+    } else if (cloudPlatformWrapper.isAzure()) {
+      AccessInfoModel accessInfoModel =
+          metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
+      String credName = AzureSynapsePdao.getCredentialName(dataset.getId(), userRequest.getEmail());
+      String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());
+      String metadataUrl =
+          "%s?%s"
+              .formatted(
+                  accessInfoModel.getParquet().getUrl(),
+                  accessInfoModel.getParquet().getSasToken());
+      String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
+
+      try {
+        azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
+      } catch (Exception e) {
+        throw new RuntimeException("Could not configure external datasource", e);
+      }
+
+      if (column.isDoubleType()) {
+        return azureSynapsePdao.getStatsForDoubleColumn(
+            column, datasourceName, sourceParquetFilePath, filter);
+      } else if (column.isIntType()) {
+        return azureSynapsePdao.getStatsForIntColumn(
+            column, datasourceName, sourceParquetFilePath, filter);
+      } else if (column.isTextType()) {
+        return azureSynapsePdao.getStatsForTextColumn(
+            column, datasourceName, sourceParquetFilePath, filter);
+      }
+      return new ColumnStatisticsModel();
     } else {
       throw new DatasetDataException("Cloud not supported");
     }
@@ -661,6 +740,23 @@ public class DatasetService {
         .submit();
   }
 
+  public TagCountResultModel getTags(
+      Map<UUID, Set<IamRole>> idsAndRoles, String filter, Integer limit) {
+    if (idsAndRoles.isEmpty()) {
+      return new TagCountResultModel().tags(List.of()).errors(List.of());
+    }
+    List<TagCount> tags = datasetDao.getTags(idsAndRoles.keySet(), filter, limit);
+    return new TagCountResultModel().tags(tags).errors(List.of());
+  }
+
+  public DatasetSummaryModel updateTags(UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    boolean updateSucceeded = datasetDao.updateTags(id, tagUpdateRequest);
+    if (!updateSucceeded) {
+      throw new RuntimeException("Dataset tags were not updated");
+    }
+    return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {
     return Arrays.stream(
             StringUtils.split(DatasetsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
@@ -699,9 +795,8 @@ public class DatasetService {
               profile,
               storageAccount,
               tempFilePath,
-              AzureStorageAccountResource.ContainerType.SCRATCH,
               new BlobSasTokenOptions(
-                  Duration.ofHours(1),
+                  AzureBlobStorePdao.DEFAULT_SAS_TOKEN_EXPIRATION,
                   new BlobSasPermission().setReadPermission(true).setWritePermission(true),
                   userRequest.getEmail()));
       azureBlobStorePdao.writeBlobLines(signedPath, mapLines(data));

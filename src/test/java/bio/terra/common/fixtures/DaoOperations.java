@@ -1,6 +1,5 @@
 package bio.terra.common.fixtures;
 
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.Dataset;
@@ -20,8 +19,7 @@ public class DaoOperations {
     this.datasetDao = datasetDao;
   }
 
-  public Dataset createMinimalDataset(
-      UUID billingProfileId, UUID projectResourceId, AuthenticatedUserRequest userReq)
+  public Dataset createMinimalDataset(UUID billingProfileId, UUID projectResourceId)
       throws IOException {
     DatasetRequestModel datasetRequest =
         jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
@@ -35,7 +33,7 @@ public class DaoOperations {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, userReq);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
 
     return dataset;

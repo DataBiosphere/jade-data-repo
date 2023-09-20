@@ -9,7 +9,7 @@ env:
   K8_CLUSTER: jade-master-us-central1
   K8_NAMESPACES: perf
   TDR_LOG_APPENDER: Console-Standard
-  AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
+  AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
 on:
   workflow_dispatch: {}
   schedule:
@@ -23,13 +23,13 @@ jobs:
         run: |
           CURRENT_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Current Version: $CURRENT_VERSION"
-          echo "::set-output name=CURRENT_SEMVER::$CURRENT_VERSION"
+          echo "CURRENT_SEMVER=${$CURRENT_VERSION}" >> $GITHUB_OUTPUT
           LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
-          echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
+          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_OUTPUT
           LATEST_GITHASH=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           echo "Latest git hash: $LATEST_GITHASH"
-          echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
+          echo "LATEST_GITHASH=${$LATEST_GITHASH}" >> $GITHUB_OUTPUT
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
         uses: actions/checkout@v3
         with:
@@ -48,7 +48,7 @@ jobs:
           roleId: ${{ secrets.PERF_ROLE_ID }}
           secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/perf/helm-azure applicationsecret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/datarepo/perf/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
             secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
       - name: "Perform IAM policy cleanup for perf"
         run: |
@@ -93,7 +93,7 @@ jobs:
           location: ${{ env.GOOGLE_ZONE }}
           project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -102,7 +102,7 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           google_project: broad-jade-perf
       - name: "Check that perf namespace is available and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'perf'
@@ -120,7 +120,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/datarepo-actions/actions/merger@0.67.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.69.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -168,7 +168,7 @@ jobs:
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.67.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.69.0
         env:
           NAMESPACEINUSE: perf
           IT_JADE_API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
@@ -194,6 +194,8 @@ jobs:
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
+        env:
+          AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
       - name: 'Re-obtain GKE Credentials'
         if: always()
         uses: 'google-github-actions/get-gke-credentials@v1'
@@ -203,12 +205,12 @@ jobs:
           project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
       - name: "Unlock perf namespace if we locked it in this run"
         if: always() # the task always runs, but the lock is only cleared if this run set it.
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.68.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:

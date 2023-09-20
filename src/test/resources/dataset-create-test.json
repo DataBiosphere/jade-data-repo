@@ -20,6 +20,12 @@
           {"name": "participant_id", "datatype": "string"},
           {"name": "date_collected", "datatype": "date"}
         ]
+      },
+      {
+        "name":    "123_leading_number",
+        "columns": [
+          {"name": "id", "datatype": "string"}
+        ]
       }
     ],
     "relationships": [

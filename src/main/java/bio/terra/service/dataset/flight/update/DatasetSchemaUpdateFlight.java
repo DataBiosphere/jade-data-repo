@@ -77,11 +77,10 @@ public class DatasetSchemaUpdateFlight extends Flight {
               datasetDao, datasetTableDao, datasetId, relationshipDao, updateModel));
     }
 
+    addStep(new UnlockDatasetStep(datasetService, datasetId, false));
     addStep(
         new DatasetSchemaUpdateResponseStep(
             datasetDao, datasetId, datasetService, updateModel, userRequest));
-
-    addStep(new UnlockDatasetStep(datasetService, datasetId, false));
 
     addStep(
         new JournalRecordUpdateEntryStep(

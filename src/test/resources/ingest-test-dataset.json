@@ -10,7 +10,8 @@
           {"name": "id", "datatype": "string"},
           {"name": "age", "datatype": "integer"},
           {"name": "children", "datatype": "string", "array_of": true},
-          {"name": "donated", "datatype": "string", "array_of": true}
+          {"name": "donated", "datatype": "string", "array_of": true},
+          {"name":  "jsonData", "datatype": "string"}
         ],
         "primaryKey": ["id"]
       },

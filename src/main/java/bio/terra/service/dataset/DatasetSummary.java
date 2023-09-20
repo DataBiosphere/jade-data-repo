@@ -8,6 +8,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import java.time.Instant;
@@ -34,6 +35,8 @@ public class DatasetSummary {
   private boolean selfHosted;
   private Object properties;
   private boolean predictableFileIds;
+  private List<String> tags;
+  private ResourceLocks resourceLocks;
 
   public UUID getId() {
     return id;
@@ -232,6 +235,24 @@ public class DatasetSummary {
     return this;
   }
 
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public DatasetSummary tags(List<String> tags) {
+    this.tags = tags;
+    return this;
+  }
+
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
+  }
+
+  public DatasetSummary resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
+    return this;
+  }
+
   public DatasetSummaryModel toModel() {
     return new DatasetSummaryModel()
         .id(getId())
@@ -246,7 +267,9 @@ public class DatasetSummary {
         .storageAccount(getStorageAccount())
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
-        .predictableFileIds(hasPredictableFileIds());
+        .predictableFileIds(hasPredictableFileIds())
+        .tags(getTags())
+        .resourceLocks(getResourceLocks());
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

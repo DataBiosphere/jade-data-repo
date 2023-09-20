@@ -17,6 +17,7 @@ import com.azure.data.tables.models.TableServiceException;
 import com.google.api.core.SettableApiFuture;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -44,16 +45,21 @@ public class TableFileDao {
     this.executor = executor;
   }
 
-  public void createFileMetadata(TableServiceClient tableServiceClient, FireStoreFile newFile) {
-    tableServiceClient.createTableIfNotExists(FILES_TABLE.toTableName());
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
+  public void createFileMetadata(
+      TableServiceClient tableServiceClient, String collectionId, FireStoreFile newFile) {
+    tableServiceClient.createTableIfNotExists(
+        FILES_TABLE.toTableName(UUID.fromString(collectionId)));
+    TableClient tableClient =
+        tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
     TableEntity entity = FireStoreFile.toTableEntity(PARTITION_KEY, newFile);
     logger.info("creating file metadata for fileId {}", newFile.getFileId());
     tableClient.createEntity(entity);
   }
 
-  public boolean deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
+  public boolean deleteFileMetadata(
+      TableServiceClient tableServiceClient, String collectionId, String fileId) {
+    TableClient tableClient =
+        tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
     try {
       logger.info("deleting file metadata for fileId {}", fileId);
       TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
@@ -66,8 +72,10 @@ public class TableFileDao {
     }
   }
 
-  public FireStoreFile retrieveFileMetadata(TableServiceClient tableServiceClient, String fileId) {
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
+  public FireStoreFile retrieveFileMetadata(
+      TableServiceClient tableServiceClient, String collectionId, String fileId) {
+    TableClient tableClient =
+        tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
     TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
     return FireStoreFile.fromTableEntity(entity);
   }
@@ -81,11 +89,14 @@ public class TableFileDao {
    *     with the order of the input list objects
    */
   List<FireStoreFile> batchRetrieveFileMetadata(
-      TableServiceClient tableServiceClient, List<FireStoreDirectoryEntry> directoryEntries) {
+      TableServiceClient tableServiceClient,
+      String collectionId,
+      List<FireStoreDirectoryEntry> directoryEntries) {
     return directoryEntries.stream()
         .map(
             f ->
-                Optional.ofNullable(retrieveFileMetadata(tableServiceClient, f.getFileId()))
+                Optional.ofNullable(
+                        retrieveFileMetadata(tableServiceClient, collectionId, f.getFileId()))
                     .orElseThrow(
                         () ->
                             new FileSystemCorruptException(
@@ -112,9 +123,13 @@ public class TableFileDao {
   }
 
   void deleteFilesFromDataset(
-      TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func) {
-    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, FILES_TABLE.toTableName())) {
-      TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
+      TableServiceClient tableServiceClient,
+      UUID datasetId,
+      InterruptibleConsumer<FireStoreFile> func) {
+    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName(datasetId));
+
+    if (TableServiceClientUtils.tableHasEntries(
+        tableServiceClient, FILES_TABLE.toTableName(datasetId))) {
       scanTableObjects(
           tableClient,
           entity -> {
@@ -124,15 +139,21 @@ public class TableFileDao {
                   try {
                     FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
                     func.accept(fireStoreFile);
-                    future.set(deleteFileMetadata(tableServiceClient, fireStoreFile.getFileId()));
+                    future.set(
+                        deleteFileMetadata(
+                            tableServiceClient, datasetId.toString(), fireStoreFile.getFileId()));
                   } catch (final Exception e) {
                     future.setException(e);
                   }
                 });
             return future;
           });
+
     } else {
       logger.warn("No files found to be deleted from dataset.");
     }
+
+    // Delete the table
+    tableClient.deleteTable();
   }
 }

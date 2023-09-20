@@ -3,14 +3,15 @@ package bio.terra.app.controller;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.TestUtils;
-import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -18,40 +19,59 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.IngestRequestValidator;
+import bio.terra.service.filedata.FileService;
+import bio.terra.service.job.JobService;
+import bio.terra.service.snapshot.SnapshotRequestValidator;
+import bio.terra.service.snapshot.SnapshotService;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Matcher;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@ContextConfiguration(
+    classes = {
+      ApiValidationExceptionHandler.class,
+      AssetModelValidator.class,
+      GlobalExceptionHandler.class,
+      SnapshotsApiController.class,
+      SnapshotRequestValidator.class
+    })
+@Tag("bio.terra.common.category.Unit")
+@WebMvcTest
 public class SnapshotValidationTest {
 
   @Autowired private MockMvc mvc;
-
-  @Autowired private ObjectMapper objectMapper;
-
+  @MockBean private JobService jobService;
+  @MockBean private SnapshotService snapshotService;
+  @MockBean private IamService iamService;
+  @MockBean private IngestRequestValidator ingestRequestValidator;
+  @MockBean private FileService fileService;
+  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @SpyBean private ApplicationConfiguration applicationConfiguration;
 
   private SnapshotRequestModel snapshotByAssetRequest;
@@ -60,8 +80,9 @@ public class SnapshotValidationTest {
 
   private SnapshotRequestModel snapshotByQueryRequestModel;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
     snapshotByAssetRequest = makeSnapshotAssetRequest();
     snapshotByRowIdsRequestModel = makeSnapshotRowIdsRequest();
     snapshotByQueryRequestModel = makeSnapshotByQueryRequest();
@@ -80,16 +101,14 @@ public class SnapshotValidationTest {
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
 
-    assertTrue(
-        "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
-
-    ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
-    return errorModel;
+    assertThat(
+        "Error model was returned on failure", responseBody, Matchers.containsString("message"));
+    return TestUtils.mapFromJson(responseBody, ErrorModel.class);
   }
 
   // Generate a valid snapshot-by-asset request, we will tweak individual pieces to test validation
   // below
-  public SnapshotRequestModel makeSnapshotAssetRequest() {
+  private SnapshotRequestModel makeSnapshotAssetRequest() {
     SnapshotRequestAssetModel assetSpec =
         new SnapshotRequestAssetModel()
             .assetName("asset")
@@ -110,7 +129,7 @@ public class SnapshotValidationTest {
 
   // Generate a valid snapshot-by-rowId request, we will tweak individual pieces to test validation
   // below
-  public SnapshotRequestModel makeSnapshotRowIdsRequest() {
+  private SnapshotRequestModel makeSnapshotRowIdsRequest() {
     SnapshotRequestRowIdTableModel snapshotRequestTableModel =
         new SnapshotRequestRowIdTableModel()
             .tableName("snapshot")
@@ -136,7 +155,7 @@ public class SnapshotValidationTest {
 
   // Generate a valid snapshot-by-query request, we will tweak individual pieces to test validation
   // below
-  public SnapshotRequestModel makeSnapshotByQueryRequest() {
+  private SnapshotRequestModel makeSnapshotByQueryRequest() {
     SnapshotRequestQueryModel querySpec =
         new SnapshotRequestQueryModel().assetName("asset").query("SELECT * FROM dataset");
 
@@ -153,57 +172,52 @@ public class SnapshotValidationTest {
         .contents(Collections.singletonList(snapshotRequestContentsModel));
   }
 
-  // Generate a valid snapshot-by-fullView request, we will tweak individual pieces to test
-  // validation below
-  public SnapshotRequestModel makeSnapshotByFullViewRequest() {
-    SnapshotRequestContentsModel snapshotRequestContentsModel =
-        new SnapshotRequestContentsModel()
-            .datasetName("dataset")
-            .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
-
-    return new SnapshotRequestModel()
-        .name("snapshot")
-        .description("snapshot description")
-        .profileId(UUID.randomUUID())
-        .contents(Collections.singletonList(snapshotRequestContentsModel));
-  }
-
-  @Test
-  public void testSnapshotNameInvalid() throws Exception {
-    snapshotByAssetRequest.name("no spaces");
+  @ParameterizedTest
+  @MethodSource("invalidResourceNames")
+  void testSnapshotNameInvalid(String invalidName, String[] messageCodes) throws Exception {
+    snapshotByAssetRequest.name(invalidName);
     ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
-
-    snapshotByAssetRequest.name("no-dashes");
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
-
-    snapshotByAssetRequest.name("");
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Size", "Pattern"});
-
-    // Make a 512 character string, it should be considered too long by the validation.
-    // Note: a 511 character string, we are okay with
-    String tooLong = StringUtils.repeat("a", 512);
-    snapshotByAssetRequest.name(tooLong);
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Size"});
+    checkValidationErrorModel(errorModel, messageCodes);
   }
 
-  @Test
-  public void testSnapshotDescriptionInvalid() throws Exception {
-    String tooLong = StringUtils.repeat("a", 2048);
-    snapshotByAssetRequest.description(tooLong);
+  @ParameterizedTest
+  @MethodSource("invalidResourceNames")
+  void testSnapshotDatasetNameInvalid(String invalidName, String[] messageCodes) throws Exception {
+    // snapshotByAssetRequest is assumed to be valid, we will just mess with the dataset name in the
+    // contents
+    SnapshotRequestContentsModel contents = snapshotByAssetRequest.getContents().get(0);
+    contents.setDatasetName(invalidName);
     ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"SnapshotDescriptionTooLong"});
+    checkValidationErrorModel(errorModel, messageCodes);
+  }
 
-    snapshotByAssetRequest.description(null);
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"SnapshotDescriptionMissing"});
+  private static Stream<Arguments> invalidResourceNames() {
+    return Stream.of(
+        arguments("no spaces", new String[] {"Pattern"}),
+        arguments("no-dashes", new String[] {"Pattern"}),
+        arguments("", new String[] {"Size", "Pattern"}),
+        // Make a 512 character string, it should be considered too long by the validation.
+        // Note: a 511 character string, we are okay with
+        arguments(StringUtils.repeat("a", 512), new String[] {"Size"}));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testSnapshotDescriptionInvalid(String invalidDescription, String[] messageCodes)
+      throws Exception {
+    snapshotByAssetRequest.description(invalidDescription);
+    ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
+    checkValidationErrorModel(errorModel, messageCodes);
+  }
+
+  private static Stream<Arguments> testSnapshotDescriptionInvalid() {
+    return Stream.of(
+        arguments(StringUtils.repeat("a", 2048), new String[] {"SnapshotDescriptionTooLong"}),
+        arguments(null, new String[] {"SnapshotDescriptionMissing"}));
   }
 
   @Test
-  public void testSnapshotValuesListEmpty() throws Exception {
+  void testSnapshotValuesListEmpty() throws Exception {
     SnapshotRequestAssetModel assetSpec =
         new SnapshotRequestAssetModel().assetName("asset").rootValues(Collections.emptyList());
 
@@ -218,55 +232,28 @@ public class SnapshotValidationTest {
     checkValidationErrorModel(errorModel, new String[] {"SnapshotRootValuesListEmpty"});
   }
 
-  @Test
-  public void testSnapshotDatasetNameInvalid() throws Exception {
-    // snapshotByAssetRequest is assumed to be valid, we will just mess with the dataset name in the
-    // contents
-    SnapshotRequestContentsModel contents = snapshotByAssetRequest.getContents().get(0);
-    contents.setDatasetName("no spaces");
-    ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
-
-    contents.setDatasetName("no-dashes");
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
-
-    contents.setDatasetName("");
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Size", "Pattern"});
-
-    // Make a 512 character string, it should be considered too long by the validation.
-    String tooLong = StringUtils.repeat("a", 512);
-    contents.setDatasetName(tooLong);
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Size"});
-  }
-
-  @Test
-  public void testSnapshotAssetNameInvalid() throws Exception {
+  @ParameterizedTest
+  @MethodSource
+  void testSnapshotAssetNameInvalid(String invalidAssetName, String[] messageCodes)
+      throws Exception {
     SnapshotRequestAssetModel assetSpec =
         snapshotByAssetRequest.getContents().get(0).getAssetSpec();
-    assetSpec.setAssetName("no spaces");
+    assetSpec.setAssetName(invalidAssetName);
     ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
+    checkValidationErrorModel(errorModel, messageCodes);
+  }
 
-    assetSpec.setAssetName("no-dashes");
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
-
-    assetSpec.setAssetName("");
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Size", "Pattern"});
-
-    // Make a 64 character string, it should be considered too long by the validation.
-    String tooLong = StringUtils.repeat("a", 64);
-    assetSpec.setAssetName(tooLong);
-    errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"Size"});
+  private static Stream<Arguments> testSnapshotAssetNameInvalid() {
+    return Stream.of(
+        arguments("no spaces", new String[] {"Pattern"}),
+        arguments("no-dashes", new String[] {"Pattern"}),
+        arguments("", new String[] {"Size", "Pattern"}),
+        // Make a 64 character string, it should be considered too long by the validation.
+        arguments(StringUtils.repeat("a", 64), new String[] {"Size"}));
   }
 
   @Test
-  public void testSnapshotRowIdsEmptyColumns() throws Exception {
+  void testSnapshotRowIdsEmptyColumns() throws Exception {
     SnapshotRequestRowIdModel rowIdSpec =
         snapshotByRowIdsRequestModel.getContents().get(0).getRowIdSpec();
     rowIdSpec.getTables().get(0).setColumns(Collections.emptyList());
@@ -275,7 +262,7 @@ public class SnapshotValidationTest {
   }
 
   @Test
-  public void testSnapshotRowIdsEmptyRowIds() throws Exception {
+  void testSnapshotRowIdsEmptyRowIds() throws Exception {
     SnapshotRequestRowIdModel rowIdSpec =
         snapshotByRowIdsRequestModel.getContents().get(0).getRowIdSpec();
     rowIdSpec.getTables().get(0).setRowIds(Collections.emptyList());
@@ -284,7 +271,7 @@ public class SnapshotValidationTest {
   }
 
   @Test
-  public void testSnapshotByQuery() throws Exception {
+  void testSnapshotByQuery() throws Exception {
     SnapshotRequestModel querySpec = this.snapshotByQueryRequestModel;
     querySpec.getContents().get(0).getQuerySpec().setQuery(null);
     ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByQueryRequestModel);
@@ -292,7 +279,7 @@ public class SnapshotValidationTest {
   }
 
   @Test
-  public void testSnapshotNameMissing() throws Exception {
+  void testSnapshotNameMissing() throws Exception {
     snapshotByAssetRequest.name(null);
     ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     checkValidationErrorModel(errorModel, new String[] {"SnapshotNameMissing", "NotNull"});
@@ -308,7 +295,7 @@ public class SnapshotValidationTest {
   }
 
   @Test
-  public void testSnapshotInvalidCompactIdPrefix() throws Exception {
+  void testSnapshotInvalidCompactIdPrefix() throws Exception {
     when(applicationConfiguration.getCompactIdPrefixAllowList()).thenReturn(List.of("foo.0"));
     snapshotByAssetRequest.compactIdPrefix("bar.0");
     ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);

@@ -5,6 +5,7 @@ import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
@@ -35,6 +36,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final CloudFileReader cloudFileReader;
   private final ExecutorService executor;
   private final AuthenticatedUserRequest userRequest;
+  final Dataset dataset;
 
   public IngestPopulateFileStateFromFileStep(
       LoadService loadService,
@@ -43,7 +45,8 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
       ObjectMapper bulkLoadObjectMapper,
       CloudFileReader cloudFileReader,
       ExecutorService executor,
-      AuthenticatedUserRequest userRequest) {
+      AuthenticatedUserRequest userRequest,
+      Dataset dataset) {
     this.loadService = loadService;
     this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
     this.batchSize = batchSize;
@@ -51,6 +54,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     this.cloudFileReader = cloudFileReader;
     this.executor = executor;
     this.userRequest = userRequest;
+    this.dataset = dataset;
   }
 
   void readFile(BufferedReader reader, String projectId, FlightContext context) throws IOException {
@@ -80,7 +84,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
                       bulkLoadObjectMapper.readValue(lineCopy, BulkLoadFileModel.class);
                   IngestUtils.validateBulkLoadFileModel(loadFile);
                   cloudFileReader.validateUserCanRead(
-                      List.of(loadFile.getSourcePath()), projectId, userRequest);
+                      List.of(loadFile.getSourcePath()), projectId, userRequest, dataset);
                   return loadFile;
                 } catch (IOException | BlobAccessNotAuthorizedException | BadRequestException ex) {
                   try {

@@ -508,6 +508,17 @@ paths:
             type: array
             items:
               type: string
+        - name: tags
+          in: query
+          description: >
+            Filter the results where these case sensitive tags are applied to the snapshots
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
       responses:
         200:
           description: List of snapshots
@@ -590,6 +601,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SnapshotIdsAndRolesModel"
+  /api/repository/v1/snapshots/tags:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Get accessible snapshot tags. Access may be granted directly via Sam and/or indirectly via
+        a user's linked RAS passport in Terra.
+      operationId: getSnapshotTags
+      parameters:
+        - name: filter
+          in: query
+          description: Filter to tags with this string as a case-insensitive match.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >
+            The maximum number of tags to return, in descending order of occurrence count.
+            All accessible tags will be returned if unspecified.
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Accessible snapshot tags matching specified filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagCountResultModel'
   /api/repository/v1/snapshots/{id}:
     get:
       tags:
@@ -879,6 +919,61 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/files:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: List metadata for all files in a snapshot.
+      operationId: listFiles
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: offset
+          in: query
+          description: The number of items to skip before starting to collect the result
+            set.
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The numbers of items to return.
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileModel'
+        400:
+          description: Bad request - not sure this will ever happen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - file id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        409:
+          description: No idea if we will generate this error code
           content:
             application/json:
               schema:
@@ -1253,6 +1348,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/tags:
+    patch:
+      tags:
+        - snapshots
+        - repository
+      description: Update tags on snapshot
+      operationId: updateSnapshotTags
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateRequestModel'
+      responses:
+        200:
+          description: Snapshot summary with updated tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotSummaryModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - snapshot does not exist
+            or the caller is missing permissions to modify its metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/duos:
     get:
       tags:
@@ -1447,6 +1583,17 @@ paths:
             in any of the cloud storage regions used by the dataset.
           schema:
             type: string
+        - name: tags
+          in: query
+          description: >
+            Filter the results where these case sensitive tags are applied to the datasets
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
       responses:
         200:
           description: List of datasets
@@ -1504,6 +1651,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: dataset
+  /api/repository/v1/datasets/tags:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: Get accessible dataset tags
+      operationId: getDatasetTags
+      parameters:
+        - name: filter
+          in: query
+          description: Filter to tags with this string as a case-insensitive match.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >
+            The maximum number of tags to return, in descending order of occurrence count.
+            All accessible tags will be returned if unspecified.
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Accessible dataset tags matching specified filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagCountResultModel'
   /api/repository/v1/datasets/{id}:
     get:
       tags:
@@ -1705,6 +1879,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DatasetDataModel'
+  /api/repository/v1/datasets/{id}/data/{table}/statistics/{column}:
+    get:
+      tags:
+        - datasets
+      description: Retrieve statiscs about data for a column in a table in a dataset
+      operationId: lookupDatasetColumnStatisticsById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table where column lives
+          required: true
+          schema:
+            type: string
+        - name: column
+          in: path
+          description: Name of column in the table to get statisitcs about
+          required: true
+          schema:
+            type: string
+        - name: filter
+          in: query
+          description: >-
+            A SQL WHERE clause to filter results included in column statistics.
+
+
+            For GCP array string columns, if you wanted to include all rows that contain 'value1' in column1,
+            the filter clause would look like 'WHERE 'value1' IN UNNEST(column1)'. Note that "count" value
+            includes all occurrences of a value including duplicates of the same value in a single array.
+            i.e. if we had two rows in a table where the value for column1, row1 = ['value1', 'value1', 'value2'] and column1, row2 = ['value1'] the count for 'value1' would be 3.
+          schema:
+            type: string
+      responses:
+        200:
+          description: Returns the statistics about a column from a dataset's table
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColumnStatisticsModel'
   /api/repository/v1/datasets/{id}/summary:
     get:
       tags:
@@ -2366,6 +2579,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: dataDeletionRequest
+  /api/repository/v1/datasets/{id}/tags:
+    patch:
+      tags:
+        - datasets
+        - repository
+      description: Update tags on dataset
+      operationId: updateDatasetTags
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateRequestModel'
+      responses:
+        200:
+          description: Dataset summary with updated tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetSummaryModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - dataset does not exist
+            or the caller is missing permissions to modify its metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/register/user:
     get:
       tags:
@@ -2382,6 +2636,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserStatusInfo'
   /api/repository/v1/datasets/{id}/files:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: List metadata for all files in a dataset.
+      operationId: listFiles
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: offset
+          in: query
+          description: The number of items to skip before starting to collect the result
+            set.
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The numbers of items to return.
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileModel'
+        400:
+          description: Bad request - not sure this will ever happen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - file id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        409:
+          description: No idea if we will generate this error code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
     post:
       tags:
         - datasets
@@ -2981,6 +3289,35 @@ paths:
             application/json:
               schema:
                 type: object
+  /api/repository/v1/admin/register-drs-aliases:
+    post:
+      tags:
+        - admin
+        - repository
+      description: >
+        Load Drs Aliases into TDR.  It is possible to have an alias to a DRS ID that does not exist
+        in TDR.
+      operationId: registerDrsAliases
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/DrsAliasModel'
+      responses:
+        200:
+          description: Drs alias registration job submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/configs/{name}:
     get:
       tags:
@@ -3797,6 +4134,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: x-user-project
+          in: header
+          description: >
+            For GCP hosted files, this will indicate the user project to bill when accessing the
+            signed url.  This value must be a valid Terra billing project ID that the caller has
+            access to and only applies to GCP hosted data.
+          required: false
+          schema:
+            type: string
       responses:
         200:
           description: The access URL was found successfully.
@@ -3873,6 +4219,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: x-user-project
+          in: header
+          description: >
+            For GCP hosted files, this will indicate the user project to bill when accessing the
+            signed url.  This value must be a valid Terra billing project ID that the caller has
+            access to and only applies to GCP hosted data.
+          required: false
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -3935,7 +4290,8 @@ paths:
       tags:
         - journal
       description: >
-        Returns a list of journal entries for an object the caller has access to
+        Returns a list of journal entries for an object the caller has access to, in descending
+        order of entry creation.
       operationId: retrieveJournalEntries
       parameters:
         - in: path
@@ -3960,7 +4316,7 @@ paths:
             default: 0
         - name: limit
           in: query
-          description: The numbers entries to retrieve and return.
+          description: The number of entries to retrieve and return.
           schema:
             type: integer
             default: 10
@@ -3998,7 +4354,71 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         500:
-          description: An unexpected error occurred - dataset was not updated.
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  ##############################################################################
+  ## SNAPSHOT BUILDER API ENDPOINTS
+  ## ⚠️ NOTE: ALL SNAPSHOT APIS ARE SUBJECT TO CHANGE
+  ##############################################################################
+  /api/repository/v1/datasets/{id}/snapshotBuilder/settings:
+    post:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Updates the settings for using the dataset in the snapshot builder.
+      operationId: updateDatasetSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the dataset.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New settings for the dataset to use for snapshot building
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotBuilderSettings'
+        required: true
+      responses:
+        200:
+          description: The updated Dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetModel'
+        400:
+          description: Bad request - invalid id, badly formed IamResourceType.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - dataset does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to update snapshot builder settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No dataset found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
           content:
             application/json:
               schema:
@@ -4026,9 +4446,9 @@ components:
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string
       description: >
-        Table and column names follow this pattern. This should be used for the name of any object in the
+        Table names follow this pattern. This should be used for the name of any non-column object in the
         system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
-        any extra columns the DR adds. For table and column names, this is shorter than what BigQuery allows.
+        any extra tables the DR adds. For table names, this is shorter than what BigQuery allows.
     DatasetSnapshotNameProperty:
       maxLength: 511
       minLength: 1
@@ -4037,16 +4457,25 @@ components:
       description: >
         Dataset and snapshot names follow this pattern. It is the same as ObjectNameProperty, but has
         a greater maxLength.
+    ColumnNameProperty:
+      maxLength: 63
+      minLength: 1
+      pattern: ^[a-zA-Z][_a-zA-Z0-9]*$
+      type: string
+      description: >
+        Column names follow this pattern. This should be used for the name of any column in the
+        system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
+        any extra columns the DR adds. This is shorter than what BigQuery allows.
     UniqueIdProperty:
       type: string
       format: uuid
       description: >
         Unique identifier for a dataset, snapshot, etc.
     ShortIdProperty:
-      pattern: '[A-za-z0-9_\\-]{22}'
+      pattern: '[A-Za-z0-9_\\-]{22}'
       type: string
       description: >
-        Unique identifier for a flights, jobs, etc.
+        Unique identifier for flights, jobs, etc.
     BillingProfileRequestModel:
       required:
         - biller
@@ -4195,7 +4624,8 @@ components:
         ingestServiceAccount:
           type: string
           description: >
-            Google service account to grant storage.object.get access on source Google storage buckets to in order to ingest files
+            Google service account which must be granted `storage.objects.get` permissions on any
+            source buckets that TDR will ingest data from.
         predictableFileIds:
           type: boolean
           default: false
@@ -4203,6 +4633,14 @@ components:
             If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
+        snapshotBuilderSettings:
+          $ref: '#/components/schemas/SnapshotBuilderSettings'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -4248,6 +4686,12 @@ components:
             If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -4285,19 +4729,36 @@ components:
           description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
         dedicatedIngestServiceAccount:
           type: boolean
-          default: false
+          default: true
           description: >
-            If true, for GCP-backed datasets, a service account will be created in the dataset's primary GCP project.
-            This service account must be granted `storage.objects.get` permissions on any source buckets that TDR will ingest data from.
-            The service account can be obtained when retrieving the dataset.  If this value is false and the dataset
-            is a GCP-backed dataset, then the global service account must be granted `storage.objects.get` permissions to source buckets.
+            This field is only relevant for GCP-backed datasets. If true, a unique service account
+            will be created in the dataset's primary GCP project, registered in Terra, and used to
+            facilitate ingests. If false, TDR's general service account will be used.
 
-            Note: this can be done by granting the "Storage Object Viewer", "Storage Legacy Object Reader", or "Storage Legacy Object Owner"
-            role to the source buckets
 
-            This might be useful to set as a security improvement since this provides a dedicated account that explicitly
-            does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
-            since the main service account could run into Google group membership quota violations.
+            The dataset's service account can be found when retrieving the dataset.  Whether it is
+            dedicated or general, it must be granted `storage.objects.get` permissions on any source
+            buckets that TDR will ingest data from.
+            This can be done by giving the service account the "Storage Object Viewer", "Storage
+            Legacy Object Reader", or "Storage Legacy Object Owner" role on the source buckets.
+
+
+            TDR recommends that this be set to true:
+
+
+            - A dedicated account that explicitly does not have access to other buckets is more
+              secure and isolated from issues that could impact the general account.
+            - Up to 2.5x speed improvements when ingesting files. TDR can bypass the costly
+              permission checking of all user-specified GCP files to ingest if the dataset has a
+              dedicated service account. Such accounts are unique to the dataset and ingests will
+              correctly fail if they lack needed permission on the files. Otherwise, we must
+              perform this check to ensure that a user cannot ingest files inaccessible to them, but
+              accessible to the general TDR service account.
+            - Only the dataset's dedicated account must be granted permissions on source ingest
+              buckets.  When using the general account, you must also grant permissions to the Terra
+              proxy user groups for any users triggering ingests.
+            - A dedicated service account is less likely to encounter Google group membership quota
+              violations, which is relevant if you need to authorize a large number of buckets.
         experimentalPredictableFileIds:
           type: boolean
           default: false
@@ -4321,6 +4782,8 @@ components:
               type: array
               items:
                 type: string
+        tags:
+          $ref: '#/components/schemas/ResourceCreateTags'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetPatchRequestModel:
@@ -4341,7 +4804,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE, SNAPSHOT_BUILDER_SETTINGS ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -4373,7 +4836,7 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
         datatype:
           $ref: '#/components/schemas/TableDataType'
         array_of:
@@ -4399,9 +4862,9 @@ components:
         primaryKey:
           type: array
           items:
-            $ref: '#/components/schemas/ObjectNameProperty'
+            $ref: '#/components/schemas/ColumnNameProperty'
           description: >
-            Primary key columns names. Any columns listed as a primary key will be marked as required by default.
+            Primary key column names. Any columns listed as a primary key will be marked as required by default.
         partitionMode:
           type: string
           default: none
@@ -4422,7 +4885,7 @@ components:
       type: object
       properties:
         column:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
       description: Describes how a date partition should be configured.
     IntPartitionOptionsModel:
       required:
@@ -4433,7 +4896,7 @@ components:
       type: object
       properties:
         column:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
         min:
           type: integer
           description: >
@@ -4459,7 +4922,7 @@ components:
         table:
           $ref: '#/components/schemas/ObjectNameProperty'
         column:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
       description: Describes a table and columns for a relationship
     RelationshipModel:
       required:
@@ -4489,7 +4952,7 @@ components:
         columns:
           type: array
           items:
-            $ref: '#/components/schemas/ObjectNameProperty'
+            $ref: '#/components/schemas/ColumnNameProperty'
       description: >
         Used in the asset definition to describe a table that is included in the asset. This is used to define
         the view of the asset table in the snapshot. Columns can be an empty array indicating that all columns
@@ -4512,7 +4975,7 @@ components:
         rootTable:
           $ref: '#/components/schemas/ObjectNameProperty'
         rootColumn:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
         follow:
           type: array
           items:
@@ -4591,6 +5054,8 @@ components:
       required:
         - format
         - table
+        - max_bad_records
+        - max_failed_file_loads
       type: object
       properties:
         table:
@@ -4817,6 +5282,10 @@ components:
           items:
             type: object
           description: Data from a dataset table
+        totalRowCount:
+          type: integer
+        filteredRowCount:
+          type: integer
       description: >
        Data from a dataset table
     SnapshotPreviewModel:
@@ -4827,8 +5296,58 @@ components:
           items:
             type: object
           description: Preview data of a snapshot table
+        totalRowCount:
+          type: integer
+        filteredRowCount:
+          type: integer
       description: >
         A preview of a snapshot table
+    ColumnStatisticsTextModel:
+      allOf:
+        - $ref: '#/components/schemas/ColumnStatisticsModel'
+        - type: object
+          required:
+            - values
+          properties:
+            values:
+              type: array
+              items:
+                $ref: '#/components/schemas/ColumnStatisticsTextValue'
+    ColumnStatisticsTextValue:
+      type: object
+      properties:
+        value:
+          type: string
+        count:
+          type: integer
+    ColumnStatisticsIntModel:
+      allOf:
+        - $ref: '#/components/schemas/ColumnStatisticsModel'
+        - type: object
+          properties:
+            minValue:
+              type: integer
+            maxValue:
+              type: integer
+    ColumnStatisticsDoubleModel:
+      allOf:
+        - $ref: '#/components/schemas/ColumnStatisticsModel'
+        - type: object
+          properties:
+            minValue:
+              type: number
+              format: double
+            maxValue:
+              type: number
+              format: double
+    ColumnStatisticsModel:
+      type: object
+      required:
+        - dataType
+      properties:
+        dataType:
+          type: string
+          description: Data type of column
     FileModel:
       type: object
       properties:
@@ -4920,6 +5439,7 @@ components:
         - loadControlFile
         - loadTag
         - profileId
+        - maxFailedFileLoads
       type: object
       properties:
         profileId:
@@ -4960,6 +5480,7 @@ components:
         - loadArray
         - loadTag
         - profileId
+        - maxFailedFileLoads
       type: object
       properties:
         profileId:
@@ -5126,6 +5647,8 @@ components:
           description: Description of the snapshot
         consentCode:
           $ref: '#/components/schemas/ConsentCode'
+        duosId:
+          $ref: '#/components/schemas/DuosId'
         contents:
           type: array
           items:
@@ -5167,6 +5690,8 @@ components:
             if true, drs ids will be in the format: v2_<fileid>
         compactIdPrefix:
           $ref: '#/components/schemas/CompactIdPrefix'
+        tags:
+          $ref: '#/components/schemas/ResourceCreateTags'
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -5250,7 +5775,7 @@ components:
         columns:
           type: array
           items:
-            $ref: '#/components/schemas/ObjectNameProperty'
+            $ref: '#/components/schemas/ColumnNameProperty'
         rowIds:
           type: array
           items:
@@ -5329,6 +5854,12 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -5375,6 +5906,18 @@ components:
         errors:
           type: array
           description: Errors encountered which may result in a partial role map returned.
+          items:
+            $ref: '#/components/schemas/ErrorModel'
+    TagCountResultModel:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagCount'
+        errors:
+          type: array
+          description: Errors encountered which may result in a partial tag list returned.
           items:
             $ref: '#/components/schemas/ErrorModel'
     SnapshotModel:
@@ -5430,6 +5973,12 @@ components:
             if true, drs ids will be in the format: v2_<fileid>
         compactIdPrefix:
           $ref: '#/components/schemas/CompactIdPrefix'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -5903,11 +6452,25 @@ components:
         samUrl:
           type: string
           format: uri
-          description: the URI of SAM this instance uses
+          description: the URI of Sam this instance uses
         authorityEndpoint:
           type: string
           format: uri
           description: the URI of oauth authority for the UI to use (e.g. .well-known/openid-configuration gets appended to it)
+        duosUrl:
+          type: string
+          format: uri
+          description: the URI of DUOS this instance uses
+    DrsAliasModel:
+      type: object
+      properties:
+        aliasDrsObjectId:
+          type: string
+          description: the alias to a TDR DRS object ID
+        tdrDrsObjectId:
+          type: string
+          description: the TDR DRS object ID the alias references
+      description: A mapping from a user provider DRS alias to a TDR DRS object ID
     ConfigModel:
       type: object
       properties:
@@ -6094,6 +6657,199 @@ components:
       type: string
       description: DUOS dataset identifier
       example: DUOS-123456
+
+    Tag:
+      type: string
+      description: >
+        A tag associated with a TDR resource (dataset, snapshot)
+      example: a-resource-tag
+
+    ResourceCreateTags:
+      type: array
+      items:
+        $ref: '#/components/schemas/Tag'
+      description: >
+        Tags to add to the resource on its creation.  User-inputted tags will be stripped of leading
+        and trailing whitespace, filtered of empty elements, and deduplicated.
+
+    TagUpdateRequestModel:
+      type: object
+      properties:
+        add:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          required: false
+          description: >
+            Tags to add to the resource.  User-inputted tags will be stripped of leading and
+            trailing whitespace, filtered of empty elements, and deduplicated.  Adding tags already
+            present on the resource will have no effect.
+        remove:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          required: false
+          description: >
+            Tags to remove from the resource.  User-inputted tags will be stripped of leading and
+            trailing whitespace, filtered of empty elements, and deduplicated.  Removing tags not
+            present on the resource will have no effect.
+
+    TagCount:
+      type: object
+      properties:
+        tag:
+          $ref: '#/components/schemas/Tag'
+        count:
+          type: integer
+          description: Number of occurrences of this tag across accessible same-typed resources
+
+    ResourceLocks:
+      type: object
+      description: >
+        An exclusive lock on a resource may prevent other resource modifications from running
+        concurrently.
+      properties:
+        exclusive:
+          $ref: '#/components/schemas/ShortIdProperty'
+
+    ##############################################################################
+    ## SNAPSHOT BUILDER API STANDARD MODELS
+    ## ⚠️ NOTE: ALL SNAPSHOT API MODELS ARE SUBJECT TO CHANGE
+    ##############################################################################
+    SnapshotBuilderSettings:
+      type: object
+      description: >
+        ⚠️ The configuration describing how to select criteria for issuing a snapshot builder request
+      required:
+        - domainOptions
+        - programDataOptions
+        - featureValueGroups
+      properties:
+        domainOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderDomainOption'
+        programDataOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
+        featureValueGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
+        datasetConceptSets:
+          type: array
+          items:
+            $ref:
+              '#/components/schemas/SnapshotBuilderDatasetConceptSets'
+
+    SnapshotBuilderDatasetConceptSets:
+      type: object
+      description: >
+        ⚠️ A concept set provided for the dataset, usually used to access tables that are not searchable as domains
+      required:
+        - name
+        - featureValueGroupName
+      properties:
+        name:
+          type: string
+        featureValueGroupName:
+          type: string
+
+    SnapshotBuilderDomainOption:
+      type: object
+      description: >
+        ⚠️ An object describing high level information about a domain for use in the snapshot builder
+      required:
+        - id
+        - category
+        - root
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        conceptCount:
+          type: integer
+        participantCount:
+          type: integer
+        root:
+          $ref: '#/components/schemas/SnapshotBuilderConcept'
+
+    SnapshotBuilderConcept:
+      type: object
+      description: >
+        ⚠️ An object describing a concept in the Snapshot Builder
+      required:
+        - id
+        - name
+        - hasChildren
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        count:
+          type: integer
+        hasChildren:
+          type: boolean
+
+    SnapshotBuilderProgramDataOption:
+      type: object
+      description: >
+        ⚠️ An object describing high level information about program data for use in the snapshot builder
+      required:
+        - id
+        - name
+        - kind
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [ range, list ]
+        min:
+          type: integer
+        max:
+          type: integer
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderListOption'
+
+    SnapshotBuilderListOption:
+      type: object
+      description: >
+        ⚠️ An object describing a program data list option for the snapshot builder
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    SnapshotBuilderFeatureValueGroup:
+      type: object
+      description: >
+        ⚠️ Describes a set of columns for a table with given name
+      required:
+        - id
+        - name
+        - values
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

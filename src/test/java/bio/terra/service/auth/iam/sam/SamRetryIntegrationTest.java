@@ -20,6 +20,7 @@ import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
+import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,7 +57,7 @@ public class SamRetryIntegrationTest extends UsersBase {
     ApiClient apiClient = new ApiClient();
     apiClient.setAccessToken(accessToken);
     apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    return apiClient.setBasePath(samConfig.getBasePath());
+    return apiClient.setBasePath(samConfig.basePath());
   }
 
   @Before
@@ -118,8 +119,9 @@ public class SamRetryIntegrationTest extends UsersBase {
   private String SyncPolicy(IamResourceType resourceType, UUID resourceId, IamRole role)
       throws ApiException {
 
-    Map<String, List<Object>> results =
-        samGoogleApi.syncPolicy(resourceType.toString(), resourceId.toString(), role.toString());
+    Map<String, List<SyncReportEntry>> results =
+        samGoogleApi.syncPolicy(
+            resourceType.toString(), resourceId.toString(), role.toString(), null);
     return results.keySet().iterator().next();
   }
 }

@@ -186,10 +186,12 @@ Download the team's projects:
 ```
 git clone git@github.com:DataBiosphere/jade-data-repo.git
 git clone git@github.com:DataBiosphere/jade-data-repo-ui.git
-git clone git@github.com:DataBiosphere/jade-data-repo-cli
-git clone git@github.com:broadinstitute/datarepo-helm
-git clone git@github.com:broadinstitute/datarepo-helm-definitions
-git clone git@github.com:broadinstitute/terraform-jade
+git clone git@github.com:DataBiosphere/jade-data-repo-cli.git
+git clone git@github.com:broadinstitute/datarepo-helm.git
+git clone git@github.com:broadinstitute/datarepo-helm-definitions.git
+git clone git@github.com:broadinstitute/terra-helmfile.git
+git clone git@github.com:broadinstitute/terraform-ap-deployments.git
+git clone git@github.com:broadinstitute/terraform-jade.git
 ```
 
 ## 8. Set up your Development Environment
@@ -209,10 +211,12 @@ these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/fol
 2. Create your datarepo helm definition:
   -  In `datarepo-helm-definitions/dev` directory,
      copy an existing developer definition and change all initials to your own.
-  -  Verify that any release chart versions specified in your `helmfile.yaml` match the
+     Double-check with the team if you're not sure what to use, but the most recently added
+     is probably the best choice.
+  -  By default, leave release chart versions unspecified in your `helmfile.yaml` so that
+     latest versions are automatically picked up when running helmfile commands.
+     Otherwise, verify that specified versions match the
      [latest dependency versions](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo/Chart.lock).
-     Any left unspecified will automatically pick up the latest version
-     when running helmfile commands.
   -  Create a pull request with these changes in
      [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions).
 
@@ -238,6 +242,8 @@ gcloud container clusters get-credentials dev-master --region us-central1 --proj
 
 4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
    bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
+
+Note: Make sure you are on the VPN, otherwise the helmfile apply will fail.
 
 ```
 cd datarepo-helm-definitions/dev/ZZ
@@ -269,6 +275,12 @@ DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 ```
 create extension pgcrypto;
 ```
+
+8. Create a pull request to `terraform-ap-deployments` to add
+  `https://jade-ZZ.datarepo-dev.broadinstitute.org` under the
+  ['personal deployments'](https://github.com/broadinstitute/terraform-ap-deployments/blob/e9ecc7a637fe4a7743011b568f76a296a4e85ed2/azure/b2c/tfvars/dev.tfvars#L20)
+  section of `dev.tfvars/b2c_tdr_hosts`.  This allows B2C as a means of authentication, which is
+  the default across environments.
 
 ## 10. Install Postgres 11
 
@@ -338,11 +350,13 @@ export DB_MIGRATE_DROPALLONSTART=true
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 
 # Setting for credentials to test on Azure
-export AZURE_CREDENTIALS_HOMETENANTID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
-export AZURE_CREDENTIALS_APPLICATIONID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
+export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
+export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
 export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
 export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
 export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
+export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
+export AZURE_SYNAPSE_INITIALIZE=false
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`

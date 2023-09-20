@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
@@ -17,13 +16,10 @@ public class DeleteSnapshotMetadataStep implements Step {
 
   private final SnapshotDao snapshotDao;
   private final UUID snapshotId;
-  private final AuthenticatedUserRequest userReq;
 
-  public DeleteSnapshotMetadataStep(
-      SnapshotDao snapshotDao, UUID snapshotId, AuthenticatedUserRequest userReq) {
+  public DeleteSnapshotMetadataStep(SnapshotDao snapshotDao, UUID snapshotId) {
     this.snapshotDao = snapshotDao;
     this.snapshotId = snapshotId;
-    this.userReq = userReq;
   }
 
   @Override
@@ -31,7 +27,7 @@ public class DeleteSnapshotMetadataStep implements Step {
     DeleteResponseModel.ObjectStateEnum stateEnum;
     try {
       stateEnum =
-          snapshotDao.delete(snapshotId, userReq)
+          snapshotDao.delete(snapshotId)
               ? DeleteResponseModel.ObjectStateEnum.DELETED
               : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     } catch (SnapshotNotFoundException ex) {

@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutorService;
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileStateFromFileStep {
   private final GcsPdao gcsPdao;
-  private final Dataset dataset;
 
   public IngestPopulateFileStateFromFileGcpStep(
       LoadService loadService,
@@ -35,9 +34,15 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
       AuthenticatedUserRequest userRequest,
       Dataset dataset) {
     super(
-        loadService, maxBadLines, batchSize, bulkLoadObjectMapper, gcsPdao, executor, userRequest);
+        loadService,
+        maxBadLines,
+        batchSize,
+        bulkLoadObjectMapper,
+        gcsPdao,
+        executor,
+        userRequest,
+        dataset);
     this.gcsPdao = gcsPdao;
-    this.dataset = dataset;
   }
 
   @Override

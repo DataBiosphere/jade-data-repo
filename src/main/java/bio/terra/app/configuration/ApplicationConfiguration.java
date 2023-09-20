@@ -1,6 +1,5 @@
 package bio.terra.app.configuration;
 
-import bio.terra.app.utils.startup.StartupInitializer;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -18,12 +17,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.apache.tomcat.util.buf.EncodedSolidusHandling;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.ApplicationContext;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -38,6 +40,8 @@ import org.springframework.web.client.RestTemplate;
     name = "testWithEmbeddedDatabase",
     matchIfMissing = true)
 public class ApplicationConfiguration {
+  Logger logger = LoggerFactory.getLogger(ApplicationConfiguration.class);
+
   public static final String APPLICATION_NAME = "Terra Data Repository";
 
   private String userEmail;
@@ -365,10 +369,10 @@ public class ApplicationConfiguration {
       AzureResourceConfiguration azureResourceConfiguration) {
 
     SQLServerDataSource ds = new SQLServerDataSource();
-    ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
-    ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
-    ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
-    ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
+    ds.setServerName(azureResourceConfiguration.synapse().workspaceName());
+    ds.setUser(azureResourceConfiguration.synapse().sqlAdminUser());
+    ds.setPassword(azureResourceConfiguration.synapse().sqlAdminPassword());
+    ds.setDatabaseName(azureResourceConfiguration.synapse().databaseName());
 
     return new NamedParameterJdbcTemplate(ds);
   }
@@ -413,16 +417,6 @@ public class ApplicationConfiguration {
     return builder.build();
   }
 
-  // This is a "magic bean": It supplies a method that Spring calls after the application is setup,
-  // but before the port is opened for business. That lets us do database migration and stairway
-  // initialization on a system that is otherwise fully configured. The rule of thumb is that all
-  // bean initialization should avoid database access. If there is additional database work to be
-  // done, it should happen inside this method.
-  @Bean
-  public SmartInitializingSingleton postSetupInitialization(ApplicationContext applicationContext) {
-    return () -> StartupInitializer.initialize(applicationContext);
-  }
-
   @Bean("tdrServiceAccountEmail")
   public String tdrServiceAccountEmail() throws IOException {
     GoogleCredentials defaultCredentials = GoogleCredentials.getApplicationDefault();
@@ -430,5 +424,16 @@ public class ApplicationConfiguration {
       return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();
     }
     return null;
+  }
+
+  @Bean
+  public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatCustomizer() {
+    // Enable sending %2F (e.g. url encoded forward slashes) in the path of a URL which is helpful
+    // if there is a path parameter that contains a value with a slash in it.
+    logger.info("Configuring Tomcat to allow encoded slashes.");
+    return factory ->
+        factory.addConnectorCustomizers(
+            connector ->
+                connector.setEncodedSolidusHandling(EncodedSolidusHandling.DECODE.getValue()));
   }
 }

@@ -11,6 +11,7 @@ import com.azure.data.tables.models.TableItem;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class TableServiceClientUtils {
@@ -55,13 +56,13 @@ public class TableServiceClientUtils {
   }
 
   public static List<TableEntity> batchRetrieveFiles(
-      TableServiceClient tableServiceClient, List<String> fileIdArray) {
+      TableServiceClient tableServiceClient, UUID datasetId, List<String> fileIdArray) {
     String filter =
         fileIdArray.stream()
-            // maybe wrap or cause in parenthesis
+            // maybe wrap or cause in parentheses
             .map(refId -> String.format("fileId eq '%s'", refId))
             .collect(Collectors.joining(" or "));
-    return filterTable(tableServiceClient, StorageTableName.DATASET.toTableName(), filter);
+    return filterTable(tableServiceClient, StorageTableName.DATASET.toTableName(datasetId), filter);
   }
 
   /**

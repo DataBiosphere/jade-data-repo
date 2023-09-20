@@ -25,6 +25,6 @@ public class SnapshotRecordFileIdsGcpStep extends SnapshotRecordFileIdsStep {
 
   @Override
   List<String> getFileIds(FlightContext context, Snapshot snapshot) throws InterruptedException {
-    return fireStoreDao.retrieveAllFileIds(snapshot);
+    return fireStoreDao.retrieveAllFileIds(snapshot, true);
   }
 }

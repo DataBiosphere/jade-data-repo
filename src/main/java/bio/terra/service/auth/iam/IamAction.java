@@ -18,6 +18,7 @@ public enum IamAction {
   // datarepo
   LIST_JOBS,
   DELETE_JOBS,
+  /* CONFIGURE is only available to admin users so can be used to check for admin access to TDR */
   CONFIGURE,
   SYNC_DUOS_USERS,
   // dataset
@@ -37,7 +38,9 @@ public enum IamAction {
   UPDATE_BILLING_ACCOUNT,
   LINK,
   // journal
-  VIEW_JOURNAL;
+  VIEW_JOURNAL,
+  VIEW_SNAPSHOT_BUILDER_SETTINGS,
+  UPDATE_SNAPSHOT_BUILDER_SETTINGS;
 
   private final String samActionName;
 

@@ -51,7 +51,7 @@ public class DuosClient {
 
   @VisibleForTesting
   String getStatusUrl() {
-    return String.format("%s/status", duosConfiguration.getBasePath());
+    return String.format("%s/status", duosConfiguration.basePath());
   }
 
   /**
@@ -67,7 +67,7 @@ public class DuosClient {
 
   @VisibleForTesting
   String getDatasetUrl(String duosId) {
-    return String.format("%s/api/tdr/%s", duosConfiguration.getBasePath(), duosId);
+    return String.format("%s/api/tdr/%s", duosConfiguration.basePath(), duosId);
   }
 
   /**

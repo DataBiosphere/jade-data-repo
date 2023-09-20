@@ -10,12 +10,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionJsonArrayModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.job.JobService;
 import java.util.List;
 import java.util.Set;
@@ -45,12 +50,19 @@ public class DataDeletionRequestValidatorTest {
   @Autowired private MockMvc mvc;
   @MockBean private DatasetService datasetService;
   @MockBean private JobService jobService;
+  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockBean private IamService iamService;
 
   private DataDeletionRequest goodGcsRequest;
   private DataDeletionRequest goodJsonArrayRequest;
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
+
   @Before
   public void setup() throws Exception {
+    when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
+    when(datasetService.retrieveDatasetSummary(any())).thenReturn(new DatasetSummaryModel());
     when(datasetService.deleteTabularData(any(), any(), any())).thenReturn("mock-job-id");
     when(jobService.retrieveJob(any(), any()))
         .thenReturn(new JobModel().id("mock-job-id").jobStatus(JobModel.JobStatusEnum.RUNNING));

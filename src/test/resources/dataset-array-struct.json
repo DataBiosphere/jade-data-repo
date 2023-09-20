@@ -1,6 +1,7 @@
 {
   "name":        "ArrayStruct",
   "description": "Dataset for testing array/struct; currently ONLY ARRAY test",
+  "dedicatedIngestServiceAccount": false,
   "schema":      {
     "tables":        [
       {

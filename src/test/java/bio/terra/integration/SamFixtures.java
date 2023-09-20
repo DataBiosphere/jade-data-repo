@@ -3,7 +3,6 @@ package bio.terra.integration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
@@ -34,14 +33,14 @@ public class SamFixtures {
   public SamFixtures() {
     headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
     restTemplate = new RestTemplate();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
   }
 
   public void deleteServiceAccountFromTerra(TestConfiguration.User user, String serviceAccount) {
-    logger.info("Deleting user {} from Sam {}", serviceAccount, samConfig.getBasePath());
+    logger.info("Deleting user {} from Sam {}", serviceAccount, samConfig.basePath());
     try {
       // Get the user ID to delete
       HttpHeaders authedHeader = getHeaders(user);
@@ -64,7 +63,7 @@ public class SamFixtures {
       // Delete the user
       String userDeletionUrl =
           "%s/api/admin/v1/user/%s"
-              .formatted(samConfig.getBasePath(), userStatus.getUserInfo().getUserSubjectId());
+              .formatted(samConfig.basePath(), userStatus.getUserInfo().getUserSubjectId());
       try {
         restTemplate.exchange(
             userDeletionUrl, HttpMethod.DELETE, new HttpEntity<>(null, authedHeader), Void.class);
@@ -87,7 +86,7 @@ public class SamFixtures {
     ApiClient apiClient = new ApiClient();
     apiClient.setAccessToken(accessToken);
     apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    return apiClient.setBasePath(samConfig.getBasePath());
+    return apiClient.setBasePath(samConfig.basePath());
   }
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {

@@ -1,6 +1,7 @@
 {
   "name":        "SimpleWithFilerefs",
   "description": "This is a sample dataset definition with filerefs",
+  "dedicatedIngestServiceAccount": false,
   "schema":      {
     "tables":        [
       {

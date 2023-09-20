@@ -113,7 +113,8 @@ public class JournalService {
   }
 
   /**
-   * Return an ordered list of {@code JournalEntryModel}s sorted ascending by when they were created
+   * Return an ordered list of {@code JournalEntryModel}s sorted descending by when they were
+   * created
    *
    * @param resourceKey The domain object key of the resource
    * @param resourceType The {@code IamResourceType} that maps to the domain object the journal
@@ -172,13 +173,8 @@ public class JournalService {
         mapJson);
   }
 
-  /**
-   * Remove an entry from the journal.
-   *
-   * @param idToRemove The journal entry ID to remove.
-   */
-  public void removeJournalEntry(@NotNull UUID idToRemove) {
-    journalDao.deleteJournalEntryById(idToRemove);
+  public void removeJournalEntriesByFlightId(@NotNull String flightId) {
+    journalDao.deleteJournalEntriesByFlightId(flightId);
   }
 
   @VisibleForTesting

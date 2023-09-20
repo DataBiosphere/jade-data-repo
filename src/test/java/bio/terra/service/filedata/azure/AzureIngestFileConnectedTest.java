@@ -55,6 +55,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -86,7 +87,7 @@ public class AzureIngestFileConnectedTest {
   private FileLoadModel fileLoadModel;
   private TableServiceClient tableServiceClient;
 
-  @Autowired private AzureResourceConfiguration azureResourceConfiguration;
+  @SpyBean private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -107,8 +108,8 @@ public class AzureIngestFileConnectedTest {
     UUID storageAccountId = UUID.randomUUID();
     datasetId = UUID.randomUUID();
 
-    homeTenantId = azureResourceConfiguration.getCredentials().getHomeTenantId();
-    azureResourceConfiguration.getCredentials().setHomeTenantId(testConfig.getTargetTenantId());
+    AzureResourceConfiguration.Credentials credentials = azureResourceConfiguration.credentials();
+    credentials.setHomeTenantId(testConfig.getTargetTenantId());
 
     billingProfile =
         new BillingProfileModel()
@@ -134,8 +135,7 @@ public class AzureIngestFileConnectedTest {
             .resourceId(storageAccountId)
             .name(testConfig.getSourceStorageAccountName())
             .applicationResource(applicationResource)
-            .metadataContainer("metadata")
-            .dataContainer("data");
+            .topLevelContainer(datasetId.toString());
 
     storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
@@ -172,13 +172,12 @@ public class AzureIngestFileConnectedTest {
   @After
   public void cleanup() throws Exception {
     try {
-      tableDao.deleteFileMetadata(fileId, storageAuthInfo);
+      tableDao.deleteFileMetadata(datasetId.toString(), fileId, storageAuthInfo);
       tableDirectoryDao.deleteDirectoryEntry(
-          tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fileId);
+          tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
     }
-    azureResourceConfiguration.getCredentials().setHomeTenantId(homeTenantId);
     connectedOperations.teardown();
   }
 
@@ -195,7 +194,10 @@ public class AzureIngestFileConnectedTest {
 
     FireStoreDirectoryEntry de =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), targetPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            targetPath);
     assertThat("directory should not yet exist.", de, equalTo(null));
 
     // 4 - IngestFileAzureDirectoryStep
@@ -210,12 +212,15 @@ public class AzureIngestFileConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), newEntry);
+        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), targetPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
 
     // 5 - IngestFileAzurePrimaryDataStep
@@ -278,18 +283,24 @@ public class AzureIngestFileConnectedTest {
             .size(fsFileInfo.getSize())
             .loadTag(fileLoadModel.getLoadTag());
 
-    tableDao.createFileMetadata(newFile, storageAuthInfo);
+    tableDao.createFileMetadata(datasetId.toString(), newFile, storageAuthInfo);
     // Retrieve to build the complete FSItem
     FSItem fsItem =
         tableDao.retrieveById(
-            CollectionType.DATASET, datasetId, fileId, 1, storageAuthInfo, storageAuthInfo);
+            CollectionType.DATASET,
+            datasetId,
+            datasetId,
+            fileId,
+            1,
+            storageAuthInfo,
+            storageAuthInfo);
     FileModel resultingFileModel = fileService.fileModelFromFSItem(fsItem);
     assertThat(
         "file model contains correct info.", resultingFileModel.getFileId(), equalTo(fileId));
 
     // Testing other cases from IngestFileAzureDirectoryStep (step 4 above)
     // We use this to check if we are in re-run of a load job
-    FireStoreFile fileEntry = tableDao.lookupFile(fileId, storageAuthInfo);
+    FireStoreFile fileEntry = tableDao.lookupFile(datasetId.toString(), fileId, storageAuthInfo);
     assertThat("FileEntry should not be null", fileEntry, notNullValue());
   }
 }

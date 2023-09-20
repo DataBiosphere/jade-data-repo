@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -11,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.Column;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
@@ -21,11 +23,15 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.TableDataType;
+import bio.terra.model.TransactionModel;
+import bio.terra.model.TransactionModel.StatusEnum;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -37,10 +43,13 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
@@ -48,8 +57,10 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -86,18 +97,23 @@ public class BigQueryPdaoTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Autowired private BigQueryDatasetPdao bigQueryDatasetPdao;
+  @Autowired private BigQueryTransactionPdao bigQueryTransactionPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private BufferService bufferService;
+  @Autowired private SnapshotService snapshotService;
 
   @MockBean private IamProviderInterface samService;
 
   private BillingProfileModel profileModel;
 
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
+
+  private final List<UUID> datasetIdsToDelete = new ArrayList<>();
+  private final List<Dataset> bqDatasetsToDelete = new ArrayList<>();
 
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
   private static final AuthenticatedUserRequest TEST_USER =
@@ -169,17 +185,16 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       assertThatDatasetAndTablesShouldExist(dataset, false);
     } finally {
-      datasetDao.delete(dataset.getId(), TEST_USER);
+      datasetDao.delete(dataset.getId());
     }
   }
 
   @Test
   public void nonStringAssetRootTest() throws Exception {
     Dataset dataset = readDataset("ingest-test-dataset.json");
-    connectedOperations.addDataset(dataset.getId());
 
     // Stage tabular data for ingest.
-    String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
+    String targetPath = "scratch/file" + UUID.randomUUID() + "/";
 
     String bucket = testConfig.getIngestbucket();
 
@@ -262,7 +277,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-      datasetDao.delete(dataset.getId(), TEST_USER);
+      datasetDao.delete(dataset.getId());
     }
   }
 
@@ -294,19 +309,35 @@ public class BigQueryPdaoTest {
           new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
 
       UUID datasetId = dataset.getId();
+      // participant table
+      String participantTableName = "participant";
       connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("participant").path(gsPath(participantBlob)));
+          datasetId, ingestRequest.table(participantTableName).path(gsPath(participantBlob)));
+      connectedOperations.checkTableRowCount(dataset, participantTableName, PDAO_PREFIX, 5);
+      connectedOperations.checkDataModel(
+          dataset, List.of("id", "age"), PDAO_PREFIX, participantTableName, 5);
+      // sample table
+      String sampleTableName = "sample";
       connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
+          datasetId, ingestRequest.table(sampleTableName).path(gsPath(sampleBlob)));
+      connectedOperations.checkTableRowCount(dataset, sampleTableName, PDAO_PREFIX, 7);
+      // file table
+      String fileTableName = "file";
       connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("file").path(gsPath(fileBlob)));
+          datasetId, ingestRequest.table(fileTableName).path(gsPath(fileBlob)));
+      connectedOperations.checkTableRowCount(dataset, fileTableName, PDAO_PREFIX, 1);
 
       // Create a full-view snapshot!
       DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
       SnapshotSummaryModel snapshotSummary =
           connectedOperations.createSnapshot(
               datasetSummary, "snapshot-fullviews-test-snapshot.json", "");
-      SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+      Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
+      connectedOperations.checkTableRowCount(snapshot, participantTableName, "", 5);
+      connectedOperations.checkDataModel(
+          snapshot, List.of("id", "age"), "", participantTableName, 5);
+      connectedOperations.checkTableRowCount(snapshot, sampleTableName, "", 7);
+      connectedOperations.checkTableRowCount(snapshot, fileTableName, "", 1);
 
       BigQueryProject bigQuerySnapshotProject =
           TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
@@ -346,7 +377,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-      datasetDao.delete(dataset.getId(), TEST_USER);
+      datasetDao.delete(dataset.getId());
     }
   }
 
@@ -366,18 +397,127 @@ public class BigQueryPdaoTest {
         new Snapshot()
             .projectResource(
                 new GoogleProjectResource().profileId(profileId).googleProjectId(dataProjectId));
-    List<Map<String, Object>> expected = getExampleSnapshotTableData();
-    List<Map<String, Object>> actual =
+    List<BigQueryDataResultModel> expected = getExampleSnapshotTableData();
+    List<BigQueryDataResultModel> actual =
         bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
-    assertEquals(expected, actual);
+    for (int i = 0; i < 3; i++) {
+      assertEquals(expected.get(i).getRowResult(), actual.get(i).getRowResult());
+    }
   }
 
-  private List<Map<String, Object>> getExampleSnapshotTableData() {
-    List<Map<String, Object>> values = new ArrayList<>();
-    for (int i = 0; i < 3; i++) {
-      values.add(Map.of("id", String.valueOf(i + 1), "text", "hello"));
-    }
+  @Test
+  public void testFileIdUpdateMethods() throws Exception {
+    DatasetRequestModel datasetRequest =
+        jsonLoader.loadObject("ingest-test-dataset.json", DatasetRequestModel.class);
+    datasetRequest.getSchema().getTables().stream()
+        .filter(t -> t.getName().equals("file"))
+        .findFirst()
+        .map(
+            t ->
+                t.addColumnsItem(
+                    new ColumnModel().name("file").datatype(TableDataType.FILEREF).arrayOf(false)))
+        .map(
+            t ->
+                t.addColumnsItem(
+                    new ColumnModel()
+                        .name("file_a")
+                        .datatype(TableDataType.FILEREF)
+                        .arrayOf(true)));
 
+    Dataset dataset = readDataset(datasetRequest);
+
+    // Stage tabular data for ingest.
+    String targetPath = "scratch/file" + UUID.randomUUID() + "/";
+    String bucket = testConfig.getIngestbucket();
+    BlobInfo fileBlob = BlobInfo.newBuilder(bucket, targetPath + "ingest-test-file.json").build();
+
+    try {
+      assertThatDatasetAndTablesShouldExist(dataset, false);
+
+      bigQueryDatasetPdao.createDataset(dataset);
+      assertThatDatasetAndTablesShouldExist(dataset, true);
+
+      //  ingest data into the new dataset.
+      UUID newFileId1 = UUID.randomUUID();
+      UUID newFileId2 = UUID.randomUUID();
+      String fileIngestDataTmpl1 =
+          "{\"sourcePath\":\"%s\", \"targetPath\":\"/file/%s\"}".formatted(gsPath(fileBlob), "0");
+      String fileIngestDataTmpl2 =
+          "{\"sourcePath\":\"%s\", \"targetPath\":\"/file/%s\"}".formatted(gsPath(fileBlob), "1");
+      String ingestData =
+          """
+        {"id":"file1","derived_from":["sample6","sample2"],"file":%s,"file_a":[%s]}
+      """
+              .formatted(fileIngestDataTmpl1, fileIngestDataTmpl2);
+      storage.create(fileBlob, ingestData.getBytes(StandardCharsets.UTF_8));
+      IngestRequestModel ingestRequest =
+          new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
+      connectedOperations.ingestTableSuccess(
+          dataset.getId(), ingestRequest.table("file").path(gsPath(fileBlob)));
+      List<String> originalIds = readIds(dataset);
+
+      // Insert the Id mappings
+      // Note: we need a transaction to power the live view used as part of inserting new file ids
+      String flightId = "myflight";
+      TransactionModel transaction =
+          bigQueryTransactionPdao.insertIntoTransactionTable(TEST_USER, dataset, flightId, null);
+      bigQueryDatasetPdao.createStagingFileIdMappingTable(dataset);
+      bigQueryDatasetPdao.fileIdMappingToStagingTable(
+          dataset,
+          Map.of(
+              UUID.fromString(originalIds.get(0)), newFileId1,
+              UUID.fromString(originalIds.get(1)), newFileId2));
+
+      // Update the metadata table
+      bigQueryDatasetPdao.insertNewFileIdsIntoDatasetTable(
+          dataset, getTable(dataset, "file"), transaction.getId(), flightId, TEST_USER);
+      // Commit the transaction
+      bigQueryTransactionPdao.updateTransactionTableStatus(
+          TEST_USER, dataset, transaction.getId(), StatusEnum.COMMITTED);
+
+      List<String> newIds = readIds(dataset);
+      assertThat(
+          "new file ids are now stored",
+          newIds,
+          containsInAnyOrder(newFileId1.toString(), newFileId2.toString()));
+
+      // Now delete it and test that it is gone
+      bigQueryDatasetPdao.deleteDataset(dataset);
+      assertThatDatasetAndTablesShouldExist(dataset, false);
+    } finally {
+      datasetDao.delete(dataset.getId());
+    }
+  }
+
+  private List<String> readIds(Dataset dataset) throws Exception {
+    BigQueryProject bigQueryDatasetProject =
+        TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
+    List<String> ids =
+        new ArrayList<>(
+            queryForColumn(
+                BigQueryPdao.prefixName(dataset.getName()),
+                getTable(dataset, "file").getName(),
+                new Column().name("file"),
+                bigQueryDatasetProject));
+    List<List<String>> idsFromArray =
+        queryForColumn(
+            BigQueryPdao.prefixName(dataset.getName()),
+            getTable(dataset, "file").getName(),
+            new Column().name("file_a").arrayOf(true),
+            bigQueryDatasetProject);
+    ids.addAll(idsFromArray.stream().flatMap(Collection::stream).toList());
+    return ids;
+  }
+
+  private List<BigQueryDataResultModel> getExampleSnapshotTableData() {
+    List<BigQueryDataResultModel> values = new ArrayList<>();
+    for (int i = 0; i < 3; i++) {
+      values.add(
+          new BigQueryDataResultModel()
+              .rowResult(Map.of("id", String.valueOf(i + 1), "text", "hello"))
+              .filteredCount(3)
+              .totalCount(3));
+    }
     return values;
   }
 
@@ -393,28 +533,47 @@ public class BigQueryPdaoTest {
     return "gs://" + blob.getBucket() + "/" + blob.getName();
   }
 
-  private static final String queryForIdsTemplate =
-      "SELECT id FROM `<project>.<snapshot>.<table>` ORDER BY id";
+  private static final String queryForColumnTemplate =
+      "SELECT <column> FROM `<project>.<container>.<table>` ORDER BY id";
 
-  // Get the count of rows in a table or view
-  static List<String> queryForIds(
-      String snapshotName, String tableName, BigQueryProject bigQueryProject) throws Exception {
+  // Query for a table / column's value.
+  static <T> List<T> queryForColumn(
+      String containerName, String tableName, Column column, BigQueryProject bigQueryProject)
+      throws Exception {
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();
 
-    ST sqlTemplate = new ST(queryForIdsTemplate);
+    ST sqlTemplate = new ST(queryForColumnTemplate);
     sqlTemplate.add("project", bigQueryProjectId);
-    sqlTemplate.add("snapshot", snapshotName);
+    sqlTemplate.add("container", containerName);
     sqlTemplate.add("table", tableName);
+    sqlTemplate.add("column", column.getName());
 
     QueryJobConfiguration queryConfig =
         QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
     TableResult result = bigQuery.query(queryConfig);
 
-    ArrayList<String> ids = new ArrayList<>();
-    result.iterateAll().forEach(r -> ids.add(r.get("id").getStringValue()));
+    ArrayList<T> ids = new ArrayList<>();
+    if (column.isArrayOf()) {
+      result
+          .iterateAll()
+          .forEach(
+              r ->
+                  ids.add(
+                      (T)
+                          r.get(column.getName()).getRepeatedValue().stream()
+                              .map(v -> v.getValue())
+                              .toList()));
+    } else {
+      result.iterateAll().forEach(r -> ids.add((T) r.get(column.getName()).getValue()));
+    }
 
     return ids;
+  }
+
+  static List<String> queryForIds(
+      String snapshotName, String tableName, BigQueryProject bigQueryProject) throws Exception {
+    return queryForColumn(snapshotName, tableName, new Column().name("id"), bigQueryProject);
   }
 
   /* BigQuery Legacy SQL supports querying a "meta-table" about partitions
@@ -446,9 +605,13 @@ public class BigQueryPdaoTest {
   // `connectedOperations`
   // tries to delete the resource profile generated in `setup()`.
   private Dataset readDataset(String requestFile) throws Exception {
-    String datasetName = makeDatasetName();
     DatasetRequestModel datasetRequest =
         jsonLoader.loadObject(requestFile, DatasetRequestModel.class);
+    return readDataset(datasetRequest);
+  }
+
+  private Dataset readDataset(DatasetRequestModel datasetRequest) throws Exception {
+    String datasetName = makeDatasetName();
     datasetRequest.defaultProfileId(profileModel.getId()).name(datasetName);
     GoogleRegion region = GoogleRegion.fromValueWithDefault(datasetRequest.getRegion());
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
@@ -467,8 +630,9 @@ public class BigQueryPdaoTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+    connectedOperations.addDataset(dataset.getId());
     return dataset;
   }
 

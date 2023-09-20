@@ -21,7 +21,7 @@ public class OidcApiService {
 
   public OidcApi getOidcApi(AuthenticatedUserRequest userReq) {
     var client = new ApiClient(restTemplate);
-    client.setBasePath(ecmConfiguration.getBasePath());
+    client.setBasePath(ecmConfiguration.basePath());
     client.setAccessToken(userReq.getToken());
 
     return new OidcApi(client);

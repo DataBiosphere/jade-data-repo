@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -13,6 +14,8 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
@@ -74,6 +77,7 @@ public class FileTest extends UsersBase {
   private static Logger logger = LoggerFactory.getLogger(FileTest.class);
 
   private static final int NUM_FILES = 100;
+  private static final int NUM_FAILED_FILES = 5;
 
   @Autowired private AuthService authService;
 
@@ -185,8 +189,28 @@ public class FileTest extends UsersBase {
   }
 
   @Test
+  public void bulkFileLoadTestTdrHostedRandomIdFileHandlesMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, false, NUM_FAILED_FILES, NUM_FAILED_FILES);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdFileWithZeroMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, false, NUM_FAILED_FILES, 0);
+  }
+
+  @Test
   public void bulkFileLoadTestTdrHostedRandomIdArray() throws Exception {
     bulkFileLoadTest(NUM_FILES, false, false, true);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdArrayHandlesMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, true, NUM_FAILED_FILES, NUM_FAILED_FILES);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdArrayZeroMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, true, 1, 0);
   }
 
   @Test
@@ -219,13 +243,96 @@ public class FileTest extends UsersBase {
     bulkFileLoadTest(NUM_FILES, true, true, true);
   }
 
-  private void bulkFileLoadTest(
+  @Test
+  public void bulkFileLoadTestSelfHostedPredictableIdMoveSourceFiles() throws Exception {
+    // Run through basic ingest
+    String loadTag = bulkFileLoadTest(NUM_FILES, true, true, true);
+    String originalSourcePath = "gs://jade-testdata-uswestregion/fileloadprofiletest/1KBfile.txt";
+    String newSourcePath = "gs://jade-testdata-uswestregion/fileloadprofiletest/1KBfile.moved.txt";
+
+    // Get the list of ingested files
+    BulkLoadHistoryModelList loadHistory =
+        dataRepoFixtures.getLoadHistory(steward(), datasetId, loadTag, 0, NUM_FILES * 2);
+
+    assertThat(
+        "the right amount of files are in the load history table",
+        loadHistory.getItems(),
+        hasSize(NUM_FILES));
+    // Assert that they all point to the same (1KB) source file
+    List<String> sourceFiles =
+        loadHistory.getItems().stream()
+            .map(BulkLoadHistoryModel::getSourcePath)
+            .distinct()
+            .toList();
+    assertThat("a single source file was ingested", sourceFiles, hasSize(1));
+    assertThat(
+        "the file path points to the expected path",
+        sourceFiles.get(0),
+        equalTo(originalSourcePath));
+
+    // Now re-ingest 2 files in a new location (e.g. re-point them)
+    List<BulkLoadFileModel> reloadArray =
+        loadHistory.getItems().subList(0, 2).stream()
+            .map(
+                f ->
+                    new BulkLoadFileModel()
+                        .sourcePath(newSourcePath)
+                        .targetPath(f.getTargetPath())
+                        .mimeType("application/binary"))
+            .toList();
+
+    BulkLoadHistoryModel notReIngestedFile = loadHistory.getItems().get(2);
+
+    BulkLoadArrayRequestModel bulkLoad =
+        new BulkLoadArrayRequestModel()
+            .profileId(profileId)
+            .loadTag(loadTag)
+            .bulkMode(true)
+            .loadArray(reloadArray)
+            .maxFailedFileLoads(reloadArray.size());
+
+    BulkLoadArrayResultModel bulkLoadArrayResultModel =
+        dataRepoFixtures.bulkLoadArray(steward(), datasetId, bulkLoad);
+    assertThat(
+        "the right number of files were loaded",
+        bulkLoadArrayResultModel.getLoadSummary().getSucceededFiles(),
+        equalTo(2));
+
+    // iterate over the moved files and ensure that their source is the new path
+    for (var file : reloadArray) {
+      FileModel dsFile = dataRepoFixtures.getFileByName(steward(), datasetId, file.getTargetPath());
+      assertThat(
+          "source file was moved", dsFile.getFileDetail().getAccessUrl(), equalTo(newSourcePath));
+    }
+    // verify that one of the files that WASN'T re-ingest still points to the original source file
+    FileModel dsFile =
+        dataRepoFixtures.getFileByName(steward(), datasetId, notReIngestedFile.getTargetPath());
+    assertThat(
+        "source file was not moved",
+        dsFile.getFileDetail().getAccessUrl(),
+        equalTo(originalSourcePath));
+  }
+
+  private String bulkFileLoadTest(
       int filesToLoad, boolean selfHosted, boolean predictableFileIds, boolean arrayIngestMode)
+      throws Exception {
+    return bulkFileLoadTest(
+        filesToLoad, selfHosted, predictableFileIds, arrayIngestMode, 0, filesToLoad);
+  }
+
+  // Return the load tag used to ingest
+  private String bulkFileLoadTest(
+      int filesToLoad,
+      boolean selfHosted,
+      boolean predictableFileIds,
+      boolean arrayIngestMode,
+      int filesToFail,
+      int maxFailedFileLoads)
       throws Exception {
     initialize(selfHosted, predictableFileIds);
 
     String loadTag = Names.randomizeName("longtest");
-    BulkLoadResultModel loadSummary;
+    BulkLoadResultModel loadSummary = null;
     long start;
     if (arrayIngestMode) {
       BulkLoadArrayRequestModel arrayLoad =
@@ -233,26 +340,38 @@ public class FileTest extends UsersBase {
               .profileId(profileId)
               .loadTag(loadTag)
               .bulkMode(true)
-              .maxFailedFileLoads(filesToLoad);
+              .maxFailedFileLoads(maxFailedFileLoads);
 
       logger.info(
           "bulkFileLoadTest loading " + filesToLoad + " files into dataset id " + datasetId);
 
-      String tailPath = "/fileloadprofiletest/1KBfile.txt";
-      String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
-
+      int failedFileLoadModels = 0;
       for (int i = 0; i < filesToLoad; i++) {
+        String tailPath = "/fileloadprofiletest/1KBfile.txt";
+        if (failedFileLoadModels < filesToFail) {
+          tailPath = "/foo/foo.txt";
+          failedFileLoadModels += 1;
+        }
+        String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
         String targetPath = "/" + loadTag + "/" + i + tailPath;
 
         BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
         model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
         arrayLoad.addLoadArrayItem(model);
       }
-
       start = Instant.now().toEpochMilli();
-      BulkLoadArrayResultModel result =
-          dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
-      loadSummary = result.getLoadSummary();
+
+      if (maxFailedFileLoads < filesToFail) {
+        ErrorModel errorModel =
+            dataRepoFixtures.bulkLoadArrayFailure(steward(), datasetId, arrayLoad);
+        assertThat(
+            errorModel.getMessage(),
+            containsString("More than " + maxFailedFileLoads + " file(s) failed to ingest"));
+      } else {
+        BulkLoadArrayResultModel result =
+            dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
+        loadSummary = result.getLoadSummary();
+      }
     } else {
       String controlFilePath =
           "gs://jade-testdata-uswestregion/scratch/file-test-control.%s.json"
@@ -262,15 +381,20 @@ public class FileTest extends UsersBase {
               .profileId(profileId)
               .loadTag(loadTag)
               .bulkMode(true)
-              .maxFailedFileLoads(filesToLoad)
+              .maxFailedFileLoads(maxFailedFileLoads)
               .loadControlFile(controlFilePath);
 
       // Write ingest control file
       controlFileId = BlobId.fromGsUtilUri(controlFilePath);
 
       StringBuilder sb = new StringBuilder();
+      int failedFileLoadModels = 0;
       for (int i = 0; i < filesToLoad; i++) {
         String tailPath = "/fileloadprofiletest/1KBfile.txt";
+        if (failedFileLoadModels < filesToFail) {
+          tailPath = "/foo/foo.txt";
+          failedFileLoadModels += 1;
+        }
         String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
         String targetPath = "/" + loadTag + "/" + i + tailPath;
 
@@ -278,6 +402,7 @@ public class FileTest extends UsersBase {
         model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
         sb.append(objectMapper.writeValueAsString(model)).append("\n");
       }
+
       BlobInfo controlFile =
           BlobInfo.newBuilder(controlFileId)
               .setContentType(MediaType.APPLICATION_JSON_VALUE)
@@ -285,16 +410,29 @@ public class FileTest extends UsersBase {
       storage.create(controlFile, sb.toString().getBytes(StandardCharsets.UTF_8));
 
       start = Instant.now().toEpochMilli();
-      loadSummary = dataRepoFixtures.bulkLoad(steward(), datasetId, bulkLoad);
+      if (maxFailedFileLoads < filesToFail) {
+        ErrorModel errorModel = dataRepoFixtures.bulkLoadFailure(steward(), datasetId, bulkLoad);
+        assertThat(
+            errorModel.getMessage(),
+            containsString("More than " + maxFailedFileLoads + " file(s) failed to ingest"));
+      } else {
+        loadSummary = dataRepoFixtures.bulkLoad(steward(), datasetId, bulkLoad);
+      }
     }
-
     logger.info("Ingest took %s milliseconds".formatted(Instant.now().toEpochMilli() - start));
-    logger.info("Total files    : " + loadSummary.getTotalFiles());
-    logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
-    logger.info("Failed files   : " + loadSummary.getFailedFiles());
-    logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+    if (loadSummary != null) {
+      logger.info("Total files    : " + loadSummary.getTotalFiles());
+      logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
+      logger.info("Failed files   : " + loadSummary.getFailedFiles());
+      logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
 
-    assertThat("all files should succeed", loadSummary.getSucceededFiles(), equalTo(filesToLoad));
+      assertThat(
+          "all files should succeed",
+          loadSummary.getSucceededFiles(),
+          equalTo(filesToLoad - filesToFail));
+      assertThat("all files should succeed", loadSummary.getFailedFiles(), equalTo(filesToFail));
+    }
+    return loadTag;
   }
 
   // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors
@@ -535,7 +673,8 @@ public class FileTest extends UsersBase {
             selfHosted,
             false,
             predictableFileIds,
-            new DatasetRequestModelPolicies());
+            new DatasetRequestModelPolicies(),
+            null);
 
     datasetSummaryModel = dataRepoFixtures.waitForDatasetCreate(steward(), datasetCreateJob);
     datasetId = datasetSummaryModel.getId();

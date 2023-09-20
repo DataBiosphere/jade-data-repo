@@ -21,17 +21,14 @@ import java.util.List;
 public class IngestCreateTargetDataSourceStep implements Step {
   private final AzureSynapsePdao azureSynapsePdao;
   private final AzureBlobStorePdao azureBlobStorePdao;
-  private final ContainerType containerType;
   private final AuthenticatedUserRequest userRequest;
 
   public IngestCreateTargetDataSourceStep(
       AzureSynapsePdao azureSynapsePdao,
       AzureBlobStorePdao azureBlobStorePdao,
-      ContainerType containerType,
       AuthenticatedUserRequest userRequest) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
-    this.containerType = containerType;
     this.userRequest = userRequest;
   }
 
@@ -49,16 +46,12 @@ public class IngestCreateTargetDataSourceStep implements Step {
     String parquetDestinationLocation = storageAccountResource.getStorageAccountUrl();
     BlobUrlParts targetSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation,
-            billingProfile,
-            storageAccountResource,
-            containerType,
-            userRequest);
+            parquetDestinationLocation, billingProfile, storageAccountResource, userRequest);
     try {
       azureSynapsePdao.getOrCreateExternalDataSource(
           targetSignUrlBlob,
-          IngestUtils.getScopedCredentialName(containerType, flightId),
-          IngestUtils.getDataSourceName(containerType, flightId));
+          IngestUtils.getScopedCredentialName(flightId),
+          IngestUtils.getTargetDataSourceName(flightId));
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
@@ -69,9 +62,9 @@ public class IngestCreateTargetDataSourceStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     azureSynapsePdao.dropDataSources(
-        List.of(IngestUtils.getDataSourceName(containerType, context.getFlightId())));
+        List.of(IngestUtils.getTargetDataSourceName(context.getFlightId())));
     azureSynapsePdao.dropScopedCredentials(
-        List.of(IngestUtils.getScopedCredentialName(containerType, context.getFlightId())));
+        List.of(IngestUtils.getScopedCredentialName(context.getFlightId())));
 
     return StepResult.getStepResultSuccess();
   }

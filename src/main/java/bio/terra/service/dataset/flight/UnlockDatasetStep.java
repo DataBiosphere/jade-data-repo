@@ -8,13 +8,14 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
 import org.springframework.transaction.TransactionSystemException;
 
 public class UnlockDatasetStep extends DefaultUndoStep {
 
   private final DatasetService datasetService;
-  private final boolean sharedLock; // default to false
+  private final boolean sharedLock;
   private UUID datasetId;
 
   public UnlockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
@@ -27,6 +28,11 @@ public class UnlockDatasetStep extends DefaultUndoStep {
 
   public UnlockDatasetStep(DatasetService datasetService, boolean sharedLock) {
     this(datasetService, null, sharedLock);
+  }
+
+  @VisibleForTesting
+  public boolean isSharedLock() {
+    return sharedLock;
   }
 
   @Override

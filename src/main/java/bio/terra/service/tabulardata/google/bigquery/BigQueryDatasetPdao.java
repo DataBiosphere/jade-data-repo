@@ -3,6 +3,9 @@ package bio.terra.service.tabulardata.google.bigquery;
 import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_AT_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_FILE_ID_STAGING_NEW_ID;
+import static bio.terra.common.PdaoConstant.PDAO_FILE_ID_STAGING_ORIG_ID;
+import static bio.terra.common.PdaoConstant.PDAO_FILE_ID_STAGING_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
@@ -382,14 +385,14 @@ public class BigQueryDatasetPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId);
-
-    sqlTemplate.add("load_history_array", loadHistoryArray);
-    sqlTemplate.add("load_tag", loadTag);
-    sqlTemplate.add("load_time", loadTime);
+    ST sqlTemplate =
+        new ST(insertLoadHistoryToStagingTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId)
+            .add("load_history_array", loadHistoryArray)
+            .add("load_tag", loadTag)
+            .add("load_time", loadTime);
 
     bigQueryProject.query(sqlTemplate.render());
   }
@@ -416,11 +419,12 @@ public class BigQueryDatasetPdao {
       bigQueryProject.createTable(datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
     }
 
-    ST sqlTemplate = new ST(mergeLoadHistoryStagingTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", datasetName);
-    sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
-    sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
+    ST sqlTemplate =
+        new ST(mergeLoadHistoryStagingTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", datasetName)
+            .add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId)
+            .add("loadTable", PDAO_LOAD_HISTORY_TABLE);
 
     try {
       bigQueryProject.query(sqlTemplate.render());
@@ -444,12 +448,13 @@ public class BigQueryDatasetPdao {
       Dataset dataset, String loadTag, int offset, int limit) {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
     String datasetName = BigQueryPdao.prefixName(dataset.getName());
-    var sqlTemplate = new ST(getLoadHistoryTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", datasetName);
-    sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
-    sqlTemplate.add("limit", limit);
-    sqlTemplate.add("offset", offset);
+    var sqlTemplate =
+        new ST(getLoadHistoryTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", datasetName)
+            .add("loadTable", PDAO_LOAD_HISTORY_TABLE)
+            .add("limit", limit)
+            .add("offset", offset);
 
     var query = sqlTemplate.render();
     QueryJobConfiguration queryConfig =
@@ -480,6 +485,68 @@ public class BigQueryDatasetPdao {
         .checksumCRC(bqStringValue(fieldValue, LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
         .checksumMD5(bqStringValue(fieldValue, LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
         .error(bqStringValue(fieldValue, LoadHistoryUtil.ERROR_FIELD_NAME));
+  }
+
+  public void createStagingFileIdMappingTable(Dataset dataset) throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    try {
+      String datasetName = BigQueryPdao.prefixName(dataset.getName());
+
+      if (bigQueryProject.tableExists(datasetName, PDAO_FILE_ID_STAGING_TABLE)) {
+        bigQueryProject.deleteTable(datasetName, PDAO_FILE_ID_STAGING_TABLE);
+      }
+
+      bigQueryProject.createTable(
+          datasetName, PDAO_FILE_ID_STAGING_TABLE, buildFileIdStagingSchema());
+    } catch (Exception ex) {
+      throw new PdaoException(
+          "create staging file id mapping table failed for " + dataset.getName(), ex);
+    }
+  }
+
+  public void deleteStagingFileIdMappingTable(Dataset dataset) {
+    try {
+      deleteDatasetTable(dataset, PDAO_FILE_ID_STAGING_TABLE);
+    } catch (Exception ex) {
+      throw new PdaoException(
+          "delete staging file id mapping table failed for " + dataset.getName(), ex);
+    }
+  }
+
+  public static final String insertFileIdToStagingTableTemplate =
+      """
+    INSERT INTO `<project>.<dataset>.<stagingTable>` (orig_id, new_id)
+    VALUES <file_id_array:{f|('<f.origId>', '<f.newId>')}; separator=",">
+    """;
+
+  record FileIdMapping(UUID origId, UUID newId) {
+    // Note: getters are needed so that the values can be read by the template engine
+    public UUID getOrigId() {
+      return origId();
+    }
+
+    public UUID getNewId() {
+      return newId();
+    }
+  }
+
+  public void fileIdMappingToStagingTable(Dataset dataset, Map<UUID, UUID> oldToNewMappings)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate =
+        new ST(insertFileIdToStagingTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("stagingTable", PDAO_FILE_ID_STAGING_TABLE);
+
+    List<FileIdMapping> fileIdArray =
+        oldToNewMappings.entrySet().stream()
+            .map(e -> new FileIdMapping(e.getKey(), e.getValue()))
+            .toList();
+    sqlTemplate.add("file_id_array", fileIdArray);
+
+    bigQueryProject.query(sqlTemplate.render());
   }
 
   /**
@@ -520,12 +587,13 @@ public class BigQueryDatasetPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(getRefIdsTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("table", tableName);
-    sqlTemplate.add("refCol", refColumn.getName());
-    sqlTemplate.add("array", refColumn.isArrayOf());
+    ST sqlTemplate =
+        new ST(getRefIdsTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("table", tableName)
+            .add("refCol", refColumn.getName())
+            .add("array", refColumn.isArrayOf());
 
     TableResult result = bigQueryProject.query(sqlTemplate.render());
     List<String> refIdArray = new ArrayList<>();
@@ -548,13 +616,14 @@ public class BigQueryDatasetPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(insertIntoDatasetTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("targetTable", targetTable.getRawTableName());
-    sqlTemplate.add("stagingTable", stagingTableName);
-    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
-    sqlTemplate.add("columns", PDAO_ROW_ID_COLUMN);
+    ST sqlTemplate =
+        new ST(insertIntoDatasetTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("targetTable", targetTable.getRawTableName())
+            .add("stagingTable", stagingTableName)
+            .add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN)
+            .add("columns", PDAO_ROW_ID_COLUMN);
     targetTable.getColumns().forEach(column -> sqlTemplate.add("columns", column.getName()));
 
     bigQueryProject.query(
@@ -563,6 +632,65 @@ public class BigQueryDatasetPdao {
             "transactId",
             QueryParameterValue.string(
                 Optional.ofNullable(transactId).map(UUID::toString).orElse(null))));
+  }
+
+  private static final String insertNewFileIdsIntoDatasetTableTemplate =
+      """
+    /* Soft delete all existing rows */
+    INSERT INTO `<project>.<dataset>.<softDeleteTable>` (<transactIdColumn>, <rowIdColumn>, <flightIdColumn>, <deletedAtColumn>, <deletedByColumn>)
+    SELECT @transactId, <rowIdColumn>, @flightId, CURRENT_TIMESTAMP(), @deletedBy
+    FROM `<project>.<dataset>.<liveTable>`;
+
+    /* Insert rows with new values */
+    INSERT INTO `<project>.<dataset>.<targetTable>` (<transactIdColumn>, <rowIdColumn>, <columns:{c|<c.name>}; separator=",">)
+    SELECT @transactId,GENERATE_UUID(),<columns:{c|<if(c.fileOrDirRef)>
+      <if(c.arrayOf)>
+        ARRAY(SELECT f.<newIdColumn> FROM UNNEST(<c.name>) i JOIN `<project>.<dataset>.<fileIdMappingTable>` f ON i = f.<origIdColumn>)
+      <else>
+        (SELECT <newIdColumn> FROM `<project>.<dataset>.<fileIdMappingTable>` f WHERE f.<origIdColumn> = t.<c.name>)
+      <endif>
+    <else>
+      <c.name>
+    <endif>}; separator=",">
+    FROM `<project>.<dataset>.<liveTable>` t;
+      """;
+
+  public void insertNewFileIdsIntoDatasetTable(
+      Dataset dataset,
+      DatasetTable targetTable,
+      UUID transactId,
+      String flightId,
+      AuthenticatedUserRequest authedUser)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate =
+        new ST(insertNewFileIdsIntoDatasetTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("softDeleteTable", targetTable.getSoftDeleteTableName())
+            .add("flightIdColumn", PDAO_FLIGHT_ID_COLUMN)
+            .add("deletedAtColumn", PDAO_DELETED_AT_COLUMN)
+            .add("deletedByColumn", PDAO_DELETED_BY_COLUMN)
+            .add("targetTable", targetTable.getRawTableName())
+            .add("liveTable", targetTable.getName())
+            .add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN)
+            .add("rowIdColumn", PDAO_ROW_ID_COLUMN)
+            .add("fileIdMappingTable", PDAO_FILE_ID_STAGING_TABLE)
+            .add("origIdColumn", PDAO_FILE_ID_STAGING_ORIG_ID)
+            .add("newIdColumn", PDAO_FILE_ID_STAGING_NEW_ID)
+            .add("columns", targetTable.getColumns());
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId",
+            QueryParameterValue.string(
+                Optional.ofNullable(transactId).map(UUID::toString).orElse(null)),
+            "flightId",
+            QueryParameterValue.string(flightId),
+            "deletedBy",
+            QueryParameterValue.string(authedUser.getEmail())));
   }
 
   private static final String insertIntoMetadataTableTemplate =
@@ -581,17 +709,18 @@ public class BigQueryDatasetPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(insertIntoMetadataTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("metadataTable", metadataTableName);
-    sqlTemplate.add("stagingTable", stagingTableName);
-    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
-    sqlTemplate.add("ingestEmail", email);
-    sqlTemplate.add("ingestByColumn", PDAO_INGESTED_BY_COLUMN);
-    sqlTemplate.add("ingestTimeColumn", PDAO_INGEST_TIME_COLUMN);
-    sqlTemplate.add("loadTag", loadTag);
-    sqlTemplate.add("loadTagColumn", PDAO_LOAD_TAG_COLUMN);
+    ST sqlTemplate =
+        new ST(insertIntoMetadataTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("metadataTable", metadataTableName)
+            .add("stagingTable", stagingTableName)
+            .add("rowIdColumn", PDAO_ROW_ID_COLUMN)
+            .add("ingestEmail", email)
+            .add("ingestByColumn", PDAO_INGESTED_BY_COLUMN)
+            .add("ingestTimeColumn", PDAO_INGEST_TIME_COLUMN)
+            .add("loadTag", loadTag)
+            .add("loadTagColumn", PDAO_LOAD_TAG_COLUMN);
 
     bigQueryProject.query(sqlTemplate.render());
   }
@@ -641,20 +770,21 @@ public class BigQueryDatasetPdao {
             targetTable,
             transactId,
             null);
-    ST sqlTemplate = new ST(insertIntoSoftDeleteDatasetTable(datasetLiveViewSql));
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("softDeleteTable", targetTable.getSoftDeleteTableName());
-    sqlTemplate.add("targetTable", targetTable.getRawTableName());
-    sqlTemplate.add("targetTableName", targetTable.getName());
-    sqlTemplate.add("stagingTable", stagingTableName);
-    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
-    sqlTemplate.add("deleteAtColumn", PDAO_DELETED_AT_COLUMN);
-    sqlTemplate.add("deleteByColumn", PDAO_DELETED_BY_COLUMN);
-    sqlTemplate.add("loadTagColumn", PDAO_LOAD_TAG_COLUMN);
-    sqlTemplate.add("flightIdColumn", PDAO_FLIGHT_ID_COLUMN);
-    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
-    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
+    ST sqlTemplate =
+        new ST(insertIntoSoftDeleteDatasetTable(datasetLiveViewSql))
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("softDeleteTable", targetTable.getSoftDeleteTableName())
+            .add("targetTable", targetTable.getRawTableName())
+            .add("targetTableName", targetTable.getName())
+            .add("stagingTable", stagingTableName)
+            .add("rowIdColumn", PDAO_ROW_ID_COLUMN)
+            .add("deleteAtColumn", PDAO_DELETED_AT_COLUMN)
+            .add("deleteByColumn", PDAO_DELETED_BY_COLUMN)
+            .add("loadTagColumn", PDAO_LOAD_TAG_COLUMN)
+            .add("flightIdColumn", PDAO_FLIGHT_ID_COLUMN)
+            .add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN)
+            .add("pkColumns", targetTable.getPrimaryKey());
 
     bigQueryProject.query(
         sqlTemplate.render(),
@@ -872,14 +1002,15 @@ public class BigQueryDatasetPdao {
     String datasetLiveViewSql =
         renderDatasetLiveViewSql(projectId, datasetName, targetTable, transactionId, null);
 
-    ST sqlTemplate = new ST(stagingRowsWithoutSingleTargetRowMatchTemplate(datasetLiveViewSql));
-    sqlTemplate.add("count", PDAO_COUNT_ALIAS);
-    sqlTemplate.add("project", projectId);
-    sqlTemplate.add("dataset", datasetName);
-    sqlTemplate.add("targetTable", targetTable.getRawTableName());
-    sqlTemplate.add("stagingTable", stagingTableName);
-    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
-    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
+    ST sqlTemplate =
+        new ST(stagingRowsWithoutSingleTargetRowMatchTemplate(datasetLiveViewSql))
+            .add("count", PDAO_COUNT_ALIAS)
+            .add("project", projectId)
+            .add("dataset", datasetName)
+            .add("targetTable", targetTable.getRawTableName())
+            .add("stagingTable", stagingTableName)
+            .add("pkColumns", targetTable.getPrimaryKey())
+            .add("rowIdColumn", PDAO_ROW_ID_COLUMN);
 
     return bigQueryProject.query(
         sqlTemplate.render(),
@@ -930,13 +1061,14 @@ public class BigQueryDatasetPdao {
     String datasetLiveViewSql =
         renderDatasetLiveViewSql(projectId, datasetName, targetTable, transactionId, null);
 
-    ST sqlTemplate = new ST(mergeIngestTemplate(datasetLiveViewSql));
-    sqlTemplate.add("project", projectId);
-    sqlTemplate.add("dataset", datasetName);
-    sqlTemplate.add("targetTable", targetTable.getRawTableName());
-    sqlTemplate.add("stagingTable", stagingTableName);
-    sqlTemplate.add("columns", targetTable.getColumns());
-    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
+    ST sqlTemplate =
+        new ST(mergeIngestTemplate(datasetLiveViewSql))
+            .add("project", projectId)
+            .add("dataset", datasetName)
+            .add("targetTable", targetTable.getRawTableName())
+            .add("stagingTable", stagingTableName)
+            .add("columns", targetTable.getColumns())
+            .add("pkColumns", targetTable.getPrimaryKey());
 
     bigQueryProject.query(
         sqlTemplate.render(),
@@ -987,26 +1119,27 @@ public class BigQueryDatasetPdao {
       DatasetTable table,
       UUID transactionId,
       Instant filterBefore) {
-    ST datasetLiveViewSql = new ST(liveViewTemplate(transactionId, filterBefore));
-    datasetLiveViewSql.add("project", bigQueryProject);
-    datasetLiveViewSql.add("dataset", datasetName);
-    datasetLiveViewSql.add("rawTable", table.getRawTableName());
-    datasetLiveViewSql.add("sdTable", table.getSoftDeleteTableName());
-    datasetLiveViewSql.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-    datasetLiveViewSql.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
-    datasetLiveViewSql.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
-    datasetLiveViewSql.add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS);
-    datasetLiveViewSql.add("transactionTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
-    datasetLiveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
-
-    datasetLiveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
-    datasetLiveViewSql.add(
-        "columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-    datasetLiveViewSql.add(
-        "partitionByDate",
-        table.getBigQueryPartitionConfig() != null
-            && table.getBigQueryPartitionConfig().getMode()
-                == BigQueryPartitionConfigV1.Mode.INGEST_DATE);
+    ST datasetLiveViewSql =
+        new ST(liveViewTemplate(transactionId, filterBefore))
+            .add("project", bigQueryProject)
+            .add("dataset", datasetName)
+            .add("rawTable", table.getRawTableName())
+            .add("sdTable", table.getSoftDeleteTableName())
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN)
+            .add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN)
+            .add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS)
+            .add("transactionTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN)
+            .add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE)
+            .add("columns", PDAO_ROW_ID_COLUMN)
+            .add(
+                "columns",
+                table.getColumns().stream().map(Column::getName).collect(Collectors.toList()))
+            .add(
+                "partitionByDate",
+                table.getBigQueryPartitionConfig() != null
+                    && table.getBigQueryPartitionConfig().getMode()
+                        == BigQueryPartitionConfigV1.Mode.INGEST_DATE);
     return datasetLiveViewSql.render();
   }
 
@@ -1162,6 +1295,13 @@ public class BigQueryDatasetPdao {
             Field.of(PDAO_TRANSACTION_ID_COLUMN, LegacySQLTypeName.STRING),
             Field.of(PDAO_DELETED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP),
             Field.of(PDAO_DELETED_BY_COLUMN, LegacySQLTypeName.STRING)));
+  }
+
+  private Schema buildFileIdStagingSchema() {
+    return Schema.of(
+        List.of(
+            Field.of(PDAO_FILE_ID_STAGING_ORIG_ID, LegacySQLTypeName.STRING),
+            Field.of(PDAO_FILE_ID_STAGING_NEW_ID, LegacySQLTypeName.STRING)));
   }
 
   public static TableInfo buildLiveView(

@@ -301,7 +301,7 @@ public class GoogleProjectService {
                 .map(GoogleApiServiceusageV1Service::getName)
                 .collect(Collectors.toList());
       }
-      long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
+      long timeout = resourceConfiguration.projectCreateTimeoutSeconds();
 
       if (actualServiceNames.containsAll(requiredServices)) {
         logger.info("project already has the right resources enabled, skipping");
@@ -389,7 +389,7 @@ public class GoogleProjectService {
     }
 
     return new Appengine.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.getApplicationName())
+        .setApplicationName(resourceConfiguration.applicationName())
         .build();
   }
 
@@ -536,7 +536,7 @@ public class GoogleProjectService {
     }
 
     return new ServiceUsage.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.getApplicationName())
+        .setApplicationName(resourceConfiguration.applicationName())
         .build();
   }
 

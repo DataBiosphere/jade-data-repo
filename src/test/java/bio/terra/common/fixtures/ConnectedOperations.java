@@ -1,5 +1,6 @@
 package bio.terra.common.fixtures;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -48,6 +49,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -56,6 +58,10 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetDaoUtils;
+import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.tabulardata.DataResultModel;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -70,7 +76,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
@@ -138,6 +144,8 @@ public class ConnectedOperations {
     when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
     when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
     when(samService.createDatasetResource(any(), any(), any())).thenReturn(datasetPolicies);
+    when(samService.listActions(any(), eq(IamResourceType.DATASET), any()))
+        .thenReturn(List.of(IamAction.READ_DATASET.toString()));
 
     when(samService.retrievePolicyEmails(any(), eq(IamResourceType.DATASET), any()))
         .thenReturn(datasetPolicies);
@@ -486,7 +494,6 @@ public class ConnectedOperations {
   public boolean deleteTestSnapshot(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return checkDeleteResponse(response);
   }
 
@@ -496,7 +503,6 @@ public class ConnectedOperations {
             .andReturn();
     logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return checkDeleteResponse(response);
   }
 
@@ -558,6 +564,48 @@ public class ConnectedOperations {
 
     IngestResponseModel ingestResponse = checkIngestTableResponse(response);
     return ingestResponse;
+  }
+
+  public void checkTableRowCount(
+      FSContainerInterface tdrResource, String tableName, String prefix, int expectedRowCount) {
+    int rowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, tableName);
+    assertThat("Expected row count", rowCount, equalTo(expectedRowCount));
+  }
+
+  public void checkDataModel(
+      FSContainerInterface tdrResource,
+      List<String> columnNames,
+      String prefix,
+      String tableName,
+      int expectedRowCount)
+      throws InterruptedException {
+    List<BigQueryDataResultModel> results =
+        BigQueryPdao.getTable(
+            tdrResource,
+            tableName,
+            columnNames,
+            expectedRowCount + 1,
+            0,
+            PDAO_ROW_ID_COLUMN,
+            null,
+            null);
+    DataResultModel result = results.get(0);
+    assertNotNull("collection type should be defined as a snapshot or dataset.", tdrResource);
+    switch (tdrResource.getCollectionType()) {
+      case DATASET:
+        assertThat(
+            "Total row count should be correct since we includeTotalRowCount for datasets",
+            result.getTotalCount(),
+            equalTo(expectedRowCount));
+        break;
+      case SNAPSHOT:
+        assertThat(
+            "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
+            result.getTotalCount(),
+            equalTo(0));
+        break;
+    }
+    assertThat("Expected filtered count", result.getFilteredCount(), equalTo(expectedRowCount));
   }
 
   public IngestResponseModel checkIngestTableResponse(MockHttpServletResponse response)
@@ -1010,6 +1058,10 @@ public class ConnectedOperations {
     while (true) {
       MockHttpServletResponse response = result.getResponse();
       HttpStatus status = HttpStatus.valueOf(response.getStatus());
+      // When the status is not found, there is no job to poll
+      if (status == HttpStatus.NOT_FOUND) {
+        return result.getResponse();
+      }
       assertTrue(
           "expected jobs polling status, got " + status.toString(),
           (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));

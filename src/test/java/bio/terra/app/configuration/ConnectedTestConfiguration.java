@@ -13,6 +13,7 @@ public class ConnectedTestConfiguration {
   private String ingestbucket;
   private String nonDefaultRegionIngestBucket;
   private String ingestRequesterPaysBucket;
+  private String ingestRequesterPaysBucketBillingProject;
   private String googleBillingAccountId;
   private String noSpendGoogleBillingAccountId;
   private UUID targetTenantId;
@@ -70,6 +71,15 @@ public class ConnectedTestConfiguration {
 
   public void setIngestRequesterPaysBucket(String ingestRequesterPaysBucket) {
     this.ingestRequesterPaysBucket = ingestRequesterPaysBucket;
+  }
+
+  public String getIngestRequesterPaysBucketBillingProject() {
+    return ingestRequesterPaysBucketBillingProject;
+  }
+
+  public void setIngestRequesterPaysBucketBillingProject(
+      String ingestRequesterPaysBucketBillingProject) {
+    this.ingestRequesterPaysBucketBillingProject = ingestRequesterPaysBucketBillingProject;
   }
 
   public String getGoogleBillingAccountId() {

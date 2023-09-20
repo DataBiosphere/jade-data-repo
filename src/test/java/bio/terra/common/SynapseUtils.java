@@ -1,7 +1,9 @@
 package bio.terra.common;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.configuration.TestConfiguration;
@@ -11,15 +13,18 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.Region;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -124,7 +129,7 @@ public class SynapseUtils {
 
     client =
         azureResourceConfiguration.getClient(
-            azureResourceConfiguration.getCredentials().getHomeTenantId(),
+            azureResourceConfiguration.credentials().getHomeTenantId(),
             billingProfile.getSubscriptionId());
 
     applicationResource =
@@ -148,7 +153,7 @@ public class SynapseUtils {
             .resourceId(UUID.randomUUID())
             .name(datasetStorageAccount.name())
             .applicationResource(applicationResource)
-            .metadataContainer("metadata");
+            .topLevelContainer(UUID.randomUUID().toString());
 
     StorageAccount snapshotStorageAccount =
         client
@@ -164,7 +169,7 @@ public class SynapseUtils {
             .resourceId(UUID.randomUUID())
             .name(snapshotStorageAccount.name())
             .applicationResource(applicationResource)
-            .metadataContainer("metadata");
+            .topLevelContainer(UUID.randomUUID().toString());
 
     // -- CreateSnapshotSourceDatasetDataSourceAzureStep --
     // Create external data source for the source dataset
@@ -172,11 +177,7 @@ public class SynapseUtils {
     String parquetDatasetSourceLocation = datasetStorageAccountResource.getStorageAccountUrl();
     BlobUrlParts datasetSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDatasetSourceLocation,
-            billingProfile,
-            datasetStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
+            parquetDatasetSourceLocation, billingProfile, datasetStorageAccountResource, TEST_USER);
     azureSynapsePdao.getOrCreateExternalDataSource(
         datasetSignUrlBlob, sourceDatasetScopedCredentialName, sourceDatasetDataSourceName);
 
@@ -186,11 +187,7 @@ public class SynapseUtils {
     String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
     snapshotSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetSnapshotLocation,
-            billingProfile,
-            snapshotStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
+            parquetSnapshotLocation, billingProfile, snapshotStorageAccountResource, TEST_USER);
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
   }
@@ -235,23 +232,23 @@ public class SynapseUtils {
     try {
       azureSynapsePdao.dropTables(tableNames);
     } catch (Exception ex) {
-      logger.warn("[Cleanup exception] Unable to drop tables.", ex.getMessage());
+      logger.warn("[Cleanup exception] Unable to drop tables. {}", ex.getMessage());
     }
     try {
       azureSynapsePdao.dropDataSources(dataSources);
     } catch (Exception ex) {
-      logger.warn("[Cleanup exception] Unable to drop data sources", ex.getMessage());
+      logger.warn("[Cleanup exception] Unable to drop data sources. {}", ex.getMessage());
     }
     try {
       azureSynapsePdao.dropScopedCredentials(scopedCredentials);
     } catch (Exception ex) {
-      logger.warn("[Cleanup exception] Unable to drop scoped credentials", ex.getMessage());
+      logger.warn("[Cleanup exception] Unable to drop scoped credentials. {}", ex.getMessage());
     }
     for (String storageAccountId : storageAccountIds) {
       try {
         client.storageAccounts().deleteById(storageAccountId);
       } catch (Exception ex) {
-        logger.warn("[Cleanup exception] Unable to delete storage account", ex.getMessage());
+        logger.warn("[Cleanup exception] Unable to delete storage account. {}", ex.getMessage());
       }
     }
     // Parquet File delete is not currently operational
@@ -334,10 +331,7 @@ public class SynapseUtils {
       BlobSasTokenOptions blobSasTokenOptions) {
     BlobContainerClientFactory targetDataClientFactory =
         azureBlobStorePdao.getTargetDataClientFactory(
-            profileModel,
-            storageAccount,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            blobSasTokenOptions);
+            profileModel, storageAccount, blobSasTokenOptions);
 
     var result =
         targetDataClientFactory
@@ -404,11 +398,7 @@ public class SynapseUtils {
 
     BlobUrlParts destinationSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation,
-            billingProfile,
-            storageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
+            parquetDestinationLocation, billingProfile, storageAccountResource, TEST_USER);
     azureSynapsePdao.getOrCreateExternalDataSource(
         destinationSignUrlBlob,
         IngestUtils.getTargetScopedCredentialName(ingestFlightId),
@@ -416,10 +406,12 @@ public class SynapseUtils {
 
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
     String tableName = destinationTable.getName();
-    String destinationParquetFile = "parquet/" + tableName + "/" + ingestFlightId + ".parquet";
+    String destinationParquetFile =
+        FolderType.METADATA.getPath(IngestUtils.getParquetFilePath(tableName, ingestFlightId));
 
     String scratchParquetFile =
-        "parquet/" + SCRATCH_TABLE_NAME_PREFIX + tableName + "/" + ingestFlightId + ".parquet";
+        FolderType.SCRATCH.getPath(
+            IngestUtils.getParquetFilePath(SCRATCH_TABLE_NAME_PREFIX + tableName, ingestFlightId));
 
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
@@ -446,8 +438,7 @@ public class SynapseUtils {
     azureSynapsePdao.createFinalParquetFiles(
         IngestUtils.getSynapseIngestTableName(ingestFlightId),
         destinationParquetFile,
-        IngestUtils.getDataSourceName(
-            AzureStorageAccountResource.ContainerType.METADATA, ingestFlightId),
+        IngestUtils.getTargetDataSourceName(ingestFlightId),
         IngestUtils.getSynapseScratchTableName(ingestFlightId),
         destinationTable);
   }
@@ -486,7 +477,7 @@ public class SynapseUtils {
       AzureStorageAccountResource datasetStorageAccountResource,
       BillingProfileModel billingProfile)
       throws IOException, SQLException {
-
+    int expectedNumberOfRowToIngest = 2;
     DatasetTable destinationTable =
         ingestIntoTable(
             "ingest-test-dataset-table-all-data-types.json",
@@ -494,13 +485,15 @@ public class SynapseUtils {
             ingestFileLocation,
             randomFlightId,
             testConfig.getIngestRequestContainer(),
-            2,
+            expectedNumberOfRowToIngest,
             datasetStorageAccountResource,
             billingProfile);
     jsonLoader.loadObject("ingest-test-dataset-table-all-data-types.json", DatasetTable.class);
 
     String scratchParquetFile =
-        "parquet/scratch_" + destinationTable.getName() + "/" + randomFlightId + ".parquet";
+        FolderType.SCRATCH.getPath(
+            IngestUtils.getParquetFilePath(
+                SCRATCH_TABLE_NAME_PREFIX + destinationTable.getName(), randomFlightId));
     addParquetFileName(scratchParquetFile, datasetStorageAccountResource);
     addParquetFileName(
         IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId),
@@ -509,12 +502,59 @@ public class SynapseUtils {
     // Check that the parquet files were successfully created.
     List<String> firstNames =
         readParquetFileStringColumn(
-            IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId)),
             IngestUtils.getTargetDataSourceName(randomFlightId),
             "first_name",
             true);
     assertThat(
         "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
+
+    int rowCount =
+        azureSynapsePdao.getTableTotalRowCount(
+            destinationTable.getName(),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId)));
+    assertThat(
+        "Correct number of rows are returned from table",
+        rowCount,
+        equalTo(expectedNumberOfRowToIngest));
+
+    testOptionalIncludeTotalRowCount(CollectionType.SNAPSHOT, destinationTable, 2);
+    testOptionalIncludeTotalRowCount(CollectionType.DATASET, destinationTable, 2);
     return destinationTable;
+  }
+
+  private void testOptionalIncludeTotalRowCount(
+      CollectionType collectionType, Table table, int expectedTotalRowCount) {
+    List<SynapseDataResultModel> results =
+        azureSynapsePdao.getTableData(
+            table,
+            table.getName(),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(table.getName(), randomFlightId)),
+            expectedTotalRowCount + 1,
+            0,
+            PDAO_ROW_ID_COLUMN,
+            SqlSortDirection.ASC,
+            "",
+            collectionType);
+    assertNotNull("collection type should be defined as a snapshot or dataset.", collectionType);
+    switch (collectionType) {
+      case DATASET:
+        assertThat(
+            "Total row count should be correct since we includeTotalRowCount for datasets",
+            results.get(0).getTotalCount(),
+            equalTo(expectedTotalRowCount));
+        break;
+      case SNAPSHOT:
+        assertThat(
+            "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
+            results.get(0).getTotalCount(),
+            equalTo(0));
+        break;
+    }
   }
 }

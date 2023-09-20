@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,7 +18,6 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -52,6 +50,8 @@ public class ProfileServiceUnitTest {
 
   private ProfileService profileService;
   private AuthenticatedUserRequest user;
+
+  private static final UUID PROFILE_ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
   @Before
   public void setup() throws Exception {
@@ -87,7 +87,7 @@ public class ProfileServiceUnitTest {
   @Test
   public void testUpdateProfile() {
     var billingProfileUpdateModel = new BillingProfileUpdateModel();
-    UUID updateId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    UUID updateId = PROFILE_ID;
     billingProfileUpdateModel.setId(updateId);
 
     var jobBuilder = mock(JobBuilder.class);
@@ -109,28 +109,9 @@ public class ProfileServiceUnitTest {
         .thenReturn(jobBuilder);
 
     String result = profileService.updateProfile(billingProfileUpdateModel, user);
-    verify(iamService, times(1))
-        .verifyAuthorization(
-            eq(user),
-            eq(IamResourceType.SPEND_PROFILE),
-            eq(updateId.toString()),
-            eq(IamAction.UPDATE_BILLING_ACCOUNT));
+
     verify(jobBuilder, times(1)).submit();
     assertEquals(result, jobId);
-  }
-
-  @Test(expected = IamForbiddenException.class)
-  public void testUpdateProfileNoAccess() {
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            eq(user),
-            eq(IamResourceType.SPEND_PROFILE),
-            any(),
-            eq(IamAction.UPDATE_BILLING_ACCOUNT));
-    var billingProfileUpdateModel = new BillingProfileUpdateModel();
-    billingProfileUpdateModel.setId(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
-    profileService.updateProfile(billingProfileUpdateModel, user);
   }
 
   @Test
@@ -139,7 +120,7 @@ public class ProfileServiceUnitTest {
 
     String jobId = "id";
     when(jobBuilder.submit()).thenReturn(jobId);
-    UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    UUID deleteId = PROFILE_ID;
     when(jobBuilder.addParameter(eq(ProfileMapKeys.PROFILE_ID), eq(deleteId)))
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(
@@ -161,23 +142,8 @@ public class ProfileServiceUnitTest {
         .thenReturn(jobBuilder);
 
     String result = profileService.deleteProfile(deleteId, user);
-    verify(iamService, times(1))
-        .verifyAuthorization(
-            eq(user),
-            eq(IamResourceType.SPEND_PROFILE),
-            eq(deleteId.toString()),
-            eq(IamAction.DELETE));
     verify(jobBuilder, times(1)).submit();
     assertEquals(result, jobId);
-  }
-
-  @Test(expected = IamForbiddenException.class)
-  public void testDeleteProfileNoAccess() {
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            eq(user), eq(IamResourceType.SPEND_PROFILE), any(), eq(IamAction.DELETE));
-    profileService.deleteProfile(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), user);
   }
 
   @Test

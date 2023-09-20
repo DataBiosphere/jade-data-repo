@@ -2,12 +2,15 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
@@ -18,29 +21,29 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import java.io.IOException;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
+@ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 public class DatasetJsonConversionTest {
-  private AuthenticatedUserRequest testUser =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
+  private AuthenticatedUserRequest testUser = AuthenticationFixtures.randomUserRequest();
 
   private static final UUID DATASET_PROFILE_ID = UUID.randomUUID();
   private static final String DATASET_NAME = "dataset_name";
@@ -56,12 +59,18 @@ public class DatasetJsonConversionTest {
   private static final String DATASET_ASSET_NAME = "asset1";
   private static final UUID DATASET_ASSET_ID = UUID.randomUUID();
 
+  private DatasetJsonConversion datasetJsonConversion;
+
+  @Mock private SnapshotBuilderService snapshotBuilderService;
+
   private Dataset dataset;
   private DatasetModel datasetModel;
   private MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Before
   public void setUp() throws Exception {
+    datasetJsonConversion = new DatasetJsonConversion(snapshotBuilderService);
+
     Column datasetColumn =
         new Column()
             .id(DATASET_COLUMN_ID)
@@ -150,6 +159,7 @@ public class DatasetJsonConversionTest {
                                 .rootTable(DATASET_TABLE_NAME)
                                 .rootColumn(DATASET_COLUMN_NAME)
                                 .follow(Collections.emptyList()))))
+            .snapshotBuilderSettings(new SnapshotBuilderSettings())
             .dataProject(DATASET_DATA_PROJECT);
 
     metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
@@ -157,8 +167,10 @@ public class DatasetJsonConversionTest {
 
   @Test
   public void populateDatasetModelFromDataset() {
+    when(snapshotBuilderService.getSnapshotBuilderSettings(DATASET_ID))
+        .thenReturn(new SnapshotBuilderSettings());
     assertThat(
-        DatasetJsonConversion.populateDatasetModelFromDataset(
+        datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
@@ -166,26 +178,48 @@ public class DatasetJsonConversionTest {
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
             metadataDataAccessUtils,
             testUser),
+        equalTo(datasetModel.snapshotBuilderSettings(null)));
+  }
+
+  @Test
+  public void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
+    when(snapshotBuilderService.getSnapshotBuilderSettings(DATASET_ID))
+        .thenReturn(new SnapshotBuilderSettings());
+    assertThat(
+        datasetJsonConversion.populateDatasetModelFromDataset(
+            dataset,
+            List.of(
+                DatasetRequestAccessIncludeModel.SCHEMA,
+                DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS,
+                DatasetRequestAccessIncludeModel.DATA_PROJECT),
+            metadataDataAccessUtils,
+            testUser),
         equalTo(datasetModel));
   }
 
   @Test
-  public void populateDatasetModelFromDatasetNone() throws IOException {
+  public void populateDatasetModelFromDatasetNone() {
     assertThat(
-        DatasetJsonConversion.populateDatasetModelFromDataset(
+        datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(
                 DatasetRequestAccessIncludeModel.NONE, DatasetRequestAccessIncludeModel.PROFILE),
             metadataDataAccessUtils,
             testUser),
-        equalTo(datasetModel.dataProject(null).defaultProfileId(null).schema(null)));
+        equalTo(
+            datasetModel
+                .dataProject(null)
+                .defaultProfileId(null)
+                .schema(null)
+                .snapshotBuilderSettings(null)));
   }
 
   @Test
   public void populateDatasetModelFromDatasetAccessInfo() {
     String expectedDatasetName = "datarepo_" + DATASET_NAME;
     assertThat(
-        DatasetJsonConversion.populateDatasetModelFromDataset(
+        datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION),
             metadataDataAccessUtils,
@@ -195,6 +229,7 @@ public class DatasetJsonConversionTest {
                 .dataProject(null)
                 .defaultProfileId(null)
                 .schema(null)
+                .snapshotBuilderSettings(null)
                 .accessInformation(
                     new AccessInfoModel()
                         .bigQuery(
@@ -250,7 +285,7 @@ public class DatasetJsonConversionTest {
   }
 
   @Test
-  public void testRequiredColumns() throws Exception {
+  public void testRequiredColumns() {
     var defaultColumnName = "NOT_PRIMARY_KEY_COLUMN";
     var requiredColumnName = "REQUIRED_COLUMN";
     DatasetRequestModel datasetRequestModel =
@@ -283,14 +318,14 @@ public class DatasetJsonConversionTest {
                                             .required(true)
                                             .arrayOf(false))))));
 
-    var dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel);
+    var dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel, DATASET_ID);
     var columnMap = dataset.getTables().get(0).getColumnsMap();
     var pkColumn = columnMap.get(DATASET_COLUMN_NAME);
     var defaultColumn = columnMap.get(defaultColumnName);
     var requiredColumn = columnMap.get(requiredColumnName);
 
-    assertThat("Primary key columns are marked as required", pkColumn.isRequired(), is(true));
-    assertThat("Regular columns default to not required", defaultColumn.isRequired(), is(false));
-    assertThat("Required columns are marked as required", requiredColumn.isRequired(), is(true));
+    assertTrue("Primary key columns are marked as required", pkColumn.isRequired());
+    assertFalse("Regular columns default to not required", defaultColumn.isRequired());
+    assertTrue("Required columns are marked as required", requiredColumn.isRequired());
   }
 }

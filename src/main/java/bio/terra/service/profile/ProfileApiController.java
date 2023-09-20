@@ -14,6 +14,9 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +50,8 @@ public class ProfileApiController implements ProfilesApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final JobService jobService;
 
+  private final IamService iamService;
+
   @Autowired
   public ProfileApiController(
       ObjectMapper objectMapper,
@@ -56,7 +61,8 @@ public class ProfileApiController implements ProfilesApi {
       ProfileUpdateRequestValidator profileUpdateRequestValidator,
       PolicyMemberValidator policyMemberValidator,
       JobService jobService,
-      AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
+      AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
+      IamService iamService) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.profileService = profileService;
@@ -65,6 +71,7 @@ public class ProfileApiController implements ProfilesApi {
     this.policyMemberValidator = policyMemberValidator;
     this.jobService = jobService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
+    this.iamService = iamService;
   }
 
   @Override
@@ -96,6 +103,8 @@ public class ProfileApiController implements ProfilesApi {
   public ResponseEntity<JobModel> updateProfile(
       @Valid @RequestBody BillingProfileUpdateModel billingProfileRequest) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+    verifyProfileAuthorization(
+        user, billingProfileRequest.getId().toString(), IamAction.UPDATE_BILLING_ACCOUNT);
     String jobId = profileService.updateProfile(billingProfileRequest, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
@@ -103,6 +112,7 @@ public class ProfileApiController implements ProfilesApi {
   @Override
   public ResponseEntity<JobModel> deleteProfile(UUID id) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+    verifyProfileAuthorization(user, id.toString(), IamAction.DELETE);
     String jobId = profileService.deleteProfile(id, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
@@ -153,5 +163,14 @@ public class ProfileApiController implements ProfilesApi {
     List<PolicyModel> policies = profileService.retrieveProfilePolicies(id, user);
     PolicyResponse response = new PolicyResponse().policies(policies);
     return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  private void verifyProfileAuthorization(
+      AuthenticatedUserRequest userReq, String resourceId, IamAction action) {
+    IamResourceType resourceType = IamResourceType.SPEND_PROFILE;
+    // Check if profile exists
+    profileService.getProfileByIdNoCheck(UUID.fromString(resourceId));
+    // Verify profile permissions
+    iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
   }
 }

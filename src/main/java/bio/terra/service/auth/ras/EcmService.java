@@ -56,13 +56,13 @@ public class EcmService {
 
   public PassportApi getPassportApi() {
     var client = new ApiClient(restTemplate);
-    client.setBasePath(ecmConfiguration.getBasePath());
+    client.setBasePath(ecmConfiguration.basePath());
 
     return new PassportApi(client);
   }
 
   public void addRasIssuerAndType(RASv1Dot1VisaCriterion criterion) {
-    criterion.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
+    criterion.issuer(ecmConfiguration.rasIssuer()).type(RAS_CRITERIA_TYPE);
   }
 
   public ValidatePassportResult validatePassport(ValidatePassportRequest validatePassportRequest) {

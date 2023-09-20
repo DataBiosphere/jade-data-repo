@@ -40,7 +40,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.cloud.storage.StorageRoles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -92,7 +91,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   private String snapshotProject;
   private UUID profileId;
   private List<String> uploadedFiles;
-  private String ingestServiceAccount;
   private String ingestBucket;
 
   @Before
@@ -108,24 +106,12 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
-    if (ingestServiceAccount != null && ingestBucket != null) {
-      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          ingestBucket, ingestServiceAccount, StorageRoles.objectViewer(), snapshotProject);
-
-      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          ingestBucket, ingestServiceAccount, StorageRoles.legacyBucketReader(), snapshotProject);
-    }
-
     if (snapshotId != null) {
       dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
     }
 
-    if (ingestServiceAccount != null) {
-      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
-    }
-
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
     }
 
     if (profileId != null) {
@@ -139,22 +125,23 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
   @Test
   public void testSelfHostedDatasetLifecycle() throws Exception {
-    testSelfHostedDatasetLifecycle("jade-testdata-useastregion", false);
+    ingestBucket = "jade-testdata-useastregion";
+    testSelfHostedDatasetLifecycle(false);
   }
 
   @Test
   public void testSelfHostedDatasetWithDedicatedSALifecycle() throws Exception {
-    testSelfHostedDatasetLifecycle("jade_testbucket_no_jade_sa", true);
+    ingestBucket = "jade_testbucket_no_jade_sa";
+    testSelfHostedDatasetLifecycle(true);
   }
 
   @Test
   public void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
-    testSelfHostedDatasetLifecycle("jade_testbucket_requester_pays", true);
+    ingestBucket = "jade_testbucket_requester_pays";
+    testSelfHostedDatasetLifecycle(true);
   }
 
-  private void testSelfHostedDatasetLifecycle(String ingestBucket, boolean dedicatedServiceAccount)
-      throws Exception {
-
+  private void testSelfHostedDatasetLifecycle(boolean dedicatedServiceAccount) throws Exception {
     gcsUtils.fileExists(wgsVcfPath(ingestBucket));
 
     DatasetSummaryModel datasetSummaryModel =
@@ -171,22 +158,8 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         dataset.isSelfHosted(),
         is(true));
 
-    // Authorize the ingest source bucket
-    if (dedicatedServiceAccount) {
-      ingestServiceAccount = dataset.getIngestServiceAccount();
-      this.ingestBucket = ingestBucket;
-      // Note: this role gets removed in teardown
-      DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket,
-          ingestServiceAccount,
-          StorageRoles.objectViewer(),
-          dataset.getDataProject());
-      DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket,
-          ingestServiceAccount,
-          StorageRoles.legacyBucketReader(),
-          dataset.getDataProject());
-    }
+    // If needed, authorize the ingest source bucket
+    dataRepoFixtures.grantIngestBucketPermissionsToDedicatedSa(dataset, ingestBucket);
 
     // Ingest a single file
     FileModel exomeVcfModel =
@@ -387,7 +360,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         fileExistsAfterDataDelete,
         is(true));
 
-    dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
     datasetId = null;
 
     boolean fileExistsAfterDatasetDelete = gcsUtils.fileExists(exomeVcfPath(ingestBucket));

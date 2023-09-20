@@ -25,7 +25,6 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.cloud.storage.StorageRoles;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -60,7 +59,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
   private UUID datasetId;
   private UUID profileId;
-  private String ingestServiceAccount;
+  private String ingestBucket;
 
   @Before
   public void setup() throws Exception {
@@ -73,12 +72,8 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
-    if (ingestServiceAccount != null) {
-      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
-    }
-
     if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward(), datasetId);
+      dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
     }
 
     if (profileId != null) {
@@ -413,14 +408,13 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
   @Test
   public void interactionsWithPerDatasetServiceAccount() throws Exception {
-    String bucketWithNoJadeSa = "jade_testbucket_no_jade_sa";
+    ingestBucket = "jade_testbucket_no_jade_sa";
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDatasetWithOwnServiceAccount(
             steward(), profileId, "dataset-ingest-combined-array.json");
 
     datasetId = datasetSummaryModel.getId();
-    ingestServiceAccount =
-        dataRepoFixtures.getDataset(steward(), datasetId).getIngestServiceAccount();
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -430,8 +424,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
             .table("sample_vcf")
             .path(
                 String.format(
-                    "gs://%s/dataset-ingest-combined-control-duplicates-array.json",
-                    bucketWithNoJadeSa));
+                    "gs://%s/dataset-ingest-combined-control-duplicates-array.json", ingestBucket));
 
     DataRepoResponse<IngestResponseModel> ingestResponseBeforeGrant =
         dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
@@ -444,35 +437,23 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     assertThat(
         "error message is the right one",
         ingestResponseBeforeGrant.getErrorObject().map(ErrorModel::getMessage).orElse(""),
-        containsString(String.format("TDR cannot access bucket %s.", bucketWithNoJadeSa)));
+        containsString(String.format("TDR cannot access bucket %s.", ingestBucket)));
 
     // Now grant the reader role on the source bucket to the ingest service account
     assertThat(
         "the ingest service account is not the global one",
-        ingestServiceAccount,
+        dataset.getIngestServiceAccount(),
         startsWith("tdr-ingest-sa"));
-    DatasetIntegrationTest.addServiceAccountRoleToBucket(
-        bucketWithNoJadeSa,
-        ingestServiceAccount,
-        StorageRoles.objectViewer(),
-        datasetSummaryModel.getDataProject());
-    try {
-      IngestResponseModel ingestResponse =
-          dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    dataRepoFixtures.grantIngestBucketPermissionsToDedicatedSa(dataset, ingestBucket);
 
-      dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-      assertThat(
-          "All 4 rows were ingested, including the one with duplicate files",
-          ingestResponse.getRowCount(),
-          equalTo(4L));
-    } finally {
-      // Clean up role grants on shared bucket
-      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          bucketWithNoJadeSa,
-          ingestServiceAccount,
-          StorageRoles.objectViewer(),
-          datasetSummaryModel.getDataProject());
-    }
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+    assertThat(
+        "All 4 rows were ingested, including the one with duplicate files",
+        ingestResponse.getRowCount(),
+        equalTo(4L));
   }
 }

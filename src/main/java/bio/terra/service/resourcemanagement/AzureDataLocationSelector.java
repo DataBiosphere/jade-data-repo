@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
+import bio.terra.app.model.AzureRegion;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.model.BillingProfileModel;
 import java.nio.charset.StandardCharsets;
@@ -13,10 +14,17 @@ import org.springframework.stereotype.Component;
 public class AzureDataLocationSelector {
 
   public String createStorageAccountName(
-      String prefix, String collectionName, BillingProfileModel billingProfile) {
+      String prefix,
+      AzureRegion region,
+      BillingProfileModel billingProfile,
+      boolean isSecureMonitoringEnabled) {
     int maxStorageAccountNameLength = 24;
     int randomLength = maxStorageAccountNameLength - prefix.length();
-    return prefix + armUniqueString(collectionName + billingProfile.toString(), randomLength);
+    String seed = region.getValue() + billingProfile;
+    if (isSecureMonitoringEnabled) {
+      seed += " secure";
+    }
+    return prefix + armUniqueString(seed, randomLength);
   }
 
   /**

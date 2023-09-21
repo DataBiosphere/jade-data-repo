@@ -19,7 +19,9 @@ public class DeleteLogAnalyticsWorkspaceStep extends DefaultUndoStep {
       LoggerFactory.getLogger(DeleteLogAnalyticsWorkspaceStep.class);
   private AzureMonitoringService monitoringService;
 
-  public DeleteLogAnalyticsWorkspaceStep(AzureMonitoringService monitoringService) {}
+  public DeleteLogAnalyticsWorkspaceStep(AzureMonitoringService monitoringService) {
+    this.monitoringService = monitoringService;
+  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

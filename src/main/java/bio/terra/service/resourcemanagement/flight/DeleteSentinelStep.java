@@ -10,8 +10,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,14 +30,11 @@ public class DeleteSentinelStep extends DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    List<UUID> appIdList =
-        workingMap.get(ProfileMapKeys.PROFILE_APPLICATION_DEPLOYMENT_ID_LIST, List.class);
-    List<AzureStorageAccountResource> storageAccounts =
-        azureStorageAccountService.listStorageAccountIdsPerAppDeployment(appIdList, true);
-    workingMap.put(ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, storageAccounts);
-
     BillingProfileModel profileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+    List<AzureStorageAccountResource> storageAccounts =
+        workingMap.get(
+            ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, new TypeReference<>() {});
 
     for (AzureStorageAccountResource storageAccountResource : storageAccounts) {
       var sentinel = monitoringService.getSentinel(profileModel, storageAccountResource);
@@ -45,7 +42,6 @@ public class DeleteSentinelStep extends DefaultUndoStep {
         logger.info(
             "Sentinel instance found for storage account {}; Attempting delete.",
             storageAccountResource.getName());
-        // TODO - how should we do error handling?
         monitoringService.deleteSentinelByStorageAccount(profileModel, storageAccountResource);
       } else {
         logger.warn(

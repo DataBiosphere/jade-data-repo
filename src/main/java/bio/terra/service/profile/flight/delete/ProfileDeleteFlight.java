@@ -13,6 +13,7 @@ import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.flight.DeleteAzureStorageAccountStep;
+import bio.terra.service.resourcemanagement.flight.RecordAzureStorageAccountsStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -85,6 +86,9 @@ public class ProfileDeleteFlight extends Flight {
           new DeleteProfileMarkUnusedApplicationDeployments(
               profileService, resourceService, user, profileId));
       if (inputParameters.get(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), Boolean.class)) {
+        // Find all records of storage accounts marked for delete and associated with this
+        // application deployment
+        addStep(new RecordAzureStorageAccountsStep(azureStorageAccountService));
         // delete monitoring resources
         azureStorageMonitoringStepProvider
             .configureDeleteSteps(azureStorageAccountService)

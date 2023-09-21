@@ -24,7 +24,7 @@ public class DeleteSnapshotMetadataAzureStep implements Step {
     String storageAccountResourceTopLevelContainer =
         workingMap.get(SnapshotWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_TLC, String.class);
 
-    storageAccountService.deleteCloudStorageAccountMetadata(
+    storageAccountService.markForDeleteCloudStorageAccountMetadata(
         storageAccountResourceName, storageAccountResourceTopLevelContainer, context.getFlightId());
 
     return StepResult.getStepResultSuccess();

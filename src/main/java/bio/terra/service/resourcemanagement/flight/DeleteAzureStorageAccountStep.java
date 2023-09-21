@@ -18,7 +18,9 @@ public class DeleteAzureStorageAccountStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(DeleteAzureStorageAccountStep.class);
   private AzureStorageAccountService azureStorageAccountService;
 
-  public DeleteAzureStorageAccountStep(AzureStorageAccountService azureStorageAccountService) {}
+  public DeleteAzureStorageAccountStep(AzureStorageAccountService azureStorageAccountService) {
+    this.azureStorageAccountService = azureStorageAccountService;
+  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
@@ -30,12 +32,10 @@ public class DeleteAzureStorageAccountStep extends DefaultUndoStep {
             ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, new TypeReference<>() {});
 
     for (AzureStorageAccountResource storageAccountResource : storageAccounts) {
-      if (azureStorageAccountService.retrieveStorageAccountById(
-              storageAccountResource.getResourceId())
+      if (azureStorageAccountService.getCloudStorageAccount(profileModel, storageAccountResource)
           != null) {
         logger.info(
             "Azure storage account {} found; Attempting delete.", storageAccountResource.getName());
-        // TODO - how should we do error handling?
         azureStorageAccountService.deleteCloudStorageAccount(profileModel, storageAccountResource);
       } else {
         logger.warn(

@@ -451,6 +451,26 @@ public class AzureResourceDao {
     return storageAccountResource;
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean markForDeleteStorageAccountMetadata(
+      String storageAccountName, String topLevelContainer, String flightId) {
+    String sql =
+        """
+      UPDATE storage_account_resource SET marked_for_delete = true
+      WHERE name = :name
+      AND toplevelcontainer = :topLevelContainer
+      AND (flightid = :flightid OR flightid IS NULL)
+      """;
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("name", storageAccountName)
+            .addValue("topLevelContainer", topLevelContainer)
+            .addValue("flightid", flightId);
+    int numRowsUpdated = jdbcTemplate.update(sql, params);
+    return (numRowsUpdated == 1);
+  }
+
   /**
    * Delete the storage_account_resource metadata row associated with the storage account, provided
    * the row is either unlocked or locked by the provided flight.

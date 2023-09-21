@@ -220,6 +220,18 @@ public class AzureStorageAccountService {
     logger.info("Metadata removed: {}", deleted);
   }
 
+  public void markForDeleteCloudStorageAccountMetadata(
+      String storageAccountResourceName, String topLevelContainer, String flightId) {
+    logger.info(
+        "Marking for delete Azure storage account metadata named {} with top level container {}",
+        storageAccountResourceName,
+        topLevelContainer);
+    boolean deleted =
+        resourceDao.markForDeleteStorageAccountMetadata(
+            storageAccountResourceName, topLevelContainer, flightId);
+    logger.info("Metadata marked for delete: {}", deleted);
+  }
+
   /**
    * Delete the Azure cloud storage account resource.
    *
@@ -238,7 +250,7 @@ public class AzureStorageAccountService {
             storageAccountResource.getName());
   }
 
-  public List<AzureStorageAccountResource> listStorageAccountIdsPerAppDeployment(
+  public List<AzureStorageAccountResource> listStorageAccountPerAppDeployment(
       List<UUID> applicationResourceIds, boolean markedForDelete) {
     List<AzureStorageAccountResource> resources = new ArrayList<>();
     applicationResourceIds.stream()
@@ -340,7 +352,7 @@ public class AzureStorageAccountService {
    * @return a reference to the storage account as an Azure storage account object, null if not
    *     found
    */
-  StorageAccount getCloudStorageAccount(
+  public StorageAccount getCloudStorageAccount(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     if (storageAccountResource == null) {
       return null;

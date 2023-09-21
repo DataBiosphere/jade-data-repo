@@ -402,7 +402,7 @@ public class ResourceService {
               storageAccountService.retrieveStorageAccountById(s);
           azureContainerPdao.deleteContainer(
               dataset.getDatasetSummary().getDefaultBillingProfile(), storageAccountResource);
-          storageAccountService.deleteCloudStorageAccountMetadata(
+          storageAccountService.markForDeleteCloudStorageAccountMetadata(
               storageAccountResource.getName(),
               storageAccountResource.getTopLevelContainer(),
               flightId);
@@ -426,7 +426,7 @@ public class ResourceService {
         storageAccountService.retrieveStorageAccountById(storageResourceId);
     azureContainerPdao.deleteContainer(snapshotBillingProfile, storageAccountResource);
 
-    storageAccountService.deleteCloudStorageAccountMetadata(
+    storageAccountService.markForDeleteCloudStorageAccountMetadata(
         storageAccountResource.getName(), storageAccountResource.getTopLevelContainer(), flightId);
   }
 

@@ -5,7 +5,6 @@ import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.SQLExpression;
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.text.StringSubstitutor;
@@ -26,10 +25,7 @@ public class BinaryFilterVariable extends FilterVariable {
   @Override
   protected String getSubstitutionTemplate(CloudPlatform platform) {
     Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("operator", operator.renderSQL(platform))
-            .put("value", value.renderSQL(platform))
-            .build();
+        Map.of("operator", operator.renderSQL(platform), "value", value.renderSQL(platform));
     return StringSubstitutor.replace(SUBSTITUTION_TEMPLATE, params);
   }
 
@@ -48,7 +44,7 @@ public class BinaryFilterVariable extends FilterVariable {
     IS("IS"),
     IS_NOT("IS NOT");
 
-    private String sql;
+    private final String sql;
 
     BinaryOperator(String sql) {
       this.sql = sql;

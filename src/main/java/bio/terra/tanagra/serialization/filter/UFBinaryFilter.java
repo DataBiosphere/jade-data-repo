@@ -23,7 +23,7 @@ public class UFBinaryFilter extends UFFilter {
 
   public UFBinaryFilter(BinaryFilter binaryFilter) {
     super(binaryFilter);
-    this.field = new UFFieldPointer(binaryFilter.getField());
+    this.field = new UFFieldPointer(binaryFilter.getFieldPointer());
     this.operator = binaryFilter.getOperator();
     this.value = new UFLiteral(binaryFilter.getValue());
   }

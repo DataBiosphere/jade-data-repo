@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.filter.BinaryFilter;
 import bio.terra.tanagra.query.filter.BooleanAndOrFilter;
 import bio.terra.tanagra.serialization.UFFilter;
@@ -8,26 +7,21 @@ import bio.terra.tanagra.serialization.filter.UFBinaryFilter;
 import bio.terra.tanagra.serialization.filter.UFBooleanAndOrFilter;
 import java.util.List;
 
-public abstract class Filter {
+public interface Filter {
   /** Enum for the types of table filters supported by Tanagra. */
-  public enum Type {
+  enum Type {
     BINARY,
     BOOLEAN_AND_OR
   }
 
-  public abstract Type getType();
+  Type getType();
 
-  public abstract FilterVariable buildVariable(
-      TableVariable primaryTable, List<TableVariable> tables);
+  FilterVariable buildVariable(TableVariable primaryTable, List<TableVariable> tables);
 
-  public UFFilter serialize() {
-    switch (getType()) {
-      case BINARY:
-        return new UFBinaryFilter((BinaryFilter) this);
-      case BOOLEAN_AND_OR:
-        return new UFBooleanAndOrFilter((BooleanAndOrFilter) this);
-      default:
-        throw new SystemException("Unknown table filter type: " + getType());
-    }
+  default UFFilter serialize() {
+    return switch (getType()) {
+      case BINARY -> new UFBinaryFilter((BinaryFilter) this);
+      case BOOLEAN_AND_OR -> new UFBooleanAndOrFilter((BooleanAndOrFilter) this);
+    };
   }
 }

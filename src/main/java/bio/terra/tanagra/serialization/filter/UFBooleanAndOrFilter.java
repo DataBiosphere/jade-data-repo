@@ -8,7 +8,6 @@ import bio.terra.tanagra.serialization.UFFilter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * External representation of an array table filter: subfilter1 operator subfilter2 operator ...
@@ -26,8 +25,8 @@ public class UFBooleanAndOrFilter extends UFFilter {
     this.operator = booleanAndOrFilter.getOperator();
     this.subfilters =
         booleanAndOrFilter.getSubfilters().stream()
-            .map(sf -> sf.serialize())
-            .collect(Collectors.toList());
+            .map(Filter::serialize)
+            .toList();
   }
 
   private UFBooleanAndOrFilter(Builder builder) {

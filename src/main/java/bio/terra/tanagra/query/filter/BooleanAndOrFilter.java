@@ -6,11 +6,9 @@ import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.tanagra.serialization.filter.UFBooleanAndOrFilter;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
-public final class BooleanAndOrFilter extends Filter {
+public final class BooleanAndOrFilter implements Filter {
   private final BooleanAndOrFilterVariable.LogicalOperator operator;
   private final List<Filter> subfilters;
 
@@ -25,13 +23,13 @@ public final class BooleanAndOrFilter extends Filter {
     if (serialized.getOperator() == null) {
       throw new InvalidConfigException("Boolean and/or filter operator is undefined");
     }
-    if (serialized.getSubfilters() == null || serialized.getSubfilters().size() == 0) {
+    if (serialized.getSubfilters() == null || serialized.getSubfilters().isEmpty()) {
       throw new InvalidConfigException("Boolean and/or filter has no sub-filters defined");
     }
     List<Filter> subFilters =
         serialized.getSubfilters().stream()
             .map(sf -> sf.deserializeToInternal(tablePointer))
-            .collect(Collectors.toList());
+            .toList();
     return new BooleanAndOrFilter(serialized.getOperator(), subFilters);
   }
 
@@ -47,7 +45,7 @@ public final class BooleanAndOrFilter extends Filter {
         operator,
         subfilters.stream()
             .map(sf -> sf.buildVariable(primaryTable, tables))
-            .collect(Collectors.toList()));
+            .toList());
   }
 
   public BooleanAndOrFilterVariable.LogicalOperator getOperator() {
@@ -55,6 +53,6 @@ public final class BooleanAndOrFilter extends Filter {
   }
 
   public List<Filter> getSubfilters() {
-    return Collections.unmodifiableList(subfilters);
+    return List.copyOf(subfilters);
   }
 }

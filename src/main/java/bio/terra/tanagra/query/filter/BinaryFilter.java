@@ -10,14 +10,14 @@ import bio.terra.tanagra.query.filtervariable.BinaryFilterVariable;
 import bio.terra.tanagra.serialization.filter.UFBinaryFilter;
 import java.util.List;
 
-public final class BinaryFilter extends Filter {
-  private final FieldPointer field;
+public final class BinaryFilter implements Filter {
+  private final FieldPointer fieldPointer;
   private final BinaryFilterVariable.BinaryOperator operator;
   private final Literal value;
 
   private BinaryFilter(
       FieldPointer fieldPointer, BinaryFilterVariable.BinaryOperator operator, Literal value) {
-    this.field = fieldPointer;
+    this.fieldPointer = fieldPointer;
     this.operator = operator;
     this.value = value;
   }
@@ -43,11 +43,12 @@ public final class BinaryFilter extends Filter {
   @Override
   public BinaryFilterVariable buildVariable(
       TableVariable primaryTable, List<TableVariable> tables) {
-    return new BinaryFilterVariable(field.buildVariable(primaryTable, tables), operator, value);
+    return new BinaryFilterVariable(
+        fieldPointer.buildVariable(primaryTable, tables), operator, value);
   }
 
-  public FieldPointer getField() {
-    return field;
+  public FieldPointer getFieldPointer() {
+    return fieldPointer;
   }
 
   public BinaryFilterVariable.BinaryOperator getOperator() {

@@ -2,7 +2,6 @@ package bio.terra.tanagra.query;
 
 import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
-import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
@@ -12,11 +11,10 @@ public class FieldVariable implements SQLExpression {
   private static final Logger LOGGER = LoggerFactory.getLogger(FieldVariable.class);
   private final FieldPointer fieldPointer;
   private final TableVariable tableVariable;
-  private String alias;
+  private final String alias;
 
   public FieldVariable(FieldPointer fieldPointer, TableVariable tableVariable) {
-    this.fieldPointer = fieldPointer;
-    this.tableVariable = tableVariable;
+    this(fieldPointer, tableVariable, null);
   }
 
   public FieldVariable(FieldPointer fieldPointer, TableVariable tableVariable, String alias) {
@@ -39,43 +37,30 @@ public class FieldVariable implements SQLExpression {
   }
 
   private String renderSQL(boolean useAlias, boolean useFunctionWrapper) {
-    String template = "${tableAlias}.${columnName}";
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("tableAlias", tableVariable.getAlias())
-            .put("columnName", fieldPointer.getColumnName())
-            .build();
-    String sql = StringSubstitutor.replace(template, params);
+    String sql = "%s.%s".formatted(tableVariable.getAlias(), fieldPointer.getColumnName());
 
     if (fieldPointer.isForeignKey()) {
       throw new SystemException("TODO: implement embedded selects " + sql);
     }
 
     if (fieldPointer.hasSqlFunctionWrapper() && useFunctionWrapper) {
-      LOGGER.debug("Found sql function wrapper: " + fieldPointer.getSqlFunctionWrapper());
+      String sqlFunctionWrapper = fieldPointer.getSqlFunctionWrapper();
+      LOGGER.debug("Found sql function wrapper: {}", sqlFunctionWrapper);
       final String substitutionVar = "${fieldSql}";
-      if (fieldPointer.getSqlFunctionWrapper().contains(substitutionVar)) {
-        template = fieldPointer.getSqlFunctionWrapper();
-        params = ImmutableMap.<String, String>builder().put("fieldSql", sql).build();
+      final String template;
+      final Map<String, Object> params;
+      if (sqlFunctionWrapper.contains(substitutionVar)) {
+        template = sqlFunctionWrapper;
+        params = Map.of("fieldSql", sql);
       } else {
         template = "${functionName}(${fieldSql})";
-        params =
-            ImmutableMap.<String, String>builder()
-                .put("functionName", fieldPointer.getSqlFunctionWrapper())
-                .put("fieldSql", sql)
-                .build();
+        params = Map.of("functionName", sqlFunctionWrapper, "fieldSql", sql);
       }
-      sql = StringSubstitutor.replace(template, params);
+      return StringSubstitutor.replace(template, params);
     }
 
     if (alias != null && useAlias) {
-      template = "${fieldSql} AS ${fieldAlias}";
-      params =
-          ImmutableMap.<String, String>builder()
-              .put("fieldSql", sql)
-              .put("fieldAlias", alias)
-              .build();
-      sql = StringSubstitutor.replace(template, params);
+      return "%s AS %s".formatted(sql, alias);
     }
 
     return sql;
@@ -89,11 +74,10 @@ public class FieldVariable implements SQLExpression {
     if (alias != null) {
       return alias;
     }
-    if (!fieldPointer.isForeignKey()) {
-      return fieldPointer.getColumnName();
-    } else {
+    if (fieldPointer.isForeignKey()) {
       return fieldPointer.getForeignColumnName();
     }
+    return fieldPointer.getColumnName();
   }
 
   public FieldPointer getFieldPointer() {

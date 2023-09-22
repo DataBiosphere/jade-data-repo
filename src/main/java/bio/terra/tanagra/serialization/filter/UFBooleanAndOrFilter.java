@@ -23,10 +23,7 @@ public class UFBooleanAndOrFilter extends UFFilter {
   public UFBooleanAndOrFilter(BooleanAndOrFilter booleanAndOrFilter) {
     super(booleanAndOrFilter);
     this.operator = booleanAndOrFilter.getOperator();
-    this.subfilters =
-        booleanAndOrFilter.getSubfilters().stream()
-            .map(Filter::serialize)
-            .toList();
+    this.subfilters = booleanAndOrFilter.getSubfilters().stream().map(Filter::serialize).toList();
   }
 
   private UFBooleanAndOrFilter(Builder builder) {

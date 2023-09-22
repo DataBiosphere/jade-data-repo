@@ -42,10 +42,7 @@ public final class BooleanAndOrFilter implements Filter {
   public BooleanAndOrFilterVariable buildVariable(
       TableVariable primaryTable, List<TableVariable> tables) {
     return new BooleanAndOrFilterVariable(
-        operator,
-        subfilters.stream()
-            .map(sf -> sf.buildVariable(primaryTable, tables))
-            .toList());
+        operator, subfilters.stream().map(sf -> sf.buildVariable(primaryTable, tables)).toList());
   }
 
   public BooleanAndOrFilterVariable.LogicalOperator getOperator() {

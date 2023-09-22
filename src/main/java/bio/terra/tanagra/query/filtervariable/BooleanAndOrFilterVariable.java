@@ -29,8 +29,8 @@ public class BooleanAndOrFilterVariable extends FilterVariable {
   @Override
   public String renderSQL(CloudPlatform platform) {
     return subFilters.stream()
-            .map(sf -> sf.renderSQL(platform))
-            .collect(Collectors.joining(" " + operator.renderSQL(platform) + " ", "(", ")" ));
+        .map(sf -> sf.renderSQL(platform))
+        .collect(Collectors.joining(" " + operator.renderSQL(platform) + " ", "(", ")"));
   }
 
   public enum LogicalOperator implements SQLExpression {

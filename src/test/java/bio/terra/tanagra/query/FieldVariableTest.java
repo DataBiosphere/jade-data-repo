@@ -2,7 +2,7 @@ package bio.terra.tanagra.query;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.tanagra.exception.SystemException;

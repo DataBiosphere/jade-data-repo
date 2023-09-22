@@ -2,7 +2,6 @@ package bio.terra.tanagra.query.filtervariable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
 
 import bio.terra.common.category.Unit;
 import bio.terra.tanagra.query.FieldVariable;

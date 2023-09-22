@@ -5,7 +5,6 @@ import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.SqlPlatform;
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,18 +20,24 @@ public class FunctionFilterVariable extends FilterVariable {
     this.functionTemplate = functionTemplate;
     this.fieldVariable = fieldVariable;
     this.values = List.of(values);
+    if (values.length == 0) {
+      throw new IllegalArgumentException("Function filter values must have at least one value");
+    }
+    if (values.length != 1
+        && (functionTemplate == FunctionTemplate.TEXT_EXACT_MATCH
+            || functionTemplate == FunctionTemplate.TEXT_FUZZY_MATCH)) {
+      throw new IllegalArgumentException(
+          "TEXT_EXACT_MATCH/TEXT_FUZZY_MATCH filter can only match one value");
+    }
   }
 
   @Override
   protected String getSubstitutionTemplate(SqlPlatform platform) {
     String valuesSQL =
-        values.size() > 1
-            ? values.stream()
-                .map(literal -> literal.renderSQL(platform))
-                .collect(Collectors.joining(","))
-            : values.get(0).renderSQL(platform);
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder().put("value", valuesSQL).build();
+        values.stream()
+            .map(literal -> literal.renderSQL(platform))
+            .collect(Collectors.joining(","));
+    Map<String, String> params = Map.of("value", valuesSQL);
     return StringSubstitutor.replace(functionTemplate.renderSQL(platform), params);
   }
 

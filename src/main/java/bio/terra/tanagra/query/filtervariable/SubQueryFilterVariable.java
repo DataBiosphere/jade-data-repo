@@ -1,10 +1,10 @@
 package bio.terra.tanagra.query.filtervariable;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.SQLExpression;
+import bio.terra.tanagra.query.SqlPlatform;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +24,7 @@ public class SubQueryFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate(CloudPlatform platform) {
+  protected String getSubstitutionTemplate(SqlPlatform platform) {
     Map<String, String> params =
         ImmutableMap.<String, String>builder()
             .put("operator", operator.renderSQL(platform))
@@ -49,7 +49,7 @@ public class SubQueryFilterVariable extends FilterVariable {
     }
 
     @Override
-    public String renderSQL(CloudPlatform platform) {
+    public String renderSQL(SqlPlatform platform) {
       return sql;
     }
   }

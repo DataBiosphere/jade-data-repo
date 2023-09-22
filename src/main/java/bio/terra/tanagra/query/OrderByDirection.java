@@ -1,7 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
-
 public enum OrderByDirection implements SQLExpression {
   ASCENDING("ASC"),
   DESCENDING("DESC");
@@ -13,7 +11,7 @@ public enum OrderByDirection implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     return sql;
   }
 }

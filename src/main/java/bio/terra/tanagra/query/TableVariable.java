@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +48,7 @@ public final class TableVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     String sql = tablePointer.renderSQL(platform);
 
     String template;
@@ -60,7 +59,7 @@ public final class TableVariable implements SQLExpression {
       sql = StringSubstitutor.replace(template, params);
     }
 
-    if (joinField != null && joinFieldOnParent != null) {
+    if (joinField != null && joinFieldOnParent != null && alias != null) {
       template =
           "${joinType} ${tableReference} ON ${tableAlias}.${joinField} = ${joinFieldOnParent}";
       params =

@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.DatasetTable;
 import com.google.cloud.bigquery.TableId;
 import java.util.Collection;
@@ -19,10 +18,10 @@ public interface QueryExecutor {
 
   Collection<RowResult> readTableRows(Query query);
 
-  CloudPlatform getCloudPlatform();
+  SqlPlatform getSqlPlatform();
 
   default String renderSQL(SQLExpression expression) {
-    String sql = expression.renderSQL(getCloudPlatform());
+    String sql = expression.renderSQL(getSqlPlatform());
     LOGGER.info("Generated SQL: {}", sql);
     return sql;
   }

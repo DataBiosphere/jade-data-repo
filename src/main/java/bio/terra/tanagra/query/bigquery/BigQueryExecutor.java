@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query.bigquery;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.query.Query;
@@ -8,6 +7,7 @@ import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
+import bio.terra.tanagra.query.SqlPlatform;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
@@ -59,8 +59,8 @@ public class BigQueryExecutor implements QueryExecutor {
   }
 
   @Override
-  public CloudPlatform getCloudPlatform() {
-    return CloudPlatform.GCP;
+  public SqlPlatform getSqlPlatform() {
+    return SqlPlatform.BIGQUERY;
   }
 
   @Override

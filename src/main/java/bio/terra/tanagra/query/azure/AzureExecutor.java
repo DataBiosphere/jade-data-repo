@@ -5,7 +5,6 @@ import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceNam
 import bio.terra.common.Column;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -19,6 +18,7 @@ import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
+import bio.terra.tanagra.query.SqlPlatform;
 import bio.terra.tanagra.underlay.datapointer.AzureDataset;
 import com.google.cloud.bigquery.TableId;
 import java.sql.ResultSet;
@@ -91,7 +91,7 @@ public class AzureExecutor implements QueryExecutor {
   @Override
   public QueryResult execute(QueryRequest queryRequest) {
     String sql = renderSQL(queryRequest.query());
-    LOGGER.info("Running SQL against {}: {}", getCloudPlatform(), sql);
+    LOGGER.info("Running SQL against {}: {}", getSqlPlatform(), sql);
 
     List<RowResult> tableResult =
         azureSynapsePdao.query(
@@ -176,7 +176,7 @@ public class AzureExecutor implements QueryExecutor {
   }
 
   @Override
-  public CloudPlatform getCloudPlatform() {
-    return CloudPlatform.AZURE;
+  public SqlPlatform getSqlPlatform() {
+    return SqlPlatform.SYNAPSE;
   }
 }

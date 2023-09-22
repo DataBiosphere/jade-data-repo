@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.serialization.UFTablePointer;
 import bio.terra.tanagra.underlay.DataPointer;
@@ -92,7 +91,7 @@ public final class TablePointer implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     if (isRawSql()) {
       return "(" + sql + ")";
     } else if (!hasTableFilter()) {

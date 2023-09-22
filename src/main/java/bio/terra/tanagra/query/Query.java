@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.filtervariable.HavingFilterVariable;
 import com.google.common.collect.ImmutableMap;
@@ -23,7 +22,7 @@ public record Query(
   public static final String TANAGRA_FIELD_PREFIX = "t_";
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     // generate a unique alias for each TableVariable
     TableVariable.generateAliases(tables);
 
@@ -34,7 +33,7 @@ public record Query(
             .map(fieldVariable -> fieldVariable.renderSQL(platform))
             .collect(Collectors.joining(", "));
 
-    if (platform == CloudPlatform.AZURE && limit != null) {
+    if (platform == SqlPlatform.SYNAPSE && limit != null) {
       selectSQL = "TOP " + limit + " " + selectSQL;
     }
 
@@ -91,7 +90,7 @@ public record Query(
       sql += " " + having.renderSQL(platform);
     }
 
-    if (platform == CloudPlatform.GCP && orderBy != null && !orderBy.isEmpty()) {
+    if (platform == SqlPlatform.BIGQUERY && orderBy != null && !orderBy.isEmpty()) {
       // render each ORDER BY FieldVariable and join them into a single string
       String orderBySQL =
           orderBy.stream()
@@ -107,7 +106,7 @@ public record Query(
       sql = StringSubstitutor.replace(template, params);
     }
 
-    if (platform == CloudPlatform.GCP && limit != null) {
+    if (platform == SqlPlatform.BIGQUERY && limit != null) {
       template = "${sql} LIMIT ${limit}";
       params =
           ImmutableMap.<String, String>builder()

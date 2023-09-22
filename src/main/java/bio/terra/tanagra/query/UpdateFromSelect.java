@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ public class UpdateFromSelect implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     // Check that the select join field is part of the query.
     if (!selectQuery.getSelect().contains(selectJoinField)) {
       throw new SystemException("Select join field is not part of the query selected fields");

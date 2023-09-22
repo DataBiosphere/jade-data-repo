@@ -1,10 +1,10 @@
 package bio.terra.tanagra.query.filtervariable;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.SQLExpression;
+import bio.terra.tanagra.query.SqlPlatform;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.text.StringSubstitutor;
@@ -23,7 +23,7 @@ public class BinaryFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate(CloudPlatform platform) {
+  protected String getSubstitutionTemplate(SqlPlatform platform) {
     Map<String, String> params =
         Map.of("operator", operator.renderSQL(platform), "value", value.renderSQL(platform));
     return StringSubstitutor.replace(SUBSTITUTION_TEMPLATE, params);
@@ -51,7 +51,7 @@ public class BinaryFilterVariable extends FilterVariable {
     }
 
     @Override
-    public String renderSQL(CloudPlatform platform) {
+    public String renderSQL(SqlPlatform platform) {
       return sql;
     }
   }

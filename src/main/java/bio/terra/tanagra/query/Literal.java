@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.serialization.UFLiteral;
 import com.google.common.base.Strings;
@@ -105,7 +104,7 @@ public class Literal implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     // TODO: use named parameters for literals to protect against SQL injection
     return switch (dataType) {
       case STRING -> stringVal == null ? "NULL" : "'" + sqlEscape(stringVal) + "'";

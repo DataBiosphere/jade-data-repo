@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Comparator;
@@ -24,7 +23,7 @@ public class InsertFromValues implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     // list the insert field names in the same order as the select fields
     List<String> sortedColumns =
         valueFields.entrySet().stream()

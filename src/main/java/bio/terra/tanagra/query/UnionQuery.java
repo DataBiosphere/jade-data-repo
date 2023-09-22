@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,7 +12,7 @@ public class UnionQuery implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     if (subqueries == null || subqueries.isEmpty()) {
       throw new SystemException("Union query must have at least one sub query");
     }

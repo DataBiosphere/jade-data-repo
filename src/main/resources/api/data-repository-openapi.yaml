@@ -272,7 +272,7 @@ paths:
           description: ADMIN ONLY - Delete all Azure cloud resources along with billing profile.
           schema:
             type: boolean
-          default: false
+            default: false
           required: false
       responses:
         200:

@@ -451,40 +451,22 @@ public class AzureResourceDao {
     return storageAccountResource;
   }
 
+  /**
+   * Mark the storage_account_resource metadata row associated with the storage account for delete,
+   * provided the row is either unlocked or locked by the provided flight.
+   *
+   * <p>Actual delete is performed when the associated application deployment is deleted
+   *
+   * @param storageAccountName name of storage account to delete
+   * @param flightId flight trying to delete storage account
+   * @return true if a row is deleted, false otherwise
+   */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean markForDeleteStorageAccountMetadata(
       String storageAccountName, String topLevelContainer, String flightId) {
     String sql =
         """
       UPDATE storage_account_resource SET marked_for_delete = true
-      WHERE name = :name
-      AND toplevelcontainer = :topLevelContainer
-      AND (flightid = :flightid OR flightid IS NULL)
-      """;
-
-    MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue("name", storageAccountName)
-            .addValue("topLevelContainer", topLevelContainer)
-            .addValue("flightid", flightId);
-    int numRowsUpdated = jdbcTemplate.update(sql, params);
-    return (numRowsUpdated == 1);
-  }
-
-  /**
-   * Delete the storage_account_resource metadata row associated with the storage account, provided
-   * the row is either unlocked or locked by the provided flight.
-   *
-   * @param storageAccountName name of storage account to delete
-   * @param flightId flight trying to do the delete
-   * @return true if a row is deleted, false otherwise
-   */
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean deleteStorageAccountMetadata(
-      String storageAccountName, String topLevelContainer, String flightId) {
-    String sql =
-        """
-      DELETE FROM storage_account_resource
       WHERE name = :name
       AND toplevelcontainer = :topLevelContainer
       AND (flightid = :flightid OR flightid IS NULL)

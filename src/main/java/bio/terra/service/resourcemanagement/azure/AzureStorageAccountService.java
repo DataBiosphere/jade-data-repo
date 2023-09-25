@@ -208,18 +208,6 @@ public class AzureStorageAccountService {
     return resourceDao.retrieveStorageAccountById(storageAccountId);
   }
 
-  public void deleteCloudStorageAccountMetadata(
-      String storageAccountResourceName, String topLevelContainer, String flightId) {
-    logger.info(
-        "Deleting Azure storage account metadata named {} with top level container {}",
-        storageAccountResourceName,
-        topLevelContainer);
-    boolean deleted =
-        resourceDao.deleteStorageAccountMetadata(
-            storageAccountResourceName, topLevelContainer, flightId);
-    logger.info("Metadata removed: {}", deleted);
-  }
-
   public void markForDeleteCloudStorageAccountMetadata(
       String storageAccountResourceName, String topLevelContainer, String flightId) {
     logger.info(

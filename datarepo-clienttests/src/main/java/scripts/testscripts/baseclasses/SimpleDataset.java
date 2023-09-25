@@ -132,7 +132,7 @@ public class SimpleDataset extends runner.TestScript {
 
     // delete the profile
     if (deleteProfile) {
-      resourcesApi.deleteProfile(billingProfileModel.getId());
+      resourcesApi.deleteProfile(billingProfileModel.getId(), true);
       logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
     } else {
       logger.info("Skipping profile delete because test is using a shared profile");

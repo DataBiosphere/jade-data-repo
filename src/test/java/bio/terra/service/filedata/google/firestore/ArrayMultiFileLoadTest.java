@@ -2,9 +2,9 @@ package bio.terra.service.filedata.google.firestore;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.assertj.core.api.Fail.fail;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.not;
@@ -248,6 +248,7 @@ public class ArrayMultiFileLoadTest {
     int fileCount = 1;
     BulkLoadArrayRequestModel arrayLoad =
         makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, fileCount);
+    String originalLoadTag = arrayLoad.getLoadTag();
 
     BulkLoadArrayResultModel result =
         connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad.bulkMode(true));
@@ -273,10 +274,10 @@ public class ArrayMultiFileLoadTest {
 
     ErrorModel failedResult =
         connectedOperations.ingestArrayFailure(datasetSummary.getId(), failedArrayLoad);
+    assertThat(failedResult.getMessage(), containsString("FileAlreadyExistsException"));
     assertThat(
         failedResult.getMessage(),
-        contains(equalTo("FileAlreadyExistsException")),
-        equalTo("Path already exists: / with load tag " + arrayLoad.getLoadTag()));
+        containsString("Path already exists: / with load tag " + originalLoadTag));
   }
 
   @Test

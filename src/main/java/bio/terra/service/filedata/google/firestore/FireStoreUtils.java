@@ -271,7 +271,8 @@ public class FireStoreUtils {
             } else {
               throw new FileSystemExecutionException(
                   "[batchOperation] Parent exception caught but neither parent nor nested "
-                      + "exceptions were designated for retry.",
+                      + "exceptions were designated for retry: "
+                      + formatNestedExceptions(ex, ""),
                   ex);
             }
           }
@@ -321,6 +322,14 @@ public class FireStoreUtils {
       return true;
     }
     return shouldRetry(throwable.getCause(), isBatch);
+  }
+
+  public static String formatNestedExceptions(Throwable throwable, String message) {
+    if (throwable == null) {
+      return message;
+    }
+    message += "Caused by: " + throwable.getMessage() + " ";
+    return formatNestedExceptions(throwable.getCause(), message);
   }
 
   public <T> T runTransactionWithRetry(

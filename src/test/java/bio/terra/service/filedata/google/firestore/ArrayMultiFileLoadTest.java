@@ -10,7 +10,6 @@ import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -274,7 +273,9 @@ public class ArrayMultiFileLoadTest {
 
     ErrorModel failedResult =
         connectedOperations.ingestArrayFailure(datasetSummary.getId(), failedArrayLoad);
-    assertThat(failedResult.getMessage(), contains(equalTo("FileAlreadyExistsException")),
+    assertThat(
+        failedResult.getMessage(),
+        contains(equalTo("FileAlreadyExistsException")),
         equalTo("Path already exists: / with load tag " + arrayLoad.getLoadTag()));
   }
 

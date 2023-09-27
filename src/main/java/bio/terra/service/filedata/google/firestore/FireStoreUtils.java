@@ -24,8 +24,11 @@ import com.google.cloud.storage.StorageException;
 import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -272,7 +275,7 @@ public class FireStoreUtils {
               throw new FileSystemExecutionException(
                   "[batchOperation] Parent exception caught but neither parent nor nested "
                       + "exceptions were designated for retry: "
-                      + formatNestedExceptions(ex, ""),
+                      + formatNestedExceptions(ex),
                   ex);
             }
           }
@@ -324,12 +327,10 @@ public class FireStoreUtils {
     return shouldRetry(throwable.getCause(), isBatch);
   }
 
-  public static String formatNestedExceptions(Throwable throwable, String message) {
-    if (throwable == null) {
-      return message;
-    }
-    message += "Caused by: " + throwable.getMessage() + " ";
-    return formatNestedExceptions(throwable.getCause(), message);
+  public static String formatNestedExceptions(Throwable throwable) {
+    return Stream.iterate(throwable, Objects::nonNull, Throwable::getCause)
+        .map(t -> "Caused by: " + t.getMessage() + " ")
+        .collect(Collectors.joining());
   }
 
   public <T> T runTransactionWithRetry(

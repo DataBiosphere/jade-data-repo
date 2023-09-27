@@ -2,13 +2,11 @@ package bio.terra.tanagra.query;
 
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.filtervariable.HavingFilterVariable;
-import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public record Query(
     List<FieldVariable> select,
@@ -38,52 +36,37 @@ public record Query(
     }
 
     // render the primary TableVariable
-    String template = "SELECT ${selectSQL} FROM ${primaryTableFromSQL}";
-    Map<String, String> params =
-        Map.of(
-            "selectSQL", selectSQL, "primaryTableFromSQL", getPrimaryTable().renderSQL(platform));
-    String sql = StringSubstitutor.replace(template, params);
+    String sql = new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
+        .add("selectSQL", selectSQL)
+        .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
+        .render();
 
     // render the join TableVariables
     if (tables.size() > 1) {
-      String joinTablesFromSQL =
-          tables.stream()
+      sql = new ST("<sql> <joinTablesFromSQL>")
+          .add("sql", sql)
+          .add("joinTablesFromSQL", tables.stream()
               .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
-              .collect(Collectors.joining(" "));
-      template = "${sql} ${joinTablesFromSQL}";
-      params =
-          ImmutableMap.<String, String>builder()
-              .put("sql", sql)
-              .put("joinTablesFromSQL", joinTablesFromSQL)
-              .build();
-      sql = StringSubstitutor.replace(template, params);
+              .collect(Collectors.joining(" ")))
+          .render();
     }
 
     // render the FilterVariable
     if (where != null) {
-      template = "${sql} WHERE ${whereSQL}";
-      params =
-          ImmutableMap.<String, String>builder()
-              .put("sql", sql)
-              .put("whereSQL", where.renderSQL(platform))
-              .build();
-      sql = StringSubstitutor.replace(template, params);
+      sql = new ST("<sql> WHERE <whereSQL>")
+          .add("sql", sql)
+          .add("whereSQL", where.renderSQL(platform))
+          .render();
     }
 
     if (groupBy != null && !groupBy.isEmpty()) {
       // render each GROUP BY FieldVariable and join them into a single string
-      String groupBySQL =
-          groupBy.stream()
+      sql = new ST("<sql> GROUP BY <groupBySQL>")
+          .add("sql", sql)
+          .add("groupBySQL", groupBy.stream()
               .map(FieldVariable::renderSqlForOrderBy)
-              .collect(Collectors.joining(", "));
-
-      template = "${sql} GROUP BY ${groupBySQL}";
-      params =
-          ImmutableMap.<String, String>builder()
-              .put("sql", sql)
-              .put("groupBySQL", groupBySQL)
-              .build();
-      sql = StringSubstitutor.replace(template, params);
+              .collect(Collectors.joining(", ")))
+          .render();
     }
 
     if (having != null) {
@@ -92,28 +75,19 @@ public record Query(
 
     if (platform == SqlPlatform.BIGQUERY && orderBy != null && !orderBy.isEmpty()) {
       // render each ORDER BY FieldVariable and join them into a single string
-      String orderBySQL =
-          orderBy.stream()
+      sql = new ST("<sql> ORDER BY <orderBySQL>")
+          .add("sql", sql)
+          .add("orderBySQL", orderBy.stream()
               .map(orderByVariable -> orderByVariable.renderSQL(platform))
-              .collect(Collectors.joining(", "));
-
-      template = "${sql} ORDER BY ${orderBySQL}";
-      params =
-          ImmutableMap.<String, String>builder()
-              .put("sql", sql)
-              .put("orderBySQL", orderBySQL)
-              .build();
-      sql = StringSubstitutor.replace(template, params);
+              .collect(Collectors.joining(", ")))
+          .render();
     }
 
     if (platform == SqlPlatform.BIGQUERY && limit != null) {
-      template = "${sql} LIMIT ${limit}";
-      params =
-          ImmutableMap.<String, String>builder()
-              .put("sql", sql)
-              .put("limit", String.valueOf(limit))
-              .build();
-      sql = StringSubstitutor.replace(template, params);
+      sql = new ST("<sql> LIMIT <limit>")
+          .add("sql", sql)
+          .add("limit", limit)
+          .render();
     }
 
     return sql;

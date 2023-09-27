@@ -13,15 +13,14 @@ import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.underlay.DataPointer;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public final class AzureDataset extends DataPointer {
   private static final String TABLE_SQL =
-      "OPENROWSET(BULK 'parquet/${tableName}/*/*.parquet', DATA_SOURCE = 'ds-${datasetId}-${userName}', FORMAT='PARQUET')";
+      "OPENROWSET(BULK 'parquet/<tableName>/*/*.parquet', DATA_SOURCE = 'ds-<datasetId>-<userName>', FORMAT='PARQUET')";
   private final UUID datasetId;
   private final String datasetName;
   private final String userName;
@@ -40,8 +39,11 @@ public final class AzureDataset extends DataPointer {
 
   @Override
   public String getTableSQL(String tableName) {
-    return StringSubstitutor.replace(
-        TABLE_SQL, Map.of("tableName", tableName, "datasetId", datasetId, "userName", userName));
+    return new ST(TABLE_SQL)
+        .add("tableName", tableName)
+        .add("datasetId", datasetId)
+        .add("userName", userName)
+        .render();
   }
 
   @Override

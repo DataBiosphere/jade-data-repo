@@ -5,13 +5,11 @@ import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.SqlPlatform;
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Map;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public class SubQueryFilterVariable extends FilterVariable {
-  private static final String SUBSTITUTION_TEMPLATE = "${fieldVariable} ${operator} (${subQuery})";
+  private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <fieldVariable> (<subQuery>)";
 
   private final FieldVariable fieldVariable;
   private final Operator operator;
@@ -25,12 +23,10 @@ public class SubQueryFilterVariable extends FilterVariable {
 
   @Override
   protected String getSubstitutionTemplate(SqlPlatform platform) {
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("operator", operator.renderSQL(platform))
-            .put("subQuery", subQuery.renderSQL(platform))
-            .build();
-    return StringSubstitutor.replace(SUBSTITUTION_TEMPLATE, params);
+    return new ST(SUBSTITUTION_TEMPLATE)
+        .add("operator", operator.renderSQL(platform))
+        .add("subQuery", subQuery.renderSQL(platform))
+        .render();
   }
 
   @Override
@@ -42,7 +38,7 @@ public class SubQueryFilterVariable extends FilterVariable {
     IN("IN"),
     NOT_IN("NOT IN");
 
-    private String sql;
+    private final String sql;
 
     Operator(String sql) {
       this.sql = sql;

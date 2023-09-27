@@ -1,10 +1,9 @@
 package bio.terra.tanagra.query;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public class InsertFromSelect implements SQLExpression {
   private final TableVariable insertTable;
@@ -27,13 +26,11 @@ public class InsertFromSelect implements SQLExpression {
             .map(Map.Entry::getKey)
             .collect(Collectors.joining(", "));
 
-    String template = "INSERT INTO ${insertTableSQL} (${insertFieldsSQL}) ${selectQuerySQL}";
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("insertTableSQL", insertTable.renderSQL(platform))
-            .put("insertFieldsSQL", insertFieldsSQL)
-            .put("selectQuerySQL", selectQuery.renderSQL(platform))
-            .build();
-    return StringSubstitutor.replace(template, params);
+    String template = "INSERT INTO <insertTableSQL> (<insertFieldsSQL>) <selectQuerySQL>";
+    return new ST(template)
+        .add("insertTableSQL", insertTable.renderSQL(platform))
+        .add("insertFieldsSQL", insertFieldsSQL)
+        .add("selectQuerySQL", selectQuery.renderSQL(platform))
+        .render();
   }
 }

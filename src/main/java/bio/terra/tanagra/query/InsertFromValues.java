@@ -1,12 +1,11 @@
 package bio.terra.tanagra.query;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public class InsertFromValues implements SQLExpression {
   private final TableVariable insertTable;
@@ -33,24 +32,21 @@ public class InsertFromValues implements SQLExpression {
 
     String insertFieldsSQL = String.join(", ", sortedColumns);
 
-    String template = "INSERT INTO ${insertTableSQL} (${insertFieldsSQL}) VALUES ${values}";
-    Literal nullLiteral = new Literal(null);
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("insertTableSQL", insertTable.renderSQL(platform))
-            .put("insertFieldsSQL", insertFieldsSQL)
-            .put(
-                "values",
-                values.stream()
-                    .map(
-                        rowResult ->
-                            sortedColumns.stream()
-                                .map(rowResult::get)
-                                .map(cellValue -> cellValue.getLiteral().orElse(nullLiteral))
-                                .map(literal -> literal.renderSQL(platform))
-                                .collect(Collectors.joining(",", "(", ")")))
-                    .collect(Collectors.joining(",")))
-            .build();
-    return StringSubstitutor.replace(template, params);
+    String template = "INSERT INTO <insertTableSQL> (<insertFieldsSQL>) VALUES <values>";
+    return new ST(template)
+        .add("insertTableSQL", insertTable.renderSQL(platform))
+        .add("insertFieldsSQL", insertFieldsSQL)
+        .add(
+            "values",
+            values.stream()
+                .map(
+                    rowResult ->
+                        sortedColumns.stream()
+                            .map(rowResult::get)
+                            .map(cellValue -> cellValue.getLiteral().orElseGet(() -> new Literal(null)))
+                            .map(literal -> literal.renderSQL(platform))
+                            .collect(Collectors.joining(",", "(", ")")))
+                .collect(Collectors.joining(",")))
+        .render();
   }
 }

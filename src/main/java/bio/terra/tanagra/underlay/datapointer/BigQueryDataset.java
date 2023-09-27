@@ -17,11 +17,9 @@ import bio.terra.tanagra.utils.GoogleBigQuery;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public final class BigQueryDataset extends DataPointer {
   private final String projectId;
@@ -80,26 +78,20 @@ public final class BigQueryDataset extends DataPointer {
 
   @Override
   public String getTableSQL(String tableName) {
-    String template = "`${projectId}.${datasetId}`.${tableName}";
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("projectId", projectId)
-            .put("datasetId", datasetId)
-            .put("tableName", tableName)
-            .build();
-    return StringSubstitutor.replace(template, params);
+    return new ST("`<projectId>.<datasetId>`.<tableName>")
+        .add("projectId", projectId)
+        .add("datasetId", datasetId)
+        .add("tableName", tableName)
+        .render();
   }
 
   @Override
   public String getTablePathForIndexing(String tableName) {
-    String template = "${projectId}:${datasetId}.${tableName}";
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("projectId", projectId)
-            .put("datasetId", datasetId)
-            .put("tableName", tableName)
-            .build();
-    return StringSubstitutor.replace(template, params);
+    return new ST("<projectId>:<datasetId>.<tableName>")
+        .add("projectId", projectId)
+        .add("datasetId", datasetId)
+        .add("tableName", tableName)
+        .render();
   }
 
   @Override
@@ -151,20 +143,13 @@ public final class BigQueryDataset extends DataPointer {
   }
 
   public static LegacySQLTypeName fromSqlDataType(CellValue.SQLDataType sqlDataType) {
-    switch (sqlDataType) {
-      case STRING:
-        return LegacySQLTypeName.STRING;
-      case INT64:
-        return LegacySQLTypeName.INTEGER;
-      case BOOLEAN:
-        return LegacySQLTypeName.BOOLEAN;
-      case DATE:
-        return LegacySQLTypeName.DATE;
-      case FLOAT:
-        return LegacySQLTypeName.FLOAT;
-      default:
-        throw new SystemException("SQL data type not supported for BigQuery: " + sqlDataType);
-    }
+    return switch (sqlDataType) {
+      case STRING -> LegacySQLTypeName.STRING;
+      case INT64 -> LegacySQLTypeName.INTEGER;
+      case BOOLEAN -> LegacySQLTypeName.BOOLEAN;
+      case DATE -> LegacySQLTypeName.DATE;
+      case FLOAT -> LegacySQLTypeName.FLOAT;
+    };
   }
 
   public GoogleBigQuery getBigQueryService() {

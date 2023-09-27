@@ -6,11 +6,10 @@ import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.SqlPlatform;
 import java.util.List;
-import java.util.Map;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public class BinaryFilterVariable extends FilterVariable {
-  private static final String SUBSTITUTION_TEMPLATE = "${fieldVariable} ${operator} ${value}";
+  private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <operator> <value>";
 
   private final FieldVariable fieldVariable;
   private final BinaryOperator operator;
@@ -24,9 +23,10 @@ public class BinaryFilterVariable extends FilterVariable {
 
   @Override
   protected String getSubstitutionTemplate(SqlPlatform platform) {
-    Map<String, String> params =
-        Map.of("operator", operator.renderSQL(platform), "value", value.renderSQL(platform));
-    return StringSubstitutor.replace(SUBSTITUTION_TEMPLATE, params);
+    return new ST(SUBSTITUTION_TEMPLATE)
+        .add("operator", operator.renderSQL(platform))
+        .add("value", value.renderSQL(platform))
+        .render();
   }
 
   @Override

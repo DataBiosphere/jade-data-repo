@@ -1,11 +1,10 @@
 package bio.terra.tanagra.query;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public final class TableVariable implements SQLExpression {
   private String alias;
@@ -51,26 +50,21 @@ public final class TableVariable implements SQLExpression {
   public String renderSQL(SqlPlatform platform) {
     String sql = tablePointer.renderSQL(platform);
 
-    String template;
-    Map<String, String> params;
     if (alias != null) {
-      template = "${sql} AS ${tableAlias}";
-      params = Map.of("sql", sql, "tableAlias", alias);
-      sql = StringSubstitutor.replace(template, params);
+      sql = new ST("<sql> AS <tableAlias>")
+          .add("sql", sql)
+          .add("tableAlias", alias)
+          .render();
     }
 
     if (joinField != null && joinFieldOnParent != null && alias != null) {
-      template =
-          "${joinType} ${tableReference} ON ${tableAlias}.${joinField} = ${joinFieldOnParent}";
-      params =
-          ImmutableMap.<String, String>builder()
-              .put("joinType", isLeftJoin ? "LEFT JOIN" : "JOIN")
-              .put("tableReference", sql)
-              .put("tableAlias", alias)
-              .put("joinField", joinField)
-              .put("joinFieldOnParent", joinFieldOnParent.renderSQL(platform))
-              .build();
-      sql = StringSubstitutor.replace(template, params);
+      sql = new ST("<joinType> <tableReference> ON <tableAlias>.<joinField> = <joinFieldOnParent>")
+          .add("joinType", isLeftJoin ? "LEFT JOIN" : "JOIN")
+          .add("tableReference", sql)
+          .add("tableAlias", alias)
+          .add("joinField", joinField)
+          .add("joinFieldOnParent", joinFieldOnParent.renderSQL(platform))
+          .render();
     }
     return sql;
   }

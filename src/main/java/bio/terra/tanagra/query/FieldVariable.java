@@ -1,10 +1,9 @@
 package bio.terra.tanagra.query;
 
 import bio.terra.tanagra.exception.SystemException;
-import java.util.Map;
-import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stringtemplate.v4.ST;
 
 public class FieldVariable implements SQLExpression {
   private static final Logger LOGGER = LoggerFactory.getLogger(FieldVariable.class);
@@ -45,17 +44,11 @@ public class FieldVariable implements SQLExpression {
     if (fieldPointer.hasSqlFunctionWrapper() && useFunctionWrapper) {
       String sqlFunctionWrapper = fieldPointer.getSqlFunctionWrapper();
       LOGGER.debug("Found sql function wrapper: {}", sqlFunctionWrapper);
-      final String substitutionVar = "${fieldSql}";
-      final String template;
-      final Map<String, Object> params;
+      final String substitutionVar = "<fieldSql>";
       if (sqlFunctionWrapper.contains(substitutionVar)) {
-        template = sqlFunctionWrapper;
-        params = Map.of("fieldSql", sql);
-      } else {
-        template = "${functionName}(${fieldSql})";
-        params = Map.of("functionName", sqlFunctionWrapper, "fieldSql", sql);
+        return new ST(sqlFunctionWrapper).add("fieldSql", sql).render();
       }
-      return StringSubstitutor.replace(template, params);
+      return sqlFunctionWrapper + "(" + sql + ")";
     }
 
     if (alias != null && useAlias) {

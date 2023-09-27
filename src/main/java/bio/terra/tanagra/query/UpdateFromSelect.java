@@ -1,14 +1,13 @@
 package bio.terra.tanagra.query;
 
 import bio.terra.tanagra.exception.SystemException;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public class UpdateFromSelect implements SQLExpression {
   private final TableVariable updateTable;
@@ -77,27 +76,18 @@ public class UpdateFromSelect implements SQLExpression {
         setFieldsForNestedVars.entrySet().stream()
             .sorted(Comparator.comparing(p -> p.getKey().getAliasOrColumnName()))
             .map(
-                setField -> {
-                  String template = "${updateFieldSQL} = ${selectFieldSQL}";
-                  Map<String, String> params =
-                      ImmutableMap.<String, String>builder()
-                          .put("updateFieldSQL", setField.getKey().renderSQL(platform))
-                          .put("selectFieldSQL", setField.getValue().renderSQL(platform))
-                          .build();
-                  return StringSubstitutor.replace(template, params);
-                })
+                setField -> new ST("<updateFieldSQL> = <selectFieldSQL>}")
+                    .add("updateFieldSQL", setField.getKey().renderSQL(platform))
+                    .add("selectFieldSQL", setField.getValue().renderSQL(platform))
+                    .render())
             .collect(Collectors.joining(", "));
 
-    String template =
-        "UPDATE ${updateTableSQL} SET ${setFieldsSQL} FROM ${selectTableSQL} WHERE ${updateJoinFieldSQL} = ${selectJoinField}";
-    Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("updateTableSQL", updateTable.renderSQL(platform))
-            .put("setFieldsSQL", setFieldsSQL)
-            .put("selectTableSQL", nestedTableVar.renderSQL(platform))
-            .put("updateJoinFieldSQL", updateJoinField.renderSQL(platform))
-            .put("selectJoinField", selectJoinFieldForNestedVar.renderSQL(platform))
-            .build();
-    return StringSubstitutor.replace(template, params);
+    return new ST("UPDATE <updateTableSQL> SET <setFieldsSQL> FROM <selectTableSQL> WHERE <updateJoinFieldSQL> = <selectJoinField>")
+        .add("updateTableSQL", updateTable.renderSQL(platform))
+        .add("setFieldsSQL", setFieldsSQL)
+        .add("selectTableSQL", nestedTableVar.renderSQL(platform))
+        .add("updateJoinFieldSQL", updateJoinField.renderSQL(platform))
+        .add("selectJoinField", selectJoinFieldForNestedVar.renderSQL(platform))
+        .render();
   }
 }

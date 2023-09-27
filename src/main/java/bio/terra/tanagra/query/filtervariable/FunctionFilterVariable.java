@@ -6,9 +6,8 @@ import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.SqlPlatform;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.text.StringSubstitutor;
+import org.stringtemplate.v4.ST;
 
 public class FunctionFilterVariable extends FilterVariable {
   private final FieldVariable fieldVariable;
@@ -33,12 +32,11 @@ public class FunctionFilterVariable extends FilterVariable {
 
   @Override
   protected String getSubstitutionTemplate(SqlPlatform platform) {
-    String valuesSQL =
-        values.stream()
+    return new ST(functionTemplate.renderSQL(platform))
+        .add("value", values.stream()
             .map(literal -> literal.renderSQL(platform))
-            .collect(Collectors.joining(","));
-    Map<String, String> params = Map.of("value", valuesSQL);
-    return StringSubstitutor.replace(functionTemplate.renderSQL(platform), params);
+            .collect(Collectors.joining(",")))
+        .render();
   }
 
   @Override

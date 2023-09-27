@@ -43,7 +43,9 @@ public class InsertFromValues implements SQLExpression {
                     rowResult ->
                         sortedColumns.stream()
                             .map(rowResult::get)
-                            .map(cellValue -> cellValue.getLiteral().orElseGet(() -> new Literal(null)))
+                            .map(
+                                cellValue ->
+                                    cellValue.getLiteral().orElseGet(() -> new Literal(null)))
                             .map(literal -> literal.renderSQL(platform))
                             .collect(Collectors.joining(",", "(", ")")))
                 .collect(Collectors.joining(",")))

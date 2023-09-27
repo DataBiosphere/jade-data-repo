@@ -4,6 +4,7 @@ import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.SqlPlatform;
 import java.util.List;
+import org.stringtemplate.v4.ST;
 
 public class NotFilterVariable extends FilterVariable {
   private final FilterVariable subFilter;
@@ -13,7 +14,7 @@ public class NotFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate(SqlPlatform platform) {
+  protected ST getSubstitutionTemplate(SqlPlatform platform) {
     return null;
   }
 

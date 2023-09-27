@@ -9,7 +9,8 @@ import java.util.List;
 import org.stringtemplate.v4.ST;
 
 public class SubQueryFilterVariable extends FilterVariable {
-  private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <fieldVariable> (<subQuery>)";
+  private static final String SUBSTITUTION_TEMPLATE =
+      "<fieldVariable> <fieldVariable> (<subQuery>)";
 
   private final FieldVariable fieldVariable;
   private final Operator operator;
@@ -22,11 +23,10 @@ public class SubQueryFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate(SqlPlatform platform) {
+  protected ST getSubstitutionTemplate(SqlPlatform platform) {
     return new ST(SUBSTITUTION_TEMPLATE)
         .add("operator", operator.renderSQL(platform))
-        .add("subQuery", subQuery.renderSQL(platform))
-        .render();
+        .add("subQuery", subQuery.renderSQL(platform));
   }
 
   @Override

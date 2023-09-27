@@ -22,11 +22,10 @@ public class BinaryFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate(SqlPlatform platform) {
+  protected ST getSubstitutionTemplate(SqlPlatform platform) {
     return new ST(SUBSTITUTION_TEMPLATE)
         .add("operator", operator.renderSQL(platform))
-        .add("value", value.renderSQL(platform))
-        .render();
+        .add("value", value.renderSQL(platform));
   }
 
   @Override

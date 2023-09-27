@@ -6,6 +6,7 @@ import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.SqlPlatform;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.stringtemplate.v4.ST;
 
 public class BooleanAndOrFilterVariable extends FilterVariable {
   private final LogicalOperator operator;
@@ -17,7 +18,7 @@ public class BooleanAndOrFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate(SqlPlatform platform) {
+  protected ST getSubstitutionTemplate(SqlPlatform platform) {
     throw new UnsupportedOperationException();
   }
 

@@ -18,7 +18,9 @@ class BinaryFilterVariableTest {
     var binaryOperator = BinaryFilterVariable.BinaryOperator.EQUALS;
     var literal = new Literal("foo");
     var filterVariable = new BinaryFilterVariable(null, binaryOperator, literal);
-    assertThat(filterVariable.getSubstitutionTemplate(null), is("${fieldVariable} = 'foo'"));
+    assertThat(
+        filterVariable.getSubstitutionTemplate(null).add("fieldVariable", "fieldVariable").render(),
+        is("fieldVariable = 'foo'"));
   }
 
   @Test

@@ -23,8 +23,11 @@ class FunctionFilterVariableTest {
             new Literal("value1"),
             new Literal("value2"));
     assertThat(
-        filterVariable.getSubstitutionTemplate(SqlPlatform.BIGQUERY),
-        is("${fieldVariable} IN ('value1','value2')"));
+        filterVariable
+            .getSubstitutionTemplate(SqlPlatform.BIGQUERY)
+            .add("fieldVariable", "fieldVariable")
+            .render(),
+        is("fieldVariable IN ('value1','value2')"));
   }
 
   @Test

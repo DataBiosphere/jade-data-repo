@@ -124,13 +124,15 @@ public class UpdateFromValues implements SQLExpression {
         setFieldsForNestedVars.entrySet().stream()
             .sorted(Comparator.comparing(p -> p.getKey().getAliasOrColumnName()))
             .map(
-                setField -> new ST("<updateFieldSQL> = <selectFieldSQL>")
-                    .add("updateFieldSQL", setField.getKey().renderSQL(platform))
-                    .add("selectFieldSQL", setField.getValue().renderSQL(platform))
-                    .render())
+                setField ->
+                    new ST("<updateFieldSQL> = <selectFieldSQL>")
+                        .add("updateFieldSQL", setField.getKey().renderSQL(platform))
+                        .add("selectFieldSQL", setField.getValue().renderSQL(platform))
+                        .render())
             .collect(Collectors.joining(", "));
 
-    return new ST("UPDATE <updateTableSQL> SET <setFieldsSQL> FROM <selectTableSQL> WHERE <updateJoinFieldSQL> = <selectJoinField>}")
+    return new ST(
+            "UPDATE <updateTableSQL> SET <setFieldsSQL> FROM <selectTableSQL> WHERE <updateJoinFieldSQL> = <selectJoinField>}")
         .add("updateTableSQL", updateTable.renderSQL(platform))
         .add("setFieldsSQL", setFieldsSQL)
         .add("selectTableSQL", renderLiteralData(nestedTableVar, platform))

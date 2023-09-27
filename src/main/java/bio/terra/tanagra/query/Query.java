@@ -36,37 +36,45 @@ public record Query(
     }
 
     // render the primary TableVariable
-    String sql = new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
-        .add("selectSQL", selectSQL)
-        .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
-        .render();
+    String sql =
+        new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
+            .add("selectSQL", selectSQL)
+            .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
+            .render();
 
     // render the join TableVariables
     if (tables.size() > 1) {
-      sql = new ST("<sql> <joinTablesFromSQL>")
-          .add("sql", sql)
-          .add("joinTablesFromSQL", tables.stream()
-              .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
-              .collect(Collectors.joining(" ")))
-          .render();
+      sql =
+          new ST("<sql> <joinTablesFromSQL>")
+              .add("sql", sql)
+              .add(
+                  "joinTablesFromSQL",
+                  tables.stream()
+                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
+                      .collect(Collectors.joining(" ")))
+              .render();
     }
 
     // render the FilterVariable
     if (where != null) {
-      sql = new ST("<sql> WHERE <whereSQL>")
-          .add("sql", sql)
-          .add("whereSQL", where.renderSQL(platform))
-          .render();
+      sql =
+          new ST("<sql> WHERE <whereSQL>")
+              .add("sql", sql)
+              .add("whereSQL", where.renderSQL(platform))
+              .render();
     }
 
     if (groupBy != null && !groupBy.isEmpty()) {
       // render each GROUP BY FieldVariable and join them into a single string
-      sql = new ST("<sql> GROUP BY <groupBySQL>")
-          .add("sql", sql)
-          .add("groupBySQL", groupBy.stream()
-              .map(FieldVariable::renderSqlForOrderBy)
-              .collect(Collectors.joining(", ")))
-          .render();
+      sql =
+          new ST("<sql> GROUP BY <groupBySQL>")
+              .add("sql", sql)
+              .add(
+                  "groupBySQL",
+                  groupBy.stream()
+                      .map(FieldVariable::renderSqlForOrderBy)
+                      .collect(Collectors.joining(", ")))
+              .render();
     }
 
     if (having != null) {
@@ -75,19 +83,19 @@ public record Query(
 
     if (platform == SqlPlatform.BIGQUERY && orderBy != null && !orderBy.isEmpty()) {
       // render each ORDER BY FieldVariable and join them into a single string
-      sql = new ST("<sql> ORDER BY <orderBySQL>")
-          .add("sql", sql)
-          .add("orderBySQL", orderBy.stream()
-              .map(orderByVariable -> orderByVariable.renderSQL(platform))
-              .collect(Collectors.joining(", ")))
-          .render();
+      sql =
+          new ST("<sql> ORDER BY <orderBySQL>")
+              .add("sql", sql)
+              .add(
+                  "orderBySQL",
+                  orderBy.stream()
+                      .map(orderByVariable -> orderByVariable.renderSQL(platform))
+                      .collect(Collectors.joining(", ")))
+              .render();
     }
 
     if (platform == SqlPlatform.BIGQUERY && limit != null) {
-      sql = new ST("<sql> LIMIT <limit>")
-          .add("sql", sql)
-          .add("limit", limit)
-          .render();
+      sql = new ST("<sql> LIMIT <limit>").add("sql", sql).add("limit", limit).render();
     }
 
     return sql;

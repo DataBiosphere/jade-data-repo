@@ -164,7 +164,8 @@ public class AzureExecutor implements QueryExecutor {
 
   @Override
   public Collection<RowResult> readTableRows(Query query) {
-//    return azureSynapsePdao.query(renderSQL(query), (rs, rowNum) -> new ResultSetRowResult(rs));
+    //    return azureSynapsePdao.query(renderSQL(query), (rs, rowNum) -> new
+    // ResultSetRowResult(rs));
     return List.of();
   }
 

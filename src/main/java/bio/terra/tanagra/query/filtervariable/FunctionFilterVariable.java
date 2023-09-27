@@ -31,12 +31,13 @@ public class FunctionFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate(SqlPlatform platform) {
+  protected ST getSubstitutionTemplate(SqlPlatform platform) {
     return new ST(functionTemplate.renderSQL(platform))
-        .add("value", values.stream()
-            .map(literal -> literal.renderSQL(platform))
-            .collect(Collectors.joining(",")))
-        .render();
+        .add(
+            "value",
+            values.stream()
+                .map(literal -> literal.renderSQL(platform))
+                .collect(Collectors.joining(",")));
   }
 
   @Override
@@ -45,12 +46,12 @@ public class FunctionFilterVariable extends FilterVariable {
   }
 
   public enum FunctionTemplate implements SQLExpression {
-    TEXT_EXACT_MATCH("CONTAINS_SUBSTR(${fieldVariable}, ${value})"),
+    TEXT_EXACT_MATCH("CONTAINS_SUBSTR(<fieldVariable>, <value>)"),
     TEXT_FUZZY_MATCH(
-        "bqutil.fn.levenshtein(UPPER(${fieldVariable}), UPPER(${value}))<5",
-        "dbo.Levenshtein(UPPER(${fieldVariable}), UPPER(${value}), 5)"),
-    IN("${fieldVariable} IN (${value})"),
-    NOT_IN("${fieldVariable} NOT IN (${value})");
+        "bqutil.fn.levenshtein(UPPER(<fieldVariable>), UPPER(<value>))<5",
+        "dbo.Levenshtein(UPPER(<fieldVariable>), UPPER(<value>), 5)"),
+    IN("<fieldVariable> IN (<value>)"),
+    NOT_IN("<fieldVariable> NOT IN (<value>)");
 
     private final String bqSqlTemplate;
     private final String synapseSqlTemplate;

@@ -51,20 +51,18 @@ public final class TableVariable implements SQLExpression {
     String sql = tablePointer.renderSQL(platform);
 
     if (alias != null) {
-      sql = new ST("<sql> AS <tableAlias>")
-          .add("sql", sql)
-          .add("tableAlias", alias)
-          .render();
+      sql = new ST("<sql> AS <tableAlias>").add("sql", sql).add("tableAlias", alias).render();
     }
 
     if (joinField != null && joinFieldOnParent != null && alias != null) {
-      sql = new ST("<joinType> <tableReference> ON <tableAlias>.<joinField> = <joinFieldOnParent>")
-          .add("joinType", isLeftJoin ? "LEFT JOIN" : "JOIN")
-          .add("tableReference", sql)
-          .add("tableAlias", alias)
-          .add("joinField", joinField)
-          .add("joinFieldOnParent", joinFieldOnParent.renderSQL(platform))
-          .render();
+      sql =
+          new ST("<joinType> <tableReference> ON <tableAlias>.<joinField> = <joinFieldOnParent>")
+              .add("joinType", isLeftJoin ? "LEFT JOIN" : "JOIN")
+              .add("tableReference", sql)
+              .add("tableAlias", alias)
+              .add("joinField", joinField)
+              .add("joinFieldOnParent", joinFieldOnParent.renderSQL(platform))
+              .render();
     }
     return sql;
   }

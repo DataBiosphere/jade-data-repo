@@ -40,7 +40,7 @@ class FieldVariableTest {
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
             new FieldPointer.Builder()
-                .sqlFunctionWrapper("custom(${fieldSql})")
+                .sqlFunctionWrapper("custom(<fieldSql>)")
                 .columnName("field")
                 .build(),
             tableVariable,

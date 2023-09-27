@@ -139,7 +139,7 @@ public class ProfileServiceUnitTest {
     when(jobBuilder.addParameter(eq(JobMapKeys.IAM_ACTION.getKeyName()), eq(IamAction.DELETE)))
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(
-            eq(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName()), eq(deleteCloudResources)))
+            JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), deleteCloudResources))
         .thenReturn(jobBuilder);
 
     var billingProfileModel = new BillingProfileModel();

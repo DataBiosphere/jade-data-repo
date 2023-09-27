@@ -152,14 +152,17 @@ public class ProfileAPIControllerTest {
 
   @ParameterizedTest
   @MethodSource
-  void testDeleteProfile(boolean deleteCloudResources, int expectedAdminAuthNumberOfInvocations) {
+  void testDeleteProfile(
+      boolean deleteCloudResources,
+      int expectedAdminAuthNumberOfInvocations,
+      int expectedSpendProfileAuthNumberOfInvocations) {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
     when(profileService.deleteProfile(eq(deleteId), eq(deleteCloudResources), eq(user)))
         .thenReturn(jobId);
-    when(profileService.getProfileByIdNoCheck(deleteId))
-        .thenReturn(new BillingProfileModel().id(deleteId));
+    //    when(profileService.getProfileByIdNoCheck(deleteId))
+    //        .thenReturn(new BillingProfileModel().id(deleteId));
     doNothing().when(iamService).verifyAuthorization(any(), any(), any(), any());
 
     var jobModel = new JobModel();
@@ -171,8 +174,8 @@ public class ProfileAPIControllerTest {
     verify(iamService, times(expectedAdminAuthNumberOfInvocations))
         .verifyAuthorization(
             eq(user), eq(IamResourceType.DATAREPO), any(), eq(IamAction.CONFIGURE));
-    // Always check that the user has access on the spend profile
-    verify(iamService, times(1))
+    // Only check if user has access on the spend profile if we're not doing the admin check
+    verify(iamService, times(expectedSpendProfileAuthNumberOfInvocations))
         .verifyAuthorization(
             eq(user),
             eq(IamResourceType.SPEND_PROFILE),
@@ -184,7 +187,7 @@ public class ProfileAPIControllerTest {
   }
 
   private static Stream<Arguments> testDeleteProfile() {
-    return Stream.of(arguments(true, 1), arguments(false, 0));
+    return Stream.of(arguments(true, 1, 0), arguments(false, 0, 1));
   }
 
   @Test

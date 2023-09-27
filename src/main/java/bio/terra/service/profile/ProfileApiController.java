@@ -118,8 +118,9 @@ public class ProfileApiController implements ProfilesApi {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     if (deleteCloudResources) {
       verifyAdminAuthorization(user);
+    } else {
+      verifyProfileAuthorization(user, id.toString(), IamAction.DELETE);
     }
-    verifyProfileAuthorization(user, id.toString(), IamAction.DELETE);
     String jobId = profileService.deleteProfile(id, deleteCloudResources, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }

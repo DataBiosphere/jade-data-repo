@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -105,8 +106,7 @@ public class AzureResourceDaoTest {
     var retrievedAppDeployments =
         azureResourceDao.retrieveApplicationDeploymentsByBillingProfileId(billingProfile.getId());
 
-    assertThat(
-        "Application Deployment count should be 1", retrievedAppDeployments.size(), equalTo(1));
+    assertThat("Application Deployment count should be 1", retrievedAppDeployments, hasSize(1));
 
     var retrievedAppDeployment = retrievedAppDeployments.get(0);
 
@@ -145,10 +145,8 @@ public class AzureResourceDaoTest {
     var appDeploymentId = applicationDeployments.get(0).getId();
     assertThat(
         "Before marking for delete, confirm that 2 storage accounts are returned when marked_for_delete = false",
-        azureResourceDao
-            .retrieveStorageAccountsByApplicationResource(appDeploymentId, false)
-            .size(),
-        equalTo(2));
+        azureResourceDao.retrieveStorageAccountsByApplicationResource(appDeploymentId, false),
+        hasSize(2));
 
     // Mark one storage account for delete
     var storageAccount1 = storageAccounts.get(0);
@@ -160,8 +158,7 @@ public class AzureResourceDaoTest {
 
     var storageAccountsMarkedForDelete =
         azureResourceDao.retrieveStorageAccountsByApplicationResource(appDeploymentId, true);
-    assertThat(
-        "Only 1 storage accounts is returned", storageAccountsMarkedForDelete.size(), equalTo(1));
+    assertThat("Only 1 storage accounts is returned", storageAccountsMarkedForDelete, hasSize(1));
     assertThat(
         "Storage account marked for delete is returned",
         storageAccountsMarkedForDelete.get(0).getStorageAccountId(),

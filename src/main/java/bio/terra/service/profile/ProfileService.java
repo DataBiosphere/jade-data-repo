@@ -128,7 +128,7 @@ public class ProfileService {
    * @return jobId of the submitted stairway job
    */
   public String deleteProfile(
-      UUID id, Boolean deleteCloudResources, AuthenticatedUserRequest user) {
+      UUID id, boolean deleteCloudResources, AuthenticatedUserRequest user) {
     CloudPlatform platform;
     try {
       BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);

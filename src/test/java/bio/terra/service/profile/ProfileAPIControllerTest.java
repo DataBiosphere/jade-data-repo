@@ -161,8 +161,6 @@ public class ProfileAPIControllerTest {
     String jobId = "jobId";
     when(profileService.deleteProfile(eq(deleteId), eq(deleteCloudResources), eq(user)))
         .thenReturn(jobId);
-    //    when(profileService.getProfileByIdNoCheck(deleteId))
-    //        .thenReturn(new BillingProfileModel().id(deleteId));
     doNothing().when(iamService).verifyAuthorization(any(), any(), any(), any());
 
     var jobModel = new JobModel();

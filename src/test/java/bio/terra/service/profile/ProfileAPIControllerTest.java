@@ -1,13 +1,13 @@
 package bio.terra.service.profile;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -105,7 +105,7 @@ public class ProfileAPIControllerTest {
     when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
     ResponseEntity<JobModel> entity = apiController.createProfile(billingProfileRequestModel);
-    assertNotNull(entity);
+    assertThat("Correct job model is returned from request", entity.getBody(), is(jobModel));
   }
 
   @Test
@@ -120,7 +120,7 @@ public class ProfileAPIControllerTest {
     when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
     ResponseEntity<JobModel> entity = apiController.updateProfile(billingProfileUpdateModel);
-    assertNotNull(entity);
+    assertThat("Correct job model is returned from request", entity.getBody(), is(jobModel));
   }
 
   @Test
@@ -158,7 +158,6 @@ public class ProfileAPIControllerTest {
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
     when(profileService.deleteProfile(deleteId, deleteCloudResources, user)).thenReturn(jobId);
-    doNothing().when(iamService).verifyAuthorization(any(), any(), any(), any());
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
@@ -176,7 +175,7 @@ public class ProfileAPIControllerTest {
             eq(IamResourceType.SPEND_PROFILE),
             eq(deleteId.toString()),
             eq(IamAction.DELETE));
-    assertNotNull(entity);
+    assertThat("Correct job model is returned from delete request", entity.getBody(), is(jobModel));
   }
 
   private static Stream<Arguments> testDeleteProfile() {

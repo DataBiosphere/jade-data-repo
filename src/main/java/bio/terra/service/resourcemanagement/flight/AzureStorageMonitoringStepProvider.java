@@ -8,7 +8,6 @@ import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
-import bio.terra.stairway.RetryRuleNone;
 import bio.terra.stairway.Step;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,14 +34,13 @@ public class AzureStorageMonitoringStepProvider {
    */
   public List<StepDef> configureSteps(boolean isSecureMonitoringEnabled, AzureRegion region) {
     List<StepDef> steps = new ArrayList<>();
-    RetryRuleNone noRetry = getRetryRuleNone();
     RetryRuleExponentialBackoff expBackoffRetry = getDefaultExponentialBackoffRetryRule();
 
     // Deploy a Log Analytics Workspace if it doesn't exist already
-    steps.add(new StepDef(new CreateLogAnalyticsWorkspaceStep(monitoringService, region), noRetry));
+    steps.add(new StepDef(new CreateLogAnalyticsWorkspaceStep(monitoringService, region)));
     // Create a diagnostic setting for the storage account if it doesn't exist already
     // This is what tells the storage account to send logs to the Log Analytics Workspace
-    steps.add(new StepDef(new CreateDiagnosticSettingStep(monitoringService, region), noRetry));
+    steps.add(new StepDef(new CreateDiagnosticSettingStep(monitoringService, region)));
 
     // The following steps are only required for FedRAMP compliance
     // They are not turned on in all cases due to cost
@@ -50,9 +48,9 @@ public class AzureStorageMonitoringStepProvider {
       // Create a rule to send the Log Analytics logs to a central storage account where the logs
       // will be retained for longer than the default 90 day minimum that the Log Analytics
       // Workspace stores
-      steps.add(new StepDef(new CreateExportRuleStep(monitoringService, region), noRetry));
+      steps.add(new StepDef(new CreateExportRuleStep(monitoringService, region)));
       // Deploy a Sentinel Workspace if it doesn't exist already
-      steps.add(new StepDef(new CreateSentinelStep(monitoringService, region), noRetry));
+      steps.add(new StepDef(new CreateSentinelStep(monitoringService, region)));
       // Add any rules to Sentinel that will detect events of interest.  It takes a little bit for
       // Sentinel to be available so adding a retry rule here.
       steps.add(
@@ -60,19 +58,20 @@ public class AzureStorageMonitoringStepProvider {
               new CreateSentinelAlertRulesStep(monitoringService, region), expBackoffRetry));
       // Add a notification playbook rule to the Sentinel instance.  This ensures that a Slack
       // notification is sent when an alert is triggered.
-      steps.add(
-          new StepDef(new CreateSentinelNotificationRuleStep(monitoringService, region), noRetry));
+      steps.add(new StepDef(new CreateSentinelNotificationRuleStep(monitoringService, region)));
     }
     return steps;
   }
 
   public List<StepDef> configureDeleteSteps(AzureStorageAccountService azureStorageAccountService) {
-    RetryRuleNone noRetry = getRetryRuleNone();
     return List.of(
-        new StepDef(
-            new DeleteSentinelStep(monitoringService, azureStorageAccountService), noRetry),
-    new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService), noRetry));
+        new StepDef(new DeleteSentinelStep(monitoringService, azureStorageAccountService)),
+        new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService)));
   }
 
-  public record StepDef(Step step, RetryRule retryRule) {}
+  public record StepDef(Step step, RetryRule retryRule) {
+    public StepDef(Step step) {
+      this(step, getRetryRuleNone());
+    }
+  }
 }

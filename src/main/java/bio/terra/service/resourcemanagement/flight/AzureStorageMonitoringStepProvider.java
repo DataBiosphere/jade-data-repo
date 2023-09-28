@@ -67,13 +67,11 @@ public class AzureStorageMonitoringStepProvider {
   }
 
   public List<StepDef> configureDeleteSteps(AzureStorageAccountService azureStorageAccountService) {
-    List<StepDef> steps = new ArrayList<>();
     RetryRuleNone noRetry = getRetryRuleNone();
-    steps.add(
+    return List.of(
         new StepDef(
-            new DeleteSentinelStep(monitoringService, azureStorageAccountService), noRetry));
-    steps.add(new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService), noRetry));
-    return steps;
+            new DeleteSentinelStep(monitoringService, azureStorageAccountService), noRetry),
+    new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService), noRetry));
   }
 
   public record StepDef(Step step, RetryRule retryRule) {}

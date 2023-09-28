@@ -104,7 +104,7 @@ public class ProfileAPIControllerTest {
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
     when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
-    ResponseEntity entity = apiController.createProfile(billingProfileRequestModel);
+    ResponseEntity<JobModel> entity = apiController.createProfile(billingProfileRequestModel);
     assertNotNull(entity);
   }
 
@@ -119,7 +119,7 @@ public class ProfileAPIControllerTest {
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
     when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
-    ResponseEntity entity = apiController.updateProfile(billingProfileUpdateModel);
+    ResponseEntity<JobModel> entity = apiController.updateProfile(billingProfileUpdateModel);
     assertNotNull(entity);
   }
 
@@ -164,7 +164,7 @@ public class ProfileAPIControllerTest {
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
     when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
-    ResponseEntity entity = apiController.deleteProfile(deleteId, deleteCloudResources);
+    ResponseEntity<JobModel> entity = apiController.deleteProfile(deleteId, deleteCloudResources);
     // Only check for admin auth if deleteCloudResources is true
     verify(iamService, times(expectedAdminAuthNumberOfInvocations))
         .verifyAuthorization(

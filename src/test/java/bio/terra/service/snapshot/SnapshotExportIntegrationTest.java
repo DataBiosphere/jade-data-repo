@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.ParquetUtils;
 import bio.terra.common.auth.AuthService;
@@ -46,8 +47,8 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,11 +56,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -268,14 +264,12 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         Blob blob = authedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest()));
         assertThat("Authorized user can read " + path, blob, notNullValue());
 
-        StorageException notAuthorizedException = null;
-        try {
-          unauthedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest()));
-        } catch (StorageException ex) {
-          notAuthorizedException = ex;
-        }
-        // Appeasing SpotBugs
-        assert notAuthorizedException != null;
+        StorageException notAuthorizedException =
+            assertThrows(
+                "Unauthorized user cannot read " + path,
+                StorageException.class,
+                () -> unauthedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest())));
+
         assertThat(
             "Unauthorized user cannot read " + path,
             notAuthorizedException.getCode(),
@@ -285,20 +279,8 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   }
 
   private byte[] readUrl(String url) throws IOException {
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
-      HttpUriRequest request = new HttpGet(url);
-      try (CloseableHttpResponse response = client.execute(request); ) {
-        assertThat(
-            "Signed URL is accessible",
-            response.getStatusLine().getStatusCode(),
-            equalTo(HttpStatus.OK.value()));
-
-        byte[] bytes;
-        try (InputStream responseBody = response.getEntity().getContent()) {
-          bytes = responseBody.readAllBytes();
-        }
-        return bytes;
-      }
+    try (var responseBody = new URL(url).openStream()) {
+      return responseBody.readAllBytes();
     }
   }
 

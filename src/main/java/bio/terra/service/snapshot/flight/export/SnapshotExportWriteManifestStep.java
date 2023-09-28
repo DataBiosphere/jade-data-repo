@@ -1,7 +1,5 @@
 package bio.terra.service.snapshot.flight.export;
 
-import static bio.terra.service.filedata.google.gcs.GcsConstants.REQUESTED_BY_QUERY_PARAM;
-
 import bio.terra.common.FlightUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotExportResponseModel;
@@ -25,15 +23,12 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
 
@@ -91,13 +86,18 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
                         .paths(
                             signUrls
                                 ? entry.getValue().stream()
-                                    .map(path -> signGsUrl(storage, path))
+                                    .map(
+                                        path ->
+                                            GcsUriUtils.signGsUrl(
+                                                storage, path, URL_TTL, userReq.getEmail()))
                                     .toList()
                                 : entry.getValue()))
             .toList();
 
     String effectiveExportManifestFile =
-        signUrls ? signGsUrl(storage, exportManifestPath) : exportManifestPath;
+        signUrls
+            ? GcsUriUtils.signGsUrl(storage, exportManifestPath, URL_TTL, userReq.getEmail())
+            : exportManifestPath;
     SnapshotExportResponseModel responseModel =
         new SnapshotExportResponseModel()
             .snapshot(snapshot)
@@ -128,19 +128,5 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), responseModel);
 
     return StepResult.getStepResultSuccess();
-  }
-
-  private String signGsUrl(Storage storage, String gsPath) {
-    BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
-    BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
-    Map<String, String> queryParams = Map.of(REQUESTED_BY_QUERY_PARAM, userReq.getEmail());
-    return storage
-        .signUrl(
-            blobInfo,
-            URL_TTL.toMinutes(),
-            TimeUnit.MINUTES,
-            Storage.SignUrlOption.withQueryParams(queryParams),
-            Storage.SignUrlOption.withV4Signature())
-        .toString();
   }
 }

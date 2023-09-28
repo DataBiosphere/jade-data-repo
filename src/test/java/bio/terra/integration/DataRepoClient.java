@@ -111,12 +111,7 @@ public class DataRepoClient {
   public <T> DataRepoResponse<T> delete(
       TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
       throws Exception {
-    HttpEntity<String> entity;
-    if (json != null) {
-      entity = new HttpEntity<>(json, getHeaders(user));
-    } else {
-      entity = new HttpEntity<>(getHeaders(user));
-    }
+    HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
     return makeDataRepoRequest(path, HttpMethod.DELETE, entity, user, responseClass);
   }
 

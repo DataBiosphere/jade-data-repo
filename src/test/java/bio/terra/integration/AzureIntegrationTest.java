@@ -1503,7 +1503,6 @@ public class AzureIntegrationTest extends UsersBase {
 
     LogAnalyticsManager clientLaw =
         azureResourceConfiguration.getLogAnalyticsManagerClient(
-            azureResourceConfiguration.credentials().getHomeTenantId(),
             testConfig.getTargetSubscriptionId());
     clientLaw
         .workspaces()
@@ -1530,9 +1529,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     Workspace logAnalyticsWorkspace =
         azureResourceConfiguration
-            .getLogAnalyticsManagerClient(
-                azureResourceConfiguration.credentials().getHomeTenantId(),
-                testConfig.getTargetSubscriptionId())
+            .getLogAnalyticsManagerClient(testConfig.getTargetSubscriptionId())
             .workspaces()
             .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
     assertThat(

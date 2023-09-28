@@ -487,7 +487,7 @@ public class ConnectedOperations {
 
   public boolean deleteTestProfile(UUID id) throws Exception {
     MvcResult result =
-        mvc.perform(delete("/api/resources/v1/profiles/" + id + "?deleteCloudResources=true"))
+        mvc.perform(delete("/api/resources/v1/profiles/{id}?deleteCloudResources=true", id))
             .andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
     return checkDeleteResponse(response);

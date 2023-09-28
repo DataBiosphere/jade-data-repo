@@ -54,7 +54,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"google", "unittest"})
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-public class ProfileAPIControllerTest {
+class ProfileAPIControllerTest {
 
   @Mock private ObjectMapper objectMapper;
   @Mock private HttpServletRequest request;

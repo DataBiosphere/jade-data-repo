@@ -91,7 +91,7 @@ public class ProfileDeleteFlight extends Flight {
         addStep(new RecordAzureStorageAccountsStep(azureStorageAccountService));
         // delete monitoring resources
         azureStorageMonitoringStepProvider
-            .configureDeleteSteps(azureStorageAccountService)
+            .configureDeleteSteps()
             .forEach(s -> this.addStep(s.step(), s.retryRule()));
         // Delete storage account
         addStep(new DeleteAzureStorageAccountStep(azureStorageAccountService));

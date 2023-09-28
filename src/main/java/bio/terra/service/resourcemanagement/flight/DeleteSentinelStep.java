@@ -5,7 +5,6 @@ import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -17,14 +16,10 @@ import org.slf4j.LoggerFactory;
 
 public class DeleteSentinelStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(DeleteSentinelStep.class);
-  private AzureStorageAccountService azureStorageAccountService;
   private AzureMonitoringService monitoringService;
 
-  public DeleteSentinelStep(
-      AzureMonitoringService monitoringService,
-      AzureStorageAccountService azureStorageAccountService) {
+  public DeleteSentinelStep(AzureMonitoringService monitoringService) {
     this.monitoringService = monitoringService;
-    this.azureStorageAccountService = azureStorageAccountService;
   }
 
   @Override

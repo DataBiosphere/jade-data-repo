@@ -496,48 +496,43 @@ public class AzureResourceDao {
 
   private List<AzureStorageAccountResource> retrieveStorageAccountsBy(
       String sql, MapSqlParameterSource params) {
-    List<AzureStorageAccountResource> storageAccountResources =
-        jdbcTemplate.query(
-            sql,
-            params,
-            (rs, rowNum) -> {
-              // Make deployed application resource and a storage account resource from the query
-              // result
-              AzureApplicationDeploymentResource applicationResource =
-                  new AzureApplicationDeploymentResource()
-                      .id(rs.getObject("application_resource_id", UUID.class))
-                      .profileId(rs.getObject("profile_id", UUID.class))
-                      .azureApplicationDeploymentId(rs.getString("azure_application_deployment_id"))
-                      .azureApplicationDeploymentName(
-                          rs.getString("azure_application_deployment_name"))
-                      .azureResourceGroupName(rs.getString("azure_resource_group_name"))
-                      .azureSynapseWorkspaceName(rs.getString("azure_synapse_workspace"))
-                      .defaultRegion(AzureRegion.fromName(rs.getString("default_region")))
-                      .storageAccountPrefix(rs.getString("storage_account_prefix"))
-                      .storageAccountSkuType(
-                          AzureStorageAccountSkuType.valueOf(
-                              rs.getString("storage_account_sku_type")));
-
-              AzureRegion region =
-                  Optional.ofNullable(rs.getString("region"))
-                      .map(AzureRegion::valueOf)
-                      .orElse(applicationResource.getDefaultRegion());
-
-              // Since storing the region was not in the original data, we supply the
-              // default if a value is not present.
-              return new AzureStorageAccountResource()
-                  .applicationResource(applicationResource)
+    return jdbcTemplate.query(
+        sql,
+        params,
+        (rs, rowNum) -> {
+          // Make deployed application resource and a storage account resource from the query
+          // result
+          AzureApplicationDeploymentResource applicationResource =
+              new AzureApplicationDeploymentResource()
+                  .id(rs.getObject("application_resource_id", UUID.class))
                   .profileId(rs.getObject("profile_id", UUID.class))
-                  .resourceId(rs.getObject("storage_account_resource_id", UUID.class))
-                  .name(rs.getString("name"))
-                  .topLevelContainer(rs.getString("toplevelcontainer"))
-                  .dataContainer(rs.getString("datacontainer"))
-                  .metadataContainer(rs.getString("metadatacontainer"))
-                  .dbName(rs.getString("dbname"))
-                  .flightId(rs.getString("flightid"))
-                  .region(region);
-            });
+                  .azureApplicationDeploymentId(rs.getString("azure_application_deployment_id"))
+                  .azureApplicationDeploymentName(rs.getString("azure_application_deployment_name"))
+                  .azureResourceGroupName(rs.getString("azure_resource_group_name"))
+                  .azureSynapseWorkspaceName(rs.getString("azure_synapse_workspace"))
+                  .defaultRegion(AzureRegion.fromName(rs.getString("default_region")))
+                  .storageAccountPrefix(rs.getString("storage_account_prefix"))
+                  .storageAccountSkuType(
+                      AzureStorageAccountSkuType.valueOf(rs.getString("storage_account_sku_type")));
 
-    return storageAccountResources;
+          AzureRegion region =
+              Optional.ofNullable(rs.getString("region"))
+                  .map(AzureRegion::valueOf)
+                  .orElse(applicationResource.getDefaultRegion());
+
+          // Since storing the region was not in the original data, we supply the
+          // default if a value is not present.
+          return new AzureStorageAccountResource()
+              .applicationResource(applicationResource)
+              .profileId(rs.getObject("profile_id", UUID.class))
+              .resourceId(rs.getObject("storage_account_resource_id", UUID.class))
+              .name(rs.getString("name"))
+              .topLevelContainer(rs.getString("toplevelcontainer"))
+              .dataContainer(rs.getString("datacontainer"))
+              .metadataContainer(rs.getString("metadatacontainer"))
+              .dbName(rs.getString("dbname"))
+              .flightId(rs.getString("flightid"))
+              .region(region);
+        });
   }
 }

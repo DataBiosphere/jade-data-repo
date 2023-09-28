@@ -5,7 +5,6 @@ import static bio.terra.stairway.RetryRuleNone.getRetryRuleNone;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.Step;
@@ -63,9 +62,9 @@ public class AzureStorageMonitoringStepProvider {
     return steps;
   }
 
-  public List<StepDef> configureDeleteSteps(AzureStorageAccountService azureStorageAccountService) {
+  public List<StepDef> configureDeleteSteps() {
     return List.of(
-        new StepDef(new DeleteSentinelStep(monitoringService, azureStorageAccountService)),
+        new StepDef(new DeleteSentinelStep(monitoringService)),
         new StepDef(new DeleteLogAnalyticsWorkspaceStep(monitoringService)));
   }
 

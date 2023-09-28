@@ -44,7 +44,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"google", "unittest"})
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-public class ProfileServiceUnitTest {
+class ProfileServiceUnitTest {
 
   @Mock private ProfileDao profileDao;
   @Mock private IamService iamService;
@@ -96,13 +96,12 @@ public class ProfileServiceUnitTest {
 
     var jobBuilder = mock(JobBuilder.class);
     when(jobBuilder.addParameter(
-            eq(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName()), eq(IamResourceType.SPEND_PROFILE)))
+            JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), updateId.toString()))
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(
-            eq(JobMapKeys.IAM_RESOURCE_ID.getKeyName()), eq(updateId.toString())))
-        .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(
-            eq(JobMapKeys.IAM_ACTION.getKeyName()), eq(IamAction.UPDATE_BILLING_ACCOUNT)))
+            JobMapKeys.IAM_ACTION.getKeyName(), IamAction.UPDATE_BILLING_ACCOUNT))
         .thenReturn(jobBuilder);
 
     String jobId = "jobId";
@@ -126,17 +125,15 @@ public class ProfileServiceUnitTest {
     String jobId = "id";
     when(jobBuilder.submit()).thenReturn(jobId);
     UUID deleteId = PROFILE_ID;
-    when(jobBuilder.addParameter(eq(ProfileMapKeys.PROFILE_ID), eq(deleteId)))
+    when(jobBuilder.addParameter(ProfileMapKeys.PROFILE_ID, deleteId)).thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.GCP.name()))
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(
-            eq(JobMapKeys.CLOUD_PLATFORM.getKeyName()), eq(CloudPlatform.GCP.name())))
+            JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE))
         .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(
-            eq(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName()), eq(IamResourceType.SPEND_PROFILE)))
+    when(jobBuilder.addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), deleteId))
         .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(eq(JobMapKeys.IAM_RESOURCE_ID.getKeyName()), eq(deleteId)))
-        .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(eq(JobMapKeys.IAM_ACTION.getKeyName()), eq(IamAction.DELETE)))
+    when(jobBuilder.addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE))
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(
             JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), deleteCloudResources))

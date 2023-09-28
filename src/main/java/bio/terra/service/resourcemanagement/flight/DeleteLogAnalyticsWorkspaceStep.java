@@ -38,7 +38,6 @@ public class DeleteLogAnalyticsWorkspaceStep extends DefaultUndoStep {
         logger.info(
             "Log Analytics Workspace found for storage account {}; Attempting delete.",
             storageAccountResource.getName());
-        // TODO - how should we do error handling?
         monitoringService.deleteLogAnalyticsWorkspace(profileModel, storageAccountResource);
       } else {
         logger.warn(

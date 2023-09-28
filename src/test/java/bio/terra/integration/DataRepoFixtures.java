@@ -1208,10 +1208,11 @@ public class DataRepoFixtures {
       TestConfiguration.User user,
       UUID snapshotId,
       boolean resolveGsPaths,
-      boolean validatePkUniqueness)
+      boolean validatePkUniqueness,
+      boolean signUrls)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        exportSnapshot(user, snapshotId, resolveGsPaths, validatePkUniqueness);
+        exportSnapshot(user, snapshotId, resolveGsPaths, validatePkUniqueness, signUrls);
     assertTrue("snapshot export launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "snapshot export launch response is present", jobResponse.getResponseObject().isPresent());
@@ -1223,13 +1224,14 @@ public class DataRepoFixtures {
       TestConfiguration.User user,
       UUID snapshotId,
       boolean resolveGsPaths,
-      boolean validatePkUniqueness)
+      boolean validatePkUniqueness,
+      boolean signUrls)
       throws Exception {
     return dataRepoClient.get(
         user,
         String.format(
-            "/api/repository/v1/snapshots/%s/export?exportGsPaths=%s&validatePrimaryKeyUniqueness=%s",
-            snapshotId, resolveGsPaths, validatePkUniqueness),
+            "/api/repository/v1/snapshots/%s/export?exportGsPaths=%s&validatePrimaryKeyUniqueness=%s&signUrls=%s",
+            snapshotId, resolveGsPaths, validatePkUniqueness, signUrls),
         new TypeReference<>() {});
   }
 

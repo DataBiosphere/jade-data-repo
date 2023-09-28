@@ -313,14 +313,14 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     // validate that snapshot export works correctly
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false, true);
     assertThat(
         "self-hosted snapshots can be exported with DRS URIs",
         exportResponse.getResponseObject().isPresent(),
         is(true));
 
     DataRepoResponse<JobModel> exportSnapshotExpectFailure =
-        dataRepoFixtures.exportSnapshot(steward(), snapshotId, true, false);
+        dataRepoFixtures.exportSnapshot(steward(), snapshotId, true, false, true);
     DataRepoResponse<ErrorModel> errorResponse =
         dataRepoClient.waitForResponseLog(
             steward(), exportSnapshotExpectFailure, new TypeReference<>() {});

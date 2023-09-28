@@ -706,7 +706,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =
-        dataRepoFixtures.exportSnapshotLog(steward, snapshotByFullViewId, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward, snapshotByFullViewId, false, false, true);
 
     assertThat(
         "snapshotExport is present", snapshotExport.getResponseObject().isPresent(), is(true));

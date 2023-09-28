@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -134,7 +135,7 @@ public class ProfileAPIControllerTest {
         ProfileNotFoundException.class,
         () -> apiController.updateProfile(billingProfileUpdateModel));
     verifyNoInteractions(iamService);
-    verify(profileService, times(0)).updateProfile(eq(billingProfileUpdateModel), eq(user));
+    verify(profileService, never()).updateProfile(eq(billingProfileUpdateModel), eq(user));
   }
 
   @Test
@@ -147,7 +148,7 @@ public class ProfileAPIControllerTest {
     var billingProfileUpdateModel = new BillingProfileUpdateModel().id(profileId);
     assertThrows(
         IamForbiddenException.class, () -> apiController.updateProfile(billingProfileUpdateModel));
-    verify(profileService, times(0)).updateProfile(eq(billingProfileUpdateModel), eq(user));
+    verify(profileService, never()).updateProfile(eq(billingProfileUpdateModel), eq(user));
   }
 
   @ParameterizedTest
@@ -195,7 +196,7 @@ public class ProfileAPIControllerTest {
     assertThrows(
         ProfileNotFoundException.class, () -> apiController.deleteProfile(profileId, false));
     verifyNoInteractions(iamService);
-    verify(profileService, times(0)).deleteProfile(eq(profileId), eq(false), eq(user));
+    verify(profileService, never()).deleteProfile(eq(profileId), eq(false), eq(user));
   }
 
   @Test
@@ -206,7 +207,7 @@ public class ProfileAPIControllerTest {
         .thenReturn(new BillingProfileModel().id(profileId));
     mockProfileForbidden(profileId, IamAction.DELETE);
     assertThrows(IamForbiddenException.class, () -> apiController.deleteProfile(profileId, false));
-    verify(profileService, times(0)).deleteProfile(eq(profileId), eq(false), eq(user));
+    verify(profileService, never()).deleteProfile(eq(profileId), eq(false), eq(user));
   }
 
   @Test

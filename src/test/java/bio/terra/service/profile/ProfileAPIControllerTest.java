@@ -132,7 +132,7 @@ public class ProfileAPIControllerTest {
         ProfileNotFoundException.class,
         () -> apiController.updateProfile(billingProfileUpdateModel));
     verifyNoInteractions(iamService);
-    verify(profileService, never()).updateProfile(eq(billingProfileUpdateModel), eq(user));
+    verify(profileService, never()).updateProfile(billingProfileUpdateModel, user);
   }
 
   @Test
@@ -145,7 +145,7 @@ public class ProfileAPIControllerTest {
     var billingProfileUpdateModel = new BillingProfileUpdateModel().id(profileId);
     assertThrows(
         IamForbiddenException.class, () -> apiController.updateProfile(billingProfileUpdateModel));
-    verify(profileService, never()).updateProfile(eq(billingProfileUpdateModel), eq(user));
+    verify(profileService, never()).updateProfile(billingProfileUpdateModel, user);
   }
 
   @ParameterizedTest
@@ -171,10 +171,7 @@ public class ProfileAPIControllerTest {
     // Only check if user has access on the spend profile if we're not doing the admin check
     verify(iamService, times(expectedSpendProfileAuthNumberOfInvocations))
         .verifyAuthorization(
-            eq(user),
-            eq(IamResourceType.SPEND_PROFILE),
-            eq(deleteId.toString()),
-            eq(IamAction.DELETE));
+            user, IamResourceType.SPEND_PROFILE, deleteId.toString(), IamAction.DELETE);
     assertThat("Correct job model is returned from delete request", entity.getBody(), is(jobModel));
   }
 
@@ -189,7 +186,7 @@ public class ProfileAPIControllerTest {
     assertThrows(
         ProfileNotFoundException.class, () -> apiController.deleteProfile(profileId, false));
     verifyNoInteractions(iamService);
-    verify(profileService, never()).deleteProfile(eq(profileId), eq(false), eq(user));
+    verify(profileService, never()).deleteProfile(profileId, false, user);
   }
 
   @Test
@@ -200,7 +197,7 @@ public class ProfileAPIControllerTest {
         .thenReturn(new BillingProfileModel().id(profileId));
     mockProfileForbidden(profileId, IamAction.DELETE);
     assertThrows(IamForbiddenException.class, () -> apiController.deleteProfile(profileId, false));
-    verify(profileService, never()).deleteProfile(eq(profileId), eq(false), eq(user));
+    verify(profileService, never()).deleteProfile(profileId, false, user);
   }
 
   @Test

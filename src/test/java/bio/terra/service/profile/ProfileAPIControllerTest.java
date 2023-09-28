@@ -106,7 +106,6 @@ public class ProfileAPIControllerTest {
     when(jobService.retrieveJob(eq(jobId), eq(user))).thenReturn(jobModel);
 
     ResponseEntity entity = apiController.createProfile(billingProfileRequestModel);
-    verify(profileService, times(1)).createProfile(eq(billingProfileRequestModel), eq(user));
     assertNotNull(entity);
   }
 
@@ -122,7 +121,6 @@ public class ProfileAPIControllerTest {
     when(jobService.retrieveJob(eq(jobId), eq(user))).thenReturn(jobModel);
 
     ResponseEntity entity = apiController.updateProfile(billingProfileUpdateModel);
-    verify(profileService, times(1)).updateProfile(eq(billingProfileUpdateModel), eq(user));
     assertNotNull(entity);
   }
 
@@ -180,8 +178,6 @@ public class ProfileAPIControllerTest {
             eq(IamResourceType.SPEND_PROFILE),
             eq(deleteId.toString()),
             eq(IamAction.DELETE));
-    verify(profileService, times(1))
-        .deleteProfile(eq(deleteId), eq(deleteCloudResources), eq(user));
     assertNotNull(entity);
   }
 

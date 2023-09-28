@@ -95,15 +95,14 @@ public class ProfileAPIControllerTest {
 
   @Test
   void testCreateProfile() {
-    when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
+    when(authenticatedUserRequestFactory.from(request)).thenReturn(user);
     var billingProfileRequestModel = new BillingProfileRequestModel();
     String jobId = "jobId";
-    when(profileService.createProfile(eq(billingProfileRequestModel), eq(user)))
-        .thenReturn("jobId");
+    when(profileService.createProfile(billingProfileRequestModel, user)).thenReturn("jobId");
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
-    when(jobService.retrieveJob(eq(jobId), eq(user))).thenReturn(jobModel);
+    when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
     ResponseEntity entity = apiController.createProfile(billingProfileRequestModel);
     assertNotNull(entity);
@@ -111,14 +110,14 @@ public class ProfileAPIControllerTest {
 
   @Test
   void testUpdateProfile() {
-    when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
+    when(authenticatedUserRequestFactory.from(request)).thenReturn(user);
     var billingProfileUpdateModel = new BillingProfileUpdateModel().id(UUID.randomUUID());
     String jobId = "jobId";
-    when(profileService.updateProfile(eq(billingProfileUpdateModel), eq(user))).thenReturn(jobId);
+    when(profileService.updateProfile(billingProfileUpdateModel, user)).thenReturn(jobId);
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
-    when(jobService.retrieveJob(eq(jobId), eq(user))).thenReturn(jobModel);
+    when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
     ResponseEntity entity = apiController.updateProfile(billingProfileUpdateModel);
     assertNotNull(entity);
@@ -138,7 +137,7 @@ public class ProfileAPIControllerTest {
 
   @Test
   void testUpdateProfileForbidden() {
-    when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
+    when(authenticatedUserRequestFactory.from(request)).thenReturn(user);
     UUID profileId = UUID.randomUUID();
     when(profileService.getProfileByIdNoCheck(profileId))
         .thenReturn(new BillingProfileModel().id(profileId));
@@ -158,13 +157,12 @@ public class ProfileAPIControllerTest {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
-    when(profileService.deleteProfile(eq(deleteId), eq(deleteCloudResources), eq(user)))
-        .thenReturn(jobId);
+    when(profileService.deleteProfile(deleteId, deleteCloudResources, user)).thenReturn(jobId);
     doNothing().when(iamService).verifyAuthorization(any(), any(), any(), any());
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
-    when(jobService.retrieveJob(eq(jobId), eq(user))).thenReturn(jobModel);
+    when(jobService.retrieveJob(jobId, user)).thenReturn(jobModel);
 
     ResponseEntity entity = apiController.deleteProfile(deleteId, deleteCloudResources);
     // Only check for admin auth if deleteCloudResources is true
@@ -197,7 +195,7 @@ public class ProfileAPIControllerTest {
 
   @Test
   void testDeleteProfileForbidden() {
-    when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
+    when(authenticatedUserRequestFactory.from(request)).thenReturn(user);
     UUID profileId = UUID.randomUUID();
     when(profileService.getProfileByIdNoCheck(profileId))
         .thenReturn(new BillingProfileModel().id(profileId));
@@ -214,8 +212,7 @@ public class ProfileAPIControllerTest {
     String policyName = "policyName";
     var policyMemberRequest = new PolicyMemberRequest();
     var policyModel = new PolicyModel();
-    when(profileService.addProfilePolicyMember(
-            eq(id), eq(policyName), eq(policyMemberRequest), eq(user)))
+    when(profileService.addProfilePolicyMember(id, policyName, policyMemberRequest, user))
         .thenReturn(policyModel);
 
     ResponseEntity<PolicyResponse> response =

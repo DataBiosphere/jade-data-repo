@@ -1,6 +1,5 @@
 package bio.terra.tanagra.underlay.displayhint;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnHeaderSchema;
 import bio.terra.tanagra.query.ColumnSchema;
@@ -13,8 +12,6 @@ import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.serialization.UFDisplayHint;
-import bio.terra.tanagra.serialization.displayhint.UFNumericRange;
 import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.underlay.DisplayHint;
 import java.util.ArrayList;
@@ -25,28 +22,9 @@ public final class NumericRange extends DisplayHint {
   private final Double maxVal;
 
   public NumericRange(Double minVal, Double maxVal) {
+    super(Type.RANGE);
     this.minVal = minVal;
     this.maxVal = maxVal;
-  }
-
-  public static NumericRange fromSerialized(UFNumericRange serialized) {
-    if (serialized.getMinVal() == null) {
-      throw new InvalidConfigException("Numeric range minimum value is undefined");
-    }
-    if (serialized.getMaxVal() == null) {
-      throw new InvalidConfigException("Numeric range maximum value is undefined");
-    }
-    return new NumericRange(serialized.getMinVal(), serialized.getMaxVal());
-  }
-
-  @Override
-  public Type getType() {
-    return Type.RANGE;
-  }
-
-  @Override
-  public UFDisplayHint serialize() {
-    return new UFNumericRange(this);
   }
 
   public Double getMinVal() {
@@ -69,7 +47,7 @@ public final class NumericRange extends DisplayHint {
     Query possibleValuesQuery =
         new Query.Builder().select(List.of(nestedValueFieldVar)).tables(nestedQueryTables).build();
 
-    DataPointer dataPointer = value.getTablePointer().getDataPointer();
+    DataPointer dataPointer = value.getTablePointer().dataPointer();
     TablePointer possibleValsTable =
         TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
 

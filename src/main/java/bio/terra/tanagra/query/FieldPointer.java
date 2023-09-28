@@ -1,8 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
-import bio.terra.tanagra.serialization.UFFieldPointer;
-import com.google.common.base.Strings;
 import java.util.List;
 
 public class FieldPointer {
@@ -16,50 +13,18 @@ public class FieldPointer {
   private boolean joinCanBeEmpty;
   private final String sqlFunctionWrapper;
 
-  private FieldPointer(Builder builder) {
-    this.tablePointer = builder.tablePointer;
-    this.columnName = builder.columnName;
-    this.foreignTablePointer = builder.foreignTablePointer;
-    this.foreignKeyColumnName = builder.foreignKeyColumnName;
-    this.foreignColumnName = builder.foreignColumnName;
-    this.joinCanBeEmpty = builder.joinCanBeEmpty;
-    this.sqlFunctionWrapper = builder.sqlFunctionWrapper;
+  private FieldPointer(TablePointer tablePointer, String columnName, TablePointer foreignTablePointer, String foreignKeyColumnName, String foreignColumnName, boolean joinCanBeEmpty, String sqlFunctionWrapper) {
+    this.tablePointer = tablePointer;
+    this.columnName = columnName;
+    this.foreignTablePointer = foreignTablePointer;
+    this.foreignKeyColumnName = foreignKeyColumnName;
+    this.foreignColumnName = foreignColumnName;
+    this.joinCanBeEmpty = joinCanBeEmpty;
+    this.sqlFunctionWrapper = sqlFunctionWrapper;
   }
 
   public static FieldPointer allFields(TablePointer tablePointer) {
     return new Builder().tablePointer(tablePointer).columnName(ALL_FIELDS_COLUMN_NAME).build();
-  }
-
-  public static FieldPointer fromSerialized(UFFieldPointer serialized, TablePointer tablePointer) {
-    boolean foreignTableDefined = !Strings.isNullOrEmpty(serialized.getForeignTable());
-    boolean foreignKeyColumnDefined = !Strings.isNullOrEmpty(serialized.getForeignKey());
-    boolean foreignColumnDefined = !Strings.isNullOrEmpty(serialized.getForeignColumn());
-    boolean allForeignKeyFieldsDefined =
-        foreignTableDefined && foreignKeyColumnDefined && foreignColumnDefined;
-    boolean noForeignKeyFieldsDefined =
-        !foreignTableDefined && !foreignKeyColumnDefined && !foreignColumnDefined;
-
-    if (noForeignKeyFieldsDefined) {
-      return new Builder()
-          .tablePointer(tablePointer)
-          .columnName(serialized.getColumn())
-          .sqlFunctionWrapper(serialized.getSqlFunctionWrapper())
-          .build();
-    } else if (allForeignKeyFieldsDefined) {
-      // assume the foreign table is part of the same data pointer as the original table
-      TablePointer foreignTablePointer =
-          TablePointer.fromTableName(serialized.getForeignTable(), tablePointer.getDataPointer());
-      return new Builder()
-          .tablePointer(tablePointer)
-          .columnName(serialized.getColumn())
-          .foreignTablePointer(foreignTablePointer)
-          .foreignKeyColumnName(serialized.getForeignKey())
-          .foreignColumnName(serialized.getForeignColumn())
-          .sqlFunctionWrapper(serialized.getSqlFunctionWrapper())
-          .build();
-    } else {
-      throw new InvalidConfigException("Only some foreign key fields are defined");
-    }
   }
 
   public FieldVariable buildVariable(
@@ -190,7 +155,7 @@ public class FieldPointer {
 
     /** Call the private constructor. */
     public FieldPointer build() {
-      return new FieldPointer(this);
+      return new FieldPointer(tablePointer, columnName, foreignTablePointer, foreignKeyColumnName, foreignColumnName, joinCanBeEmpty, sqlFunctionWrapper);
     }
   }
 }

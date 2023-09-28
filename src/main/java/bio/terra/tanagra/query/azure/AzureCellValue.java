@@ -21,11 +21,11 @@ public class AzureCellValue implements CellValue {
 
   @Override
   public SQLDataType dataType() {
-    return columnSchema.getSqlDataType();
+    return columnSchema.sqlDataType();
   }
 
   public String name() {
-    return columnSchema.getColumnName();
+    return columnSchema.columnName();
   }
 
   @Override

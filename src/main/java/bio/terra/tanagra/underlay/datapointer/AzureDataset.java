@@ -83,14 +83,14 @@ public final class AzureDataset extends DataPointer {
     } else {
       // If the table is not a raw SQL string, then just fetch the table schema directly.
       return executor
-          .getSchema(datasetId, tablePointer.getTableName())
+          .getSchema(datasetId, tablePointer.tableName())
           .getColumnByName(columnName)
           .map(Column::getType)
           .map(AzureDataset::toDataType)
           .orElseThrow(
               () ->
                   new RuntimeException(
-                      "couldn't find %s in %s".formatted(columnName, tablePointer.getTableName())));
+                      "couldn't find %s in %s".formatted(columnName, tablePointer.tableName())));
     }
   }
 

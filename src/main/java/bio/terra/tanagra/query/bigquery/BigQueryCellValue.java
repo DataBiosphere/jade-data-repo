@@ -21,7 +21,7 @@ class BigQueryCellValue implements CellValue {
 
   @Override
   public SQLDataType dataType() {
-    return columnSchema.getSqlDataType();
+    return columnSchema.sqlDataType();
   }
 
   @Override

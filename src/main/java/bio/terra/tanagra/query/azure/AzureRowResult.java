@@ -27,7 +27,7 @@ public class AzureRowResult implements RowResult {
   @Override
   public CellValue get(int index) {
     var schema = columnHeaderSchema.getColumnSchemas().get(index);
-    return new AzureCellValue(fieldValues.get(schema.getColumnName()), schema);
+    return new AzureCellValue(fieldValues.get(schema.columnName()), schema);
   }
 
   @Override

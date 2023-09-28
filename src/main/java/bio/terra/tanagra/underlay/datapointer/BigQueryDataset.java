@@ -11,7 +11,6 @@ import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.query.bigquery.BigQueryExecutor;
-import bio.terra.tanagra.serialization.datapointer.UFBigQueryDataset;
 import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.utils.GoogleBigQuery;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -43,32 +42,6 @@ public final class BigQueryDataset extends DataPointer {
     this.queryProjectId = queryProjectId;
     this.dataflowServiceAccountEmail = dataflowServiceAccountEmail;
     this.dataflowTempLocation = dataflowTempLocation;
-  }
-
-  public static BigQueryDataset fromSerialized(UFBigQueryDataset serialized) {
-    if (serialized.getProjectId() == null || serialized.getProjectId().isEmpty()) {
-      throw new InvalidConfigException("No BigQuery project ID defined");
-    }
-    if (serialized.getDatasetId() == null || serialized.getDatasetId().isEmpty()) {
-      throw new InvalidConfigException("No BigQuery dataset ID defined");
-    }
-    // Default query project id is the same project where the data lives.
-    // This property lets users specify a different project to run the queries in.
-    // This is useful for e.g. public datasets, where you don't have permission to run queries
-    // there.
-    String queryProjectId = serialized.getQueryProjectId();
-    if (queryProjectId == null || queryProjectId.isEmpty()) {
-      queryProjectId = serialized.getProjectId();
-    }
-
-    // TODO: Check if the Dataflow temp location is a valid GCS path, if specified.
-    return new BigQueryDataset(
-        serialized.getName(),
-        serialized.getProjectId(),
-        serialized.getDatasetId(),
-        queryProjectId,
-        serialized.getDataflowServiceAccountEmail(),
-        serialized.getDataflowTempLocation());
   }
 
   @Override
@@ -122,7 +95,7 @@ public final class BigQueryDataset extends DataPointer {
       // If the table is not a raw SQL string, then just fetch the table schema directly.
       tableSchema =
           getBigQueryService()
-              .getTableSchemaWithCaching(projectId, datasetId, tablePointer.getTableName());
+              .getTableSchemaWithCaching(projectId, datasetId, tablePointer.tableName());
     }
 
     LegacySQLTypeName fieldType = tableSchema.getFields().get(columnName).getType();

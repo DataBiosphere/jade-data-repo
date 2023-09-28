@@ -1,6 +1,5 @@
 package bio.terra.tanagra.underlay.displayhint;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnHeaderSchema;
 import bio.terra.tanagra.query.ColumnSchema;
@@ -15,15 +14,12 @@ import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.serialization.UFDisplayHint;
-import bio.terra.tanagra.serialization.displayhint.UFEnumVals;
 import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.underlay.DisplayHint;
 import bio.terra.tanagra.underlay.ValueDisplay;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,30 +33,11 @@ public final class EnumVals extends DisplayHint {
   private final List<EnumVal> enumValsList;
 
   public EnumVals(List<EnumVal> enumValsList) {
+    super(Type.ENUM);
     this.enumValsList = enumValsList;
   }
 
-  public static EnumVals fromSerialized(UFEnumVals serialized) {
-    if (serialized.getEnumVals() == null) {
-      throw new InvalidConfigException("Enum values list is undefined");
-    }
-    List<EnumVal> enumVals =
-        serialized.getEnumVals().stream()
-            .map(ev -> EnumVal.fromSerialized(ev))
-            .collect(Collectors.toList());
-    return new EnumVals(enumVals);
-  }
-
   @Override
-  public Type getType() {
-    return Type.ENUM;
-  }
-
-  @Override
-  public UFDisplayHint serialize() {
-    return new UFEnumVals(this);
-  }
-
   public List<EnumVal> getEnumValsList() {
     return Collections.unmodifiableList(enumValsList);
   }
@@ -91,7 +68,7 @@ public final class EnumVals extends DisplayHint {
     QueryResult queryResult = executor.execute(queryRequest);
 
     List<EnumVal> enumVals = new ArrayList<>();
-    for (RowResult rowResult : queryResult.getRowResults()) {
+    for (RowResult rowResult : queryResult.rowResults()) {
       String val = rowResult.get(ENUM_VALUE_COLUMN_ALIAS).getString().orElse(null);
       long count = rowResult.get(ENUM_COUNT_COLUMN_ALIAS).getLong().getAsLong();
       enumVals.add(new EnumVal(new ValueDisplay(val), count));
@@ -132,7 +109,7 @@ public final class EnumVals extends DisplayHint {
   public static EnumVals computeForField(
       Literal.DataType dataType, FieldPointer value, FieldPointer display, QueryExecutor executor) {
     Query possibleValuesQuery = queryPossibleEnumVals(value);
-    DataPointer dataPointer = value.getTablePointer().getDataPointer();
+    DataPointer dataPointer = value.getTablePointer().dataPointer();
     TablePointer possibleValsTable =
         TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
     FieldPointer possibleValField =
@@ -189,7 +166,7 @@ public final class EnumVals extends DisplayHint {
 
     // iterate through the query results, building the list of enum values
     List<EnumVal> enumVals = new ArrayList<>();
-    for (RowResult rowResult : queryResult.getRowResults()) {
+    for (RowResult rowResult : queryResult.rowResults()) {
       CellValue cellValue = rowResult.get(ENUM_VALUE_COLUMN_ALIAS);
       enumVals.add(
           new EnumVal(

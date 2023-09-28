@@ -41,7 +41,7 @@ public class UpdateFromSelect implements SQLExpression {
     TablePointer nestedTable =
         TablePointer.fromRawSql(
             selectQuery.renderSQL(platform),
-            selectQuery.getPrimaryTable().getTablePointer().getDataPointer());
+            selectQuery.getPrimaryTable().getTablePointer().dataPointer());
     TableVariable nestedTableVar = TableVariable.forPrimary(nestedTable);
     tableVars.add(nestedTableVar);
 

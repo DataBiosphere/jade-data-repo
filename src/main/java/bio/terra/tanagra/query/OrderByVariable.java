@@ -5,26 +5,22 @@ public class OrderByVariable implements SQLExpression {
   private final OrderByDirection direction;
   private final boolean isRandom;
 
-  public OrderByVariable(FieldVariable fieldVariable) {
+  private OrderByVariable(FieldVariable fieldVariable, OrderByDirection direction, boolean isRandom) {
     this.fieldVariable = fieldVariable;
-    this.direction = OrderByDirection.ASCENDING;
-    this.isRandom = false;
+    this.direction = direction;
+    this.isRandom = isRandom;
+  }
+
+  public OrderByVariable(FieldVariable fieldVariable) {
+    this(fieldVariable, OrderByDirection.ASCENDING);
   }
 
   public OrderByVariable(FieldVariable fieldVariable, OrderByDirection direction) {
-    this.fieldVariable = fieldVariable;
-    this.direction = direction;
-    this.isRandom = false;
+    this(fieldVariable, direction, false);
   }
 
-  private OrderByVariable() {
-    this.fieldVariable = null;
-    this.direction = null;
-    this.isRandom = true;
-  }
-
-  public static OrderByVariable forRandom() {
-    return new OrderByVariable();
+  public static OrderByVariable random() {
+    return new OrderByVariable(null, null, true);
   }
 
   @Override

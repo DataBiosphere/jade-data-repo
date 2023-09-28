@@ -169,6 +169,7 @@ public class AzureExecutor implements QueryExecutor {
     return List.of();
   }
 
+  @Override
   public DatasetTable getSchema(UUID datasetId, String tableName) {
     var table = new DatasetTable().name(tableName);
     if (tableName.equals("drug_exposure")) {

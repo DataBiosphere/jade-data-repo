@@ -139,6 +139,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   private String stewardToken;
   private User steward;
+  private User admin;
   private UUID datasetId;
   private List<UUID> snapshotIds;
   private UUID profileId;
@@ -153,6 +154,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
     stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
+    admin = admin("hermione");
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     retryOptions =
@@ -193,7 +195,7 @@ public class AzureIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteDataset(steward, datasetId);
     }
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileWithCloudResourceDelete(steward, profileId);
+      dataRepoFixtures.deleteProfileWithCloudResourceDelete(admin, profileId);
     }
     if (storageAccounts != null) {
       storageAccounts.forEach(this::deleteCloudResources);

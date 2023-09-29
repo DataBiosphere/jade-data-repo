@@ -12,6 +12,7 @@ import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -239,14 +240,15 @@ public class AzureStorageAccountService {
 
   public List<AzureStorageAccountResource> listStorageAccountPerAppDeployment(
       List<UUID> applicationResourceIds, boolean markedForDelete) {
-    return applicationResourceIds.stream()
-        .flatMap(
-            applicationResourceId ->
-                resourceDao
-                    .retrieveStorageAccountsByApplicationResource(
-                        applicationResourceId, markedForDelete)
-                    .stream())
-        .toList();
+    List<AzureStorageAccountResource> resources = new ArrayList<>();
+    applicationResourceIds.stream()
+        .forEach(
+            applicationResourceId -> {
+              resources.addAll(
+                  resourceDao.retrieveStorageAccountsByApplicationResource(
+                      applicationResourceId, markedForDelete));
+            });
+    return resources;
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {

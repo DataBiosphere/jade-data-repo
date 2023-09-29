@@ -8,6 +8,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -50,7 +51,11 @@ public class RecordAzureStorageAccountsStep extends DefaultUndoStep {
     List<AzureStorageAccountResource> storageAccounts =
         azureStorageAccountService.listStorageAccountPerAppDeployment(appIdList, true);
     // Filter down this list to only return one resource per unique cloud storage account resource
-    return storageAccounts.stream().filter(distinctByKey(sa -> sa.getName())).toList();
+    List<AzureStorageAccountResource> filteredStorageAccounts = new ArrayList<>();
+    storageAccounts.stream()
+        .filter(distinctByKey(sa -> sa.getName()))
+        .forEach(unique_sa -> filteredStorageAccounts.add(unique_sa));
+    return filteredStorageAccounts;
   }
 
   private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {

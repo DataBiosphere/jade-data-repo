@@ -94,8 +94,8 @@ public final class TextSearchMapping {
 
     TablePointer idTextPairsTable =
         TablePointer.fromRawSql(
-            executor.renderSQL(idAllTextPairs),
-            textSearch.getEntity().getMapping(mappingType).getTablePointer().dataPointer());
+            textSearch.getEntity().getMapping(mappingType).getTablePointer().dataPointer(),
+            executor.renderSQL(idAllTextPairs));
     FieldPointer idField =
         new FieldPointer.Builder()
             .tablePointer(idTextPairsTable)

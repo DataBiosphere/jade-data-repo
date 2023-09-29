@@ -17,7 +17,7 @@ class FieldVariableTest {
   void renderSQL() {
     var fieldPointer = new FieldPointer.Builder().columnName("field").build();
     var tableVariable =
-        TableVariable.forPrimary(new TablePointer.Builder().tableName("table").build());
+        TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(null), is("t.field"));
 
@@ -26,7 +26,7 @@ class FieldVariableTest {
         is("t.field AS bar"));
 
     var fieldPointerForeignKey =
-        new FieldPointer.Builder().foreignTablePointer(new TablePointer.Builder().build()).build();
+        new FieldPointer.Builder().foreignTablePointer(TablePointer.fromRawSql(null, null)).build();
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
     assertThrows(SystemException.class, fieldVariableForeignKey::renderSQL);
 
@@ -51,7 +51,7 @@ class FieldVariableTest {
   @Test
   void renderSqlForOrderBy() {
     var tableVariable =
-        TableVariable.forPrimary(new TablePointer.Builder().tableName("table").build());
+        TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariableFunctionWrapper =
         new FieldVariable(
@@ -65,7 +65,7 @@ class FieldVariableTest {
   void renderSqlForWhere() {
     var fieldPointer = new FieldPointer.Builder().columnName("field").build();
     var tableVariable =
-        TableVariable.forPrimary(new TablePointer.Builder().tableName("table").build());
+        TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(
         new FieldVariable(fieldPointer, tableVariable, "bar").renderSqlForWhere(), is("t.field"));
@@ -84,7 +84,7 @@ class FieldVariableTest {
     assertThat(new FieldVariable(fieldPointer, null, "bar").getAliasOrColumnName(), is("bar"));
     var fieldPointerForeignKey =
         new FieldPointer.Builder()
-            .foreignTablePointer(new TablePointer.Builder().build())
+            .foreignTablePointer(TablePointer.fromTableName(null, null))
             .foreignColumnName("baz")
             .build();
     assertThat(new FieldVariable(fieldPointerForeignKey, null).getAliasOrColumnName(), is("baz"));

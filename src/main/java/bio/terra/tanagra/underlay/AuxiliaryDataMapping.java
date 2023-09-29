@@ -2,7 +2,6 @@ package bio.terra.tanagra.underlay;
 
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.TablePointer;
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -17,7 +16,7 @@ public record AuxiliaryDataMapping(TablePointer tablePointer,
   public static AuxiliaryDataMapping defaultIndexMapping(
       AuxiliaryData auxiliaryData, String tablePrefix, DataPointer dataPointer) {
     TablePointer table =
-        TablePointer.fromTableName(tablePrefix + auxiliaryData.getName(), dataPointer);
+        TablePointer.fromTableName(dataPointer, tablePrefix + auxiliaryData.getName());
     return new AuxiliaryDataMapping(
         table,
         auxiliaryData.getFields().stream()

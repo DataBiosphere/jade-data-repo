@@ -49,7 +49,7 @@ public final class NumericRange extends DisplayHint {
 
     DataPointer dataPointer = value.getTablePointer().dataPointer();
     TablePointer possibleValsTable =
-        TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
+        TablePointer.fromRawSql(dataPointer, executor.renderSQL(possibleValuesQuery));
 
     // build the outer query for the list of (possible value, display) pairs
     List<TableVariable> tables = new ArrayList<>();

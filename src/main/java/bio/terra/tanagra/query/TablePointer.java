@@ -6,12 +6,12 @@ import java.util.List;
 public record TablePointer(DataPointer dataPointer, String tableName, Filter filter, String sql)
     implements SQLExpression {
 
-  public static TablePointer fromTableName(String tableName, DataPointer dataPointer) {
-    return new Builder().dataPointer(dataPointer).tableName(tableName).build();
+  public static TablePointer fromTableName(DataPointer dataPointer, String tableName) {
+    return new TablePointer(dataPointer, tableName, null, null);
   }
 
-  public static TablePointer fromRawSql(String sql, DataPointer dataPointer) {
-    return new Builder().dataPointer(dataPointer).sql(sql).build();
+  public static TablePointer fromRawSql(DataPointer dataPointer, String sql) {
+    return new TablePointer(dataPointer, null, null, sql);
   }
 
   public boolean isRawSql() {
@@ -27,7 +27,7 @@ public record TablePointer(DataPointer dataPointer, String tableName, Filter fil
       return dataPointer.getTableSQL(tableName);
     }
 
-    TablePointer tablePointerWithoutFilter = TablePointer.fromTableName(tableName, dataPointer);
+    TablePointer tablePointerWithoutFilter = TablePointer.fromTableName(dataPointer, tableName);
     TableVariable tableVar = TableVariable.forPrimary(tablePointerWithoutFilter);
     FieldVariable fieldVar =
         new FieldVariable(FieldPointer.allFields(tablePointerWithoutFilter), tableVar);
@@ -44,44 +44,5 @@ public record TablePointer(DataPointer dataPointer, String tableName, Filter fil
 
   public String getPathForIndexing() {
     return dataPointer.getTablePathForIndexing(tableName);
-  }
-
-  public FilterVariable getFilterVariable(TableVariable tableVariable, List<TableVariable> tables) {
-    if (filter == null) {
-      return null;
-    }
-    return filter.buildVariable(tableVariable, tables);
-  }
-
-  public static class Builder {
-    private DataPointer dataPointer;
-    private String tableName;
-    private Filter filter;
-    private String sql;
-
-    public Builder dataPointer(DataPointer dataPointer) {
-      this.dataPointer = dataPointer;
-      return this;
-    }
-
-    public Builder tableName(String tableName) {
-      this.tableName = tableName;
-      return this;
-    }
-
-    public Builder tableFilter(Filter filter) {
-      this.filter = filter;
-      return this;
-    }
-
-    public Builder sql(String sql) {
-      this.sql = sql;
-      return this;
-    }
-
-    /** Call the private constructor. */
-    public TablePointer build() {
-      return new TablePointer(dataPointer, tableName, filter, sql);
-    }
   }
 }

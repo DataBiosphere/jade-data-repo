@@ -88,8 +88,8 @@ public class UpdateFromValues implements SQLExpression {
     List<TableVariable> tableVars = new ArrayList<>();
     TablePointer nestedTable =
         TablePointer.fromRawSql(
-            selectQuery.renderSQL(platform),
-            selectQuery.getPrimaryTable().getTablePointer().dataPointer());
+            selectQuery.getPrimaryTable().getTablePointer().dataPointer(),
+            selectQuery.renderSQL(platform));
     TableVariable nestedTableVar = TableVariable.forPrimary(nestedTable);
     tableVars.add(nestedTableVar);
 

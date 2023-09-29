@@ -111,7 +111,7 @@ public final class EnumVals extends DisplayHint {
     Query possibleValuesQuery = queryPossibleEnumVals(value);
     DataPointer dataPointer = value.getTablePointer().dataPointer();
     TablePointer possibleValsTable =
-        TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
+        TablePointer.fromRawSql(dataPointer, executor.renderSQL(possibleValuesQuery));
     FieldPointer possibleValField =
         new FieldPointer.Builder()
             .tablePointer(possibleValsTable)

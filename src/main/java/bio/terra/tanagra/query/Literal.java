@@ -2,7 +2,14 @@ package bio.terra.tanagra.query;
 
 import java.sql.Date;
 
-public record Literal(DataType dataType, String stringVal, long int64Val, boolean booleanVal, Date dateVal, double doubleVal) implements SQLExpression {
+public record Literal(
+    DataType dataType,
+    String stringVal,
+    long int64Val,
+    boolean booleanVal,
+    Date dateVal,
+    double doubleVal)
+    implements SQLExpression {
 
   /** Enum for the data types supported by Tanagra. */
   public enum DataType {

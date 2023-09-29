@@ -32,7 +32,7 @@ public class Relationship {
     this.entityGroup = entityGroup;
     sourceMapping.initialize(this);
     indexMapping.initialize(this);
-    fields.stream().forEach(field -> field.initialize(this));
+    fields.forEach(field -> field.initialize(this));
   }
 
   public String getName() {
@@ -63,14 +63,9 @@ public class Relationship {
         entity.getName(),
         hierarchy == null ? "null" : hierarchy.getName());
     return fields.stream()
-        .filter(
-            field ->
-                field.getType().equals(type)
-                    && field.getEntity().equals(entity)
-                    && ((hierarchy == null && field.getHierarchy() == null)
-                        || (hierarchy != null && hierarchy.equals(field.getHierarchy()))))
+        .filter(field -> field.matches(type, entity, hierarchy))
         .findFirst()
-        .get();
+        .orElseThrow();
   }
 
   public EntityGroup getEntityGroup() {
@@ -82,6 +77,6 @@ public class Relationship {
   }
 
   public RelationshipMapping getMapping(Underlay.MappingType mappingType) {
-    return Underlay.MappingType.SOURCE.equals(mappingType) ? sourceMapping : indexMapping;
+    return Underlay.MappingType.SOURCE == mappingType ? sourceMapping : indexMapping;
   }
 }

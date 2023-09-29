@@ -12,16 +12,11 @@ import java.util.List;
 
 public class Count extends RelationshipField {
   public Count(Entity entity) {
-    super(entity);
+    this(entity, null);
   }
 
   public Count(Entity entity, Hierarchy hierarchy) {
-    super(entity, hierarchy);
-  }
-
-  @Override
-  public Type getType() {
-    return Type.COUNT;
+    super(Type.COUNT, entity, hierarchy);
   }
 
   @Override

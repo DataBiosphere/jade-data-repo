@@ -1,6 +1,5 @@
 package bio.terra.tanagra.underlay;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnSchema;
@@ -13,12 +12,9 @@ import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.query.UnionQuery;
-import bio.terra.tanagra.serialization.UFTextSearchMapping;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public final class TextSearchMapping {
   public static final String TEXT_SEARCH_ID_COLUMN_NAME = "id";
@@ -33,54 +29,19 @@ public final class TextSearchMapping {
   private final Underlay.MappingType mappingType;
   private TextSearch textSearch;
 
-  private TextSearchMapping(Builder builder) {
-    this.attributes = builder.attributes;
-    this.searchString = builder.searchString;
-    this.searchStringTable = builder.searchStringTable;
-    this.mappingType = builder.mappingType;
+  public TextSearchMapping(
+      List<Attribute> attributes,
+      FieldPointer searchString,
+      AuxiliaryDataMapping searchStringTable,
+      Underlay.MappingType mappingType) {
+    this.attributes = attributes;
+    this.searchString = searchString;
+    this.searchStringTable = searchStringTable;
+    this.mappingType = mappingType;
   }
 
   public void initialize(TextSearch textSearch) {
     this.textSearch = textSearch;
-  }
-
-  public static TextSearchMapping fromSerialized(
-      UFTextSearchMapping serialized,
-      TablePointer tablePointer,
-      Map<String, Attribute> entityAttributes,
-      Underlay.MappingType mappingType) {
-    if (serialized.getAttributes() != null && serialized.getSearchString() != null) {
-      throw new InvalidConfigException(
-          "Text search mapping can be defined by either attributes or a search string, not both");
-    }
-
-    if (serialized.getAttributes() != null) {
-      if (serialized.getAttributes().isEmpty()) {
-        throw new InvalidConfigException("Text search mapping list of attributes is empty");
-      }
-      List<Attribute> attributesForTextSearch =
-          serialized.getAttributes().stream()
-              .map(entityAttributes::get)
-              .collect(Collectors.toList());
-      return new Builder().attributes(attributesForTextSearch).mappingType(mappingType).build();
-    }
-
-    if (serialized.getSearchString() != null) {
-      FieldPointer searchStringField =
-          FieldPointer.fromSerialized(serialized.getSearchString(), tablePointer);
-      return new Builder().searchString(searchStringField).mappingType(mappingType).build();
-    }
-
-    if (serialized.getSearchStringTable() != null) {
-      AuxiliaryDataMapping searchStringTable =
-          AuxiliaryDataMapping.fromSerialized(
-              serialized.getSearchStringTable(),
-              tablePointer.getDataPointer(),
-              TEXT_SEARCH_STRING_AUXILIARY_DATA);
-      return new Builder().searchStringTable(searchStringTable).mappingType(mappingType).build();
-    }
-
-    throw new InvalidConfigException("Text search mapping is empty");
   }
 
   public static TextSearchMapping defaultIndexMapping(TablePointer tablePointer) {
@@ -119,14 +80,14 @@ public final class TextSearchMapping {
                         }
                         return buildIdTextPairsQuery(entityIdField, textField);
                       })
-                  .collect(Collectors.toList()));
+                  .toList());
     } else if (definedBySearchString()) {
       idAllTextPairs = buildIdTextPairsQuery(entityIdField, getSearchString());
     } else if (definedBySearchStringAuxiliaryData()) {
       idAllTextPairs =
           buildIdTextPairsQuery(
-              searchStringTable.getFieldPointers().get(TEXT_SEARCH_ID_COLUMN_NAME),
-              searchStringTable.getFieldPointers().get(TEXT_SEARCH_STRING_COLUMN_NAME));
+              searchStringTable.fieldPointers().get(TEXT_SEARCH_ID_COLUMN_NAME),
+              searchStringTable.fieldPointers().get(TEXT_SEARCH_STRING_COLUMN_NAME));
     } else {
       throw new SystemException("Unknown text search mapping type");
     }
@@ -134,7 +95,7 @@ public final class TextSearchMapping {
     TablePointer idTextPairsTable =
         TablePointer.fromRawSql(
             executor.renderSQL(idAllTextPairs),
-            textSearch.getEntity().getMapping(mappingType).getTablePointer().getDataPointer());
+            textSearch.getEntity().getMapping(mappingType).getTablePointer().dataPointer());
     FieldPointer idField =
         new FieldPointer.Builder()
             .tablePointer(idTextPairsTable)
@@ -181,7 +142,7 @@ public final class TextSearchMapping {
     } else if (definedBySearchString()) {
       return searchString.getTablePointer();
     } else if (definedBySearchStringAuxiliaryData()) {
-      return searchStringTable.getTablePointer();
+      return searchStringTable.tablePointer();
     } else {
       throw new SystemException("Unknown text search mapping type");
     }
@@ -242,7 +203,7 @@ public final class TextSearchMapping {
     }
 
     public TextSearchMapping build() {
-      return new TextSearchMapping(this);
+      return new TextSearchMapping(attributes, searchString, searchStringTable, mappingType);
     }
   }
 }

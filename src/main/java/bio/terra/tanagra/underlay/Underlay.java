@@ -18,7 +18,7 @@ public final class Underlay {
   private final String uiConfig;
   private final Map<String, String> metadata;
 
-  private Underlay(
+  public Underlay(
       String name,
       Map<String, DataPointer> dataPointers,
       Map<String, Entity> entities,
@@ -71,10 +71,9 @@ public final class Underlay {
 
   public EntityGroup getEntityGroup(EntityGroup.Type type, Entity entity) {
     return entityGroups.values().stream()
-        .filter(
-            entityGroup -> type == entityGroup.getType() && entityGroup.includesEntity(entity))
+        .filter(entityGroup -> type == entityGroup.getType() && entityGroup.includesEntity(entity))
         .findFirst()
-        .get();
+        .orElseThrow();
   }
 
   public String getUIConfig() {

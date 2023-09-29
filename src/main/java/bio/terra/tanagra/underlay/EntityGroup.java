@@ -14,19 +14,28 @@ public abstract class EntityGroup {
 
   public static final String ENTITY_GROUP_DIRECTORY_NAME = "entitygroup";
 
+  private final Type type;
   protected final String name;
   protected final Map<String, Relationship> relationships;
   protected final EntityGroupMapping sourceDataMapping;
   protected final EntityGroupMapping indexDataMapping;
 
-  protected EntityGroup(String name, Map<String, Relationship> relationships, EntityGroupMapping sourceDataMapping, EntityGroupMapping indexDataMapping) {
+  protected EntityGroup(
+      Type type,
+      String name,
+      Map<String, Relationship> relationships,
+      EntityGroupMapping sourceDataMapping,
+      EntityGroupMapping indexDataMapping) {
+    this.type = type;
     this.name = name;
     this.relationships = relationships;
     this.sourceDataMapping = sourceDataMapping;
     this.indexDataMapping = indexDataMapping;
   }
 
-  public abstract Type getType();
+  public Type getType() {
+    return type;
+  }
 
   public abstract Map<String, Entity> getEntityMap();
 

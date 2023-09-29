@@ -13,7 +13,14 @@ public class FieldPointer {
   private boolean joinCanBeEmpty;
   private final String sqlFunctionWrapper;
 
-  private FieldPointer(TablePointer tablePointer, String columnName, TablePointer foreignTablePointer, String foreignKeyColumnName, String foreignColumnName, boolean joinCanBeEmpty, String sqlFunctionWrapper) {
+  private FieldPointer(
+      TablePointer tablePointer,
+      String columnName,
+      TablePointer foreignTablePointer,
+      String foreignKeyColumnName,
+      String foreignColumnName,
+      boolean joinCanBeEmpty,
+      String sqlFunctionWrapper) {
     this.tablePointer = tablePointer;
     this.columnName = columnName;
     this.foreignTablePointer = foreignTablePointer;
@@ -155,7 +162,14 @@ public class FieldPointer {
 
     /** Call the private constructor. */
     public FieldPointer build() {
-      return new FieldPointer(tablePointer, columnName, foreignTablePointer, foreignKeyColumnName, foreignColumnName, joinCanBeEmpty, sqlFunctionWrapper);
+      return new FieldPointer(
+          tablePointer,
+          columnName,
+          foreignTablePointer,
+          foreignKeyColumnName,
+          foreignColumnName,
+          joinCanBeEmpty,
+          sqlFunctionWrapper);
     }
   }
 }

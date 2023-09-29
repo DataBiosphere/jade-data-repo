@@ -12,16 +12,11 @@ import java.util.List;
 
 public class DisplayHints extends RelationshipField {
   public DisplayHints(Entity entity) {
-    super(entity);
+    this(entity, null);
   }
 
   public DisplayHints(Entity entity, Hierarchy hierarchy) {
-    super(entity, hierarchy);
-  }
-
-  @Override
-  public Type getType() {
-    return Type.DISPLAY_HINTS;
+    super(Type.DISPLAY_HINTS, entity, hierarchy);
   }
 
   @Override

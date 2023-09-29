@@ -13,12 +13,16 @@ public abstract class DataPointer {
   }
 
   private final String name;
+  private final Type type;
 
-  public DataPointer(String name) {
+  protected DataPointer(Type type, String name) {
+    this.type = type;
     this.name = name;
   }
 
-  public abstract Type getType();
+  public Type getType() {
+    return type;
+  }
 
   public String getName() {
     return name;

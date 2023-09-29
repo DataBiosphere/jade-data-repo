@@ -5,7 +5,6 @@ import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.serialization.UFRelationshipMapping;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,40 +39,6 @@ public final class RelationshipMapping {
     this.relationship = relationship;
   }
 
-  public static RelationshipMapping fromSerialized(
-      UFRelationshipMapping serialized, DataPointer dataPointer) {
-    // ID pairs table.
-    TablePointer idPairsTable =
-        TablePointer.fromSerialized(serialized.getIdPairsTable(), dataPointer);
-    FieldPointer idPairsIdA = FieldPointer.fromSerialized(serialized.getIdPairsIdA(), idPairsTable);
-    FieldPointer idPairsIdB = FieldPointer.fromSerialized(serialized.getIdPairsIdB(), idPairsTable);
-
-    // Rollup columns for entity A.
-    Map<String, RollupInformation> rollupInformationMapA = new HashMap<>();
-    if (serialized.getRollupInformationMapA() != null) {
-      serialized
-          .getRollupInformationMapA()
-          .forEach(
-              (key, value) ->
-                  rollupInformationMapA.put(
-                      key, RollupInformation.fromSerialized(value, dataPointer)));
-    }
-
-    // Rollup columns for entity B.
-    Map<String, RollupInformation> rollupInformationMapB = new HashMap<>();
-    if (serialized.getRollupInformationMapB() != null) {
-      serialized
-          .getRollupInformationMapB()
-          .forEach(
-              (key, value) ->
-                  rollupInformationMapB.put(
-                      key, RollupInformation.fromSerialized(value, dataPointer)));
-    }
-
-    return new RelationshipMapping(
-        idPairsIdA, idPairsIdB, rollupInformationMapA, rollupInformationMapB);
-  }
-
   public static RelationshipMapping defaultIndexMapping(
       DataPointer dataPointer, Relationship relationship) {
     // ID pairs table.
@@ -102,7 +67,9 @@ public final class RelationshipMapping {
         RollupInformation.defaultIndexMapping(
             relationship.getEntityA(), relationship.getEntityB(), null));
     if (relationship.getEntityA().hasHierarchies()) {
-      relationship.getEntityA().getHierarchies().stream()
+      relationship
+          .getEntityA()
+          .getHierarchies()
           .forEach(
               hierarchy ->
                   rollupInformationMapA.put(
@@ -118,7 +85,9 @@ public final class RelationshipMapping {
         RollupInformation.defaultIndexMapping(
             relationship.getEntityB(), relationship.getEntityA(), null));
     if (relationship.getEntityB().hasHierarchies()) {
-      relationship.getEntityB().getHierarchies().stream()
+      relationship
+          .getEntityB()
+          .getHierarchies()
           .forEach(
               hierarchy ->
                   rollupInformationMapB.put(

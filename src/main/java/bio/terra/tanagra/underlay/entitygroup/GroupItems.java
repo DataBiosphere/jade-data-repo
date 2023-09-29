@@ -14,15 +14,16 @@ public class GroupItems extends EntityGroup {
   private final Entity groupEntity;
   private final Entity itemsEntity;
 
-  private GroupItems(String name, Map<String, Relationship> relationships, EntityGroupMapping sourceDataMapping, EntityGroupMapping indexDataMapping, Entity groupEntity, Entity itemsEntity) {
-    super(name, relationships, sourceDataMapping, indexDataMapping);
+  private GroupItems(
+      String name,
+      Map<String, Relationship> relationships,
+      EntityGroupMapping sourceDataMapping,
+      EntityGroupMapping indexDataMapping,
+      Entity groupEntity,
+      Entity itemsEntity) {
+    super(Type.GROUP_ITEMS, name, relationships, sourceDataMapping, indexDataMapping);
     this.groupEntity = groupEntity;
     this.itemsEntity = itemsEntity;
-  }
-
-  @Override
-  public Type getType() {
-    return Type.GROUP_ITEMS;
   }
 
   public Entity getGroupEntity() {
@@ -54,7 +55,8 @@ public class GroupItems extends EntityGroup {
 
     @Override
     public GroupItems build() {
-      return new GroupItems(name, relationships, sourceDataMapping, indexDataMapping, groupEntity, itemsEntity);
+      return new GroupItems(
+          name, relationships, sourceDataMapping, indexDataMapping, groupEntity, itemsEntity);
     }
   }
 }

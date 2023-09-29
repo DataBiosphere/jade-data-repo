@@ -26,15 +26,10 @@ public final class AzureDataset extends DataPointer {
   private final String userName;
 
   public AzureDataset(String name, UUID datasetId, String datasetName, String userName) {
-    super(name);
+    super(Type.AZURE_DATASET, name);
     this.datasetId = Objects.requireNonNull(datasetId, "No dataset ID defined");
     this.datasetName = datasetName;
     this.userName = userName;
-  }
-
-  @Override
-  public Type getType() {
-    return Type.AZURE_DATASET;
   }
 
   @Override

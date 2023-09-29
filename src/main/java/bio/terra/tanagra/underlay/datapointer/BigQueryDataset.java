@@ -1,6 +1,5 @@
 package bio.terra.tanagra.underlay.datapointer;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.FieldPointer;
@@ -29,24 +28,19 @@ public final class BigQueryDataset extends DataPointer {
 
   private GoogleBigQuery bigQueryService;
 
-  private BigQueryDataset(
+  public BigQueryDataset(
       String name,
       String projectId,
       String datasetId,
       String queryProjectId,
       String dataflowServiceAccountEmail,
       String dataflowTempLocation) {
-    super(name);
+    super(Type.BQ_DATASET, name);
     this.projectId = projectId;
     this.datasetId = datasetId;
     this.queryProjectId = queryProjectId;
     this.dataflowServiceAccountEmail = dataflowServiceAccountEmail;
     this.dataflowTempLocation = dataflowTempLocation;
-  }
-
-  @Override
-  public Type getType() {
-    return Type.BQ_DATASET;
   }
 
   @Override

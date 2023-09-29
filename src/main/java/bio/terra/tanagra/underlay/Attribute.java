@@ -1,9 +1,6 @@
 package bio.terra.tanagra.underlay;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.query.Literal;
-import bio.terra.tanagra.serialization.UFAttribute;
-import com.google.common.base.Strings;
 
 public final class Attribute {
 
@@ -37,18 +34,6 @@ public final class Attribute {
     indexMapping.initialize(this);
   }
 
-  public static Attribute fromSerialized(UFAttribute serialized) {
-    if (Strings.isNullOrEmpty(serialized.getName())) {
-      throw new InvalidConfigException("Attribute name is undefined");
-    }
-    DisplayHint displayHint =
-        serialized.getDisplayHint() == null
-            ? null
-            : serialized.getDisplayHint().deserializeToInternal();
-    return new Attribute(
-        serialized.getName(), serialized.getType(), serialized.getDataType(), displayHint);
-  }
-
   public String getName() {
     return name;
   }
@@ -74,6 +59,6 @@ public final class Attribute {
   }
 
   public AttributeMapping getMapping(Underlay.MappingType mappingType) {
-    return Underlay.MappingType.SOURCE.equals(mappingType) ? sourceMapping : indexMapping;
+    return Underlay.MappingType.SOURCE == mappingType ? sourceMapping : indexMapping;
   }
 }

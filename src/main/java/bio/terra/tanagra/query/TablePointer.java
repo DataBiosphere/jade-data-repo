@@ -3,7 +3,8 @@ package bio.terra.tanagra.query;
 import bio.terra.tanagra.underlay.DataPointer;
 import java.util.List;
 
-public record TablePointer(DataPointer dataPointer, String tableName, Filter filter, String sql) implements SQLExpression {
+public record TablePointer(DataPointer dataPointer, String tableName, Filter filter, String sql)
+    implements SQLExpression {
 
   public static TablePointer fromTableName(String tableName, DataPointer dataPointer) {
     return new Builder().dataPointer(dataPointer).tableName(tableName).build();
@@ -12,6 +13,7 @@ public record TablePointer(DataPointer dataPointer, String tableName, Filter fil
   public static TablePointer fromRawSql(String sql, DataPointer dataPointer) {
     return new Builder().dataPointer(dataPointer).sql(sql).build();
   }
+
   public boolean isRawSql() {
     return sql != null;
   }

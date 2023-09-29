@@ -15,7 +15,8 @@ public abstract class Filter {
     return type;
   }
 
-  public abstract FilterVariable buildVariable(TableVariable primaryTable, List<TableVariable> tables);
+  public abstract FilterVariable buildVariable(
+      TableVariable primaryTable, List<TableVariable> tables);
 
   protected Filter(Type type) {
     this.type = type;

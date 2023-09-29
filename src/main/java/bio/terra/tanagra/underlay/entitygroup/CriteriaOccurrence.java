@@ -54,9 +54,17 @@ public class CriteriaOccurrence extends EntityGroup {
   private final List<Attribute> modifierAttributes;
   private final AuxiliaryData modifierAuxiliaryData;
 
-  private CriteriaOccurrence(String name, Map<String, Relationship> relationships, EntityGroupMapping sourceDataMapping, EntityGroupMapping indexDataMapping,
-      Entity criteriaEntity, Entity occurrenceEntity, Entity primaryEntity, List<Entity> occurrenceRelatedEntities, List<Attribute> modifierAttributes) {
-    super(name, relationships, sourceDataMapping, indexDataMapping);
+  private CriteriaOccurrence(
+      String name,
+      Map<String, Relationship> relationships,
+      EntityGroupMapping sourceDataMapping,
+      EntityGroupMapping indexDataMapping,
+      Entity criteriaEntity,
+      Entity occurrenceEntity,
+      Entity primaryEntity,
+      List<Entity> occurrenceRelatedEntities,
+      List<Attribute> modifierAttributes) {
+    super(Type.CRITERIA_OCCURRENCE, name, relationships, sourceDataMapping, indexDataMapping);
     this.criteriaEntity = criteriaEntity;
     this.occurrenceEntity = occurrenceEntity;
     this.primaryEntity = primaryEntity;
@@ -67,13 +75,14 @@ public class CriteriaOccurrence extends EntityGroup {
         hasModifierAttributes ? MODIFIER_AUXILIARY_DATA.cloneWithoutMappings() : null;
   }
 
-  private static List<RelationshipField> buildRelationshipFieldList(Entity entity) {
+  public static List<RelationshipField> buildRelationshipFieldList(Entity entity) {
     List<RelationshipField> fields = new ArrayList<>();
     fields.add(new Count(entity));
     fields.add(new DisplayHints(entity));
 
     if (entity.hasHierarchies()) {
-      entity.getHierarchies()
+      entity
+          .getHierarchies()
           .forEach(
               hierarchy -> {
                 fields.add(new Count(entity, hierarchy));
@@ -81,11 +90,6 @@ public class CriteriaOccurrence extends EntityGroup {
               });
     }
     return fields;
-  }
-
-  @Override
-  public Type getType() {
-    return Type.CRITERIA_OCCURRENCE;
   }
 
   @Override

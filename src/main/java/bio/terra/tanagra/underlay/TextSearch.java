@@ -6,16 +6,19 @@ public class TextSearch {
   private final TextSearchMapping indexMapping;
   private Entity entity;
 
+  public TextSearch(
+      boolean isEnabled, TextSearchMapping sourceMapping, TextSearchMapping indexMapping) {
+    this.isEnabled = isEnabled;
+    this.sourceMapping = sourceMapping;
+    this.indexMapping = indexMapping;
+  }
+
   public TextSearch() {
-    this.isEnabled = false;
-    sourceMapping = null;
-    indexMapping = null;
+    this(false, null, null);
   }
 
   public TextSearch(TextSearchMapping sourceMapping, TextSearchMapping indexMapping) {
-    this.isEnabled = true;
-    this.sourceMapping = sourceMapping;
-    this.indexMapping = indexMapping;
+    this(true, sourceMapping, indexMapping);
   }
 
   public void initialize(Entity entity) {
@@ -29,7 +32,7 @@ public class TextSearch {
   }
 
   public TextSearchMapping getMapping(Underlay.MappingType mappingType) {
-    return Underlay.MappingType.SOURCE.equals(mappingType) ? sourceMapping : indexMapping;
+    return Underlay.MappingType.SOURCE == mappingType ? sourceMapping : indexMapping;
   }
 
   public boolean isEnabled() {

@@ -69,7 +69,7 @@ public class BigQueryExecutor implements QueryExecutor {
   }
 
   private BigQueryDataset getBQDataPointer(TablePointer tablePointer) {
-    DataPointer outputDataPointer = tablePointer.getDataPointer();
+    DataPointer outputDataPointer = tablePointer.dataPointer();
     if (outputDataPointer instanceof BigQueryDataset bigQueryDataset) {
       return bigQueryDataset;
     }
@@ -88,7 +88,7 @@ public class BigQueryExecutor implements QueryExecutor {
         .deleteTable(
             outputBQDataset.getProjectId(),
             outputBQDataset.getDatasetId(),
-            tablePointer.getTableName());
+            tablePointer.tableName());
   }
 
   @Override
@@ -98,14 +98,14 @@ public class BigQueryExecutor implements QueryExecutor {
         "output BQ table: project={}, dataset={}, table={}",
         outputBQDataset.getProjectId(),
         outputBQDataset.getDatasetId(),
-        tablePointer.getTableName());
+        tablePointer.tableName());
     GoogleBigQuery googleBigQuery = outputBQDataset.getBigQueryService();
     // FIXME: use indexExecutor
     return googleBigQuery
         .getTable(
             outputBQDataset.getProjectId(),
             outputBQDataset.getDatasetId(),
-            tablePointer.getTableName())
+            tablePointer.tableName())
         .isPresent();
   }
 }

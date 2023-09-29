@@ -2,7 +2,6 @@ package bio.terra.tanagra.underlay;
 
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.TablePointer;
-import bio.terra.tanagra.serialization.UFRollupInformation;
 
 public class RollupInformation {
   private final FieldPointer id;
@@ -23,15 +22,6 @@ public class RollupInformation {
     this.relationship = relationship;
     this.entity = entity;
     this.hierarchy = hierarchy;
-  }
-
-  public static RollupInformation fromSerialized(
-      UFRollupInformation serialized, DataPointer dataPointer) {
-    TablePointer table = TablePointer.fromSerialized(serialized.getTable(), dataPointer);
-    FieldPointer id = FieldPointer.fromSerialized(serialized.getId(), table);
-    FieldPointer count = FieldPointer.fromSerialized(serialized.getCount(), table);
-    FieldPointer displayHints = FieldPointer.fromSerialized(serialized.getDisplayHints(), table);
-    return new RollupInformation(id, count, displayHints);
   }
 
   public static RollupInformation defaultIndexMapping(

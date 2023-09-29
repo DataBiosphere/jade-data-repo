@@ -9,7 +9,11 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,13 +31,8 @@ public class RecordAzureStorageAccountsStep extends DefaultUndoStep {
     FlightMap workingMap = context.getWorkingMap();
     List<UUID> appIdList =
         workingMap.get(ProfileMapKeys.PROFILE_APPLICATION_DEPLOYMENT_ID_LIST, List.class);
-
-    // Note: This will list a storage account for each top level container
-    // So, there may be duplicates of the cloud storage account resource
-    // Top level container and storage accounts have a many-to-one relationship
-    List<AzureStorageAccountResource> storageAccounts =
-        azureStorageAccountService.listStorageAccountPerAppDeployment(appIdList, true);
-    workingMap.put(ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, storageAccounts);
+    List<AzureStorageAccountResource> storageAccounts = getUniqueStorageAccounts(appIdList);
+    workingMap.put(ProfileMapKeys.PROFILE_UNIQUE_STORAGE_ACCOUNT_RESOURCE_LIST, storageAccounts);
     if (storageAccounts.isEmpty()) {
       logger.warn("No storage accounts found to be deleted for this billing profile.");
     } else {
@@ -42,5 +41,20 @@ public class RecordAzureStorageAccountsStep extends DefaultUndoStep {
           storageAccounts.size());
     }
     return StepResult.getStepResultSuccess();
+  }
+
+  public List<AzureStorageAccountResource> getUniqueStorageAccounts(List<UUID> appIdList) {
+    // listStorageAccountPerAppDeployment will list a storage account for each top level container
+    // So, there may be duplicates of the cloud storage account resource
+    // Top level container and storage accounts have a many-to-one relationship
+    List<AzureStorageAccountResource> storageAccounts =
+        azureStorageAccountService.listStorageAccountPerAppDeployment(appIdList, true);
+    // Filter down this list to only return one resource per unique cloud storage account resource
+    return storageAccounts.stream().filter(distinctByKey(sa -> sa.getName())).toList();
+  }
+
+  private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+    Map<Object, Boolean> seen = new ConcurrentHashMap<>();
+    return t -> seen.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
   }
 }

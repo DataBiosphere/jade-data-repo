@@ -30,7 +30,7 @@ public class DeleteLogAnalyticsWorkspaceStep extends DefaultUndoStep {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     List<AzureStorageAccountResource> storageAccounts =
         workingMap.get(
-            ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, new TypeReference<>() {});
+            ProfileMapKeys.PROFILE_UNIQUE_STORAGE_ACCOUNT_RESOURCE_LIST, new TypeReference<>() {});
 
     for (AzureStorageAccountResource storageAccountResource : storageAccounts) {
       if (monitoringService.getLogAnalyticsWorkspace(profileModel, storageAccountResource)

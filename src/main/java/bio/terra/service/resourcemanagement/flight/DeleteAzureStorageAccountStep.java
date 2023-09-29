@@ -29,7 +29,7 @@ public class DeleteAzureStorageAccountStep extends DefaultUndoStep {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     List<AzureStorageAccountResource> storageAccounts =
         workingMap.get(
-            ProfileMapKeys.PROFILE_STORAGE_ACCOUNT_RESOURCE_LIST, new TypeReference<>() {});
+            ProfileMapKeys.PROFILE_UNIQUE_STORAGE_ACCOUNT_RESOURCE_LIST, new TypeReference<>() {});
 
     for (AzureStorageAccountResource storageAccountResource : storageAccounts) {
       if (azureStorageAccountService.getCloudStorageAccount(profileModel, storageAccountResource)

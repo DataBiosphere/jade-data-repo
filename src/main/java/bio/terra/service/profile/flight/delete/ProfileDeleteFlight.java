@@ -41,9 +41,6 @@ public class ProfileDeleteFlight extends Flight {
         CloudPlatformWrapper.of(
             inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
 
-    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
-        new AzureStorageMonitoringStepProvider(monitoringService);
-
     // We do not delete unused Google projects at the point where they become unused; that is, the
     // last
     // file or dataset or snapshot is deleted from them. Instead, we use this profile delete
@@ -90,6 +87,8 @@ public class ProfileDeleteFlight extends Flight {
         // application deployment
         addStep(new RecordAzureStorageAccountsStep(azureStorageAccountService));
         // delete monitoring resources
+        AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+            new AzureStorageMonitoringStepProvider(monitoringService);
         azureStorageMonitoringStepProvider
             .configureDeleteSteps()
             .forEach(s -> this.addStep(s.step(), s.retryRule()));

@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class DeleteLogAnalyticsWorkspaceStep extends DefaultUndoStep {
   private static final Logger logger =
       LoggerFactory.getLogger(DeleteLogAnalyticsWorkspaceStep.class);
-  private AzureMonitoringService monitoringService;
+  private final AzureMonitoringService monitoringService;
 
   public DeleteLogAnalyticsWorkspaceStep(AzureMonitoringService monitoringService) {
     this.monitoringService = monitoringService;

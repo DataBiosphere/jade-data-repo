@@ -173,16 +173,19 @@ public class BufferServiceConnectedTest {
 
     // test trying to move a project back to the default folder
     bufferService.refolderProjectToDefaultFolder(sensitiveProjectId);
+    // Reload the project to get the updated parent folder
+    ResourceId updatedParentFolder =
+        resourceManagerService.getProject(sensitiveProjectId).getParent();
     assertThat(
         "Formerly sensitive project is now in default folder",
-        sensitiveParent.getId(),
+        updatedParentFolder.getId(),
         equalTo(normalParent.getId()));
 
     // test trying to move a project back to the default folder
     bufferService.refolderProjectToDefaultFolder(sensitiveProjectId);
     assertThat(
         "Formerly sensitive project is still in default folder",
-        sensitiveParent.getId(),
+        updatedParentFolder.getId(),
         equalTo(normalParent.getId()));
   }
 

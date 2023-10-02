@@ -183,12 +183,31 @@ public class DataRepoFixtures {
     assertGoodDeleteResponse(deleteResponse);
   }
 
+  public void deleteProfileWithCloudResourceDelete(TestConfiguration.User user, UUID profileId)
+      throws Exception {
+    DataRepoResponse<DeleteResponseModel> deleteResponse = deleteProfileLog(user, profileId, true);
+    assertGoodDeleteResponse(deleteResponse);
+  }
+
   public DataRepoResponse<DeleteResponseModel> deleteProfileLog(
       TestConfiguration.User user, UUID profileId) throws Exception {
+    return deleteProfileLog(user, profileId, false);
+  }
 
+  public DataRepoResponse<DeleteResponseModel> deleteProfileLog(
+      TestConfiguration.User user, UUID profileId, boolean deleteCloudResources) throws Exception {
+
+    String deleteCloudResourcesQuery;
+    if (deleteCloudResources) {
+      deleteCloudResourcesQuery = "?deleteCloudResources=true";
+    } else {
+      deleteCloudResourcesQuery = "";
+    }
     DataRepoResponse<JobModel> jobResponse =
         dataRepoClient.delete(
-            user, "/api/resources/v1/profiles/" + profileId, new TypeReference<>() {});
+            user,
+            "/api/resources/v1/profiles/" + profileId + deleteCloudResourcesQuery,
+            new TypeReference<>() {});
     assertTrue("profile delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "profile delete launch response is present", jobResponse.getResponseObject().isPresent());

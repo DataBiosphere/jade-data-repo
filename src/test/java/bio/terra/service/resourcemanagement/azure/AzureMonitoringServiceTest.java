@@ -8,9 +8,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration.Credentials;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementError;
 import com.azure.core.management.exception.ManagementException;
@@ -38,7 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 class AzureMonitoringServiceTest {
 
   @Mock private AzureResourceConfiguration resourceConfiguration;
@@ -254,20 +254,12 @@ class AzureMonitoringServiceTest {
   }
 
   private void mockLogAnalyticsClient() {
-    Credentials credentials = new Credentials();
-    credentials.setHomeTenantId(HOME_TENANT_ID);
-    when(resourceConfiguration.credentials()).thenReturn(credentials);
-
-    when(resourceConfiguration.getLogAnalyticsManagerClient(HOME_TENANT_ID, SUBSCRIPTION_ID))
+    when(resourceConfiguration.getLogAnalyticsManagerClient(SUBSCRIPTION_ID))
         .thenReturn(logAnalyticsManager);
   }
 
   private void mockSecurityInsightsClient() {
-    Credentials credentials = new Credentials();
-    credentials.setHomeTenantId(HOME_TENANT_ID);
-    when(resourceConfiguration.credentials()).thenReturn(credentials);
-
-    when(resourceConfiguration.getSecurityInsightsManagerClient(HOME_TENANT_ID, SUBSCRIPTION_ID))
+    when(resourceConfiguration.getSecurityInsightsManagerClient(SUBSCRIPTION_ID))
         .thenReturn(securityInsightsManager);
   }
 

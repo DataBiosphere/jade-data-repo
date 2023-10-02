@@ -73,15 +73,16 @@ public record AzureResourceConfiguration(
    * create/destroy resources Note: this is a separate method from the one above because the log
    * analytics client is not GA yet so does not return a generic AzureResourceManager object
    *
-   * @param tenantId The ID of the user's tenant
    * @param subscriptionId The ID of the subscription that will be charged for the resources created
    *     with this client
    * @return An authenticated {@link LogAnalyticsManager} client
    */
-  public LogAnalyticsManager getLogAnalyticsManagerClient(
-      final UUID tenantId, final UUID subscriptionId) {
+  public LogAnalyticsManager getLogAnalyticsManagerClient(final UUID subscriptionId) {
     final AzureProfile profile =
-        new AzureProfile(tenantId.toString(), subscriptionId.toString(), AzureEnvironment.AZURE);
+        new AzureProfile(
+            credentials().getHomeTenantId().toString(),
+            subscriptionId.toString(),
+            AzureEnvironment.AZURE);
     return LogAnalyticsManager.authenticate(getAppToken(), profile);
   }
 
@@ -91,15 +92,16 @@ public record AzureResourceConfiguration(
    * because the security insights client is not GA yet so does not return a generic
    * AzureResourceManager object
    *
-   * @param tenantId The ID of the user's tenant
    * @param subscriptionId The ID of the subscription that will be charged for the resources created
    *     with this client
    * @return An authenticated {@link SecurityInsightsManager} client
    */
-  public SecurityInsightsManager getSecurityInsightsManagerClient(
-      final UUID tenantId, final UUID subscriptionId) {
+  public SecurityInsightsManager getSecurityInsightsManagerClient(final UUID subscriptionId) {
     final AzureProfile profile =
-        new AzureProfile(tenantId.toString(), subscriptionId.toString(), AzureEnvironment.AZURE);
+        new AzureProfile(
+            credentials().getHomeTenantId().toString(),
+            subscriptionId.toString(),
+            AzureEnvironment.AZURE);
     return SecurityInsightsManager.authenticate(getAppToken(), profile);
   }
 

@@ -41,10 +41,10 @@ public class EnableSecureMonitoringFlight extends Flight {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (platform.isGcp()) {
       addStep(new LockDatasetStep(datasetService, datasetId, false));
-      addStep(new EnableSecureMonitoringRecordInFlightMapStep(dataset));
-      addStep(new EnableSecureMonitoringEnableFlagStep(datasetDao, userReq, true));
+      addStep(new SecureMonitoringRecordInFlightMapStep(dataset));
+      addStep(new SecureMonitoringEnableFlagStep(datasetDao, userReq, true));
       addStep(
-          new EnableSecureMonitoringRefolderGcpProjectsStep(
+          new SecureMonitoringRefolderGcpProjectsStep(
               dataset, snapshotService, bufferService, userReq, true));
       addStep(
           new EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep(

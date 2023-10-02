@@ -8,9 +8,9 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.EnableSecureMonitoringEnableFlagStep;
-import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.EnableSecureMonitoringRecordInFlightMapStep;
-import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.EnableSecureMonitoringRefolderGcpProjectsStep;
+import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringEnableFlagStep;
+import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringRecordInFlightMapStep;
+import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringRefolderGcpProjectsStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.policy.PolicyService;
@@ -44,10 +44,10 @@ public class DisableSecureMonitoringFlight extends Flight {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (platform.isGcp()) {
       addStep(new LockDatasetStep(datasetService, datasetId, false));
-      addStep(new EnableSecureMonitoringRecordInFlightMapStep(dataset));
-      addStep(new EnableSecureMonitoringEnableFlagStep(datasetDao, userReq, false));
+      addStep(new SecureMonitoringRecordInFlightMapStep(dataset));
+      addStep(new SecureMonitoringEnableFlagStep(datasetDao, userReq, false));
       addStep(
-          new EnableSecureMonitoringRefolderGcpProjectsStep(
+          new SecureMonitoringRefolderGcpProjectsStep(
               dataset, snapshotService, bufferService, userReq, false));
       addStep(
           new DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep(

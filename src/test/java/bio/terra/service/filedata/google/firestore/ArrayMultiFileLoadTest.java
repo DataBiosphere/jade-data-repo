@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.assertj.core.api.Fail.fail;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -26,6 +27,7 @@ import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -239,6 +241,43 @@ public class ArrayMultiFileLoadTest {
         "fileIds should contain fileIds from datarepo_load_history",
         fileIds,
         containsInAnyOrder(bq_fileIds.toArray()));
+  }
+
+  @Test
+  public void arrayDoubleFileLoadBulkModeFailTest() throws Exception {
+    int fileCount = 1;
+    BulkLoadArrayRequestModel arrayLoad =
+        makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, fileCount);
+    String originalLoadTag = arrayLoad.getLoadTag();
+
+    BulkLoadArrayResultModel result =
+        connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad.bulkMode(true));
+
+    FileOperationTest.checkLoadSummary(
+        result.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
+
+    var loadHistoryList =
+        connectedOperations.getLoadHistory(
+            datasetSummary.getId(), result.getLoadSummary().getLoadTag(), 0, 20);
+
+    assertThat(
+        "The correct number of load history entries are returned",
+        loadHistoryList.getTotal(),
+        equalTo(fileCount));
+
+    assertThat(
+        "getting load history has the same items as response from bulk file load",
+        loadHistoryList.getItems().stream().map(TestUtils::toBulkLoadFileResultModel).toList(),
+        containsInAnyOrder(result.getLoadFileResults().toArray()));
+
+    BulkLoadArrayRequestModel failedArrayLoad = arrayLoad.loadTag("duplicate");
+
+    ErrorModel failedResult =
+        connectedOperations.ingestArrayFailure(datasetSummary.getId(), failedArrayLoad);
+    assertThat(failedResult.getMessage(), containsString("FileAlreadyExistsException"));
+    assertThat(
+        failedResult.getMessage(),
+        containsString("Path already exists: / with load tag " + originalLoadTag));
   }
 
   @Test

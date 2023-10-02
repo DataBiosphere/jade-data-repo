@@ -271,11 +271,21 @@ public class DataRepoFixtures {
 
   public boolean enableSecureMonitoring(TestConfiguration.User user, UUID datasetId)
       throws Exception {
+    return updateSecureMonitoring(user, datasetId, "ENABLE_SECURE_MONITORING");
+  }
+
+  public boolean disableSecureMonitoring(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    return updateSecureMonitoring(user, datasetId, "DISABLE_SECURE_MONITORING");
+  }
+
+  private boolean updateSecureMonitoring(
+      TestConfiguration.User user, UUID datasetId, String upgradeFlightName) throws Exception {
     UpgradeModel requestModel =
         new UpgradeModel()
-            .upgradeName("ENABLE_SECURE_MONITORING")
+            .upgradeName(upgradeFlightName)
             .upgradeType(UpgradeModel.UpgradeTypeEnum.CUSTOM)
-            .customName("ENABLE_SECURE_MONITORING")
+            .customName(upgradeFlightName)
             .addCustomArgsItem(datasetId.toString());
 
     String json = TestUtils.mapToJson(requestModel);

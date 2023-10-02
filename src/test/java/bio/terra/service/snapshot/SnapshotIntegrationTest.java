@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.auth.AuthService;
@@ -459,6 +460,12 @@ public class SnapshotIntegrationTest extends UsersBase {
     assertThat("Job completes", dataRepoFixtures.enableSecureMonitoring(steward(), datasetId));
     assertThat(
         "Secure monitoring should now be enabled",
+        dataRepoFixtures.getDataset(steward(), datasetId).isSecureMonitoringEnabled());
+
+    // Test disabling secure monitoring on existing project
+    assertThat("Job completes", dataRepoFixtures.disableSecureMonitoring(steward(), datasetId));
+    assertFalse(
+        "Secure monitoring should now be disabled",
         dataRepoFixtures.getDataset(steward(), datasetId).isSecureMonitoringEnabled());
   }
 }

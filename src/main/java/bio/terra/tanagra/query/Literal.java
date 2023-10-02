@@ -1,7 +1,11 @@
 package bio.terra.tanagra.query;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.Date;
 
+@SuppressFBWarnings(
+    value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+    justification = "Date is mutable; ingore for now")
 public record Literal(
     DataType dataType,
     String stringVal,
@@ -102,19 +106,6 @@ public record Literal(
 
   public DataType getDataType() {
     return dataType;
-  }
-
-  public int compareTo(Literal value) {
-    if (dataType != value.dataType) {
-      return -1;
-    }
-    return switch (dataType) {
-      case STRING -> stringVal.compareTo(value.stringVal);
-      case INT64 -> Long.compare(int64Val, value.int64Val);
-      case BOOLEAN -> Boolean.compare(booleanVal, value.booleanVal);
-      case DATE -> dateVal.compareTo(value.dateVal);
-      case DOUBLE -> Double.compare(doubleVal, value.doubleVal);
-    };
   }
 
   public static class Builder {

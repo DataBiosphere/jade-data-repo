@@ -52,8 +52,8 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
-import org.broadinstitute.dsde.workbench.client.sam.model.SignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.SubsystemStatus;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
@@ -367,13 +367,11 @@ public class SamIamTest {
 
     // Verify the arguments are properly parsed and passed through
     verify(samGoogleApi)
-        .getSignedUrlForBlob(
-            project,
-            new SignedUrlRequest()
-                .bucketName("bucket")
-                .blobName("path/to/file")
-                .requesterPays(true)
-                .duration(BigDecimal.valueOf(15)));
+        .getRequesterPaysSignedUrlForBlob(
+            new RequesterPaysSignedUrlRequest()
+                .gsPath(path)
+                .duration(BigDecimal.valueOf(15))
+                .requesterPaysProject(project));
   }
 
   @Nested

@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public record AuxiliaryDataMapping(TablePointer tablePointer,
-                                   Map<String, FieldPointer> fieldPointers) {
+public record AuxiliaryDataMapping(
+    TablePointer tablePointer, Map<String, FieldPointer> fieldPointers) {
 
   /**
    * Build a default auxiliary data mapping to a table with the same name as the auxiliary data

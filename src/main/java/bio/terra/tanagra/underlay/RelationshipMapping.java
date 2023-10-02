@@ -44,11 +44,11 @@ public final class RelationshipMapping {
     // ID pairs table.
     TablePointer idPairsTable =
         TablePointer.fromTableName(
-            dataPointer, ID_PAIRS_TABLE_PREFIX
+            dataPointer,
+            ID_PAIRS_TABLE_PREFIX
                 + relationship.getEntityA().getName()
                 + "_"
-                + relationship.getEntityB().getName()
-        );
+                + relationship.getEntityB().getName());
     FieldPointer idPairsIdA =
         new FieldPointer.Builder()
             .tablePointer(idPairsTable)

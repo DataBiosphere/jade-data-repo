@@ -16,8 +16,7 @@ class FieldVariableTest {
   @Test
   void renderSQL() {
     var fieldPointer = new FieldPointer.Builder().columnName("field").build();
-    var tableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
+    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(null), is("t.field"));
 
@@ -50,8 +49,7 @@ class FieldVariableTest {
 
   @Test
   void renderSqlForOrderBy() {
-    var tableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
+    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariableFunctionWrapper =
         new FieldVariable(
@@ -64,8 +62,7 @@ class FieldVariableTest {
   @Test
   void renderSqlForWhere() {
     var fieldPointer = new FieldPointer.Builder().columnName("field").build();
-    var tableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
+    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(
         new FieldVariable(fieldPointer, tableVariable, "bar").renderSqlForWhere(), is("t.field"));

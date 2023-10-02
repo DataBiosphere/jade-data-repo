@@ -23,12 +23,10 @@ class BooleanAndOrFilterVariableTest {
   private final BooleanAndOrFilterVariable variable;
 
   BooleanAndOrFilterVariableTest() {
-    TableVariable table1 =
-        TableVariable.forPrimary(TablePointer.fromTableName(null, "table1"));
+    TableVariable table1 = TableVariable.forPrimary(TablePointer.fromTableName(null, "table1"));
     fieldVariable1 =
         new FieldVariable(new FieldPointer.Builder().columnName("field1").build(), table1);
-    TableVariable table2 =
-        TableVariable.forPrimary(TablePointer.fromTableName(null, "table2"));
+    TableVariable table2 = TableVariable.forPrimary(TablePointer.fromTableName(null, "table2"));
     fieldVariable2 =
         new FieldVariable(new FieldPointer.Builder().columnName("field2").build(), table2);
     TableVariable.generateAliases(List.of(table1, table2));

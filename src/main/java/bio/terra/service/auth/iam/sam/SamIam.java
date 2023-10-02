@@ -22,12 +22,10 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
-import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigurationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
-import com.google.cloud.storage.BlobId;
 import com.google.common.annotations.VisibleForTesting;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -53,8 +51,8 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
-import org.broadinstitute.dsde.workbench.client.sam.model.SignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.slf4j.Logger;
@@ -642,14 +640,12 @@ public class SamIam implements IamProviderInterface {
   private String signUrlForBlobInner(
       AuthenticatedUserRequest userReq, String project, String path, Duration duration)
       throws ApiException {
-    BlobId blobId = GcsUriUtils.parseBlobUri(path);
-    SignedUrlRequest request =
-        new SignedUrlRequest()
-            .bucketName(blobId.getBucket())
-            .blobName(blobId.getName())
+    RequesterPaysSignedUrlRequest request =
+        new RequesterPaysSignedUrlRequest()
+            .gsPath(path)
             .duration(BigDecimal.valueOf(duration.toMinutes()))
-            .requesterPays(true);
-    return samApiService.googleApi(userReq.getToken()).getSignedUrlForBlob(project, request);
+            .requesterPaysProject(project);
+    return samApiService.googleApi(userReq.getToken()).getRequesterPaysSignedUrlForBlob(request);
   }
 
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {

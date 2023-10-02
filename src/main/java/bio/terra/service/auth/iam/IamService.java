@@ -416,7 +416,8 @@ public class IamService {
   /**
    * Gets a signed URL for the given blob, signed by the Pet Service account of the calling user.
    * The signed URL is scoped to the permissions of the signing Pet Service Account. Will provide a
-   * signed URL for any object path, even if that object does not exist.
+   * signed URL for any object path, even if that object does not exist. The signed URL will work
+   * for data stored in requester pays hosted buckets.
    *
    * @param userReq authenticated user
    * @param project Google project to use to sign blob

@@ -27,7 +27,8 @@ public class EnableSecureMonitoringEnableFlagStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    boolean patchSucceeded = datasetDao.setSecureMonitoring(datasetId, enableSecureMonitoring, userRequest);
+    boolean patchSucceeded =
+        datasetDao.setSecureMonitoring(datasetId, enableSecureMonitoring, userRequest);
     if (!patchSucceeded) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,

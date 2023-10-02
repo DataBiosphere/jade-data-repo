@@ -7,7 +7,6 @@ import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-
 import java.util.UUID;
 
 public class DisableSecureMonitoringJournalEntryStep extends JournalRecordCreateEntryStep {

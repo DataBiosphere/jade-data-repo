@@ -13,5 +13,4 @@ public record GoogleResourceConfiguration(
     int firestoreRetries,
     boolean allowReuseExistingBuckets,
     String secureFolderResourceId,
-
     String defaultFolderResourceId) {}

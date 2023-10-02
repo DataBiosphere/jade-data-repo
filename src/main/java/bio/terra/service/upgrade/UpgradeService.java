@@ -60,16 +60,16 @@ public class UpgradeService {
     DISABLE_SECURE_MONITORING(
         DisableSecureMonitoringFlight.class,
         request -> {
-      Preconditions.checkArgument(
-          request.getCustomArgs().size() == 1,
-          "Custom argument must have a single row: a valid dataset id");
+          Preconditions.checkArgument(
+              request.getCustomArgs().size() == 1,
+              "Custom argument must have a single row: a valid dataset id");
 
-      Optional<UUID> datasetId = ValidationUtils.convertToUuid(request.getCustomArgs().get(0));
-      Preconditions.checkArgument(
-          datasetId.isPresent(), "Custom argument's single value is not a valid UUID");
+          Optional<UUID> datasetId = ValidationUtils.convertToUuid(request.getCustomArgs().get(0));
+          Preconditions.checkArgument(
+              datasetId.isPresent(), "Custom argument's single value is not a valid UUID");
 
-      return Map.of(JobMapKeys.DATASET_ID.getKeyName(), datasetId.get());
-    });
+          return Map.of(JobMapKeys.DATASET_ID.getKeyName(), datasetId.get());
+        });
     private final Class<? extends Flight> flightClass;
     private final Function<UpgradeModel, Map<String, Object>> inputParameterSupplier;
 

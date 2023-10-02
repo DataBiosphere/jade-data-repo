@@ -1,25 +1,18 @@
 package bio.terra.service.dataset.flight.upgrade.disableSecureMonitoring;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirection;
-import bio.terra.policy.model.TpsPolicyInput;
-import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.policy.PolicyService;
-import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceApiException;
-import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep
     extends DefaultUndoStep {
@@ -44,7 +37,8 @@ public class DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    List<UUID> snapshotsToDeletePolicies = snapshotService.enumerateSnapshotIdsForDataset(datasetId, userRequest);
+    List<UUID> snapshotsToDeletePolicies =
+        snapshotService.enumerateSnapshotIdsForDataset(datasetId, userRequest);
 
     snapshotsToDeletePolicies.forEach(
         snapshotId -> {

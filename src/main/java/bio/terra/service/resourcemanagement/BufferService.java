@@ -130,8 +130,7 @@ public class BufferService {
       logger.info("Project {} is already in {} folder", projectId, folderType);
       return;
     }
-    ResourceId resourceId =
-        new ResourceId().setType(GCS_FOLDER_TYPE).setId(targetFolderId);
+    ResourceId resourceId = new ResourceId().setType(GCS_FOLDER_TYPE).setId(targetFolderId);
 
     project.setParent(resourceId);
 

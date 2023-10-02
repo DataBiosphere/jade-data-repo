@@ -63,7 +63,6 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -85,8 +84,6 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.service.tags.TagUtils;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
@@ -1176,7 +1173,8 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public List<UUID> enumerateSnapshotIdsForDataset(UUID datasetId, AuthenticatedUserRequest userRequest) {
+  public List<UUID> enumerateSnapshotIdsForDataset(
+      UUID datasetId, AuthenticatedUserRequest userRequest) {
     return enumerateSnapshots(
             userRequest,
             0,

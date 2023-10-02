@@ -1,9 +1,6 @@
 package bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -43,7 +40,8 @@ public class EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    List<UUID> snapshotsToCreatePolicies = snapshotService.enumerateSnapshotIdsForDataset(datasetId, userRequest);
+    List<UUID> snapshotsToCreatePolicies =
+        snapshotService.enumerateSnapshotIdsForDataset(datasetId, userRequest);
     TpsPolicyInput protectedDataPolicy = PolicyService.getProtectedDataPolicyInput();
     TpsPolicyInputs policyInputs = new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
 

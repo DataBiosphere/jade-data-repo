@@ -113,20 +113,30 @@ public class BufferService {
 
   public void refolderProjectToSecureFolder(String projectId)
       throws IOException, GeneralSecurityException {
+    refolderProject(projectId, googleConfig.secureFolderResourceId(), "secure");
+  }
+
+  public void refolderProjectToDefaultFolder(String projectId)
+      throws IOException, GeneralSecurityException {
+    refolderProject(projectId, googleConfig.defaultFolderResourceId(), "default");
+  }
+
+  public void refolderProject(String projectId, String targetFolderId, String folderType)
+      throws IOException, GeneralSecurityException {
     CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
     var project = cloudResourceManager.projects().get(projectId).execute();
 
-    if (project.getParent().getId().equals(googleConfig.secureFolderResourceId())) {
-      logger.info("Project {} is already in secure folder", projectId);
+    if (project.getParent().getId().equals(targetFolderId)) {
+      logger.info("Project {} is already in {} folder", projectId, folderType);
       return;
     }
     ResourceId resourceId =
-        new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.secureFolderResourceId());
+        new ResourceId().setType(GCS_FOLDER_TYPE).setId(targetFolderId);
 
     project.setParent(resourceId);
 
     cloudResourceManager.projects().update(projectId, project).execute();
-    logger.info("Project {} moved to secure folder", projectId);
+    logger.info("Project {} moved to {} folder", projectId, folderType);
   }
 
   private void deleteProject(String projectId) throws IOException, GeneralSecurityException {

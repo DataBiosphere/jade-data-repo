@@ -32,6 +32,7 @@ public class OpenIDConnectConfiguration {
   private String clientSecret;
   private String extraAuthParams;
   private boolean addClientIdToScope;
+  private String profileParam;
 
   private String authorizationEndpoint;
   private String tokenEndpoint;
@@ -83,7 +84,9 @@ public class OpenIDConnectConfiguration {
   }
 
   private String getOidcMetadataUrl() {
-    return getAuthorityEndpoint() + "/" + OIDC_METADATA_URL_SUFFIX;
+    String profileParameter =
+        StringUtils.isEmpty(getProfileParam()) ? "" : String.format("?=%s", getProfileParam());
+    return getAuthorityEndpoint() + "/" + OIDC_METADATA_URL_SUFFIX + profileParameter;
   }
 
   public String getSchemeName() {
@@ -132,6 +135,14 @@ public class OpenIDConnectConfiguration {
 
   public void setAddClientIdToScope(Boolean addClientIdToScope) {
     this.addClientIdToScope = addClientIdToScope;
+  }
+
+  public void setProfileParam(String profileParam) {
+    this.profileParam = profileParam;
+  }
+
+  public String getProfileParam() {
+    return this.profileParam;
   }
 
   public String getAuthorizationEndpoint() {

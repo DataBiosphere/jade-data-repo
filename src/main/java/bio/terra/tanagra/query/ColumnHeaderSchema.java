@@ -6,10 +6,9 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /** The schema of the columns in {@link RowResult}s. */
-public class ColumnHeaderSchema {
-  private final List<ColumnSchema> columnSchemas;
-
+public record ColumnHeaderSchema(List<ColumnSchema> columnSchemas) {
   public ColumnHeaderSchema(List<ColumnSchema> columnSchemas) {
+    // Sort the column schemas, so the list matches the order of the corresponding RowResult.
     this.columnSchemas =
         columnSchemas.stream().sorted(Comparator.comparing(ColumnSchema::columnName)).toList();
   }
@@ -21,12 +20,6 @@ public class ColumnHeaderSchema {
         .orElseThrow(
             () ->
                 new SystemException(
-                    String.format(
-                        "Column name '%s' not a part of the column schema.", columnName)));
-  }
-
-  /** The list of column schemas. Must match the order of the corresponding {@link RowResult}. */
-  public List<ColumnSchema> getColumnSchemas() {
-    return columnSchemas;
+                    "Column name '%s' not a part of the column schema.".formatted(columnName)));
   }
 }

@@ -16,17 +16,17 @@ public class AzureRowResult implements RowResult {
   public AzureRowResult(
       Map<String, Optional<Object>> fieldValues, ColumnHeaderSchema columnHeaderSchema) {
     Preconditions.checkArgument(
-        fieldValues.size() == columnHeaderSchema.getColumnSchemas().size(),
+        fieldValues.size() == columnHeaderSchema.columnSchemas().size(),
         "Field values size %d did not match column schemas size %d.",
         fieldValues.size(),
-        columnHeaderSchema.getColumnSchemas().size());
+        columnHeaderSchema.columnSchemas().size());
     this.fieldValues = fieldValues;
     this.columnHeaderSchema = columnHeaderSchema;
   }
 
   @Override
   public CellValue get(int index) {
-    var schema = columnHeaderSchema.getColumnSchemas().get(index);
+    var schema = columnHeaderSchema.columnSchemas().get(index);
     return new AzureCellValue(fieldValues.get(schema.columnName()), schema);
   }
 

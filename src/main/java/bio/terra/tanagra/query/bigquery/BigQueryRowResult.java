@@ -13,10 +13,10 @@ class BigQueryRowResult implements RowResult {
 
   BigQueryRowResult(FieldValueList fieldValues, ColumnHeaderSchema columnHeaderSchema) {
     Preconditions.checkArgument(
-        fieldValues.size() == columnHeaderSchema.getColumnSchemas().size(),
+        fieldValues.size() == columnHeaderSchema.columnSchemas().size(),
         "Field values size %d did not match column schemas size %d.",
         fieldValues.size(),
-        columnHeaderSchema.getColumnSchemas().size());
+        columnHeaderSchema.columnSchemas().size());
     this.fieldValues = fieldValues;
     this.columnHeaderSchema = columnHeaderSchema;
   }
@@ -24,7 +24,7 @@ class BigQueryRowResult implements RowResult {
   @Override
   public CellValue get(int index) {
     return new BigQueryCellValue(
-        fieldValues.get(index), columnHeaderSchema.getColumnSchemas().get(index));
+        fieldValues.get(index), columnHeaderSchema.columnSchemas().get(index));
   }
 
   @Override

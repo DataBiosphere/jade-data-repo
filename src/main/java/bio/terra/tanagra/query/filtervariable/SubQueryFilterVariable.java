@@ -5,12 +5,10 @@ import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.SqlPlatform;
-import java.util.List;
 import org.stringtemplate.v4.ST;
 
-public class SubQueryFilterVariable extends FilterVariable {
-  private static final String SUBSTITUTION_TEMPLATE =
-      "<fieldVariable> <fieldVariable> (<subQuery>)";
+public class SubQueryFilterVariable implements FilterVariable {
+  private static final String TEMPLATE = "<fieldVariable> <operator> (<subQuery>)";
 
   private final FieldVariable fieldVariable;
   private final Operator operator;
@@ -23,15 +21,12 @@ public class SubQueryFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected ST getSubstitutionTemplate(SqlPlatform platform) {
-    return new ST(SUBSTITUTION_TEMPLATE)
+  public String renderSQL(SqlPlatform platform) {
+    return new ST(TEMPLATE)
         .add("operator", operator.renderSQL(platform))
-        .add("subQuery", subQuery.renderSQL(platform));
-  }
-
-  @Override
-  public List<FieldVariable> getFieldVariables() {
-    return List.of(fieldVariable);
+        .add("subQuery", subQuery.renderSQL(platform))
+        .add("fieldVariable", fieldVariable)
+        .render();
   }
 
   public enum Operator implements SQLExpression {

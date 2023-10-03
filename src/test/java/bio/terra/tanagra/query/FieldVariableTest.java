@@ -27,7 +27,8 @@ class FieldVariableTest {
     var fieldPointerForeignKey =
         new FieldPointer.Builder().foreignTablePointer(TablePointer.fromRawSql(null, null)).build();
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
-    assertThrows(SystemException.class, fieldVariableForeignKey::renderSQL);
+    assertThrows(
+        SystemException.class, () -> fieldVariableForeignKey.renderSQL(SqlPlatform.BIGQUERY));
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(

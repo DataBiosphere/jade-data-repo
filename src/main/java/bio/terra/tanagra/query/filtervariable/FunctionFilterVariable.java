@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.stringtemplate.v4.ST;
 
-public class FunctionFilterVariable extends FilterVariable {
+public class FunctionFilterVariable implements FilterVariable {
   private final FieldVariable fieldVariable;
   private final FunctionTemplate functionTemplate;
   private final List<Literal> values;
@@ -31,18 +31,15 @@ public class FunctionFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected ST getSubstitutionTemplate(SqlPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     return new ST(functionTemplate.renderSQL(platform))
         .add(
             "value",
             values.stream()
                 .map(literal -> literal.renderSQL(platform))
-                .collect(Collectors.joining(",")));
-  }
-
-  @Override
-  public List<FieldVariable> getFieldVariables() {
-    return List.of(fieldVariable);
+                .collect(Collectors.joining(",")))
+        .add("fieldVariable", fieldVariable.renderSqlForWhere())
+        .render();
   }
 
   public enum FunctionTemplate implements SQLExpression {

@@ -5,10 +5,9 @@ import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.SqlPlatform;
-import java.util.List;
 import org.stringtemplate.v4.ST;
 
-public class BinaryFilterVariable extends FilterVariable {
+public class BinaryFilterVariable implements FilterVariable {
   private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <operator> <value>";
 
   private final FieldVariable fieldVariable;
@@ -22,15 +21,12 @@ public class BinaryFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected ST getSubstitutionTemplate(SqlPlatform platform) {
+  public String renderSQL(SqlPlatform platform) {
     return new ST(SUBSTITUTION_TEMPLATE)
         .add("operator", operator.renderSQL(platform))
-        .add("value", value.renderSQL(platform));
-  }
-
-  @Override
-  public List<FieldVariable> getFieldVariables() {
-    return List.of(fieldVariable);
+        .add("value", value.renderSQL(platform))
+        .add("fieldVariable", fieldVariable.renderSqlForWhere())
+        .render();
   }
 
   public enum BinaryOperator implements SQLExpression {

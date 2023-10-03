@@ -83,9 +83,9 @@ public class OpenIDConnectConfiguration {
     }
   }
 
-  private String getOidcMetadataUrl() {
+  String getOidcMetadataUrl() {
     String profileParameter =
-        StringUtils.isEmpty(getProfileParam()) ? "" : String.format("?=%s", getProfileParam());
+        StringUtils.isEmpty(getProfileParam()) ? "" : String.format("?p=%s", getProfileParam());
     return getAuthorityEndpoint() + "/" + OIDC_METADATA_URL_SUFFIX + profileParameter;
   }
 

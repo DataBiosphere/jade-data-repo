@@ -4,16 +4,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
 
-@Category(Unit.class)
-public class OpenIDConnectConfigurationTest {
+@ActiveProfiles({"google", "unittest"})
+@Tag(Unit.TAG)
+class OpenIDConnectConfigurationTest {
 
   @Test
-  public void testInitializeWithGoogleOidc() {
+  void testInitializeWithGoogleOidc() {
     OpenIDConnectConfiguration openIDConnectConfiguration = new OpenIDConnectConfiguration();
-
     // Test will read the Oauth config from Google's Oauth endpoint
     openIDConnectConfiguration.setAuthorityEndpoint("https://accounts.google.com");
 
@@ -28,5 +29,28 @@ public class OpenIDConnectConfigurationTest {
         "there is a authorization endpoint",
         openIDConnectConfiguration.getTokenEndpoint(),
         equalTo("https://oauth2.googleapis.com/token"));
+  }
+
+  @Test
+  void testGetOIDCMetadata() {
+    String authorityEndpoint = "https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c";
+    String profileName = "b2c_1a_signup_signin_tdr_dev";
+    String expectedOidcMetadata =
+        "https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c/.well-known/openid-configuration?p=b2c_1a_signup_signin_tdr_dev";
+
+    OpenIDConnectConfiguration openIDConnectConfiguration = new OpenIDConnectConfiguration();
+    openIDConnectConfiguration.setProfileParam(profileName);
+    openIDConnectConfiguration.setAuthorityEndpoint(authorityEndpoint);
+    openIDConnectConfiguration.init();
+
+    assertThat(
+        "Profile Param is correctly returned",
+        openIDConnectConfiguration.getProfileParam(),
+        equalTo(profileName));
+
+    assertThat(
+        "Expected oidcMetadataUrl is returned",
+        openIDConnectConfiguration.getOidcMetadataUrl(),
+        equalTo(expectedOidcMetadata));
   }
 }

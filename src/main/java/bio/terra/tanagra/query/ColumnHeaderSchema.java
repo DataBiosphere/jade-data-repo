@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.exception.SystemException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -19,7 +18,7 @@ public record ColumnHeaderSchema(List<ColumnSchema> columnSchemas) {
         .findFirst()
         .orElseThrow(
             () ->
-                new SystemException(
+                new IllegalArgumentException(
                     "Column name '%s' not a part of the column schema.".formatted(columnName)));
   }
 }

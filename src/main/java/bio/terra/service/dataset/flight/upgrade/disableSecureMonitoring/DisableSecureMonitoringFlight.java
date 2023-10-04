@@ -8,9 +8,9 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringEnableFlagStep;
 import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringRecordInFlightMapStep;
 import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringRefolderGcpProjectsStep;
+import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringSetFlagStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.policy.PolicyService;
@@ -45,18 +45,18 @@ public class DisableSecureMonitoringFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new LockDatasetStep(datasetService, datasetId, false));
       addStep(new SecureMonitoringRecordInFlightMapStep(dataset));
-      addStep(new SecureMonitoringEnableFlagStep(datasetDao, userReq, false));
+      addStep(new SecureMonitoringSetFlagStep(datasetDao, userReq, false));
       addStep(
           new SecureMonitoringRefolderGcpProjectsStep(
               dataset, snapshotService, bufferService, userReq, false));
       addStep(
-          new DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep(
+          new DisableSecureMonitoringDeleteSnapshotsTpsPolicyStep(
               snapshotService, policyService, userReq));
       addStep(new DisableSecureMonitoringJournalEntryStep(journalService, userReq));
       addStep(new UnlockDatasetStep(datasetService, datasetId, false));
     } else {
       throw new FeatureNotImplementedException(
-          "Updating an exisiting dataset to use secure monitoring is only supported on GCP");
+          "Updating an existing dataset to disable secure monitoring is only supported on GCP");
     }
   }
 }

@@ -17,17 +17,15 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep
-    extends DefaultUndoStep {
+public class EnableSecureMonitoringCreateSnapshotsTpsPolicyStep extends DefaultUndoStep {
   private static final Logger logger =
-      LoggerFactory.getLogger(
-          EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep.class);
+      LoggerFactory.getLogger(EnableSecureMonitoringCreateSnapshotsTpsPolicyStep.class);
 
   private final PolicyService policyService;
   private final SnapshotService snapshotService;
   private final AuthenticatedUserRequest userRequest;
 
-  public EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep(
+  public EnableSecureMonitoringCreateSnapshotsTpsPolicyStep(
       SnapshotService snapshotService,
       PolicyService policyService,
       AuthenticatedUserRequest userRequest) {
@@ -40,12 +38,12 @@ public class EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    List<UUID> snapshotsToCreatePolicies =
+    List<UUID> snapshotPoliciesToCreate =
         snapshotService.enumerateSnapshotIdsForDataset(datasetId, userRequest);
     TpsPolicyInput protectedDataPolicy = PolicyService.getProtectedDataPolicyInput();
     TpsPolicyInputs policyInputs = new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
 
-    snapshotsToCreatePolicies.forEach(
+    snapshotPoliciesToCreate.forEach(
         snapshotId -> {
           try {
             policyService.createSnapshotPao(snapshotId, policyInputs);

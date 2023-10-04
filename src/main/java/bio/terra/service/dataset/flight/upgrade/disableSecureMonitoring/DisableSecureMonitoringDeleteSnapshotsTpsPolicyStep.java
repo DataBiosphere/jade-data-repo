@@ -14,17 +14,15 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep
-    extends DefaultUndoStep {
+public class DisableSecureMonitoringDeleteSnapshotsTpsPolicyStep extends DefaultUndoStep {
   private static final Logger logger =
-      LoggerFactory.getLogger(
-          DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep.class);
+      LoggerFactory.getLogger(DisableSecureMonitoringDeleteSnapshotsTpsPolicyStep.class);
 
   private final PolicyService policyService;
   private final SnapshotService snapshotService;
   private final AuthenticatedUserRequest userRequest;
 
-  public DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep(
+  public DisableSecureMonitoringDeleteSnapshotsTpsPolicyStep(
       SnapshotService snapshotService,
       PolicyService policyService,
       AuthenticatedUserRequest userRequest) {
@@ -37,10 +35,10 @@ public class DisableSecureMonitoringDeleteSourceDatasetAndSnapshotsTpsPolicyStep
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    List<UUID> snapshotsToDeletePolicies =
+    List<UUID> snapshotPoliciesToDelete =
         snapshotService.enumerateSnapshotIdsForDataset(datasetId, userRequest);
 
-    snapshotsToDeletePolicies.forEach(
+    snapshotPoliciesToDelete.forEach(
         snapshotId -> {
           try {
             policyService.deletePaoIfExists(snapshotId);

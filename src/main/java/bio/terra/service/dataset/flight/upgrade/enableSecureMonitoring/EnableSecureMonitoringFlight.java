@@ -42,18 +42,18 @@ public class EnableSecureMonitoringFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new LockDatasetStep(datasetService, datasetId, false));
       addStep(new SecureMonitoringRecordInFlightMapStep(dataset));
-      addStep(new SecureMonitoringEnableFlagStep(datasetDao, userReq, true));
+      addStep(new SecureMonitoringSetFlagStep(datasetDao, userReq, true));
       addStep(
           new SecureMonitoringRefolderGcpProjectsStep(
               dataset, snapshotService, bufferService, userReq, true));
       addStep(
-          new EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep(
+          new EnableSecureMonitoringCreateSnapshotsTpsPolicyStep(
               snapshotService, policyService, userReq));
       addStep(new EnableSecureMonitoringJournalEntryStep(journalService, userReq));
       addStep(new UnlockDatasetStep(datasetService, datasetId, false));
     } else {
       throw new FeatureNotImplementedException(
-          "Updating an exisiting dataset to use secure monitoring is only supported on GCP");
+          "Updating an existing dataset to use secure monitoring is only supported on GCP");
     }
   }
 }

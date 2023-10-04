@@ -10,13 +10,13 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
-public class SecureMonitoringEnableFlagStep implements Step {
+public class SecureMonitoringSetFlagStep implements Step {
   private final DatasetDao datasetDao;
   private final AuthenticatedUserRequest userRequest;
 
   private final boolean enableSecureMonitoring;
 
-  public SecureMonitoringEnableFlagStep(
+  public SecureMonitoringSetFlagStep(
       DatasetDao datasetDao, AuthenticatedUserRequest userRequest, boolean enableSecureMonitoring) {
     this.datasetDao = datasetDao;
     this.userRequest = userRequest;

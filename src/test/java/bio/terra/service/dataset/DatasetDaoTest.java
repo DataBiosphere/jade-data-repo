@@ -234,6 +234,23 @@ public class DatasetDaoTest {
         filteredDatasets.get(0).getName(),
         equalTo(dataset1.getName()));
 
+    MetadataEnumeration<DatasetSummary> filterIdEnum =
+        datasetDao.enumerate(
+            0,
+            2,
+            EnumerateSortByParam.CREATED_DATE,
+            SqlSortDirection.ASC,
+            dataset1.getId().toString(),
+            null,
+            datasetIds,
+            null);
+    List<DatasetSummary> filteredDatasetsById = filterIdEnum.getItems();
+    assertThat("dataset filter by id returns correct total", filteredDatasets.size(), equalTo(1));
+    assertThat(
+        "dataset filter by name returns correct dataset",
+        filteredDatasetsById.get(0).getId(),
+        equalTo(dataset1.getId()));
+
     MetadataEnumeration<DatasetSummary> filterDefaultRegionEnum =
         datasetDao.enumerate(
             0,

@@ -49,7 +49,9 @@ public final class DaoUtils {
     if (!StringUtils.isEmpty(filter)) {
       params.addValue("filter", DaoUtils.escapeFilter(filter));
       clauses.add(
-          String.format(" (%s.name ILIKE :filter OR %s.description ILIKE :filter) ", table, table));
+          String.format(
+              " (%s.id::text ILIKE :filter OR %s.name ILIKE :filter OR %s.description ILIKE :filter) ",
+              table, table, table));
     }
   }
 

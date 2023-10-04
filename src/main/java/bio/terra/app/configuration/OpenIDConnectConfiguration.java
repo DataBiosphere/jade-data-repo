@@ -2,6 +2,8 @@ package bio.terra.app.configuration;
 
 import bio.terra.common.exception.ServiceInitializationException;
 import com.google.common.annotations.VisibleForTesting;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.PostConstruct;
@@ -85,7 +87,9 @@ public class OpenIDConnectConfiguration {
 
   String getOidcMetadataUrl() {
     String profileParameter =
-        StringUtils.isEmpty(getProfileParam()) ? "" : String.format("?p=%s", getProfileParam());
+        StringUtils.isEmpty(getProfileParam())
+            ? ""
+            : String.format("?p=%s", URLEncoder.encode(getProfileParam(), StandardCharsets.UTF_8));
     return getAuthorityEndpoint() + "/" + OIDC_METADATA_URL_SUFFIX + profileParameter;
   }
 

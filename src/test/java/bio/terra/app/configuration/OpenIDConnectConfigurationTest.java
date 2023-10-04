@@ -2,6 +2,8 @@ package bio.terra.app.configuration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import bio.terra.common.category.Unit;
 import org.junit.jupiter.api.Tag;
@@ -47,6 +49,27 @@ class OpenIDConnectConfigurationTest {
         "Profile Param is correctly returned",
         openIDConnectConfiguration.getProfileParam(),
         equalTo(profileName));
+
+    assertThat(
+        "Expected oidcMetadataUrl is returned",
+        openIDConnectConfiguration.getOidcMetadataUrl(),
+        equalTo(expectedOidcMetadata));
+  }
+
+  @Test
+  void testGetOIDCMetadataNoProfile() {
+    String authorityEndpoint = "https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c";
+    String expectedOidcMetadata =
+        "https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c/.well-known/openid-configuration";
+
+    OpenIDConnectConfiguration openIDConnectConfiguration = new OpenIDConnectConfiguration();
+    openIDConnectConfiguration.setAuthorityEndpoint(authorityEndpoint);
+    openIDConnectConfiguration.init();
+
+    assertThat(
+        "Profile Param is correctly returned",
+        openIDConnectConfiguration.getProfileParam(),
+        is(nullValue()));
 
     assertThat(
         "Expected oidcMetadataUrl is returned",

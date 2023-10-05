@@ -91,7 +91,7 @@ public class SamIamTest {
   @BeforeEach
   void setUp() throws Exception {
     GoogleResourceConfiguration resourceConfiguration =
-        new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456");
+        new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     samIam =
         new SamIam(
             samConfig,

@@ -17,21 +17,24 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EnableSecureMonitoringRefolderGcpProjectsStep extends DefaultUndoStep {
+public class SecureMonitoringRefolderGcpProjectsStep extends DefaultUndoStep {
   private final Dataset dataset;
   private final BufferService bufferService;
   private final SnapshotService snapshotService;
   private final AuthenticatedUserRequest userRequest;
+  private final boolean enableSecureMonitoring;
 
-  public EnableSecureMonitoringRefolderGcpProjectsStep(
+  public SecureMonitoringRefolderGcpProjectsStep(
       Dataset dataset,
       SnapshotService snapshotService,
       BufferService bufferService,
-      AuthenticatedUserRequest userRequest) {
+      AuthenticatedUserRequest userRequest,
+      boolean enableSecureMonitoring) {
     this.dataset = dataset;
     this.snapshotService = snapshotService;
     this.bufferService = bufferService;
     this.userRequest = userRequest;
+    this.enableSecureMonitoring = enableSecureMonitoring;
   }
 
   @Override
@@ -45,7 +48,11 @@ public class EnableSecureMonitoringRefolderGcpProjectsStep extends DefaultUndoSt
     projectsToRefolder.forEach(
         projectId -> {
           try {
-            bufferService.refolderProjectToSecureFolder(projectId);
+            if (enableSecureMonitoring) {
+              bufferService.refolderProjectToSecureFolder(projectId);
+            } else {
+              bufferService.refolderProjectToDefaultFolder(projectId);
+            }
           } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not re-folder project", e);
           }

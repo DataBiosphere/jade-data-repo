@@ -1172,4 +1172,22 @@ public class SnapshotService {
         .map(SnapshotRetrieveIncludeModel::fromValue)
         .collect(Collectors.toList());
   }
+
+  public List<UUID> enumerateSnapshotIdsForDataset(
+      UUID datasetId, AuthenticatedUserRequest userRequest) {
+    return enumerateSnapshots(
+            userRequest,
+            0,
+            Integer.MAX_VALUE,
+            EnumerateSortByParam.NAME,
+            SqlSortDirection.ASC,
+            "",
+            "",
+            List.of(datasetId),
+            List.of())
+        .getItems()
+        .stream()
+        .map(SnapshotSummaryModel::getId)
+        .toList();
+  }
 }

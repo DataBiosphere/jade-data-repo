@@ -9,6 +9,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.transactions.upgrade.TransactionUpgradeFlight;
+import bio.terra.service.dataset.flight.upgrade.disableSecureMonitoring.DisableSecureMonitoringFlight;
 import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.EnableSecureMonitoringFlight;
 import bio.terra.service.dataset.flight.upgrade.predictableFileIds.ConvertToPredictableFileIdsFlight;
 import bio.terra.service.job.JobBuilder;
@@ -45,6 +46,19 @@ public class UpgradeService {
         }),
     ENABLE_SECURE_MONITORING(
         EnableSecureMonitoringFlight.class,
+        request -> {
+          Preconditions.checkArgument(
+              request.getCustomArgs().size() == 1,
+              "Custom argument must have a single row: a valid dataset id");
+
+          Optional<UUID> datasetId = ValidationUtils.convertToUuid(request.getCustomArgs().get(0));
+          Preconditions.checkArgument(
+              datasetId.isPresent(), "Custom argument's single value is not a valid UUID");
+
+          return Map.of(JobMapKeys.DATASET_ID.getKeyName(), datasetId.get());
+        }),
+    DISABLE_SECURE_MONITORING(
+        DisableSecureMonitoringFlight.class,
         request -> {
           Preconditions.checkArgument(
               request.getCustomArgs().size() == 1,

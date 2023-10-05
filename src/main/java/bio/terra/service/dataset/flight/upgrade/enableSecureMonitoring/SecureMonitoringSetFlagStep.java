@@ -10,21 +10,25 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
-public class EnableSecureMonitoringEnableFlagStep implements Step {
+public class SecureMonitoringSetFlagStep implements Step {
   private final DatasetDao datasetDao;
   private final AuthenticatedUserRequest userRequest;
 
-  public EnableSecureMonitoringEnableFlagStep(
-      DatasetDao datasetDao, AuthenticatedUserRequest userRequest) {
+  private final boolean enableSecureMonitoring;
+
+  public SecureMonitoringSetFlagStep(
+      DatasetDao datasetDao, AuthenticatedUserRequest userRequest, boolean enableSecureMonitoring) {
     this.datasetDao = datasetDao;
     this.userRequest = userRequest;
+    this.enableSecureMonitoring = enableSecureMonitoring;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    boolean patchSucceeded = datasetDao.setSecureMonitoring(datasetId, true, userRequest);
+    boolean patchSucceeded =
+        datasetDao.setSecureMonitoring(datasetId, enableSecureMonitoring, userRequest);
     if (!patchSucceeded) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,

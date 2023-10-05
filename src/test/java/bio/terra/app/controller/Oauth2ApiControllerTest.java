@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.OpenIDConnectConfiguration;
+import bio.terra.common.category.Unit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ import org.springframework.web.client.RestTemplate;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = Oauth2ApiController.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
 public class Oauth2ApiControllerTest {
   @Autowired private MockMvc mvc;
@@ -72,6 +73,15 @@ public class Oauth2ApiControllerTest {
     mvc.perform(get(AUTHORIZE_ENDPOINT + "?id=client_id&scope=foo bar"))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(OIDC_AUTH_ENDPOINT + "?id=client_id&scope=foo+bar+my_id"));
+  }
+
+  @Test
+  void testConcatLogicForRedirect() throws Exception {
+    when(openIDConnectConfiguration.getAuthorizationEndpoint())
+        .thenReturn("http://foo.com/auth?p=profile1");
+    mvc.perform(get(AUTHORIZE_ENDPOINT + "?id=client_id&scope=foo bar"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("http://foo.com/auth?p=profile1&id=client_id&scope=foo+bar"));
   }
 
   @Test

@@ -1,6 +1,6 @@
 name: cherry-pick-image
 on:
-  - workflow_call:
+  workflow_call:
     inputs:
       gcr_tag:
         description: tag to cherry pick
@@ -12,16 +12,18 @@ on:
       target_gcr_url:
         type: string
         required: true
-  - workflow_dispatch:
+  workflow_dispatch:
       inputs:
         gcr_tag:
           description: tag to cherry pick
           type: string
           required: true
         source_gcr_url:
+          description: gcr url to cherry pick issue from
           type: string
           required: true
         target_gcr_url:
+          description: gcr url to cherry pick issue to
           type: string
           required: true
 jobs:

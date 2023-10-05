@@ -116,6 +116,14 @@ jobs:
       sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
     permissions:
       id-token: 'write'
+  cherry_pick_image_to_production_gcr:
+    needs: update_image
+    uses: ./.github/workflows/helmtagbumper.yaml
+    secrets: inherit
+    with:
+      gcr_tag: ${{ needs.update_image.outputs.api_image_tag }}
+      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
   helm_tag_bumper:
     needs: update_image
     uses: ./.github/workflows/helmtagbumper.yaml

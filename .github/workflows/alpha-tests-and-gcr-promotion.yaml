@@ -1,4 +1,4 @@
-name: DataRepo Alpha Tests and Prod GCR Promotion
+name: DataRepo Alpha Tests
 env:
   K8_CLUSTER: jade-master-us-central1
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/alpha-test-runner.json
@@ -6,15 +6,11 @@ env:
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   JADE_USER_EMAIL: alpha-tdr-user@notarealemail.org
   TDR_LOG_APPENDER: Console-Standard
-  GCR_DEV_URL: gcr.io/broad-jade-dev
-  GCR_PUBLIC_URL: gcr.io/datarepo-public-gcr
-  API_REPO: jade-data-repo
-  UI_REPO: jade-data-repo-ui
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
 jobs:
-  alpha-tests-and-gcr-promotion:
+  alpha-tests:
     runs-on: ubuntu-latest
     steps:
     - name: "Checkout jade-data-repo and latest tags"
@@ -108,47 +104,6 @@ jobs:
         ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
         echo "[INFO] Uploading results SUCCEEDED"
         cd ${GITHUB_WORKSPACE}/${workingDir}
-    - name: "[Cherry-pick to public GCR] Import Vault Secrets for GCR Service Account"
-      uses: hashicorp/vault-action@v2.5.0
-      with:
-        url: ${{ secrets.VAULT_ADDR }}
-        method: approle
-        roleId: ${{ secrets.ROLE_ID }}
-        secretId: ${{ secrets.SECRET_ID }}
-        secrets: |
-          secret/dsde/datarepo/dev/gcr-sa-b64 key | B64_APPLICATION_CREDENTIALS ;
-    - name: "[Cherry-pick to public GCR] Authenticate with GCR SA Credentials"
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
-      run: |
-        # write vault tokens
-        base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-
-        gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-    - name: "[API][Cherry-pick to public GCR] Perform cherry-pick"
-      run: |
-        DEV_IMAGE="${GCR_DEV_URL}/${API_REPO}:${{ steps.configuration.outputs.alpha_version_api }}"
-        PUBLIC_IMAGE="${GCR_PUBLIC_URL}/${API_REPO}:${{ steps.configuration.outputs.alpha_version_api }}"
-        echo "Cherry picking ${{ steps.configuration.outputs.alpha_version_api }} from ${DEV_IMAGE} to ${PUBLIC_IMAGE}"
-        gcloud container images add-tag --quiet "${DEV_IMAGE}" "${PUBLIC_IMAGE}"
-    - name: "[UI][Cherry-pick to public GCR] Checkout datarepo-helm repo"
-      uses: actions/checkout@v3
-      with:
-        repository: 'broadinstitute/datarepo-helm'
-        token: ${{ secrets.BROADBOT_TOKEN }}
-        path: datarepo-helm
-    - name: "[UI][Cherry-pick to public GCR] Read UI version from datarepo-helm"
-      id: datarepohelm
-      run: |
-        alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r datarepo-helm/charts/datarepo-ui/values.yaml image.tag)
-        echo "alpha_version_ui=${alpha_version_ui}" >> $GITHUB_OUTPUT
-        echo "Alpha UI Version: $alpha_version_ui"
-    - name: "[UI][Cherry-pick to public GCR] Perform cherry-pick"
-      run: |
-        DEV_IMAGE="${GCR_DEV_URL}/${UI_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }}"
-        PUBLIC_IMAGE="${GCR_PUBLIC_URL}/${UI_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }}"
-        echo "Cherry picking ${{ steps.datarepohelm.outputs.alpha_version_ui }} from ${DEV_IMAGE} to ${PUBLIC_IMAGE}"
-        gcloud container images add-tag --quiet "${DEV_IMAGE}" "${PUBLIC_IMAGE}"
     - name: "Notify Slack"
       if: always()
       uses: broadinstitute/action-slack@v3.15.0
@@ -160,7 +115,7 @@ jobs:
         fields: job,repo,message,author,took
         channel: "#jade-alerts"
         username: "Data Repo tests"
-        text: "Alpha Tests and GCR Promotion"
+        text: "Alpha Tests"
     - name: "Notify QA Slack"
       if: always()
       uses: broadinstitute/action-slack@v3.15.0
@@ -171,5 +126,5 @@ jobs:
         status: ${{ job.status }}
         channel: "#dsde-qa"
         username: "Data Repo tests"
-        text: "Alpha Tests and GCR Promotion"
+        text: "Alpha Tests"
         fields: job,repo,message,author,took

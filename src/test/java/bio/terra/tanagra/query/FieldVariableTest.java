@@ -57,7 +57,7 @@ class FieldVariableTest {
             new FieldPointer.Builder().sqlFunctionWrapper("foo").columnName("field").build(),
             tableVariable,
             "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSqlForOrderBy(), is("t.field"));
+    assertThat(fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(false), is("foo(t.field)"));
   }
 
   @Test

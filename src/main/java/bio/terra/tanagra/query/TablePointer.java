@@ -33,12 +33,7 @@ public record TablePointer(DataPointer dataPointer, String tableName, Filter fil
         new FieldVariable(FieldPointer.allFields(tablePointerWithoutFilter), tableVar);
     FilterVariable filterVar = filter.buildVariable(tableVar, List.of(tableVar));
 
-    Query query =
-        new Query.Builder()
-            .select(List.of(fieldVar))
-            .tables(List.of(tableVar))
-            .where(filterVar)
-            .build();
+    Query query = new Query(List.of(fieldVar), List.of(tableVar), filterVar);
     return "(" + query.renderSQL(platform) + ")";
   }
 

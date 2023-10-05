@@ -17,6 +17,59 @@ public record Query(
     HavingFilterVariable having,
     Integer limit)
     implements SQLExpression {
+
+  public Query {
+    if (select.isEmpty()) {
+      throw new IllegalArgumentException("Query must have at least one SELECT FieldVariable");
+    }
+    if (tables.isEmpty()) {
+      throw new IllegalArgumentException("Query must have at least one TableVariable");
+    }
+    if (groupBy == null) {
+      groupBy = List.of();
+    }
+    if (orderBy == null) {
+      orderBy = List.of();
+    }
+    if (!groupBy.isEmpty() && !orderBy.isEmpty()) {
+      throw new IllegalArgumentException("Query cannot have both GROUP BY and ORDER BY");
+    }
+  }
+
+  public Query(List<FieldVariable> select, List<TableVariable> tables) {
+    this(select, tables, null, null, null, null, null);
+  }
+
+  public Query(
+      List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
+    this(select, tables, null, null, groupBy, null, null);
+  }
+
+  public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
+    this(select, tables, where, null, null, null, null);
+  }
+
+  public Query(
+      List<FieldVariable> select,
+      List<TableVariable> tables,
+      List<OrderByVariable> orderBy,
+      Integer limit) {
+    this(select, tables, null, orderBy, null, null, limit);
+  }
+
+  public Query(
+      List<FieldVariable> select,
+      List<TableVariable> tables,
+      List<OrderByVariable> orderBy,
+      List<FieldVariable> groupBy,
+      Integer limit) {
+    this(select, tables, null, orderBy, groupBy, null, limit);
+  }
+
+  public Query(List<FieldVariable> select, List<TableVariable> tables, int limit) {
+    this(select, tables, null, null, null, null, limit);
+  }
+
   public static final String TANAGRA_FIELD_PREFIX = "t_";
 
   @Override
@@ -64,7 +117,7 @@ public record Query(
               .render();
     }
 
-    if (groupBy != null && !groupBy.isEmpty()) {
+    if (!groupBy.isEmpty()) {
       // render each GROUP BY FieldVariable and join them into a single string
       sql =
           new ST("<sql> GROUP BY <groupBySQL>")
@@ -72,7 +125,7 @@ public record Query(
               .add(
                   "groupBySQL",
                   groupBy.stream()
-                      .map(FieldVariable::renderSqlForOrderBy)
+                      .map(fv -> fv.renderSqlForOrderOrGroupBy(select.contains(fv)))
                       .collect(Collectors.joining(", ")))
               .render();
     }
@@ -81,7 +134,7 @@ public record Query(
       sql += " " + having.renderSQL(platform);
     }
 
-    if (platform == SqlPlatform.BIGQUERY && orderBy != null && !orderBy.isEmpty()) {
+    if (platform == SqlPlatform.BIGQUERY && !orderBy.isEmpty()) {
       // render each ORDER BY FieldVariable and join them into a single string
       sql =
           new ST("<sql> ORDER BY <orderBySQL>")
@@ -89,7 +142,7 @@ public record Query(
               .add(
                   "orderBySQL",
                   orderBy.stream()
-                      .map(orderByVariable -> orderByVariable.renderSQL(platform))
+                      .map(obv -> obv.renderSQL(platform, select.contains(obv.fieldVariable)))
                       .collect(Collectors.joining(", ")))
               .render();
     }
@@ -112,54 +165,5 @@ public record Query(
           "Query can only have one primary table, but found " + primaryTable.size());
     }
     return primaryTable.get(0);
-  }
-
-  public static class Builder {
-    private List<FieldVariable> select;
-    private List<TableVariable> tables;
-    private FilterVariable where;
-    private List<OrderByVariable> orderBy;
-    private List<FieldVariable> groupBy;
-    private HavingFilterVariable having;
-    private Integer limit;
-
-    public Builder select(List<FieldVariable> select) {
-      this.select = select;
-      return this;
-    }
-
-    public Builder tables(List<TableVariable> tables) {
-      this.tables = tables;
-      return this;
-    }
-
-    public Builder where(FilterVariable where) {
-      this.where = where;
-      return this;
-    }
-
-    public Builder orderBy(List<OrderByVariable> orderBy) {
-      this.orderBy = orderBy;
-      return this;
-    }
-
-    public Builder groupBy(List<FieldVariable> groupBy) {
-      this.groupBy = groupBy;
-      return this;
-    }
-
-    public Builder having(HavingFilterVariable having) {
-      this.having = having;
-      return this;
-    }
-
-    public Builder limit(Integer limit) {
-      this.limit = limit;
-      return this;
-    }
-
-    public Query build() {
-      return new Query(select, tables, where, orderBy, groupBy, having, limit);
-    }
   }
 }

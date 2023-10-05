@@ -26,8 +26,17 @@ public class FieldVariable implements SQLExpression {
     return renderSQL(true, true);
   }
 
-  public String renderSqlForOrderBy() {
-    return renderSQL(false, false);
+  public String renderSqlForOrderOrGroupBy(boolean includedInSelect) {
+    if (includedInSelect) {
+      if (alias == null) {
+        String sql = renderSQL(false, true);
+        LOGGER.warn(
+            "ORDER or GROUP BY clause is also included in SELECT but has no alias: {}", sql);
+        return sql;
+      }
+      return alias;
+    }
+    return renderSQL(false, true);
   }
 
   public String renderSqlForWhere() {

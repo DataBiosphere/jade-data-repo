@@ -144,12 +144,11 @@ public final class EnumVals extends DisplayHint {
     FieldVariable displayFieldVar =
         possibleDisplayField.buildVariable(primaryTable, tables, ENUM_DISPLAY_COLUMN_ALIAS);
     Query query =
-        new Query.Builder()
-            .select(List.of(valueFieldVar, countFieldVar, displayFieldVar))
-            .tables(tables)
-            .orderBy(List.of(new OrderByVariable(displayFieldVar)))
-            .limit(MAX_ENUM_VALS_FOR_DISPLAY_HINT + 1)
-            .build();
+        new Query(
+            List.of(valueFieldVar, countFieldVar, displayFieldVar),
+            tables,
+            List.of(new OrderByVariable(displayFieldVar)),
+            MAX_ENUM_VALS_FOR_DISPLAY_HINT + 1);
 
     LOGGER.info(
         "SQL data type of value is: {}", CellValue.SQLDataType.fromUnderlayDataType(dataType));
@@ -204,12 +203,11 @@ public final class EnumVals extends DisplayHint {
         countFieldPointer.buildVariable(
             nestedPrimaryTable, nestedQueryTables, ENUM_COUNT_COLUMN_ALIAS);
 
-    return new Query.Builder()
-        .select(List.of(nestedValueFieldVar, nestedCountFieldVar))
-        .tables(nestedQueryTables)
-        .orderBy(List.of(new OrderByVariable(nestedValueFieldVar)))
-        .groupBy(List.of(nestedValueFieldVar))
-        .limit(MAX_ENUM_VALS_FOR_DISPLAY_HINT + 1)
-        .build();
+    return new Query(
+        List.of(nestedValueFieldVar, nestedCountFieldVar),
+        nestedQueryTables,
+        List.of(new OrderByVariable(nestedValueFieldVar)),
+        List.of(nestedValueFieldVar),
+        MAX_ENUM_VALS_FOR_DISPLAY_HINT + 1);
   }
 }

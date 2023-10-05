@@ -1,7 +1,7 @@
 package bio.terra.tanagra.query;
 
-public class OrderByVariable implements SQLExpression {
-  private final FieldVariable fieldVariable;
+public class OrderByVariable {
+  protected final FieldVariable fieldVariable;
   private final OrderByDirection direction;
   private final boolean isRandom;
 
@@ -24,10 +24,11 @@ public class OrderByVariable implements SQLExpression {
     return new OrderByVariable(null, null, true);
   }
 
-  @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL(SqlPlatform platform, boolean isIncludedInSelect) {
     return isRandom
         ? "RAND()"
-        : fieldVariable.renderSqlForOrderBy() + " " + direction.renderSQL(platform);
+        : fieldVariable.renderSqlForOrderOrGroupBy(isIncludedInSelect)
+            + " "
+            + direction.renderSQL(platform);
   }
 }

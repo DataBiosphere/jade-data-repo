@@ -71,10 +71,7 @@ public final class HierarchyMapping {
             childParent.fieldPointers().get(PARENT_FIELD_NAME),
             childParentTableVar,
             parentFieldAlias);
-    return new Query.Builder()
-        .select(List.of(childFieldVar, parentFieldVar))
-        .tables(List.of(childParentTableVar))
-        .build();
+    return new Query(List.of(childFieldVar, parentFieldVar), List.of(childParentTableVar));
   }
 
   public Query queryPossibleRootNodes(String idFieldAlias) {
@@ -85,10 +82,7 @@ public final class HierarchyMapping {
             rootNodesFilter.fieldPointers().get(ID_FIELD_NAME),
             possibleRootNodesTableVar,
             idFieldAlias);
-    return new Query.Builder()
-        .select(List.of(idFieldVar))
-        .tables(List.of(possibleRootNodesTableVar))
-        .build();
+    return new Query(List.of(idFieldVar), List.of(possibleRootNodesTableVar));
   }
 
   public Query queryAncestorDescendantPairs(
@@ -105,10 +99,8 @@ public final class HierarchyMapping {
             ancestorDescendant.fieldPointers().get(DESCENDANT_FIELD_NAME),
             ancestorDescendantTableVar,
             descendantFieldAlias);
-    return new Query.Builder()
-        .select(List.of(ancestorFieldVar, descendantFieldVar))
-        .tables(List.of(ancestorDescendantTableVar))
-        .build();
+    return new Query(
+        List.of(ancestorFieldVar, descendantFieldVar), List.of(ancestorDescendantTableVar));
   }
 
   public static Query queryPathNumChildrenPairs(TablePointer tablePointer) {
@@ -132,10 +124,8 @@ public final class HierarchyMapping {
             .columnName(NUM_CHILDREN_FIELD_NAME)
             .build()
             .buildVariable(tempTableVar, inputTables);
-    return new Query.Builder()
-        .select(List.of(selectIdFieldVar, selectPathFieldVar, selectNumChildrenFieldVar))
-        .tables(inputTables)
-        .build();
+    return new Query(
+        List.of(selectIdFieldVar, selectPathFieldVar, selectNumChildrenFieldVar), inputTables);
   }
 
   public FieldPointer getPathField() {

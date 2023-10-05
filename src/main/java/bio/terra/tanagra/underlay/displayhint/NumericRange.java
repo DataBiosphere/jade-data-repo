@@ -44,8 +44,7 @@ public final class NumericRange extends DisplayHint {
     final String possibleValAlias = "possibleVal";
     FieldVariable nestedValueFieldVar =
         value.buildVariable(nestedPrimaryTable, nestedQueryTables, possibleValAlias);
-    Query possibleValuesQuery =
-        new Query.Builder().select(List.of(nestedValueFieldVar)).tables(nestedQueryTables).build();
+    Query possibleValuesQuery = new Query(List.of(nestedValueFieldVar), nestedQueryTables);
 
     DataPointer dataPointer = value.getTablePointer().dataPointer();
     TablePointer possibleValsTable =
@@ -74,7 +73,7 @@ public final class NumericRange extends DisplayHint {
             .sqlFunctionWrapper("MAX")
             .build();
     select.add(maxVal.buildVariable(primaryTable, tables, maxValAlias));
-    Query query = new Query.Builder().select(select).tables(tables).build();
+    Query query = new Query(select, tables);
 
     List<ColumnSchema> columnSchemas =
         List.of(
@@ -85,7 +84,7 @@ public final class NumericRange extends DisplayHint {
     QueryResult queryResult = executor.execute(queryRequest);
     RowResult rowResult = queryResult.getSingleRowResult();
     return new NumericRange(
-        rowResult.get(minValAlias).getDouble().getAsDouble(),
-        rowResult.get(maxValAlias).getDouble().getAsDouble());
+        rowResult.get(minValAlias).getDouble().orElseThrow(),
+        rowResult.get(maxValAlias).getDouble().orElseThrow());
   }
 }

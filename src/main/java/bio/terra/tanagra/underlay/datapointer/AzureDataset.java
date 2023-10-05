@@ -67,8 +67,7 @@ public final class AzureDataset extends DataPointer {
       List<TableVariable> tableVars = List.of(tableVar);
       FieldVariable fieldVarStar =
           FieldPointer.allFields(tablePointer).buildVariable(tableVar, tableVars);
-      Query queryOneRow =
-          new Query.Builder().select(List.of(fieldVarStar)).tables(tableVars).limit(1).build();
+      Query queryOneRow = new Query(List.of(fieldVarStar), tableVars, 1);
       return executor.readTableRows(queryOneRow).stream()
           .map(row -> row.get(columnName))
           .map(CellValue::dataType)

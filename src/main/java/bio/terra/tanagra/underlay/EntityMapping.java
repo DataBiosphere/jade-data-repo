@@ -32,7 +32,7 @@ public final class EntityMapping {
             .getMapping(mappingType)
             .getValue()
             .buildVariable(primaryTable, tables, alias);
-    return new Query.Builder().select(List.of(idFieldVar)).tables(tables).build();
+    return new Query(List.of(idFieldVar), tables);
   }
 
   public Query queryAllAttributes() {
@@ -47,7 +47,7 @@ public final class EntityMapping {
             attribute ->
                 select.addAll(
                     attribute.getMapping(mappingType).buildFieldVariables(primaryTable, tables)));
-    return new Query.Builder().select(select).tables(tables).build();
+    return new Query(select, tables);
   }
 
   public Underlay.MappingType getMappingType() {

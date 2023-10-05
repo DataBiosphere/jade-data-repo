@@ -114,11 +114,10 @@ public final class TextSearchMapping {
     FieldVariable concatenatedTextFieldVar =
         new FieldVariable(
             concatenatedTextField, idTextPairsTableVar, TEXT_SEARCH_STRING_COLUMN_NAME);
-    return new Query.Builder()
-        .select(List.of(idFieldVar, concatenatedTextFieldVar))
-        .tables(List.of(idTextPairsTableVar))
-        .groupBy(List.of(idFieldVar))
-        .build();
+    return new Query(
+        List.of(idFieldVar, concatenatedTextFieldVar),
+        List.of(idTextPairsTableVar),
+        List.of(idFieldVar));
   }
 
   private Query buildIdTextPairsQuery(FieldPointer entityIdField, FieldPointer textField) {
@@ -130,10 +129,7 @@ public final class TextSearchMapping {
         textField.buildVariable(entityTableVar, tableVars, TEXT_SEARCH_STRING_COLUMN_NAME);
     FieldVariable entityIdFieldVar =
         entityIdField.buildVariable(entityTableVar, tableVars, TEXT_SEARCH_ID_COLUMN_NAME);
-    return new Query.Builder()
-        .select(List.of(entityIdFieldVar, textFieldVar))
-        .tables(tableVars)
-        .build();
+    return new Query(List.of(entityIdFieldVar, textFieldVar), tableVars);
   }
 
   public TablePointer getTablePointer() {

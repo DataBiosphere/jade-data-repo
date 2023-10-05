@@ -104,10 +104,7 @@ public final class RelationshipMapping {
     TableVariable tableVariable = TableVariable.forPrimary(getIdPairsTable());
     FieldVariable idAFieldVar = new FieldVariable(getIdPairsIdA(), tableVariable, idAAlias);
     FieldVariable idBFieldVar = new FieldVariable(getIdPairsIdB(), tableVariable, idBAlias);
-    return new Query.Builder()
-        .select(List.of(idAFieldVar, idBFieldVar))
-        .tables(List.of(tableVariable))
-        .build();
+    return new Query(List.of(idAFieldVar, idBFieldVar), List.of(tableVariable));
   }
 
   public FieldPointer getIdPairsId(Entity entity) {

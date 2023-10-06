@@ -1,6 +1,5 @@
 package bio.terra.tanagra.underlay;
 
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.FieldPointer;
@@ -38,6 +37,13 @@ public final class TextSearchMapping {
     this.searchString = searchString;
     this.searchStringTable = searchStringTable;
     this.mappingType = mappingType;
+
+    if (!definedByAttributes()
+        && !definedBySearchString()
+        && !definedBySearchStringAuxiliaryData()) {
+      throw new IllegalArgumentException(
+          "Text search mapping must be defined by attributes or search string");
+    }
   }
 
   public void initialize(TextSearch textSearch) {
@@ -89,7 +95,7 @@ public final class TextSearchMapping {
               searchStringTable.fieldPointers().get(TEXT_SEARCH_ID_COLUMN_NAME),
               searchStringTable.fieldPointers().get(TEXT_SEARCH_STRING_COLUMN_NAME));
     } else {
-      throw new SystemException("Unknown text search mapping type");
+      throw new IllegalArgumentException("Unknown text search mapping type");
     }
 
     TablePointer idTextPairsTable =
@@ -140,7 +146,7 @@ public final class TextSearchMapping {
     } else if (definedBySearchStringAuxiliaryData()) {
       return searchStringTable.tablePointer();
     } else {
-      throw new SystemException("Unknown text search mapping type");
+      throw new IllegalArgumentException("Unknown text search mapping type");
     }
   }
 

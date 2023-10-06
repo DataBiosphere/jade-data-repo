@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query.azure;
 
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.Literal;
@@ -29,16 +28,11 @@ public class AzureCellValue implements CellValue {
   }
 
   @Override
-  @SuppressWarnings("PMD.PreserveStackTrace")
   public OptionalLong getLong() {
     assertDataTypeIs(SQLDataType.INT64);
-    try {
-      return fieldValue
-          .map(o -> OptionalLong.of(((Number) o).longValue()))
-          .orElseGet(OptionalLong::empty);
-    } catch (NumberFormatException nfEx) {
-      throw new SystemException("Unable to format as number", nfEx);
-    }
+    return fieldValue
+        .map(o -> OptionalLong.of(((Number) o).longValue()))
+        .orElseGet(OptionalLong::empty);
   }
 
   @Override
@@ -48,15 +42,11 @@ public class AzureCellValue implements CellValue {
   }
 
   @Override
-  @SuppressWarnings("PMD.PreserveStackTrace")
   public OptionalDouble getDouble() {
-    try {
-      return fieldValue
-          .map(o -> OptionalDouble.of(((Number) o).doubleValue()))
-          .orElseGet(OptionalDouble::empty);
-    } catch (NumberFormatException nfEx) {
-      throw new SystemException("Unable to format as number", nfEx);
-    }
+    assertDataTypeIs(SQLDataType.FLOAT);
+    return fieldValue
+        .map(o -> OptionalDouble.of(((Number) o).doubleValue()))
+        .orElseGet(OptionalDouble::empty);
   }
 
   @Override
@@ -73,13 +63,13 @@ public class AzureCellValue implements CellValue {
   }
 
   /**
-   * Checks that the {@link #dataType()} is what's expected, or else throws a {@link
-   * SystemException}.
+   * Checks that the {@link #dataType()} is what's expected, or else throws an {@link
+   * IllegalArgumentException}.
    */
   private void assertDataTypeIs(SQLDataType expected) {
     if (dataType() != expected) {
-      throw new SystemException(
-          String.format("SQLDataType is %s, not the expected %s", dataType(), expected));
+      throw new IllegalArgumentException(
+          "SQLDataType is %s, not the expected %s".formatted(dataType(), expected));
     }
   }
 }

@@ -1,8 +1,6 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.filtervariable.HavingFilterVariable;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +31,11 @@ public record Query(
     }
     if (!groupBy.isEmpty() && !orderBy.isEmpty()) {
       throw new IllegalArgumentException("Query cannot have both GROUP BY and ORDER BY");
+    }
+    long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
+    if (primaryTables != 1) {
+      throw new IllegalArgumentException(
+          "Query can only have one primary table, but found " + primaryTables);
     }
   }
 
@@ -155,15 +158,10 @@ public record Query(
   }
 
   public List<FieldVariable> getSelect() {
-    return Collections.unmodifiableList(select);
+    return List.copyOf(select);
   }
 
   public TableVariable getPrimaryTable() {
-    List<TableVariable> primaryTable = tables.stream().filter(TableVariable::isPrimary).toList();
-    if (primaryTable.size() != 1) {
-      throw new SystemException(
-          "Query can only have one primary table, but found " + primaryTable.size());
-    }
-    return primaryTable.get(0);
+    return tables.stream().filter(TableVariable::isPrimary).findFirst().orElseThrow();
   }
 }

@@ -2,7 +2,6 @@ package bio.terra.tanagra.underlay.datapointer;
 
 import bio.terra.common.Column;
 import bio.terra.model.TableDataType;
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
@@ -83,7 +82,7 @@ public final class AzureDataset extends DataPointer {
           .map(AzureDataset::toDataType)
           .orElseThrow(
               () ->
-                  new RuntimeException(
+                  new IllegalArgumentException(
                       "couldn't find %s in %s".formatted(columnName, tablePointer.tableName())));
     }
   }
@@ -95,7 +94,8 @@ public final class AzureDataset extends DataPointer {
       case DATE, DATETIME, TIME, TIMESTAMP -> Literal.DataType.DATE;
       case INTEGER, INT64 -> Literal.DataType.INT64;
       case FLOAT, FLOAT64, NUMERIC -> Literal.DataType.DOUBLE;
-      case BYTES, RECORD -> throw new SystemException("Data type not supported: " + fieldType);
+      case BYTES, RECORD -> throw new UnsupportedOperationException(
+          "Data type not supported: " + fieldType);
     };
   }
 

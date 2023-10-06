@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.exception.SystemException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -31,6 +30,12 @@ public class UpdateFromValues implements SQLExpression {
     this.updateJoinField = updateJoinField;
     this.selectJoinField = selectJoinField;
     this.rows = rows;
+
+    // Check that the select join field is part of the query.
+    if (!selectQuery.getSelect().contains(selectJoinField)) {
+      throw new IllegalArgumentException(
+          "Select join field is not part of the query selected fields");
+    }
   }
 
   /*
@@ -79,11 +84,6 @@ public class UpdateFromValues implements SQLExpression {
 
   @Override
   public String renderSQL(SqlPlatform platform) {
-    // Check that the select join field is part of the query.
-    if (!selectQuery.getSelect().contains(selectJoinField)) {
-      throw new SystemException("Select join field is not part of the query selected fields");
-    }
-
     // Build a table variable for a nested query.
     List<TableVariable> tableVars = new ArrayList<>();
     TablePointer nestedTable =

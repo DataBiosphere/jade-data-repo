@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
-import bio.terra.tanagra.exception.SystemException;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -28,7 +27,8 @@ class FieldVariableTest {
         new FieldPointer.Builder().foreignTablePointer(TablePointer.fromRawSql(null, null)).build();
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
     assertThrows(
-        SystemException.class, () -> fieldVariableForeignKey.renderSQL(SqlPlatform.BIGQUERY));
+        UnsupportedOperationException.class,
+        () -> fieldVariableForeignKey.renderSQL(SqlPlatform.BIGQUERY));
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(

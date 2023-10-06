@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query.bigquery;
 
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.Literal;
@@ -25,16 +24,9 @@ class BigQueryCellValue implements CellValue {
   }
 
   @Override
-  @SuppressWarnings("PMD.PreserveStackTrace")
   public OptionalLong getLong() {
     assertDataTypeIs(SQLDataType.INT64);
-    try {
-      return fieldValue.isNull()
-          ? OptionalLong.empty()
-          : OptionalLong.of(fieldValue.getLongValue());
-    } catch (NumberFormatException nfEx) {
-      throw new SystemException("Unable to format as number", nfEx);
-    }
+    return fieldValue.isNull() ? OptionalLong.empty() : OptionalLong.of(fieldValue.getLongValue());
   }
 
   @Override
@@ -44,15 +36,11 @@ class BigQueryCellValue implements CellValue {
   }
 
   @Override
-  @SuppressWarnings("PMD.PreserveStackTrace")
   public OptionalDouble getDouble() {
-    try {
-      return fieldValue.isNull()
-          ? OptionalDouble.empty()
-          : OptionalDouble.of(fieldValue.getDoubleValue());
-    } catch (NumberFormatException nfEx) {
-      throw new SystemException("Unable to format as number", nfEx);
-    }
+    assertDataTypeIs(SQLDataType.FLOAT);
+    return fieldValue.isNull()
+        ? OptionalDouble.empty()
+        : OptionalDouble.of(fieldValue.getDoubleValue());
   }
 
   @Override
@@ -62,30 +50,24 @@ class BigQueryCellValue implements CellValue {
     }
 
     Literal.DataType dataType = dataType().toUnderlayDataType();
-    switch (dataType) {
-      case INT64:
-        return Optional.of(new Literal(fieldValue.getLongValue()));
-      case STRING:
-        return Optional.of(new Literal(fieldValue.isNull() ? null : fieldValue.getStringValue()));
-      case BOOLEAN:
-        return Optional.of(new Literal(fieldValue.getBooleanValue()));
-      case DATE:
-        return Optional.of(Literal.forDate(fieldValue.getStringValue()));
-      case DOUBLE:
-        return Optional.of(new Literal(fieldValue.getDoubleValue()));
-      default:
-        throw new SystemException("Unknown data type: " + dataType);
-    }
+    return switch (dataType) {
+      case INT64 -> Optional.of(new Literal(fieldValue.getLongValue()));
+      case STRING -> Optional.of(
+          new Literal(fieldValue.isNull() ? null : fieldValue.getStringValue()));
+      case BOOLEAN -> Optional.of(new Literal(fieldValue.getBooleanValue()));
+      case DATE -> Optional.of(Literal.forDate(fieldValue.getStringValue()));
+      case DOUBLE -> Optional.of(new Literal(fieldValue.getDoubleValue()));
+    };
   }
 
   /**
-   * Checks that the {@link #dataType()} is what's expected, or else throws a {@link
-   * SystemException}.
+   * Checks that the {@link #dataType()} is what's expected, or else throws an {@link
+   * IllegalArgumentException}.
    */
   private void assertDataTypeIs(SQLDataType expected) {
-    if (!dataType().equals(expected)) {
-      throw new SystemException(
-          String.format("SQLDataType is %s, not the expected %s", dataType(), expected));
+    if (dataType() != expected) {
+      throw new IllegalArgumentException(
+          "SQLDataType is %s, not the expected %s".formatted(dataType(), expected));
     }
   }
 }

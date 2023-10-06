@@ -1,6 +1,5 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.exception.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -47,7 +46,7 @@ public class FieldVariable implements SQLExpression {
     String sql = "%s.%s".formatted(tableVariable.getAlias(), fieldPointer.getColumnName());
 
     if (fieldPointer.isForeignKey()) {
-      throw new SystemException("TODO: implement embedded selects " + sql);
+      throw new UnsupportedOperationException("TODO: implement embedded selects " + sql);
     }
 
     if (fieldPointer.hasSqlFunctionWrapper() && useFunctionWrapper) {

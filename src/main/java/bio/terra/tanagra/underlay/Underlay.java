@@ -1,7 +1,5 @@
 package bio.terra.tanagra.underlay;
 
-import bio.terra.tanagra.exception.SystemException;
-import java.util.Collections;
 import java.util.Map;
 
 public final class Underlay {
@@ -40,11 +38,11 @@ public final class Underlay {
   }
 
   public Map<String, DataPointer> getDataPointers() {
-    return Collections.unmodifiableMap(dataPointers);
+    return Map.copyOf(dataPointers);
   }
 
   public Map<String, Entity> getEntities() {
-    return Collections.unmodifiableMap(entities);
+    return Map.copyOf(entities);
   }
 
   public Entity getPrimaryEntity() {
@@ -52,21 +50,23 @@ public final class Underlay {
   }
 
   public Entity getEntity(String name) {
-    if (!entities.containsKey(name)) {
-      throw new SystemException("Entity not found: " + name);
+    Entity entity = entities.get(name);
+    if (entity == null) {
+      throw new IllegalArgumentException("Entity not found: " + name);
     }
-    return entities.get(name);
+    return entity;
   }
 
   public Map<String, EntityGroup> getEntityGroups() {
-    return Collections.unmodifiableMap(entityGroups);
+    return Map.copyOf(entityGroups);
   }
 
   public EntityGroup getEntityGroup(String name) {
-    if (!entityGroups.containsKey(name)) {
-      throw new SystemException("Entity group not found: " + name);
+    EntityGroup entityGroup = entityGroups.get(name);
+    if (entityGroup == null) {
+      throw new IllegalArgumentException("Entity group not found: " + name);
     }
-    return entityGroups.get(name);
+    return entityGroup;
   }
 
   public EntityGroup getEntityGroup(EntityGroup.Type type, Entity entity) {
@@ -81,6 +81,6 @@ public final class Underlay {
   }
 
   public Map<String, String> getMetadata() {
-    return Collections.unmodifiableMap(metadata);
+    return Map.copyOf(metadata);
   }
 }

@@ -83,12 +83,13 @@ public final class GoogleBigQuery {
   }
 
   private Schema getTableSchema(String projectId, String datasetId, String tableId) {
-    Optional<Table> table = getTable(projectId, datasetId, tableId);
-    if (table.isEmpty()) {
-      throw new SystemException(
-          "Table not found: " + projectId + ", " + datasetId + ", " + tableId);
-    }
-    return table.get().getDefinition().getSchema();
+    return getTable(projectId, datasetId, tableId)
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Table not found: " + projectId + ", " + datasetId + ", " + tableId))
+        .getDefinition()
+        .getSchema();
   }
 
   public Optional<Dataset> getDataset(String projectId, String datasetId) {
@@ -271,7 +272,8 @@ public final class GoogleBigQuery {
    *     thrown by the BQ client or the retries
    */
   private <T> T handleClientExceptions(
-      HttpUtils.SupplierWithCheckedException<T, IOException> makeRequest, String errorMsg) {
+      HttpUtils.SupplierWithCheckedException<T, ? extends IOException> makeRequest,
+      String errorMsg) {
     try {
       return makeRequest.makeRequest();
     } catch (IOException | InterruptedException ex) {

@@ -104,7 +104,7 @@ public final class BigQueryDataset extends DataPointer {
         || LegacySQLTypeName.NUMERIC.equals(fieldType)) {
       return Literal.DataType.DOUBLE;
     } else {
-      throw new SystemException("BigQuery SQL data type not supported: " + fieldType);
+      throw new UnsupportedOperationException("BigQuery SQL data type not supported: " + fieldType);
     }
   }
 

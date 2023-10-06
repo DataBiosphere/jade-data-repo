@@ -133,6 +133,9 @@ jobs:
     if: always()
     needs:
       - update_image
+      - report-to-sherlock
+      - set-app-version-in-environment
+      - cherry_pick_image_to_production_gcr
       - helm_tag_bumper
     steps:
       - name: Slack job status

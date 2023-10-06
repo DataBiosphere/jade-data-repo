@@ -118,7 +118,7 @@ jobs:
       id-token: 'write'
   cherry_pick_image_to_production_gcr:
     needs: update_image
-    uses: ./.github/workflows/helmtagbumper.yaml
+    uses: ./.github/workflows/cherry-pick-image.yaml
     secrets: inherit
     with:
       gcr_tag: ${{ needs.update_image.outputs.api_image_tag }}

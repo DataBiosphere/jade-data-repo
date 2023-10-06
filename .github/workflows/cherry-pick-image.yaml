@@ -19,11 +19,11 @@ on:
           type: string
           required: true
         source_gcr_url:
-          description: gcr url to cherry pick issue from
+          description: gcr url to cherry pick image from
           type: string
           required: true
         target_gcr_url:
-          description: gcr url to cherry pick issue to
+          description: gcr url to cherry pick image to
           type: string
           required: true
 jobs:

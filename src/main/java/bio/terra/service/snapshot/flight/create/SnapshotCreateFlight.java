@@ -253,12 +253,14 @@ public class SnapshotCreateFlight extends Flight {
     if (platform.isAzure()) {
       addStep(new CreateSnapshotCreateRowIdParquetFileStep(azureSynapsePdao, snapshotService));
       addStep(
-          new CreateSnapshotCountTableRowsAzureStep(azureSynapsePdao, snapshotDao, snapshotReq));
+          new CreateSnapshotCountTableRowsAzureStep(snapshotDao, snapshotReq), randomBackoffRetry);
     }
 
     if (platform.isGcp()) {
       // compute the row counts for each of the snapshot tables and store in metadata
-      addStep(new CountSnapshotTableRowsStep(bigQuerySnapshotPdao, snapshotDao, snapshotReq));
+      addStep(
+          new CountSnapshotTableRowsStep(bigQuerySnapshotPdao, snapshotDao, snapshotReq),
+          randomBackoffRetry);
     }
 
     // Create the IAM resource and readers for the snapshot

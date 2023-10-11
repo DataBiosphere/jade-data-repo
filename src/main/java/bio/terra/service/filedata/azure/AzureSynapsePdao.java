@@ -162,7 +162,11 @@ public class AzureSynapsePdao {
               FROM OPENROWSET(
                  BULK '<ingestFileName>',
                  DATA_SOURCE = '<ingestFileDataSourceName>',
-                 FORMAT = 'parquet') AS rows
+                 FORMAT = 'parquet') WITH (
+                              <columns:{c|[<c.name>] <c.synapseDataType>
+                              <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+                              }; separator=", ">
+                             ) AS rows
               """;
 
   private static final String CREATE_SNAPSHOT_TABLE_BY_ROW_ID_TEMPLATE =
@@ -327,7 +331,11 @@ public class AzureSynapsePdao {
               count(*) over () <totalRowCountColumnName> <endif>
               FROM OPENROWSET(BULK '<parquetFileLocation>',
                             DATA_SOURCE = '<datasource>',
-                            FORMAT='PARQUET') AS rows
+                            FORMAT='PARQUET') WITH (
+                              <columns:{c|[<c.name>] <c.synapseDataType>
+                              <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+                              }; separator=", ">
+                             ) AS rows
               ) AS all_rows
             <userFilter>
          ) AS rows_filtered) AS final_rows
@@ -339,7 +347,9 @@ public class AzureSynapsePdao {
       SELECT <column>,count(*) AS <countColumn>
         FROM OPENROWSET(BULK '<parquetFileLocation>',
                         DATA_SOURCE = '<datasource>',
-                        FORMAT='PARQUET') AS rows
+                        FORMAT='PARQUET') WITH (
+                              <column> <columnSynapseDataType> COLLATE Latin1_General_100_CI_AI_SC_UTF8
+                             ) AS rows
           <userFilter>
           GROUP BY <column>
           ORDER BY <column> <direction>;""";
@@ -349,7 +359,9 @@ public class AzureSynapsePdao {
         SELECT MIN(<column>) AS min, MAX(<column>) AS max
           FROM OPENROWSET(BULK '<parquetFileLocation>',
                           DATA_SOURCE = '<datasource>',
-                          FORMAT='PARQUET') AS rows
+                          FORMAT='PARQUET') WITH (
+                              <column> <columnSynapseDataType>
+                             ) AS rows
           <userFilter>;""";
   private static final String DROP_TABLE_TEMPLATE = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -1176,8 +1188,11 @@ public class AzureSynapsePdao {
       String userFilter,
       String sqlTemplate) {
     String columnName = column.getName();
+    String columnSynapseDataType =
+        SynapseColumn.translateDataType(column.getType(), column.isArrayOf());
     return new ST(sqlTemplate)
         .add("column", columnName)
+        .add("columnSynapseDataType", columnSynapseDataType)
         .add("countColumn", PDAO_COUNT_COLUMN_NAME)
         .add("datasource", dataSourceName)
         .add("parquetFileLocation", parquetFileLocation)
@@ -1214,9 +1229,12 @@ public class AzureSynapsePdao {
   public ColumnStatisticsTextModel getStatsForTextColumn(
       Column column, String dataSourceName, String parquetFileLocation, String userFilter) {
     String columnName = column.getName();
+    String columnSynapseDataType =
+        SynapseColumn.translateDataType(column.getType(), column.isArrayOf());
     final String sql =
         new ST(QUERY_TEXT_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
+            .add("columnSynapseDataType", columnSynapseDataType)
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)

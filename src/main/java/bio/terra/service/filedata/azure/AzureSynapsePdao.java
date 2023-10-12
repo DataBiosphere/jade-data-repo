@@ -139,7 +139,7 @@ public class AzureSynapsePdao {
               LOCATION = '<destinationParquetFile>',
               DATA_SOURCE = [<destinationDataSourceName>], /* metadata container */
               FILE_FORMAT = [<fileFormat>]
-          ) AS SELECT    datarepo_row_id,
+          ) AS SELECT
                  <columns:{c|
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
@@ -296,7 +296,7 @@ public class AzureSynapsePdao {
               LOCATION = '<destinationParquetFile>',
               DATA_SOURCE = [<destinationDataSourceName>],
               FILE_FORMAT = [<fileFormat>]
-          ) AS SELECT datarepo_row_id, <columns> FROM [<scratchTableName>] <where> <nullChecks>;""";
+          ) AS SELECT <columns:{c|[<c.name>]}; separator=","> FROM [<scratchTableName>] <where> <nullChecks>;""";
 
   private static final String QUERY_COLUMNS_FROM_EXTERNAL_TABLE_TEMPLATE =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
@@ -603,14 +603,11 @@ public class AzureSynapsePdao {
     sqlCreateFinalParquetFilesTemplate.add(
         "fileFormat", azureResourceConfiguration.synapse().parquetFileFormatName());
     sqlCreateFinalParquetFilesTemplate.add("scratchTableName", scratchTableName);
-
-    String columns =
-        datasetTable.getColumns().stream()
-            .map(Column::getName)
-            .map(s -> String.format("[%s]", s))
-            .collect(Collectors.joining(", "));
-
-    sqlCreateFinalParquetFilesTemplate.add("columns", columns);
+    sqlCreateFinalParquetFilesTemplate.add(
+        "columns",
+        ListUtils.union(
+            List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
+            datasetTable.getColumns()));
 
     String nullChecks =
         datasetTable.getColumns().stream()
@@ -1112,8 +1109,14 @@ public class AzureSynapsePdao {
     } else {
       drsLocator = compactIdPrefix + ":";
     }
+    List<SynapseColumn> allColumns =
+        ListUtils.union(
+            List.of(
+                Column.toSynapseColumn(
+                    new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING))),
+            columns);
     sqlCreateSnapshotTableTemplate
-        .add("columns", columns)
+        .add("columns", allColumns)
         .add("tableName", snapshotTableName)
         .add("destinationParquetFile", snapshotParquetFileName)
         .add("destinationDataSourceName", snapshotDataSourceName)

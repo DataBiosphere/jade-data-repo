@@ -144,9 +144,9 @@ public class AzureSynapsePdao {
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
                          <if(isGlobalFileIds)>
-                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(8000) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <else>
-                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(8000) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <endif>
                        <else>
                          <if(isGlobalFileIds)>
@@ -321,13 +321,13 @@ public class AzureSynapsePdao {
           """;
   private static final String QUERY_FROM_DATASOURCE_TEMPLATE =
       """
-      SELECT <columns:{c|final_rows.[<c>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
+      SELECT <columns:{c|final_rows.[<c.name>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
       FROM (
-        SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
+        SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c.name>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
           FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
-                 <columns:{c|all_rows.[<c>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
+                 <columns:{c|all_rows.[<c.name>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
             FROM (
-              SELECT <columns:{c|rows.[<c>]}; separator=","> <if(includeTotalRowCount)>,
+              SELECT <columns:{c|rows.[<c.name>]}; separator=","> <if(includeTotalRowCount)>,
               count(*) over () <totalRowCountColumnName> <endif>
               FROM OPENROWSET(BULK '<parquetFileLocation>',
                             DATA_SOURCE = '<datasource>',
@@ -1286,14 +1286,16 @@ public class AzureSynapsePdao {
                           .formatted(sort, tableName)));
     }
 
-    List<Column> columns =
+    List<SynapseColumn> columns =
         ListUtils.union(
-            List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
-            table.getColumns());
+            List.of(
+                SynapseColumn.toSynapseColumn(
+                    new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING))),
+            table.getSynapseColumns());
     boolean includeTotalRowCount = collectionType.equals(CollectionType.DATASET);
     final String sql =
         new ST(QUERY_FROM_DATASOURCE_TEMPLATE)
-            .add("columns", columns.stream().map(Column::getName).toList())
+            .add("columns", columns)
             .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)
             .add("sort", sort)

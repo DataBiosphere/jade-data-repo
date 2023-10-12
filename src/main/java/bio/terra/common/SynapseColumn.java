@@ -60,12 +60,13 @@ public class SynapseColumn extends Column {
       case BYTES -> "varbinary";
       case DATE -> "date";
       case DATETIME, TIMESTAMP -> "datetime2";
-      case DIRREF, FILEREF -> "varchar(36)";
       case FLOAT, FLOAT64 -> "float";
       case INTEGER -> "numeric(10, 0)";
       case INT64 -> "numeric(19, 0)";
       case NUMERIC -> "real";
-      case TEXT, STRING -> "varchar(8000)";
+        // DIRREF and FILEREF store a UUID on ingest
+        // But, are translated to DRS URI on Snapshot Creation
+      case DIRREF, FILEREF, TEXT, STRING -> "varchar(8000)";
       case TIME -> "time";
         // Data of type RECORD contains table-like that can be nested or repeated
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest

@@ -24,6 +24,7 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
+import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.AccessInfoParquetModel;
@@ -37,6 +38,7 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
@@ -44,6 +46,8 @@ import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -486,6 +490,14 @@ public class AzureIntegrationTest extends UsersBase {
     String personYearOfBirthField = "year_of_birth";
     Map<String, Integer> records = Map.of(personIdField, 1, personYearOfBirthField, 1980);
     testMetadataArrayIngest(arrayIngestTableName, records);
+    @SuppressWarnings("unchecked")
+    Map<Object, Object> firstPersonRow =
+        (Map<Object, Object>)
+            dataRepoFixtures
+                .retrieveDatasetData(steward, datasetId, arrayIngestTableName, 0, 1, null)
+                .getResult()
+                .get(0);
+    records.forEach((key, value) -> assertThat(firstPersonRow, hasEntry(key, value)));
     tableRowCount.put(arrayIngestTableName, 1);
 
     // Ingest Metadata - 1 row from JSON file
@@ -542,7 +554,7 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(file4Model.getFileId()));
 
     // Ingest 2 rows from CSV
-    String ingest2TableName = "vocabulary";
+    String vocabTableName = "vocabulary";
     String csvDatasetIngestFlightId = UUID.randomUUID().toString();
     String csvDatasetIngestControlFileBlob =
         csvDatasetIngestFlightId + "/azure-vocab-ingest-request.csv";
@@ -561,7 +573,7 @@ public class AzureIntegrationTest extends UsersBase {
             .format(IngestRequestModel.FormatEnum.CSV)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
-            .table(ingest2TableName)
+            .table(vocabTableName)
             .path(ingestRequestPathCSV)
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"))
@@ -569,17 +581,55 @@ public class AzureIntegrationTest extends UsersBase {
     IngestResponseModel ingestResponseCSV =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
-    tableRowCount.put(ingest2TableName, 2);
+    tableRowCount.put(vocabTableName, 2);
+
+    // Dataset Schema Update & Ingest another row
+    String newColumnName = "new_column";
+    ColumnModel newColumn = DatasetFixtures.columnModel(newColumnName);
+    DatasetSchemaUpdateModel updateModel =
+        new DatasetSchemaUpdateModel()
+            .description("Schema Additive Changes")
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addColumns(
+                        List.of(
+                            DatasetFixtures.columnUpdateModel(vocabTableName, List.of(newColumn))))
+                    .addTables(
+                        List.of(
+                            DatasetFixtures.tableModel("new_table", List.of("new_table_column")))));
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    assertThat(
+        "The new table is in the update response",
+        response.getSchema().getTables().stream()
+            .filter(tableModel -> tableModel.getName().equals("new_table"))
+            .findFirst()
+            .isPresent());
+    Map<String, String> vocab_entry2 =
+        Map.of(
+            "vocabulary_id",
+            "3",
+            "vocabulary_name",
+            "vocab_3",
+            "vocabulary_version",
+            "v3",
+            "vocabulary_concept_id",
+            "3.0",
+            newColumnName,
+            "new_value");
+    testMetadataArrayIngest(vocabTableName, vocab_entry2);
+    tableRowCount.put(vocabTableName, 3);
+
     // assert correct data returns from view data endpoint
-    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
+    dataRepoFixtures.assertDatasetTableCount(
+        steward, datasetModel, vocabTableName, tableRowCount.get(vocabTableName));
     List<Object> vocabRows =
         dataRepoFixtures
             .retrieveDatasetData(
                 steward,
                 datasetId,
-                "vocabulary",
+                vocabTableName,
                 0,
-                2,
+                tableRowCount.get(vocabTableName),
                 null,
                 "vocabulary_id",
                 String.valueOf(SqlSortDirection.ASC))
@@ -592,26 +642,30 @@ public class AzureIntegrationTest extends UsersBase {
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
         equalTo("2"));
+    assertThat(
+        "record looks as expected - new column",
+        ((LinkedHashMap) vocabRows.get(2)).get(newColumnName).toString(),
+        equalTo("new_value"));
     List<String> vocabList =
         dataRepoFixtures.retrieveColumnTextValues(
             steward, datasetId, "vocabulary", "vocabulary_id");
     assertThat(
         "Vocabulary table contains correct vocabulary_ids",
         vocabList,
-        containsInAnyOrder("1", "2"));
+        containsInAnyOrder("1", "2", "3"));
     ColumnStatisticsIntModel intModel =
         dataRepoFixtures.retrieveColumnIntStats(
             steward, datasetId, "vocabulary", "vocabulary_concept_id", null);
-    assertThat("Correct max values in vocabulary_concept_id", intModel.getMaxValue(), equalTo(2));
+    assertThat("Correct max values in vocabulary_concept_id", intModel.getMaxValue(), equalTo(3));
     assertThat("Correct min values in vocabulary_concept_id", intModel.getMinValue(), equalTo(1));
     List<Object> flippedVocabRows =
         dataRepoFixtures
             .retrieveDatasetData(
                 steward,
                 datasetId,
-                "vocabulary",
+                vocabTableName,
                 0,
-                2,
+                tableRowCount.get(vocabTableName),
                 null,
                 "vocabulary_id",
                 String.valueOf(SqlSortDirection.DESC))
@@ -619,17 +673,25 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "correct vocabulary_id returned",
         ((LinkedHashMap) flippedVocabRows.get(0)).get("vocabulary_id").toString(),
-        equalTo("2"));
-    String qualifiedVocabTableName = datasetModel.getName() + ".vocabulary";
+        equalTo("3"));
+    String qualifiedVocabTableName = String.format("%s.%s", datasetModel.getName(), vocabTableName);
     DatasetDataModel filteredVocabRows =
         dataRepoFixtures.retrieveDatasetData(
-            steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = '1'");
+            steward,
+            datasetId,
+            vocabTableName,
+            0,
+            tableRowCount.get(vocabTableName),
+            "vocabulary_id = '1'");
     assertThat(
         "correct number of rows returned after filtering",
         filteredVocabRows.getResult(),
         hasSize(1));
     assertThat("filter row count is correct", filteredVocabRows.getFilteredRowCount(), equalTo(1));
-    assertThat("total row count is correct", filteredVocabRows.getTotalRowCount(), equalTo(2));
+    assertThat(
+        "total row count is correct",
+        filteredVocabRows.getTotalRowCount(),
+        equalTo(tableRowCount.get(vocabTableName)));
     assertThat(
         "Correct row is returned",
         ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
@@ -637,18 +699,27 @@ public class AzureIntegrationTest extends UsersBase {
 
     // test handling of empty dataset table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "concept", 0);
+    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "new_table", 0);
 
     // test handling of not-empty dataset table filtered to empty
     DatasetDataModel emptyFilteredVocabRows =
         dataRepoFixtures.retrieveDatasetData(
-            steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = 'xy'");
+            steward,
+            datasetId,
+            vocabTableName,
+            0,
+            tableRowCount.get(vocabTableName),
+            "vocabulary_id = 'xy'");
     assertThat(
         "correct number of rows returned after filtering",
         emptyFilteredVocabRows.getResult(),
         hasSize(0));
     assertThat(
         "filter row count is correct", emptyFilteredVocabRows.getFilteredRowCount(), equalTo(0));
-    assertThat("total row count is correct", emptyFilteredVocabRows.getTotalRowCount(), equalTo(2));
+    assertThat(
+        "total row count is correct",
+        emptyFilteredVocabRows.getTotalRowCount(),
+        equalTo(tableRowCount.get(vocabTableName)));
 
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
@@ -736,14 +807,22 @@ public class AzureIntegrationTest extends UsersBase {
     verifySignedUrl(snapshotParquetUrl, steward, "rl");
 
     // Vocabulary Table
-    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "vocabulary", 2);
+    dataRepoFixtures.assertSnapshotTableCount(
+        steward, snapshotAll, vocabTableName, tableRowCount.get(vocabTableName));
     List<Object> vocabSnapshotRows =
         dataRepoFixtures
             .retrieveSnapshotPreviewById(
-                steward, snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id")
+                steward,
+                snapshotAll.getId(),
+                vocabTableName,
+                0,
+                tableRowCount.get(vocabTableName),
+                null,
+                "vocabulary_id")
             .getResult();
     List<String> drsIds =
         vocabSnapshotRows.stream()
+            .filter(r -> ((LinkedHashMap) r).get("vocabulary_reference") != null)
             .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
             .toList();
 
@@ -764,9 +843,9 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.retrieveSnapshotPreviewById(
             steward,
             snapshotAll.getId(),
-            "vocabulary",
+            vocabTableName,
             0,
-            2,
+            tableRowCount.get(vocabTableName),
             "vocabulary_id = '1'",
             "vocabulary_id");
     assertThat(
@@ -776,7 +855,9 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "filter row count is correct", filteredVocabSnapshotRows.getFilteredRowCount(), equalTo(1));
     assertThat(
-        "total row count is correct", filteredVocabSnapshotRows.getTotalRowCount(), equalTo(2));
+        "total row count is correct",
+        filteredVocabSnapshotRows.getTotalRowCount(),
+        equalTo(tableRowCount.get(vocabTableName)));
     assertThat(
         "Correct row is returned",
         ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
@@ -790,9 +871,9 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.retrieveSnapshotPreviewById(
             steward,
             snapshotAll.getId(),
-            "vocabulary",
+            vocabTableName,
             0,
-            2,
+            tableRowCount.get(vocabTableName),
             "vocabulary_id = 'xy'",
             "vocabulary_id");
     assertThat(
@@ -806,7 +887,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "total row count is correct",
         emptyFilteredVocabSnapshotRows.getTotalRowCount(),
-        equalTo(2));
+        equalTo(tableRowCount.get(vocabTableName)));
 
     // Domain Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);
@@ -935,7 +1016,7 @@ public class AzureIntegrationTest extends UsersBase {
     verifySignedUrl(snapshotByQueryParquetUrl, steward, "rl");
 
     for (AccessInfoParquetModelTable table : snapshotByQueryParquetAccessInfo.getTables()) {
-      if (ingest2TableName.equals(table.getName())) {
+      if (vocabTableName.equals(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward, "rl");
@@ -989,7 +1070,7 @@ public class AzureIntegrationTest extends UsersBase {
     verifySignedUrl(snapshotByAssetParquetUrl, steward, "rl");
 
     for (AccessInfoParquetModelTable table : snapshotByAssetParquetAccessInfo.getTables()) {
-      if (ingest2TableName.equals(table.getName())) {
+      if (vocabTableName.equals(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward, "rl");
@@ -1459,7 +1540,7 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
   }
 
-  public void testMetadataArrayIngest(String arrayIngestTableName, Map<String, Integer> records)
+  public void testMetadataArrayIngest(String arrayIngestTableName, Object records)
       throws Exception {
     IngestRequestModel arrayIngestRequest =
         new IngestRequestModel()
@@ -1474,15 +1555,6 @@ public class AzureIntegrationTest extends UsersBase {
     IngestResponseModel arrayIngestResponse =
         dataRepoFixtures.ingestJsonData(steward, datasetId, arrayIngestRequest);
     assertThat("1 row was ingested", arrayIngestResponse.getRowCount(), equalTo(1L));
-
-    @SuppressWarnings("unchecked")
-    Map<Object, Object> firstPersonRow =
-        (Map<Object, Object>)
-            dataRepoFixtures
-                .retrieveDatasetData(steward, datasetId, arrayIngestTableName, 0, 1, null)
-                .getResult()
-                .get(0);
-    records.forEach((key, value) -> assertThat(firstPersonRow, hasEntry(key, value)));
   }
 
   private String getSourceStorageAccountPrimarySharedKey() {

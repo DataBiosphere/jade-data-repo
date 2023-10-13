@@ -14,6 +14,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -52,11 +53,16 @@ import org.stringtemplate.v4.ST;
 public class SynapseUtils {
   private static final Logger logger = LoggerFactory.getLogger(SynapseUtils.class);
   private static final String READ_FROM_PARQUET_FILE =
-      "SELECT [<columnName>] AS [<columnName>]\n"
-          + "FROM OPENROWSET(\n"
-          + "    BULK '<parquetFilePath>',\n"
-          + "    DATA_SOURCE = '<dataSourceName>',\n"
-          + "    FORMAT = 'parquet') as rows";
+      """
+          SELECT [<column.name>] AS [<column.name>]
+            FROM OPENROWSET(
+              BULK '<parquetFilePath>',
+              DATA_SOURCE = '<dataSourceName>',
+              FORMAT = 'parquet') WITH (
+                [<column.name>] <column.synapseDataType>
+                <if(column.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+              ) AS rows
+          """;
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
           .setSubjectId("SynapseConnectedTest")
@@ -302,12 +308,16 @@ public class SynapseUtils {
     storageAccountIds.add(storageAccountId);
   }
 
+  public SynapseColumn getSynapseTextColumn(String columnName) {
+    return Column.toSynapseColumn(new Column().name(columnName).type(TableDataType.STRING));
+  }
+
   public List<String> readParquetFileStringColumn(
       String parquetFilePath, String dataSourceName, String columnName, boolean expectSuccess) {
     ST sqlReadTemplate = new ST(READ_FROM_PARQUET_FILE);
     sqlReadTemplate.add("parquetFilePath", parquetFilePath);
     sqlReadTemplate.add("dataSourceName", dataSourceName);
-    sqlReadTemplate.add("columnName", columnName);
+    sqlReadTemplate.add("column", getSynapseTextColumn(columnName));
     SQLServerDataSource ds = azureSynapsePdao.getDatasource();
     List<String> resultList = new ArrayList<>();
     try (Connection connection = ds.getConnection();

@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -637,6 +638,29 @@ public class SamIamTest {
           () -> {
             samIam.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
           });
+    }
+
+    @Test
+    void testRetrieveAuthDomain() throws Exception {
+      UUID snapshotId = UUID.randomUUID();
+      List<String> authDomain = List.of("group1", "group2", "group3");
+      when(samResourceApi.getAuthDomainV2(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), snapshotId.toString()))
+          .thenReturn(authDomain);
+      List<String> retrievedAuthDomain =
+          samIam.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId);
+      assertEquals(retrievedAuthDomain.size(), authDomain.size());
+      assertTrue(retrievedAuthDomain.containsAll(authDomain));
+    }
+
+    @Test
+    void testPatchAuthDomain() throws Exception {
+      UUID snapshotId = UUID.randomUUID();
+      List<String> authDomain = List.of("newGroup");
+      samIam.patchAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId, authDomain);
+      verify(samResourceApi)
+          .patchAuthDomainV2(
+              IamResourceType.DATASNAPSHOT.getSamResourceName(), snapshotId.toString(), authDomain);
     }
   }
 

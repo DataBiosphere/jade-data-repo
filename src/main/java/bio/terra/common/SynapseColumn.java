@@ -12,12 +12,15 @@ public class SynapseColumn extends Column {
   private boolean requiresCollate;
   private boolean requiresJSONCast;
 
+  private boolean requiresTypeCast;
+
   public SynapseColumn() {}
 
   public SynapseColumn(SynapseColumn fromColumn) {
     this.synapseDataType = fromColumn.synapseDataType;
     this.requiresCollate = fromColumn.requiresCollate;
     this.requiresJSONCast = fromColumn.requiresJSONCast;
+    this.requiresTypeCast = fromColumn.requiresTypeCast;
   }
 
   public String getSynapseDataType() {
@@ -26,6 +29,15 @@ public class SynapseColumn extends Column {
 
   public SynapseColumn synapseDataType(String synapseDataType) {
     this.synapseDataType = synapseDataType;
+    return this;
+  }
+
+  public boolean getRequiresTypeCast() {
+    return requiresTypeCast;
+  }
+
+  public SynapseColumn requiresTypeCast(boolean requiresTypeCast) {
+    this.requiresTypeCast = requiresTypeCast;
     return this;
   }
 
@@ -73,6 +85,21 @@ public class SynapseColumn extends Column {
       case RECORD -> throw new NotSupportedException(
           "RECORD type is not yet supported for synapse");
     };
+  }
+
+  // Cast needed for backwards compatibility after Synapse type change
+  // Sept 2023 int moved to numeric(10,0) and int64 moved to numeric(19,0)
+  static boolean checkForCastTypeArgRequirement(TableDataType dataType, boolean isArrayOf) {
+    if (isArrayOf) {
+      return false;
+    }
+    switch (dataType) {
+      case INTEGER:
+      case INT64:
+        return true;
+      default:
+        return false;
+    }
   }
 
   static boolean checkForCollateArgRequirement(TableDataType dataType, boolean isArrayOf) {

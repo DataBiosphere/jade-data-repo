@@ -156,14 +156,18 @@ public class AzureSynapsePdao {
                          <endif>
                        <endif>
                     <else>
+                      <if(c.requiresTypeCast)>
+                        CAST(<c.name> as <c.synapseDataType>) AS [<c.name>]
+                      <else>
                        <c.name> AS [<c.name>]
+                      <endif>
                     <endif>
                     }; separator=",\n">
               FROM OPENROWSET(
                  BULK '<ingestFileName>',
                  DATA_SOURCE = '<ingestFileDataSourceName>',
                  FORMAT = 'parquet') WITH (
-                              <columns:{c|[<c.name>] <c.synapseDataType>
+                              <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
                               <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
                               }; separator=", ">
                              ) AS rows
@@ -258,7 +262,7 @@ public class AzureSynapsePdao {
           newid() as datarepo_row_id,
           <columns:{c|
           <if(c.requiresJSONCast)>cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]
-          <elseif (c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]
+          <elseif(c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]
           <else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]
           <endif>
           }; separator=", ">
@@ -321,26 +325,30 @@ public class AzureSynapsePdao {
           """;
   private static final String QUERY_FROM_DATASOURCE_TEMPLATE =
       """
-      SELECT <columns:{c|final_rows.[<c.name>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
-      FROM (
-        SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c.name>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
-          FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
-                 <columns:{c|all_rows.[<c.name>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
-            FROM (
-              SELECT <columns:{c|rows.[<c.name>]}; separator=","> <if(includeTotalRowCount)>,
-              count(*) over () <totalRowCountColumnName> <endif>
-              FROM OPENROWSET(BULK '<parquetFileLocation>',
-                            DATA_SOURCE = '<datasource>',
-                            FORMAT='PARQUET') WITH (
-                              <columns:{c|[<c.name>] <c.synapseDataType>
-                              <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
-                              }; separator=", ">
-                             ) AS rows
-              ) AS all_rows
-            <userFilter>
-         ) AS rows_filtered) AS final_rows
-      WHERE final_rows.[datarepo_row_number] >= :offset
-        AND final_rows.[datarepo_row_number] \\<= :offset + :limit;""";
+          SELECT <columns:{c|final_rows.[<c.name>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
+          FROM (
+            SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c.name>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
+              FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+                     <columns:{c|all_rows.[<c.name>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
+                FROM (
+                  SELECT <columns:{c|
+                    <if(c.requiresTypeCast)>CAST(rows.[<c.name>] as <c.synapseDataType>) AS [<c.name>]
+                    <else>rows.[<c.name>]<endif>}; separator=",">
+                  <if(includeTotalRowCount)>,
+                  count(*) over () <totalRowCountColumnName>
+                  <endif>
+                  FROM OPENROWSET(BULK '<parquetFileLocation>',
+                                DATA_SOURCE = '<datasource>',
+                                FORMAT='PARQUET') WITH (
+                                  <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
+                                  <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+                                  }; separator=", ">
+                                 ) AS rows
+                  ) AS all_rows
+                <userFilter>
+             ) AS rows_filtered) AS final_rows
+          WHERE final_rows.[datarepo_row_number] >= :offset
+            AND final_rows.[datarepo_row_number] \\<= :offset + :limit;""";
 
   private static final String QUERY_TEXT_COLUMN_STATS_TEMPLATE =
       """
@@ -1305,7 +1313,6 @@ public class AzureSynapsePdao {
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
             .render();
-
     try {
       return synapseJdbcTemplate.query(
           sql,

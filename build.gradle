@@ -576,6 +576,16 @@ task testAll(type: Test) {
     outputs.upToDateWhen { false }
 }
 
+task verifyPacts( type: Test ) {
+    useJUnitPlatform()
+    systemProperty 'pact.provider.version', System.getenv('PACT_PROVIDER_COMMIT')
+    systemProperty 'pact.provider.branch', System.getenv('PACT_PROVIDER_BRANCH')
+    systemProperty 'pact.verifier.publishResults', false
+    filter {
+        includeTestsMatching "*ProviderTest*"
+    }
+}
+
 compileGeneratedJava.dependsOn swaggerSources.server.code
 compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses

@@ -50,6 +50,5 @@ public class SnapshotPatchAuthDomainFlight extends Flight {
             "The auth domain group for this snapshot was updated."));
 
     addStep(new PatchSnapshotAuthDomainSetResponseStep(iamService, userReq, snapshotId));
-
   }
 }

@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.authDomain;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.PatchAuthDomainResponseModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.job.DefaultUndoStep;
@@ -28,7 +29,9 @@ public class PatchSnapshotAuthDomainSetResponseStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) {
     List<String> authDomain =
         iamService.retrieveAuthDomain(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
-    FlightUtils.setResponse(context, authDomain, HttpStatus.OK);
+    PatchAuthDomainResponseModel response =
+        new PatchAuthDomainResponseModel().authDomain(authDomain);
+    FlightUtils.setResponse(context, response, HttpStatus.OK);
     return StepResult.getStepResultSuccess();
   }
 }

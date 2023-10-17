@@ -287,8 +287,17 @@ public class SnapshotsApiController implements SnapshotsApi {
   @Override
   public ResponseEntity<List<String>> getSnapshotAuthDomain(@PathVariable("id") UUID id) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<String> response = iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, id);
+    List<String> response =
+        iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, id);
     return ResponseEntity.ok(response);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> patchSnapshotAuthDomain(
+      @PathVariable("id") UUID id, @Valid @RequestBody List<String> userGroups) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    String jobId = snapshotService.patchSnapshotAuthDomain(userReq, id, userGroups);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   // --snapshot policies --

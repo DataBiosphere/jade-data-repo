@@ -74,6 +74,7 @@ import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
+import bio.terra.service.snapshot.flight.authDomain.SnapshotPatchAuthDomainFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
@@ -588,6 +589,15 @@ public class SnapshotService {
     return snapshotRequestModel.getContents().stream()
         .map(c -> datasetService.retrieveByName(c.getDatasetName()))
         .collect(Collectors.toList());
+  }
+
+  public String patchSnapshotAuthDomain(
+      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> userGroups) {
+    String description = "Patch auth domain for snapshot " + snapshotId;
+    return jobService
+        .newJob(description, SnapshotPatchAuthDomainFlight.class, userGroups, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
+        .submit();
   }
 
   /**

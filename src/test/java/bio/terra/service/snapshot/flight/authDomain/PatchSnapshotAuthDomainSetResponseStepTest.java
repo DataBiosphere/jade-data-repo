@@ -5,12 +5,12 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.PatchAuthDomainResponseModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
@@ -59,10 +59,10 @@ public class PatchSnapshotAuthDomainSetResponseStepTest {
     FlightMap workingMap = flightContext.getWorkingMap();
     assertEquals(
         workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class), HttpStatus.OK);
-//    assertTrue(
-//        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), List.class).containsAll(userGroups));
-
-    step.undoStep(flightContext);
-    verifyNoInteractions(iamService);
+    assertTrue(
+        workingMap
+            .get(JobMapKeys.RESPONSE.getKeyName(), PatchAuthDomainResponseModel.class)
+            .getAuthDomain()
+            .containsAll(userGroups));
   }
 }

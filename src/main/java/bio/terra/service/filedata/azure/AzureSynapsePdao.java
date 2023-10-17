@@ -1297,7 +1297,7 @@ public class AzureSynapsePdao {
     List<SynapseColumn> columns =
         ListUtils.union(
             List.of(
-                SynapseColumn.toSynapseColumn(
+                Column.toSynapseColumn(
                     new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING))),
             table.getSynapseColumns());
     boolean includeTotalRowCount = collectionType.equals(CollectionType.DATASET);

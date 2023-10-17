@@ -93,13 +93,10 @@ public class SynapseColumn extends Column {
     if (isArrayOf) {
       return false;
     }
-    switch (dataType) {
-      case INTEGER:
-      case INT64:
-        return true;
-      default:
-        return false;
-    }
+    return switch (dataType) {
+      case INTEGER, INT64 -> true;
+      default -> false;
+    };
   }
 
   static boolean checkForCollateArgRequirement(TableDataType dataType, boolean isArrayOf) {

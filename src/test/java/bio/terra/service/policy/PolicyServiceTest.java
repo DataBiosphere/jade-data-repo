@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,8 +18,10 @@ import bio.terra.policy.client.ApiException;
 import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
+import bio.terra.policy.model.TpsPaoUpdateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
+import bio.terra.policy.model.TpsPolicyPair;
 import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
@@ -44,9 +47,11 @@ public class PolicyServiceTest {
   @Mock private PublicApi tpsUnauthApi;
   private final UUID snapshotId = UUID.randomUUID();
   private PolicyService policyService;
-  private final TpsPolicyInput policy =
-      new TpsPolicyInput().namespace("terra").name("protected-data");
-  private final TpsPolicyInputs policies = new TpsPolicyInputs().addInputsItem(policy);
+  private final TpsPolicyInput protectedDataPolicy =
+      new TpsPolicyInput()
+          .namespace(PolicyService.POLICY_NAMESPACE)
+          .name(PolicyService.PROTECTED_DATA_POLICY_NAME);
+  private final TpsPolicyInputs policies = new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
 
   @BeforeEach
   public void setup() throws Exception {
@@ -59,6 +64,19 @@ public class PolicyServiceTest {
 
   private void mockUnauthPolicyApi() {
     when(policyApiService.getUnauthPolicyApi()).thenReturn(tpsUnauthApi);
+  }
+
+  @Test
+  void getGroupConstraintPolicyInput() {
+    String groupName = "testGroup";
+    TpsPolicyInput groupConstraintPolicy =
+        new TpsPolicyInput()
+            .namespace(PolicyService.POLICY_NAMESPACE)
+            .name(PolicyService.GROUP_CONSTRAINT_POLICY_NAME)
+            .addAdditionalDataItem(
+                new TpsPolicyPair().key(PolicyService.GROUP_CONSTRAINT_KEY_NAME).value(groupName));
+    TpsPolicyInput actualPolicy = PolicyService.getGroupConstraintPolicyInput(groupName);
+    assertEquals(actualPolicy, groupConstraintPolicy);
   }
 
   @Test
@@ -82,6 +100,36 @@ public class PolicyServiceTest {
                 .component(TpsComponent.TDR)
                 .objectType(TpsObjectType.SNAPSHOT)
                 .attributes(policies));
+  }
+
+  @Test
+  void testUpdateSnapshotPao() throws Exception {
+    mockPolicyApi();
+    TpsPaoUpdateRequest updateRequest = new TpsPaoUpdateRequest().addAttributes(policies);
+    policyService.updatePao(updateRequest, snapshotId);
+    verify(tpsApi).updatePao(new TpsPaoUpdateRequest().addAttributes(policies), snapshotId);
+  }
+
+  @Test
+  void testCreateOrUpdatePaoCreatesNewPao() throws Exception {
+    mockPolicyApi();
+    policyService.createOrUpdatePao(snapshotId, TpsObjectType.SNAPSHOT, policies);
+    verify(tpsApi)
+        .createPao(
+            new TpsPaoCreateRequest()
+                .objectId(snapshotId)
+                .component(TpsComponent.TDR)
+                .objectType(TpsObjectType.SNAPSHOT)
+                .attributes(policies));
+  }
+
+  @Test
+  void testCreateOrUpdatePaoUpdatesExistingPao() throws Exception {
+    mockPolicyApi();
+    var exception = new ApiException(HttpStatus.CONFLICT.value(), "Policy object already exists");
+    doThrow(exception).when(tpsApi).createPao(any());
+    policyService.createOrUpdatePao(snapshotId, TpsObjectType.SNAPSHOT, policies);
+    verify(tpsApi).updatePao(new TpsPaoUpdateRequest().addAttributes(policies), snapshotId);
   }
 
   @Test

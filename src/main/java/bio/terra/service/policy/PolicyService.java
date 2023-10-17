@@ -8,8 +8,10 @@ import bio.terra.policy.client.ApiException;
 import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
+import bio.terra.policy.model.TpsPaoUpdateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
+import bio.terra.policy.model.TpsPolicyPair;
 import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
@@ -27,6 +29,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class PolicyService {
   public static final String POLICY_NAMESPACE = "terra";
+  public static final String GROUP_CONSTRAINT_POLICY_NAME = "group-constraint";
+  public static final String GROUP_CONSTRAINT_KEY_NAME = "group";
   public static final String PROTECTED_DATA_POLICY_NAME = "protected-data";
   private static final Logger logger = LoggerFactory.getLogger(PolicyService.class);
 
@@ -37,6 +41,15 @@ public class PolicyService {
   }
 
   // -- Policy Attribute Object Interface --
+
+  public static TpsPolicyInput getGroupConstraintPolicyInput(String groupName) {
+    TpsPolicyPair policyPair = new TpsPolicyPair().key(GROUP_CONSTRAINT_KEY_NAME).value(groupName);
+    return new TpsPolicyInput()
+        .namespace(POLICY_NAMESPACE)
+        .name(GROUP_CONSTRAINT_POLICY_NAME)
+        .addAdditionalDataItem(policyPair);
+  }
+
   public static TpsPolicyInput getProtectedDataPolicyInput() {
     return new TpsPolicyInput().namespace(POLICY_NAMESPACE).name(PROTECTED_DATA_POLICY_NAME);
   }
@@ -58,6 +71,25 @@ public class PolicyService {
               .attributes(inputs));
     } catch (ApiException e) {
       throw convertApiException(e);
+    }
+  }
+
+  public void updatePao(TpsPaoUpdateRequest updateRequest, UUID resourceId) {
+    TpsApi tpsApi = policyApiService.getPolicyApi();
+    try {
+      tpsApi.updatePao(updateRequest, resourceId);
+    } catch (ApiException e) {
+      throw convertApiException(e);
+    }
+  }
+
+  public void createOrUpdatePao(
+      UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
+    try {
+      createPao(resourceId, resourceType, policyInputs);
+    } catch (PolicyConflictException e) {
+      TpsPaoUpdateRequest updateRequest = new TpsPaoUpdateRequest().addAttributes(policyInputs);
+      updatePao(updateRequest, resourceId);
     }
   }
 

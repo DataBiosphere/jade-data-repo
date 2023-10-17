@@ -39,6 +39,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -296,7 +297,8 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<JobModel> patchSnapshotAuthDomain(
       @PathVariable("id") UUID id, @Valid @RequestBody List<String> userGroups) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    String jobId = snapshotService.patchSnapshotAuthDomain(userReq, id, userGroups);
+    List<String> uniqueUserGroups = new HashSet<>(userGroups).stream().toList();
+    String jobId = snapshotService.patchSnapshotAuthDomain(userReq, id, uniqueUserGroups);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 

@@ -83,6 +83,7 @@ public class AzureSynapsePdao {
 
   private final AzureResourceConfiguration azureResourceConfiguration;
   private final NamedParameterJdbcTemplate synapseJdbcTemplate;
+  private static final String COLLATE_NAME = "Latin1_General_100_CI_AI_SC_UTF8";
   private static final String DEFAULT_DB_NAME = "master";
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
@@ -111,6 +112,8 @@ public class AzureSynapsePdao {
               FORMAT_TYPE = PARQUET
            )
     """;
+
+  private static final String DB_COLLATE_TEMPLATE = "ALTER DATABASE CURRENT COLLATE <collateName>";
 
   private static final String SCOPED_CREDENTIAL_CREATE_TEMPLATE =
       """
@@ -276,7 +279,7 @@ public class AzureSynapsePdao {
               ) WITH (
                 <if(isCSV)>
           <columns:{c|[<c.name>] <c.synapseDataType>
-          <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+          <if(c.requiresCollate)> COLLATE <collateName><endif>
           }; separator=", ">
           <else>doc nvarchar(max)
           <endif>
@@ -422,6 +425,14 @@ public class AzureSynapsePdao {
       } catch (SQLException e) {
         throw new PdaoException("Error setting up parquet file format", e);
       }
+
+      // Connect to the newly created db to set up the collate format used to compare data
+      try (Connection connection = ds.getConnection();
+          Statement statement = connection.createStatement()) {
+        statement.execute(new ST(DB_COLLATE_TEMPLATE).add("collateName", COLLATE_NAME).render());
+      } catch (SQLException e) {
+        throw new PdaoException("Error setting up collate", e);
+      }
     } else {
       logger.info("Skipping Synapse database initialization");
     }
@@ -553,6 +564,7 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", datasetTable.getSynapseColumns());
+    sqlCreateTableTemplate.add("collateName", COLLATE_NAME);
     return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
@@ -1110,7 +1122,8 @@ public class AzureSynapsePdao {
         .add("ingestFileDataSourceName", datasetDataSourceName)
         .add("drsLocator", drsLocator)
         .add("snapshotId", snapshotId)
-        .add("isGlobalFileIds", isGlobalFileIds);
+        .add("isGlobalFileIds", isGlobalFileIds)
+        .add("collateName", COLLATE_NAME);
 
     return sqlCreateSnapshotTableTemplate;
   }
@@ -1222,6 +1235,7 @@ public class AzureSynapsePdao {
             .add("parquetFileLocation", parquetFileLocation)
             .add("direction", SqlSortDirection.ASC)
             .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
+            .add("collateName", COLLATE_NAME)
             .render();
 
     try {
@@ -1281,6 +1295,7 @@ public class AzureSynapsePdao {
             .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add("collateName", COLLATE_NAME)
             .render();
 
     try {

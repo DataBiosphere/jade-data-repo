@@ -12,6 +12,7 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.PatchAuthDomainResponseModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -37,9 +38,9 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -294,12 +295,12 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> patchSnapshotAuthDomain(
+  public ResponseEntity<PatchAuthDomainResponseModel> patchSnapshotAuthDomain(
       @PathVariable("id") UUID id, @Valid @RequestBody List<String> userGroups) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<String> uniqueUserGroups = new HashSet<>(userGroups).stream().toList();
-    String jobId = snapshotService.patchSnapshotAuthDomain(userReq, id, uniqueUserGroups);
-    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    PatchAuthDomainResponseModel result =
+        snapshotService.patchSnapshotAuthDomain(userReq, id, new ArrayList<>(userGroups));
+    return ResponseEntity.ok(result);
   }
 
   // --snapshot policies --

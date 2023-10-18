@@ -24,6 +24,7 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
+import bio.terra.model.PatchAuthDomainResponseModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -591,13 +592,13 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public String patchSnapshotAuthDomain(
+  public PatchAuthDomainResponseModel patchSnapshotAuthDomain(
       AuthenticatedUserRequest userReq, UUID snapshotId, List<String> userGroups) {
     String description = "Patch auth domain for snapshot " + snapshotId;
     return jobService
         .newJob(description, SnapshotPatchAuthDomainFlight.class, userGroups, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
-        .submit();
+        .submitAndWait(PatchAuthDomainResponseModel.class);
   }
 
   /**

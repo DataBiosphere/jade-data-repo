@@ -12,6 +12,7 @@ import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
@@ -32,12 +33,14 @@ public class SnapshotPatchAuthDomainFlight extends Flight {
     UUID snapshotId =
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
     List<String> userGroups = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), List.class);
+    List<String> uniqueUserGroups = new HashSet<>(userGroups).stream().toList();
 
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
-    addStep(new PatchSnapshotAuthDomainStep(iamService, userReq, snapshotId, userGroups));
+    addStep(new PatchSnapshotAuthDomainStep(iamService, userReq, snapshotId, uniqueUserGroups));
 
-    addStep(new CreateSnapshotGroupConstraintPolicyStep(policyService, snapshotId, userGroups));
+    addStep(
+        new CreateSnapshotGroupConstraintPolicyStep(policyService, snapshotId, uniqueUserGroups));
 
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
 

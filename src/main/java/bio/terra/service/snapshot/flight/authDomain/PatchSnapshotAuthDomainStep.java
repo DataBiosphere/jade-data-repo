@@ -3,8 +3,10 @@ package bio.terra.service.snapshot.flight.authDomain;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.exception.SnapshotAuthDomainExistsException;
+import bio.terra.service.snapshot.exception.SnapshotAuthDomainNotFoundException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -43,7 +45,14 @@ public class PatchSnapshotAuthDomainStep extends DefaultUndoStep {
                   "Snapshot " + snapshotId + " already has an auth domain set: " +
                       existingAuthDomain));
         }
-    iamService.patchAuthDomain(userRequest, IamResourceType.DATASNAPSHOT, snapshotId, userGroups);
+    try {
+      iamService.patchAuthDomain(userRequest, IamResourceType.DATASNAPSHOT, snapshotId, userGroups);
+    } catch (IamInternalServerErrorException e) {
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL,
+          new SnapshotAuthDomainNotFoundException(
+              "One or more of these groups do not exist: " + userGroups));
+    }
     return StepResult.getStepResultSuccess();
   }
 }

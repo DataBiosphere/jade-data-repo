@@ -298,6 +298,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<PatchAuthDomainResponseModel> patchSnapshotAuthDomain(
       @PathVariable("id") UUID id, @Valid @RequestBody List<String> userGroups) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_AUTH_DOMAIN);
     PatchAuthDomainResponseModel result =
         snapshotService.patchSnapshotAuthDomain(userReq, id, new ArrayList<>(userGroups));
     return ResponseEntity.ok(result);

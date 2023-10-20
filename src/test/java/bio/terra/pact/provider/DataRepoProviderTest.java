@@ -48,14 +48,16 @@ public class DataRepoProviderTest {
   void getNonexistentSnapshot() {
     when(snapshotService.retrieveSnapshotModel(
             eq(UUID.fromString("12345678-abc9-012d-3456-e7fab89cd01e")), any(), any()))
-        .thenThrow(new SnapshotNotFoundException("Snapshot not found"));
+        .thenThrow(
+            new SnapshotNotFoundException(
+                "Snapshot not found - id: 12345678-abc9-012d-3456-e7fab89cd01e"));
   }
 
   @State("user does not have access to snapshot")
   void noAccessToSnapshot() {
     doThrow(new IamForbiddenException("User does not have required action"))
         .when(snapshotService)
-        .verifySnapshotReadable(UUID.fromString("12345678-abc9-012d-3456-e7fab89cd01e"), TEST_USER);
+        .verifySnapshotReadable(any(), any());
   }
 
   @State("user has access to snapshot")

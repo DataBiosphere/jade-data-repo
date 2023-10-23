@@ -1,9 +1,6 @@
 package bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -20,17 +17,15 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep
-    extends DefaultUndoStep {
+public class EnableSecureMonitoringCreateSnapshotsTpsPolicyStep extends DefaultUndoStep {
   private static final Logger logger =
-      LoggerFactory.getLogger(
-          EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep.class);
+      LoggerFactory.getLogger(EnableSecureMonitoringCreateSnapshotsTpsPolicyStep.class);
 
   private final PolicyService policyService;
   private final SnapshotService snapshotService;
   private final AuthenticatedUserRequest userRequest;
 
-  public EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep(
+  public EnableSecureMonitoringCreateSnapshotsTpsPolicyStep(
       SnapshotService snapshotService,
       PolicyService policyService,
       AuthenticatedUserRequest userRequest) {
@@ -41,11 +36,14 @@ public class EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    List<UUID> snapshotsToCreatePolicies = enumerateSnapshotIdsForDataset(context);
+    FlightMap workingMap = context.getWorkingMap();
+    UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+    List<UUID> snapshotPoliciesToCreate =
+        snapshotService.enumerateSnapshotIdsForDataset(datasetId, userRequest);
     TpsPolicyInput protectedDataPolicy = PolicyService.getProtectedDataPolicyInput();
     TpsPolicyInputs policyInputs = new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
 
-    snapshotsToCreatePolicies.forEach(
+    snapshotPoliciesToCreate.forEach(
         snapshotId -> {
           try {
             policyService.createSnapshotPao(snapshotId, policyInputs);
@@ -55,25 +53,5 @@ public class EnableSecureMonitoringCreateSourceDatasetAndSnapshotsTpsPolicyStep
           }
         });
     return StepResult.getStepResultSuccess();
-  }
-
-  private List<UUID> enumerateSnapshotIdsForDataset(FlightContext context) {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    return snapshotService
-        .enumerateSnapshots(
-            userRequest,
-            0,
-            Integer.MAX_VALUE,
-            EnumerateSortByParam.NAME,
-            SqlSortDirection.ASC,
-            "",
-            "",
-            List.of(datasetId),
-            List.of())
-        .getItems()
-        .stream()
-        .map(SnapshotSummaryModel::getId)
-        .toList();
   }
 }

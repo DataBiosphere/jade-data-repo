@@ -61,6 +61,7 @@ class SnapshotsApiControllerTest {
   private static final String JOB_ID = "a-job-id";
   private static final Boolean EXPORT_GCS_PATHS = false;
   private static final Boolean VALIDATE_PRIMARY_KEY_UNIQUENESS = true;
+  private static final Boolean SIGN_URLS = true;
 
   private static final String RETRIEVE_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}";
   private static final String EXPORT_SNAPSHOT_ENDPOINT = RETRIEVE_SNAPSHOT_ENDPOINT + "/export";
@@ -75,7 +76,7 @@ class SnapshotsApiControllerTest {
     JobModel expected = new JobModel().id(JOB_ID).jobStatus(JobModel.JobStatusEnum.RUNNING);
 
     when(snapshotService.exportSnapshot(
-            SNAPSHOT_ID, TEST_USER, EXPORT_GCS_PATHS, VALIDATE_PRIMARY_KEY_UNIQUENESS))
+            SNAPSHOT_ID, TEST_USER, EXPORT_GCS_PATHS, VALIDATE_PRIMARY_KEY_UNIQUENESS, SIGN_URLS))
         .thenReturn(JOB_ID);
     when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(expected);
 
@@ -95,7 +96,8 @@ class SnapshotsApiControllerTest {
 
     verifyAuthorizationCall(IamAction.EXPORT_SNAPSHOT);
     verify(snapshotService)
-        .exportSnapshot(SNAPSHOT_ID, TEST_USER, EXPORT_GCS_PATHS, VALIDATE_PRIMARY_KEY_UNIQUENESS);
+        .exportSnapshot(
+            SNAPSHOT_ID, TEST_USER, EXPORT_GCS_PATHS, VALIDATE_PRIMARY_KEY_UNIQUENESS, SIGN_URLS);
   }
 
   @Test

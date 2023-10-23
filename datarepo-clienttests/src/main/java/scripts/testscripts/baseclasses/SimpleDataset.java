@@ -119,7 +119,6 @@ public class SimpleDataset extends runner.TestScript {
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // make the delete dataset request and wait for the job to finish
@@ -132,7 +131,10 @@ public class SimpleDataset extends runner.TestScript {
 
     // delete the profile
     if (deleteProfile) {
-      resourcesApi.deleteProfile(billingProfileModel.getId());
+      TestUserSpecification admin = SAMUtils.findTestUserThatIsDataRepoAdmin(testUsers, server);
+      ApiClient adminClient = DataRepoUtils.getClientForTestUser(admin, server);
+      ResourcesApi adminResourcesApi = new ResourcesApi(adminClient);
+      adminResourcesApi.deleteProfile(billingProfileModel.getId(), true);
       logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
     } else {
       logger.info("Skipping profile delete because test is using a shared profile");

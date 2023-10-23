@@ -1,6 +1,8 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,6 +27,7 @@ import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.resourcemanager.storage.models.StorageAccounts;
+import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -326,5 +329,19 @@ public class AzureStorageAccountServiceTest {
     doReturn(withSku).when(withGroup).withExistingResourceGroup(MANAGED_GROUP_NAME);
     doReturn(withGroup).when(withRegion).withRegion(REGION.getValue());
     doReturn(withRegion).when(storageAccounts).define(STORAGE_ACCOUNT_NAME);
+  }
+
+  @Test
+  public void listStorageAccountPerAppDeployment() {
+    UUID appId = UUID.randomUUID();
+    List<AzureStorageAccountResource> storageAccounts =
+        List.of(
+            new AzureStorageAccountResource().name("StorageAccount1"),
+            new AzureStorageAccountResource().name("StorageAccount2"));
+    when(resourceDao.retrieveStorageAccountsByApplicationResource(appId, true))
+        .thenReturn(storageAccounts);
+    var returnedStorageAccounts = service.listStorageAccountPerAppDeployment(List.of(appId), true);
+    assertThat(
+        "Correct storage accounts are returned", returnedStorageAccounts, equalTo(storageAccounts));
   }
 }

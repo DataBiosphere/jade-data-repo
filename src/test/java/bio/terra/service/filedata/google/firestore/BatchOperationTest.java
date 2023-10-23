@@ -39,7 +39,7 @@ public class BatchOperationTest {
   public void setup() {
     // Use fewer firestoreRetries for testing
     GoogleResourceConfiguration resourceConfiguration =
-        new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456");
+        new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     ConfigurationService configurationService =
         new ConfigurationService(
             samConfiguration, gcsConfiguration, resourceConfiguration, appConfiguration);

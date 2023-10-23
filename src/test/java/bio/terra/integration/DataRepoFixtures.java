@@ -183,12 +183,31 @@ public class DataRepoFixtures {
     assertGoodDeleteResponse(deleteResponse);
   }
 
+  public void deleteProfileWithCloudResourceDelete(TestConfiguration.User user, UUID profileId)
+      throws Exception {
+    DataRepoResponse<DeleteResponseModel> deleteResponse = deleteProfileLog(user, profileId, true);
+    assertGoodDeleteResponse(deleteResponse);
+  }
+
   public DataRepoResponse<DeleteResponseModel> deleteProfileLog(
       TestConfiguration.User user, UUID profileId) throws Exception {
+    return deleteProfileLog(user, profileId, false);
+  }
 
+  public DataRepoResponse<DeleteResponseModel> deleteProfileLog(
+      TestConfiguration.User user, UUID profileId, boolean deleteCloudResources) throws Exception {
+
+    String deleteCloudResourcesQuery;
+    if (deleteCloudResources) {
+      deleteCloudResourcesQuery = "?deleteCloudResources=true";
+    } else {
+      deleteCloudResourcesQuery = "";
+    }
     DataRepoResponse<JobModel> jobResponse =
         dataRepoClient.delete(
-            user, "/api/resources/v1/profiles/" + profileId, new TypeReference<>() {});
+            user,
+            "/api/resources/v1/profiles/" + profileId + deleteCloudResourcesQuery,
+            new TypeReference<>() {});
     assertTrue("profile delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "profile delete launch response is present", jobResponse.getResponseObject().isPresent());
@@ -252,11 +271,21 @@ public class DataRepoFixtures {
 
   public boolean enableSecureMonitoring(TestConfiguration.User user, UUID datasetId)
       throws Exception {
+    return updateSecureMonitoring(user, datasetId, "ENABLE_SECURE_MONITORING");
+  }
+
+  public boolean disableSecureMonitoring(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    return updateSecureMonitoring(user, datasetId, "DISABLE_SECURE_MONITORING");
+  }
+
+  private boolean updateSecureMonitoring(
+      TestConfiguration.User user, UUID datasetId, String upgradeFlightName) throws Exception {
     UpgradeModel requestModel =
         new UpgradeModel()
-            .upgradeName("ENABLE_SECURE_MONITORING")
+            .upgradeName(upgradeFlightName)
             .upgradeType(UpgradeModel.UpgradeTypeEnum.CUSTOM)
-            .customName("ENABLE_SECURE_MONITORING")
+            .customName(upgradeFlightName)
             .addCustomArgsItem(datasetId.toString());
 
     String json = TestUtils.mapToJson(requestModel);
@@ -1208,10 +1237,11 @@ public class DataRepoFixtures {
       TestConfiguration.User user,
       UUID snapshotId,
       boolean resolveGsPaths,
-      boolean validatePkUniqueness)
+      boolean validatePkUniqueness,
+      boolean signUrls)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        exportSnapshot(user, snapshotId, resolveGsPaths, validatePkUniqueness);
+        exportSnapshot(user, snapshotId, resolveGsPaths, validatePkUniqueness, signUrls);
     assertTrue("snapshot export launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "snapshot export launch response is present", jobResponse.getResponseObject().isPresent());
@@ -1223,13 +1253,14 @@ public class DataRepoFixtures {
       TestConfiguration.User user,
       UUID snapshotId,
       boolean resolveGsPaths,
-      boolean validatePkUniqueness)
+      boolean validatePkUniqueness,
+      boolean signUrls)
       throws Exception {
     return dataRepoClient.get(
         user,
         String.format(
-            "/api/repository/v1/snapshots/%s/export?exportGsPaths=%s&validatePrimaryKeyUniqueness=%s",
-            snapshotId, resolveGsPaths, validatePkUniqueness),
+            "/api/repository/v1/snapshots/%s/export?exportGsPaths=%s&validatePrimaryKeyUniqueness=%s&signUrls=%s",
+            snapshotId, resolveGsPaths, validatePkUniqueness, signUrls),
         new TypeReference<>() {});
   }
 

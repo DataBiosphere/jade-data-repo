@@ -10,7 +10,9 @@ import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundExcep
 import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
+import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -205,16 +207,46 @@ public class AzureStorageAccountService {
     return resourceDao.retrieveStorageAccountById(storageAccountId);
   }
 
-  public void deleteCloudStorageAccountMetadata(
+  public void markForDeleteCloudStorageAccountMetadata(
       String storageAccountResourceName, String topLevelContainer, String flightId) {
     logger.info(
-        "Deleting Azure storage account metadata named {} with top level container {}",
+        "Marking for delete Azure storage account metadata named {} with top level container {}",
         storageAccountResourceName,
         topLevelContainer);
     boolean deleted =
-        resourceDao.deleteStorageAccountMetadata(
+        resourceDao.markForDeleteStorageAccountMetadata(
             storageAccountResourceName, topLevelContainer, flightId);
-    logger.info("Metadata removed: {}", deleted);
+    logger.info("Metadata marked for delete: {}", deleted);
+  }
+
+  /**
+   * Delete the Azure cloud storage account resource.
+   *
+   * @param profileModel the TDR billing profile associated with this storage account
+   * @param storageAccountResource
+   */
+  public void deleteCloudStorageAccount(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    logger.info("Deleting storage account {}", storageAccountResource.getName());
+    AzureResourceManager clientSa =
+        resourceConfiguration.getClient(profileModel.getSubscriptionId());
+    clientSa
+        .storageAccounts()
+        .deleteByResourceGroup(
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
+  }
+
+  public List<AzureStorageAccountResource> listStorageAccountPerAppDeployment(
+      List<UUID> applicationResourceIds, boolean markedForDelete) {
+    return applicationResourceIds.stream()
+        .flatMap(
+            applicationResourceId ->
+                resourceDao
+                    .retrieveStorageAccountsByApplicationResource(
+                        applicationResourceId, markedForDelete)
+                    .stream())
+        .toList();
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {
@@ -306,7 +338,7 @@ public class AzureStorageAccountService {
    * @return a reference to the storage account as an Azure storage account object, null if not
    *     found
    */
-  StorageAccount getCloudStorageAccount(
+  public StorageAccount getCloudStorageAccount(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     if (storageAccountResource == null) {
       return null;

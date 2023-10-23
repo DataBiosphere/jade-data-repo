@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring;
+package bio.terra.service.dataset.flight.upgrade.disableSecureMonitoring;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.FeatureNotImplementedException;
@@ -8,6 +8,9 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringRecordInFlightMapStep;
+import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringRefolderGcpProjectsStep;
+import bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring.SecureMonitoringSetFlagStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.policy.PolicyService;
@@ -18,9 +21,9 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class EnableSecureMonitoringFlight extends Flight {
+public class DisableSecureMonitoringFlight extends Flight {
 
-  public EnableSecureMonitoringFlight(FlightMap inputParameters, Object applicationContext) {
+  public DisableSecureMonitoringFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
@@ -42,18 +45,18 @@ public class EnableSecureMonitoringFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new LockDatasetStep(datasetService, datasetId, false));
       addStep(new SecureMonitoringRecordInFlightMapStep(dataset));
-      addStep(new SecureMonitoringSetFlagStep(datasetDao, userReq, true));
+      addStep(new SecureMonitoringSetFlagStep(datasetDao, userReq, false));
       addStep(
           new SecureMonitoringRefolderGcpProjectsStep(
-              dataset, snapshotService, bufferService, userReq, true));
+              dataset, snapshotService, bufferService, userReq, false));
       addStep(
-          new EnableSecureMonitoringCreateSnapshotsTpsPolicyStep(
+          new DisableSecureMonitoringDeleteSnapshotsTpsPolicyStep(
               snapshotService, policyService, userReq));
-      addStep(new EnableSecureMonitoringJournalEntryStep(journalService, userReq));
+      addStep(new DisableSecureMonitoringJournalEntryStep(journalService, userReq));
       addStep(new UnlockDatasetStep(datasetService, datasetId, false));
     } else {
       throw new FeatureNotImplementedException(
-          "Updating an existing dataset to use secure monitoring is only supported on GCP");
+          "Updating an existing dataset to disable secure monitoring is only supported on GCP");
     }
   }
 }

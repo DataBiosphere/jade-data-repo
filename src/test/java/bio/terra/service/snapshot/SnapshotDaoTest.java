@@ -369,6 +369,25 @@ public class SnapshotDaoTest {
     testSortingDescriptions(SqlSortDirection.DESC);
     testSortingDescriptions(SqlSortDirection.ASC);
 
+    SnapshotSummary snapshotSummary = allSnapshots.getItems().get(0);
+    MetadataEnumeration<SnapshotSummary> filterIdEnum =
+        snapshotDao.retrieveSnapshots(
+            0,
+            6,
+            null,
+            null,
+            snapshotSummary.getId().toString(),
+            null,
+            datasetIds,
+            snapshotIds,
+            null);
+    List<SnapshotSummary> filteredSnapshotsById = filterIdEnum.getItems();
+    assertThat("snapshot filter by id returns one snapshot", filteredSnapshotsById, hasSize(1));
+    assertThat(
+        "snapshot filter by id returns one snapshot",
+        filteredSnapshotsById.get(0).getId(),
+        equalTo(snapshotSummary.getId()));
+
     MetadataEnumeration<SnapshotSummary> filterDefaultRegionEnum =
         snapshotDao.retrieveSnapshots(
             0,

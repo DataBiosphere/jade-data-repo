@@ -9,6 +9,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class BardEvent {
   private static final String APP_ID_FIELD = "appId";
   private static final String HOSTNAME_FIELD = "hostname";
+  private static final String PUSH_TO_MIXPANEL_FIELD = "pushToMixpanel";
   private final String event;
   private final Map<String, Object> properties;
 
@@ -18,6 +19,7 @@ public class BardEvent {
     this.properties.putAll(properties);
     this.properties.put(APP_ID_FIELD, appId);
     this.properties.put(HOSTNAME_FIELD, hostName);
+    this.properties.put(PUSH_TO_MIXPANEL_FIELD, false);
   }
 
   public String getEvent() {

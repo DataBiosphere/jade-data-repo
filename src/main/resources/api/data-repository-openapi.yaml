@@ -267,6 +267,13 @@ paths:
       operationId: deleteProfile
       parameters:
         - $ref: '#/components/parameters/Id'
+        - name: deleteCloudResources
+          in: query
+          description: ADMIN ONLY - Delete all Azure cloud resources along with billing profile.
+          schema:
+            type: boolean
+            default: false
+          required: false
       responses:
         200:
           description: Redirect for profile delete result
@@ -892,6 +899,15 @@ paths:
             required: false
           description: Verify that primary keys are unique in all exported tables.
             Required for proper Terra workspace integration
+        - in: query
+          name: signUrls
+          schema:
+            type: boolean
+            default: true
+            required: false
+          description: If true, then the export will generate signed URLs for the
+            exported files and manifest. If false, then the export will return URLs native to
+            the cloud backing the snapshot.  Note that this has no effect on Azure backed snapshots
       responses:
         202:
           description: Job status of snapshot export job & url for polling in the

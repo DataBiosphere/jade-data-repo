@@ -39,7 +39,7 @@ public class CreateSentinelStep extends AbstractCreateMonitoringResourceStep {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String sentinelId = workingMap.get(AzureMonitoringMapKeys.SENTINEL_ID, String.class);
     if (sentinelId != null) {
-      monitoringService.deleteSentinel(profileModel, sentinelId);
+      monitoringService.deleteSentinelById(profileModel, sentinelId);
     }
     return StepResult.getStepResultSuccess();
   }

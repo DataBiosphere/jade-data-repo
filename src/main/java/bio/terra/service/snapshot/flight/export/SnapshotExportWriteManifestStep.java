@@ -10,6 +10,7 @@ import bio.terra.model.SnapshotExportResponseModelFormatParquetLocationTables;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -22,34 +23,43 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.storage.Storage;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
+
+  private static final Duration URL_TTL = Duration.ofMinutes(60);
 
   private final UUID snapshotId;
   private final SnapshotService snapshotService;
   private final GcsPdao gcsPdao;
+  private final GcsProjectFactory gcsProjectFactory;
   private final ObjectMapper objectMapper;
   private final AuthenticatedUserRequest userReq;
   private final boolean validatePrimaryKeyUniqueness;
+  private final boolean signUrls;
 
   public SnapshotExportWriteManifestStep(
       UUID snapshotId,
       SnapshotService snapshotService,
       GcsPdao gcsPdao,
+      GcsProjectFactory gcsProjectFactory,
       ObjectMapper objectMapper,
       AuthenticatedUserRequest userReq,
-      boolean validatePrimaryKeyUniqueness) {
+      boolean validatePrimaryKeyUniqueness,
+      boolean signUrls) {
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
     this.gcsPdao = gcsPdao;
+    this.gcsProjectFactory = gcsProjectFactory;
     this.objectMapper = objectMapper;
     this.userReq = userReq;
     this.validatePrimaryKeyUniqueness = validatePrimaryKeyUniqueness;
+    this.signUrls = signUrls;
   }
 
   @Override
@@ -65,17 +75,29 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
         GcsUriUtils.getGsPathFromComponents(
             exportBucket.getName(), String.format("%s/manifest.json", context.getFlightId()));
 
+    SnapshotModel snapshot = snapshotService.retrieveSnapshotModel(snapshotId, userReq);
+    Storage storage = gcsProjectFactory.getStorage(snapshot.getDataProject(), true);
     List<SnapshotExportResponseModelFormatParquetLocationTables> tables =
         paths.entrySet().stream()
             .map(
                 entry ->
                     new SnapshotExportResponseModelFormatParquetLocationTables()
                         .name(entry.getKey())
-                        .paths(entry.getValue()))
-            .collect(Collectors.toList());
+                        .paths(
+                            signUrls
+                                ? entry.getValue().stream()
+                                    .map(
+                                        path ->
+                                            GcsUriUtils.signGsUrl(
+                                                storage, path, URL_TTL, userReq.getEmail()))
+                                    .toList()
+                                : entry.getValue()))
+            .toList();
 
-    SnapshotModel snapshot = snapshotService.retrieveSnapshotModel(snapshotId, userReq);
-
+    String effectiveExportManifestFile =
+        signUrls
+            ? GcsUriUtils.signGsUrl(storage, exportManifestPath, URL_TTL, userReq.getEmail())
+            : exportManifestPath;
     SnapshotExportResponseModel responseModel =
         new SnapshotExportResponseModel()
             .snapshot(snapshot)
@@ -83,7 +105,7 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
                 new SnapshotExportResponseModelFormat()
                     .parquet(
                         new SnapshotExportResponseModelFormatParquet()
-                            .manifest(exportManifestPath)
+                            .manifest(effectiveExportManifestFile)
                             .location(
                                 new SnapshotExportResponseModelFormatParquetLocation()
                                     .tables(tables))));

@@ -7,10 +7,10 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 
-public class EnableSecureMonitoringRecordInFlightMapStep extends DefaultUndoStep {
+public class SecureMonitoringRecordInFlightMapStep extends DefaultUndoStep {
   private Dataset dataset;
 
-  public EnableSecureMonitoringRecordInFlightMapStep(Dataset dataset) {
+  public SecureMonitoringRecordInFlightMapStep(Dataset dataset) {
     this.dataset = dataset;
   }
 

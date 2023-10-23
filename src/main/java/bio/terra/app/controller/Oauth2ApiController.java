@@ -42,9 +42,11 @@ public class Oauth2ApiController {
 
   @RequestMapping(value = AUTHORIZE_ENDPOINT)
   public String oauthAuthorize(HttpServletRequest request) {
+    String concatCharacter =
+        openIDConnectConfiguration.getAuthorizationEndpoint().contains("?") ? "&" : "?";
     return "redirect:"
         + openIDConnectConfiguration.getAuthorizationEndpoint()
-        + "?"
+        + concatCharacter
         + decorateAuthRedirectQueryParameters(request.getQueryString());
   }
 

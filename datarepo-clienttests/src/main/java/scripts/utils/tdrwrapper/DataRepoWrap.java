@@ -173,7 +173,7 @@ public class DataRepoWrap {
   }
 
   public WrapFuture<DeleteResponseModel> deleteProfileFuture(UUID profileId) {
-    JobModel jobResponse = apiCallThrow(() -> resourcesApi.deleteProfile(profileId));
+    JobModel jobResponse = apiCallThrow(() -> resourcesApi.deleteProfile(profileId, false));
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
   }
 

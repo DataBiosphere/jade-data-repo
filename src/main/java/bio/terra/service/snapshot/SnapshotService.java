@@ -258,7 +258,8 @@ public class SnapshotService {
       UUID id,
       AuthenticatedUserRequest userReq,
       boolean exportGsPaths,
-      boolean validatePrimaryKeyUniqueness) {
+      boolean validatePrimaryKeyUniqueness,
+      boolean signUrls) {
     Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
     String description = "Export snapshot %s".formatted(snapshot.toLogString());
 
@@ -280,6 +281,7 @@ public class SnapshotService {
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), snapshot.getCloudPlatform())
         .addParameter(ExportMapKeys.EXPORT_GSPATHS, exportGsPaths)
         .addParameter(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, validatePrimaryKeyUniqueness)
+        .addParameter(ExportMapKeys.EXPORT_SIGN_URLS, signUrls)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASNAPSHOT)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id.toString())
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.EXPORT_SNAPSHOT)
@@ -1169,5 +1171,23 @@ public class SnapshotService {
             StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
         .map(SnapshotRetrieveIncludeModel::fromValue)
         .collect(Collectors.toList());
+  }
+
+  public List<UUID> enumerateSnapshotIdsForDataset(
+      UUID datasetId, AuthenticatedUserRequest userRequest) {
+    return enumerateSnapshots(
+            userRequest,
+            0,
+            Integer.MAX_VALUE,
+            EnumerateSortByParam.NAME,
+            SqlSortDirection.ASC,
+            "",
+            "",
+            List.of(datasetId),
+            List.of())
+        .getItems()
+        .stream()
+        .map(SnapshotSummaryModel::getId)
+        .toList();
   }
 }

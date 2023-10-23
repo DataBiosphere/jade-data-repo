@@ -139,6 +139,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   private String stewardToken;
   private User steward;
+  private User admin;
   private UUID datasetId;
   private List<UUID> snapshotIds;
   private UUID profileId;
@@ -153,6 +154,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
     stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
+    admin = admin("hermione");
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     retryOptions =
@@ -193,7 +195,7 @@ public class AzureIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteDataset(steward, datasetId);
     }
     if (profileId != null) {
-      dataRepoFixtures.deleteProfile(steward, profileId);
+      dataRepoFixtures.deleteProfileWithCloudResourceDelete(admin, profileId);
     }
     if (storageAccounts != null) {
       storageAccounts.forEach(this::deleteCloudResources);
@@ -706,7 +708,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =
-        dataRepoFixtures.exportSnapshotLog(steward, snapshotByFullViewId, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward, snapshotByFullViewId, false, false, true);
 
     assertThat(
         "snapshotExport is present", snapshotExport.getResponseObject().isPresent(), is(true));
@@ -1503,7 +1505,6 @@ public class AzureIntegrationTest extends UsersBase {
 
     LogAnalyticsManager clientLaw =
         azureResourceConfiguration.getLogAnalyticsManagerClient(
-            azureResourceConfiguration.credentials().getHomeTenantId(),
             testConfig.getTargetSubscriptionId());
     clientLaw
         .workspaces()
@@ -1530,9 +1531,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     Workspace logAnalyticsWorkspace =
         azureResourceConfiguration
-            .getLogAnalyticsManagerClient(
-                azureResourceConfiguration.credentials().getHomeTenantId(),
-                testConfig.getTargetSubscriptionId())
+            .getLogAnalyticsManagerClient(testConfig.getTargetSubscriptionId())
             .workspaces()
             .getByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccountName);
     assertThat(

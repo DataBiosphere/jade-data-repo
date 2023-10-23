@@ -8,6 +8,7 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
@@ -31,6 +32,7 @@ public class SnapshotExportFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BigQueryExportPdao bigQueryExportPdao = appContext.getBean(BigQueryExportPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    GcsProjectFactory gcsProjectFactory = appContext.getBean(GcsProjectFactory.class);
     FireStoreDao fireStoreDao = appContext.getBean(FireStoreDao.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
@@ -50,6 +52,10 @@ public class SnapshotExportFlight extends Flight {
     boolean validatePrimaryKeyUniqueness =
         Objects.requireNonNullElse(
             inputParameters.get(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, Boolean.class), true);
+
+    boolean signUrls =
+        Objects.requireNonNullElse(
+            inputParameters.get(ExportMapKeys.EXPORT_SIGN_URLS, Boolean.class), true);
 
     if (validatePrimaryKeyUniqueness && platform.isGcp()) {
       addStep(new SnapshotExportValidatePrimaryKeysStep(snapshotService, snapshotId));
@@ -80,9 +86,11 @@ public class SnapshotExportFlight extends Flight {
               snapshotId,
               snapshotService,
               gcsPdao,
+              gcsProjectFactory,
               objectMapper,
               userReq,
-              validatePrimaryKeyUniqueness));
+              validatePrimaryKeyUniqueness,
+              signUrls));
     } else if (platform.isAzure()) {
       addStep(
           new SnapshotExportListAzureParquetFilesStep(

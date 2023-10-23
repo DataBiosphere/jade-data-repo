@@ -87,6 +87,7 @@ public class AzureSynapsePdao {
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
+  private static final String DEFAULT_COLLATION = "Latin1_General_100_CI_AI_SC_UTF8";
   private static final String EMPTY_TABLE_ERROR_MESSAGE =
       "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
   private static final String MAX_BIG_INT = "9223372036854770000";
@@ -168,7 +169,7 @@ public class AzureSynapsePdao {
                  DATA_SOURCE = '<ingestFileDataSourceName>',
                  FORMAT = 'parquet') WITH (
                               <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
-                              <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+                              <if(c.requiresCollate)> COLLATE <collation><endif>
                               }; separator=", ">
                              ) AS rows
               """;
@@ -284,7 +285,7 @@ public class AzureSynapsePdao {
               ) WITH (
                 <if(isCSV)>
           <columns:{c|[<c.name>] <c.synapseDataType>
-          <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+          <if(c.requiresCollate)> COLLATE <collation><endif>
           }; separator=", ">
           <else>doc nvarchar(max)
           <endif>
@@ -341,7 +342,7 @@ public class AzureSynapsePdao {
                                 DATA_SOURCE = '<datasource>',
                                 FORMAT='PARQUET') WITH (
                                   <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
-                                  <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+                                  <if(c.requiresCollate)> COLLATE <collation><endif>
                                   }; separator=", ">
                                  ) AS rows
                   ) AS all_rows
@@ -356,7 +357,7 @@ public class AzureSynapsePdao {
         FROM OPENROWSET(BULK '<parquetFileLocation>',
                         DATA_SOURCE = '<datasource>',
                         FORMAT='PARQUET') WITH (
-                              <column> <columnSynapseDataType> COLLATE Latin1_General_100_CI_AI_SC_UTF8
+                              <column> <columnSynapseDataType> COLLATE <collation>
                              ) AS rows
           <userFilter>
           GROUP BY <column>
@@ -573,6 +574,7 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", datasetTable.getSynapseColumns());
+    sqlCreateTableTemplate.add("collation", DEFAULT_COLLATION);
     return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
@@ -1133,7 +1135,8 @@ public class AzureSynapsePdao {
         .add("ingestFileDataSourceName", datasetDataSourceName)
         .add("drsLocator", drsLocator)
         .add("snapshotId", snapshotId)
-        .add("isGlobalFileIds", isGlobalFileIds);
+        .add("isGlobalFileIds", isGlobalFileIds)
+        .add("collation", DEFAULT_COLLATION);
 
     return sqlCreateSnapshotTableTemplate;
   }
@@ -1251,6 +1254,7 @@ public class AzureSynapsePdao {
             .add("parquetFileLocation", parquetFileLocation)
             .add("direction", SqlSortDirection.ASC)
             .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
+            .add("collation", DEFAULT_COLLATION)
             .render();
 
     try {
@@ -1312,6 +1316,7 @@ public class AzureSynapsePdao {
             .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add("collation", DEFAULT_COLLATION)
             .render();
     try {
       return synapseJdbcTemplate.query(

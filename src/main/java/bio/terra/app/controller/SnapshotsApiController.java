@@ -286,13 +286,6 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   // --snapshot auth domains --
-  @Override
-  public ResponseEntity<List<String>> getSnapshotAuthDomain(@PathVariable("id") UUID id) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<String> response =
-        iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, id);
-    return ResponseEntity.ok(response);
-  }
 
   @Override
   public ResponseEntity<AddAuthDomainResponseModel> addSnapshotAuthDomain(

@@ -611,7 +611,8 @@ public class SnapshotService {
       UUID snapshotId, AuthenticatedUserRequest userReq) {
     List<SamPolicyModel> samPolicyModels =
         iamService.retrievePolicies(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
-
+    List<String> authDomain =
+        iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<WorkspacePolicyModel> accessibleWorkspaces = new ArrayList<>();
     List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces = new ArrayList<>();
 
@@ -625,6 +626,7 @@ public class SnapshotService {
 
     return new PolicyResponse()
         .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))
+        .authDomain(authDomain)
         .workspaces(accessibleWorkspaces)
         .inaccessibleWorkspaces(inaccessibleWorkspaces);
   }

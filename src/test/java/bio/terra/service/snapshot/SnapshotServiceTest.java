@@ -674,7 +674,10 @@ public class SnapshotServiceTest {
             mock(InaccessibleWorkspacePolicyModel.class),
             mock(InaccessibleWorkspacePolicyModel.class),
             mock(InaccessibleWorkspacePolicyModel.class));
+    List<String> userGroups = List.of("userGroup1", "userGroup2");
 
+    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(userGroups);
     when(rawlsService.resolvePolicyEmails(spm1, TEST_USER))
         .thenReturn(
             new RawlsService.WorkspacePolicyModels(
@@ -686,6 +689,8 @@ public class SnapshotServiceTest {
 
     PolicyResponse response = service.retrieveSnapshotPolicies(snapshotId, TEST_USER);
 
+    assertThat(
+        "The auth domain for this snapshot is returned", response.getAuthDomain(), is(userGroups));
     assertThat(
         "All accessible workspaces from SAM policy models are returned",
         response.getWorkspaces(),

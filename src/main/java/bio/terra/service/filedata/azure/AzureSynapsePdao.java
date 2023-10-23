@@ -87,6 +87,11 @@ public class AzureSynapsePdao {
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
+
+  // Collation uses the Latin1 General dictionary sorting rules
+  // It is a version _100 collation, and is case-insensitive (CI) and accent-insensitive (AI).
+  // _SC = supports supplementary characters to be used for eligible data type (nvarchar)
+  // _UTF8 = Specifies UTF-8 encoding to be used for eligible data types (varchar)
   private static final String DEFAULT_COLLATION = "Latin1_General_100_CI_AI_SC_UTF8";
   private static final String EMPTY_TABLE_ERROR_MESSAGE =
       "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";

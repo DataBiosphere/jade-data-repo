@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class SnapshotPatchAuthDomainFlight extends Flight {
+public class SnapshotAddAuthDomainFlight extends Flight {
 
-  public SnapshotPatchAuthDomainFlight(FlightMap inputParameters, Object applicationContext) {
+  public SnapshotAddAuthDomainFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
@@ -37,7 +37,7 @@ public class SnapshotPatchAuthDomainFlight extends Flight {
 
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
-    addStep(new PatchSnapshotAuthDomainStep(iamService, userReq, snapshotId, uniqueUserGroups));
+    addStep(new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, uniqueUserGroups));
 
     addStep(
         new CreateSnapshotGroupConstraintPolicyStep(policyService, snapshotId, uniqueUserGroups));
@@ -52,6 +52,6 @@ public class SnapshotPatchAuthDomainFlight extends Flight {
             IamResourceType.DATASNAPSHOT,
             "The auth domain group for this snapshot was updated."));
 
-    addStep(new PatchSnapshotAuthDomainSetResponseStep(iamService, userReq, snapshotId));
+    addStep(new AddSnapshotAuthDomainSetResponseStep(iamService, userReq, snapshotId));
   }
 }

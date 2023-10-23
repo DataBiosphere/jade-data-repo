@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.PatchAuthDomainResponseModel;
+import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
@@ -32,7 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class PatchSnapshotAuthDomainSetResponseStepTest {
+public class AddSnapshotAuthDomainSetResponseStepTest {
 
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
@@ -46,8 +46,8 @@ public class PatchSnapshotAuthDomainSetResponseStepTest {
 
   @Test
   public void testDoAndUndoStepSucceeds() {
-    PatchSnapshotAuthDomainSetResponseStep step =
-        new PatchSnapshotAuthDomainSetResponseStep(iamService, TEST_USER, SNAPSHOT_ID);
+    AddSnapshotAuthDomainSetResponseStep step =
+        new AddSnapshotAuthDomainSetResponseStep(iamService, TEST_USER, SNAPSHOT_ID);
     when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(userGroups);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());
@@ -61,7 +61,7 @@ public class PatchSnapshotAuthDomainSetResponseStepTest {
         workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class), HttpStatus.OK);
     assertTrue(
         workingMap
-            .get(JobMapKeys.RESPONSE.getKeyName(), PatchAuthDomainResponseModel.class)
+            .get(JobMapKeys.RESPONSE.getKeyName(), AddAuthDomainResponseModel.class)
             .getAuthDomain()
             .containsAll(userGroups));
   }

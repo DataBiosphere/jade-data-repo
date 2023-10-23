@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 // Note: there is no undo step because Sam does not support removing user groups from an auth domain
-public class PatchSnapshotAuthDomainStep extends DefaultUndoStep {
+public class AddSnapshotAuthDomainStep extends DefaultUndoStep {
 
   private final IamService iamService;
 
@@ -24,7 +24,7 @@ public class PatchSnapshotAuthDomainStep extends DefaultUndoStep {
 
   private final List<String> userGroups;
 
-  public PatchSnapshotAuthDomainStep(
+  public AddSnapshotAuthDomainStep(
       IamService iamService,
       AuthenticatedUserRequest userRequest,
       UUID snapshotId,

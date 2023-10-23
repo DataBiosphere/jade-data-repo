@@ -1145,7 +1145,7 @@ paths:
                   users must have access to the resource directly (via a policy) and belong to all user groups
                   in the auth domain in order to view and export the data. For example, if a user is a snapshot
                   steward but is not included in the auth domain, Sam will prevent that user from accessing the resource.
-      operationId: patchSnapshotAuthDomain
+      operationId: addSnapshotAuthDomain
       parameters:
         - $ref: '#/components/parameters/Id'
       requestBody:
@@ -1162,7 +1162,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PatchAuthDomainResponseModel'
+                $ref: '#/components/schemas/AddAuthDomainResponseModel'
         400:
           description: Bad request - badly formed request body
           content:
@@ -6106,7 +6106,7 @@ components:
             $ref: '#/components/schemas/PolicyModel'
         error:
           $ref: "#/components/schemas/ErrorModel"
-    PatchAuthDomainResponseModel:
+    AddAuthDomainResponseModel:
       type: object
       properties:
         authDomain:

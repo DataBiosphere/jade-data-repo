@@ -8,11 +8,11 @@ import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
+import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.PatchAuthDomainResponseModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -295,12 +295,12 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<PatchAuthDomainResponseModel> patchSnapshotAuthDomain(
+  public ResponseEntity<AddAuthDomainResponseModel> addSnapshotAuthDomain(
       @PathVariable("id") UUID id, @Valid @RequestBody List<String> userGroups) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_AUTH_DOMAIN);
-    PatchAuthDomainResponseModel result =
-        snapshotService.patchSnapshotAuthDomain(userReq, id, new ArrayList<>(userGroups));
+    AddAuthDomainResponseModel result =
+        snapshotService.addSnapshotAuthDomain(userReq, id, new ArrayList<>(userGroups));
     return ResponseEntity.ok(result);
   }
 

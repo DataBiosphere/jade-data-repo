@@ -30,7 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class PatchSnapshotAuthDomainStepTest {
+public class AddSnapshotAuthDomainStepTest {
 
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
@@ -41,8 +41,8 @@ public class PatchSnapshotAuthDomainStepTest {
 
   @Test
   public void testDoAndUndoStepSucceeds() throws InterruptedException {
-    PatchSnapshotAuthDomainStep step =
-        new PatchSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
+    AddSnapshotAuthDomainStep step =
+        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService)
@@ -54,8 +54,8 @@ public class PatchSnapshotAuthDomainStepTest {
     when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(userGroups);
 
-    PatchSnapshotAuthDomainStep step =
-        new PatchSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
+    AddSnapshotAuthDomainStep step =
+        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
     assertThat(doResult.getException().get(), instanceOf(SnapshotAuthDomainExistsException.class));
@@ -71,8 +71,8 @@ public class PatchSnapshotAuthDomainStepTest {
         .when(iamService)
         .patchAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, userGroups);
 
-    PatchSnapshotAuthDomainStep step =
-        new PatchSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
+    AddSnapshotAuthDomainStep step =
+        new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
     assertThrows(AuthDomainGroupNotFoundException.class, () -> step.doStep(flightContext));
   }
 }

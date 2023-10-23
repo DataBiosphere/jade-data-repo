@@ -39,13 +39,13 @@ import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AccessInfoParquetModel;
+import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
-import bio.terra.model.PatchAuthDomainResponseModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotIdsAndRolesModel;
@@ -90,7 +90,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.SnapshotService.SnapshotAccessibleResult;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.service.snapshot.flight.authDomain.SnapshotPatchAuthDomainFlight;
+import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
@@ -1159,16 +1159,16 @@ public class SnapshotServiceTest {
     mockSnapshot();
     List<String> userGroups = List.of("testGroup");
     JobBuilder jobBuilder = mock(JobBuilder.class);
-    PatchAuthDomainResponseModel jobResponse =
-        new PatchAuthDomainResponseModel().authDomain(userGroups);
+    AddAuthDomainResponseModel jobResponse =
+        new AddAuthDomainResponseModel().authDomain(userGroups);
     when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
-    when(jobBuilder.submitAndWait(PatchAuthDomainResponseModel.class)).thenReturn(jobResponse);
+    when(jobBuilder.submitAndWait(AddAuthDomainResponseModel.class)).thenReturn(jobResponse);
     when(jobService.newJob(
-            anyString(), eq(SnapshotPatchAuthDomainFlight.class), eq(userGroups), eq(TEST_USER)))
+            anyString(), eq(SnapshotAddAuthDomainFlight.class), eq(userGroups), eq(TEST_USER)))
         .thenReturn(jobBuilder);
 
-    PatchAuthDomainResponseModel result =
-        service.patchSnapshotAuthDomain(TEST_USER, snapshotId, userGroups);
+    AddAuthDomainResponseModel result =
+        service.addSnapshotAuthDomain(TEST_USER, snapshotId, userGroups);
     assertThat("Job is submitted and response returned", result, equalTo(jobResponse));
     verify(jobBuilder).addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString());
   }

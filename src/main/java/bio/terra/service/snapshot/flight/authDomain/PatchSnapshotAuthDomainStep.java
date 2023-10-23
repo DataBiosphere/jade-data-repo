@@ -14,6 +14,7 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.List;
 import java.util.UUID;
 
+// Note: there is no undo step because Sam does not support removing user groups from an auth domain
 public class PatchSnapshotAuthDomainStep extends DefaultUndoStep {
 
   private final IamService iamService;

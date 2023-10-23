@@ -690,7 +690,9 @@ public class SnapshotServiceTest {
     PolicyResponse response = service.retrieveSnapshotPolicies(snapshotId, TEST_USER);
 
     assertThat(
-        "The auth domain for this snapshot is returned", response.getAuthDomain(), is(userGroups));
+        "The auth domain for this snapshot is returned",
+        response.getAuthDomain(),
+        containsInAnyOrder(userGroups.toArray()));
     assertThat(
         "All accessible workspaces from SAM policy models are returned",
         response.getWorkspaces(),

@@ -1146,6 +1146,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred, or the Sam group was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/policies:
     get:
       tags:
@@ -6077,6 +6083,7 @@ components:
         authDomain:
           type: array
           items:
+            description: The Sam user groups that define this auth domain
             type: string
     PolicyResponse:
       type: object
@@ -6088,6 +6095,7 @@ components:
         authDomain:
           type: array
           items:
+            description: The Sam user groups that define this auth domain
             type: string
         workspaces:
           type: array

@@ -5,8 +5,8 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -649,8 +649,8 @@ public class SamIamTest {
           .thenReturn(authDomain);
       List<String> retrievedAuthDomain =
           samIam.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId);
-      assertEquals(retrievedAuthDomain.size(), authDomain.size());
-      assertTrue(retrievedAuthDomain.containsAll(authDomain));
+      assertThat(retrievedAuthDomain, hasSize(authDomain.size()));
+      assertThat(retrievedAuthDomain, containsInAnyOrder(authDomain.toArray()));
     }
 
     @Test

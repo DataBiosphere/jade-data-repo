@@ -289,7 +289,7 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<AddAuthDomainResponseModel> addSnapshotAuthDomain(
-      @PathVariable("id") UUID id, @Valid @RequestBody List<String> userGroups) {
+      UUID id, List<String> userGroups) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_AUTH_DOMAIN);
     AddAuthDomainResponseModel result =

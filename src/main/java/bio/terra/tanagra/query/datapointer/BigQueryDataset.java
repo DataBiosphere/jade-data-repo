@@ -1,4 +1,4 @@
-package bio.terra.tanagra.underlay.datapointer;
+package bio.terra.tanagra.query.datapointer;
 
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
@@ -10,7 +10,6 @@ import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.query.bigquery.BigQueryExecutor;
-import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.utils.GoogleBigQuery;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.LegacySQLTypeName;

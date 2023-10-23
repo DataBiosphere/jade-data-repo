@@ -1,4 +1,4 @@
-package bio.terra.tanagra.underlay;
+package bio.terra.tanagra.query.datapointer;
 
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.Literal;

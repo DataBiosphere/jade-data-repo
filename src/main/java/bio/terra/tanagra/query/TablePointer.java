@@ -1,6 +1,6 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.underlay.DataPointer;
+import bio.terra.tanagra.query.datapointer.DataPointer;
 import java.util.List;
 
 public record TablePointer(DataPointer dataPointer, String tableName, Filter filter, String sql)

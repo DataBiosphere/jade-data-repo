@@ -1,4 +1,4 @@
-package bio.terra.tanagra.underlay.datapointer;
+package bio.terra.tanagra.query.datapointer;
 
 import bio.terra.common.Column;
 import bio.terra.model.TableDataType;
@@ -10,7 +10,6 @@ import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.underlay.DataPointer;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;

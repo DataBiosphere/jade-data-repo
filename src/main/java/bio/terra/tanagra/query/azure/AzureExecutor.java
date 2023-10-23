@@ -19,7 +19,7 @@ import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
 import bio.terra.tanagra.query.SqlPlatform;
-import bio.terra.tanagra.underlay.datapointer.AzureDataset;
+import bio.terra.tanagra.query.datapointer.AzureDataset;
 import com.google.cloud.bigquery.TableId;
 import java.sql.ResultSet;
 import java.sql.SQLException;

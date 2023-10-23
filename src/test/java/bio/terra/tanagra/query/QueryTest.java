@@ -4,7 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
-import bio.terra.tanagra.underlay.DataPointer;
+import bio.terra.tanagra.query.datapointer.DataPointer;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 import org.junit.jupiter.api.Tag;

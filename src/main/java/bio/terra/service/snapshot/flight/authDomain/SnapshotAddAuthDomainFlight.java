@@ -37,10 +37,10 @@ public class SnapshotAddAuthDomainFlight extends Flight {
 
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
-    addStep(new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, uniqueUserGroups));
-
     addStep(
         new CreateSnapshotGroupConstraintPolicyStep(policyService, snapshotId, uniqueUserGroups));
+
+    addStep(new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, uniqueUserGroups));
 
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
 

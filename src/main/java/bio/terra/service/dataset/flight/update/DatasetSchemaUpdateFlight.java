@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.update;
 
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -47,10 +46,6 @@ public class DatasetSchemaUpdateFlight extends Flight {
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getCloudPlatform());
 
-    if (cloudPlatform.isAzure()) {
-      throw new InvalidCloudPlatformException("Cannot update table schema for Azure datasets");
-    }
-
     addStep(new LockDatasetStep(datasetService, datasetId, false));
 
     addStep(new DatasetSchemaUpdateValidateModelStep(datasetService, datasetId, updateModel));
@@ -58,17 +53,21 @@ public class DatasetSchemaUpdateFlight extends Flight {
     if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
       addStep(
           new DatasetSchemaUpdateAddTablesPostgresStep(datasetTableDao, datasetId, updateModel));
-      addStep(
-          new DatasetSchemaUpdateAddTablesBigQueryStep(
-              bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
+      if (cloudPlatform.isGcp()) {
+        addStep(
+            new DatasetSchemaUpdateAddTablesBigQueryStep(
+                bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
+      }
     }
 
     if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
       addStep(
           new DatasetSchemaUpdateAddColumnsPostgresStep(datasetTableDao, datasetId, updateModel));
-      addStep(
-          new DatasetSchemaUpdateAddColumnsBigQueryStep(
-              bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
+      if (cloudPlatform.isGcp()) {
+        addStep(
+            new DatasetSchemaUpdateAddColumnsBigQueryStep(
+                bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
+      }
     }
 
     if (DatasetSchemaUpdateUtils.hasRelationshipAdditions(updateModel)) {

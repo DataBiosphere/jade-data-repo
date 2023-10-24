@@ -12,12 +12,15 @@ public class SynapseColumn extends Column {
   private boolean requiresCollate;
   private boolean requiresJSONCast;
 
+  private boolean requiresTypeCast;
+
   public SynapseColumn() {}
 
   public SynapseColumn(SynapseColumn fromColumn) {
     this.synapseDataType = fromColumn.synapseDataType;
     this.requiresCollate = fromColumn.requiresCollate;
     this.requiresJSONCast = fromColumn.requiresJSONCast;
+    this.requiresTypeCast = fromColumn.requiresTypeCast;
   }
 
   public String getSynapseDataType() {
@@ -26,6 +29,15 @@ public class SynapseColumn extends Column {
 
   public SynapseColumn synapseDataType(String synapseDataType) {
     this.synapseDataType = synapseDataType;
+    return this;
+  }
+
+  public boolean getRequiresTypeCast() {
+    return requiresTypeCast;
+  }
+
+  public SynapseColumn requiresTypeCast(boolean requiresTypeCast) {
+    this.requiresTypeCast = requiresTypeCast;
     return this;
   }
 
@@ -60,17 +72,30 @@ public class SynapseColumn extends Column {
       case BYTES -> "varbinary";
       case DATE -> "date";
       case DATETIME, TIMESTAMP -> "datetime2";
-      case DIRREF, FILEREF -> "varchar(36)";
       case FLOAT, FLOAT64 -> "float";
       case INTEGER -> "numeric(10, 0)";
       case INT64 -> "numeric(19, 0)";
       case NUMERIC -> "real";
-      case TEXT, STRING -> "varchar(8000)";
+        // DIRREF and FILEREF store a UUID on ingest
+        // But, are translated to DRS URI on Snapshot Creation
+      case DIRREF, FILEREF, TEXT, STRING -> "varchar(8000)";
       case TIME -> "time";
         // Data of type RECORD contains table-like that can be nested or repeated
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
       case RECORD -> throw new NotSupportedException(
           "RECORD type is not yet supported for synapse");
+    };
+  }
+
+  // Cast needed for backwards compatibility after Synapse type change
+  // Sept 2023 int moved to numeric(10,0) and int64 moved to numeric(19,0)
+  static boolean checkForCastTypeArgRequirement(TableDataType dataType, boolean isArrayOf) {
+    if (isArrayOf) {
+      return false;
+    }
+    return switch (dataType) {
+      case INTEGER, INT64 -> true;
+      default -> false;
     };
   }
 

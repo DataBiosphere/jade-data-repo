@@ -87,6 +87,12 @@ public class AzureSynapsePdao {
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
+
+  // Collation uses the Latin1 General dictionary sorting rules
+  // It is a version _100 collation, and is case-insensitive (CI) and accent-insensitive (AI).
+  // _SC = supports supplementary characters to be used for eligible data type (nvarchar)
+  // _UTF8 = Specifies UTF-8 encoding to be used for eligible data types (varchar)
+  private static final String DEFAULT_COLLATION = "Latin1_General_100_CI_AI_SC_UTF8";
   private static final String EMPTY_TABLE_ERROR_MESSAGE =
       "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
   private static final String MAX_BIG_INT = "9223372036854770000";
@@ -139,14 +145,14 @@ public class AzureSynapsePdao {
               LOCATION = '<destinationParquetFile>',
               DATA_SOURCE = [<destinationDataSourceName>], /* metadata container */
               FILE_FORMAT = [<fileFormat>]
-          ) AS SELECT    datarepo_row_id,
+          ) AS SELECT
                  <columns:{c|
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
                          <if(isGlobalFileIds)>
-                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(8000) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <else>
-                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(8000) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <endif>
                        <else>
                          <if(isGlobalFileIds)>
@@ -156,13 +162,21 @@ public class AzureSynapsePdao {
                          <endif>
                        <endif>
                     <else>
+                      <if(c.requiresTypeCast)>
+                        CAST(<c.name> as <c.synapseDataType>) AS [<c.name>]
+                      <else>
                        <c.name> AS [<c.name>]
+                      <endif>
                     <endif>
                     }; separator=",\n">
               FROM OPENROWSET(
                  BULK '<ingestFileName>',
                  DATA_SOURCE = '<ingestFileDataSourceName>',
-                 FORMAT = 'parquet') AS rows
+                 FORMAT = 'parquet') WITH (
+                              <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
+                              <if(c.requiresCollate)> COLLATE <collation><endif>
+                              }; separator=", ">
+                             ) AS rows
               """;
 
   private static final String CREATE_SNAPSHOT_TABLE_BY_ROW_ID_TEMPLATE =
@@ -254,7 +268,7 @@ public class AzureSynapsePdao {
           newid() as datarepo_row_id,
           <columns:{c|
           <if(c.requiresJSONCast)>cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]
-          <elseif (c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]
+          <elseif(c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]
           <else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]
           <endif>
           }; separator=", ">
@@ -276,7 +290,7 @@ public class AzureSynapsePdao {
               ) WITH (
                 <if(isCSV)>
           <columns:{c|[<c.name>] <c.synapseDataType>
-          <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+          <if(c.requiresCollate)> COLLATE <collation><endif>
           }; separator=", ">
           <else>doc nvarchar(max)
           <endif>
@@ -292,7 +306,7 @@ public class AzureSynapsePdao {
               LOCATION = '<destinationParquetFile>',
               DATA_SOURCE = [<destinationDataSourceName>],
               FILE_FORMAT = [<fileFormat>]
-          ) AS SELECT datarepo_row_id, <columns> FROM [<scratchTableName>] <where> <nullChecks>;""";
+          ) AS SELECT <columns:{c|[<c.name>]}; separator=","> FROM [<scratchTableName>] <where> <nullChecks>;""";
 
   private static final String QUERY_COLUMNS_FROM_EXTERNAL_TABLE_TEMPLATE =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
@@ -317,29 +331,39 @@ public class AzureSynapsePdao {
           """;
   private static final String QUERY_FROM_DATASOURCE_TEMPLATE =
       """
-      SELECT <columns:{c|final_rows.[<c>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
-      FROM (
-        SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
-          FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
-                 <columns:{c|all_rows.[<c>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
-            FROM (
-              SELECT <columns:{c|rows.[<c>]}; separator=","> <if(includeTotalRowCount)>,
-              count(*) over () <totalRowCountColumnName> <endif>
-              FROM OPENROWSET(BULK '<parquetFileLocation>',
-                            DATA_SOURCE = '<datasource>',
-                            FORMAT='PARQUET') AS rows
-              ) AS all_rows
-            <userFilter>
-         ) AS rows_filtered) AS final_rows
-      WHERE final_rows.[datarepo_row_number] >= :offset
-        AND final_rows.[datarepo_row_number] \\<= :offset + :limit;""";
+          SELECT <columns:{c|final_rows.[<c.name>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
+          FROM (
+            SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c.name>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
+              FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+                     <columns:{c|all_rows.[<c.name>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
+                FROM (
+                  SELECT <columns:{c|
+                    <if(c.requiresTypeCast)>CAST(rows.[<c.name>] as <c.synapseDataType>) AS [<c.name>]
+                    <else>rows.[<c.name>]<endif>}; separator=",">
+                  <if(includeTotalRowCount)>,
+                  count(*) over () <totalRowCountColumnName>
+                  <endif>
+                  FROM OPENROWSET(BULK '<parquetFileLocation>',
+                                DATA_SOURCE = '<datasource>',
+                                FORMAT='PARQUET') WITH (
+                                  <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
+                                  <if(c.requiresCollate)> COLLATE <collation><endif>
+                                  }; separator=", ">
+                                 ) AS rows
+                  ) AS all_rows
+                <userFilter>
+             ) AS rows_filtered) AS final_rows
+          WHERE final_rows.[datarepo_row_number] >= :offset
+            AND final_rows.[datarepo_row_number] \\<= :offset + :limit;""";
 
   private static final String QUERY_TEXT_COLUMN_STATS_TEMPLATE =
       """
       SELECT <column>,count(*) AS <countColumn>
         FROM OPENROWSET(BULK '<parquetFileLocation>',
                         DATA_SOURCE = '<datasource>',
-                        FORMAT='PARQUET') AS rows
+                        FORMAT='PARQUET') WITH (
+                              <column> <columnSynapseDataType> COLLATE <collation>
+                             ) AS rows
           <userFilter>
           GROUP BY <column>
           ORDER BY <column> <direction>;""";
@@ -349,7 +373,9 @@ public class AzureSynapsePdao {
         SELECT MIN(<column>) AS min, MAX(<column>) AS max
           FROM OPENROWSET(BULK '<parquetFileLocation>',
                           DATA_SOURCE = '<datasource>',
-                          FORMAT='PARQUET') AS rows
+                          FORMAT='PARQUET') WITH (
+                              <column> <columnSynapseDataType>
+                             ) AS rows
           <userFilter>;""";
   private static final String DROP_TABLE_TEMPLATE = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -553,6 +579,7 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", datasetTable.getSynapseColumns());
+    sqlCreateTableTemplate.add("collation", DEFAULT_COLLATION);
     return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
@@ -591,14 +618,11 @@ public class AzureSynapsePdao {
     sqlCreateFinalParquetFilesTemplate.add(
         "fileFormat", azureResourceConfiguration.synapse().parquetFileFormatName());
     sqlCreateFinalParquetFilesTemplate.add("scratchTableName", scratchTableName);
-
-    String columns =
-        datasetTable.getColumns().stream()
-            .map(Column::getName)
-            .map(s -> String.format("[%s]", s))
-            .collect(Collectors.joining(", "));
-
-    sqlCreateFinalParquetFilesTemplate.add("columns", columns);
+    sqlCreateFinalParquetFilesTemplate.add(
+        "columns",
+        ListUtils.union(
+            List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
+            datasetTable.getColumns()));
 
     String nullChecks =
         datasetTable.getColumns().stream()
@@ -1100,8 +1124,14 @@ public class AzureSynapsePdao {
     } else {
       drsLocator = compactIdPrefix + ":";
     }
+    List<SynapseColumn> allColumns =
+        ListUtils.union(
+            List.of(
+                Column.toSynapseColumn(
+                    new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING))),
+            columns);
     sqlCreateSnapshotTableTemplate
-        .add("columns", columns)
+        .add("columns", allColumns)
         .add("tableName", snapshotTableName)
         .add("destinationParquetFile", snapshotParquetFileName)
         .add("destinationDataSourceName", snapshotDataSourceName)
@@ -1110,7 +1140,8 @@ public class AzureSynapsePdao {
         .add("ingestFileDataSourceName", datasetDataSourceName)
         .add("drsLocator", drsLocator)
         .add("snapshotId", snapshotId)
-        .add("isGlobalFileIds", isGlobalFileIds);
+        .add("isGlobalFileIds", isGlobalFileIds)
+        .add("collation", DEFAULT_COLLATION);
 
     return sqlCreateSnapshotTableTemplate;
   }
@@ -1176,8 +1207,11 @@ public class AzureSynapsePdao {
       String userFilter,
       String sqlTemplate) {
     String columnName = column.getName();
+    String columnSynapseDataType =
+        SynapseColumn.translateDataType(column.getType(), column.isArrayOf());
     return new ST(sqlTemplate)
         .add("column", columnName)
+        .add("columnSynapseDataType", columnSynapseDataType)
         .add("countColumn", PDAO_COUNT_COLUMN_NAME)
         .add("datasource", dataSourceName)
         .add("parquetFileLocation", parquetFileLocation)
@@ -1214,14 +1248,18 @@ public class AzureSynapsePdao {
   public ColumnStatisticsTextModel getStatsForTextColumn(
       Column column, String dataSourceName, String parquetFileLocation, String userFilter) {
     String columnName = column.getName();
+    String columnSynapseDataType =
+        SynapseColumn.translateDataType(column.getType(), column.isArrayOf());
     final String sql =
         new ST(QUERY_TEXT_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
+            .add("columnSynapseDataType", columnSynapseDataType)
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)
             .add("direction", SqlSortDirection.ASC)
             .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
+            .add("collation", DEFAULT_COLLATION)
             .render();
 
     try {
@@ -1265,14 +1303,16 @@ public class AzureSynapsePdao {
                           .formatted(sort, tableName)));
     }
 
-    List<Column> columns =
+    List<SynapseColumn> columns =
         ListUtils.union(
-            List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
-            table.getColumns());
+            List.of(
+                Column.toSynapseColumn(
+                    new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING))),
+            table.getSynapseColumns());
     boolean includeTotalRowCount = collectionType.equals(CollectionType.DATASET);
     final String sql =
         new ST(QUERY_FROM_DATASOURCE_TEMPLATE)
-            .add("columns", columns.stream().map(Column::getName).toList())
+            .add("columns", columns)
             .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)
             .add("sort", sort)
@@ -1281,8 +1321,8 @@ public class AzureSynapsePdao {
             .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add("collation", DEFAULT_COLLATION)
             .render();
-
     try {
       return synapseJdbcTemplate.query(
           sql,

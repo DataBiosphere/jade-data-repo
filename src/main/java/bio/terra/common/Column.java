@@ -43,6 +43,9 @@ public class Column {
             .requiresJSONCast(
                 SynapseColumn.checkForJSONCastRequirement(
                     datasetColumn.getType(), datasetColumn.isArrayOf()))
+            .requiresTypeCast(
+                SynapseColumn.checkForCastTypeArgRequirement(
+                    datasetColumn.getType(), datasetColumn.isArrayOf()))
             .name(datasetColumn.getName())
             .type(datasetColumn.getType())
             .arrayOf(datasetColumn.isArrayOf())

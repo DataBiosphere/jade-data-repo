@@ -25,7 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Provider("tdr-provider")
+@Provider("tdr")
 @PactBroker
 @ExtendWith(SpringExtension.class)
 @AutoConfigureMockMvc

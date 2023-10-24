@@ -577,7 +577,9 @@ task testAll(type: Test) {
 }
 
 task verifyPacts(type: Test) {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Pact'
+    }
     outputs.upToDateWhen { false } // always run this task even if it's up to date
     testLogging {
         showStandardStreams = true
@@ -586,9 +588,6 @@ task verifyPacts(type: Test) {
     systemProperty 'pact.provider.branch', System.getenv('PACT_PROVIDER_BRANCH')
     systemProperty 'pact.verifier.publishResults', true
     systemProperty 'pactbroker.host', System.getenv('PACT_BROKER_URL')
-    filter {
-        includeTestsMatching "*ProviderTest*"
-    }
 }
 
 compileGeneratedJava.dependsOn swaggerSources.server.code

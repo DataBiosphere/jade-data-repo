@@ -1378,11 +1378,17 @@ public class AzureSynapsePdao {
   }
 
   private SQLServerDataSource getDatasource(String databaseName) {
+    int retryInterval = 15;
+    int retryCount = 20;
+
     SQLServerDataSource ds = new SQLServerDataSource();
     ds.setServerName(azureResourceConfiguration.synapse().workspaceName());
     ds.setUser(azureResourceConfiguration.synapse().sqlAdminUser());
     ds.setPassword(azureResourceConfiguration.synapse().sqlAdminPassword());
     ds.setDatabaseName(databaseName);
+    ds.setConnectRetryInterval(retryInterval);
+    ds.setConnectRetryCount(retryCount);
+    ds.setLoginTimeout(retryInterval * retryCount);
     return ds;
   }
 

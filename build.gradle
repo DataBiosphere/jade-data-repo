@@ -580,7 +580,6 @@ task verifyPacts(type: Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Pact'
     }
-    outputs.upToDateWhen { false } // always run this task even if it's up to date
     testLogging {
         showStandardStreams = true
     }

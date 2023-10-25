@@ -15,6 +15,7 @@ public enum IamAction {
   SHARE_POLICY_READER("share_policy::reader"),
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
+  UPDATE_AUTH_DOMAIN,
   // datarepo
   LIST_JOBS,
   DELETE_JOBS,

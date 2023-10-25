@@ -19,6 +19,7 @@ import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
 import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -74,6 +75,7 @@ import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
+import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
@@ -590,6 +592,15 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
+  public AddAuthDomainResponseModel addSnapshotAuthDomain(
+      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> userGroups) {
+    String description = "Patch auth domain for snapshot " + snapshotId;
+    return jobService
+        .newJob(description, SnapshotAddAuthDomainFlight.class, userGroups, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
+        .submitAndWait(AddAuthDomainResponseModel.class);
+  }
+
   /**
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user
@@ -600,7 +611,8 @@ public class SnapshotService {
       UUID snapshotId, AuthenticatedUserRequest userReq) {
     List<SamPolicyModel> samPolicyModels =
         iamService.retrievePolicies(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
-
+    List<String> authDomain =
+        iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<WorkspacePolicyModel> accessibleWorkspaces = new ArrayList<>();
     List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces = new ArrayList<>();
 
@@ -614,6 +626,7 @@ public class SnapshotService {
 
     return new PolicyResponse()
         .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))
+        .authDomain(authDomain)
         .workspaces(accessibleWorkspaces)
         .inaccessibleWorkspaces(inaccessibleWorkspaces);
   }

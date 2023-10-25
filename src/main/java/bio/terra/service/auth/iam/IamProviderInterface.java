@@ -150,6 +150,18 @@ public interface IamProviderInterface {
   void deleteProfileResource(AuthenticatedUserRequest userReq, String profileId)
       throws InterruptedException;
 
+  // -- auth domain support --
+  List<String> retrieveAuthDomain(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
+      throws InterruptedException;
+
+  void patchAuthDomain(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      List<String> userGroups)
+      throws InterruptedException;
+
   // -- policy membership support --
 
   List<SamPolicyModel> retrievePolicies(

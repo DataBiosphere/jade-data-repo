@@ -361,6 +361,45 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
+  public List<String> retrieveAuthDomain(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService, () -> retrieveAuthDomainInner(userReq, iamResourceType, resourceId));
+  }
+
+  public List<String> retrieveAuthDomainInner(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
+    return samResourceApi.getAuthDomainV2(
+        iamResourceType.getSamResourceName(), resourceId.toString());
+  }
+
+  @Override
+  public void patchAuthDomain(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      List<String> userGroups)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> patchAuthDomainInner(userReq, iamResourceType, resourceId, userGroups));
+  }
+
+  public void patchAuthDomainInner(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      List<String> userGroups)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
+    samResourceApi.patchAuthDomainV2(
+        iamResourceType.getSamResourceName(), resourceId.toString(), userGroups);
+  }
+
+  @Override
   public List<SamPolicyModel> retrievePolicies(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {

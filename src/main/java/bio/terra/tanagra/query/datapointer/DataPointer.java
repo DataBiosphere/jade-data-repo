@@ -1,9 +1,5 @@
 package bio.terra.tanagra.query.datapointer;
 
-import bio.terra.tanagra.query.FieldPointer;
-import bio.terra.tanagra.query.Literal;
-import bio.terra.tanagra.query.QueryExecutor;
-
 public abstract class DataPointer {
 
   /** Enum for the types of external data pointers supported by Tanagra. */
@@ -30,8 +26,4 @@ public abstract class DataPointer {
 
   public abstract String getTableSQL(String tableName);
 
-  public abstract String getTablePathForIndexing(String tableName);
-
-  public abstract Literal.DataType lookupDatatype(
-      FieldPointer fieldPointer, QueryExecutor executor);
 }

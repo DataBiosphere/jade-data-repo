@@ -36,8 +36,4 @@ public record TablePointer(DataPointer dataPointer, String tableName, Filter fil
     Query query = new Query(List.of(fieldVar), List.of(tableVar), filterVar);
     return "(" + query.renderSQL(platform) + ")";
   }
-
-  public String getPathForIndexing() {
-    return dataPointer.getTablePathForIndexing(tableName);
-  }
 }

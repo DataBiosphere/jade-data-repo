@@ -23,16 +23,6 @@ public class QueryTest {
                 return tableName;
               }
 
-              @Override
-              public String getTablePathForIndexing(String tableName) {
-                return tableName;
-              }
-
-              @Override
-              public Literal.DataType lookupDatatype(
-                  FieldPointer fieldPointer, QueryExecutor executor) {
-                return Literal.DataType.STRING;
-              }
             },
             "table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);

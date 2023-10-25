@@ -22,7 +22,6 @@ public class QueryTest {
               public String getTableSQL(String tableName) {
                 return tableName;
               }
-
             },
             "table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);

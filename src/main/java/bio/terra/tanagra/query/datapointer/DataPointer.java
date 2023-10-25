@@ -25,5 +25,4 @@ public abstract class DataPointer {
   }
 
   public abstract String getTableSQL(String tableName);
-
 }

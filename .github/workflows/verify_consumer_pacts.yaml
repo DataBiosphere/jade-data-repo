@@ -15,7 +15,7 @@ name: Verify consumer pacts
 # - PACT_BROKER_PASSWORD - the Pact Broker password
 env:
   TDR_LOG_APPENDER: 'Console-Standard'
-  PACT_BROKER_URL: https://pact-broker.dsp-eng-tools.broadinstitute.org
+  PACT_BROKER_URL: pact-broker.dsp-eng-tools.broadinstitute.org
 on:
   pull_request:
     branches:

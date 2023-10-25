@@ -69,6 +69,17 @@ on:
 
 env:
   PACT_BROKER_URL: https://pact-broker.dsp-eng-tools.broadinstitute.org
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  # This must be defined for the bash redirection
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  # This will make test logs not use JSON
+  TDR_LOG_APPENDER: 'Console-Standard'
+  # The default Azure credentials to use to authenticate
+  AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
+  AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
+  JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
+  RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+  AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
 
 jobs:
   verify-consumer-pact:
@@ -167,6 +178,19 @@ jobs:
             ~/.gradle/wrapper
           key: v1-${{ runner.os }}-gradle-${{ github.ref }}-${{ github.sha }}
           restore-keys: v1-${{ runner.os }}-gradle-${{ github.ref }}
+
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
+          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
+            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
+            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
 
       - name: Verify consumer pacts and publish verification status to Pact Broker
         id: verification-test

@@ -11,6 +11,7 @@ import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
 import au.com.dius.pact.provider.spring.junit5.MockMvcTestTarget;
 import au.com.dius.pact.provider.spring.junit5.PactVerificationSpringProvider;
+import bio.terra.app.controller.GlobalExceptionHandler;
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.common.category.Pact;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -38,7 +39,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Tag(Pact.TAG)
 @Provider("tdr")
 @PactBroker
-@ContextConfiguration(classes = SnapshotsApiController.class)
+@ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
 @WebMvcTest
 public class DataRepoProviderTest {
 

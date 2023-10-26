@@ -157,7 +157,9 @@ public record AzureResourceConfiguration(
       String databaseName,
       String parquetFileFormatName,
       String encryptionKey,
-      boolean initialize) {}
+      boolean initialize,
+      int connectRetryInterval,
+      int connectRetryCount) {}
 
   /** Track the monitoring-related configuration */
   public record Monitoring(

@@ -299,6 +299,21 @@ public class IamService {
     callProvider(() -> iamProvider.deleteProfileResource(userReq, profileId));
   }
 
+  // -- auth domain support --
+  public List<String> retrieveAuthDomain(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
+    return callProvider(() -> iamProvider.retrieveAuthDomain(userReq, iamResourceType, resourceId));
+  }
+
+  public void patchAuthDomain(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      UUID resourceId,
+      List<String> userGroups) {
+    callProvider(
+        () -> iamProvider.patchAuthDomain(userReq, iamResourceType, resourceId, userGroups));
+  }
+
   // -- policy membership support --
 
   public List<SamPolicyModel> retrievePolicies(

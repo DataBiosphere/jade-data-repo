@@ -8,6 +8,7 @@ import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
+import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
@@ -37,6 +38,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -281,6 +283,18 @@ public class SnapshotsApiController implements SnapshotsApi {
         snapshotService.retrievePreview(
             getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
     return ResponseEntity.ok(previewModel);
+  }
+
+  // --snapshot auth domains --
+
+  @Override
+  public ResponseEntity<AddAuthDomainResponseModel> addSnapshotAuthDomain(
+      UUID id, List<String> userGroups) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_AUTH_DOMAIN);
+    AddAuthDomainResponseModel result =
+        snapshotService.addSnapshotAuthDomain(userReq, id, new ArrayList<>(userGroups));
+    return ResponseEntity.ok(result);
   }
 
   // --snapshot policies --

@@ -1100,6 +1100,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/authDomain:
+    patch:
+      tags:
+        - snapshots
+        - repository
+      description: Add an auth domain to the snapshot. *** WARNING - Once this is set it cannot be modified ***
+                  A Sam auth domain consists of a collection of user groups. If a snapshot has an auth domain,
+                  users must have access to the resource directly (via a policy) and belong to all user groups
+                  in the auth domain in order to view and export the data. For example, if a user is a snapshot
+                  steward but is not included in the auth domain, Sam will prevent that user from accessing the resource.
+      operationId: addSnapshotAuthDomain
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                description: A list of Sam user group names
+                type: string
+      responses:
+        200:
+          description: Auth domain of this snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddAuthDomainResponseModel'
+        400:
+          description: Bad request - badly formed request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to add an auth domain to this snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred, or the Sam group was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/policies:
     get:
       tags:
@@ -6025,6 +6077,14 @@ components:
             $ref: '#/components/schemas/PolicyModel'
         error:
           $ref: "#/components/schemas/ErrorModel"
+    AddAuthDomainResponseModel:
+      type: object
+      properties:
+        authDomain:
+          type: array
+          items:
+            description: The Sam user groups that define this auth domain
+            type: string
     PolicyResponse:
       type: object
       properties:
@@ -6032,6 +6092,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PolicyModel'
+        authDomain:
+          type: array
+          items:
+            description: The Sam user groups that define this auth domain
+            type: string
         workspaces:
           type: array
           items:

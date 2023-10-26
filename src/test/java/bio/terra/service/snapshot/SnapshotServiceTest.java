@@ -39,6 +39,7 @@ import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AccessInfoParquetModel;
+import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -89,6 +90,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.SnapshotService.SnapshotAccessibleResult;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
@@ -672,7 +674,10 @@ public class SnapshotServiceTest {
             mock(InaccessibleWorkspacePolicyModel.class),
             mock(InaccessibleWorkspacePolicyModel.class),
             mock(InaccessibleWorkspacePolicyModel.class));
+    List<String> userGroups = List.of("userGroup1", "userGroup2");
 
+    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(userGroups);
     when(rawlsService.resolvePolicyEmails(spm1, TEST_USER))
         .thenReturn(
             new RawlsService.WorkspacePolicyModels(
@@ -684,6 +689,10 @@ public class SnapshotServiceTest {
 
     PolicyResponse response = service.retrieveSnapshotPolicies(snapshotId, TEST_USER);
 
+    assertThat(
+        "The auth domain for this snapshot is returned",
+        response.getAuthDomain(),
+        containsInAnyOrder(userGroups.toArray()));
     assertThat(
         "All accessible workspaces from SAM policy models are returned",
         response.getWorkspaces(),
@@ -1150,6 +1159,25 @@ public class SnapshotServiceTest {
   public void testRetrievePreviewAzure() throws SQLException {
     mockSnapshotForPreview(CloudPlatform.AZURE, 10);
     testSnapshotPreviewRowCountsAzure(10, 4);
+  }
+
+  @Test
+  public void testPatchSnapshotAuthDomain() {
+    mockSnapshot();
+    List<String> userGroups = List.of("testGroup");
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    AddAuthDomainResponseModel jobResponse =
+        new AddAuthDomainResponseModel().authDomain(userGroups);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    when(jobBuilder.submitAndWait(AddAuthDomainResponseModel.class)).thenReturn(jobResponse);
+    when(jobService.newJob(
+            anyString(), eq(SnapshotAddAuthDomainFlight.class), eq(userGroups), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+
+    AddAuthDomainResponseModel result =
+        service.addSnapshotAuthDomain(TEST_USER, snapshotId, userGroups);
+    assertThat("Job is submitted and response returned", result, equalTo(jobResponse));
+    verify(jobBuilder).addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString());
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

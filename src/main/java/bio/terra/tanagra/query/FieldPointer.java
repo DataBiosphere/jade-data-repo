@@ -68,17 +68,6 @@ public class FieldPointer {
     }
   }
 
-  public Builder toBuilder() {
-    return new Builder()
-        .tablePointer(tablePointer)
-        .columnName(columnName)
-        .foreignTablePointer(foreignTablePointer)
-        .foreignKeyColumnName(foreignKeyColumnName)
-        .foreignColumnName(foreignColumnName)
-        .joinCanBeEmpty(joinCanBeEmpty)
-        .sqlFunctionWrapper(sqlFunctionWrapper);
-  }
-
   public boolean isForeignKey() {
     return foreignTablePointer != null;
   }

@@ -72,6 +72,7 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility;
 import bio.terra.service.filedata.google.util.GcsBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -138,6 +139,7 @@ public class AzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
+  @Autowired private AzureSynapsePdao azureSynapsePdao;
   @Autowired private JsonLoader jsonLoader;
   @Rule @Autowired public TestJobWatcher testWatcher;
 

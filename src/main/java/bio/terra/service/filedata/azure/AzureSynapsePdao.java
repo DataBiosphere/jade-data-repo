@@ -118,6 +118,8 @@ public class AzureSynapsePdao {
            )
     """;
 
+  private static final String DB_COLLATE_TEMPLATE = "ALTER DATABASE CURRENT COLLATE <collate>";
+
   private static final String SCOPED_CREDENTIAL_CREATE_TEMPLATE =
       """
           IF EXISTS (SELECT * FROM sys.database_scoped_credentials WHERE name = '<scopedCredentialName>')
@@ -448,6 +450,15 @@ public class AzureSynapsePdao {
       } catch (SQLException e) {
         throw new PdaoException("Error setting up parquet file format", e);
       }
+
+      // Connect to the newly created db to set up the collate format used to compare data
+      try (Connection connection = ds.getConnection();
+          Statement statement = connection.createStatement()) {
+        statement.execute(new ST(DB_COLLATE_TEMPLATE).add("collate", DEFAULT_COLLATION).render());
+      } catch (SQLException e) {
+        throw new PdaoException("Error setting up collate", e);
+      }
+
     } else {
       logger.info("Skipping Synapse database initialization");
     }

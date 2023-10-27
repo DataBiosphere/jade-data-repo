@@ -37,7 +37,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 @Tag(Pact.TAG)
-@Provider("tdr")
+@Provider(Pact.PACTICIPANT)
 @PactBroker
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
 @WebMvcTest

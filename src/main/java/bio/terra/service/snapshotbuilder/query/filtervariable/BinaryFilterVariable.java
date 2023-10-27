@@ -7,18 +7,10 @@ import bio.terra.service.snapshotbuilder.query.SQLExpression;
 import bio.terra.service.snapshotbuilder.query.SqlPlatform;
 import org.stringtemplate.v4.ST;
 
-public class BinaryFilterVariable implements FilterVariable {
+public record BinaryFilterVariable(
+    FieldVariable fieldVariable, BinaryFilterVariable.BinaryOperator operator, Literal value)
+    implements FilterVariable {
   private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <operator> <value>";
-
-  private final FieldVariable fieldVariable;
-  private final BinaryOperator operator;
-  private final Literal value;
-
-  public BinaryFilterVariable(FieldVariable fieldVariable, BinaryOperator operator, Literal value) {
-    this.fieldVariable = fieldVariable;
-    this.operator = operator;
-    this.value = value;
-  }
 
   @Override
   public String renderSQL(SqlPlatform platform) {

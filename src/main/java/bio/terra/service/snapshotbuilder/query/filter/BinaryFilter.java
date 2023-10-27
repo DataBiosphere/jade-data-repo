@@ -7,18 +7,9 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import java.util.List;
 
-public final class BinaryFilter extends Filter {
-  private final FieldPointer fieldPointer;
-  private final BinaryFilterVariable.BinaryOperator operator;
-  private final Literal value;
-
-  public BinaryFilter(
-      FieldPointer fieldPointer, BinaryFilterVariable.BinaryOperator operator, Literal value) {
-    super(Type.BINARY);
-    this.fieldPointer = fieldPointer;
-    this.operator = operator;
-    this.value = value;
-  }
+public record BinaryFilter(
+    FieldPointer fieldPointer, BinaryFilterVariable.BinaryOperator operator, Literal value)
+    implements Filter {
 
   @Override
   public BinaryFilterVariable buildVariable(

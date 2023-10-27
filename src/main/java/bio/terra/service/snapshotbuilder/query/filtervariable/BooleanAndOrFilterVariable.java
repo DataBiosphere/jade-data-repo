@@ -6,14 +6,9 @@ import bio.terra.service.snapshotbuilder.query.SqlPlatform;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class BooleanAndOrFilterVariable implements FilterVariable {
-  private final LogicalOperator operator;
-  private final List<FilterVariable> subFilters;
-
-  public BooleanAndOrFilterVariable(LogicalOperator operator, List<FilterVariable> subFilters) {
-    this.operator = operator;
-    this.subFilters = subFilters;
-  }
+public record BooleanAndOrFilterVariable(
+    BooleanAndOrFilterVariable.LogicalOperator operator, List<FilterVariable> subFilters)
+    implements FilterVariable {
 
   @Override
   public String renderSQL(SqlPlatform platform) {

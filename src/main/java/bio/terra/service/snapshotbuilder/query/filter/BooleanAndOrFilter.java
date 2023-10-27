@@ -5,16 +5,9 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import java.util.List;
 
-public final class BooleanAndOrFilter extends Filter {
-  private final BooleanAndOrFilterVariable.LogicalOperator operator;
-  private final List<Filter> subFilters;
-
-  public BooleanAndOrFilter(
-      BooleanAndOrFilterVariable.LogicalOperator operator, List<Filter> subFilters) {
-    super(Type.BOOLEAN_AND_OR);
-    this.operator = operator;
-    this.subFilters = subFilters;
-  }
+public record BooleanAndOrFilter(
+    BooleanAndOrFilterVariable.LogicalOperator operator, List<Filter> subFilters)
+    implements Filter {
 
   @Override
   public BooleanAndOrFilterVariable buildVariable(

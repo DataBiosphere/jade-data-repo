@@ -298,7 +298,7 @@ dependencies {
         exclude group: 'com.sun.jersey', module: 'jersey-server'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.1.7'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.6.3'
     testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.3'
 
     antlr "org.antlr:antlr4:4.8"

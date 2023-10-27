@@ -13,6 +13,7 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -267,21 +268,23 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
-      UUID id,
-      String table,
-      Integer offset,
-      Integer limit,
-      String sort,
-      SqlSortDirection direction,
-      String filter) {
+      UUID id, String table, LookupDataRequestModel lookupDataRequest) {
     logger.debug("Verifying user access");
     snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
     logger.debug("Retrieving snapshot id {}", id);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    SqlSortDirection sortDirection =
+        Objects.requireNonNullElse(lookupDataRequest.getDirection(), SqlSortDirection.ASC);
     SnapshotPreviewModel previewModel =
         snapshotService.retrievePreview(
-            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
+            getAuthenticatedInfo(),
+            id,
+            table,
+            lookupDataRequest.getLimit(),
+            lookupDataRequest.getOffset(),
+            lookupDataRequest.getSort(),
+            sortDirection,
+            lookupDataRequest.getFilter());
     return ResponseEntity.ok(previewModel);
   }
 

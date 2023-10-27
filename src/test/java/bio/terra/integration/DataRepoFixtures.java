@@ -54,6 +54,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotExportResponseModel;
@@ -62,6 +63,7 @@ import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -1053,20 +1055,19 @@ public class DataRepoFixtures {
       throws Exception {
     String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
-    offset = Objects.requireNonNullElse(offset, 0);
-    limit = Objects.requireNonNullElse(limit, 10);
-    String queryParams = "?offset=%s&limit=%s".formatted(offset, limit);
-
+    LookupDataRequestModel request = new LookupDataRequestModel();
+    request.setOffset(Objects.requireNonNullElse(offset, 0));
+    request.setLimit(Objects.requireNonNullElse(limit, 10));
     if (filter != null) {
-      queryParams += "&filter=%s".formatted(filter);
+      request.setFilter(filter);
     }
     if (sort != null) {
-      queryParams += "&sort=%s".formatted(sort);
+      request.setSort(sort);
     }
     if (direction != null) {
-      queryParams += "&direction=%s".formatted(direction);
+      request.setDirection(SqlSortDirection.fromValue(direction));
     }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+    return dataRepoClient.post(user, url, TestUtils.mapToJson(request), new TypeReference<>() {});
   }
 
   public void assertColumnTextValueCount(

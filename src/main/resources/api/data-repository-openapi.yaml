@@ -821,7 +821,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/data/{table}:
-    get:
+    post:
       tags:
         - snapshots
         - search
@@ -836,38 +836,12 @@ paths:
           required: true
           schema:
             type: string
-        - name: offset
-          in: query
-          description: The number of rows to skip when retrieving the next page
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-        - name: limit
-          in: query
-          description: The number of rows to return for the data
-          schema:
-            type: integer
-            default: 30
-            minimum: 1
-            maximum: 1000
-        - name: sort
-          in: query
-          description: The table column to sort by
-          schema:
-            type: string
-            default: "datarepo_row_id"
-        - name: direction
-          in: query
-          description: The direction to sort.
-          schema:
-            default: asc
-            $ref: '#/components/schemas/SqlSortDirection'
-        - name: filter
-          in: query
-          description: A SQL WHERE clause to filter the table results.
-          schema:
-            type: string
+      requestBody:
+        description: Parameters to filter results
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LookupDataRequestModel'
       responses:
         200:
           description: Returns the table data from a snapshot
@@ -1893,7 +1867,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/data/{table}:
-    get:
+    post:
       tags:
         - datasets
         - search
@@ -1908,38 +1882,13 @@ paths:
           required: true
           schema:
             type: string
-        - name: offset
-          in: query
-          description: The number of rows to skip when retrieving the next page
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-        - name: limit
-          in: query
-          description: The number of rows to return for the data
-          schema:
-            type: integer
-            default: 30
-            minimum: 1
-            maximum: 1000
-        - name: sort
-          in: query
-          description: The table column to sort by
-          schema:
-            type: string
-            default: "datarepo_row_id"
-        - name: direction
-          in: query
-          description: The direction to sort.
-          schema:
-            default: asc
-            $ref: '#/components/schemas/SqlSortDirection'
-        - name: filter
-          in: query
-          description: A SQL WHERE clause to filter the table results.
-          schema:
-            type: string
+      requestBody:
+        description: Parameters to filter results
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LookupDataRequestModel'
+        required: false
       responses:
         200:
           description: Returns the table data from a dataset
@@ -5108,6 +5057,31 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
+    LookupDataRequestModel:
+      type: object
+      properties:
+        offset:
+          description: The number of rows to skip when retrieving the next page
+          type: integer
+          default: 0
+          minimum: 0
+        limit:
+          description: The number of rows to return for the data
+          type: integer
+          default: 30
+          minimum: 1
+          maximum: 1000
+        sort:
+          description: The table column to sort by
+          type: string
+          default: "datarepo_row_id"
+        direction:
+          $ref: '#/components/schemas/SqlSortDirection'
+          description: The direction to sort.
+          default: asc
+        filter:
+          description: A SQL WHERE clause to filter the table results.
+          type: string
     DatasetDataModel:
       type: object
       properties:

@@ -22,6 +22,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -149,11 +150,15 @@ public class DatasetsApiControllerTest {
         .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
 
     mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", column)
-                .queryParam("direction", DIRECTION.name()))
+            post(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    TestUtils.mapToJson(
+                        new LookupDataRequestModel()
+                            .direction(DIRECTION)
+                            .limit(LIMIT)
+                            .offset(OFFSET)
+                            .sort(column))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result").isArray());
 

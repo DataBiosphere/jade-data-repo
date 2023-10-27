@@ -31,6 +31,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
+import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -196,19 +197,22 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
-      UUID id,
-      String table,
-      Integer offset,
-      Integer limit,
-      String sort,
-      SqlSortDirection direction,
-      String filter) {
+      UUID id, String table, LookupDataRequestModel lookupDataRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    SqlSortDirection sortDirection =
+        Objects.requireNonNullElse(lookupDataRequest.getDirection(), SqlSortDirection.ASC);
     DatasetDataModel previewModel =
-        datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
+        datasetService.retrieveData(
+            userReq,
+            id,
+            table,
+            lookupDataRequest.getLimit(),
+            lookupDataRequest.getOffset(),
+            lookupDataRequest.getSort(),
+            sortDirection,
+            lookupDataRequest.getFilter());
     return ResponseEntity.ok(previewModel);
   }
 

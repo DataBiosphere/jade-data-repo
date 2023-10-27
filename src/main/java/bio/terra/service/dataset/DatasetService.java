@@ -41,6 +41,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.exception.DatasetDataException;
+import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
@@ -63,6 +64,7 @@ import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
@@ -87,6 +89,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -99,6 +102,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DatasetService {
   private static final Logger logger = LoggerFactory.getLogger(DatasetService.class);
+  public static final String MANUAL_LOCK_NAME = "MANUAL_LOCK";
   private final DatasetJsonConversion datasetJsonConversion;
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
@@ -118,6 +122,7 @@ public class DatasetService {
   private final AzureSynapsePdao azureSynapsePdao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
+  private final JournalService journalService;
 
   @Autowired
   public DatasetService(
@@ -139,7 +144,8 @@ public class DatasetService {
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
-      MetadataDataAccessUtils metadataDataAccessUtils) {
+      MetadataDataAccessUtils metadataDataAccessUtils,
+      JournalService journalService) {
     this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
     this.jobService = jobService;
@@ -159,6 +165,7 @@ public class DatasetService {
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
+    this.journalService = journalService;
   }
 
   public String createDataset(
@@ -631,20 +638,46 @@ public class DatasetService {
     }
   }
 
-  public void lock(UUID datasetId, String flightId, boolean sharedLock) {
+  public String manualExclusiveLock(AuthenticatedUserRequest userReq, UUID datasetId) {
+    String lockName = lock(datasetId, MANUAL_LOCK_NAME, false);
+    journalService.recordUpdate(
+        userReq, datasetId, IamResourceType.DATASET, "Dataset manually exclusively locked", null);
+    return lockName;
+  }
+
+  /**
+   * @param datasetId - dataset to lock
+   * @param flightId - locking flight id or lock name
+   * @param sharedLock - flag to determine whether to use exclusive or shared lock
+   * @return lock name
+   */
+  public String lock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
-      datasetDao.lockShared(datasetId, flightId);
+      return datasetDao.lockShared(datasetId, flightId);
+    }
+    return datasetDao.lockExclusive(datasetId, flightId);
+  }
+
+  public void manualUnlock(AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
+    String nonNullLockName = Objects.requireNonNullElse(lockName, MANUAL_LOCK_NAME);
+    boolean succecssfulUnlock = unlock(datasetId, nonNullLockName, false);
+    if (succecssfulUnlock) {
+      journalService.recordUpdate(
+          userReq,
+          datasetId,
+          IamResourceType.DATASET,
+          "Dataset manually exclusively unlocked",
+          null);
     } else {
-      datasetDao.lockExclusive(datasetId, flightId);
+      throw new DatasetLockException("Unlock was unsuccessful.");
     }
   }
 
-  public void unlock(UUID datasetId, String flightId, boolean sharedLock) {
+  public boolean unlock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
-      datasetDao.unlockShared(datasetId, flightId);
-    } else {
-      datasetDao.unlockExclusive(datasetId, flightId);
+      return datasetDao.unlockShared(datasetId, flightId);
     }
+    return datasetDao.unlockExclusive(datasetId, flightId);
   }
 
   public String openTransaction(

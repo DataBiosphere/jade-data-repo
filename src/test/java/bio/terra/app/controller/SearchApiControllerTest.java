@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirection;
@@ -35,6 +35,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(
@@ -73,12 +74,7 @@ public class SearchApiControllerTest {
     when(snapshotService.retrievePreview(
             any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenReturn(result);
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, id, table)
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", column)
-                .queryParam("direction", String.valueOf(DIRECTION)))
+    performPreviewPost(id, table, column)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result").isArray());
   }
@@ -87,13 +83,7 @@ public class SearchApiControllerTest {
     when(snapshotService.retrievePreview(
             any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenThrow(SnapshotPreviewException.class);
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, id, table)
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", column)
-                .queryParam("direction", String.valueOf(DIRECTION)))
-        .andExpect(status().is5xxServerError());
+    performPreviewPost(id, table, column).andExpect(status().is5xxServerError());
   }
 
   @Test
@@ -159,5 +149,18 @@ public class SearchApiControllerTest {
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
     verify(searchService).indexSnapshot(eq(snapshot), eq(searchIndexRequest));
+  }
+
+  private ResultActions performPreviewPost(UUID id, String table, String column) throws Exception {
+    return mvc.perform(
+        post(GET_PREVIEW_ENDPOINT, id, table)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                TestUtils.mapToJson(
+                    new LookupDataRequestModel()
+                        .direction(DIRECTION)
+                        .limit(LIMIT)
+                        .offset(OFFSET)
+                        .sort(column))));
   }
 }

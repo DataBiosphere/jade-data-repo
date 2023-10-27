@@ -53,6 +53,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
@@ -149,16 +150,7 @@ public class DatasetsApiControllerTest {
             TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
 
-    mvc.perform(
-            post(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    TestUtils.mapToJson(
-                        new LookupDataRequestModel()
-                            .direction(DIRECTION)
-                            .limit(LIMIT)
-                            .offset(OFFSET)
-                            .sort(column))))
+    performPreviewPost(table, column)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result").isArray());
 
@@ -170,13 +162,7 @@ public class DatasetsApiControllerTest {
   @Test
   void testDatasetViewDataNotFound() throws Exception {
     mockNotFound();
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, "table")
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", "column")
-                .queryParam("direction", DIRECTION.name()))
-        .andExpect(status().isNotFound());
+    performPreviewPost("table", "column").andExpect(status().isNotFound());
     verifyNoInteractions(iamService);
   }
 
@@ -184,14 +170,7 @@ public class DatasetsApiControllerTest {
   void testDatasetViewDataForbidden() throws Exception {
     IamAction iamAction = IamAction.READ_DATA;
     mockForbidden(iamAction);
-
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, "table")
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", "column")
-                .queryParam("direction", DIRECTION.name()))
-        .andExpect(status().isForbidden());
+    performPreviewPost("table", "column").andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
   }
@@ -204,14 +183,7 @@ public class DatasetsApiControllerTest {
     when(datasetService.retrieveData(
             TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenThrow(DatasetDataException.class);
-
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", column)
-                .queryParam("direction", DIRECTION.name()))
-        .andExpect(status().is5xxServerError());
+    performPreviewPost(table, column).andExpect(status().is5xxServerError());
 
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
@@ -227,11 +199,7 @@ public class DatasetsApiControllerTest {
         .thenReturn(new DatasetModel());
     when(snapshotBuilderService.updateSnapshotBuilderSettings(DATASET_ID, SETTINGS))
         .thenReturn(SETTINGS);
-    when(ingestRequestValidator.supports(any())).thenReturn(true);
-    when(datasetRequestValidator.supports(any())).thenReturn(true);
-    when(assetModelValidator.supports(any())).thenReturn(true);
-    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
-    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+    mockValidators();
 
     mvc.perform(
             post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)
@@ -293,5 +261,27 @@ public class DatasetsApiControllerTest {
     verify(iamService)
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
+  }
+
+  private ResultActions performPreviewPost(String table, String column) throws Exception {
+    mockValidators();
+    return mvc.perform(
+        post(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                TestUtils.mapToJson(
+                    new LookupDataRequestModel()
+                        .direction(DIRECTION)
+                        .limit(LIMIT)
+                        .offset(OFFSET)
+                        .sort(column))));
+  }
+
+  private void mockValidators() {
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
+    when(datasetRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
   }
 }

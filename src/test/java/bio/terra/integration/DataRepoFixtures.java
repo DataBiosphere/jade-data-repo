@@ -912,18 +912,13 @@ public class DataRepoFixtures {
       String sort)
       throws Exception {
     String url = "/api/repository/v1/snapshots/%s/data/%s".formatted(snapshotId, table);
-
-    offset = Objects.requireNonNullElse(offset, 0);
-    limit = Objects.requireNonNullElse(limit, 10);
-    String queryParams = "?offset=%s&limit=%s".formatted(offset, limit);
-
-    if (filter != null) {
-      queryParams += "&filter=%s".formatted(filter);
-    }
-    if (sort != null) {
-      queryParams += "&sort=%s".formatted(sort);
-    }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+    LookupDataRequestModel requestModel = new LookupDataRequestModel();
+    requestModel.offset(Objects.requireNonNullElse(offset, 0));
+    requestModel.limit(Objects.requireNonNullElse(limit, 10));
+    requestModel.filter(Objects.requireNonNullElse(filter, ""));
+    requestModel.sort(Objects.requireNonNullElse(sort, PDAO_ROW_ID_COLUMN));
+    return dataRepoClient.post(
+        user, url, TestUtils.mapToJson(requestModel), new TypeReference<>() {});
   }
 
   public List<String> getRowIds(
@@ -1058,15 +1053,10 @@ public class DataRepoFixtures {
     LookupDataRequestModel request = new LookupDataRequestModel();
     request.setOffset(Objects.requireNonNullElse(offset, 0));
     request.setLimit(Objects.requireNonNullElse(limit, 10));
-    if (filter != null) {
-      request.setFilter(filter);
-    }
-    if (sort != null) {
-      request.setSort(sort);
-    }
-    if (direction != null) {
-      request.setDirection(SqlSortDirection.fromValue(direction));
-    }
+    request.filter(Objects.requireNonNullElse(filter, ""));
+    request.sort(Objects.requireNonNullElse(sort, PDAO_ROW_ID_COLUMN));
+    request.setDirection(
+        Objects.requireNonNullElse(SqlSortDirection.fromValue(direction), SqlSortDirection.ASC));
     return dataRepoClient.post(user, url, TestUtils.mapToJson(request), new TypeReference<>() {});
   }
 

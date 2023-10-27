@@ -45,6 +45,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -904,16 +905,17 @@ public class ConnectedOperations {
       UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
       throws Exception {
     String url = "/api/repository/v1/datasets/{id}/data/{table}";
-    MockHttpServletRequestBuilder request =
-        get(url, datasetId, tableName)
-            .param("limit", String.valueOf(limit))
-            .param("offset", String.valueOf(offset));
+    var requestModel = new LookupDataRequestModel().limit(limit).offset(offset);
     if (sort != null) {
-      request.param("sort", sort);
+      requestModel.sort(sort);
     }
     if (filter != null) {
-      request.param("filter", filter);
+      requestModel.filter(filter);
     }
+    MockHttpServletRequestBuilder request =
+        post(url, datasetId, tableName)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(requestModel));
     MvcResult result = mvc.perform(request).andReturn();
     return result.getResponse();
   }
@@ -945,16 +947,17 @@ public class ConnectedOperations {
       UUID snapshotId, String tableName, int limit, int offset, String filter, String sort)
       throws Exception {
     String url = "/api/repository/v1/snapshots/{id}/data/{table}";
-    MockHttpServletRequestBuilder request =
-        get(url, snapshotId, tableName)
-            .param("limit", String.valueOf(limit))
-            .param("offset", String.valueOf(offset));
-    if (filter != null) {
-      request.param("filter", filter);
-    }
+    var requestModel = new LookupDataRequestModel().limit(limit).offset(offset);
     if (sort != null) {
-      request.param("sort", sort);
+      requestModel.sort(sort);
     }
+    if (filter != null) {
+      requestModel.filter(filter);
+    }
+    MockHttpServletRequestBuilder request =
+        post(url, snapshotId, tableName)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(requestModel));
     MvcResult result = mvc.perform(request).andReturn();
     return result.getResponse();
   }

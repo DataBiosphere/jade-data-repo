@@ -1,3 +1,3 @@
-package bio.terra.tanagra.query;
+package bio.terra.service.snapshotbuilder.query;
 
 public interface FilterVariable extends SQLExpression {}

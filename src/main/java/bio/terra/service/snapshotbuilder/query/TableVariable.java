@@ -1,4 +1,4 @@
-package bio.terra.tanagra.query;
+package bio.terra.service.snapshotbuilder.query;
 
 import java.util.HashMap;
 import java.util.List;

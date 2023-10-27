@@ -1,4 +1,4 @@
-package bio.terra.tanagra.query;
+package bio.terra.service.snapshotbuilder.query;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.Date;

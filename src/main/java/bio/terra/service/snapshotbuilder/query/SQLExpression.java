@@ -1,4 +1,4 @@
-package bio.terra.tanagra.query;
+package bio.terra.service.snapshotbuilder.query;
 
 public interface SQLExpression {
   String renderSQL(SqlPlatform platform);

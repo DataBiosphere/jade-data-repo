@@ -1,10 +1,10 @@
-package bio.terra.tanagra.query.filtervariable;
+package bio.terra.service.snapshotbuilder.query.filtervariable;
 
-import bio.terra.tanagra.query.FieldVariable;
-import bio.terra.tanagra.query.FilterVariable;
-import bio.terra.tanagra.query.Literal;
-import bio.terra.tanagra.query.SQLExpression;
-import bio.terra.tanagra.query.SqlPlatform;
+import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.FilterVariable;
+import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.SQLExpression;
+import bio.terra.service.snapshotbuilder.query.SqlPlatform;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.stringtemplate.v4.ST;

@@ -1,10 +1,10 @@
-package bio.terra.tanagra.query.filter;
+package bio.terra.service.snapshotbuilder.query.filter;
 
-import bio.terra.tanagra.query.FieldPointer;
-import bio.terra.tanagra.query.Filter;
-import bio.terra.tanagra.query.Literal;
-import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.query.filtervariable.BinaryFilterVariable;
+import bio.terra.service.snapshotbuilder.query.FieldPointer;
+import bio.terra.service.snapshotbuilder.query.Filter;
+import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;
 
 public final class BinaryFilter extends Filter {

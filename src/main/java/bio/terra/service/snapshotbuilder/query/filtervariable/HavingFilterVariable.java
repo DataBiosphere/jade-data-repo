@@ -1,7 +1,7 @@
-package bio.terra.tanagra.query.filtervariable;
+package bio.terra.service.snapshotbuilder.query.filtervariable;
 
-import bio.terra.tanagra.query.SQLExpression;
-import bio.terra.tanagra.query.SqlPlatform;
+import bio.terra.service.snapshotbuilder.query.SQLExpression;
+import bio.terra.service.snapshotbuilder.query.SqlPlatform;
 
 /** Example: HAVING COUNT(*) > 1 */
 public class HavingFilterVariable implements SQLExpression {

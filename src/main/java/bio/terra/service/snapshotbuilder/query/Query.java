@@ -1,6 +1,6 @@
-package bio.terra.tanagra.query;
+package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.tanagra.query.filtervariable.HavingFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;

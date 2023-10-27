@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

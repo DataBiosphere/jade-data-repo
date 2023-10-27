@@ -1,4 +1,4 @@
-package bio.terra.tanagra.query;
+package bio.terra.service.snapshotbuilder.query;
 
 public class OrderByVariable {
   protected final FieldVariable fieldVariable;

@@ -73,8 +73,6 @@ public record Query(
     this(select, tables, null, null, null, null, limit);
   }
 
-  public static final String TANAGRA_FIELD_PREFIX = "t_";
-
   @Override
   public String renderSQL(SqlPlatform platform) {
     // generate a unique alias for each TableVariable

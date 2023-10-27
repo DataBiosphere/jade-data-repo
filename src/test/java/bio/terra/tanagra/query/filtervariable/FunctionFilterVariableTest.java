@@ -19,7 +19,7 @@ class FunctionFilterVariableTest {
 
   @Test
   void renderSQL() {
-    TableVariable table = TableVariable.forPrimary(TablePointer.fromTableName(null, "table"));
+    TableVariable table = TableVariable.forPrimary(TablePointer.fromTableName("table"));
     TableVariable.generateAliases(List.of(table));
     var filterVariable =
         new FunctionFilterVariable(

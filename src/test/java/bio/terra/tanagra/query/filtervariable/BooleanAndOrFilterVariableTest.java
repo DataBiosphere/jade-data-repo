@@ -19,8 +19,8 @@ class BooleanAndOrFilterVariableTest {
   private final BooleanAndOrFilterVariable variable;
 
   BooleanAndOrFilterVariableTest() {
-    TableVariable table1 = TableVariable.forPrimary(TablePointer.fromTableName(null, "table1"));
-    TableVariable table2 = TableVariable.forPrimary(TablePointer.fromTableName(null, "table2"));
+    TableVariable table1 = TableVariable.forPrimary(TablePointer.fromTableName("table1"));
+    TableVariable table2 = TableVariable.forPrimary(TablePointer.fromTableName("table2"));
     TableVariable.generateAliases(List.of(table1, table2));
     variable =
         new BooleanAndOrFilterVariable(

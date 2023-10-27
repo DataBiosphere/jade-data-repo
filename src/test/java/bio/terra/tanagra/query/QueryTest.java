@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
-import bio.terra.tanagra.query.datapointer.DataPointer;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 import org.junit.jupiter.api.Tag;
@@ -15,15 +14,7 @@ public class QueryTest {
 
   @NotNull
   public static Query createQuery() {
-    TablePointer tablePointer =
-        TablePointer.fromTableName(
-            new DataPointer(DataPointer.Type.BQ_DATASET, "dataset") {
-              @Override
-              public String getTableSQL(String tableName) {
-                return tableName;
-              }
-            },
-            "table");
+    TablePointer tablePointer = TablePointer.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     return new Query(
         List.of(new FieldVariable(FieldPointer.allFields(tablePointer), tableVariable)),

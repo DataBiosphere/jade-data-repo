@@ -20,8 +20,7 @@ class BinaryFilterVariableTest {
   void renderSQL() {
     var binaryOperator = BinaryFilterVariable.BinaryOperator.EQUALS;
     var literal = new Literal("foo");
-    TableVariable tableVariable =
-        TableVariable.forPrimary(new TablePointer(null, "table", null, null));
+    TableVariable tableVariable = TableVariable.forPrimary(new TablePointer("table", null, null));
     TableVariable.generateAliases(List.of(tableVariable));
     var filterVariable =
         new BinaryFilterVariable(

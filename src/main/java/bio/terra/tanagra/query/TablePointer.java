@@ -1,21 +1,15 @@
 package bio.terra.tanagra.query;
 
-import bio.terra.tanagra.query.datapointer.DataPointer;
 import java.util.List;
 
-public record TablePointer(DataPointer dataPointer, String tableName, Filter filter, String sql)
-    implements SQLExpression {
+public record TablePointer(String tableName, Filter filter, String sql) implements SQLExpression {
 
-  public static TablePointer fromTableName(DataPointer dataPointer, String tableName) {
-    return new TablePointer(dataPointer, tableName, null, null);
+  public static TablePointer fromTableName(String tableName) {
+    return new TablePointer(tableName, null, null);
   }
 
-  public static TablePointer fromRawSql(DataPointer dataPointer, String sql) {
-    return new TablePointer(dataPointer, null, null, sql);
-  }
-
-  public boolean isRawSql() {
-    return sql != null;
+  public static TablePointer fromRawSql(String sql) {
+    return new TablePointer(null, null, sql);
   }
 
   @Override
@@ -24,10 +18,11 @@ public record TablePointer(DataPointer dataPointer, String tableName, Filter fil
       return "(" + sql + ")";
     }
     if (filter == null) {
-      return dataPointer.getTableSQL(tableName);
+      // TODO: use platform to render tableName correctly (or fix it using DatasetAwareVisitor).
+      return tableName;
     }
 
-    TablePointer tablePointerWithoutFilter = TablePointer.fromTableName(dataPointer, tableName);
+    TablePointer tablePointerWithoutFilter = TablePointer.fromTableName(tableName);
     TableVariable tableVar = TableVariable.forPrimary(tablePointerWithoutFilter);
     FieldVariable fieldVar =
         new FieldVariable(FieldPointer.allFields(tablePointerWithoutFilter), tableVar);

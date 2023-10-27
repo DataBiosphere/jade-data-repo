@@ -38,7 +38,7 @@ class ColumnHeaderSchemaTest {
   @Test
   void columnSchemas() {
     ColumnSchema a = new ColumnSchema("a", CellValue.SQLDataType.STRING);
-    ColumnSchema z = new ColumnSchema("a", CellValue.SQLDataType.STRING);
+    ColumnSchema z = new ColumnSchema("z", CellValue.SQLDataType.STRING);
     var columnHeaderSchema = new ColumnHeaderSchema(List.of(z, a));
     assertThat(columnHeaderSchema.columnSchemas(), is(List.of(a, z)));
   }

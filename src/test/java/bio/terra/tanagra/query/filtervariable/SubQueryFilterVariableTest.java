@@ -21,7 +21,7 @@ class SubQueryFilterVariableTest {
     var subQuery = QueryTest.createQuery();
 
     var fieldPointer = new FieldPointer.Builder().columnName("field").build();
-    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName(null, "x"));
+    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("x"));
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariable = new FieldVariable(fieldPointer, tableVariable);
     var filter =

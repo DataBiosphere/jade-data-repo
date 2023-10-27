@@ -9,7 +9,6 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -25,8 +24,7 @@ class BinaryFilterVariableTest {
     TableVariable.generateAliases(List.of(tableVariable));
     var filterVariable =
         new BinaryFilterVariable(
-            new FieldVariable(
-                new FieldPointer.Builder().columnName("column").build(), tableVariable),
+            new FieldVariable(new FieldPointer(null, "column"), tableVariable),
             binaryOperator,
             literal);
     assertThat(filterVariable.renderSQL(null), is("t.column = 'foo'"));

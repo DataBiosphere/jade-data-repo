@@ -30,8 +30,21 @@ public class FieldPointer {
     this.sqlFunctionWrapper = sqlFunctionWrapper;
   }
 
+  public FieldPointer(TablePointer tablePointer, String columnName, String sqlFunctionWrapper) {
+    this(tablePointer, columnName, null, null, null, false, sqlFunctionWrapper);
+  }
+
+  public FieldPointer(TablePointer tablePointer, String columnName) {
+    this(tablePointer, columnName, null);
+  }
+
   public static FieldPointer allFields(TablePointer tablePointer) {
-    return new Builder().tablePointer(tablePointer).columnName(ALL_FIELDS_COLUMN_NAME).build();
+    return new FieldPointer(tablePointer, ALL_FIELDS_COLUMN_NAME);
+  }
+
+  public static FieldPointer foreignColumn(
+      TablePointer foreignTablePointer, String foreignColumnName) {
+    return new FieldPointer(null, null, foreignTablePointer, null, foreignColumnName, false, null);
   }
 
   public FieldVariable buildVariable(
@@ -43,9 +56,7 @@ public class FieldPointer {
       TableVariable primaryTable, List<TableVariable> tableVariables, String alias) {
     if (isForeignKey()) {
       FieldVariable primaryTableColumn =
-          new FieldVariable(
-              new Builder().tablePointer(tablePointer).columnName(columnName).build(),
-              primaryTable);
+          new FieldVariable(new FieldPointer(tablePointer, columnName), primaryTable);
       TableVariable foreignTable =
           joinCanBeEmpty
               ? TableVariable.forLeftJoined(
@@ -56,11 +67,7 @@ public class FieldPointer {
       // JOIN the same table for each field we need from it.
       tableVariables.add(foreignTable);
       return new FieldVariable(
-          new Builder()
-              .tablePointer(foreignTablePointer)
-              .columnName(foreignColumnName)
-              .sqlFunctionWrapper(sqlFunctionWrapper)
-              .build(),
+          new FieldPointer(foreignTablePointer, foreignColumnName, sqlFunctionWrapper),
           foreignTable,
           alias);
     } else {
@@ -103,62 +110,5 @@ public class FieldPointer {
 
   public TablePointer getTablePointer() {
     return tablePointer;
-  }
-
-  public static class Builder {
-    private TablePointer tablePointer;
-    private String columnName;
-    private TablePointer foreignTablePointer;
-    private String foreignKeyColumnName;
-    private String foreignColumnName;
-    private boolean joinCanBeEmpty;
-    private String sqlFunctionWrapper;
-
-    public Builder tablePointer(TablePointer tablePointer) {
-      this.tablePointer = tablePointer;
-      return this;
-    }
-
-    public Builder columnName(String columnName) {
-      this.columnName = columnName;
-      return this;
-    }
-
-    public Builder foreignTablePointer(TablePointer foreignTablePointer) {
-      this.foreignTablePointer = foreignTablePointer;
-      return this;
-    }
-
-    public Builder foreignKeyColumnName(String foreignKeyColumnName) {
-      this.foreignKeyColumnName = foreignKeyColumnName;
-      return this;
-    }
-
-    public Builder foreignColumnName(String foreignColumnName) {
-      this.foreignColumnName = foreignColumnName;
-      return this;
-    }
-
-    public Builder joinCanBeEmpty(boolean joinCanBeEmpty) {
-      this.joinCanBeEmpty = joinCanBeEmpty;
-      return this;
-    }
-
-    public Builder sqlFunctionWrapper(String sqlFunctionWrapper) {
-      this.sqlFunctionWrapper = sqlFunctionWrapper;
-      return this;
-    }
-
-    /** Call the private constructor. */
-    public FieldPointer build() {
-      return new FieldPointer(
-          tablePointer,
-          columnName,
-          foreignTablePointer,
-          foreignKeyColumnName,
-          foreignColumnName,
-          joinCanBeEmpty,
-          sqlFunctionWrapper);
-    }
   }
 }

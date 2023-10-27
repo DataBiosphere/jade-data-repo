@@ -1,8 +1,8 @@
 package bio.terra.service.snapshotbuilder.query.filter;
 
 import bio.terra.service.snapshotbuilder.query.Filter;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import java.util.List;
 
 public final class BooleanAndOrFilter extends Filter {

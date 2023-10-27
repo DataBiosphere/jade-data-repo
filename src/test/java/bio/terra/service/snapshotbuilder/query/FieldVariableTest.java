@@ -5,10 +5,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
-import bio.terra.service.snapshotbuilder.query.FieldVariable;
-import bio.terra.service.snapshotbuilder.query.SqlPlatform;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -18,8 +14,10 @@ class FieldVariableTest {
 
   @Test
   void renderSQL() {
-    var fieldPointer = new FieldPointer.Builder().columnName("field").build();
-    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
+    var table = TablePointer.fromTableName("table");
+
+    var fieldPointer = new FieldPointer(table, "field");
+    var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(null), is("t.field"));
 
@@ -27,47 +25,37 @@ class FieldVariableTest {
         new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(null),
         is("t.field AS bar"));
 
-    var fieldPointerForeignKey =
-        new FieldPointer.Builder().foreignTablePointer(TablePointer.fromRawSql(null)).build();
+    var fieldPointerForeignKey = FieldPointer.foreignColumn(TablePointer.fromRawSql(null), null);
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
     assertThrows(
         UnsupportedOperationException.class,
         () -> fieldVariableForeignKey.renderSQL(SqlPlatform.BIGQUERY));
 
     var fieldVariableFunctionWrapper =
-        new FieldVariable(
-            new FieldPointer.Builder().sqlFunctionWrapper("foo").columnName("field").build(),
-            tableVariable,
-            "alias");
+        new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
     assertThat(fieldVariableFunctionWrapper.renderSQL(null), is("foo(t.field)"));
 
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
-            new FieldPointer.Builder()
-                .sqlFunctionWrapper("custom(<fieldSql>)")
-                .columnName("field")
-                .build(),
-            tableVariable,
-            "alias");
+            new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
     assertThat(fieldVariableSqlFunctionWrapper.renderSQL(null), is("custom(t.field)"));
   }
 
   @Test
   void renderSqlForOrderBy() {
-    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
+    var table = TablePointer.fromTableName("table");
+    var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariableFunctionWrapper =
-        new FieldVariable(
-            new FieldPointer.Builder().sqlFunctionWrapper("foo").columnName("field").build(),
-            tableVariable,
-            "alias");
+        new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
     assertThat(fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(false), is("foo(t.field)"));
   }
 
   @Test
   void renderSqlForWhere() {
-    var fieldPointer = new FieldPointer.Builder().columnName("field").build();
-    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
+    TablePointer table = TablePointer.fromTableName("table");
+    var fieldPointer = new FieldPointer(table, "field");
+    var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(
         new FieldVariable(fieldPointer, tableVariable, "bar").renderSqlForWhere(), is("t.field"));
@@ -81,20 +69,17 @@ class FieldVariableTest {
 
   @Test
   void getAliasOrColumnName() {
-    var fieldPointer = new FieldPointer.Builder().columnName("foo").build();
+    var fieldPointer = new FieldPointer(null, "foo");
     assertThat(new FieldVariable(fieldPointer, null).getAliasOrColumnName(), is("foo"));
     assertThat(new FieldVariable(fieldPointer, null, "bar").getAliasOrColumnName(), is("bar"));
     var fieldPointerForeignKey =
-        new FieldPointer.Builder()
-            .foreignTablePointer(TablePointer.fromTableName(null))
-            .foreignColumnName("baz")
-            .build();
+        FieldPointer.foreignColumn(TablePointer.fromTableName(null), "baz");
     assertThat(new FieldVariable(fieldPointerForeignKey, null).getAliasOrColumnName(), is("baz"));
   }
 
   @Test
   void getFieldPointer() {
-    var fieldPointer = new FieldPointer.Builder().build();
+    var fieldPointer = new FieldPointer(null, null);
     assertThat(new FieldVariable(fieldPointer, null).getFieldPointer(), is(fieldPointer));
   }
 }

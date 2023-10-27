@@ -10,7 +10,6 @@ import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.SqlPlatform;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ class FunctionFilterVariableTest {
     var filterVariable =
         new FunctionFilterVariable(
             FunctionFilterVariable.FunctionTemplate.IN,
-            new FieldVariable(new FieldPointer.Builder().columnName("column").build(), table),
+            new FieldVariable(new FieldPointer(null, "column"), table),
             new Literal("value1"),
             new Literal("value2"));
     assertThat(

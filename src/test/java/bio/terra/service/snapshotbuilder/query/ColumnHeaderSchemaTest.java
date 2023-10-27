@@ -6,8 +6,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.snapshotbuilder.query.CellValue;
-import bio.terra.service.snapshotbuilder.query.ColumnHeaderSchema;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

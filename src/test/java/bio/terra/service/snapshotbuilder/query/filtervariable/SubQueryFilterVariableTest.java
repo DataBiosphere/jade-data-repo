@@ -20,7 +20,7 @@ class SubQueryFilterVariableTest {
   void renderSQL() {
     var subQuery = QueryTest.createQuery();
 
-    var fieldPointer = new FieldPointer.Builder().columnName("field").build();
+    var fieldPointer = new FieldPointer(null, "field");
     var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("x"));
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariable = new FieldVariable(fieldPointer, tableVariable);

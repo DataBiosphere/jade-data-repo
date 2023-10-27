@@ -3,8 +3,8 @@ package bio.terra.service.snapshotbuilder.query.filter;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.Filter;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import java.util.List;
 
 public final class BinaryFilter extends Filter {

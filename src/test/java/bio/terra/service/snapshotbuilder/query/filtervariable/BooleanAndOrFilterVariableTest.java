@@ -9,8 +9,6 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -29,13 +27,11 @@ class BooleanAndOrFilterVariableTest {
             BooleanAndOrFilterVariable.LogicalOperator.AND,
             List.of(
                 new BinaryFilterVariable(
-                    new FieldVariable(
-                        new FieldPointer.Builder().columnName("field1").build(), table1),
+                    new FieldVariable(new FieldPointer(null, "field1"), table1),
                     BinaryFilterVariable.BinaryOperator.EQUALS,
                     new Literal("value1")),
                 new BinaryFilterVariable(
-                    new FieldVariable(
-                        new FieldPointer.Builder().columnName("field2").build(), table2),
+                    new FieldVariable(new FieldPointer(null, "field2"), table2),
                     BinaryFilterVariable.BinaryOperator.EQUALS,
                     new Literal("value2"))));
   }

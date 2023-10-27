@@ -1,4 +1,4 @@
-package bio.terra.tanagra.query.filtervariable;
+package bio.terra.service.snapshotbuilder.query.filtervariable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -6,8 +6,7 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.tanagra.query.QueryTest;
+import bio.terra.service.snapshotbuilder.query.QueryTest;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;

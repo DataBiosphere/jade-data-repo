@@ -1,4 +1,4 @@
-package bio.terra.tanagra.query.filtervariable;
+package bio.terra.service.snapshotbuilder.query.filtervariable;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

@@ -1,4 +1,4 @@
-package bio.terra.tanagra.query;
+package bio.terra.service.snapshotbuilder.query;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;

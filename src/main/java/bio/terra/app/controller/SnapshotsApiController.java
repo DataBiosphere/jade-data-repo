@@ -13,6 +13,7 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.LockResultModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -231,6 +232,24 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.verifySnapshotListable(id, authenticatedInfo);
     SnapshotSummaryModel snapshotSummaryModel = snapshotService.retrieveSnapshotSummary(id);
     return ResponseEntity.ok(snapshotSummaryModel);
+  }
+
+  @Override
+  public ResponseEntity<LockResultModel> lockSnapshot(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+    String acquiredLockName = snapshotService.manualExclusiveLock(userRequest, id);
+    return ResponseEntity.ok(new LockResultModel().lockName(acquiredLockName));
+  }
+
+  @Override
+  public ResponseEntity<Void> unlockSnapshot(UUID id, String lockName) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+    snapshotService.manualUnlock(userRequest, id, lockName);
+    return null;
   }
 
   @Override

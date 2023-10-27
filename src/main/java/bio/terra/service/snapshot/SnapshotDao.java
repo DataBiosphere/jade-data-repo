@@ -143,7 +143,7 @@ public class SnapshotDao implements TaggableResourceDao {
    * @throws SnapshotNotFoundException if the snapshot does not exist
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void lock(UUID snapshotId, String flightId) {
+  public String lock(UUID snapshotId, String flightId) {
     if (flightId == null) {
       throw new SnapshotLockException("Locking flight id cannot be null");
     }
@@ -155,18 +155,17 @@ public class SnapshotDao implements TaggableResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("id", snapshotId).addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);
-
-    // if no rows were updated, then throw an exception
-    if (numRowsUpdated == 0) {
-      // this method checks if the snapshot exists
-      // if it does not exist, then the method throws a SnapshotNotFoundException
-      // we don't need the result (snapshot summary) here, just the existence check, so ignore the
-      // return value.
-      retrieveSummaryById(snapshotId);
-
+    String exclusiveLock = retrieveSnapshot(snapshotId).getResourceLocks().getExclusive();
+    if (numRowsUpdated == 0 || exclusiveLock == null) {
       throw new SnapshotLockException(
           "Failed to lock the snapshot", LockOperation.LOCK_EXCLUSIVE.getErrorDetails());
     }
+    if (exclusiveLock != flightId) {
+      throw new SnapshotLockException(
+          "Failed to lock the snapshot with the correct lock",
+          LockOperation.LOCK_EXCLUSIVE.getErrorDetails());
+    }
+    return exclusiveLock;
   }
 
   /**

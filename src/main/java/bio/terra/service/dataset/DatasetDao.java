@@ -169,7 +169,7 @@ public class DatasetDao implements TaggableResourceDao {
    * @throws DatasetNotFoundException if the dataset does not exist
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void lockExclusive(UUID datasetId, String flightId) {
+  public String lockExclusive(UUID datasetId, String flightId) {
     if (flightId == null) {
       throw new DatasetLockException("Locking flight id cannot be null");
     }
@@ -189,6 +189,7 @@ public class DatasetDao implements TaggableResourceDao {
 
     logger.debug(
         "Lock Operation: Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
+    return flightId;
   }
 
   /**
@@ -238,7 +239,7 @@ public class DatasetDao implements TaggableResourceDao {
    * @throws DatasetNotFoundException if the dataset does not exist
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void lockShared(UUID datasetId, String flightId) {
+  public String lockShared(UUID datasetId, String flightId) {
     if (flightId == null) {
       throw new DatasetLockException("Locking flight id cannot be null");
     }
@@ -272,6 +273,7 @@ public class DatasetDao implements TaggableResourceDao {
         datasetId,
         flightId,
         numRowsUpdated);
+    return flightId;
   }
 
   /**

@@ -590,6 +590,111 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: snapshot
+  /api/repository/v1/snapshots/{id}/lock:
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Add an exclusive lock to the snapshot so that no delete operations can be performed on it.
+        This lock will appear as "MANUAL_LOCK" when the snapshot is retrieved.
+      operationId: lockSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The snapshot is now exclusively locked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LockResultModel'
+        400:
+          description: Bad request - malformed snapshot Id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - the snapshot does not exist or the caller is missing permissions to
+            lock the snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a snapshot with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/unlock:
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Remove an exclusive lock on the snapshot.
+      operationId: unlockSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: lockName
+          in: query
+          description: >
+            The lock id to remove. The lock name is either the locking flight id or"MANUAL_LOCK".
+            If not specified, the lock name will be "MANUAL_LOCK".
+          required: false
+          schema:
+            type: string
+            default: 'MANUAL_LOCK'
+      responses:
+        200:
+          description: >
+            The snapshot is now unlocked.
+        400:
+          description: Bad request - malformed snapshot Id or lock name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - snapshot does not exist or the caller is missing permissions to
+            lock the snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a snapshot with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/roleMap:
     get:
       tags:
@@ -1911,6 +2016,109 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: Not found - dataset does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/lock:
+    put:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Add an exclusive lock to the dataset so that no update or delete operations can be performed on it.
+        This lock will appear as "MANUAL_LOCK" when the dataset is retrieved.
+      operationId: lockDataset
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The dataset is now exclusively locked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LockResultModel'
+        400:
+          description: Bad request - malformed dataset Id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - dataset does not exist or the caller is missing permissions to lock the dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a dataset with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/unlock:
+    put:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Remove an exclusive lock on the dataset.
+      operationId: unlockDataset
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: lockName
+          in: query
+          description: >
+            The lock id to remove. The lock name is either "MANUAL_LOCK" or the locking
+            flight id. If not specified, the lock name will be "MANUAL_LOCK".
+          required: false
+          schema:
+            type: string
+            default: 'MANUAL_LOCK'
+      responses:
+        200:
+          description: >
+            The dataset is now exclusively locked.
+        400:
+          description: Bad request - malformed dataset Id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - dataset does not exist or the caller is missing permissions to lock the dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a dataset with the specified Id does not exist.
           content:
             application/json:
               schema:
@@ -5049,6 +5257,11 @@ components:
           items:
             $ref: '#/components/schemas/AssetModel'
       description: data model definition
+    LockResultModel:
+      type: object
+      properties:
+        lockName:
+          type: string
     DatasetSchemaUpdateModel:
       type: object
       properties:

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.service.dataset.DatasetService.MANUAL_LOCK_NAME;
 
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
@@ -70,9 +71,11 @@ import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
@@ -96,6 +99,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -121,6 +125,7 @@ public class SnapshotService {
   private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
+  private final JournalService journalService;
 
   public SnapshotService(
       JobService jobService,
@@ -134,7 +139,8 @@ public class SnapshotService {
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
-      DuosClient duosClient) {
+      DuosClient duosClient,
+      JournalService journalService) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -147,6 +153,7 @@ public class SnapshotService {
     this.azureSynapsePdao = azureSynapsePdao;
     this.rawlsService = rawlsService;
     this.duosClient = duosClient;
+    this.journalService = journalService;
   }
 
   /**
@@ -1198,5 +1205,31 @@ public class SnapshotService {
         .stream()
         .map(SnapshotSummaryModel::getId)
         .toList();
+  }
+
+  public String manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
+    String lockName = snapshotDao.lock(snapshotId, MANUAL_LOCK_NAME);
+    journalService.recordUpdate(
+        userReq,
+        snapshotId,
+        IamResourceType.DATASNAPSHOT,
+        "Snapshot manually exclusively locked",
+        null);
+    return lockName;
+  }
+
+  public void manualUnlock(AuthenticatedUserRequest userReq, UUID snapshotId, String lockName) {
+    String nonNullLockName = Objects.requireNonNullElse(lockName, MANUAL_LOCK_NAME);
+    boolean succecssfulUnlock = snapshotDao.unlock(snapshotId, nonNullLockName);
+    if (succecssfulUnlock) {
+      journalService.recordUpdate(
+          userReq,
+          snapshotId,
+          IamResourceType.DATASNAPSHOT,
+          "Snapshot manually exclusively unlocked",
+          null);
+    } else {
+      throw new SnapshotLockException("Unlock was unsuccessful.");
+    }
   }
 }

@@ -660,8 +660,8 @@ public class DatasetService {
 
   public void manualUnlock(AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
     String nonNullLockName = Objects.requireNonNullElse(lockName, MANUAL_LOCK_NAME);
-    boolean succecssfulUnlock = unlock(datasetId, nonNullLockName, false);
-    if (succecssfulUnlock) {
+    boolean successfulUnlock = unlock(datasetId, nonNullLockName, false);
+    if (successfulUnlock) {
       journalService.recordUpdate(
           userReq,
           datasetId,

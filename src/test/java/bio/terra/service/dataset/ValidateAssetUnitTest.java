@@ -16,6 +16,7 @@ import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
@@ -65,6 +66,7 @@ public class ValidateAssetUnitTest {
   @MockBean private IamService iamService;
   @MockBean private DatasetTableDao datasetTableDao;
   @MockBean private AzureSynapsePdao azureSynapsePdao;
+  @MockBean private JournalService journalService;
 
   private String tableName = "tableName1";
   private String tableName2 = "tableName2";

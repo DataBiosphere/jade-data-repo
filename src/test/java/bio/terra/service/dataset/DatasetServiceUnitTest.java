@@ -38,6 +38,7 @@ import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
@@ -98,6 +99,7 @@ public class DatasetServiceUnitTest {
   @MockBean private IamService iamService;
   @MockBean private DatasetTableDao datasetTableDao;
   @MockBean private AzureSynapsePdao azureSynapsePdao;
+  @MockBean private JournalService journalService;
 
   @Before
   public void setup() {

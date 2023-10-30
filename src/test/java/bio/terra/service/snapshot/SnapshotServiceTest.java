@@ -82,6 +82,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
@@ -158,6 +159,7 @@ public class SnapshotServiceTest {
   @MockBean private EcmService ecmService;
   @MockBean private RawlsService rawlsService;
   @MockBean private DuosClient duosClient;
+  @MockBean private JournalService journalService;
 
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();

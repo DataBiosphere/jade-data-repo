@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.api.TpsApi;
@@ -39,7 +40,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"google", "unittest"})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 public class PolicyServiceTest {
 
   @Mock private PolicyApiService policyApiService;
@@ -52,10 +53,12 @@ public class PolicyServiceTest {
           .namespace(PolicyService.POLICY_NAMESPACE)
           .name(PolicyService.PROTECTED_DATA_POLICY_NAME);
   private final TpsPolicyInputs policies = new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
+  private TpsPaoUpdateRequest updateRequest;
 
   @BeforeEach
   public void setup() throws Exception {
     policyService = new PolicyService(policyApiService);
+    updateRequest = new TpsPaoUpdateRequest().updateMode(PolicyService.UPDATE_MODE);
   }
 
   private void mockPolicyApi() {
@@ -105,9 +108,9 @@ public class PolicyServiceTest {
   @Test
   void testUpdateSnapshotPao() throws Exception {
     mockPolicyApi();
-    TpsPaoUpdateRequest updateRequest = new TpsPaoUpdateRequest().addAttributes(policies);
+    updateRequest = updateRequest.addAttributes(policies);
     policyService.updatePao(updateRequest, snapshotId);
-    verify(tpsApi).updatePao(new TpsPaoUpdateRequest().addAttributes(policies), snapshotId);
+    verify(tpsApi).updatePao(updateRequest, snapshotId);
   }
 
   @Test
@@ -129,7 +132,17 @@ public class PolicyServiceTest {
     var exception = new ApiException(HttpStatus.CONFLICT.value(), "Policy object already exists");
     doThrow(exception).when(tpsApi).createPao(any());
     policyService.createOrUpdatePao(snapshotId, TpsObjectType.SNAPSHOT, policies);
-    verify(tpsApi).updatePao(new TpsPaoUpdateRequest().addAttributes(policies), snapshotId);
+    verify(tpsApi).updatePao(updateRequest.addAttributes(policies), snapshotId);
+  }
+
+  @Test
+  void testCreateOrUpdatePaoUpdatesDuplicatePao() throws Exception {
+    mockPolicyApi();
+    var exception =
+        new ApiException(HttpStatus.BAD_REQUEST.value(), "Duplicate policy attributes object");
+    doThrow(exception).when(tpsApi).createPao(any());
+    policyService.createOrUpdatePao(snapshotId, TpsObjectType.SNAPSHOT, policies);
+    verify(tpsApi).updatePao(updateRequest.addAttributes(policies), snapshotId);
   }
 
   @Test

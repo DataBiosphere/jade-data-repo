@@ -12,6 +12,7 @@ import bio.terra.policy.model.TpsPaoUpdateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.policy.model.TpsPolicyPair;
+import bio.terra.policy.model.TpsUpdateMode;
 import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
@@ -32,6 +33,7 @@ public class PolicyService {
   public static final String GROUP_CONSTRAINT_POLICY_NAME = "group-constraint";
   public static final String GROUP_CONSTRAINT_KEY_NAME = "group";
   public static final String PROTECTED_DATA_POLICY_NAME = "protected-data";
+  public static final TpsUpdateMode UPDATE_MODE = TpsUpdateMode.FAIL_ON_CONFLICT;
   private static final Logger logger = LoggerFactory.getLogger(PolicyService.class);
 
   private final PolicyApiService policyApiService;
@@ -76,6 +78,8 @@ public class PolicyService {
 
   public void updatePao(TpsPaoUpdateRequest updateRequest, UUID resourceId) {
     TpsApi tpsApi = policyApiService.getPolicyApi();
+    // Setting the update mode is required, but not enforced by the terra-policy-client.
+    updateRequest = updateRequest.updateMode(UPDATE_MODE);
     try {
       tpsApi.updatePao(updateRequest, resourceId);
     } catch (ApiException e) {
@@ -87,7 +91,10 @@ public class PolicyService {
       UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
     try {
       createPao(resourceId, resourceType, policyInputs);
-    } catch (PolicyConflictException e) {
+    } catch (PolicyConflictException | PolicyServiceDuplicateException e) {
+      // TODO - handling PolicyServiceDuplicateException may be removed once
+      // https://broadworkbench.atlassian.net/browse/ID-899
+      // is complete, as this error should instead throw a PolicyConflictException.
       TpsPaoUpdateRequest updateRequest = new TpsPaoUpdateRequest().addAttributes(policyInputs);
       updatePao(updateRequest, resourceId);
     }
@@ -118,6 +125,9 @@ public class PolicyService {
           "Policy access object not found", ex);
       case HttpStatus.SC_BAD_REQUEST -> {
         if (StringUtils.containsIgnoreCase(ex.getMessage(), "duplicate")) {
+          // TODO - this special handling may be removed once
+          // https://broadworkbench.atlassian.net/browse/ID-899
+          // is complete, as this error should instead throw a 409.
           yield new PolicyServiceDuplicateException(
               "Request contains duplicate policy attribute", ex);
         } else {

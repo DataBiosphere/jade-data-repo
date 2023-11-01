@@ -11,4 +11,7 @@ public interface Pact {
    * construction of the Pact Broker's network graph.
    */
   String PACTICIPANT = "datarepo";
+
+  /** Test application property file suffix */
+  String PROFILE = "pacttest";
 }

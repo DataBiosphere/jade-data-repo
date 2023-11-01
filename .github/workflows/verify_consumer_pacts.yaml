@@ -17,7 +17,6 @@ name: Verify consumer pacts
 # https://github.com/broadinstitute/terraform-ap-deployments/pull/1255
 env:
   TDR_LOG_APPENDER: 'Console-Standard'
-  PACT_BROKER_URL: pact-broker.dsp-eng-tools.broadinstitute.org
 on:
   pull_request:
     branches:

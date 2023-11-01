@@ -42,7 +42,7 @@ plugins {
     // enables release info in sentry events
     id "com.gorylenko.gradle-git-properties" version "2.4.1"
     id "org.sonarqube" version "4.2.1.3168"
-    id "au.com.dius.pact" version "4.3.10"
+    id "au.com.dius.pact" version "4.3.19"
 }
 
 allprojects {
@@ -298,8 +298,8 @@ dependencies {
         exclude group: 'com.sun.jersey', module: 'jersey-server'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.1.7'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.1.7'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.3.19'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
 
     antlr "org.antlr:antlr4:4.8"
     spotbugs 'com.github.spotbugs:spotbugs:4.2.3'
@@ -581,13 +581,13 @@ task verifyPacts(type: Test) {
         includeTags 'bio.terra.common.category.Pact'
     }
     outputs.upToDateWhen { false }
-    systemProperty 'pact.provider.version', System.getenv('PACT_PROVIDER_COMMIT')
-    systemProperty 'pact.provider.branch', System.getenv('PACT_PROVIDER_BRANCH')
-    systemProperty 'pact.verifier.publishResults', true
-    systemProperty 'pactbroker.host', System.getenv('PACT_BROKER_URL')
+    if (isCiServer) {
+        systemProperty 'pact.verifier.publishResults', true
+    }
     systemProperty 'pactbroker.auth.username', System.getenv('PACT_BROKER_USERNAME')
     systemProperty 'pactbroker.auth.password', System.getenv('PACT_BROKER_PASSWORD')
-    systemProperty 'pactbroker.scheme', 'https'
+    systemProperty 'pact.provider.version', System.getenv('PACT_PROVIDER_COMMIT')
+    systemProperty 'pact.provider.branch', System.getenv('PACT_PROVIDER_BRANCH')
 }
 
 compileGeneratedJava.dependsOn swaggerSources.server.code

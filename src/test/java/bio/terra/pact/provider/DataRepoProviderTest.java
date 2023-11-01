@@ -14,10 +14,10 @@ import au.com.dius.pact.provider.spring.junit5.PactVerificationSpringProvider;
 import bio.terra.app.controller.GlobalExceptionHandler;
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.common.category.Pact;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
@@ -33,10 +33,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 @Tag(Pact.TAG)
+@ActiveProfiles(Pact.PROFILE)
 @Provider(Pact.PACTICIPANT)
 @PactBroker
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
@@ -70,14 +72,12 @@ public class DataRepoProviderTest {
   @State("snapshot doesn't exist")
   void getNonexistentSnapshot() {
     when(snapshotService.retrieveSnapshotModel(eq(SNAPSHOT_ID), any(), any()))
-        .thenThrow(
-            new SnapshotNotFoundException(
-                String.format("Snapshot not found - id: %s", SNAPSHOT_ID)));
+        .thenThrow(SnapshotNotFoundException.class);
   }
 
   @State("user does not have access to snapshot")
   void noAccessToSnapshot() {
-    doThrow(new IamForbiddenException("User does not have required action"))
+    doThrow(ForbiddenException.class)
         .when(snapshotService)
         .verifySnapshotReadable(eq(SNAPSHOT_ID), any());
   }
@@ -85,10 +85,6 @@ public class DataRepoProviderTest {
   @State("user has access to snapshot")
   void successfulSnapshot() {
     when(snapshotService.retrieveSnapshotModel(eq(SNAPSHOT_ID), any(), any()))
-        .thenReturn(
-            new SnapshotModel()
-                .id(SNAPSHOT_ID)
-                .name("snapshot name")
-                .description("SNAPSHOT_DESCRIPTION"));
+        .thenReturn(new SnapshotModel().id(SNAPSHOT_ID).name("A snapshot name"));
   }
 }

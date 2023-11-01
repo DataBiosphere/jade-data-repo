@@ -10,14 +10,22 @@ public class FieldVariable implements SQLExpression {
   private final TableVariable tableVariable;
   private final String alias;
 
+  private final boolean isDistinct;
+
   public FieldVariable(FieldPointer fieldPointer, TableVariable tableVariable) {
-    this(fieldPointer, tableVariable, null);
+    this(fieldPointer, tableVariable, null, false);
   }
 
   public FieldVariable(FieldPointer fieldPointer, TableVariable tableVariable, String alias) {
+    this(fieldPointer, tableVariable, alias, false);
+  }
+
+  public FieldVariable(
+      FieldPointer fieldPointer, TableVariable tableVariable, String alias, Boolean isDistinct) {
     this.fieldPointer = fieldPointer;
     this.tableVariable = tableVariable;
     this.alias = alias;
+    this.isDistinct = isDistinct;
   }
 
   @Override
@@ -43,7 +51,13 @@ public class FieldVariable implements SQLExpression {
   }
 
   private String renderSQL(boolean useAlias, boolean useFunctionWrapper) {
-    String sql = "%s.%s".formatted(tableVariable.getAlias(), fieldPointer.getColumnName());
+
+    String sql =
+        "%s%s.%s"
+            .formatted(
+                isDistinct ? "DISTINCT " : "",
+                tableVariable.getAlias(),
+                fieldPointer.getColumnName());
 
     if (fieldPointer.isForeignKey()) {
       throw new UnsupportedOperationException("TODO: implement embedded selects " + sql);

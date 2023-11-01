@@ -25,6 +25,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -56,8 +57,6 @@ public class DataRepoProviderTest {
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private AssetModelValidator assetModelValidator;
 
-  private static final UUID SNAPSHOT_ID = UUID.fromString("12345678-abc9-012d-3456-e7fab89cd01e");
-
   @BeforeEach
   void before(PactVerificationContext context) {
     context.setTarget(new MockMvcTestTarget(mvc));
@@ -70,21 +69,26 @@ public class DataRepoProviderTest {
   }
 
   @State("snapshot doesn't exist")
-  void getNonexistentSnapshot() {
-    when(snapshotService.retrieveSnapshotModel(eq(SNAPSHOT_ID), any(), any()))
+  void getNonexistentSnapshot(Map<?, ?> parameters) {
+    when(snapshotService.retrieveSnapshotModel(eq(idFromParameters(parameters)), any(), any()))
         .thenThrow(SnapshotNotFoundException.class);
   }
 
   @State("user does not have access to snapshot")
-  void noAccessToSnapshot() {
+  void noAccessToSnapshot(Map<?, ?> parameters) {
     doThrow(ForbiddenException.class)
         .when(snapshotService)
-        .verifySnapshotReadable(eq(SNAPSHOT_ID), any());
+        .verifySnapshotReadable(eq(idFromParameters(parameters)), any());
   }
 
   @State("user has access to snapshot")
-  void successfulSnapshot() {
-    when(snapshotService.retrieveSnapshotModel(eq(SNAPSHOT_ID), any(), any()))
-        .thenReturn(new SnapshotModel().id(SNAPSHOT_ID).name("A snapshot name"));
+  void successfulSnapshot(Map<?, ?> parameters) {
+    UUID snapshotId = idFromParameters(parameters);
+    when(snapshotService.retrieveSnapshotModel(eq(snapshotId), any(), any()))
+        .thenReturn(new SnapshotModel().id(snapshotId).name("A snapshot name"));
+  }
+
+  private UUID idFromParameters(Map<?, ?> parameters) {
+    return UUID.fromString(parameters.get("id").toString());
   }
 }

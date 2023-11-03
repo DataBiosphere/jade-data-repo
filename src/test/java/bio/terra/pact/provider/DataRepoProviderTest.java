@@ -44,7 +44,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @PactBroker
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
 @WebMvcTest
-public class DataRepoProviderTest {
+class DataRepoProviderTest {
 
   @Autowired private MockMvc mvc;
 
@@ -68,20 +68,20 @@ public class DataRepoProviderTest {
     context.verifyInteraction();
   }
 
-  @State("snapshot doesn't exist")
+  @State("snapshot with given id doesn't exist")
   void getNonexistentSnapshot(Map<?, ?> parameters) {
     when(snapshotService.retrieveSnapshotModel(eq(idFromParameters(parameters)), any(), any()))
         .thenThrow(SnapshotNotFoundException.class);
   }
 
-  @State("user does not have access to snapshot")
+  @State("user does not have access to snapshot with given id")
   void noAccessToSnapshot(Map<?, ?> parameters) {
     doThrow(ForbiddenException.class)
         .when(snapshotService)
         .verifySnapshotReadable(eq(idFromParameters(parameters)), any());
   }
 
-  @State("user has access to snapshot")
+  @State("user has access to snapshot with given id")
   void successfulSnapshot(Map<?, ?> parameters) {
     UUID snapshotId = idFromParameters(parameters);
     when(snapshotService.retrieveSnapshotModel(eq(snapshotId), any(), any()))

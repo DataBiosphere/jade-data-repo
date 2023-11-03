@@ -368,6 +368,7 @@ public class GcsPdao implements CloudFileReader {
                         token.get(TOKEN_FIELD).toString(),
                         Date.from(Instant.now().plusSeconds(token.getExpiresIn())))));
     if (cloudEncapsulationId != null) {
+      logger.info("Setting project id to {}", cloudEncapsulationId);
       storageAsPetBuilder.setProjectId(cloudEncapsulationId);
     }
     Storage storageAsPet = storageAsPetBuilder.build().getService();
@@ -385,15 +386,26 @@ public class GcsPdao implements CloudFileReader {
     for (String bucket : buckets) {
       List<Boolean> permissions = List.of();
       try {
+        logger.info(
+            "Checking {} permission on bucket {} with options for user project {}",
+            GCS_SOURCE_BUCKET_REQUIRED_PERMISSION,
+            bucket,
+            cloudEncapsulationId);
         permissions =
             storageAsPet.testIamPermissions(
                 bucket, List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION), options);
+        logger.info(
+            "Permissions for bucket {} has size {} with the first item: {}",
+            bucket,
+            permissions.size(),
+            permissions.isEmpty() ? "" : permissions.get(0));
       } catch (StorageException e) {
         // This is a potential failure mode for permissions checking: not being able to make the
         // permissions check call at all
         if (e.getCode() != HttpStatus.SC_FORBIDDEN) {
           throw e;
         }
+        logger.info("StorageException when checking permissions on bucket {}", bucket, e);
       }
 
       if (!permissions.equals(List.of(true))) {

@@ -26,6 +26,7 @@ on:
   push:
     branches:
       - develop
+      - iv-AJ-1233-provider-contract
     paths-ignore:
       - 'README.md'
   workflow_dispatch:

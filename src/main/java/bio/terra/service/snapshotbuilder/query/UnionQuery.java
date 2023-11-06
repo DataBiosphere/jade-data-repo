@@ -12,6 +12,6 @@ public record UnionQuery(List<Query> subQueries) implements SqlExpression {
 
   @Override
   public String renderSQL() {
-    return subQueries.stream().map(sq -> sq.renderSQL()).collect(Collectors.joining(" UNION "));
+    return subQueries.stream().map(Query::renderSQL).collect(Collectors.joining(" UNION "));
   }
 }

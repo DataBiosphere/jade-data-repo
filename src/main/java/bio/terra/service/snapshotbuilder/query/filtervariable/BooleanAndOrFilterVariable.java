@@ -12,7 +12,7 @@ public record BooleanAndOrFilterVariable(
   @Override
   public String renderSQL() {
     return subFilters.stream()
-        .map(sf -> sf.renderSQL())
+        .map(SqlExpression::renderSQL)
         .collect(Collectors.joining(" " + operator.renderSQL() + " ", "(", ")"));
   }
 

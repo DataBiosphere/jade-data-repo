@@ -53,7 +53,7 @@ public record Query(
     String selectSQL =
         select.stream()
             .sorted(Comparator.comparing(FieldVariable::getAlias))
-            .map(fieldVariable -> fieldVariable.renderSQL())
+            .map(FieldVariable::renderSQL)
             .collect(Collectors.joining(", "));
 
     // render the primary TableVariable

@@ -31,6 +31,16 @@ public class QueryTest {
   }
 
   @Test
+  void renderSqlGroupBy() {
+    TablePointer tablePointer = TablePointer.fromTableName("table");
+    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
+    FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
+    Query query = new Query(List.of(fieldVariable), List.of(tableVariable), List.of(fieldVariable));
+    assertThat(query.renderSQL(), is("SELECT t.field FROM table AS t GROUP BY t.field"));
+  }
+
+  @Test
   void renderComplexSQL() {
     TablePointer tablePointer = TablePointer.fromTableName("person");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);

@@ -61,6 +61,8 @@ class DataRepoProviderTest {
 
   @PactBrokerConsumerVersionSelectors
   public static SelectorBuilder consumerVersionSelectors() {
+    // Select consumer pacts published from default branch or pacts marked as deployed or released
+    // aj-1188-tdr-consumer is included here for development purpose + PR runs
     return new SelectorBuilder().mainBranch().deployedOrReleased().branch("aj-1188-tdr-consumer");
   }
 

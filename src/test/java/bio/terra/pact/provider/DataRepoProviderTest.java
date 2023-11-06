@@ -61,10 +61,7 @@ class DataRepoProviderTest {
 
   @PactBrokerConsumerVersionSelectors
   public static SelectorBuilder consumerVersionSelectors() {
-    return new SelectorBuilder()
-        .mainBranch()
-        .deployedOrReleased()
-        .branch("aj-1188-tdr-consumer");
+    return new SelectorBuilder().mainBranch().deployedOrReleased().branch("aj-1188-tdr-consumer");
   }
 
   @BeforeEach

@@ -99,9 +99,8 @@ public class QueryTest {
                         BinaryFilterVariable.BinaryOperator.LESS_THAN,
                         new Literal(1983)))));
     String querySQL = query.renderSQL(null);
-    assertThat(querySQL, containsString("SELECT COUNT(DISTINCT p.person_id) FROM person AS p"));
-    assertThat(
-        querySQL, containsString("JOIN condition_occurrence AS c ON c.person_id = p.person_id"));
+    assertThat(querySQL, allOf(containsString("SELECT COUNT(DISTINCT p.person_id) FROM person AS p"), 
+    containsString("JOIN condition_occurrence AS c ON c.person_id = p.person_id"));
     assertThat(
         querySQL,
         containsString(

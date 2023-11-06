@@ -21,7 +21,7 @@ public class FieldVariable implements SQLExpression {
   }
 
   public FieldVariable(
-      FieldPointer fieldPointer, TableVariable tableVariable, String alias, Boolean isDistinct) {
+      FieldPointer fieldPointer, TableVariable tableVariable, String alias, boolean isDistinct) {
     this.fieldPointer = fieldPointer;
     this.tableVariable = tableVariable;
     this.alias = alias;

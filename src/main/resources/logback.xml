@@ -35,7 +35,6 @@
     <logger name="liquibase.executor" level="warn" />
     <logger name="io.swagger.models.parameters.AbstractSerializableParameter" level="error" />
     <logger name="bio.terra.common.logging.RequestLoggingFilter" level="off" />
-    <logger name="au.com.dius.pact.provider" level="debug" />
 
     <!--    <logger name="bio.terra.service.dataset.flight.create.CreateDatasetAuthzIamStep" level="debug" />-->
     <!--    <logger name="bio.terra.service.dataset.flight.create.CreateDatasetAuthzPrimaryDataStep" level="debug" />-->

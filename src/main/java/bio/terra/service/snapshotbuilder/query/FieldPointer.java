@@ -10,7 +10,7 @@ public class FieldPointer {
   private final TablePointer foreignTablePointer;
   private final String foreignKeyColumnName;
   private final String foreignColumnName;
-  private boolean joinCanBeEmpty;
+  private final boolean joinCanBeEmpty;
   private final String sqlFunctionWrapper;
 
   private FieldPointer(
@@ -83,21 +83,8 @@ public class FieldPointer {
     return columnName;
   }
 
-  public TablePointer getForeignTablePointer() {
-    return foreignTablePointer;
-  }
-
-  public String getForeignKeyColumnName() {
-    return foreignKeyColumnName;
-  }
-
   public String getForeignColumnName() {
     return foreignColumnName;
-  }
-
-  public FieldPointer setJoinCanBeEmpty(boolean joinCanBeEmpty) {
-    this.joinCanBeEmpty = joinCanBeEmpty;
-    return this;
   }
 
   public boolean hasSqlFunctionWrapper() {
@@ -106,9 +93,5 @@ public class FieldPointer {
 
   public String getSqlFunctionWrapper() {
     return sqlFunctionWrapper;
-  }
-
-  public TablePointer getTablePointer() {
-    return tablePointer;
   }
 }

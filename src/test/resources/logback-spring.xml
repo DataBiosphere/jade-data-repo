@@ -1,8 +1,0 @@
-<configuration>
-  <root level="debug">
-    <appender-ref ref="CONSOLE" />
-  </root>
-
-  <logger name="au.com.dius.pact" level="debug" />
-  <logger name="au.com.dius.pact.provider" level="debug" />
-</configuration>

@@ -1,8 +1,7 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
-import bio.terra.service.snapshotbuilder.query.SQLExpression;
-import bio.terra.service.snapshotbuilder.query.SqlPlatform;
+import bio.terra.service.snapshotbuilder.query.SqlExpression;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,18 +10,18 @@ public record BooleanAndOrFilterVariable(
     implements FilterVariable {
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     return subFilters.stream()
-        .map(sf -> sf.renderSQL(platform))
-        .collect(Collectors.joining(" " + operator.renderSQL(platform) + " ", "(", ")"));
+        .map(sf -> sf.renderSQL())
+        .collect(Collectors.joining(" " + operator.renderSQL() + " ", "(", ")"));
   }
 
-  public enum LogicalOperator implements SQLExpression {
+  public enum LogicalOperator implements SqlExpression {
     AND,
     OR;
 
     @Override
-    public String renderSQL(SqlPlatform platform) {
+    public String renderSQL() {
       return name();
     }
   }

@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
-public class FieldVariable implements SQLExpression {
+public class FieldVariable implements SqlExpression {
   private static final Logger LOGGER = LoggerFactory.getLogger(FieldVariable.class);
   private final FieldPointer fieldPointer;
   private final TableVariable tableVariable;
@@ -29,7 +29,7 @@ public class FieldVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     return renderSQL(true, true);
   }
 

@@ -15,7 +15,7 @@ class TableVariableTest {
   void renderSQLForPrimary() {
     TableVariable tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
     TableVariable.generateAliases(List.of(tableVariable));
-    assertThat(tableVariable.renderSQL(SqlPlatform.BIGQUERY), equalToIgnoringCase("table as t"));
+    assertThat(tableVariable.renderSQL(), equalToIgnoringCase("table as t"));
   }
 
   @Test
@@ -30,7 +30,7 @@ class TableVariableTest {
         TableVariable.forJoined(tablePointer, "joinField", joinFieldOnParent);
     TableVariable.generateAliases(List.of(tableVariable, parentTableVariable));
     assertThat(
-        tableVariable.renderSQL(SqlPlatform.BIGQUERY),
+        tableVariable.renderSQL(),
         equalToIgnoringCase("JOIN table AS t ON t.joinField = p.parentJoinField"));
   }
 }

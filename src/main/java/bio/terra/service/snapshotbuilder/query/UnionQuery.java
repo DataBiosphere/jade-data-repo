@@ -3,7 +3,7 @@ package bio.terra.service.snapshotbuilder.query;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public record UnionQuery(List<Query> subQueries) implements SQLExpression {
+public record UnionQuery(List<Query> subQueries) implements SqlExpression {
   public UnionQuery {
     if (subQueries == null || subQueries.isEmpty()) {
       throw new IllegalArgumentException("Union query must have at least one sub query");
@@ -11,9 +11,7 @@ public record UnionQuery(List<Query> subQueries) implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
-    return subQueries.stream()
-        .map(sq -> sq.renderSQL(platform))
-        .collect(Collectors.joining(" UNION "));
+  public String renderSQL() {
+    return subQueries.stream().map(sq -> sq.renderSQL()).collect(Collectors.joining(" UNION "));
   }
 }

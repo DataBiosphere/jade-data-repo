@@ -19,26 +19,23 @@ class FieldVariableTest {
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
-    assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(null), is("t.field"));
+    assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(), is("t.field"));
 
     assertThat(
-        new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(null),
-        is("t.field AS bar"));
+        new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(), is("t.field AS bar"));
 
     var fieldPointerForeignKey = FieldPointer.foreignColumn(TablePointer.fromRawSql(null), null);
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> fieldVariableForeignKey.renderSQL(SqlPlatform.BIGQUERY));
+    assertThrows(UnsupportedOperationException.class, () -> fieldVariableForeignKey.renderSQL());
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSQL(null), is("foo(t.field)"));
+    assertThat(fieldVariableFunctionWrapper.renderSQL(), is("foo(t.field)"));
 
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
             new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
-    assertThat(fieldVariableSqlFunctionWrapper.renderSQL(null), is("custom(t.field)"));
+    assertThat(fieldVariableSqlFunctionWrapper.renderSQL(), is("custom(t.field)"));
   }
 
   @Test

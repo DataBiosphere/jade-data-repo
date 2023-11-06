@@ -17,8 +17,7 @@ class UnionQueryTest {
     var query = QueryTest.createQuery();
     var unionQuery = new UnionQuery(List.of(query, query));
     assertThat(
-        unionQuery.renderSQL(SqlPlatform.SYNAPSE),
-        is("SELECT t.* FROM table AS t UNION SELECT t.* FROM table AS t"));
+        unionQuery.renderSQL(), is("SELECT t.* FROM table AS t UNION SELECT t.* FROM table AS t"));
   }
 
   // Suppress the warning about the constructor call inside the assertThrows lambda.

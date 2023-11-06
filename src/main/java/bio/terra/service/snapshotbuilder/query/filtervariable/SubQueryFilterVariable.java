@@ -3,8 +3,7 @@ package bio.terra.service.snapshotbuilder.query.filtervariable;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.SQLExpression;
-import bio.terra.service.snapshotbuilder.query.SqlPlatform;
+import bio.terra.service.snapshotbuilder.query.SqlExpression;
 import org.stringtemplate.v4.ST;
 
 public class SubQueryFilterVariable implements FilterVariable {
@@ -21,15 +20,15 @@ public class SubQueryFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     return new ST(TEMPLATE)
-        .add("operator", operator.renderSQL(platform))
-        .add("subQuery", subQuery.renderSQL(platform))
+        .add("operator", operator.renderSQL())
+        .add("subQuery", subQuery.renderSQL())
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
   }
 
-  public enum Operator implements SQLExpression {
+  public enum Operator implements SqlExpression {
     IN("IN"),
     NOT_IN("NOT IN");
 
@@ -40,7 +39,7 @@ public class SubQueryFilterVariable implements FilterVariable {
     }
 
     @Override
-    public String renderSQL(SqlPlatform platform) {
+    public String renderSQL() {
       return sql;
     }
   }

@@ -3,8 +3,7 @@ package bio.terra.service.snapshotbuilder.query.filtervariable;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.SQLExpression;
-import bio.terra.service.snapshotbuilder.query.SqlPlatform;
+import bio.terra.service.snapshotbuilder.query.SqlExpression;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.stringtemplate.v4.ST;
@@ -31,43 +30,30 @@ public class FunctionFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
-    return new ST(functionTemplate.renderSQL(platform))
-        .add(
-            "value",
-            values.stream()
-                .map(literal -> literal.renderSQL(platform))
-                .collect(Collectors.joining(",")))
+  public String renderSQL() {
+    return new ST(functionTemplate.renderSQL())
+        .add("value", values.stream().map(Literal::renderSQL).collect(Collectors.joining(",")))
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
   }
 
-  public enum FunctionTemplate implements SQLExpression {
+  public enum FunctionTemplate implements SqlExpression {
     TEXT_EXACT_MATCH("CONTAINS_SUBSTR(<fieldVariable>, <value>)"),
-    TEXT_FUZZY_MATCH(
-        "bqutil.fn.levenshtein(UPPER(<fieldVariable>), UPPER(<value>))<5",
-        "dbo.Levenshtein(UPPER(<fieldVariable>), UPPER(<value>), 5)"),
+    // BigQuery fuzzy match pattern is "bqutil.fn.levenshtein(UPPER(<fieldVariable>),
+    // UPPER(<value>))<5"
+    TEXT_FUZZY_MATCH("dbo.Levenshtein(UPPER(<fieldVariable>), UPPER(<value>), 5)"),
     IN("<fieldVariable> IN (<value>)"),
     NOT_IN("<fieldVariable> NOT IN (<value>)");
 
-    private final String bqSqlTemplate;
-    private final String synapseSqlTemplate;
+    private final String template;
 
     FunctionTemplate(String template) {
-      this(template, template);
-    }
-
-    FunctionTemplate(String bqSqlTemplate, String synapseSqlTemplate) {
-      this.bqSqlTemplate = bqSqlTemplate;
-      this.synapseSqlTemplate = synapseSqlTemplate;
+      this.template = template;
     }
 
     @Override
-    public String renderSQL(SqlPlatform platform) {
-      return switch (platform) {
-        case BIGQUERY -> bqSqlTemplate;
-        case SYNAPSE -> synapseSqlTemplate;
-      };
+    public String renderSQL() {
+      return template;
     }
   }
 }

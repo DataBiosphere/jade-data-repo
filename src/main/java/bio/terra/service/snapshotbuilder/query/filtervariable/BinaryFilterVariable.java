@@ -3,8 +3,7 @@ package bio.terra.service.snapshotbuilder.query.filtervariable;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.SQLExpression;
-import bio.terra.service.snapshotbuilder.query.SqlPlatform;
+import bio.terra.service.snapshotbuilder.query.SqlExpression;
 import org.stringtemplate.v4.ST;
 
 public record BinaryFilterVariable(
@@ -13,15 +12,15 @@ public record BinaryFilterVariable(
   private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <operator> <value>";
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     return new ST(SUBSTITUTION_TEMPLATE)
-        .add("operator", operator.renderSQL(platform))
-        .add("value", value.renderSQL(platform))
+        .add("operator", operator.renderSQL())
+        .add("value", value.renderSQL())
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
   }
 
-  public enum BinaryOperator implements SQLExpression {
+  public enum BinaryOperator implements SqlExpression {
     EQUALS("="),
     NOT_EQUALS("!="),
     LESS_THAN("<"),
@@ -38,7 +37,7 @@ public record BinaryFilterVariable(
     }
 
     @Override
-    public String renderSQL(SqlPlatform platform) {
+    public String renderSQL() {
       return sql;
     }
   }

@@ -27,6 +27,6 @@ class BinaryFilterVariableTest {
             new FieldVariable(new FieldPointer(null, "column"), tableVariable),
             binaryOperator,
             literal);
-    assertThat(filterVariable.renderSQL(null), is("t.column = 'foo'"));
+    assertThat(filterVariable.renderSQL(), is("t.column = 'foo'"));
   }
 }

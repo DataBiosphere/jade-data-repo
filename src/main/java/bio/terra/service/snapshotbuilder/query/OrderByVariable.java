@@ -24,11 +24,11 @@ public class OrderByVariable {
     return new OrderByVariable(null, null, true);
   }
 
-  public String renderSQL(SqlPlatform platform, boolean isIncludedInSelect) {
+  public String renderSQL(boolean isIncludedInSelect) {
     return isRandom
         ? "RAND()"
         : fieldVariable.renderSqlForOrderOrGroupBy(isIncludedInSelect)
             + " "
-            + direction.renderSQL(platform);
+            + direction.renderSQL();
   }
 }

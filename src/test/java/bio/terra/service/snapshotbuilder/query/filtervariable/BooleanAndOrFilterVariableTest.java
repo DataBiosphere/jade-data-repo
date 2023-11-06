@@ -38,6 +38,6 @@ class BooleanAndOrFilterVariableTest {
 
   @Test
   void renderSQL() {
-    assertThat(variable.renderSQL(null), is("(t.field1 = 'value1' AND t0.field2 = 'value2')"));
+    assertThat(variable.renderSQL(), is("(t.field1 = 'value1' AND t0.field2 = 'value2')"));
   }
 }

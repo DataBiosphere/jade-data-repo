@@ -9,7 +9,7 @@ public record Literal(
     boolean booleanVal,
     Date dateVal,
     double doubleVal)
-    implements SQLExpression {
+    implements SqlExpression {
 
   /** Enum for the data types supported by Tanagra. */
   public enum DataType {
@@ -47,7 +47,7 @@ public record Literal(
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     return switch (dataType) {
       case STRING -> stringVal == null ? "NULL" : "'" + sqlEscape(stringVal) + "'";
       case INT64 -> String.valueOf(int64Val);

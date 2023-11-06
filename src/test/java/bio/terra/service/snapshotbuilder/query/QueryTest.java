@@ -27,7 +27,7 @@ public class QueryTest {
 
   @Test
   void renderSQL() {
-    assertThat(createQuery().renderSQL(null), is("SELECT t.* FROM table AS t"));
+    assertThat(createQuery().renderSQL(), is("SELECT t.* FROM table AS t"));
   }
 
   @Test
@@ -99,7 +99,7 @@ public class QueryTest {
                             new FieldPointer(tablePointer, "year_of_birth"), tableVariable),
                         BinaryFilterVariable.BinaryOperator.LESS_THAN,
                         new Literal(1983)))));
-    String querySQL = query.renderSQL(null);
+    String querySQL = query.renderSQL();
     assertThat(
         querySQL,
         allOf(

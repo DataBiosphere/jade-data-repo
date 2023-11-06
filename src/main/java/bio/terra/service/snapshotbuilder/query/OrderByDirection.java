@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
-public enum OrderByDirection implements SQLExpression {
+public enum OrderByDirection implements SqlExpression {
   ASCENDING("ASC"),
   DESCENDING("DESC");
 
@@ -11,7 +11,7 @@ public enum OrderByDirection implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     return sql;
   }
 }

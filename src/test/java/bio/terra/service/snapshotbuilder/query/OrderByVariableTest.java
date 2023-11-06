@@ -24,18 +24,18 @@ class OrderByVariableTest {
   @Test
   void renderSQLAsc() {
     var orderByVariable = new OrderByVariable(createVariable());
-    assertThat(orderByVariable.renderSQL(null, false), is("t.column ASC"));
+    assertThat(orderByVariable.renderSQL(false), is("t.column ASC"));
   }
 
   @Test
   void renderSQLDesc() {
     var orderByVariable = new OrderByVariable(createVariable(), OrderByDirection.DESCENDING);
-    assertThat(orderByVariable.renderSQL(null, false), is("t.column DESC"));
+    assertThat(orderByVariable.renderSQL(false), is("t.column DESC"));
   }
 
   @Test
   void renderSQLRandom() {
     var orderByVariable = OrderByVariable.random();
-    assertThat(orderByVariable.renderSQL(null, true), is("RAND()"));
+    assertThat(orderByVariable.renderSQL(true), is("RAND()"));
   }
 }

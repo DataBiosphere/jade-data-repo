@@ -26,6 +26,6 @@ class SubQueryFilterVariableTest {
     var fieldVariable = new FieldVariable(fieldPointer, tableVariable);
     var filter =
         new SubQueryFilterVariable(fieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
-    assertThat(filter.renderSQL(null), is("x.field IN (SELECT t.* FROM table AS t)"));
+    assertThat(filter.renderSQL(), is("x.field IN (SELECT t.* FROM table AS t)"));
   }
 }

@@ -13,36 +13,36 @@ class LiteralTest {
   @Test
   void renderString() {
     var literal = new Literal("foo");
-    assertThat(literal.renderSQL(null), is("'foo'"));
+    assertThat(literal.renderSQL(), is("'foo'"));
   }
 
   @Test
   void renderStringEscaped() {
     var literal = new Literal("foo's");
-    assertThat(literal.renderSQL(null), is("'foo’s'"));
+    assertThat(literal.renderSQL(), is("'foo’s'"));
   }
 
   @Test
   void renderInt() {
     var literal = new Literal(42);
-    assertThat(literal.renderSQL(null), is("42"));
+    assertThat(literal.renderSQL(), is("42"));
   }
 
   @Test
   void renderBoolean() {
     var literal = new Literal(true);
-    assertThat(literal.renderSQL(null), is("true"));
+    assertThat(literal.renderSQL(), is("true"));
   }
 
   @Test
   void renderDate() {
     var literal = new Literal(Date.valueOf("2021-01-01"));
-    assertThat(literal.renderSQL(null), is("DATE('2021-01-01')"));
+    assertThat(literal.renderSQL(), is("DATE('2021-01-01')"));
   }
 
   @Test
   void renderDouble() {
     var literal = new Literal(3.14);
-    assertThat(literal.renderSQL(null), is("FLOAT('3.14')"));
+    assertThat(literal.renderSQL(), is("FLOAT('3.14')"));
   }
 }

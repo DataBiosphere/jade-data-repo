@@ -1,10 +1,9 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
-import bio.terra.service.snapshotbuilder.query.SQLExpression;
-import bio.terra.service.snapshotbuilder.query.SqlPlatform;
+import bio.terra.service.snapshotbuilder.query.SqlExpression;
 
 /** Example: HAVING COUNT(*) > 1 */
-public class HavingFilterVariable implements SQLExpression {
+public class HavingFilterVariable implements SqlExpression {
   private final BinaryFilterVariable.BinaryOperator operator;
   private final int value;
 
@@ -14,7 +13,7 @@ public class HavingFilterVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
-    return String.format("HAVING COUNT(*) %s %s", operator.renderSQL(platform), value);
+  public String renderSQL() {
+    return String.format("HAVING COUNT(*) %s %s", operator.renderSQL(), value);
   }
 }

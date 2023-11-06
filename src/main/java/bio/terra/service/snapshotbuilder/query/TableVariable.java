@@ -6,7 +6,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
-public final class TableVariable implements SQLExpression {
+public final class TableVariable implements SqlExpression {
   private String alias;
   private final TablePointer tablePointer;
   private final String joinField;
@@ -47,8 +47,8 @@ public final class TableVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
-    String sql = tablePointer.renderSQL(platform);
+  public String renderSQL() {
+    String sql = tablePointer.renderSQL();
 
     if (alias != null) {
       sql = new ST("<sql> AS <tableAlias>").add("sql", sql).add("tableAlias", alias).render();
@@ -61,7 +61,7 @@ public final class TableVariable implements SQLExpression {
               .add("tableReference", sql)
               .add("tableAlias", alias)
               .add("joinField", joinField)
-              .add("joinFieldOnParent", joinFieldOnParent.renderSQL(platform))
+              .add("joinFieldOnParent", joinFieldOnParent.renderSQL())
               .render();
     }
     return sql;

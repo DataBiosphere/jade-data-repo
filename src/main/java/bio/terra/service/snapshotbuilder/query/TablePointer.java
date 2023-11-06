@@ -2,7 +2,7 @@ package bio.terra.service.snapshotbuilder.query;
 
 import java.util.List;
 
-public record TablePointer(String tableName, Filter filter, String sql) implements SQLExpression {
+public record TablePointer(String tableName, Filter filter, String sql) implements SqlExpression {
 
   public static TablePointer fromTableName(String tableName) {
     return new TablePointer(tableName, null, null);
@@ -13,7 +13,7 @@ public record TablePointer(String tableName, Filter filter, String sql) implemen
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     if (sql != null) {
       return "(" + sql + ")";
     }
@@ -29,6 +29,6 @@ public record TablePointer(String tableName, Filter filter, String sql) implemen
     FilterVariable filterVar = filter.buildVariable(tableVar, List.of(tableVar));
 
     Query query = new Query(List.of(fieldVar), List.of(tableVar), filterVar);
-    return "(" + query.renderSQL(platform) + ")";
+    return "(" + query.renderSQL() + ")";
   }
 }

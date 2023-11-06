@@ -10,11 +10,9 @@ public record Query(
     List<FieldVariable> select,
     List<TableVariable> tables,
     FilterVariable where,
-    List<OrderByVariable> orderBy,
     List<FieldVariable> groupBy,
-    HavingFilterVariable having,
-    Integer limit)
-    implements SQLExpression {
+    HavingFilterVariable having)
+    implements SqlExpression {
 
   public Query {
     if (select.isEmpty()) {
@@ -26,12 +24,6 @@ public record Query(
     if (groupBy == null) {
       groupBy = List.of();
     }
-    if (orderBy == null) {
-      orderBy = List.of();
-    }
-    if (!groupBy.isEmpty() && !orderBy.isEmpty()) {
-      throw new IllegalArgumentException("Query cannot have both GROUP BY and ORDER BY");
-    }
     long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
     if (primaryTables != 1) {
       throw new IllegalArgumentException(
@@ -40,41 +32,20 @@ public record Query(
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables) {
-    this(select, tables, null, null, null, null, null);
+    this(select, tables, null, null, null);
   }
 
   public Query(
       List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, null, groupBy, null, null);
+    this(select, tables, null, groupBy, null);
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null, null, null);
-  }
-
-  public Query(
-      List<FieldVariable> select,
-      List<TableVariable> tables,
-      List<OrderByVariable> orderBy,
-      Integer limit) {
-    this(select, tables, null, orderBy, null, null, limit);
-  }
-
-  public Query(
-      List<FieldVariable> select,
-      List<TableVariable> tables,
-      List<OrderByVariable> orderBy,
-      List<FieldVariable> groupBy,
-      Integer limit) {
-    this(select, tables, null, orderBy, groupBy, null, limit);
-  }
-
-  public Query(List<FieldVariable> select, List<TableVariable> tables, int limit) {
-    this(select, tables, null, null, null, null, limit);
+    this(select, tables, where, null, null);
   }
 
   @Override
-  public String renderSQL(SqlPlatform platform) {
+  public String renderSQL() {
     // generate a unique alias for each TableVariable
     TableVariable.generateAliases(tables);
 
@@ -82,18 +53,14 @@ public record Query(
     String selectSQL =
         select.stream()
             .sorted(Comparator.comparing(FieldVariable::getAlias))
-            .map(fieldVariable -> fieldVariable.renderSQL(platform))
+            .map(fieldVariable -> fieldVariable.renderSQL())
             .collect(Collectors.joining(", "));
-
-    if (platform == SqlPlatform.SYNAPSE && limit != null) {
-      selectSQL = "TOP " + limit + " " + selectSQL;
-    }
 
     // render the primary TableVariable
     String sql =
         new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
             .add("selectSQL", selectSQL)
-            .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
+            .add("primaryTableFromSQL", getPrimaryTable().renderSQL())
             .render();
 
     // render the join TableVariables
@@ -104,7 +71,7 @@ public record Query(
               .add(
                   "joinTablesFromSQL",
                   tables.stream()
-                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
+                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL())
                       .collect(Collectors.joining(" ")))
               .render();
     }
@@ -114,7 +81,7 @@ public record Query(
       sql =
           new ST("<sql> WHERE <whereSQL>")
               .add("sql", sql)
-              .add("whereSQL", where.renderSQL(platform))
+              .add("whereSQL", where.renderSQL())
               .render();
     }
 
@@ -132,24 +99,7 @@ public record Query(
     }
 
     if (having != null) {
-      sql += " " + having.renderSQL(platform);
-    }
-
-    if (platform == SqlPlatform.BIGQUERY && !orderBy.isEmpty()) {
-      // render each ORDER BY FieldVariable and join them into a single string
-      sql =
-          new ST("<sql> ORDER BY <orderBySQL>")
-              .add("sql", sql)
-              .add(
-                  "orderBySQL",
-                  orderBy.stream()
-                      .map(obv -> obv.renderSQL(platform, select.contains(obv.fieldVariable)))
-                      .collect(Collectors.joining(", ")))
-              .render();
-    }
-
-    if (platform == SqlPlatform.BIGQUERY && limit != null) {
-      sql = new ST("<sql> LIMIT <limit>").add("sql", sql).add("limit", limit).render();
+      sql += " " + having.renderSQL();
     }
 
     return sql;

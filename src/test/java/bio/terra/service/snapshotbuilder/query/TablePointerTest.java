@@ -13,8 +13,7 @@ class TablePointerTest {
   @Test
   void renderSQL() {
     var tablePointer =
-        new TablePointer(
-            "table", (primaryTable, tables) -> (FilterVariable) platform -> "filter", null);
-    assertThat(tablePointer.renderSQL(null), is("(SELECT t.* FROM table AS t WHERE filter)"));
+        new TablePointer("table", (primaryTable, tables) -> (FilterVariable) () -> "filter", null);
+    assertThat(tablePointer.renderSQL(), is("(SELECT t.* FROM table AS t WHERE filter)"));
   }
 }

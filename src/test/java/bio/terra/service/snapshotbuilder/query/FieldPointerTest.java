@@ -19,7 +19,7 @@ class FieldPointerTest {
     TableVariable primaryTable = TableVariable.forPrimary(table);
     var fieldVariable = fieldPointer.buildVariable(primaryTable, null);
     TableVariable.generateAliases(List.of(primaryTable));
-    assertThat(fieldVariable.renderSQL(null), is("t.*"));
+    assertThat(fieldVariable.renderSQL(), is("t.*"));
   }
 
   @Test
@@ -31,6 +31,6 @@ class FieldPointerTest {
     tables.add(primaryTable);
     var fieldVariable = fieldPointer.buildVariable(primaryTable, tables);
     TableVariable.generateAliases(tables);
-    assertThat(fieldVariable.renderSQL(null), is("t0.column"));
+    assertThat(fieldVariable.renderSQL(), is("t0.column"));
   }
 }

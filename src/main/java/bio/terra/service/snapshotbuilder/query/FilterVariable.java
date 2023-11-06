@@ -1,3 +1,3 @@
 package bio.terra.service.snapshotbuilder.query;
 
-public interface FilterVariable extends SQLExpression {}
+public interface FilterVariable extends SqlExpression {}

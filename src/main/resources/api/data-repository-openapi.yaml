@@ -822,12 +822,11 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/data/{table}:
     get:
-      deprecated: true
       tags:
         - snapshots
         - search
         - repository
-      description: DEPRECATED - switch to using POST endpoint. Retrieve data for a table in a snapshot
+      description: Retrieve data for a table in a snapshot
       operationId: lookupSnapshotPreviewById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -881,8 +880,8 @@ paths:
         - snapshots
         - search
         - repository
-      description: Retrieve data for a table in a snapshot
-      operationId: lookupSnapshotPreviewById
+      description: Retrieve data for a table in a snapshot. Use this endpoint for large requests.
+      operationId: lookupSnapshotDataByIdLargeRequest
       parameters:
         - $ref: '#/components/parameters/Id'
         - name: table
@@ -1923,12 +1922,11 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/data/{table}:
     get:
-      deprecated: true
       tags:
         - datasets
         - search
         - repository
-      description: DEPRECATED - switch to using POST endpoint. Retrieve data for a table in a dataset
+      description: Retrieve data for a table in a dataset
       operationId: lookupDatasetDataById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1982,8 +1980,8 @@ paths:
         - datasets
         - search
         - repository
-      description: Retrieve data for a table in a dataset
-      operationId: lookupDatasetDataById
+      description: Retrieve data for a table in a dataset.  Use this endpoint for large filter requests.
+      operationId: lookupDatasetDataByIdLargeRequest
       parameters:
         - $ref: '#/components/parameters/Id'
         - name: table
@@ -2010,7 +2008,7 @@ paths:
     get:
       tags:
         - datasets
-      description: Retrieve statiscs about data for a column in a table in a dataset
+      description: Retrieve statistics about data for a column in a table in a dataset
       operationId: lookupDatasetColumnStatisticsById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2022,7 +2020,7 @@ paths:
             type: string
         - name: column
           in: path
-          description: Name of column in the table to get statisitcs about
+          description: Name of column in the table to get statistics about
           required: true
           schema:
             type: string
@@ -2038,6 +2036,38 @@ paths:
             i.e. if we had two rows in a table where the value for column1, row1 = ['value1', 'value1', 'value2'] and column1, row2 = ['value1'] the count for 'value1' would be 3.
           schema:
             type: string
+      responses:
+        200:
+          description: Returns the statistics about a column from a dataset's table
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColumnStatisticsModel'
+    post:
+      tags:
+        - datasets
+      description: Retrieve statistics about data for a column in a table in a dataset. Use for large requests.
+      operationId: lookupDatasetColumnStatisticsByIdLargeRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table where column lives
+          required: true
+          schema:
+            type: string
+        - name: column
+          in: path
+          description: Name of column in the table to get statistics about
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Parameters to filter results
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LookupColumnStatisticsRequestModel'
       responses:
         200:
           description: Returns the statistics about a column from a dataset's table
@@ -5191,6 +5221,19 @@ components:
           default: asc
         filter:
           description: A SQL WHERE clause to filter the table results.
+          type: string
+    LookupColumnStatisticsRequestModel:
+      type: object
+      properties:
+        filter:
+          description: >-
+            A SQL WHERE clause to filter results included in column statistics.
+
+
+            For GCP array string columns, if you wanted to include all rows that contain 'value1' in column1,
+            the filter clause would look like 'WHERE 'value1' IN UNNEST(column1)'. Note that "count" value
+            includes all occurrences of a value including duplicates of the same value in a single array.
+            i.e. if we had two rows in a table where the value for column1, row1 = ['value1', 'value1', 'value2'] and column1, row2 = ['value1'] the count for 'value1' would be 3.
           type: string
     DatasetDataModel:
       type: object

@@ -31,6 +31,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
+import bio.terra.model.LookupColumnStatisticsRequestModel;
 import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
@@ -196,23 +197,33 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
+  public ResponseEntity<DatasetDataModel> lookupDatasetDataByIdLargeRequest(
       UUID id, String table, LookupDataRequestModel lookupDataRequest) {
+    return lookupDatasetDataById(
+        id,
+        table,
+        lookupDataRequest.getLimit(),
+        lookupDataRequest.getOffset(),
+        lookupDataRequest.getSort(),
+        lookupDataRequest.getDirection(),
+        lookupDataRequest.getFilter());
+  }
+
+  @Override
+  public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirection direction,
+      String filter) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection =
-        Objects.requireNonNullElse(lookupDataRequest.getDirection(), SqlSortDirection.ASC);
+    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
     DatasetDataModel previewModel =
-        datasetService.retrieveData(
-            userReq,
-            id,
-            table,
-            lookupDataRequest.getLimit(),
-            lookupDataRequest.getOffset(),
-            lookupDataRequest.getSort(),
-            sortDirection,
-            lookupDataRequest.getFilter());
+        datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
     return ResponseEntity.ok(previewModel);
   }
 
@@ -223,6 +234,17 @@ public class DatasetsApiController implements DatasetsApi {
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
     ColumnStatisticsModel columnStatisticsModel =
         datasetService.retrieveColumnStatistics(userReq, id, table, column, filter);
+    return ResponseEntity.ok(columnStatisticsModel);
+  }
+
+  @Override
+  public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsByIdLargeRequest(
+      UUID id, String table, String column, LookupColumnStatisticsRequestModel requestModel) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
+    ColumnStatisticsModel columnStatisticsModel =
+        datasetService.retrieveColumnStatistics(
+            userReq, id, table, column, requestModel.getFilter());
     return ResponseEntity.ok(columnStatisticsModel);
   }
 

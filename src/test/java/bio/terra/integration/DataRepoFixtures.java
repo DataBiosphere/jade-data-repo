@@ -54,6 +54,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.LookupColumnStatisticsRequestModel;
 import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
@@ -1106,7 +1107,7 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     DataRepoResponse<ColumnStatisticsIntModel> response =
-        retrieveColumnStatsIntRaw(user, datasetId, table, columnName, filter);
+        retrieveColumnStatsRaw(user, datasetId, table, columnName, filter);
     return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
   }
 
@@ -1114,38 +1115,20 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     DataRepoResponse<ColumnStatisticsTextModel> response =
-        retrieveColumnStatsTextRaw(user, datasetId, table, columnName, filter);
+        retrieveColumnStatsRaw(user, datasetId, table, columnName, filter);
     return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
   }
 
-  private DataRepoResponse<ColumnStatisticsIntModel> retrieveColumnStatsIntRaw(
+  private <T> DataRepoResponse<T> retrieveColumnStatsRaw(
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     String url =
         "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
             .formatted(datasetId, table, columnName);
-
-    String queryParams = "";
-
-    if (filter != null) {
-      queryParams += "?filter=%s".formatted(filter);
-    }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
-  }
-
-  private DataRepoResponse<ColumnStatisticsTextModel> retrieveColumnStatsTextRaw(
-      TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
-      throws Exception {
-    String url =
-        "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
-            .formatted(datasetId, table, columnName);
-
-    String queryParams = "";
-
-    if (filter != null) {
-      queryParams += "&filter=%s".formatted(filter);
-    }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+    var requestModel = new LookupColumnStatisticsRequestModel();
+    requestModel.filter(Objects.requireNonNullElse(filter, ""));
+    return dataRepoClient.post(
+        user, url, TestUtils.mapToJson(requestModel), new TypeReference<>() {});
   }
 
   public void assertFailToGetSnapshot(TestConfiguration.User user, UUID snapshotId)

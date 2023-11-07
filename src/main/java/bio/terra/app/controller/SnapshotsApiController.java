@@ -267,24 +267,35 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
+  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotDataByIdLargeRequest(
       UUID id, String table, LookupDataRequestModel lookupDataRequest) {
+    return lookupSnapshotPreviewById(
+        id,
+        table,
+        lookupDataRequest.getLimit(),
+        lookupDataRequest.getOffset(),
+        lookupDataRequest.getSort(),
+        lookupDataRequest.getDirection(),
+        lookupDataRequest.getFilter());
+  }
+
+  @Override
+  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirection direction,
+      String filter) {
     logger.debug("Verifying user access");
     snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
     logger.debug("Retrieving snapshot id {}", id);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection =
-        Objects.requireNonNullElse(lookupDataRequest.getDirection(), SqlSortDirection.ASC);
+    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
     SnapshotPreviewModel previewModel =
         snapshotService.retrievePreview(
-            getAuthenticatedInfo(),
-            id,
-            table,
-            lookupDataRequest.getLimit(),
-            lookupDataRequest.getOffset(),
-            lookupDataRequest.getSort(),
-            sortDirection,
-            lookupDataRequest.getFilter());
+            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
     return ResponseEntity.ok(previewModel);
   }
 

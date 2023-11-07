@@ -42,7 +42,7 @@ class LiteralTest {
 
   @Test
   void renderDouble() {
-    var literal = new Literal(3.14);
-    assertThat(literal.renderSQL(), is("FLOAT('3.14')"));
+    var literal = new Literal(1.234);
+    assertThat(literal.renderSQL(), is("FLOAT('1.234')"));
   }
 }

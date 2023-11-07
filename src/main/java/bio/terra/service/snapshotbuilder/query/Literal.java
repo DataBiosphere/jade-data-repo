@@ -2,14 +2,13 @@ package bio.terra.service.snapshotbuilder.query;
 
 import java.sql.Date;
 
-public record Literal(
-    DataType dataType,
-    String stringVal,
-    long int64Val,
-    boolean booleanVal,
-    Date dateVal,
-    double doubleVal)
-    implements SqlExpression {
+public class Literal implements SqlExpression {
+  private final DataType dataType;
+  private final String stringVal;
+  private final long int64Val;
+  private final boolean booleanVal;
+  private final Date dateVal;
+  private final double doubleVal;
 
   /** Enum for the data types supported by Tanagra. */
   public enum DataType {
@@ -18,6 +17,21 @@ public record Literal(
     BOOLEAN,
     DATE,
     DOUBLE
+  }
+
+  private Literal(
+      DataType dataType,
+      String stringVal,
+      long int64Val,
+      boolean booleanVal,
+      Date dateVal,
+      double doubleVal) {
+    this.dataType = dataType;
+    this.stringVal = stringVal;
+    this.int64Val = int64Val;
+    this.booleanVal = booleanVal;
+    this.dateVal = dateVal;
+    this.doubleVal = doubleVal;
   }
 
   public Literal(String stringVal) {
@@ -33,7 +47,7 @@ public record Literal(
   }
 
   public Literal(Date dateVal) {
-    this(DataType.DATE, null, 0, false, dateVal, 0.0);
+    this(DataType.DATE, null, 0, false, new Date(dateVal.getTime()), 0.0);
   }
 
   public Literal(double doubleVal) {

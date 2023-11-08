@@ -24,8 +24,7 @@ public class SnapshotBuilderService {
     return snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(id, settings);
   }
 
-  public SnapshotBuilderGetConceptsResponse getConceptChildren(
-      UUID datasetId, Integer conceptId) {
+  public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId) {
     // TODO: Build real query - this should get the name and ID from the concept table, the count
     // from the occurrence table, and the existence of children from the concept_ancestor table.
     return new SnapshotBuilderGetConceptsResponse()

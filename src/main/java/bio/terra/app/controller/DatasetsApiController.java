@@ -183,7 +183,8 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(UUID id, Integer conceptId) {
+  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(
+      UUID id, Integer conceptId) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,

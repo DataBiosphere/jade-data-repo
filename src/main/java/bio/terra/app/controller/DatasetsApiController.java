@@ -200,14 +200,22 @@ public class DatasetsApiController implements DatasetsApi {
   @Override
   public ResponseEntity<DatasetDataModel> queryDatasetDataById(
       UUID id, String table, QueryDataRequestModel queryDataRequest) {
-    return lookupDatasetDataById(
-        id,
-        table,
-        queryDataRequest.getLimit(),
-        queryDataRequest.getOffset(),
-        queryDataRequest.getSort(),
-        queryDataRequest.getDirection(),
-        queryDataRequest.getFilter());
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection =
+        Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
+    DatasetDataModel previewModel =
+        datasetService.retrieveData(
+            userReq,
+            id,
+            table,
+            queryDataRequest.getLimit(),
+            queryDataRequest.getOffset(),
+            queryDataRequest.getSort(),
+            sortDirection,
+            queryDataRequest.getFilter());
+    return ResponseEntity.ok(previewModel);
   }
 
   @Hidden

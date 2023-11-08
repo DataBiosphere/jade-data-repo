@@ -2,6 +2,7 @@ package bio.terra.app.controller;
 
 import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SETTINGS;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -17,11 +18,14 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.model.ColumnStatisticsTextModel;
+import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.LookupColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
@@ -53,6 +57,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 @ActiveProfiles({"google", "unittest"})
@@ -79,6 +84,9 @@ public class DatasetsApiControllerTest {
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String QUERY_DATA_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
+
+  private static final String QUERY_COLUMN_STATISTICS_ENDPOINT =
+      QUERY_DATA_ENDPOINT + "/statistics/{column}";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
   private static final String GET_CONCEPTS_ENDPOINT =
@@ -144,15 +152,124 @@ public class DatasetsApiControllerTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"good_column", "datarepo_row_id"})
-  void testDatasetViewDataById(String column) throws Exception {
+  void deprecated_testDatasetLookupDataById(String column) throws Exception {
     var table = "good_table";
     when(datasetService.retrieveData(
             TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
 
-    performPreviewPost(table, column)
+    deprecated_performLookupData(table, column)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result").isArray());
+    verifyAuthorizationCall(IamAction.READ_DATA);
+
+    verify(datasetService)
+        .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"good_column", "datarepo_row_id"})
+  void testQueryDatasetDataById(String column) throws Exception {
+    var table = "good_table";
+    when(datasetService.retrieveData(
+            TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+        .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
+
+    performQueryData(table, column)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result").isArray());
+    verifyAuthorizationCall(IamAction.READ_DATA);
+
+    verify(datasetService)
+        .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+  }
+
+  @Test
+  void deprecated_testLookupDatasetColumnStatistics() throws Exception {
+    var table = "good_table";
+    var column = "good_column";
+    when(datasetService.retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER))
+        .thenReturn(
+            new ColumnStatisticsTextModel()
+                .values(List.of(new ColumnStatisticsTextValue().value("hello").count(2))));
+
+    MvcResult result =
+        mvc.perform(get(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, table, column))
+            .andExpect(status().isOk())
+            .andReturn();
+    String content = result.getResponse().getContentAsString();
+    assertThat("Content contains value", content, containsString("hello"));
+    verifyAuthorizationCall(IamAction.READ_DATA);
+
+    verify(datasetService).retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER);
+  }
+
+  @Test
+  void testQueryDatasetColumnStatistics() throws Exception {
+    var table = "good_table";
+    var column = "good_column";
+    when(datasetService.retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER))
+        .thenReturn(
+            new ColumnStatisticsTextModel()
+                .values(List.of(new ColumnStatisticsTextValue().value("hello").count(2))));
+
+    mockValidators();
+    MvcResult result =
+        mvc.perform(
+                post(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, table, column)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        TestUtils.mapToJson(
+                            new LookupColumnStatisticsRequestModel().filter(FILTER))))
+            .andReturn();
+    String content = result.getResponse().getContentAsString();
+    assertThat("Content contains value", content, containsString("hello"));
+    verifyAuthorizationCall(IamAction.READ_DATA);
+
+    verify(datasetService).retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER);
+  }
+
+  @Test
+  void deprecated_testLookUpDatasetDataNotFound() throws Exception {
+    mockNotFound();
+    deprecated_performLookupData("table", "column").andExpect(status().isNotFound());
+    verifyNoInteractions(iamService);
+  }
+
+  @Test
+  void testQueryDatasetDataNotFound() throws Exception {
+    mockNotFound();
+    performQueryData("table", "column").andExpect(status().isNotFound());
+    verifyNoInteractions(iamService);
+  }
+
+  @Test
+  void deprecated_testLookupDatasetDataForbidden() throws Exception {
+    IamAction iamAction = IamAction.READ_DATA;
+    mockForbidden(iamAction);
+    deprecated_performLookupData("table", "column").andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+  }
+
+  @Test
+  void testQueryDatasetDataForbidden() throws Exception {
+    IamAction iamAction = IamAction.READ_DATA;
+    mockForbidden(iamAction);
+    deprecated_performLookupData("table", "column").andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+  }
+
+  @Test
+  void deprecated_testDatasetViewDataRetrievalFails() throws Exception {
+    var table = "bad_table";
+    var column = "good_column";
+
+    when(datasetService.retrieveData(
+            TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+        .thenThrow(DatasetDataException.class);
+    deprecated_performLookupData(table, column).andExpect(status().is5xxServerError());
 
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
@@ -160,30 +277,14 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
-  void testDatasetViewDataNotFound() throws Exception {
-    mockNotFound();
-    performPreviewPost("table", "column").andExpect(status().isNotFound());
-    verifyNoInteractions(iamService);
-  }
-
-  @Test
-  void testDatasetViewDataForbidden() throws Exception {
-    IamAction iamAction = IamAction.READ_DATA;
-    mockForbidden(iamAction);
-    performPreviewPost("table", "column").andExpect(status().isForbidden());
-
-    verifyAuthorizationCall(iamAction);
-  }
-
-  @Test
-  void testDatasetViewDataRetrievalFails() throws Exception {
+  void testQueryDatasetDataRetrievalFails() throws Exception {
     var table = "bad_table";
     var column = "good_column";
 
     when(datasetService.retrieveData(
             TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenThrow(DatasetDataException.class);
-    performPreviewPost(table, column).andExpect(status().is5xxServerError());
+    performQueryData(table, column).andExpect(status().is5xxServerError());
 
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
@@ -263,7 +364,16 @@ public class DatasetsApiControllerTest {
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
   }
 
-  private ResultActions performPreviewPost(String table, String column) throws Exception {
+  private ResultActions deprecated_performLookupData(String table, String column) throws Exception {
+    return mvc.perform(
+        get(QUERY_DATA_ENDPOINT, DATASET_ID, table)
+            .queryParam("limit", String.valueOf(LIMIT))
+            .queryParam("offset", String.valueOf(OFFSET))
+            .queryParam("sort", column)
+            .queryParam("direction", DIRECTION.name()));
+  }
+
+  private ResultActions performQueryData(String table, String column) throws Exception {
     mockValidators();
     return mvc.perform(
         post(QUERY_DATA_ENDPOINT, DATASET_ID, table)
@@ -274,7 +384,8 @@ public class DatasetsApiControllerTest {
                         .direction(DIRECTION)
                         .limit(LIMIT)
                         .offset(OFFSET)
-                        .sort(column))));
+                        .sort(column)
+                        .filter(FILTER))));
   }
 
   private void mockValidators() {

@@ -35,6 +35,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TagCountResultModel;
@@ -179,6 +180,18 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(
         datasetService.retrieveDatasetModel(
             id, userRequest, List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(
+      UUID id, Integer conceptId) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId));
   }
 
   @Override

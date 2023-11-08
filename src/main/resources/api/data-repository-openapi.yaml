@@ -826,7 +826,8 @@ paths:
         - snapshots
         - search
         - repository
-      description: Retrieve data for a table in a snapshot
+      deprecated: true
+      description: Retrieve data for a table in a snapshot. This endpoint is deprecated, please use the POST version.
       operationId: lookupSnapshotPreviewById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -880,8 +881,8 @@ paths:
         - snapshots
         - search
         - repository
-      description: Retrieve data for a table in a snapshot. Use this endpoint for large requests.
-      operationId: lookupSnapshotDataByIdLargeRequest
+      description: Retrieve data for a table in a snapshot.
+      operationId: querySnapshotDataById
       parameters:
         - $ref: '#/components/parameters/Id'
         - name: table
@@ -895,7 +896,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LookupDataRequestModel'
+              $ref: '#/components/schemas/QueryDataRequestModel'
       responses:
         200:
           description: Returns the table data from a snapshot
@@ -1926,7 +1927,8 @@ paths:
         - datasets
         - search
         - repository
-      description: Retrieve data for a table in a dataset
+      deprecated: true
+      description: Retrieve data for a table in a dataset. This endpoint is deprecated, please use the POST version.
       operationId: lookupDatasetDataById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1980,8 +1982,8 @@ paths:
         - datasets
         - search
         - repository
-      description: Retrieve data for a table in a dataset.  Use this endpoint for large filter requests.
-      operationId: lookupDatasetDataByIdLargeRequest
+      description: Retrieve data for a table in a dataset.
+      operationId: queryDatasetDataById
       parameters:
         - $ref: '#/components/parameters/Id'
         - name: table
@@ -1995,7 +1997,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LookupDataRequestModel'
+              $ref: '#/components/schemas/QueryDataRequestModel'
         required: false
       responses:
         200:
@@ -2008,7 +2010,9 @@ paths:
     get:
       tags:
         - datasets
-      description: Retrieve statistics about data for a column in a table in a dataset
+      deprecated: true
+      description: >-
+        Retrieve statistics about data for a column in a table in a dataset. This endpoint is deprecated, please use the POST version.
       operationId: lookupDatasetColumnStatisticsById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2046,8 +2050,8 @@ paths:
     post:
       tags:
         - datasets
-      description: Retrieve statistics about data for a column in a table in a dataset. Use for large requests.
-      operationId: lookupDatasetColumnStatisticsByIdLargeRequest
+      description: Retrieve statistics about data for a column in a table in a dataset.
+      operationId: queryDatasetColumnStatisticsById
       parameters:
         - $ref: '#/components/parameters/Id'
         - name: table
@@ -5197,7 +5201,7 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
-    LookupDataRequestModel:
+    QueryDataRequestModel:
       type: object
       properties:
         offset:

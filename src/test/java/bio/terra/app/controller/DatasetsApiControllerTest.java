@@ -22,7 +22,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.model.LookupDataRequestModel;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -78,7 +78,7 @@ public class DatasetsApiControllerTest {
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
-  private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
+  private static final String QUERY_DATA_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
   private static final String GET_CONCEPTS_ENDPOINT =
@@ -266,11 +266,11 @@ public class DatasetsApiControllerTest {
   private ResultActions performPreviewPost(String table, String column) throws Exception {
     mockValidators();
     return mvc.perform(
-        post(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
+        post(QUERY_DATA_ENDPOINT, DATASET_ID, table)
             .contentType(MediaType.APPLICATION_JSON)
             .content(
                 TestUtils.mapToJson(
-                    new LookupDataRequestModel()
+                    new QueryDataRequestModel()
                         .direction(DIRECTION)
                         .limit(LIMIT)
                         .offset(OFFSET)

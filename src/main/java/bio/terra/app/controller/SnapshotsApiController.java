@@ -13,10 +13,10 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -39,6 +39,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.Hidden;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -267,18 +268,19 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotDataByIdLargeRequest(
-      UUID id, String table, LookupDataRequestModel lookupDataRequest) {
+  public ResponseEntity<SnapshotPreviewModel> querySnapshotDataById(
+      UUID id, String table, QueryDataRequestModel queryDataRequest) {
     return lookupSnapshotPreviewById(
         id,
         table,
-        lookupDataRequest.getLimit(),
-        lookupDataRequest.getOffset(),
-        lookupDataRequest.getSort(),
-        lookupDataRequest.getDirection(),
-        lookupDataRequest.getFilter());
+        queryDataRequest.getLimit(),
+        queryDataRequest.getOffset(),
+        queryDataRequest.getSort(),
+        queryDataRequest.getDirection(),
+        queryDataRequest.getFilter());
   }
 
+  @Hidden
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
       UUID id,

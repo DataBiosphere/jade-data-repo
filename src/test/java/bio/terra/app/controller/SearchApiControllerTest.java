@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.LookupDataRequestModel;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirection;
@@ -157,7 +157,7 @@ public class SearchApiControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(
                 TestUtils.mapToJson(
-                    new LookupDataRequestModel()
+                    new QueryDataRequestModel()
                         .direction(DIRECTION)
                         .limit(LIMIT)
                         .offset(OFFSET)

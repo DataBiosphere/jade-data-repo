@@ -45,7 +45,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.LookupDataRequestModel;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -905,7 +905,7 @@ public class ConnectedOperations {
       UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
       throws Exception {
     String url = "/api/repository/v1/datasets/{id}/data/{table}";
-    var requestModel = new LookupDataRequestModel().limit(limit).offset(offset);
+    var requestModel = new QueryDataRequestModel().limit(limit).offset(offset);
     if (sort != null) {
       requestModel.sort(sort);
     }
@@ -947,7 +947,7 @@ public class ConnectedOperations {
       UUID snapshotId, String tableName, int limit, int offset, String filter, String sort)
       throws Exception {
     String url = "/api/repository/v1/snapshots/{id}/data/{table}";
-    var requestModel = new LookupDataRequestModel().limit(limit).offset(offset);
+    var requestModel = new QueryDataRequestModel().limit(limit).offset(offset);
     if (sort != null) {
       requestModel.sort(sort);
     }

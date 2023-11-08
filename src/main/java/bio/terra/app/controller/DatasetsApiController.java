@@ -32,10 +32,10 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
 import bio.terra.model.LookupColumnStatisticsRequestModel;
-import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
@@ -60,6 +60,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.Hidden;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -197,18 +198,19 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<DatasetDataModel> lookupDatasetDataByIdLargeRequest(
-      UUID id, String table, LookupDataRequestModel lookupDataRequest) {
+  public ResponseEntity<DatasetDataModel> queryDatasetDataById(
+      UUID id, String table, QueryDataRequestModel queryDataRequest) {
     return lookupDatasetDataById(
         id,
         table,
-        lookupDataRequest.getLimit(),
-        lookupDataRequest.getOffset(),
-        lookupDataRequest.getSort(),
-        lookupDataRequest.getDirection(),
-        lookupDataRequest.getFilter());
+        queryDataRequest.getLimit(),
+        queryDataRequest.getOffset(),
+        queryDataRequest.getSort(),
+        queryDataRequest.getDirection(),
+        queryDataRequest.getFilter());
   }
 
+  @Hidden
   @Override
   public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
       UUID id,
@@ -238,7 +240,7 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsByIdLargeRequest(
+  public ResponseEntity<ColumnStatisticsModel> queryDatasetColumnStatisticsById(
       UUID id, String table, String column, LookupColumnStatisticsRequestModel requestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);

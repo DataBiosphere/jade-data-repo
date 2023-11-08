@@ -55,9 +55,9 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.LookupColumnStatisticsRequestModel;
-import bio.terra.model.LookupDataRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -913,7 +913,7 @@ public class DataRepoFixtures {
       String sort)
       throws Exception {
     String url = "/api/repository/v1/snapshots/%s/data/%s".formatted(snapshotId, table);
-    LookupDataRequestModel requestModel = new LookupDataRequestModel();
+    QueryDataRequestModel requestModel = new QueryDataRequestModel();
     requestModel.offset(Objects.requireNonNullElse(offset, 0));
     requestModel.limit(Objects.requireNonNullElse(limit, 10));
     requestModel.filter(Objects.requireNonNullElse(filter, ""));
@@ -1051,7 +1051,7 @@ public class DataRepoFixtures {
       throws Exception {
     String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
-    LookupDataRequestModel request = new LookupDataRequestModel();
+    QueryDataRequestModel request = new QueryDataRequestModel();
     request.setOffset(Objects.requireNonNullElse(offset, 0));
     request.setLimit(Objects.requireNonNullElse(limit, 10));
     request.filter(Objects.requireNonNullElse(filter, ""));

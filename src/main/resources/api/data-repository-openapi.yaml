@@ -4146,7 +4146,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{parentConcept}:
+  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{conceptId}:
     get:
       tags:
         - datasets

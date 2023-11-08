@@ -83,7 +83,7 @@ public class DatasetsApiControllerTest {
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
-  private static final int CONCEPT_ID = 0;
+  private static final Integer CONCEPT_ID = 0;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;
@@ -253,16 +253,14 @@ public class DatasetsApiControllerTest {
                         .id(CONCEPT_ID + 1)));
     when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID)).thenReturn(expected);
     String actualJson =
-        mvc.perform(
-                get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID)
-                    .queryParam("include", String.valueOf(INCLUDE)))
+        mvc.perform(get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
     SnapshotBuilderGetConceptsResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
-    assertThat("Dataset model is returned", actual, equalTo(expected));
+    assertThat("Concept list and sql is returned", actual, equalTo(expected));
 
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     verify(snapshotBuilderService).getConceptChildren(DATASET_ID, CONCEPT_ID);

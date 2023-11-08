@@ -4152,7 +4152,7 @@ paths:
         - datasets
         - repository
       description: >
-        Gets all concepts with the specified parent concept.
+        Gets all concepts with the specified concept as their parent.
       operationId: getConcepts
       parameters:
         - in: path
@@ -4163,8 +4163,8 @@ paths:
             type: string
             format: uuid
         - in: path
-          description: The id of the parent concept.
-          name: parentConcept
+          description: A dataset concept id.
+          name: conceptId
           required: true
           schema:
             type: integer

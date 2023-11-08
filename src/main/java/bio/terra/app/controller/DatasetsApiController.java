@@ -183,15 +183,14 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(
-      @PathVariable("id") UUID id, @PathVariable("parentConcept") Integer parentConcept) {
+  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(UUID id, Integer conceptId) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,
         IamResourceType.DATASET,
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.getConceptsFromParent(parentConcept));
+    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId));
   }
 
   @Override

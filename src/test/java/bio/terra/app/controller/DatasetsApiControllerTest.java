@@ -20,6 +20,8 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -77,8 +79,11 @@ public class DatasetsApiControllerTest {
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
+  private static final String GET_CONCEPTS_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
+  private static final int CONCEPT_ID = 0;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;
@@ -232,6 +237,36 @@ public class DatasetsApiControllerTest {
 
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
     verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
+  }
+
+  @Test
+  void testGetConcepts() throws Exception {
+    SnapshotBuilderGetConceptsResponse expected =
+        new SnapshotBuilderGetConceptsResponse()
+            .sql("SELECT * FROM dataset")
+            .result(
+                List.of(
+                    new SnapshotBuilderConcept()
+                        .count(100)
+                        .name("Stub concept")
+                        .hasChildren(true)
+                        .id(CONCEPT_ID + 1)));
+    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID))
+        .thenReturn(expected);
+    String actualJson =
+        mvc.perform(
+                get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID)
+                    .queryParam("include", String.valueOf(INCLUDE)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotBuilderGetConceptsResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
+    assertThat("Dataset model is returned", actual, equalTo(expected));
+
+    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    verify(snapshotBuilderService).getConceptChildren(DATASET_ID, CONCEPT_ID);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */

@@ -152,23 +152,6 @@ public class DatasetsApiControllerTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"good_column", "datarepo_row_id"})
-  void deprecated_testDatasetLookupDataById(String column) throws Exception {
-    var table = "good_table";
-    when(datasetService.retrieveData(
-            TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
-        .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
-
-    deprecated_performLookupData(table, column)
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isArray());
-    verifyAuthorizationCall(IamAction.READ_DATA);
-
-    verify(datasetService)
-        .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"good_column", "datarepo_row_id"})
   void testQueryDatasetDataById(String column) throws Exception {
     var table = "good_table";
     when(datasetService.retrieveData(
@@ -182,26 +165,6 @@ public class DatasetsApiControllerTest {
 
     verify(datasetService)
         .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
-  }
-
-  @Test
-  void deprecated_testLookupDatasetColumnStatistics() throws Exception {
-    var table = "good_table";
-    var column = "good_column";
-    when(datasetService.retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER))
-        .thenReturn(
-            new ColumnStatisticsTextModel()
-                .values(List.of(new ColumnStatisticsTextValue().value("hello").count(2))));
-
-    MvcResult result =
-        mvc.perform(get(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, table, column))
-            .andExpect(status().isOk())
-            .andReturn();
-    String content = result.getResponse().getContentAsString();
-    assertThat("Content contains value", content, containsString("hello"));
-    verifyAuthorizationCall(IamAction.READ_DATA);
-
-    verify(datasetService).retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER);
   }
 
   @Test
@@ -230,13 +193,6 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
-  void deprecated_testLookUpDatasetDataNotFound() throws Exception {
-    mockNotFound();
-    deprecated_performLookupData("table", "column").andExpect(status().isNotFound());
-    verifyNoInteractions(iamService);
-  }
-
-  @Test
   void testQueryDatasetDataNotFound() throws Exception {
     mockNotFound();
     performQueryData("table", "column").andExpect(status().isNotFound());
@@ -244,36 +200,12 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
-  void deprecated_testLookupDatasetDataForbidden() throws Exception {
-    IamAction iamAction = IamAction.READ_DATA;
-    mockForbidden(iamAction);
-    deprecated_performLookupData("table", "column").andExpect(status().isForbidden());
-
-    verifyAuthorizationCall(iamAction);
-  }
-
-  @Test
   void testQueryDatasetDataForbidden() throws Exception {
     IamAction iamAction = IamAction.READ_DATA;
     mockForbidden(iamAction);
-    deprecated_performLookupData("table", "column").andExpect(status().isForbidden());
+    performQueryData("table", "column").andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
-  }
-
-  @Test
-  void deprecated_testDatasetViewDataRetrievalFails() throws Exception {
-    var table = "bad_table";
-    var column = "good_column";
-
-    when(datasetService.retrieveData(
-            TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
-        .thenThrow(DatasetDataException.class);
-    deprecated_performLookupData(table, column).andExpect(status().is5xxServerError());
-
-    verifyAuthorizationCall(IamAction.READ_DATA);
-    verify(datasetService)
-        .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
   @Test
@@ -362,15 +294,6 @@ public class DatasetsApiControllerTest {
     verify(iamService)
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
-  }
-
-  private ResultActions deprecated_performLookupData(String table, String column) throws Exception {
-    return mvc.perform(
-        get(QUERY_DATA_ENDPOINT, DATASET_ID, table)
-            .queryParam("limit", String.valueOf(LIMIT))
-            .queryParam("offset", String.valueOf(OFFSET))
-            .queryParam("sort", column)
-            .queryParam("direction", DIRECTION.name()));
   }
 
   private ResultActions performQueryData(String table, String column) throws Exception {

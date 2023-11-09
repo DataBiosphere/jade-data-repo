@@ -38,6 +38,7 @@ public class SnapshotBuilderService {
         .completed("completed")
         .submitted("submitted")
         .className("SnapshotAccessRequest");
+  }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId) {
     // TODO: Build real query - this should get the name and ID from the concept table, the count
@@ -50,6 +51,5 @@ public class SnapshotBuilderService {
                     .name("Stub concept")
                     .hasChildren(true)
                     .id(conceptId + 1)));
-
   }
 }

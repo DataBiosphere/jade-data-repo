@@ -42,7 +42,6 @@ plugins {
     // enables release info in sentry events
     id "com.gorylenko.gradle-git-properties" version "2.4.1"
     id "org.sonarqube" version "4.2.1.3168"
-    id "au.com.dius.pact" version "4.3.19"
 }
 
 allprojects {

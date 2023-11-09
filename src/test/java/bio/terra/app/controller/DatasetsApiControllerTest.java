@@ -20,6 +20,9 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotRequest;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -72,6 +75,9 @@ public class DatasetsApiControllerTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
+
+  private static final String REQUEST_SNAPSHOT_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/requestSnapshot";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
@@ -215,13 +221,7 @@ public class DatasetsApiControllerTest {
             TEST_USER,
             List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
         .thenReturn(new DatasetModel());
-    when(snapshotBuilderService.updateSnapshotBuilderSettings(DATASET_ID, SETTINGS))
-        .thenReturn(SETTINGS);
-    when(ingestRequestValidator.supports(any())).thenReturn(true);
-    when(datasetRequestValidator.supports(any())).thenReturn(true);
-    when(assetModelValidator.supports(any())).thenReturn(true);
-    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
-    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+    mockValidators();
 
     mvc.perform(
             post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)
@@ -232,6 +232,39 @@ public class DatasetsApiControllerTest {
 
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
     verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
+  }
+
+  @Test
+  void testRequestSnapshot() throws Exception {
+    mockValidators();
+    JobModel expected =
+        new JobModel()
+            .id("id")
+            .description("Stub Method")
+            .jobStatus(JobModel.JobStatusEnum.SUCCEEDED)
+            .statusCode(200)
+            .completed("completed")
+            .submitted("submitted")
+            .className("SnapshotAccessRequest");
+    SnapshotAccessRequest input =
+        new SnapshotAccessRequest()
+            .name("name")
+            .researchPurposeStatement("purpose")
+            .datasetRequest(new SnapshotRequest());
+    when(snapshotBuilderService.requestSnapshot(DATASET_ID, input)).thenReturn(expected);
+    String actualJson =
+        mvc.perform(
+                post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(input)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
+    assertThat("The request succeeded", actual, equalTo(expected));
+    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    verify(snapshotBuilderService).requestSnapshot(DATASET_ID, input);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */
@@ -256,5 +289,13 @@ public class DatasetsApiControllerTest {
     verify(iamService)
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
+  }
+
+  private void mockValidators() {
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
+    when(datasetRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
   }
 }

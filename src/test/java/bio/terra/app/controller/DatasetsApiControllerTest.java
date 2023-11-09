@@ -23,6 +23,8 @@ import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotRequest;
+import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -83,8 +85,11 @@ public class DatasetsApiControllerTest {
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
+  private static final String GET_CONCEPTS_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
+  private static final Integer CONCEPT_ID = 0;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;
@@ -235,6 +240,7 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
+
   void testRequestSnapshot() throws Exception {
     mockValidators();
     JobModel expected =
@@ -257,14 +263,36 @@ public class DatasetsApiControllerTest {
                 post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtils.mapToJson(input)))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
     JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
     assertThat("The request succeeded", actual, equalTo(expected));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     verify(snapshotBuilderService).requestSnapshot(DATASET_ID, input);
+  }
+
+  void testGetConcepts() throws Exception {
+    SnapshotBuilderGetConceptsResponse expected =
+        new SnapshotBuilderGetConceptsResponse()
+            .sql("SELECT * FROM dataset")
+            .result(
+                List.of(
+                    new SnapshotBuilderConcept()
+                        .count(100)
+                        .name("Stub concept")
+                        .hasChildren(true)
+                        .id(CONCEPT_ID + 1)));
+    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID)).thenReturn(expected);
+    String actualJson =
+        mvc.perform(get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotBuilderGetConceptsResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
+    assertThat("Concept list and sql is returned", actual, equalTo(expected));
+
+    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    verify(snapshotBuilderService).getConceptChildren(DATASET_ID, CONCEPT_ID);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */

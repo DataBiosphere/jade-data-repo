@@ -25,6 +25,12 @@ vault read -field=synapse-sql-admin-password secret/dsde/datarepo/dev/azure-appl
 vault read -field=synapse-encryption-key secret/dsde/datarepo/dev/azure-application-secrets \
     > /tmp/jade-dev-synapse-encryption-key.key
 
+vault read -field=basic_auth_read_only_username secret/dsp/pact-broker/users/read-only \
+    > /tmp/pact-ro-username.key
+
+vault read -field=basic_auth_read_only_password secret/dsp/pact-broker/users/read-only \
+    > /tmp/pact-ro-password.key
+
 BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
 BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH=/tmp/buffer-client-sa-account.json
 

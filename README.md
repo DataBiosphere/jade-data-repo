@@ -82,6 +82,14 @@ When running locally, we are not using the proxy. Therefore, the system doesn't 
 If you are making code changes, run:
 `./gradlew check`
 
+### Verify Pact contracts
+
+To verify that TDR adheres to the contracts published by its consumers, run:
+`./gradlew verifyPacts`
+
+By default, this will fetch published contracts from the live Pact broker.
+Results of Pact verification are only published when running in a CI environment (not locally).
+
 ### Run jade locally
 
 Before you run for the first time, you need to generate the credentials file by running `./render-configs.sh`

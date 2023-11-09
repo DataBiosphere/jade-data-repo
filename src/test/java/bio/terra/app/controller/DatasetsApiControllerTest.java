@@ -240,7 +240,6 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
-
   void testRequestSnapshot() throws Exception {
     mockValidators();
     JobModel expected =
@@ -263,6 +262,10 @@ public class DatasetsApiControllerTest {
                 post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtils.mapToJson(input)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
     JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
     assertThat("The request succeeded", actual, equalTo(expected));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);

@@ -24,8 +24,7 @@ public class SnapshotBuilderService {
   }
 
   public JobModel requestSnapshot(
-      // TODO: complete stubbed method by adding given request to the database and returning the id
-      // of the new entry.
+      // TODO: add given request to the database, return real JobModel with the id of the new entry.
       UUID id, SnapshotAccessRequest snapshotAccessRequest) {
     return new JobModel()
         .id("id")

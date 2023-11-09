@@ -6688,6 +6688,7 @@ components:
           type: array
           items:
             type: string
+
     SnapshotAccessRequest:
       type: object
       properties:
@@ -6698,6 +6699,7 @@ components:
         datasetRequest:
           $ref: '#/components/schemas/SnapshotRequest'
       description: Request for access to a snapshot.
+
     SnapshotRequest:
       type: object
       properties:
@@ -6714,6 +6716,7 @@ components:
           items:
             $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
       description: Specification of requested a snapshot, returned in a SnapshotAccessRequest.
+
     Cohort:
       type: object
       properties:
@@ -6724,6 +6727,7 @@ components:
           items:
             $ref: '#/components/schemas/CriteriaGroup'
       description: Selection of participants.
+
     CriteriaGroup:
       type: object
       properties:
@@ -6740,6 +6744,7 @@ components:
         count:
           type: number
       description: Criteria Group specifying a Cohort.
+
     AnyCriteria:
       oneOf:
         - $ref: '#/components/schemas/SnapshotBuilderDomainOption'

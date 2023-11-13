@@ -52,6 +52,7 @@ import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
@@ -1076,5 +1077,11 @@ public class SnapshotDaoTest {
 
     // Locked snapshot's project can be retrieved
     verifySnapshotProject(snapshot);
+  }
+
+  @Test
+  public void testRetrieveSnapshotNotFound() {
+    assertThrows(
+        SnapshotNotFoundException.class, () -> snapshotDao.retrieveSnapshot(UUID.randomUUID()));
   }
 }

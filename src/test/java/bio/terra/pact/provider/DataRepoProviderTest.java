@@ -9,6 +9,8 @@ import au.com.dius.pact.provider.junit5.PactVerificationContext;
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
+import au.com.dius.pact.provider.junitsupport.loader.PactBrokerConsumerVersionSelectors;
+import au.com.dius.pact.provider.junitsupport.loader.SelectorBuilder;
 import au.com.dius.pact.provider.spring.junit5.MockMvcTestTarget;
 import au.com.dius.pact.provider.spring.junit5.PactVerificationSpringProvider;
 import bio.terra.app.controller.GlobalExceptionHandler;
@@ -17,6 +19,8 @@ import bio.terra.common.category.Pact;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
+import bio.terra.model.TableModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -25,6 +29,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +62,16 @@ class DataRepoProviderTest {
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private AssetModelValidator assetModelValidator;
 
+  @PactBrokerConsumerVersionSelectors
+  public static SelectorBuilder consumerVersionSelectors() {
+    // Select consumer pacts published from default branch or pacts marked as deployed or released.
+    // If you wish to pick up Pacts from a consumer's feature branch for development purposes or PR
+    // runs, and your consumer is publishing such Pacts under their feature branch name, you can add
+    // the following to the SelectorBuilder:
+    //   .branch("consumer-feature-branch-name")
+    return new SelectorBuilder().mainBranch().deployedOrReleased();
+  }
+
   @BeforeEach
   void before(PactVerificationContext context) {
     context.setTarget(new MockMvcTestTarget(mvc));
@@ -84,8 +99,13 @@ class DataRepoProviderTest {
   @State("user has access to snapshot with given id")
   void successfulSnapshot(Map<?, ?> parameters) {
     UUID snapshotId = idFromParameters(parameters);
-    when(snapshotService.retrieveSnapshotModel(eq(snapshotId), any(), any()))
-        .thenReturn(new SnapshotModel().id(snapshotId).name("A snapshot name"));
+    when(snapshotService.retrieveSnapshotModel(
+            eq(snapshotId), eq(List.of(SnapshotRetrieveIncludeModel.TABLES)), any()))
+        .thenReturn(
+            new SnapshotModel()
+                .id(snapshotId)
+                .name("A snapshot name")
+                .addTablesItem(new TableModel().name("A table name")));
   }
 
   private UUID idFromParameters(Map<?, ?> parameters) {

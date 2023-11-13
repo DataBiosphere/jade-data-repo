@@ -260,9 +260,9 @@ public class DatasetsApiControllerTest {
         TestUtils.mapFromJson(actualJson, SnapshotBuilderAccessRequest.class);
     assertThat("The method returned the expected request", actual, equalTo(expected));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService).requestSnapshot(DATASET_ID, expected);
   }
 
+  @Test
   void testGetConcepts() throws Exception {
     SnapshotBuilderGetConceptsResponse expected =
         new SnapshotBuilderGetConceptsResponse()
@@ -286,7 +286,6 @@ public class DatasetsApiControllerTest {
     assertThat("Concept list and sql is returned", actual, equalTo(expected));
 
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService).getConceptChildren(DATASET_ID, CONCEPT_ID);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */

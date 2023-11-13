@@ -142,7 +142,12 @@ public class DatasetIngestFlight extends Flight {
           .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 
-    addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
+    // Originally we didn't exclusively lock the dataset, the thinking being that there might
+    // not be files as part of the ingest and ingesting files is what makes exclusive locking
+    // a requirement.  However, if a user is specifying bulk ingest mode, it's fair to assume that
+    // files are included as part of the ingest and that will cause an exclusive lock.
+    boolean useSharedLock = !ingestRequestModel.isBulkMode();
+    addStep(new LockDatasetStep(datasetService, datasetId, useSharedLock), lockDatasetRetry);
     boolean autocommit;
     if (cloudPlatform.isGcp()) {
       if (ingestRequestModel.getTransactionId() == null) {
@@ -301,7 +306,7 @@ public class DatasetIngestFlight extends Flight {
             randomBackoffRetry);
       }
     }
-    addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, useSharedLock), lockDatasetRetry);
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService,

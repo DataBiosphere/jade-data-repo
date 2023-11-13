@@ -3,7 +3,8 @@ package bio.terra.service.filedata.flight.ingest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -108,21 +109,27 @@ public class DatasetIngestFlightTest {
 
     LockDatasetStep lockDatasetStep =
         FlightTestUtils.getStepWithClass(flight, LockDatasetStep.class);
-    assertThat(
-        flightDescription + " obtains shared dataset lock",
-        lockDatasetStep.isSharedLock(),
-        is(true));
-    assertThat(
-        flightDescription + " does not suppress 'dataset not found' exceptions",
+    if (bulkMode) {
+      assertFalse(
+          lockDatasetStep.isSharedLock(), flightDescription + " obtains exclusive dataset lock");
+    } else {
+      assertTrue(
+          lockDatasetStep.isSharedLock(), flightDescription + " obtains shared dataset lock");
+    }
+
+    assertFalse(
         lockDatasetStep.shouldSuppressNotFoundException(),
-        is(false));
+        flightDescription + " does not suppress 'dataset not found' exceptions");
 
     UnlockDatasetStep unlockDatasetStep =
         FlightTestUtils.getStepWithClass(flight, UnlockDatasetStep.class);
-    assertThat(
-        flightDescription + " removes shared dataset lock",
-        unlockDatasetStep.isSharedLock(),
-        is(true));
+    if (bulkMode) {
+      assertFalse(
+          unlockDatasetStep.isSharedLock(), flightDescription + " removes exclusive dataset lock");
+    } else {
+      assertTrue(
+          unlockDatasetStep.isSharedLock(), flightDescription + " removes shared dataset lock");
+    }
 
     if (jsonTypeIngest) {
       // CSV ingests can only be run for metadata, not files

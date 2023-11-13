@@ -74,7 +74,7 @@ public class SearchApiControllerTest {
     when(snapshotService.retrievePreview(
             any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenReturn(result);
-    performPreviewPost(id, table, column)
+    performQueryDataPost(id, table, column)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result").isArray());
   }
@@ -83,7 +83,7 @@ public class SearchApiControllerTest {
     when(snapshotService.retrievePreview(
             any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenThrow(SnapshotPreviewException.class);
-    performPreviewPost(id, table, column).andExpect(status().is5xxServerError());
+    performQueryDataPost(id, table, column).andExpect(status().is5xxServerError());
   }
 
   @Test
@@ -151,7 +151,8 @@ public class SearchApiControllerTest {
     verify(searchService).indexSnapshot(eq(snapshot), eq(searchIndexRequest));
   }
 
-  private ResultActions performPreviewPost(UUID id, String table, String column) throws Exception {
+  private ResultActions performQueryDataPost(UUID id, String table, String column)
+      throws Exception {
     return mvc.perform(
         post(GET_PREVIEW_ENDPOINT, id, table)
             .contentType(MediaType.APPLICATION_JSON)

@@ -700,14 +700,7 @@ public class SnapshotService {
   }
 
   /** Throw if the user cannot read the snapshot. */
-
-  /**
-   * @param snapshotId
-   * @param userReq
-   * @throws ForbiddenException if not authorized
-   */
-  public void verifySnapshotReadable(UUID snapshotId, AuthenticatedUserRequest userReq)
-      throws ForbiddenException {
+  public void verifySnapshotReadable(UUID snapshotId, AuthenticatedUserRequest userReq) {
     // check if snapshot exists
     retrieveSnapshotSummary(snapshotId);
     IamAuthorizedCall canRead =
@@ -737,11 +730,9 @@ public class SnapshotService {
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user
    * @param iamAuthorizedCall throws if snapshot inaccessible via SAM permissions
-   * @throws ForbiddenException
    */
   void verifySnapshotAccessible(
-      UUID snapshotId, AuthenticatedUserRequest userReq, IamAuthorizedCall iamAuthorizedCall)
-      throws ForbiddenException {
+      UUID snapshotId, AuthenticatedUserRequest userReq, IamAuthorizedCall iamAuthorizedCall) {
     boolean iamAuthorized = false;
     boolean ecmAuthorized = false;
     List<String> causes = new ArrayList<>();

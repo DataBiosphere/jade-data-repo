@@ -579,6 +579,9 @@ task verifyPacts(type: Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Pact'
     }
+    testLogging {
+        events = ["passed", "failed", "skipped", "started", "standard_out"]
+    }
     outputs.upToDateWhen { false }
     if (isCiServer) {
         systemProperty 'pact.verifier.publishResults', true

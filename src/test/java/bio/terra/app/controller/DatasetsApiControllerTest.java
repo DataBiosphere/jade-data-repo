@@ -2,7 +2,6 @@ package bio.terra.app.controller;
 
 import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SETTINGS;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -57,7 +56,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 @ActiveProfiles({"google", "unittest"})
@@ -171,24 +169,29 @@ public class DatasetsApiControllerTest {
   void testQueryDatasetColumnStatistics() throws Exception {
     var table = "good_table";
     var column = "good_column";
-    when(datasetService.retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER))
-        .thenReturn(
-            new ColumnStatisticsTextModel()
-                .values(List.of(new ColumnStatisticsTextValue().value("hello").count(2))));
+    var expected =
+        new ColumnStatisticsTextModel()
+            .values(List.of(new ColumnStatisticsTextValue().value("hello").count(2)));
 
+    when(datasetService.retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER))
+        .thenReturn(expected);
     mockValidators();
-    MvcResult result =
+
+    String result =
         mvc.perform(
                 post(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, table, column)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         TestUtils.mapToJson(
                             new LookupColumnStatisticsRequestModel().filter(FILTER))))
-            .andReturn();
-    String content = result.getResponse().getContentAsString();
-    assertThat("Content contains value", content, containsString("hello"));
-    verifyAuthorizationCall(IamAction.READ_DATA);
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ColumnStatisticsTextModel actual =
+        TestUtils.mapFromJson(result, ColumnStatisticsTextModel.class);
 
+    assertThat("Correct ColumnStatisticsTextModel is returned", actual, equalTo(expected));
+    verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService).retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER);
   }
 

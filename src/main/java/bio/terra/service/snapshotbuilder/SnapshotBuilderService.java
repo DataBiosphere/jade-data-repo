@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
@@ -26,17 +25,10 @@ public class SnapshotBuilderService {
     return snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(id, settings);
   }
 
-  public JobModel requestSnapshot(
+  public SnapshotBuilderAccessRequest requestSnapshot(
       // TODO: add given request to the database, return real JobModel with the id of the new entry.
       UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
-    return new JobModel()
-        .id("id")
-        .description("Stub Method")
-        .jobStatus(JobModel.JobStatusEnum.SUCCEEDED)
-        .statusCode(200)
-        .completed("completed")
-        .submitted("submitted")
-        .className("SnapshotAccessRequest");
+    return snapshotAccessRequest;
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId) {

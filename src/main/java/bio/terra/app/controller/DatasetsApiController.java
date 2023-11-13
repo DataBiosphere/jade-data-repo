@@ -483,7 +483,7 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> requestSnapshot(
+  public ResponseEntity<SnapshotBuilderAccessRequest> requestSnapshot(
       UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(

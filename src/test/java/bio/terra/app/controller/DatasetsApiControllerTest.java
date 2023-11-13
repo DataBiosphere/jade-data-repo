@@ -20,7 +20,6 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
-import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
@@ -242,34 +241,26 @@ public class DatasetsApiControllerTest {
   @Test
   void testRequestSnapshot() throws Exception {
     mockValidators();
-    JobModel expected =
-        new JobModel()
-            .id("id")
-            .description("Stub Method")
-            .jobStatus(JobModel.JobStatusEnum.SUCCEEDED)
-            .statusCode(200)
-            .completed("completed")
-            .submitted("submitted")
-            .className("SnapshotAccessRequest");
-    SnapshotBuilderAccessRequest input =
+    SnapshotBuilderAccessRequest expected =
         new SnapshotBuilderAccessRequest()
             .name("name")
             .researchPurposeStatement("purpose")
             .datasetRequest(new SnapshotBuilderRequest());
-    when(snapshotBuilderService.requestSnapshot(DATASET_ID, input)).thenReturn(expected);
+    when(snapshotBuilderService.requestSnapshot(DATASET_ID, expected)).thenReturn(expected);
     String actualJson =
         mvc.perform(
                 post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(input)))
+                    .content(TestUtils.mapToJson(expected)))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
-    JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
-    assertThat("The request returned the expected id", actual, equalTo(expected));
+    SnapshotBuilderAccessRequest actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderAccessRequest.class);
+    assertThat("The method returned the expected request", actual, equalTo(expected));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService).requestSnapshot(DATASET_ID, input);
+    verify(snapshotBuilderService).requestSnapshot(DATASET_ID, expected);
   }
 
   void testGetConcepts() throws Exception {

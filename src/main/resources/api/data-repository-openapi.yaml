@@ -2708,7 +2708,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobModel'
+                $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
         400:
           description: Bad request - invalid id, snapshotRequest, or badly formed IamResourceType.
           content:

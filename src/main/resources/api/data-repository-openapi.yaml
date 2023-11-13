@@ -4474,7 +4474,7 @@ components:
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
         snapshotBuilderSettings:
-          $ref: '#/components/schemas/SnapshotBuilderSettings'
+          $ref: '#/components/schemas/SnapshotBuilderSettingsOptions'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -6566,6 +6566,33 @@ components:
     SnapshotBuilderSettings:
       type: object
       description: >
+        ⚠️ The configuration describing how select criteria for issuing a snapshot builder request is generated
+      required:
+        - domainOptions
+        - programDataOptions
+        - featureValueGroups
+      properties:
+        selectableDomains:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderDomain'
+        selectableProgramData:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderProgramData'
+        featureValueGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
+        prepackagedDatasetConceptSets:
+          type: array
+          items:
+            $ref:
+              '#/components/schemas/SnapshotBuilderDatasetConceptSets'
+
+    SnapshotBuilderSettingsOptions:
+      type: object
+      description: >
         ⚠️ The configuration describing how to select criteria for issuing a snapshot builder request
       required:
         - domainOptions
@@ -6602,6 +6629,22 @@ components:
           type: string
         featureValueGroupName:
           type: string
+
+    SnapshotBuilderDomain:
+      type: object
+      description: >
+        ⚠️ An object describing high level information about a domain for use in the snapshot builder
+      required:
+        - id
+        - category
+        - root
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        root:
+          $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderDomainOption:
       type: object
@@ -6654,6 +6697,25 @@ components:
           type: integer
         hasChildren:
           type: boolean
+
+    SnapshotBuilderProgramData:
+      type: object
+      description: >
+        ⚠️ An object describing high level information about program data for use in the snapshot builder
+      required:
+        - id
+        - name
+        - kind
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        columnName:
+          type: string
+        kind:
+          type: string
+          enum: [ range, list ]
 
     SnapshotBuilderProgramDataOption:
       type: object

@@ -36,7 +36,12 @@ import org.springframework.stereotype.Component;
 public final class DatasetJsonConversion {
   private final SnapshotBuilderService snapshotBuilderService;
 
-  public DatasetJsonConversion(SnapshotBuilderService snapshotBuilderService) {
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
+
+  public DatasetJsonConversion(
+      MetadataDataAccessUtils metadataDataAccessUtils,
+      SnapshotBuilderService snapshotBuilderService) {
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.snapshotBuilderService = snapshotBuilderService;
   }
 
@@ -97,7 +102,6 @@ public final class DatasetJsonConversion {
   public DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
-      MetadataDataAccessUtils metadataDataAccessUtils,
       AuthenticatedUserRequest userRequest) {
     DatasetModel datasetModel =
         new DatasetModel()
@@ -145,7 +149,7 @@ public final class DatasetJsonConversion {
 
     if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
       datasetModel.snapshotBuilderSettings(
-          snapshotBuilderService.getSnapshotBuilderSettings(dataset.getId()));
+          snapshotBuilderService.getSnapshotBuilderSettings(dataset.getId(), userRequest));
     }
 
     return datasetModel;

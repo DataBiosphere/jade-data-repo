@@ -2,93 +2,66 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderDatasetConceptSets;
-import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.model.SnapshotBuilderDomain;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
-import bio.terra.model.SnapshotBuilderListOption;
-import bio.terra.model.SnapshotBuilderProgramDataOption;
+import bio.terra.model.SnapshotBuilderProgramData;
 import bio.terra.model.SnapshotBuilderSettings;
 import java.util.List;
 
 public class SnapshotBuilderTestData {
   public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
-          .domainOptions(
+          .selectableDomains(
               List.of(
-                  new SnapshotBuilderDomainOption()
+                  new SnapshotBuilderDomain()
                       .id(10)
                       .category("Condition")
-                      .conceptCount(18000)
-                      .participantCount(12500)
                       .root(
                           new SnapshotBuilderConcept()
                               .id(100)
                               .name("Condition")
                               .count(100)
                               .hasChildren(true)),
-                  new SnapshotBuilderDomainOption()
+                  new SnapshotBuilderDomain()
                       .id(11)
                       .category("Procedure")
-                      .conceptCount(22500)
-                      .participantCount(11328)
                       .root(
                           new SnapshotBuilderConcept()
                               .id(200)
                               .name("Procedure")
                               .count(100)
                               .hasChildren(true)),
-                  new SnapshotBuilderDomainOption()
+                  new SnapshotBuilderDomain()
                       .id(12)
                       .category("Observation")
-                      .conceptCount(12300)
-                      .participantCount(23223)
                       .root(
                           new SnapshotBuilderConcept()
                               .id(300)
                               .name("Observation")
                               .count(100)
                               .hasChildren(true))))
-          .programDataOptions(
+          .selectableProgramData(
               List.of(
-                  new SnapshotBuilderProgramDataOption()
+                  new SnapshotBuilderProgramData()
                       .id(1)
                       .name("Year of birth")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.RANGE)
-                      .min(1900)
-                      .max(2023),
-                  new SnapshotBuilderProgramDataOption()
+                      .kind(SnapshotBuilderProgramData.KindEnum.RANGE)
+                      .columnName("year_of_birth"),
+                  new SnapshotBuilderProgramData()
                       .id(2)
                       .name("Ethnicity")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .values(
-                          List.of(
-                              new SnapshotBuilderListOption().name("Hispanic or Latino").id(20),
-                              new SnapshotBuilderListOption().name("Not Hispanic or Latino").id(21),
-                              new SnapshotBuilderListOption().name("No Matching Concept").id(0))),
-                  new SnapshotBuilderProgramDataOption()
+                      .kind(SnapshotBuilderProgramData.KindEnum.LIST)
+                      .columnName("ethnicity"),
+                  new SnapshotBuilderProgramData()
                       .id(3)
                       .name("Gender identity")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .values(
-                          List.of(
-                              new SnapshotBuilderListOption().name("FEMALE").id(22),
-                              new SnapshotBuilderListOption().name("MALE").id(23),
-                              new SnapshotBuilderListOption().name("NON BINARY").id(24),
-                              new SnapshotBuilderListOption().name("GENDERQUEER").id(25),
-                              new SnapshotBuilderListOption().name("TWO SPIRIT").id(26),
-                              new SnapshotBuilderListOption().name("AGENDER").id(27),
-                              new SnapshotBuilderListOption().name("No Matching Concept").id(0))),
-                  new SnapshotBuilderProgramDataOption()
+                      .kind(SnapshotBuilderProgramData.KindEnum.LIST)
+                      .columnName("gender_identity"),
+                  new SnapshotBuilderProgramData()
                       .id(4)
                       .name("Race")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .values(
-                          List.of(
-                              new SnapshotBuilderListOption()
-                                  .name("American Indian or Alaska Native")
-                                  .id(28),
-                              new SnapshotBuilderListOption().name("Asian").id(29),
-                              new SnapshotBuilderListOption().name("Black").id(30),
-                              new SnapshotBuilderListOption().name("White").id(31)))))
+                      .kind(SnapshotBuilderProgramData.KindEnum.LIST)
+                      .columnName("race")))
           .featureValueGroups(
               List.of(
                   new SnapshotBuilderFeatureValueGroup()
@@ -111,7 +84,7 @@ public class SnapshotBuilderTestData {
                       .id(4)
                       .name("Person")
                       .values(List.of("Demographics Column 1", "Demographics Column 2"))))
-          .datasetConceptSets(
+          .prepackagedDatasetConceptSets(
               List.of(
                   new SnapshotBuilderDatasetConceptSets()
                       .name("Demographics")

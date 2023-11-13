@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
@@ -11,7 +10,6 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
@@ -59,6 +57,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.AzureSynapseService;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -70,7 +69,6 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
-import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
@@ -108,7 +106,6 @@ public class DatasetService {
   private final StorageTableService storageTableService;
   private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
-  private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final ResourceService resourceService;
   private final GcsPdao gcsPdao;
   private final ObjectMapper objectMapper;
@@ -118,6 +115,7 @@ public class DatasetService {
   private final IamService iamService;
   private final DatasetTableDao datasetTableDao;
   private final AzureSynapsePdao azureSynapsePdao;
+  private final AzureSynapseService azureSynapseService;
 
   @Autowired
   public DatasetService(
@@ -129,7 +127,6 @@ public class DatasetService {
       StorageTableService storageTableService,
       BigQueryTransactionPdao bigQueryTransactionPdao,
       BigQueryDatasetPdao bigQueryDatasetPdao,
-      MetadataDataAccessUtils metadataDataAccessUtils,
       ResourceService resourceService,
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
@@ -138,7 +135,8 @@ public class DatasetService {
       UserLoggingMetrics loggingMetrics,
       IamService iamService,
       DatasetTableDao datasetTableDao,
-      AzureSynapsePdao azureSynapsePdao) {
+      AzureSynapsePdao azureSynapsePdao,
+      AzureSynapseService azureSynapseService) {
     this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
     this.jobService = jobService;
@@ -147,7 +145,6 @@ public class DatasetService {
     this.storageTableService = storageTableService;
     this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
-    this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.resourceService = resourceService;
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
@@ -157,6 +154,7 @@ public class DatasetService {
     this.iamService = iamService;
     this.datasetTableDao = datasetTableDao;
     this.azureSynapsePdao = azureSynapsePdao;
+    this.azureSynapseService = azureSynapseService;
   }
 
   public String createDataset(
@@ -240,8 +238,7 @@ public class DatasetService {
       Dataset dataset,
       AuthenticatedUserRequest userRequest,
       List<DatasetRequestAccessIncludeModel> include) {
-    return datasetJsonConversion.populateDatasetModelFromDataset(
-        dataset, include, metadataDataAccessUtils, userRequest);
+    return datasetJsonConversion.populateDatasetModelFromDataset(dataset, include, userRequest);
   }
 
   /**
@@ -536,22 +533,10 @@ public class DatasetService {
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-      AccessInfoModel accessInfoModel =
-          metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
-      String credName = AzureSynapsePdao.getCredentialName(dataset.getId(), userRequest.getEmail());
-      String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());
-      String metadataUrl =
-          "%s?%s"
-              .formatted(
-                  accessInfoModel.getParquet().getUrl(),
-                  accessInfoModel.getParquet().getSasToken());
       String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
 
-      try {
-        azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
-      } catch (Exception e) {
-        throw new RuntimeException("Could not configure external datasource", e);
-      }
+      String datasourceName =
+          azureSynapseService.getOrCreateExternalAzureDataSource(dataset, userRequest);
 
       List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
@@ -586,21 +571,7 @@ public class DatasetService {
       String filter) {
     Dataset dataset = retrieve(datasetId);
 
-    Column column =
-        dataset
-            .getTableByName(tableName)
-            .orElseThrow(
-                () ->
-                    new InvalidTableException(
-                        "No dataset table exists with the name: " + tableName))
-            .getColumnByName(columnName)
-            .orElseThrow(
-                () ->
-                    new InvalidColumnException(
-                        "No column exists in table "
-                            + tableName
-                            + " with column name: "
-                            + columnName));
+    Column column = getColumn(dataset, tableName, columnName);
 
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 
@@ -618,22 +589,11 @@ public class DatasetService {
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-      AccessInfoModel accessInfoModel =
-          metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
-      String credName = AzureSynapsePdao.getCredentialName(dataset.getId(), userRequest.getEmail());
-      String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());
-      String metadataUrl =
-          "%s?%s"
-              .formatted(
-                  accessInfoModel.getParquet().getUrl(),
-                  accessInfoModel.getParquet().getSasToken());
+
       String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
 
-      try {
-        azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
-      } catch (Exception e) {
-        throw new RuntimeException("Could not configure external datasource", e);
-      }
+      String datasourceName =
+          azureSynapseService.getOrCreateExternalAzureDataSource(dataset, userRequest);
 
       if (column.isDoubleType()) {
         return azureSynapsePdao.getStatsForDoubleColumn(
@@ -762,6 +722,18 @@ public class DatasetService {
             StringUtils.split(DatasetsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
         .map(DatasetRequestAccessIncludeModel::fromValue)
         .collect(Collectors.toList());
+  }
+
+  public static Column getColumn(Dataset dataset, String tableName, String columnName) {
+    return dataset
+        .getTableByName(tableName)
+        .orElseThrow(
+            () -> new InvalidTableException("No dataset table exists with the name: " + tableName))
+        .getColumnByName(columnName)
+        .orElseThrow(
+            () ->
+                new InvalidColumnException(
+                    "No column exists in table " + tableName + " with column name: " + columnName));
   }
 
   private String writeIngestRowsToGcpBucket(

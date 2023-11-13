@@ -13,6 +13,7 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.AzureSynapseService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
@@ -64,6 +65,7 @@ public class ValidateAssetUnitTest {
   @MockBean private UserLoggingMetrics loggingMetrics;
   @MockBean private IamService iamService;
   @MockBean private DatasetTableDao datasetTableDao;
+  @MockBean private AzureSynapseService azureSynapseService;
   @MockBean private AzureSynapsePdao azureSynapsePdao;
 
   private String tableName = "tableName1";

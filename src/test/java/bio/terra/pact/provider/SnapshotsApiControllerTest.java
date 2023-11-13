@@ -43,13 +43,17 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * Establishing SnapshotApiController Provider states via mocking for use in verifying contracts
+ * made against these APIs by external Consumers.
+ */
 @Tag(Pact.TAG)
 @ActiveProfiles(Pact.PROFILE)
 @Provider(Pact.PACTICIPANT)
 @PactBroker
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
 @WebMvcTest
-class DataRepoProviderTest {
+class SnapshotsApiControllerTest {
 
   @Autowired private MockMvc mvc;
 

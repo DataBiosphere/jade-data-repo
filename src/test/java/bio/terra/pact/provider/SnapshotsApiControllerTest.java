@@ -88,20 +88,20 @@ class SnapshotsApiControllerTest {
   }
 
   @State("snapshot with given id doesn't exist")
-  void getNonexistentSnapshot(Map<?, ?> parameters) {
+  void mockRetrieveSnapshotModel_snapshotNotFound(Map<?, ?> parameters) {
     when(snapshotService.retrieveSnapshotModel(eq(idFromParameters(parameters)), any(), any()))
         .thenThrow(SnapshotNotFoundException.class);
   }
 
   @State("user does not have access to snapshot with given id")
-  void noAccessToSnapshot(Map<?, ?> parameters) {
+  void mockVerifySnapshotReadable_forbidden(Map<?, ?> parameters) {
     doThrow(ForbiddenException.class)
         .when(snapshotService)
         .verifySnapshotReadable(eq(idFromParameters(parameters)), any());
   }
 
   @State("user has access to snapshot with given id")
-  void successfulSnapshot(Map<?, ?> parameters) {
+  void mockRetrieveSnapshotModel_success(Map<?, ?> parameters) {
     UUID snapshotId = idFromParameters(parameters);
     when(snapshotService.retrieveSnapshotModel(
             eq(snapshotId), eq(List.of(SnapshotRetrieveIncludeModel.TABLES)), any()))

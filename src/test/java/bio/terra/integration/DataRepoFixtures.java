@@ -54,9 +54,9 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.LookupColumnStatisticsRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
@@ -1125,7 +1125,7 @@ public class DataRepoFixtures {
     String url =
         "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
             .formatted(datasetId, table, columnName);
-    var requestModel = new LookupColumnStatisticsRequestModel();
+    var requestModel = new QueryColumnStatisticsRequestModel();
     requestModel.filter(Objects.requireNonNullElse(filter, ""));
     return dataRepoClient.post(
         user, url, TestUtils.mapToJson(requestModel), new TypeReference<>() {});

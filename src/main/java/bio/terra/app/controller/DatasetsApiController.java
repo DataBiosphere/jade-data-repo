@@ -31,10 +31,10 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
-import bio.terra.model.LookupColumnStatisticsRequestModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
@@ -249,7 +249,7 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<ColumnStatisticsModel> queryDatasetColumnStatisticsById(
-      UUID id, String table, String column, LookupColumnStatisticsRequestModel requestModel) {
+      UUID id, String table, String column, QueryColumnStatisticsRequestModel requestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
     ColumnStatisticsModel columnStatisticsModel =

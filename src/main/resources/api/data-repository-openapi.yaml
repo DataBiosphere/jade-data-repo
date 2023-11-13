@@ -2071,7 +2071,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LookupColumnStatisticsRequestModel'
+              $ref: '#/components/schemas/QueryColumnStatisticsRequestModel'
       responses:
         200:
           description: Returns the statistics about a column from a dataset's table
@@ -5226,7 +5226,7 @@ components:
         filter:
           description: A SQL WHERE clause to filter the table results.
           type: string
-    LookupColumnStatisticsRequestModel:
+    QueryColumnStatisticsRequestModel:
       type: object
       properties:
         filter:

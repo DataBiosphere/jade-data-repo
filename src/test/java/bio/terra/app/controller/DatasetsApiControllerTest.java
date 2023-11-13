@@ -24,7 +24,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.model.LookupColumnStatisticsRequestModel;
+import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
@@ -183,7 +183,7 @@ public class DatasetsApiControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         TestUtils.mapToJson(
-                            new LookupColumnStatisticsRequestModel().filter(FILTER))))
+                            new QueryColumnStatisticsRequestModel().filter(FILTER))))
             .andReturn()
             .getResponse()
             .getContentAsString();

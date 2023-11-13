@@ -377,6 +377,12 @@ export HOST=localhost
 ./gradlew check           # linters and unit tests
 ./gradlew testConnected   # connected tests
 ./gradlew testIntegration # integration tests
+```
+
+Running Pact tests can be achieved by rendering a small set of Pact-specific configurations first:
+```
+./src/test/render-pact-configs.sh
+# Reload your environment variables, e.g. src ~/.zshrc
 ./gradlew verifyPacts     # verify contracts published with TDR as the provider
 ```
 

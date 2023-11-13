@@ -85,7 +85,11 @@ If you are making code changes, run:
 ### Verify Pact contracts
 
 To verify that TDR adheres to the contracts published by its consumers, run:
-`./gradlew verifyPacts`
+```
+./src/test/render-pact-configs.sh
+# Reload your environment variables, e.g. src ~/.zshrc
+./gradlew verifyPacts     # verify contracts published with TDR as the provider
+```
 
 By default, this will fetch published contracts from the live Pact broker.
 Results of Pact verification are only published when running in a CI environment (not locally).

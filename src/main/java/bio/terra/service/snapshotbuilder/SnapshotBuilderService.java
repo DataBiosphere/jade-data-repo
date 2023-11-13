@@ -1,7 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.model.JobModel;
-import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
@@ -28,7 +28,7 @@ public class SnapshotBuilderService {
 
   public JobModel requestSnapshot(
       // TODO: add given request to the database, return real JobModel with the id of the new entry.
-      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
+      UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
     return new JobModel()
         .id("id")
         .description("Stub Method")

@@ -35,7 +35,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirection;
@@ -484,7 +484,7 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<JobModel> requestSnapshot(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
+      UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,

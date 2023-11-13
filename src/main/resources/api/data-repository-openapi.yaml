@@ -2701,7 +2701,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SnapshotAccessRequest'
+              $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
       responses:
         200:
           description: The request has been made.
@@ -6762,7 +6762,7 @@ components:
           items:
             type: string
 
-    SnapshotAccessRequest:
+    SnapshotBuilderAccessRequest:
       type: object
       properties:
         name:
@@ -6770,16 +6770,16 @@ components:
         researchPurposeStatement:
           type: string
         datasetRequest:
-          $ref: '#/components/schemas/SnapshotRequest'
+          $ref: '#/components/schemas/SnapshotBuilderRequest'
       description: Request for access to a snapshot.
 
-    SnapshotRequest:
+    SnapshotBuilderRequest:
       type: object
       properties:
         cohorts:
           type: array
           items:
-            $ref: '#/components/schemas/Cohort'
+            $ref: '#/components/schemas/SnapshotBuilderCohort'
         conceptSets:
           type: array
           items:
@@ -6788,9 +6788,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
-      description: Specification of requested a snapshot, returned in a SnapshotAccessRequest.
+      description: Specification of requested a snapshot, returned in SnapshotBuilderAccessRequest.
 
-    Cohort:
+    SnapshotBuilderCohort:
       type: object
       properties:
         name:
@@ -6798,10 +6798,10 @@ components:
         criteriaGroups:
           type: array
           items:
-            $ref: '#/components/schemas/CriteriaGroup'
+            $ref: '#/components/schemas/SnapshotBuilderCriteriaGroup'
       description: Selection of participants.
 
-    CriteriaGroup:
+    SnapshotBuilderCriteriaGroup:
       type: object
       properties:
         name:
@@ -6809,7 +6809,7 @@ components:
         criteria:
           type: array
           items:
-            $ref: '#/components/schemas/AnyCriteria'
+            $ref: '#/components/schemas/SnapshotBuilderAnyCriteria'
         mustMeet:
           type: boolean
         meetAll:
@@ -6818,7 +6818,7 @@ components:
           type: number
       description: Criteria Group specifying a Cohort.
 
-    AnyCriteria:
+    SnapshotBuilderAnyCriteria:
       oneOf:
         - $ref: '#/components/schemas/SnapshotBuilderDomainOption'
         - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'

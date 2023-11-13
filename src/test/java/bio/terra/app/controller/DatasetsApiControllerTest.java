@@ -21,10 +21,10 @@ import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.model.SnapshotRequest;
+import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -251,11 +251,11 @@ public class DatasetsApiControllerTest {
             .completed("completed")
             .submitted("submitted")
             .className("SnapshotAccessRequest");
-    SnapshotAccessRequest input =
-        new SnapshotAccessRequest()
+    SnapshotBuilderAccessRequest input =
+        new SnapshotBuilderAccessRequest()
             .name("name")
             .researchPurposeStatement("purpose")
-            .datasetRequest(new SnapshotRequest());
+            .datasetRequest(new SnapshotBuilderRequest());
     when(snapshotBuilderService.requestSnapshot(DATASET_ID, input)).thenReturn(expected);
     String actualJson =
         mvc.perform(
@@ -267,7 +267,7 @@ public class DatasetsApiControllerTest {
             .getResponse()
             .getContentAsString();
     JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
-    assertThat("The request succeeded", actual, equalTo(expected));
+    assertThat("The request returned the expected id", actual, equalTo(expected));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     verify(snapshotBuilderService).requestSnapshot(DATASET_ID, input);
   }

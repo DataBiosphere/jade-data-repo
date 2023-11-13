@@ -1107,7 +1107,7 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     DataRepoResponse<ColumnStatisticsIntModel> response =
-        retrieveColumnStatsRaw(user, datasetId, table, columnName, filter);
+        retrieveColumnStatsIntRaw(user, datasetId, table, columnName, filter);
     return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
   }
 
@@ -1115,11 +1115,23 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     DataRepoResponse<ColumnStatisticsTextModel> response =
-        retrieveColumnStatsRaw(user, datasetId, table, columnName, filter);
+        retrieveColumnStatsTextRaw(user, datasetId, table, columnName, filter);
     return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
   }
 
-  private <T> DataRepoResponse<T> retrieveColumnStatsRaw(
+  private DataRepoResponse<ColumnStatisticsIntModel> retrieveColumnStatsIntRaw(
+      TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
+      throws Exception {
+    String url =
+        "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
+            .formatted(datasetId, table, columnName);
+    var requestModel = new QueryColumnStatisticsRequestModel();
+    requestModel.filter(Objects.requireNonNullElse(filter, ""));
+    return dataRepoClient.post(
+        user, url, TestUtils.mapToJson(requestModel), new TypeReference<>() {});
+  }
+
+  private DataRepoResponse<ColumnStatisticsTextModel> retrieveColumnStatsTextRaw(
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     String url =

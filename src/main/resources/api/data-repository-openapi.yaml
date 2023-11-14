@@ -2688,12 +2688,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/requestSnapshot:
+  /api/repository/v1/datasets/{id}/createSnapshotRequest:
     post:
       tags:
         - datasets
-      description: Make request to create a new snapshot.
-      operationId: requestSnapshot
+      description: Create a new snapshot request.
+      operationId: createSnapshotRequest
       parameters:
         - $ref: '#/components/parameters/Id'
       requestBody:

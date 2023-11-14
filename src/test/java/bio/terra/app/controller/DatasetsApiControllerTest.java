@@ -21,7 +21,12 @@ import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
+import bio.terra.model.SnapshotBuilderAnyCriteria;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
+import bio.terra.model.SnapshotBuilderDatasetConceptSets;
+import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SqlSortDirection;
@@ -78,7 +83,7 @@ public class DatasetsApiControllerTest {
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
 
   private static final String REQUEST_SNAPSHOT_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/requestSnapshot";
+      RETRIEVE_DATASET_ENDPOINT + "/createSnapshotRequest";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
@@ -239,14 +244,30 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
-  void testRequestSnapshot() throws Exception {
+  void testCreateSnapshotRequest() throws Exception {
     mockValidators();
     SnapshotBuilderAccessRequest expected =
         new SnapshotBuilderAccessRequest()
             .name("name")
             .researchPurposeStatement("purpose")
-            .datasetRequest(new SnapshotBuilderRequest());
-    when(snapshotBuilderService.requestSnapshot(DATASET_ID, expected)).thenReturn(expected);
+            .datasetRequest(
+                new SnapshotBuilderRequest()
+                    .addCohortsItem(
+                        new SnapshotBuilderCohort()
+                            .name("cohort")
+                            .addCriteriaGroupsItem(
+                                new SnapshotBuilderCriteriaGroup()
+                                    .addCriteriaItem(new SnapshotBuilderAnyCriteria())))
+                    .addConceptSetsItem(
+                        new SnapshotBuilderDatasetConceptSets()
+                            .name("conceptSets")
+                            .featureValueGroupName("featureValueGroupName"))
+                    .addValueSetsItem(
+                        new SnapshotBuilderFeatureValueGroup()
+                            .name("valueGroup")
+                            .id(0)
+                            .addValuesItem("value")));
+    when(snapshotBuilderService.createSnapshotRequest(DATASET_ID, expected)).thenReturn(expected);
     String actualJson =
         mvc.perform(
                 post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)

@@ -483,7 +483,7 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotBuilderAccessRequest> requestSnapshot(
+  public ResponseEntity<SnapshotBuilderAccessRequest> createSnapshotRequest(
       UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
@@ -491,7 +491,8 @@ public class DatasetsApiController implements DatasetsApi {
         IamResourceType.DATASET,
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.requestSnapshot(id, snapshotAccessRequest));
+    return ResponseEntity.ok(
+        snapshotBuilderService.createSnapshotRequest(id, snapshotAccessRequest));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

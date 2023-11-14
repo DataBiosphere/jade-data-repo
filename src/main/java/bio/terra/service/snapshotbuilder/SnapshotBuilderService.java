@@ -25,7 +25,7 @@ public class SnapshotBuilderService {
     return snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(id, settings);
   }
 
-  public SnapshotBuilderAccessRequest requestSnapshot(
+  public SnapshotBuilderAccessRequest createSnapshotRequest(
       // TODO: add given request to the database, return real JobModel with the id of the new entry.
       UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
     return snapshotAccessRequest;

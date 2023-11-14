@@ -1,11 +1,17 @@
 package bio.terra.service.snapshotbuilder;
 
+import bio.terra.common.Column;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderDatasetConceptSets;
 import bio.terra.model.SnapshotBuilderDomain;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderProgramData;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.TableDataType;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.DatasetTable;
 import java.util.List;
 
 public class SnapshotBuilderTestData {
@@ -92,4 +98,20 @@ public class SnapshotBuilderTestData {
                   new SnapshotBuilderDatasetConceptSets()
                       .name("All surveys")
                       .featureValueGroupName("Surveys")));
+
+  public static Dataset DATASET = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
+      .tables(
+          List.of(
+              new DatasetTable()
+                  .name("person")
+                  .columns(
+                      List.of(
+                          new Column().name("race").type(TableDataType.INTEGER),
+                          new Column()
+                              .name("gender_identity")
+                              .type(TableDataType.INTEGER),
+                          new Column().name("ethnicity").type(TableDataType.INTEGER),
+                          new Column()
+                              .name("year_of_birth")
+                              .type(TableDataType.INTEGER)))));
 }

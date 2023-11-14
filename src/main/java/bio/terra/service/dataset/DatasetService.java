@@ -571,7 +571,7 @@ public class DatasetService {
       String filter) {
     Dataset dataset = retrieve(datasetId);
 
-    Column column = getColumn(dataset, tableName, columnName);
+    Column column = dataset.getColumn(tableName, columnName);
 
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 

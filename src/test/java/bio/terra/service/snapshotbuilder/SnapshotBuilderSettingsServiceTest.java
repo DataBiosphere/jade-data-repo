@@ -57,23 +57,7 @@ public class SnapshotBuilderSettingsServiceTest {
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
     when(azureSynapsePdao.getStatsForIntColumn(any(), any(), any(), any()))
         .thenReturn(new ColumnStatisticsIntModel().minValue(0).maxValue(10));
-    when(datasetDao.retrieve(datasetId))
-        .thenReturn(
-            new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
-                .tables(
-                    List.of(
-                        new DatasetTable()
-                            .name("person")
-                            .columns(
-                                List.of(
-                                    new Column().name("race").type(TableDataType.INTEGER),
-                                    new Column()
-                                        .name("gender_identity")
-                                        .type(TableDataType.INTEGER),
-                                    new Column().name("ethnicity").type(TableDataType.INTEGER),
-                                    new Column()
-                                        .name("year_of_birth")
-                                        .type(TableDataType.INTEGER))))));
+    when(datasetDao.retrieve(datasetId)).thenReturn(SnapshotBuilderTestData.DATASET);
     snapshotBuilderService.getSnapshotBuilderSettings(datasetId, testUser);
     verify(snapshotBuilderSettingsDao).getSnapshotBuilderSettingsByDatasetId(datasetId);
   }

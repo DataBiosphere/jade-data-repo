@@ -98,8 +98,7 @@ public class SnapshotBuilderService {
     Dataset dataset = datasetDao.retrieve(datasetId);
     String tableName = "person";
     String filter = "";
-    Column column =
-        DatasetService.getColumn(dataset, "person", programDataMetadata.getColumnName());
+    Column column = dataset.getColumn("person", programDataMetadata.getColumnName());
     SnapshotBuilderProgramDataOption response =
         new SnapshotBuilderProgramDataOption()
             .name(programDataMetadata.getName())

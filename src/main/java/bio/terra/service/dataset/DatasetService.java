@@ -724,18 +724,6 @@ public class DatasetService {
         .collect(Collectors.toList());
   }
 
-  public static Column getColumn(Dataset dataset, String tableName, String columnName) {
-    return dataset
-        .getTableByName(tableName)
-        .orElseThrow(
-            () -> new InvalidTableException("No dataset table exists with the name: " + tableName))
-        .getColumnByName(columnName)
-        .orElseThrow(
-            () ->
-                new InvalidColumnException(
-                    "No column exists in table " + tableName + " with column name: " + columnName));
-  }
-
   private String writeIngestRowsToGcpBucket(
       Dataset dataset, String tempFilePath, List<Object> data) {
     try {

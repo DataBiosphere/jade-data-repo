@@ -6809,7 +6809,9 @@ components:
         criteria:
           type: array
           items:
-            $ref: '#/components/schemas/SnapshotBuilderAnyCriteria'
+            oneOf:
+              - $ref: '#/components/schemas/SnapshotBuilderDomainOption'
+              - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
         mustMeet:
           type: boolean
         meetAll:
@@ -6817,12 +6819,6 @@ components:
         count:
           type: number
       description: Criteria Group specifying a Cohort.
-
-    SnapshotBuilderAnyCriteria:
-      oneOf:
-        - $ref: '#/components/schemas/SnapshotBuilderDomainOption'
-        - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
-      description: Any Criteria, domain or program information.
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

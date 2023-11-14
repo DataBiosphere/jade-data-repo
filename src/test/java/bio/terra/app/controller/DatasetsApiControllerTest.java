@@ -21,11 +21,11 @@ import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
-import bio.terra.model.SnapshotBuilderAnyCriteria;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSets;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderRequest;
@@ -257,7 +257,12 @@ public class DatasetsApiControllerTest {
                             .name("cohort")
                             .addCriteriaGroupsItem(
                                 new SnapshotBuilderCriteriaGroup()
-                                    .addCriteriaItem(new SnapshotBuilderAnyCriteria())))
+                                    .addCriteriaItem(
+                                        new SnapshotBuilderDomainOption()
+                                            .id(0)
+                                            .category("category")
+                                            .root(
+                                                new SnapshotBuilderConcept().id(2).name("name")))))
                     .addConceptSetsItem(
                         new SnapshotBuilderDatasetConceptSets()
                             .name("conceptSets")

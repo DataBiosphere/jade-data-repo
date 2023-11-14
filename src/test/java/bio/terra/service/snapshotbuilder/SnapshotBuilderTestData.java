@@ -99,19 +99,16 @@ public class SnapshotBuilderTestData {
                       .name("All surveys")
                       .featureValueGroupName("Surveys")));
 
-  public static Dataset DATASET = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
-      .tables(
-          List.of(
-              new DatasetTable()
-                  .name("person")
-                  .columns(
-                      List.of(
-                          new Column().name("race").type(TableDataType.INTEGER),
-                          new Column()
-                              .name("gender_identity")
-                              .type(TableDataType.INTEGER),
-                          new Column().name("ethnicity").type(TableDataType.INTEGER),
-                          new Column()
-                              .name("year_of_birth")
-                              .type(TableDataType.INTEGER)))));
+  public static Dataset DATASET =
+      new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
+          .tables(
+              List.of(
+                  new DatasetTable()
+                      .name("person")
+                      .columns(
+                          List.of(
+                              new Column().name("race").type(TableDataType.INTEGER),
+                              new Column().name("gender_identity").type(TableDataType.INTEGER),
+                              new Column().name("ethnicity").type(TableDataType.INTEGER),
+                              new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
 }

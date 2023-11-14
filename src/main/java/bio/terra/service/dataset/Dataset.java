@@ -108,11 +108,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
   /**
    * @param tableName the string name of the table the column is in
    * @param columnName the string name of the column to fetch
-   *
    * @return the column at the specified path
    * @throws InvalidTableException if there is no table of the specified name
    * @throws InvalidColumnException if there is no column in the specified table
-  */
+   */
   public Column getColumn(String tableName, String columnName) {
     return getTableByName(tableName)
         .orElseThrow(

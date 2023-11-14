@@ -1,10 +1,12 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.common.TestUtils.assertError;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -14,6 +16,7 @@ import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import java.sql.SQLException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -52,5 +55,23 @@ public class AzureSynapseServiceTest {
     assertThat(
         azureSynapseService.getOrCreateExternalAzureDataSource(dataset, testUser),
         equalTo(String.format("ds-%s-email", datasetId)));
+  }
+
+  @Test
+  public void getOrCreateExternalAzureDataSourceHidesExceptionInformation() throws Exception {
+    UUID datasetId = UUID.randomUUID();
+    Dataset dataset = new Dataset().id(datasetId);
+    when(metadataDataAccessUtils.accessInfoFromDataset(dataset, testUser))
+        .thenReturn(
+            new AccessInfoModel()
+                .parquet(new AccessInfoParquetModel().sasToken("sas_token").url("url")));
+    doThrow(SQLException.class)
+        .when(azureSynapsePdao)
+        .getOrCreateExternalDataSource(eq("url?sas_token"), any(), any());
+
+    assertError(
+        RuntimeException.class,
+        "Could not configure external datasource",
+        () -> azureSynapseService.getOrCreateExternalAzureDataSource(dataset, testUser));
   }
 }

@@ -4,35 +4,25 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.Column;
-import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnStatisticsIntModel;
-import bio.terra.model.TableDataType;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetSummary;
-import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.AzureSynapseService;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
-@EmbeddedDatabaseTest
+@ExtendWith(MockitoExtension.class)
 public class SnapshotBuilderSettingsServiceTest {
   private AuthenticatedUserRequest testUser = AuthenticationFixtures.randomUserRequest();
 

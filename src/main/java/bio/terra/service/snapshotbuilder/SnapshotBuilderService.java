@@ -15,7 +15,6 @@ import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotBuilderSettingsOptions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;

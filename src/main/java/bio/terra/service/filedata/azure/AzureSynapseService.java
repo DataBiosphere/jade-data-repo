@@ -19,6 +19,14 @@ public class AzureSynapseService {
     this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
+  /**
+   *
+   * @param dataset the dataset to configure the AzureDataSourceFor
+   * @param userRequest the user making the request
+   * @return the name of the datasource created
+   *
+   * @throws RuntimeException when the external datasource could not be configured
+   */
   public String getOrCreateExternalAzureDataSource(
       Dataset dataset, AuthenticatedUserRequest userRequest) {
     String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());

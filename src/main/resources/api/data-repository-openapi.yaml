@@ -6668,7 +6668,7 @@ components:
           type: integer
         name:
           type: string
-        table:
+        tableName:
           type: string
         columnName:
           type: string

@@ -52,21 +52,25 @@ public class SnapshotBuilderTestData {
                       .id(1)
                       .name("Year of birth")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.RANGE)
+                      .tableName("person")
                       .columnName("year_of_birth"),
                   new SnapshotBuilderProgramDataOption()
                       .id(2)
                       .name("Ethnicity")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
+                      .tableName("person")
                       .columnName("ethnicity"),
                   new SnapshotBuilderProgramDataOption()
                       .id(3)
                       .name("Gender identity")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
+                      .tableName("person")
                       .columnName("gender_identity"),
                   new SnapshotBuilderProgramDataOption()
                       .id(4)
                       .name("Race")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
+                      .tableName("person")
                       .columnName("race")))
           .featureValueGroups(
               List.of(

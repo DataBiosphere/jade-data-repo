@@ -281,7 +281,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             queryDataRequest.getLimit(),
             queryDataRequest.getOffset(),
             queryDataRequest.getSort(),
-            sortDirection,
+            queryDataRequest.getDirection(),
             queryDataRequest.getFilter());
     return ResponseEntity.ok(previewModel);
   }

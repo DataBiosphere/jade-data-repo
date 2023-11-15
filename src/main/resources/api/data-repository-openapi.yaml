@@ -6572,19 +6572,19 @@ components:
         - programDataOptions
         - featureValueGroups
       properties:
-        selectableDomains:
+        domainOptions:
           type: array
           items:
-            $ref: '#/components/schemas/SnapshotBuilderDomain'
-        selectableProgramData:
+            $ref: '#/components/schemas/SnapshotBuilderDomainOption'
+        programDataOptions:
           type: array
           items:
-            $ref: '#/components/schemas/SnapshotBuilderProgramData'
+            $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
         featureValueGroups:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
-        prepackagedDatasetConceptSets:
+        datasetConceptSets:
           type: array
           items:
             $ref:
@@ -6603,7 +6603,7 @@ components:
         featureValueGroupName:
           type: string
 
-    SnapshotBuilderDomain:
+    SnapshotBuilderDomainOption:
       type: object
       description: >
         ⚠️ An object describing high level information about a domain for use in the snapshot builder
@@ -6655,7 +6655,7 @@ components:
         hasChildren:
           type: boolean
 
-    SnapshotBuilderProgramData:
+    SnapshotBuilderProgramDataOption:
       type: object
       description: >
         ⚠️ An object describing high level information about program data for use in the snapshot builder

@@ -4,9 +4,9 @@ import bio.terra.common.Column;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderDatasetConceptSets;
-import bio.terra.model.SnapshotBuilderDomain;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
-import bio.terra.model.SnapshotBuilderProgramData;
+import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
@@ -17,9 +17,9 @@ import java.util.List;
 public class SnapshotBuilderTestData {
   public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
-          .selectableDomains(
+          .domainOptions(
               List.of(
-                  new SnapshotBuilderDomain()
+                  new SnapshotBuilderDomainOption()
                       .id(10)
                       .category("Condition")
                       .root(
@@ -28,7 +28,7 @@ public class SnapshotBuilderTestData {
                               .name("Condition")
                               .count(100)
                               .hasChildren(true)),
-                  new SnapshotBuilderDomain()
+                  new SnapshotBuilderDomainOption()
                       .id(11)
                       .category("Procedure")
                       .root(
@@ -37,7 +37,7 @@ public class SnapshotBuilderTestData {
                               .name("Procedure")
                               .count(100)
                               .hasChildren(true)),
-                  new SnapshotBuilderDomain()
+                  new SnapshotBuilderDomainOption()
                       .id(12)
                       .category("Observation")
                       .root(
@@ -46,27 +46,27 @@ public class SnapshotBuilderTestData {
                               .name("Observation")
                               .count(100)
                               .hasChildren(true))))
-          .selectableProgramData(
+          .programDataOptions(
               List.of(
-                  new SnapshotBuilderProgramData()
+                  new SnapshotBuilderProgramDataOption()
                       .id(1)
                       .name("Year of birth")
-                      .kind(SnapshotBuilderProgramData.KindEnum.RANGE)
+                      .kind(SnapshotBuilderProgramDataOption.KindEnum.RANGE)
                       .columnName("year_of_birth"),
-                  new SnapshotBuilderProgramData()
+                  new SnapshotBuilderProgramDataOption()
                       .id(2)
                       .name("Ethnicity")
-                      .kind(SnapshotBuilderProgramData.KindEnum.LIST)
+                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
                       .columnName("ethnicity"),
-                  new SnapshotBuilderProgramData()
+                  new SnapshotBuilderProgramDataOption()
                       .id(3)
                       .name("Gender identity")
-                      .kind(SnapshotBuilderProgramData.KindEnum.LIST)
+                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
                       .columnName("gender_identity"),
-                  new SnapshotBuilderProgramData()
+                  new SnapshotBuilderProgramDataOption()
                       .id(4)
                       .name("Race")
-                      .kind(SnapshotBuilderProgramData.KindEnum.LIST)
+                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
                       .columnName("race")))
           .featureValueGroups(
               List.of(
@@ -90,7 +90,7 @@ public class SnapshotBuilderTestData {
                       .id(4)
                       .name("Person")
                       .values(List.of("Demographics Column 1", "Demographics Column 2"))))
-          .prepackagedDatasetConceptSets(
+          .datasetConceptSets(
               List.of(
                   new SnapshotBuilderDatasetConceptSets()
                       .name("Demographics")

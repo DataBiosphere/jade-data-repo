@@ -2692,7 +2692,8 @@ paths:
     post:
       tags:
         - datasets
-      description: Create a new snapshot request.
+      description: As a researcher, create a snapshot request for a dataset, given a set of criteria
+        and required concept sets and values.
       operationId: createSnapshotRequest
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -6810,7 +6811,7 @@ components:
           type: array
           items:
             oneOf:
-              - $ref: '#/components/schemas/SnapshotBuilderDomainOption'
+              - $ref: '#/components/schemas/SnapshotBuilderConcept'
               - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
         mustMeet:
           type: boolean

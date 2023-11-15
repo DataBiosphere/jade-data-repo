@@ -5227,6 +5227,7 @@ components:
         filter:
           description: A SQL WHERE clause to filter the table results.
           type: string
+          default: ""
     QueryColumnStatisticsRequestModel:
       type: object
       properties:

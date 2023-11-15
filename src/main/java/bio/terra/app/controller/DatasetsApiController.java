@@ -69,6 +69,8 @@ import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -81,7 +83,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @Api(tags = {"datasets"})
 public class DatasetsApiController implements DatasetsApi {
-
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SCHEMA,PROFILE,DATA_PROJECT,STORAGE";
 
   private final HttpServletRequest request;
@@ -201,9 +202,6 @@ public class DatasetsApiController implements DatasetsApi {
       UUID id, String table, QueryDataRequestModel queryDataRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection =
-        Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
     DatasetDataModel previewModel =
         datasetService.retrieveData(
             userReq,
@@ -212,7 +210,7 @@ public class DatasetsApiController implements DatasetsApi {
             queryDataRequest.getLimit(),
             queryDataRequest.getOffset(),
             queryDataRequest.getSort(),
-            sortDirection,
+            queryDataRequest.getDirection(),
             queryDataRequest.getFilter());
     return ResponseEntity.ok(previewModel);
   }

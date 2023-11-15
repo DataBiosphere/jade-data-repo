@@ -57,7 +57,7 @@ public class SearchApiControllerTest {
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
-  private static final String FILTER = null;
+  private static final String FILTER = "";
 
   @Autowired private MockMvc mvc;
 

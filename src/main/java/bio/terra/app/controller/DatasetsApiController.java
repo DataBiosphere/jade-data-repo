@@ -222,14 +222,12 @@ public class DatasetsApiController implements DatasetsApi {
       Integer offset,
       Integer limit,
       String sort,
-      SqlSortDirection direction,
+      @RequestParam(defaultValue = "asc") SqlSortDirection direction,
       String filter) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
     DatasetDataModel previewModel =
-        datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
+        datasetService.retrieveData(userReq, id, table, limit, offset, sort, direction, filter);
     return ResponseEntity.ok(previewModel);
   }
 
@@ -277,7 +275,7 @@ public class DatasetsApiController implements DatasetsApi {
       Integer offset,
       Integer limit,
       EnumerateSortByParam sort,
-      SqlSortDirection direction,
+      @RequestParam(defaultValue = "asc") SqlSortDirection direction,
       String filter,
       String region,
       List<String> tags) {

@@ -179,7 +179,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       Integer offset,
       Integer limit,
       EnumerateSortByParam sort,
-      SqlSortDirection direction,
+      @RequestParam(defaultValue = "asc") SqlSortDirection direction,
       String filter,
       String region,
       List<String> datasetIds,
@@ -270,7 +270,6 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<SnapshotPreviewModel> querySnapshotDataById(
       UUID id, String table, QueryDataRequestModel queryDataRequest) {
     snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
     SqlSortDirection sortDirection =
         Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
     SnapshotPreviewModel previewModel =
@@ -293,16 +292,12 @@ public class SnapshotsApiController implements SnapshotsApi {
       Integer offset,
       Integer limit,
       String sort,
-      SqlSortDirection direction,
+      @RequestParam(defaultValue = "asc") SqlSortDirection direction,
       String filter) {
-    logger.debug("Verifying user access");
     snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
-    logger.debug("Retrieving snapshot id {}", id);
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
     SnapshotPreviewModel previewModel =
         snapshotService.retrievePreview(
-            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
+            getAuthenticatedInfo(), id, table, limit, offset, sort, direction, filter);
     return ResponseEntity.ok(previewModel);
   }
 

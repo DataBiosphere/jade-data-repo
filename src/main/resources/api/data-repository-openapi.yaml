@@ -485,13 +485,11 @@ paths:
           in: query
           description: The field to use for sorting.
           schema:
-            default: created_date
             $ref: '#/components/schemas/EnumerateSortByParam'
         - name: direction
           in: query
           description: The direction to sort.
           schema:
-            default: asc
             $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
@@ -862,7 +860,6 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            default: asc
             $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
@@ -1660,13 +1657,11 @@ paths:
           in: query
           description: The field to use for sorting.
           schema:
-            default: created_date
             $ref: '#/components/schemas/EnumerateSortByParam'
         - name: direction
           in: query
           description: The direction to sort.
           schema:
-            default: asc
             $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
@@ -1963,7 +1958,6 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            default: asc
             $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
@@ -4366,6 +4360,7 @@ components:
     EnumerateSortByParam:
       type: string
       enum: [ name, description, created_date ]
+      default: created_date
       description: >
         Fields datasets and snapshots can be sorted by.
     ObjectNameProperty:
@@ -5222,8 +5217,6 @@ components:
           default: "datarepo_row_id"
         direction:
           $ref: '#/components/schemas/SqlSortDirection'
-          description: The direction to sort.
-          default: asc
         filter:
           description: A SQL WHERE clause to filter the table results.
           type: string
@@ -7264,10 +7257,8 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
-          description: unique identifier of the Journal Entry
         resourceKey:
           $ref: '#/components/schemas/UniqueIdProperty'
-          description: unique identifier of the resource the journal entry pertains to
         user:
           type: string
           description: the email address of the user who performed this action

@@ -39,7 +39,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
-import io.swagger.v3.oas.annotations.Hidden;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -289,7 +288,6 @@ public class SnapshotsApiController implements SnapshotsApi {
     return ResponseEntity.ok(previewModel);
   }
 
-  @Hidden
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
       UUID id,

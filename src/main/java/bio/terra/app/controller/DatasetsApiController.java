@@ -60,7 +60,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
-import io.swagger.v3.oas.annotations.Hidden;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -218,7 +217,6 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(previewModel);
   }
 
-  @Hidden
   @Override
   public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
       UUID id,

@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
@@ -10,6 +11,7 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
@@ -27,6 +29,7 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
@@ -55,7 +58,6 @@ import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.AzureSynapseService;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -67,9 +69,11 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -113,7 +117,8 @@ public class DatasetService {
   private final IamService iamService;
   private final DatasetTableDao datasetTableDao;
   private final AzureSynapsePdao azureSynapsePdao;
-  private final AzureSynapseService azureSynapseService;
+  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
   public DatasetService(
@@ -134,7 +139,8 @@ public class DatasetService {
       IamService iamService,
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao,
-      AzureSynapseService azureSynapseService) {
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
+      MetadataDataAccessUtils metadataDataAccessUtils) {
     this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
     this.jobService = jobService;
@@ -152,7 +158,8 @@ public class DatasetService {
     this.iamService = iamService;
     this.datasetTableDao = datasetTableDao;
     this.azureSynapsePdao = azureSynapsePdao;
-    this.azureSynapseService = azureSynapseService;
+    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
   public String createDataset(
@@ -481,6 +488,31 @@ public class DatasetService {
     }
   }
 
+  /**
+   * @param dataset the dataset to configure the AzureDataSourceFor
+   * @param userRequest the user making the request
+   * @return the name of the datasource created
+   * @throws RuntimeException when the external datasource could not be configured
+   */
+  public String getOrCreateExternalAzureDataSource(
+      Dataset dataset, AuthenticatedUserRequest userRequest) {
+    String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());
+    AccessInfoModel accessInfoModel =
+        metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
+    String credName = AzureSynapsePdao.getCredentialName(dataset.getId(), userRequest.getEmail());
+
+    String metadataUrl =
+        "%s?%s"
+            .formatted(
+                accessInfoModel.getParquet().getUrl(), accessInfoModel.getParquet().getSasToken());
+    try {
+      azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
+      return datasourceName;
+    } catch (Exception e) {
+      throw new RuntimeException("Could not configure external datasource", e);
+    }
+  }
+
   public DatasetDataModel retrieveData(
       AuthenticatedUserRequest userRequest,
       UUID datasetId,
@@ -533,8 +565,7 @@ public class DatasetService {
     } else if (cloudPlatformWrapper.isAzure()) {
       String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
 
-      String datasourceName =
-          azureSynapseService.getOrCreateExternalAzureDataSource(dataset, userRequest);
+      String datasourceName = getOrCreateExternalAzureDataSource(dataset, userRequest);
 
       List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
@@ -590,8 +621,7 @@ public class DatasetService {
 
       String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
 
-      String datasourceName =
-          azureSynapseService.getOrCreateExternalAzureDataSource(dataset, userRequest);
+      String datasourceName = getOrCreateExternalAzureDataSource(dataset, userRequest);
 
       if (column.isDoubleType()) {
         return azureSynapsePdao.getStatsForDoubleColumn(
@@ -713,6 +743,12 @@ public class DatasetService {
       throw new RuntimeException("Dataset tags were not updated");
     }
     return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
+  public void updateDatasetSnapshotBuilderSettings(
+      UUID datasetId, SnapshotBuilderSettings snapshotBuilderSettings) {
+    snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
+        datasetId, snapshotBuilderSettings);
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

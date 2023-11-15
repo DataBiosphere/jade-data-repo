@@ -21,12 +21,12 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
-import bio.terra.model.SnapshotBuilderSettingsOptions;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +61,7 @@ public class DatasetJsonConversionTest {
 
   private DatasetJsonConversion datasetJsonConversion;
 
-  @Mock private SnapshotBuilderService snapshotBuilderService;
+  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
   private Dataset dataset;
   private DatasetModel datasetModel;
@@ -70,7 +70,7 @@ public class DatasetJsonConversionTest {
   @Before
   public void setUp() throws Exception {
     datasetJsonConversion =
-        new DatasetJsonConversion(metadataDataAccessUtils, snapshotBuilderService);
+        new DatasetJsonConversion(metadataDataAccessUtils, snapshotBuilderSettingsDao);
 
     Column datasetColumn =
         new Column()
@@ -160,7 +160,7 @@ public class DatasetJsonConversionTest {
                                 .rootTable(DATASET_TABLE_NAME)
                                 .rootColumn(DATASET_COLUMN_NAME)
                                 .follow(Collections.emptyList()))))
-            .snapshotBuilderSettings(new SnapshotBuilderSettingsOptions())
+            .snapshotBuilderSettings(new SnapshotBuilderSettings())
             .dataProject(DATASET_DATA_PROJECT);
 
     metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
@@ -168,8 +168,8 @@ public class DatasetJsonConversionTest {
 
   @Test
   public void populateDatasetModelFromDataset() {
-    when(snapshotBuilderService.getSnapshotBuilderSettings(DATASET_ID, testUser))
-        .thenReturn(new SnapshotBuilderSettingsOptions());
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(DATASET_ID))
+        .thenReturn(new SnapshotBuilderSettings());
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
@@ -183,8 +183,8 @@ public class DatasetJsonConversionTest {
 
   @Test
   public void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
-    when(snapshotBuilderService.getSnapshotBuilderSettings(DATASET_ID, testUser))
-        .thenReturn(new SnapshotBuilderSettingsOptions());
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(DATASET_ID))
+        .thenReturn(new SnapshotBuilderSettings());
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,

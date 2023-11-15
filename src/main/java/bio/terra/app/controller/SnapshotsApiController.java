@@ -270,6 +270,9 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<SnapshotPreviewModel> querySnapshotDataById(
       UUID id, String table, QueryDataRequestModel queryDataRequest) {
     snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection =
+        Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
     SnapshotPreviewModel previewModel =
         snapshotService.retrievePreview(
             getAuthenticatedInfo(),
@@ -278,7 +281,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             queryDataRequest.getLimit(),
             queryDataRequest.getOffset(),
             queryDataRequest.getSort(),
-            queryDataRequest.getDirection(),
+            sortDirection,
             queryDataRequest.getFilter());
     return ResponseEntity.ok(previewModel);
   }

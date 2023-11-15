@@ -357,6 +357,10 @@ export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
 export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
 export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
 export AZURE_SYNAPSE_INITIALIZE=false
+
+# Pact contract test settings
+export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
+export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
@@ -372,7 +376,14 @@ export HOST=localhost
 ./gradlew bootRun         # build jade-data-repo with Spring Boot features
 ./gradlew check           # linters and unit tests
 ./gradlew testConnected   # connected tests
-./gradlew testIntegration  # integration tests
+./gradlew testIntegration # integration tests
+```
+
+Running Pact tests can be achieved by rendering a small set of Pact-specific configurations first:
+```
+./src/test/render-pact-configs.sh
+# Reload your environment variables, e.g. src ~/.zshrc
+./gradlew verifyPacts     # verify contracts published with TDR as the provider
 ```
 
 Note that connected and integration test suites can each take 90+ minutes to run.

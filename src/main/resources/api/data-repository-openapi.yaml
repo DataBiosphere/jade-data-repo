@@ -6810,9 +6810,7 @@ components:
         criteria:
           type: array
           items:
-            oneOf:
-              - $ref: '#/components/schemas/SnapshotBuilderConcept'
-              - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
+            $ref: '#/components/schemas/SnapshotBuilderCriteria'
         mustMeet:
           type: boolean
         meetAll:
@@ -6820,6 +6818,46 @@ components:
         count:
           type: number
       description: Criteria Group specifying a Cohort.
+
+    SnapshotBuilderCriteria:
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+        name:
+          type: string
+        id:
+          type: number
+      discriminator:
+        propertyName: kind
+        mapping:
+          list: '#/components/schemas/SnapshotBuilderProgramDataListCriteria'
+          range: '#/components/schemas/SnapshotBuilderProgramDataRangeCriteria'
+          domain: '#/components/schemas/SnapshotBuilderCriteria'
+
+    SnapshotBuilderProgramDataListCriteria:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        - type: object
+          properties:
+            values:
+              type: array
+              items:
+                type: number
+      description: List format program data, part of a CriteriaGroup.
+
+    SnapshotBuilderProgramDataRangeCriteria:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        - type: object
+          properties:
+            low:
+              type: number
+            high:
+              type: number
+      description: Range format program data, part of a CriteriaGroup.
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

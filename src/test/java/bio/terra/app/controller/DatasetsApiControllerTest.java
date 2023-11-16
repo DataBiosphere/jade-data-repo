@@ -23,10 +23,13 @@ import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSets;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
@@ -243,6 +246,23 @@ public class DatasetsApiControllerTest {
   }
 
   @Test
+  void testCreateCriteriaData() throws Exception {
+    TestUtils.mapFromJson(
+        """
+        {"kind":"list","name":"name","id":0}""", SnapshotBuilderCriteria.class);
+
+    TestUtils.mapFromJson(
+        """
+        {"kind":"list","name":"name","id":0,"values":[]}""",
+        SnapshotBuilderProgramDataListCriteria.class);
+
+    TestUtils.mapFromJson(
+        """
+        {"kind":"range","name":"name","id":0,"low":0,"high":10}""",
+        SnapshotBuilderProgramDataRangeCriteria.class);
+  }
+
+  @Test
   void testCreateSnapshotRequest() throws Exception {
     mockValidators();
     SnapshotBuilderAccessRequest expected =
@@ -254,10 +274,7 @@ public class DatasetsApiControllerTest {
                     .addCohortsItem(
                         new SnapshotBuilderCohort()
                             .name("cohort")
-                            .addCriteriaGroupsItem(
-                                new SnapshotBuilderCriteriaGroup()
-                                    .addCriteriaItem(
-                                        new SnapshotBuilderConcept().id(0).name("name"))))
+                            .addCriteriaGroupsItem(new SnapshotBuilderCriteriaGroup()))
                     .addConceptSetsItem(
                         new SnapshotBuilderDatasetConceptSets()
                             .name("conceptSets")

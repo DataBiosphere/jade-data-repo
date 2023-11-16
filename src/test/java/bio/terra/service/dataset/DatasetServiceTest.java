@@ -698,7 +698,7 @@ public class DatasetServiceTest {
 
     assertThat(
         datasetService.getOrCreateExternalAzureDataSource(dataset, testUser),
-        equalTo(String.format("ds-%s-email", datasetId)));
+        equalTo(String.format("ds-%s-%s", datasetId, testUser.getEmail())));
   }
 
   @Test

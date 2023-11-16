@@ -4,6 +4,7 @@ import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SETTINGS
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -220,8 +221,7 @@ public class DatasetsApiControllerTest {
             TEST_USER,
             List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
         .thenReturn(new DatasetModel());
-    when(snapshotBuilderService.updateSnapshotBuilderSettings(DATASET_ID, SETTINGS))
-        .thenReturn(SETTINGS);
+    doNothing().when(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
     when(ingestRequestValidator.supports(any())).thenReturn(true);
     when(datasetRequestValidator.supports(any())).thenReturn(true);
     when(assetModelValidator.supports(any())).thenReturn(true);
@@ -236,7 +236,7 @@ public class DatasetsApiControllerTest {
         .andReturn();
 
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
+    verify(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
   @Test

@@ -103,7 +103,7 @@ public class SnapshotBuilderTestData {
                       .name("All surveys")
                       .featureValueGroupName("Surveys")));
 
-  public static Dataset DATASET =
+  public static final Dataset DATASET =
       new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
           .tables(
               List.of(

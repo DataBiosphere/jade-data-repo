@@ -25,7 +25,7 @@ import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
-import bio.terra.model.SnapshotBuilderDatasetConceptSets;
+import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
@@ -247,19 +247,28 @@ public class DatasetsApiControllerTest {
 
   @Test
   void testCreateCriteriaData() throws Exception {
-    TestUtils.mapFromJson(
-        """
-        {"kind":"list","name":"name","id":0}""", SnapshotBuilderCriteria.class);
+    SnapshotBuilderCriteria criteria =
+        TestUtils.mapFromJson(
+            """
+        {"kind":"domain","name":"name","id":0}""", SnapshotBuilderCriteria.class);
+    assertThat(criteria.getName(), equalTo("name"));
+    assertThat(criteria.getKind(), equalTo("domain"));
 
-    TestUtils.mapFromJson(
-        """
+    SnapshotBuilderProgramDataListCriteria listCriteria =
+        TestUtils.mapFromJson(
+            """
         {"kind":"list","name":"name","id":0,"values":[]}""",
-        SnapshotBuilderProgramDataListCriteria.class);
+            SnapshotBuilderProgramDataListCriteria.class);
+    assertThat(listCriteria.getName(), equalTo("name"));
+    assertThat(listCriteria.getKind(), equalTo("list"));
 
-    TestUtils.mapFromJson(
-        """
+    SnapshotBuilderProgramDataRangeCriteria rangeCriteria =
+        TestUtils.mapFromJson(
+            """
         {"kind":"range","name":"name","id":0,"low":0,"high":10}""",
-        SnapshotBuilderProgramDataRangeCriteria.class);
+            SnapshotBuilderProgramDataRangeCriteria.class);
+    assertThat(rangeCriteria.getName(), equalTo("name"));
+    assertThat(rangeCriteria.getKind(), equalTo("range"));
   }
 
   @Test
@@ -274,10 +283,17 @@ public class DatasetsApiControllerTest {
                     .addCohortsItem(
                         new SnapshotBuilderCohort()
                             .name("cohort")
-                            .addCriteriaGroupsItem(new SnapshotBuilderCriteriaGroup()))
+                            .addCriteriaGroupsItem(
+                                new SnapshotBuilderCriteriaGroup()
+                                    .addCriteriaItem(
+                                        new SnapshotBuilderProgramDataListCriteria().kind("list"))
+                                    .addCriteriaItem(new SnapshotBuilderCriteria().kind("domain"))
+                                    .addCriteriaItem(
+                                        new SnapshotBuilderProgramDataRangeCriteria()
+                                            .kind("range"))))
                     .addConceptSetsItem(
-                        new SnapshotBuilderDatasetConceptSets()
-                            .name("conceptSets")
+                        new SnapshotBuilderDatasetConceptSet()
+                            .name("conceptSet")
                             .featureValueGroupName("featureValueGroupName"))
                     .addValueSetsItem(
                         new SnapshotBuilderFeatureValueGroup()

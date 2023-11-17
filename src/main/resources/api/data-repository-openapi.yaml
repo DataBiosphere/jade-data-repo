@@ -6640,9 +6640,9 @@ components:
           type: array
           items:
             $ref:
-              '#/components/schemas/SnapshotBuilderDatasetConceptSets'
+              '#/components/schemas/SnapshotBuilderDatasetConceptSet'
 
-    SnapshotBuilderDatasetConceptSets:
+    SnapshotBuilderDatasetConceptSet:
       type: object
       description: >
         ⚠️ A concept set provided for the dataset, usually used to access tables that are not searchable as domains
@@ -6784,7 +6784,7 @@ components:
         conceptSets:
           type: array
           items:
-            $ref: '#/components/schemas/SnapshotBuilderDatasetConceptSets'
+            $ref: '#/components/schemas/SnapshotBuilderDatasetConceptSet'
         valueSets:
           type: array
           items:

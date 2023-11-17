@@ -1,7 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderDatasetConceptSets;
+import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderListOption;
@@ -113,10 +113,10 @@ public class SnapshotBuilderTestData {
                       .values(List.of("Demographics Column 1", "Demographics Column 2"))))
           .datasetConceptSets(
               List.of(
-                  new SnapshotBuilderDatasetConceptSets()
+                  new SnapshotBuilderDatasetConceptSet()
                       .name("Demographics")
                       .featureValueGroupName("Person"),
-                  new SnapshotBuilderDatasetConceptSets()
+                  new SnapshotBuilderDatasetConceptSet()
                       .name("All surveys")
                       .featureValueGroupName("Surveys")));
 }

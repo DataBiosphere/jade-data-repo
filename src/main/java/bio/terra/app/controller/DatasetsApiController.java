@@ -35,6 +35,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirection;
@@ -479,6 +480,19 @@ public class DatasetsApiController implements DatasetsApi {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderAccessRequest> createSnapshotRequest(
+      UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(
+        snapshotBuilderService.createSnapshotRequest(id, snapshotAccessRequest));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

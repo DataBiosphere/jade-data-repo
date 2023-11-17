@@ -8,9 +8,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
-
-  public SnapshotBuilderService() {}
-
   public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId) {
     // TODO: Build real query - this should get the name and ID from the concept table, the count
     // from the occurrence table, and the existence of children from the concept_ancestor table.

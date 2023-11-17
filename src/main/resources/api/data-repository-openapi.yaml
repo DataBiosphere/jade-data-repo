@@ -2688,6 +2688,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/createSnapshotRequest:
+    post:
+      tags:
+        - datasets
+      description: As a researcher, create a snapshot request for a dataset, given a set of criteria
+        and required concept sets and values.
+      operationId: createSnapshotRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        description: Description of the snapshot being requested.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
+      responses:
+        200:
+          description: The request has been made.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
+        400:
+          description: Bad request - invalid id, snapshotRequest, or badly formed IamResourceType.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - dataset does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to request snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No dataset found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/register/user:
     get:
       tags:
@@ -6588,9 +6640,9 @@ components:
           type: array
           items:
             $ref:
-              '#/components/schemas/SnapshotBuilderDatasetConceptSets'
+              '#/components/schemas/SnapshotBuilderDatasetConceptSet'
 
-    SnapshotBuilderDatasetConceptSets:
+    SnapshotBuilderDatasetConceptSet:
       type: object
       description: >
         ⚠️ A concept set provided for the dataset, usually used to access tables that are not searchable as domains
@@ -6711,6 +6763,101 @@ components:
           items:
             type: string
 
+    SnapshotBuilderAccessRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        researchPurposeStatement:
+          type: string
+        datasetRequest:
+          $ref: '#/components/schemas/SnapshotBuilderRequest'
+      description: Request for access to a snapshot.
+
+    SnapshotBuilderRequest:
+      type: object
+      properties:
+        cohorts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderCohort'
+        conceptSets:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderDatasetConceptSet'
+        valueSets:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
+      description: Specification of requested a snapshot, returned in SnapshotBuilderAccessRequest.
+
+    SnapshotBuilderCohort:
+      type: object
+      properties:
+        name:
+          type: string
+        criteriaGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderCriteriaGroup'
+      description: Selection of participants.
+
+    SnapshotBuilderCriteriaGroup:
+      type: object
+      properties:
+        name:
+          type: string
+        criteria:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        mustMeet:
+          type: boolean
+        meetAll:
+          type: boolean
+        count:
+          type: number
+      description: Criteria Group specifying a Cohort.
+
+    SnapshotBuilderCriteria:
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+        name:
+          type: string
+        id:
+          type: number
+      discriminator:
+        propertyName: kind
+        mapping:
+          list: '#/components/schemas/SnapshotBuilderProgramDataListCriteria'
+          range: '#/components/schemas/SnapshotBuilderProgramDataRangeCriteria'
+          domain: '#/components/schemas/SnapshotBuilderCriteria'
+
+    SnapshotBuilderProgramDataListCriteria:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        - type: object
+          properties:
+            values:
+              type: array
+              items:
+                type: number
+      description: List format program data, part of a CriteriaGroup.
+
+    SnapshotBuilderProgramDataRangeCriteria:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        - type: object
+          properties:
+            low:
+              type: number
+            high:
+              type: number
+      description: Range format program data, part of a CriteriaGroup.
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

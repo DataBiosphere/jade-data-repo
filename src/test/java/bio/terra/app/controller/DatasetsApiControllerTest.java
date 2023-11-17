@@ -20,8 +20,17 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.SnapshotBuilderAccessRequest;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteria;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
+import bio.terra.model.SnapshotBuilderDatasetConceptSet;
+import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
+import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -74,6 +83,9 @@ public class DatasetsApiControllerTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
+
+  private static final String REQUEST_SNAPSHOT_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/createSnapshotRequest";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
@@ -220,13 +232,7 @@ public class DatasetsApiControllerTest {
             TEST_USER,
             List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
         .thenReturn(new DatasetModel());
-    when(snapshotBuilderService.updateSnapshotBuilderSettings(DATASET_ID, SETTINGS))
-        .thenReturn(SETTINGS);
-    when(ingestRequestValidator.supports(any())).thenReturn(true);
-    when(datasetRequestValidator.supports(any())).thenReturn(true);
-    when(assetModelValidator.supports(any())).thenReturn(true);
-    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
-    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+    mockValidators();
 
     mvc.perform(
             post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)
@@ -237,6 +243,77 @@ public class DatasetsApiControllerTest {
 
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
     verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
+  }
+
+  @Test
+  void testCreateCriteriaData() throws Exception {
+    SnapshotBuilderCriteria criteria =
+        TestUtils.mapFromJson(
+            """
+        {"kind":"domain","name":"name","id":0}""", SnapshotBuilderCriteria.class);
+    assertThat(criteria.getName(), equalTo("name"));
+    assertThat(criteria.getKind(), equalTo("domain"));
+
+    SnapshotBuilderProgramDataListCriteria listCriteria =
+        TestUtils.mapFromJson(
+            """
+        {"kind":"list","name":"name","id":0,"values":[]}""",
+            SnapshotBuilderProgramDataListCriteria.class);
+    assertThat(listCriteria.getName(), equalTo("name"));
+    assertThat(listCriteria.getKind(), equalTo("list"));
+
+    SnapshotBuilderProgramDataRangeCriteria rangeCriteria =
+        TestUtils.mapFromJson(
+            """
+        {"kind":"range","name":"name","id":0,"low":0,"high":10}""",
+            SnapshotBuilderProgramDataRangeCriteria.class);
+    assertThat(rangeCriteria.getName(), equalTo("name"));
+    assertThat(rangeCriteria.getKind(), equalTo("range"));
+  }
+
+  @Test
+  void testCreateSnapshotRequest() throws Exception {
+    mockValidators();
+    SnapshotBuilderAccessRequest expected =
+        new SnapshotBuilderAccessRequest()
+            .name("name")
+            .researchPurposeStatement("purpose")
+            .datasetRequest(
+                new SnapshotBuilderRequest()
+                    .addCohortsItem(
+                        new SnapshotBuilderCohort()
+                            .name("cohort")
+                            .addCriteriaGroupsItem(
+                                new SnapshotBuilderCriteriaGroup()
+                                    .addCriteriaItem(
+                                        new SnapshotBuilderProgramDataListCriteria().kind("list"))
+                                    .addCriteriaItem(new SnapshotBuilderCriteria().kind("domain"))
+                                    .addCriteriaItem(
+                                        new SnapshotBuilderProgramDataRangeCriteria()
+                                            .kind("range"))))
+                    .addConceptSetsItem(
+                        new SnapshotBuilderDatasetConceptSet()
+                            .name("conceptSet")
+                            .featureValueGroupName("featureValueGroupName"))
+                    .addValueSetsItem(
+                        new SnapshotBuilderFeatureValueGroup()
+                            .name("valueGroup")
+                            .id(0)
+                            .addValuesItem("value")));
+    when(snapshotBuilderService.createSnapshotRequest(DATASET_ID, expected)).thenReturn(expected);
+    String actualJson =
+        mvc.perform(
+                post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(expected)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotBuilderAccessRequest actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderAccessRequest.class);
+    assertThat("The method returned the expected request", actual, equalTo(expected));
+    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
   }
 
   @Test
@@ -263,7 +340,6 @@ public class DatasetsApiControllerTest {
     assertThat("Concept list and sql is returned", actual, equalTo(expected));
 
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService).getConceptChildren(DATASET_ID, CONCEPT_ID);
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */
@@ -288,5 +364,13 @@ public class DatasetsApiControllerTest {
     verify(iamService)
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamActions);
+  }
+
+  private void mockValidators() {
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
+    when(datasetRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
   }
 }

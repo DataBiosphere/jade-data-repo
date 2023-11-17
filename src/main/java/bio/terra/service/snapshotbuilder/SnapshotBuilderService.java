@@ -26,7 +26,7 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderAccessRequest createSnapshotRequest(
-      // TODO: add given request to the database, return real JobModel with the id of the new entry.
+      // TODO: in DC-782 add given request to the database
       UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
     return snapshotAccessRequest;
   }

@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -33,9 +34,13 @@ import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -43,6 +48,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
@@ -149,8 +155,31 @@ class SnapshotsApiControllerTest {
     verifyAuthorizationCall(iamAction);
   }
 
-  @Test
-  void testQuerySnapshotData() throws Exception {
+  private static Stream<Arguments> testQuerySnapshotData() {
+    return Stream.of(
+        arguments(
+            post(QUERY_SNAPSHOT_DATA_ENDPOINT, SNAPSHOT_ID, TABLE_NAME)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    TestUtils.mapToJson(
+                        new QueryDataRequestModel()
+                            .direction(DIRECTION)
+                            .limit(LIMIT)
+                            .offset(OFFSET)
+                            .sort(COLUMN_NAME)
+                            .filter(FILTER))),
+            arguments(
+                get(QUERY_SNAPSHOT_DATA_ENDPOINT, SNAPSHOT_ID, TABLE_NAME)
+                    .queryParam("direction", String.valueOf(DIRECTION))
+                    .queryParam("limit", String.valueOf(LIMIT))
+                    .queryParam("offset", String.valueOf(OFFSET))
+                    .queryParam("sort", COLUMN_NAME)
+                    .queryParam("filter", FILTER))));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testQuerySnapshotData(MockHttpServletRequestBuilder request) throws Exception {
     mockValidators();
     var expectedSnapshotPreview =
         new SnapshotPreviewModel().addResultItem("row1").addResultItem("row2");
@@ -165,21 +194,7 @@ class SnapshotsApiControllerTest {
             FILTER))
         .thenReturn(expectedSnapshotPreview);
 
-    String actualJson =
-        mvc.perform(
-                post(QUERY_SNAPSHOT_DATA_ENDPOINT, SNAPSHOT_ID, TABLE_NAME)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        TestUtils.mapToJson(
-                            new QueryDataRequestModel()
-                                .direction(DIRECTION)
-                                .limit(LIMIT)
-                                .offset(OFFSET)
-                                .sort(COLUMN_NAME)
-                                .filter(FILTER))))
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    String actualJson = mvc.perform(request).andReturn().getResponse().getContentAsString();
     SnapshotPreviewModel actual = TestUtils.mapFromJson(actualJson, SnapshotPreviewModel.class);
     assertThat("Job model is returned", actual, equalTo(expectedSnapshotPreview));
 

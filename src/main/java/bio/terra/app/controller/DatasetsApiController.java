@@ -225,23 +225,21 @@ public class DatasetsApiController implements DatasetsApi {
       String sort,
       SqlSortDirection direction,
       String filter) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
-    DatasetDataModel previewModel =
-        datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
-    return ResponseEntity.ok(previewModel);
+    var request =
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(direction)
+            .filter(filter);
+    return queryDatasetDataById(id, table, request);
   }
 
   @Override
   public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsById(
       UUID id, String table, String column, String filter) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    ColumnStatisticsModel columnStatisticsModel =
-        datasetService.retrieveColumnStatistics(userReq, id, table, column, filter);
-    return ResponseEntity.ok(columnStatisticsModel);
+    return queryDatasetColumnStatisticsById(
+        id, table, column, new QueryColumnStatisticsRequestModel().filter(filter));
   }
 
   @Override

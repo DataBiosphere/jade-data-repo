@@ -295,15 +295,15 @@ public class SnapshotsApiController implements SnapshotsApi {
       String sort,
       SqlSortDirection direction,
       String filter) {
-    logger.debug("Verifying user access");
-    snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
-    logger.debug("Retrieving snapshot id {}", id);
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
-    SnapshotPreviewModel previewModel =
-        snapshotService.retrievePreview(
-            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
-    return ResponseEntity.ok(previewModel);
+    return querySnapshotDataById(
+        id,
+        table,
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(direction)
+            .filter(filter));
   }
 
   // --snapshot auth domains --

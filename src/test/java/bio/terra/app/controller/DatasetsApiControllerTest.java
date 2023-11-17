@@ -173,8 +173,21 @@ public class DatasetsApiControllerTest {
         arguments("datarepo_row_id", getRequest(TABLE_NAME, "datarepo_row_id")));
   }
 
-  @Test
-  void testQueryDatasetColumnStatistics() throws Exception {
+  private static Stream<Arguments> testQueryDatasetColumnStatistics() {
+    return Stream.of(
+        arguments(
+            post(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, "good_table", "good_column")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    TestUtils.mapToJson(new QueryColumnStatisticsRequestModel().filter(FILTER)))),
+        arguments(
+            get(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, "good_table", "good_column")
+                .queryParam("filter", FILTER)));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testQueryDatasetColumnStatistics(MockHttpServletRequestBuilder request) throws Exception {
     var table = "good_table";
     var column = "good_column";
     var expected =
@@ -185,16 +198,7 @@ public class DatasetsApiControllerTest {
         .thenReturn(expected);
     mockValidators();
 
-    String result =
-        mvc.perform(
-                post(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, table, column)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        TestUtils.mapToJson(
-                            new QueryColumnStatisticsRequestModel().filter(FILTER))))
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    String result = mvc.perform(request).andReturn().getResponse().getContentAsString();
     ColumnStatisticsTextModel actual =
         TestUtils.mapFromJson(result, ColumnStatisticsTextModel.class);
 

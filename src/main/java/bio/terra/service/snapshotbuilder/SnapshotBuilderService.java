@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotBuilderService {
 
-
   public SnapshotBuilderAccessRequest createSnapshotRequest(
       // TODO: in DC-782 add given request to the database
       UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {

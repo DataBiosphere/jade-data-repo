@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder;
 
+import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import java.util.List;
@@ -8,6 +9,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
+
+
+  public SnapshotBuilderAccessRequest createSnapshotRequest(
+      // TODO: in DC-782 add given request to the database
+      UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
+    return snapshotAccessRequest;
+  }
+
   public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId) {
     // TODO: Build real query - this should get the name and ID from the concept table, the count
     // from the occurrence table, and the existence of children from the concept_ancestor table.

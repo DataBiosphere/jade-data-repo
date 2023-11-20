@@ -9,7 +9,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -685,33 +684,21 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void getOrCreateExternalAzureDataSource() throws Exception {
-    UUID datasetId = UUID.randomUUID();
-    Dataset dataset = new Dataset().id(datasetId);
-    when(metadataDataAccessUtils.accessInfoFromDataset(dataset, testUser))
-        .thenReturn(
-            new AccessInfoModel()
-                .parquet(new AccessInfoParquetModel().sasToken("sas_token").url("url")));
-    doNothing()
-        .when(azureSynapsePdao)
-        .getOrCreateExternalDataSource(eq("url?sas_token"), any(), any());
-
-    assertThat(
-        datasetService.getOrCreateExternalAzureDataSource(dataset, testUser),
-        equalTo(String.format("ds-%s-%s", datasetId, testUser.getEmail())));
-  }
-
-  @Test
   public void getOrCreateExternalAzureDataSourceHidesExceptionInformation() throws Exception {
     UUID datasetId = UUID.randomUUID();
     Dataset dataset = new Dataset().id(datasetId);
     when(metadataDataAccessUtils.accessInfoFromDataset(dataset, testUser))
         .thenReturn(
             new AccessInfoModel()
-                .parquet(new AccessInfoParquetModel().sasToken("sas_token").url("url")));
+                .parquet(
+                    new AccessInfoParquetModel()
+                        .sasToken(
+                            "sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&sr=b&sig=mysig")
+                        .url("https://fake.url")));
     doThrow(SQLException.class)
         .when(azureSynapsePdao)
-        .getOrCreateExternalDataSource(eq("url?sas_token"), any(), any());
+        .getOrCreateExternalDataSourceForResource(
+            any(AccessInfoModel.class), any(UUID.class), eq(testUser));
 
     assertError(
         RuntimeException.class,

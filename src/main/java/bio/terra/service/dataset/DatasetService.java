@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
@@ -496,18 +495,11 @@ public class DatasetService {
    */
   public String getOrCreateExternalAzureDataSource(
       Dataset dataset, AuthenticatedUserRequest userRequest) {
-    String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());
     AccessInfoModel accessInfoModel =
         metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
-    String credName = AzureSynapsePdao.getCredentialName(dataset.getId(), userRequest.getEmail());
-
-    String metadataUrl =
-        "%s?%s"
-            .formatted(
-                accessInfoModel.getParquet().getUrl(), accessInfoModel.getParquet().getSasToken());
     try {
-      azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
-      return datasourceName;
+      return azureSynapsePdao.getOrCreateExternalDataSourceForResource(
+          accessInfoModel, dataset.getId(), userRequest);
     } catch (Exception e) {
       throw new RuntimeException("Could not configure external datasource", e);
     }

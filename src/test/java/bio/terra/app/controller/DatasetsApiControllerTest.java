@@ -298,7 +298,6 @@ public class DatasetsApiControllerTest {
                     .addValueSetsItem(
                         new SnapshotBuilderFeatureValueGroup()
                             .name("valueGroup")
-                            .id(0)
                             .addValuesItem("value")));
     when(snapshotBuilderService.createSnapshotRequest(DATASET_ID, expected)).thenReturn(expected);
     String actualJson =

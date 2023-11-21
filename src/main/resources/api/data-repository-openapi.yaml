@@ -6750,12 +6750,9 @@ components:
       description: >
         ⚠️ Describes a set of columns for a table with given name
       required:
-        - id
         - name
         - values
       properties:
-        id:
-          type: integer
         name:
           type: string
         values:

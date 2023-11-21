@@ -3,27 +3,12 @@ package bio.terra.service.snapshotbuilder;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.model.SnapshotBuilderSettings;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
-  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
-
-  public SnapshotBuilderService(SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
-    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
-  }
-
-  public SnapshotBuilderSettings getSnapshotBuilderSettings(UUID datasetId) {
-    return snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
-  }
-
-  public SnapshotBuilderSettings updateSnapshotBuilderSettings(
-      UUID id, SnapshotBuilderSettings settings) {
-    return snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(id, settings);
-  }
 
   public SnapshotBuilderAccessRequest createSnapshotRequest(
       // TODO: in DC-782 add given request to the database

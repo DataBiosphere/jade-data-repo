@@ -17,7 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1216,7 +1215,8 @@ public class SnapshotServiceTest {
                     new AccessInfoParquetModel()
                         .url("test.parquet.url")
                         .sasToken("test.sas.token")));
-    doNothing().when(azureSynapsePdao).getOrCreateExternalDataSource(anyString(), any(), any());
+    when(azureSynapsePdao.getOrCreateExternalDataSourceForResource(any(), any(), any()))
+        .thenReturn("");
     when(azureSynapsePdao.getTableData(
             any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any()))
         .thenReturn(values);

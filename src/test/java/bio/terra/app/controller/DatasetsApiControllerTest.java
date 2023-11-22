@@ -232,6 +232,7 @@ public class DatasetsApiControllerTest {
             TEST_USER,
             List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
         .thenReturn(new DatasetModel());
+
     mockValidators();
 
     mvc.perform(
@@ -242,7 +243,7 @@ public class DatasetsApiControllerTest {
         .andReturn();
 
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
+    verify(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
   @Test

@@ -399,6 +399,16 @@ the above test commands.  More specific examples are available in
 Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui)
 to build the `jade-data-repo-ui` repository.
 
+## 13. Developing Locally
+
+After running bootRun, you may want to create some datasets locally for use in testing.
+To do this, you can run this python
+[script](https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/tools/ui_integration/setup_ui_integration.py)
+against your local db.
+
+You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
+such as `AzureY1Demo.ipynb`
+
 ## Common Issues
 
 Ensure that:

@@ -6618,7 +6618,7 @@ components:
     SnapshotBuilderSettings:
       type: object
       description: >
-        ⚠️ The configuration describing how to select criteria for issuing a snapshot builder request
+        ⚠️ The configuration describing how select criteria for issuing a snapshot builder request is generated
       required:
         - domainOptions
         - programDataOptions
@@ -6720,30 +6720,13 @@ components:
           type: integer
         name:
           type: string
+        tableName:
+          type: string
+        columnName:
+          type: string
         kind:
           type: string
           enum: [ range, list ]
-        min:
-          type: integer
-        max:
-          type: integer
-        values:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderListOption'
-
-    SnapshotBuilderListOption:
-      type: object
-      description: >
-        ⚠️ An object describing a program data list option for the snapshot builder
-      required:
-        - id
-        - name
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
 
     SnapshotBuilderFeatureValueGroup:
       type: object

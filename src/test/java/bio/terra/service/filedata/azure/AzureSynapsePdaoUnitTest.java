@@ -5,12 +5,16 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
@@ -50,6 +54,12 @@ import org.stringtemplate.v4.ST;
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class AzureSynapsePdaoUnitTest {
+  private AuthenticatedUserRequest testUser =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
   private SnapshotRequestAssetModel requestAssetModel;
   private AssetSpecification assetSpec;
   private WalkRelationship walkRelationship;
@@ -316,5 +326,21 @@ public class AzureSynapsePdaoUnitTest {
             false,
             null);
     assertThat("Table has 0 rows", tableRowCounts.get("table1"), equalTo(0L));
+  }
+
+  @Test
+  public void getOrCreateExternalAzureDataSource() throws Exception {
+    UUID id = UUID.randomUUID();
+    AccessInfoModel accessInfoModel =
+        new AccessInfoModel()
+            .parquet(
+                new AccessInfoParquetModel()
+                    .sasToken(
+                        "sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&sr=b&sig=mysig")
+                    .url("https://fake.url"));
+    doNothing().when(azureSynapsePdaoSpy).getOrCreateExternalDataSource(any(), any(), any());
+    assertThat(
+        azureSynapsePdaoSpy.getOrCreateExternalDataSourceForResource(accessInfoModel, id, testUser),
+        equalTo(String.format("ds-%s-%s", id, testUser.getEmail())));
   }
 }

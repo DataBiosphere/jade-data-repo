@@ -41,7 +41,8 @@ public enum IamAction {
   // journal
   VIEW_JOURNAL,
   VIEW_SNAPSHOT_BUILDER_SETTINGS,
-  UPDATE_SNAPSHOT_BUILDER_SETTINGS;
+  UPDATE_SNAPSHOT_BUILDER_SETTINGS,
+  RUN_UPGRADE_FLIGHT;
 
   private final String samActionName;
 

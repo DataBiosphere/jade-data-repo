@@ -56,12 +56,15 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryColumnStatisticsRequestModel;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -910,18 +913,13 @@ public class DataRepoFixtures {
       String sort)
       throws Exception {
     String url = "/api/repository/v1/snapshots/%s/data/%s".formatted(snapshotId, table);
-
-    offset = Objects.requireNonNullElse(offset, 0);
-    limit = Objects.requireNonNullElse(limit, 10);
-    String queryParams = "?offset=%s&limit=%s".formatted(offset, limit);
-
-    if (filter != null) {
-      queryParams += "&filter=%s".formatted(filter);
-    }
-    if (sort != null) {
-      queryParams += "&sort=%s".formatted(sort);
-    }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+    QueryDataRequestModel requestModel = new QueryDataRequestModel();
+    requestModel.offset(Objects.requireNonNullElse(offset, 0));
+    requestModel.limit(Objects.requireNonNullElse(limit, 10));
+    requestModel.filter(Objects.requireNonNullElse(filter, ""));
+    requestModel.sort(Objects.requireNonNullElse(sort, PDAO_ROW_ID_COLUMN));
+    return dataRepoClient.post(
+        user, url, TestUtils.mapToJson(requestModel), new TypeReference<>() {});
   }
 
   public List<String> getRowIds(
@@ -1053,20 +1051,14 @@ public class DataRepoFixtures {
       throws Exception {
     String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
-    offset = Objects.requireNonNullElse(offset, 0);
-    limit = Objects.requireNonNullElse(limit, 10);
-    String queryParams = "?offset=%s&limit=%s".formatted(offset, limit);
-
-    if (filter != null) {
-      queryParams += "&filter=%s".formatted(filter);
-    }
-    if (sort != null) {
-      queryParams += "&sort=%s".formatted(sort);
-    }
-    if (direction != null) {
-      queryParams += "&direction=%s".formatted(direction);
-    }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+    QueryDataRequestModel request = new QueryDataRequestModel();
+    request.setOffset(Objects.requireNonNullElse(offset, 0));
+    request.setLimit(Objects.requireNonNullElse(limit, 10));
+    request.filter(Objects.requireNonNullElse(filter, ""));
+    request.sort(Objects.requireNonNullElse(sort, PDAO_ROW_ID_COLUMN));
+    request.setDirection(
+        Objects.requireNonNullElse(SqlSortDirection.fromValue(direction), SqlSortDirection.ASC));
+    return dataRepoClient.post(user, url, TestUtils.mapToJson(request), new TypeReference<>() {});
   }
 
   public void assertColumnTextValueCount(
@@ -1133,13 +1125,10 @@ public class DataRepoFixtures {
     String url =
         "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
             .formatted(datasetId, table, columnName);
-
-    String queryParams = "";
-
-    if (filter != null) {
-      queryParams += "?filter=%s".formatted(filter);
-    }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+    var requestModel = new QueryColumnStatisticsRequestModel();
+    requestModel.filter(Objects.requireNonNullElse(filter, ""));
+    return dataRepoClient.post(
+        user, url, TestUtils.mapToJson(requestModel), new TypeReference<>() {});
   }
 
   private DataRepoResponse<ColumnStatisticsTextModel> retrieveColumnStatsTextRaw(
@@ -1148,13 +1137,10 @@ public class DataRepoFixtures {
     String url =
         "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
             .formatted(datasetId, table, columnName);
-
-    String queryParams = "";
-
-    if (filter != null) {
-      queryParams += "&filter=%s".formatted(filter);
-    }
-    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+    var requestModel = new QueryColumnStatisticsRequestModel();
+    requestModel.filter(Objects.requireNonNullElse(filter, ""));
+    return dataRepoClient.post(
+        user, url, TestUtils.mapToJson(requestModel), new TypeReference<>() {});
   }
 
   public void assertFailToGetSnapshot(TestConfiguration.User user, UUID snapshotId)

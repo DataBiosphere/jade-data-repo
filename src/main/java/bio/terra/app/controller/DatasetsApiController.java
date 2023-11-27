@@ -34,6 +34,8 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryColumnStatisticsRequestModel;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderCountRequest;
@@ -82,7 +84,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @Api(tags = {"datasets"})
 public class DatasetsApiController implements DatasetsApi {
-
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SCHEMA,PROFILE,DATA_PROJECT,STORAGE";
 
   private final HttpServletRequest request;
@@ -179,7 +180,7 @@ public class DatasetsApiController implements DatasetsApi {
         IamResourceType.DATASET,
         id.toString(),
         IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    snapshotBuilderService.updateSnapshotBuilderSettings(id, settings);
+    datasetService.updateDatasetSnapshotBuilderSettings(id, settings);
     return ResponseEntity.ok(
         datasetService.retrieveDatasetModel(
             id, userRequest, List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)));
@@ -210,6 +211,27 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
+  public ResponseEntity<DatasetDataModel> queryDatasetDataById(
+      UUID id, String table, QueryDataRequestModel queryDataRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection =
+        Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
+    DatasetDataModel previewModel =
+        datasetService.retrieveData(
+            userReq,
+            id,
+            table,
+            queryDataRequest.getLimit(),
+            queryDataRequest.getOffset(),
+            queryDataRequest.getSort(),
+            sortDirection,
+            queryDataRequest.getFilter());
+    return ResponseEntity.ok(previewModel);
+  }
+
+  @Override
   public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
       UUID id,
       String table,
@@ -218,22 +240,31 @@ public class DatasetsApiController implements DatasetsApi {
       String sort,
       SqlSortDirection direction,
       String filter) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
-    DatasetDataModel previewModel =
-        datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
-    return ResponseEntity.ok(previewModel);
+    var request =
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(direction)
+            .filter(filter);
+    return queryDatasetDataById(id, table, request);
   }
 
   @Override
   public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsById(
       UUID id, String table, String column, String filter) {
+    return queryDatasetColumnStatisticsById(
+        id, table, column, new QueryColumnStatisticsRequestModel().filter(filter));
+  }
+
+  @Override
+  public ResponseEntity<ColumnStatisticsModel> queryDatasetColumnStatisticsById(
+      UUID id, String table, String column, QueryColumnStatisticsRequestModel requestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
     ColumnStatisticsModel columnStatisticsModel =
-        datasetService.retrieveColumnStatistics(userReq, id, table, column, filter);
+        datasetService.retrieveColumnStatistics(
+            userReq, id, table, column, requestModel.getFilter());
     return ResponseEntity.ok(columnStatisticsModel);
   }
 

@@ -16,6 +16,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -266,6 +267,26 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
+  public ResponseEntity<SnapshotPreviewModel> querySnapshotDataById(
+      UUID id, String table, QueryDataRequestModel queryDataRequest) {
+    snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection =
+        Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
+    SnapshotPreviewModel previewModel =
+        snapshotService.retrievePreview(
+            getAuthenticatedInfo(),
+            id,
+            table,
+            queryDataRequest.getLimit(),
+            queryDataRequest.getOffset(),
+            queryDataRequest.getSort(),
+            sortDirection,
+            queryDataRequest.getFilter());
+    return ResponseEntity.ok(previewModel);
+  }
+
+  @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
       UUID id,
       String table,
@@ -274,15 +295,15 @@ public class SnapshotsApiController implements SnapshotsApi {
       String sort,
       SqlSortDirection direction,
       String filter) {
-    logger.debug("Verifying user access");
-    snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
-    logger.debug("Retrieving snapshot id {}", id);
-    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
-    SnapshotPreviewModel previewModel =
-        snapshotService.retrievePreview(
-            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
-    return ResponseEntity.ok(previewModel);
+    return querySnapshotDataById(
+        id,
+        table,
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(direction)
+            .filter(filter));
   }
 
   // --snapshot auth domains --

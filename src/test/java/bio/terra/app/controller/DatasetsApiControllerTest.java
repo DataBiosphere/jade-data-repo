@@ -18,9 +18,13 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.model.ColumnStatisticsTextModel;
+import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.QueryColumnStatisticsRequestModel;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -60,7 +64,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -68,6 +73,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
@@ -95,7 +101,10 @@ class DatasetsApiControllerTest {
       RETRIEVE_DATASET_ENDPOINT + "/createSnapshotRequest";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
-  private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
+  private static final String QUERY_DATA_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
+
+  private static final String QUERY_COLUMN_STATISTICS_ENDPOINT =
+      QUERY_DATA_ENDPOINT + "/statistics/{column}";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
   private static final String GET_CONCEPTS_ENDPOINT =
@@ -108,6 +117,7 @@ class DatasetsApiControllerTest {
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;
+  private static final String TABLE_NAME = "good_table";
 
   @BeforeEach
   void setUp() {
@@ -162,76 +172,107 @@ class DatasetsApiControllerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"good_column", "datarepo_row_id"})
-  void testDatasetViewDataById(String column) throws Exception {
-    var table = "good_table";
+  @MethodSource
+  void testQueryDatasetDataById(String column, MockHttpServletRequestBuilder request)
+      throws Exception {
     when(datasetService.retrieveData(
-            TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+            TEST_USER, DATASET_ID, TABLE_NAME, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
-
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", column)
-                .queryParam("direction", DIRECTION.name()))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result").isArray());
-
+    mockValidators();
+    mvc.perform(request).andExpect(status().isOk()).andExpect(jsonPath("$.result").isArray());
     verifyAuthorizationCall(IamAction.READ_DATA);
+
     verify(datasetService)
-        .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+        .retrieveData(TEST_USER, DATASET_ID, TABLE_NAME, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
-  @Test
-  void testDatasetViewDataNotFound() throws Exception {
+  private static Stream<Arguments> testQueryDatasetDataById() {
+    return Stream.of(
+        arguments("goodColumn", postRequset(TABLE_NAME, "goodColumn")),
+        arguments("datarepo_row_id", getRequest(TABLE_NAME, "datarepo_row_id")));
+  }
+
+  private static Stream<Arguments> testQueryDatasetColumnStatistics() {
+    return Stream.of(
+        arguments(
+            post(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, "good_table", "good_column")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    TestUtils.mapToJson(new QueryColumnStatisticsRequestModel().filter(FILTER)))),
+        arguments(
+            get(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, "good_table", "good_column")
+                .queryParam("filter", FILTER)));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testQueryDatasetColumnStatistics(MockHttpServletRequestBuilder request) throws Exception {
+    var table = "good_table";
+    var column = "good_column";
+    var expected =
+        new ColumnStatisticsTextModel()
+            .values(List.of(new ColumnStatisticsTextValue().value("hello").count(2)));
+
+    when(datasetService.retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER))
+        .thenReturn(expected);
+    mockValidators();
+
+    String result = mvc.perform(request).andReturn().getResponse().getContentAsString();
+    ColumnStatisticsTextModel actual =
+        TestUtils.mapFromJson(result, ColumnStatisticsTextModel.class);
+
+    assertThat("Correct ColumnStatisticsTextModel is returned", actual, equalTo(expected));
+    verifyAuthorizationCall(IamAction.READ_DATA);
+    verify(datasetService).retrieveColumnStatistics(TEST_USER, DATASET_ID, table, column, FILTER);
+  }
+
+  private static Stream<Arguments> provideRequests() {
+    return Stream.of(
+        arguments(postRequset(TABLE_NAME, "goodColumn")),
+        arguments(getRequest(TABLE_NAME, "goodColumn")));
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideRequests")
+  void testQueryDatasetDataNotFound(MockHttpServletRequestBuilder request) throws Exception {
     mockNotFound();
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, "table")
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", "column")
-                .queryParam("direction", DIRECTION.name()))
-        .andExpect(status().isNotFound());
+    mockValidators();
+    mvc.perform(request).andExpect(status().isNotFound());
     verifyNoInteractions(iamService);
   }
 
-  @Test
-  void testDatasetViewDataForbidden() throws Exception {
+  @ParameterizedTest
+  @MethodSource("provideRequests")
+  void testQueryDatasetDataForbidden(MockHttpServletRequestBuilder request) throws Exception {
     IamAction iamAction = IamAction.READ_DATA;
     mockForbidden(iamAction);
-
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, "table")
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", "column")
-                .queryParam("direction", DIRECTION.name()))
-        .andExpect(status().isForbidden());
+    mockValidators();
+    mvc.perform(request).andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
   }
 
-  @Test
-  void testDatasetViewDataRetrievalFails() throws Exception {
+  @ParameterizedTest
+  @MethodSource
+  void testQueryDatasetDataRetrievalFails(MockHttpServletRequestBuilder request) throws Exception {
     var table = "bad_table";
     var column = "good_column";
 
     when(datasetService.retrieveData(
             TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenThrow(DatasetDataException.class);
-
-    mvc.perform(
-            get(GET_PREVIEW_ENDPOINT, DATASET_ID, table)
-                .queryParam("limit", String.valueOf(LIMIT))
-                .queryParam("offset", String.valueOf(OFFSET))
-                .queryParam("sort", column)
-                .queryParam("direction", DIRECTION.name()))
-        .andExpect(status().is5xxServerError());
+    mockValidators();
+    mvc.perform(request).andExpect(status().is5xxServerError());
 
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
         .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+  }
+
+  private static Stream<Arguments> testQueryDatasetDataRetrievalFails() {
+    return Stream.of(
+        arguments(postRequset("bad_table", "good_column")),
+        arguments(getRequest("bad_table", "good_column")));
   }
 
   @Test
@@ -241,6 +282,7 @@ class DatasetsApiControllerTest {
             TEST_USER,
             List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
         .thenReturn(new DatasetModel());
+
     mockValidators();
 
     mvc.perform(
@@ -251,7 +293,7 @@ class DatasetsApiControllerTest {
         .andReturn();
 
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    verify(snapshotBuilderService).updateSnapshotBuilderSettings(DATASET_ID, SETTINGS);
+    verify(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
   static Stream<Arguments> createCriteriaDataArguments() {
@@ -409,5 +451,27 @@ class DatasetsApiControllerTest {
     when(assetModelValidator.supports(any())).thenReturn(true);
     when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
     when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+  }
+
+  private static MockHttpServletRequestBuilder postRequset(String tableName, String columnName) {
+    return post(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(
+            TestUtils.mapToJson(
+                new QueryDataRequestModel()
+                    .direction(DIRECTION)
+                    .limit(LIMIT)
+                    .offset(OFFSET)
+                    .sort(columnName)
+                    .filter(FILTER)));
+  }
+
+  private static MockHttpServletRequestBuilder getRequest(String tableName, String columnName) {
+    return get(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
+        .queryParam("limit", String.valueOf(LIMIT))
+        .queryParam("offset", String.valueOf(OFFSET))
+        .queryParam("sort", columnName)
+        .queryParam("direction", DIRECTION.name())
+        .queryParam("filter", FILTER);
   }
 }

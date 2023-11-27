@@ -1,9 +1,9 @@
 package bio.terra.service.dataset.flight.upgrade.enableSecureMonitoring;
 
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.job.DefaultUndoStep;

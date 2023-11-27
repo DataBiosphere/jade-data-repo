@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
@@ -20,7 +21,7 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.JobModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -72,7 +73,7 @@ class SnapshotsApiControllerTest {
   private static final String COLUMN_NAME = PDAO_ROW_ID_COLUMN;
   private static final int LIMIT = 100;
   private static final int OFFSET = 0;
-  private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
+  private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final String FILTER = "";
 
   private static final String RETRIEVE_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}";
@@ -161,7 +162,7 @@ class SnapshotsApiControllerTest {
             LIMIT,
             OFFSET,
             PDAO_ROW_ID_COLUMN,
-            DIRECTION,
+            SqlSortDirection.from(DIRECTION),
             FILTER))
         .thenReturn(expectedSnapshotPreview);
 
@@ -193,7 +194,7 @@ class SnapshotsApiControllerTest {
             LIMIT,
             OFFSET,
             PDAO_ROW_ID_COLUMN,
-            DIRECTION,
+            SqlSortDirection.from(DIRECTION),
             FILTER);
   }
 

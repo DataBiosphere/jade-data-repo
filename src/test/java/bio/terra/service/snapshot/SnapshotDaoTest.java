@@ -23,6 +23,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
 import bio.terra.common.ResourceLocksUtils;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
@@ -39,7 +40,6 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ResourceCreateTags;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -604,11 +604,11 @@ public class SnapshotDaoTest {
             snapshotIds,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
-    int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
+    int index = (direction == SqlSortDirection.ASC) ? offset : snapshotIds.size() - offset - 1;
     for (SnapshotSummary summary : summaryList) {
       assertThat("correct id", snapshotIds.get(index), equalTo(summary.getId()));
       assertThat("correct name", makeName(snapshotName, index), equalTo(summary.getName()));
-      index += (direction.equals(SqlSortDirection.ASC)) ? 1 : -1;
+      index += (direction == SqlSortDirection.ASC) ? 1 : -1;
     }
   }
 

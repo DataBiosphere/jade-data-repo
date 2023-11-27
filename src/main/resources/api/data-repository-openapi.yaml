@@ -826,7 +826,8 @@ paths:
         - snapshots
         - search
         - repository
-      description: Retrieve data for a table in a snapshot
+      deprecated: true
+      description: Retrieve data for a table in a snapshot. This endpoint is deprecated, please use the POST version.
       operationId: lookupSnapshotPreviewById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -868,6 +869,34 @@ paths:
           description: A SQL WHERE clause to filter the table results.
           schema:
             type: string
+      responses:
+        200:
+          description: Returns the table data from a snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotPreviewModel'
+    post:
+      tags:
+        - snapshots
+        - search
+        - repository
+      description: Retrieve data for a table in a snapshot.
+      operationId: querySnapshotDataById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table to get data from
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Parameters to filter results
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryDataRequestModel'
       responses:
         200:
           description: Returns the table data from a snapshot
@@ -1898,7 +1927,8 @@ paths:
         - datasets
         - search
         - repository
-      description: Retrieve data for a table in a dataset
+      deprecated: true
+      description: Retrieve data for a table in a dataset. This endpoint is deprecated, please use the POST version.
       operationId: lookupDatasetDataById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1947,11 +1977,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DatasetDataModel'
+    post:
+      tags:
+        - datasets
+        - search
+        - repository
+      description: Retrieve data for a table in a dataset.
+      operationId: queryDatasetDataById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table to get data from
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Parameters to filter results
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryDataRequestModel'
+        required: false
+      responses:
+        200:
+          description: Returns the table data from a dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetDataModel'
   /api/repository/v1/datasets/{id}/data/{table}/statistics/{column}:
     get:
       tags:
         - datasets
-      description: Retrieve statiscs about data for a column in a table in a dataset
+      deprecated: true
+      description: >-
+        Retrieve statistics about data for a column in a table in a dataset. This endpoint is deprecated, please use the POST version.
       operationId: lookupDatasetColumnStatisticsById
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1963,7 +2024,7 @@ paths:
             type: string
         - name: column
           in: path
-          description: Name of column in the table to get statisitcs about
+          description: Name of column in the table to get statistics about
           required: true
           schema:
             type: string
@@ -1976,9 +2037,42 @@ paths:
             For GCP array string columns, if you wanted to include all rows that contain 'value1' in column1,
             the filter clause would look like 'WHERE 'value1' IN UNNEST(column1)'. Note that "count" value
             includes all occurrences of a value including duplicates of the same value in a single array.
-            i.e. if we had two rows in a table where the value for column1, row1 = ['value1', 'value1', 'value2'] and column1, row2 = ['value1'] the count for 'value1' would be 3.
+            i.e. if we had two rows in a table where the value for column1, row1 = ['value1', 'value1', 'value2']
+            and column1, row2 = ['value1'] the count for 'value1' would be 3.
           schema:
             type: string
+      responses:
+        200:
+          description: Returns the statistics about a column from a dataset's table
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColumnStatisticsModel'
+    post:
+      tags:
+        - datasets
+      description: Retrieve statistics about data for a column in a table in a dataset.
+      operationId: queryDatasetColumnStatisticsById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table where column lives
+          required: true
+          schema:
+            type: string
+        - name: column
+          in: path
+          description: Name of column in the table to get statistics about
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Parameters to filter results
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryColumnStatisticsRequestModel'
       responses:
         200:
           description: Returns the statistics about a column from a dataset's table
@@ -5160,6 +5254,46 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
+    QueryDataRequestModel:
+      type: object
+      properties:
+        offset:
+          description: The number of rows to skip when retrieving the next page
+          type: integer
+          default: 0
+          minimum: 0
+        limit:
+          description: The number of rows to return for the data
+          type: integer
+          default: 30
+          minimum: 1
+          maximum: 1000
+        sort:
+          description: The table column to sort by
+          type: string
+          default: "datarepo_row_id"
+        direction:
+          $ref: '#/components/schemas/SqlSortDirection'
+          description: The direction to sort.
+          default: asc
+        filter:
+          description: A SQL WHERE clause to filter the table results.
+          type: string
+          default: ""
+    QueryColumnStatisticsRequestModel:
+      type: object
+      properties:
+        filter:
+          description: >-
+            A SQL WHERE clause to filter results included in column statistics.
+
+
+            For GCP array string columns, if you wanted to include all rows that contain 'value1' in column1,
+            the filter clause would look like 'WHERE 'value1' IN UNNEST(column1)'. Note that "count" value
+            includes all occurrences of a value including duplicates of the same value in a single array.
+            i.e. if we had two rows in a table where the value for column1, row1 = ['value1', 'value1', 'value2']
+            and column1, row2 = ['value1'] the count for 'value1' would be 3.
+          type: string
     DatasetDataModel:
       type: object
       properties:

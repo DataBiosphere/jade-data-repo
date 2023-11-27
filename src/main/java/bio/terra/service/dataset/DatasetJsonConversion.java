@@ -19,7 +19,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,10 +34,15 @@ import org.springframework.stereotype.Component;
 
 @Component
 public final class DatasetJsonConversion {
-  private final SnapshotBuilderService snapshotBuilderService;
+  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
-  public DatasetJsonConversion(SnapshotBuilderService snapshotBuilderService) {
-    this.snapshotBuilderService = snapshotBuilderService;
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
+
+  public DatasetJsonConversion(
+      MetadataDataAccessUtils metadataDataAccessUtils,
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
+    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
   public static Dataset datasetRequestToDataset(
@@ -97,7 +102,6 @@ public final class DatasetJsonConversion {
   public DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
-      MetadataDataAccessUtils metadataDataAccessUtils,
       AuthenticatedUserRequest userRequest) {
     DatasetModel datasetModel =
         new DatasetModel()
@@ -145,7 +149,7 @@ public final class DatasetJsonConversion {
 
     if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
       datasetModel.snapshotBuilderSettings(
-          snapshotBuilderService.getSnapshotBuilderSettings(dataset.getId()));
+          snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()));
     }
 
     return datasetModel;

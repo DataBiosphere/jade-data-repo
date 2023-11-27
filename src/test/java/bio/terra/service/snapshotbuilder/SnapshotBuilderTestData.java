@@ -1,12 +1,17 @@
 package bio.terra.service.snapshotbuilder;
 
+import bio.terra.common.Column;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderDatasetConceptSets;
+import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
-import bio.terra.model.SnapshotBuilderListOption;
 import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.TableDataType;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.DatasetTable;
 import java.util.List;
 
 public class SnapshotBuilderTestData {
@@ -17,8 +22,6 @@ public class SnapshotBuilderTestData {
                   new SnapshotBuilderDomainOption()
                       .id(10)
                       .category("Condition")
-                      .conceptCount(18000)
-                      .participantCount(12500)
                       .root(
                           new SnapshotBuilderConcept()
                               .id(100)
@@ -28,8 +31,6 @@ public class SnapshotBuilderTestData {
                   new SnapshotBuilderDomainOption()
                       .id(11)
                       .category("Procedure")
-                      .conceptCount(22500)
-                      .participantCount(11328)
                       .root(
                           new SnapshotBuilderConcept()
                               .id(200)
@@ -39,8 +40,6 @@ public class SnapshotBuilderTestData {
                   new SnapshotBuilderDomainOption()
                       .id(12)
                       .category("Observation")
-                      .conceptCount(12300)
-                      .participantCount(23223)
                       .root(
                           new SnapshotBuilderConcept()
                               .id(300)
@@ -53,42 +52,26 @@ public class SnapshotBuilderTestData {
                       .id(1)
                       .name("Year of birth")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.RANGE)
-                      .min(1900)
-                      .max(2023),
+                      .tableName("person")
+                      .columnName("year_of_birth"),
                   new SnapshotBuilderProgramDataOption()
                       .id(2)
                       .name("Ethnicity")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .values(
-                          List.of(
-                              new SnapshotBuilderListOption().name("Hispanic or Latino").id(20),
-                              new SnapshotBuilderListOption().name("Not Hispanic or Latino").id(21),
-                              new SnapshotBuilderListOption().name("No Matching Concept").id(0))),
+                      .tableName("person")
+                      .columnName("ethnicity"),
                   new SnapshotBuilderProgramDataOption()
                       .id(3)
                       .name("Gender identity")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .values(
-                          List.of(
-                              new SnapshotBuilderListOption().name("FEMALE").id(22),
-                              new SnapshotBuilderListOption().name("MALE").id(23),
-                              new SnapshotBuilderListOption().name("NON BINARY").id(24),
-                              new SnapshotBuilderListOption().name("GENDERQUEER").id(25),
-                              new SnapshotBuilderListOption().name("TWO SPIRIT").id(26),
-                              new SnapshotBuilderListOption().name("AGENDER").id(27),
-                              new SnapshotBuilderListOption().name("No Matching Concept").id(0))),
+                      .tableName("person")
+                      .columnName("gender_identity"),
                   new SnapshotBuilderProgramDataOption()
                       .id(4)
                       .name("Race")
                       .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .values(
-                          List.of(
-                              new SnapshotBuilderListOption()
-                                  .name("American Indian or Alaska Native")
-                                  .id(28),
-                              new SnapshotBuilderListOption().name("Asian").id(29),
-                              new SnapshotBuilderListOption().name("Black").id(30),
-                              new SnapshotBuilderListOption().name("White").id(31)))))
+                      .tableName("person")
+                      .columnName("race")))
           .featureValueGroups(
               List.of(
                   new SnapshotBuilderFeatureValueGroup()
@@ -113,10 +96,23 @@ public class SnapshotBuilderTestData {
                       .values(List.of("Demographics Column 1", "Demographics Column 2"))))
           .datasetConceptSets(
               List.of(
-                  new SnapshotBuilderDatasetConceptSets()
+                  new SnapshotBuilderDatasetConceptSet()
                       .name("Demographics")
                       .featureValueGroupName("Person"),
-                  new SnapshotBuilderDatasetConceptSets()
+                  new SnapshotBuilderDatasetConceptSet()
                       .name("All surveys")
                       .featureValueGroupName("Surveys")));
+
+  public static final Dataset DATASET =
+      new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
+          .tables(
+              List.of(
+                  new DatasetTable()
+                      .name("person")
+                      .columns(
+                          List.of(
+                              new Column().name("race").type(TableDataType.INTEGER),
+                              new Column().name("gender_identity").type(TableDataType.INTEGER),
+                              new Column().name("ethnicity").type(TableDataType.INTEGER),
+                              new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
 }

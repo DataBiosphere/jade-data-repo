@@ -4316,7 +4316,7 @@ paths:
         - repository
       description: >
         Given a list of snapshot builder cohorts, return the unique participant count for this dataset.
-      operationId: getConcepts
+      operationId: getSnapshotBuilderCount
       parameters:
         - in: path
           description: The UUID of the dataset.
@@ -6816,10 +6816,26 @@ components:
           type: array
           items:
             type: string
+
     SnapshotBuilderCountRequest:
       type: object
+      properties:
+        cohorts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderCohort'
+
     SnapshotBuilderCountResponse:
       type: object
+      properties:
+        result:
+          type: object
+          properties:
+            total:
+              type: integer
+        sql:
+          type: string
+
     SnapshotBuilderAccessRequest:
       type: object
       properties:
@@ -6883,6 +6899,7 @@ components:
       properties:
         kind:
           type: string
+          enum: [ list, range, domain ]
         name:
           type: string
         id:

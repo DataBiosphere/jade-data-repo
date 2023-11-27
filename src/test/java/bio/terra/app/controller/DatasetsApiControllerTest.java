@@ -294,7 +294,7 @@ class DatasetsApiControllerTest {
     verify(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
-  static Stream<Arguments> createCriteriaDataArguments() {
+  static Stream<Arguments> testCreateCriteriaData() {
     return Stream.of(
         arguments(
             """
@@ -314,7 +314,7 @@ class DatasetsApiControllerTest {
   }
 
   @ParameterizedTest
-  @MethodSource("createCriteriaDataArguments")
+  @MethodSource
   void testCreateCriteriaData(
       String json,
       Class<? extends SnapshotBuilderCriteria> criteriaClass,

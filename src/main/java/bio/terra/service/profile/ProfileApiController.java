@@ -117,7 +117,7 @@ public class ProfileApiController implements ProfilesApi {
   public ResponseEntity<JobModel> deleteProfile(UUID id, Boolean deleteCloudResources) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     if (deleteCloudResources) {
-      verifyAdminAuthorization(user);
+      verifyAdminAuthorization(user, IamAction.DELETE);
     } else {
       verifyProfileAuthorization(user, id.toString(), IamAction.DELETE);
     }
@@ -176,17 +176,19 @@ public class ProfileApiController implements ProfilesApi {
   private void verifyProfileAuthorization(
       AuthenticatedUserRequest userReq, String resourceId, IamAction action) {
     IamResourceType resourceType = IamResourceType.SPEND_PROFILE;
+    verifyAuthorization(userReq, resourceType, resourceId, action);
+  }
+
+  private void verifyAdminAuthorization(AuthenticatedUserRequest userReq, IamAction action) {
+    verifyAuthorization(userReq, IamResourceType.DATAREPO, applicationConfiguration.getResourceId(), action);
+  }
+
+  private void verifyAuthorization(AuthenticatedUserRequest userReq, IamResourceType resourceType, String resourceId, IamAction action) {
     // Check if profile exists
     profileService.getProfileByIdNoCheck(UUID.fromString(resourceId));
     // Verify profile permissions
     iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
   }
 
-  private void verifyAdminAuthorization(AuthenticatedUserRequest userReq) {
-    iamService.verifyAuthorization(
-        userReq,
-        IamResourceType.DATAREPO,
-        applicationConfiguration.getResourceId(),
-        IamAction.CONFIGURE);
-  }
+
 }

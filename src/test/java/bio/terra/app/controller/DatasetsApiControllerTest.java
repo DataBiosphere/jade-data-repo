@@ -275,8 +275,7 @@ public class DatasetsApiControllerTest {
             TEST_USER,
             List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
         .thenReturn(new DatasetModel());
-    when(snapshotBuilderService.updateSnapshotBuilderSettings(DATASET_ID, SETTINGS))
-        .thenReturn(SETTINGS);
+
     mockValidators();
 
     mvc.perform(

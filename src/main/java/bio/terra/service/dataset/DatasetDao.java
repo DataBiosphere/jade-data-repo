@@ -169,7 +169,7 @@ public class DatasetDao implements TaggableResourceDao {
    * @throws DatasetNotFoundException if the dataset does not exist
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public String lockExclusive(UUID datasetId, String flightId) {
+  public void lockExclusive(UUID datasetId, String flightId) {
     if (flightId == null) {
       throw new DatasetLockException("Locking flight id cannot be null");
     }
@@ -189,7 +189,6 @@ public class DatasetDao implements TaggableResourceDao {
 
     logger.debug(
         "Lock Operation: Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
-    return flightId;
   }
 
   /**
@@ -239,7 +238,7 @@ public class DatasetDao implements TaggableResourceDao {
    * @throws DatasetNotFoundException if the dataset does not exist
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public String lockShared(UUID datasetId, String flightId) {
+  public void lockShared(UUID datasetId, String flightId) {
     if (flightId == null) {
       throw new DatasetLockException("Locking flight id cannot be null");
     }
@@ -273,7 +272,6 @@ public class DatasetDao implements TaggableResourceDao {
         datasetId,
         flightId,
         numRowsUpdated);
-    return flightId;
   }
 
   /**
@@ -326,10 +324,13 @@ public class DatasetDao implements TaggableResourceDao {
       numRowsUpdated = jdbcTemplate.update(sql, params);
 
       if (numRowsUpdated == 0 && lockType.lockAttempted()) {
-        String exclusiveLock = retrieveSummaryById(datasetId).getResourceLocks().getExclusive();
-        if (exclusiveLock == null) {
-          throw new DatasetLockException("Failed to lock the dataset", lockType.getErrorDetails());
-        }
+        // this method checks if the dataset exists
+        // if it does not exist, then the method throws a DatasetNotFoundException
+        // we don't need the result (dataset summary) here, just the existence check,
+        // so ignore the return value.
+        retrieveSummaryById(datasetId);
+
+        throw new DatasetLockException("Failed to lock the dataset", lockType.getErrorDetails());
       }
     } catch (DatasetNotFoundException notFound) {
       logger.error(

@@ -5322,11 +5322,6 @@ components:
           items:
             $ref: '#/components/schemas/AssetModel'
       description: data model definition
-    LockResultModel:
-      type: object
-      properties:
-        lockName:
-          type: string
     DatasetSchemaUpdateModel:
       type: object
       properties:

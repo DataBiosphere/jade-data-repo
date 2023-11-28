@@ -228,6 +228,7 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(previewModel);
   }
 
+  @Override
   public ResponseEntity<JobModel> lockDataset(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(

@@ -70,7 +70,6 @@ import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
-import bio.terra.service.journal.JournalService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
@@ -124,7 +123,6 @@ public class SnapshotService {
   private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
-  private final JournalService journalService;
 
   public SnapshotService(
       JobService jobService,
@@ -138,8 +136,7 @@ public class SnapshotService {
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
-      DuosClient duosClient,
-      JournalService journalService) {
+      DuosClient duosClient) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -152,7 +149,6 @@ public class SnapshotService {
     this.azureSynapsePdao = azureSynapsePdao;
     this.rawlsService = rawlsService;
     this.duosClient = duosClient;
-    this.journalService = journalService;
   }
 
   /**
@@ -1208,7 +1204,8 @@ public class SnapshotService {
 
   public String manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
     return jobService
-        .newJob("Create manual exclusive lock on dataset.", SnapshotLockFlight.class, null, userReq)
+        .newJob(
+            "Create manual exclusive lock on a snapshot.", SnapshotLockFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
         .submit();
   }

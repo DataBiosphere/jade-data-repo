@@ -65,7 +65,6 @@ import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
-import bio.terra.service.journal.JournalService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
@@ -121,7 +120,6 @@ public class DatasetService {
   private final AzureSynapsePdao azureSynapsePdao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
-  private final JournalService journalService;
 
   @Autowired
   public DatasetService(
@@ -143,8 +141,7 @@ public class DatasetService {
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
-      MetadataDataAccessUtils metadataDataAccessUtils,
-      JournalService journalService) {
+      MetadataDataAccessUtils metadataDataAccessUtils) {
     this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
     this.jobService = jobService;
@@ -164,7 +161,6 @@ public class DatasetService {
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
-    this.journalService = journalService;
   }
 
   public String createDataset(
@@ -644,26 +640,17 @@ public class DatasetService {
         .submit();
   }
 
-  /**
-   * @param datasetId - dataset to lock
-   * @param flightId - locking flight id or lock name
-   * @param sharedLock - flag to determine whether to use exclusive or shared lock
-   * @return lock name
-   */
-  public String lock(UUID datasetId, String flightId, boolean sharedLock) {
+  public void lock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
-      return datasetDao.lockShared(datasetId, flightId);
+      datasetDao.lockShared(datasetId, flightId);
+    } else {
+      datasetDao.lockExclusive(datasetId, flightId);
     }
-    return datasetDao.lockExclusive(datasetId, flightId);
   }
 
   public String manualUnlock(AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
     return jobService
-        .newJob(
-            "Create manual exclusive lock on dataset.",
-            DatasetUnlockFlight.class,
-            lockName,
-            userReq)
+        .newJob("Remove exclusive lock on dataset.", DatasetUnlockFlight.class, lockName, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .submit();
   }

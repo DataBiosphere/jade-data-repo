@@ -160,7 +160,7 @@ public class SnapshotDao implements TaggableResourceDao {
       throw new SnapshotLockException(
           "Failed to lock the snapshot", LockOperation.LOCK_EXCLUSIVE.getErrorDetails());
     }
-    if (exclusiveLock != flightId) {
+    if (!exclusiveLock.equals(flightId)) {
       throw new SnapshotLockException(
           "Failed to lock the snapshot with the correct lock",
           LockOperation.LOCK_EXCLUSIVE.getErrorDetails());

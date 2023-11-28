@@ -597,7 +597,6 @@ paths:
         - repository
       description: >
         Add an exclusive lock to the snapshot so that no delete operations can be performed on it.
-        This lock will appear as "MANUAL_LOCK" when the snapshot is retrieved.
       operationId: lockSnapshot
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -653,12 +652,10 @@ paths:
         - name: lockName
           in: query
           description: >
-            The lock id to remove. The lock name is either the locking flight id or"MANUAL_LOCK".
-            If not specified, the lock name will be "MANUAL_LOCK".
-          required: false
+            The lock id to remove. The lock name is the locking flight id.
+          required: true
           schema:
             type: string
-            default: 'MANUAL_LOCK'
       responses:
         200:
           description: >
@@ -2033,7 +2030,6 @@ paths:
         - repository
       description: >
         Add an exclusive lock to the dataset so that no update or delete operations can be performed on it.
-        This lock will appear as "MANUAL_LOCK" when the dataset is retrieved.
       operationId: lockDataset
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2088,12 +2084,10 @@ paths:
         - name: lockName
           in: query
           description: >
-            The lock id to remove. The lock name is either "MANUAL_LOCK" or the locking
-            flight id. If not specified, the lock name will be "MANUAL_LOCK".
-          required: false
+            The lock id to remove. The lock name is the locking flight id.
+          required: true
           schema:
             type: string
-            default: 'MANUAL_LOCK'
       responses:
         200:
           description: >

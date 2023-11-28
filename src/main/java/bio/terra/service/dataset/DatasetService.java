@@ -41,7 +41,6 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.exception.DatasetDataException;
-import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
@@ -53,9 +52,11 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.dataset.flight.lock.DatasetLockFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
+import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
@@ -89,7 +90,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -639,10 +639,10 @@ public class DatasetService {
   }
 
   public String manualExclusiveLock(AuthenticatedUserRequest userReq, UUID datasetId) {
-    String lockName = lock(datasetId, MANUAL_LOCK_NAME, false);
-    journalService.recordUpdate(
-        userReq, datasetId, IamResourceType.DATASET, "Dataset manually exclusively locked", null);
-    return lockName;
+    return jobService
+        .newJob("Create manual exclusive lock on dataset.", DatasetLockFlight.class, null, userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .submit();
   }
 
   /**
@@ -659,18 +659,14 @@ public class DatasetService {
   }
 
   public void manualUnlock(AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
-    String nonNullLockName = Objects.requireNonNullElse(lockName, MANUAL_LOCK_NAME);
-    boolean successfulUnlock = unlock(datasetId, nonNullLockName, false);
-    if (successfulUnlock) {
-      journalService.recordUpdate(
-          userReq,
-          datasetId,
-          IamResourceType.DATASET,
-          "Dataset manually exclusively unlocked",
-          null);
-    } else {
-      throw new DatasetLockException("Unlock was unsuccessful.");
-    }
+    jobService
+        .newJob(
+            "Create manual exclusive lock on dataset.",
+            DatasetUnlockFlight.class,
+            lockName,
+            userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .submit();
   }
 
   public boolean unlock(UUID datasetId, String flightId, boolean sharedLock) {

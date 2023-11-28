@@ -1,8 +1,6 @@
 package bio.terra.service.snapshot;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static bio.terra.service.dataset.DatasetService.MANUAL_LOCK_NAME;
-import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
@@ -76,7 +74,6 @@ import bio.terra.service.journal.JournalService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
@@ -85,6 +82,8 @@ import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
+import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
+import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -100,7 +99,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -1209,28 +1207,16 @@ public class SnapshotService {
   }
 
   public String manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
-    String lockName = snapshotDao.lock(snapshotId, MANUAL_LOCK_NAME);
-    journalService.recordUpdate(
-        userReq,
-        snapshotId,
-        IamResourceType.DATASNAPSHOT,
-        "Snapshot manually exclusively locked",
-        null);
-    return lockName;
+    return jobService
+        .newJob("Create manual exclusive lock on dataset.", SnapshotLockFlight.class, null, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
+        .submit();
   }
 
   public void manualUnlock(AuthenticatedUserRequest userReq, UUID snapshotId, String lockName) {
-    String nonNullLockName = Objects.requireNonNullElse(lockName, MANUAL_LOCK_NAME);
-    boolean succecssfulUnlock = snapshotDao.unlock(snapshotId, nonNullLockName);
-    if (succecssfulUnlock) {
-      journalService.recordUpdate(
-          userReq,
-          snapshotId,
-          IamResourceType.DATASNAPSHOT,
-          "Snapshot manually exclusively unlocked",
-          null);
-    } else {
-      throw new SnapshotLockException("Unlock was unsuccessful.");
-    }
+    jobService
+        .newJob("Remove lock from Snapshot", SnapshotUnlockFlight.class, lockName, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
+        .submit();
   }
 }

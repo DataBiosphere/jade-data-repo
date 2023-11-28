@@ -9,7 +9,9 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.snapshot.flight.lock.SnapshotLockSetResponseStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -21,6 +23,7 @@ public class SnapshotUnlockFlight extends Flight {
     super(inputParameters, applicationContext);
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     JournalService journalService = appContext.getBean(JournalService.class);
 
@@ -40,5 +43,6 @@ public class SnapshotUnlockFlight extends Flight {
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService, userReq, snapshotId, IamResourceType.DATASNAPSHOT, "Snapshot locked."));
+    addStep(new SnapshotLockSetResponseStep(snapshotService, snapshotId));
   }
 }

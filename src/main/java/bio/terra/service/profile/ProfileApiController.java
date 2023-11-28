@@ -180,15 +180,18 @@ public class ProfileApiController implements ProfilesApi {
   }
 
   private void verifyAdminAuthorization(AuthenticatedUserRequest userReq, IamAction action) {
-    verifyAuthorization(userReq, IamResourceType.DATAREPO, applicationConfiguration.getResourceId(), action);
+    verifyAuthorization(
+        userReq, IamResourceType.DATAREPO, applicationConfiguration.getResourceId(), action);
   }
 
-  private void verifyAuthorization(AuthenticatedUserRequest userReq, IamResourceType resourceType, String resourceId, IamAction action) {
+  private void verifyAuthorization(
+      AuthenticatedUserRequest userReq,
+      IamResourceType resourceType,
+      String resourceId,
+      IamAction action) {
     // Check if profile exists
     profileService.getProfileByIdNoCheck(UUID.fromString(resourceId));
     // Verify profile permissions
     iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
   }
-
-
 }

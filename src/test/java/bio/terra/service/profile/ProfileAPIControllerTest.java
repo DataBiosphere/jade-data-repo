@@ -166,8 +166,7 @@ class ProfileAPIControllerTest {
     ResponseEntity<JobModel> entity = apiController.deleteProfile(deleteId, deleteCloudResources);
     // Only check for admin auth if deleteCloudResources is true
     verify(iamService, times(expectedAdminAuthNumberOfInvocations))
-        .verifyAuthorization(
-            eq(user), eq(IamResourceType.DATAREPO), any(), eq(IamAction.DELETE));
+        .verifyAuthorization(eq(user), eq(IamResourceType.DATAREPO), any(), eq(IamAction.DELETE));
     // Only check if user has access on the spend profile if we're not doing the admin check
     verify(iamService, times(expectedSpendProfileAuthNumberOfInvocations))
         .verifyAuthorization(

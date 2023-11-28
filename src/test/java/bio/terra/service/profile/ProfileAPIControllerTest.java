@@ -158,8 +158,9 @@ class ProfileAPIControllerTest {
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
     when(profileService.deleteProfile(deleteId, deleteCloudResources, user)).thenReturn(jobId);
+    var applicationId = "broad-jade-dev";
     if (deleteCloudResources) {
-      when(applicationConfiguration.getResourceId()).thenReturn(UUID.randomUUID().toString());
+      when(applicationConfiguration.getResourceId()).thenReturn(applicationId);
     }
 
     var jobModel = new JobModel();
@@ -169,7 +170,8 @@ class ProfileAPIControllerTest {
     ResponseEntity<JobModel> entity = apiController.deleteProfile(deleteId, deleteCloudResources);
     // Only check for admin auth if deleteCloudResources is true
     verify(iamService, times(expectedAdminAuthNumberOfInvocations))
-        .verifyAuthorization(eq(user), eq(IamResourceType.DATAREPO), any(), eq(IamAction.DELETE));
+        .verifyAuthorization(
+            eq(user), eq(IamResourceType.DATAREPO), eq(applicationId), eq(IamAction.DELETE));
     // Only check if user has access on the spend profile if we're not doing the admin check
     verify(iamService, times(expectedSpendProfileAuthNumberOfInvocations))
         .verifyAuthorization(

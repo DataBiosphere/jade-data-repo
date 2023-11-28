@@ -75,23 +75,18 @@ public class SnapshotBuilderTestData {
           .featureValueGroups(
               List.of(
                   new SnapshotBuilderFeatureValueGroup()
-                      .id(0)
                       .name("Condition")
                       .values(List.of("Condition Column 1", "Condition Column 2")),
                   new SnapshotBuilderFeatureValueGroup()
-                      .id(1)
                       .name("Observation")
                       .values(List.of("Observation Column 1", "Observation Column 2")),
                   new SnapshotBuilderFeatureValueGroup()
-                      .id(2)
                       .name("Procedure")
                       .values(List.of("Procedure Column 1", "Procedure Column 2")),
                   new SnapshotBuilderFeatureValueGroup()
-                      .id(3)
                       .name("Surveys")
                       .values(List.of("Surveys Column 1", "Surveys Column 2")),
                   new SnapshotBuilderFeatureValueGroup()
-                      .id(4)
                       .name("Person")
                       .values(List.of("Demographics Column 1", "Demographics Column 2"))))
           .datasetConceptSets(

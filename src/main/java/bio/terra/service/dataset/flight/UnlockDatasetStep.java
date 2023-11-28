@@ -17,6 +17,8 @@ public class UnlockDatasetStep extends DefaultUndoStep {
   private final DatasetService datasetService;
   private final boolean sharedLock;
   private UUID datasetId;
+  private String lockName;
+  private boolean throwLockException = false;
 
   public UnlockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
     this.datasetService = datasetService;
@@ -28,6 +30,17 @@ public class UnlockDatasetStep extends DefaultUndoStep {
 
   public UnlockDatasetStep(DatasetService datasetService, boolean sharedLock) {
     this(datasetService, null, sharedLock);
+  }
+
+  public UnlockDatasetStep(
+      DatasetService datasetService,
+      UUID datasetId,
+      boolean sharedLock,
+      String lockName,
+      boolean throwLockException) {
+    this(datasetService, datasetId, sharedLock);
+    this.lockName = lockName;
+    this.throwLockException = throwLockException;
   }
 
   @VisibleForTesting
@@ -50,9 +63,18 @@ public class UnlockDatasetStep extends DefaultUndoStep {
                 "Expected dataset id to either be passed in or in the working map."));
       }
     }
+    if (lockName == null) {
+      lockName = context.getFlightId();
+    }
 
     try {
-      datasetService.unlock(datasetId, context.getFlightId(), sharedLock);
+      boolean successfulUnlock = datasetService.unlock(datasetId, lockName, sharedLock);
+      if (throwLockException && !successfulUnlock) {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL,
+            new DatasetLockException(
+                "Failed to unlock dataset " + datasetId + " with lock name " + lockName));
+      }
     } catch (RetryQueryException | TransactionSystemException retryQueryException) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
     }

@@ -32,7 +32,6 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
-import bio.terra.model.LockResultModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -228,21 +227,21 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(previewModel);
   }
 
-  public ResponseEntity<LockResultModel> lockDataset(UUID id) {
+  public ResponseEntity<JobModel> lockDataset(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
-    String acquiredLockName = datasetService.manualExclusiveLock(userRequest, id);
-    return ResponseEntity.ok(new LockResultModel().lockName(acquiredLockName));
+    String jobId = datasetService.manualExclusiveLock(userRequest, id);
+    return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }
 
   @Override
-  public ResponseEntity<Void> unlockDataset(UUID id, String lockName) {
+  public ResponseEntity<JobModel> unlockDataset(UUID id, String lockName) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
-    datasetService.manualUnlock(userRequest, id, lockName);
-    return null;
+    String jobId = datasetService.manualUnlock(userRequest, id, lockName);
+    return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }
 
   @Override

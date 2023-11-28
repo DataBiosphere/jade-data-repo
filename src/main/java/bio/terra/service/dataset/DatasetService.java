@@ -102,7 +102,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class DatasetService {
   private static final Logger logger = LoggerFactory.getLogger(DatasetService.class);
-  public static final String MANUAL_LOCK_NAME = "MANUAL_LOCK";
   private final DatasetJsonConversion datasetJsonConversion;
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
@@ -658,8 +657,8 @@ public class DatasetService {
     return datasetDao.lockExclusive(datasetId, flightId);
   }
 
-  public void manualUnlock(AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
-    jobService
+  public String manualUnlock(AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
+    return jobService
         .newJob(
             "Create manual exclusive lock on dataset.",
             DatasetUnlockFlight.class,

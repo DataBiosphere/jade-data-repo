@@ -98,7 +98,6 @@ public class UpgradeService {
   }
 
   public String upgrade(UpgradeModel request, AuthenticatedUserRequest user) {
-    // Make sure the user is an admin by checking for CONFIGURE permission
     iamService.verifyAuthorization(
         user, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.RUN_UPGRADE_FLIGHT);
 

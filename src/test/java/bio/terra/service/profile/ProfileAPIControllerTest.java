@@ -158,6 +158,9 @@ class ProfileAPIControllerTest {
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
     when(profileService.deleteProfile(deleteId, deleteCloudResources, user)).thenReturn(jobId);
+    if (deleteCloudResources) {
+      when(applicationConfiguration.getResourceId()).thenReturn(UUID.randomUUID().toString());
+    }
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);

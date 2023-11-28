@@ -1213,8 +1213,8 @@ public class SnapshotService {
         .submit();
   }
 
-  public void manualUnlock(AuthenticatedUserRequest userReq, UUID snapshotId, String lockName) {
-    jobService
+  public String manualUnlock(AuthenticatedUserRequest userReq, UUID snapshotId, String lockName) {
+    return jobService
         .newJob("Remove lock from Snapshot", SnapshotUnlockFlight.class, lockName, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
         .submit();

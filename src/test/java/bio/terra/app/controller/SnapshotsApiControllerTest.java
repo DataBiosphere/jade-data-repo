@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.common.TestUtils;
@@ -82,6 +83,8 @@ class SnapshotsApiControllerTest {
   private static final String FILTER = "";
 
   private static final String RETRIEVE_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}";
+  private static final String LOCK_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}/lock";
+  private static final String UNLOCK_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}/unlock";
 
   private static final String QUERY_SNAPSHOT_DATA_ENDPOINT =
       RETRIEVE_SNAPSHOT_ENDPOINT + "/data/{table}";
@@ -210,6 +213,37 @@ class SnapshotsApiControllerTest {
             PDAO_ROW_ID_COLUMN,
             DIRECTION,
             FILTER);
+  }
+
+  @Test
+  void lockSnapshot() throws Exception {
+    var fakeFlightId = "fakeFlightId";
+    when(snapshotService.manualExclusiveLock(TEST_USER, SNAPSHOT_ID)).thenReturn(fakeFlightId);
+    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
+        .thenReturn(new JobModel().id(fakeFlightId));
+    mockValidators();
+
+    mvc.perform(put(LOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID))
+        .andExpect(status().is2xxSuccessful())
+        .andReturn();
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT);
+    verify(snapshotService).manualExclusiveLock(TEST_USER, SNAPSHOT_ID);
+  }
+
+  @Test
+  void unlockDataset() throws Exception {
+    var lockId = "lockId";
+    var fakeFlightId = "fakeFlightId";
+    when(snapshotService.manualUnlock(TEST_USER, SNAPSHOT_ID, lockId)).thenReturn(fakeFlightId);
+    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
+        .thenReturn(new JobModel().id(fakeFlightId));
+    mockValidators();
+
+    mvc.perform(put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("lockName", lockId))
+        .andExpect(status().is2xxSuccessful())
+        .andReturn();
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT);
+    verify(snapshotService).manualUnlock(TEST_USER, SNAPSHOT_ID, lockId);
   }
 
   /** Verify that snapshot authorization was checked. */

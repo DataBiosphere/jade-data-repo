@@ -98,9 +98,8 @@ public class UpgradeService {
   }
 
   public String upgrade(UpgradeModel request, AuthenticatedUserRequest user) {
-    // Make sure the user is an admin by checking for CONFIGURE permission
     iamService.verifyAuthorization(
-        user, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.CONFIGURE);
+        user, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.RUN_UPGRADE_FLIGHT);
 
     if (request.getUpgradeType() != UpgradeModel.UpgradeTypeEnum.CUSTOM) {
       throw new FeatureNotImplementedException(

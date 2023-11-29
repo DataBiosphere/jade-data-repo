@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -23,6 +24,7 @@ import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.JobModel;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
@@ -94,7 +96,8 @@ class DatasetsApiControllerTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
-
+  private static final String LOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/lock";
+  private static final String UNLOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/unlock";
   private static final String REQUEST_SNAPSHOT_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/createSnapshotRequest";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
@@ -470,5 +473,36 @@ class DatasetsApiControllerTest {
         .queryParam("sort", columnName)
         .queryParam("direction", DIRECTION.name())
         .queryParam("filter", FILTER);
+  }
+
+  @Test
+  void lockDataset() throws Exception {
+    var fakeFlightId = "fakeFlightId";
+    when(datasetService.manualExclusiveLock(TEST_USER, DATASET_ID)).thenReturn(fakeFlightId);
+    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
+        .thenReturn(new JobModel().id(fakeFlightId));
+    mockValidators();
+
+    mvc.perform(put(LOCK_DATASET_ENDPOINT, DATASET_ID))
+        .andExpect(status().is2xxSuccessful())
+        .andReturn();
+    verifyAuthorizationCall(IamAction.MANAGE_SCHEMA);
+    verify(datasetService).manualExclusiveLock(TEST_USER, DATASET_ID);
+  }
+
+  @Test
+  void unlockDataset() throws Exception {
+    var lockId = "lockId";
+    var fakeFlightId = "fakeFlightId";
+    when(datasetService.manualUnlock(TEST_USER, DATASET_ID, lockId)).thenReturn(fakeFlightId);
+    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
+        .thenReturn(new JobModel().id(fakeFlightId));
+    mockValidators();
+
+    mvc.perform(put(UNLOCK_DATASET_ENDPOINT, DATASET_ID).queryParam("lockName", lockId))
+        .andExpect(status().is2xxSuccessful())
+        .andReturn();
+    verifyAuthorizationCall(IamAction.MANAGE_SCHEMA);
+    verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, lockId);
   }
 }

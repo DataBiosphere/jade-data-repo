@@ -4434,7 +4434,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SnapshotBuilderCountResponse'
         401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+          description: Unauthorized - missing permissions to compute count.
           content:
             application/json:
               schema:

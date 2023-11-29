@@ -202,11 +202,8 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<SnapshotBuilderCountResponse> getSnapshotBuilderCount(
       UUID id, SnapshotBuilderCountRequest body) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    verifyDatasetAuthorization(
+        userRequest, id.toString(), IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     return ResponseEntity.ok(snapshotBuilderService.getCountResponse(id, body.getCohorts()));
   }
 

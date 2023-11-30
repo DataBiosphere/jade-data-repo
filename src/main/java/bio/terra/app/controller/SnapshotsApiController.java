@@ -237,7 +237,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<JobModel> lockSnapshot(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.LOCK_RESOURCE);
     String jobId = snapshotService.manualExclusiveLock(userRequest, id);
     return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }
@@ -246,7 +246,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<JobModel> unlockSnapshot(UUID id, String lockName) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UNLOCK_RESOURCE);
     String jobId = snapshotService.manualUnlock(userRequest, id, lockName);
     return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }

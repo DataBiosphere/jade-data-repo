@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.create;
 
-import static bio.terra.common.FlightTestUtils.mockFlightAppConfigSetup;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.hamcrest.Matchers.is;
@@ -9,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.FlightTestUtils;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -37,14 +37,19 @@ public class SnapshotCreateFlightTest {
 
   @BeforeEach
   void beforeEach() {
-    mockFlightAppConfigSetup(context);
+    ApplicationConfiguration appConfig = mock(ApplicationConfiguration.class);
+    when(appConfig.getMaxStairwayThreads()).thenReturn(1);
 
     SnapshotService snapshotService = mock(SnapshotService.class);
     DatasetSummary datasetSummary = mock(DatasetSummary.class);
     when(snapshotService.getSourceDatasetsFromSnapshotRequest(any()))
         .thenReturn(List.of(new Dataset(datasetSummary)));
 
+    when(context.getBean(any(Class.class))).thenReturn(null);
     when(context.getBean(anyString(), any(Class.class))).thenReturn(null);
+    // Beans that are interacted with directly in flight construction rather than simply passed
+    // to steps need to be added to our context mock.
+    when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
 
     inputParameters = new FlightMap();

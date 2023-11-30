@@ -42,6 +42,11 @@ public class UnlockDatasetStep extends DefaultUndoStep {
     return sharedLock;
   }
 
+  @VisibleForTesting
+  public String getLockName() {
+    return lockName;
+  }
+
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap map = context.getWorkingMap();

@@ -28,7 +28,7 @@ public class FlightTestUtils {
     return clazz.cast(stepsWithClass.get(0));
   }
 
-  public static void mockFlightSetup(ApplicationContext context) {
+  public static void mockFlightAppConfigSetup(ApplicationContext context) {
     ApplicationConfiguration appConfig = mock(ApplicationConfiguration.class);
     when(appConfig.getMaxStairwayThreads()).thenReturn(1);
     when(context.getBean(any(Class.class))).thenReturn(null);

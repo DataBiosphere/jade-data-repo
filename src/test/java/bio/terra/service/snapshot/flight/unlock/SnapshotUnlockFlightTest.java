@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.unlock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.*;
 
 import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
@@ -31,7 +30,7 @@ class SnapshotUnlockFlightTest {
 
   @BeforeEach
   void setUp() {
-    FlightTestUtils.mockFlightSetup(context);
+    FlightTestUtils.mockFlightAppConfigSetup(context);
 
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), SNAPSHOT_ID.toString());

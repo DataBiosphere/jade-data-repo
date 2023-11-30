@@ -38,6 +38,9 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotBuilderAccessRequest;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirectionAscDefault;
@@ -177,7 +180,7 @@ public class DatasetsApiController implements DatasetsApi {
         IamResourceType.DATASET,
         id.toString(),
         IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    snapshotBuilderService.updateSnapshotBuilderSettings(id, settings);
+    datasetService.updateDatasetSnapshotBuilderSettings(id, settings);
     return ResponseEntity.ok(
         datasetService.retrieveDatasetModel(
             id, userRequest, List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)));
@@ -193,6 +196,15 @@ public class DatasetsApiController implements DatasetsApi {
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderCountResponse> getSnapshotBuilderCount(
+      UUID id, SnapshotBuilderCountRequest body) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifyDatasetAuthorization(
+        userRequest, id.toString(), IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(snapshotBuilderService.getCountResponse(id, body.getCohorts()));
   }
 
   @Override
@@ -223,21 +235,31 @@ public class DatasetsApiController implements DatasetsApi {
       String sort,
       SqlSortDirectionAscDefault direction,
       String filter) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    SqlSortDirection sortDirection = SqlSortDirection.from(direction);
-    DatasetDataModel previewModel =
-        datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
-    return ResponseEntity.ok(previewModel);
+    var request =
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(direction)
+            .filter(filter);
+    return queryDatasetDataById(id, table, request);
   }
 
   @Override
   public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsById(
       UUID id, String table, String column, String filter) {
+    return queryDatasetColumnStatisticsById(
+        id, table, column, new QueryColumnStatisticsRequestModel().filter(filter));
+  }
+
+  @Override
+  public ResponseEntity<ColumnStatisticsModel> queryDatasetColumnStatisticsById(
+      UUID id, String table, String column, QueryColumnStatisticsRequestModel requestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
     ColumnStatisticsModel columnStatisticsModel =
-        datasetService.retrieveColumnStatistics(userReq, id, table, column, filter);
+        datasetService.retrieveColumnStatistics(
+            userReq, id, table, column, requestModel.getFilter());
     return ResponseEntity.ok(columnStatisticsModel);
   }
 
@@ -517,6 +539,19 @@ public class DatasetsApiController implements DatasetsApi {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderAccessRequest> createSnapshotRequest(
+      UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(
+        snapshotBuilderService.createSnapshotRequest(id, snapshotAccessRequest));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

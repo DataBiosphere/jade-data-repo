@@ -293,12 +293,15 @@ public class SnapshotsApiController implements SnapshotsApi {
       String sort,
       SqlSortDirectionAscDefault direction,
       String filter) {
-    snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
-    SqlSortDirection sortDirection = SqlSortDirection.from(direction);
-    SnapshotPreviewModel previewModel =
-        snapshotService.retrievePreview(
-            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
-    return ResponseEntity.ok(previewModel);
+    return querySnapshotDataById(
+        id,
+        table,
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(SqlSortDirection.from(direction))
+            .filter(filter));
   }
 
   // --snapshot auth domains --

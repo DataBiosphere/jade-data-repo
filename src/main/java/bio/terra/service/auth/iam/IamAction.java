@@ -16,11 +16,12 @@ public enum IamAction {
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
   UPDATE_AUTH_DOMAIN,
-  // datarepo
+  // datarepo (admin-only actions)
   LIST_JOBS,
   DELETE_JOBS,
-  /* CONFIGURE is only available to admin users so can be used to check for admin access to TDR */
   CONFIGURE,
+  REGISTER_DRS_ALIASES,
+  RUN_UPGRADE_FLIGHT,
   SYNC_DUOS_USERS,
   // dataset
   MANAGE_SCHEMA,
@@ -30,6 +31,8 @@ public enum IamAction {
   HARD_DELETE,
   LINK_SNAPSHOT,
   UNLINK_SNAPSHOT,
+  VIEW_SNAPSHOT_BUILDER_SETTINGS,
+  UPDATE_SNAPSHOT_BUILDER_SETTINGS,
   // snapshots
   UPDATE_SNAPSHOT,
   READ_DATA,
@@ -39,9 +42,7 @@ public enum IamAction {
   UPDATE_BILLING_ACCOUNT,
   LINK,
   // journal
-  VIEW_JOURNAL,
-  VIEW_SNAPSHOT_BUILDER_SETTINGS,
-  UPDATE_SNAPSHOT_BUILDER_SETTINGS;
+  VIEW_JOURNAL;
 
   private final String samActionName;
 

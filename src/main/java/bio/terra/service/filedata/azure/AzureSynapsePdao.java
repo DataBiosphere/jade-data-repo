@@ -17,6 +17,8 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.AccessInfoModel;
 import bio.terra.model.ColumnStatisticsDoubleModel;
 import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
@@ -527,10 +529,18 @@ public class AzureSynapsePdao {
         .collect(Collectors.toList());
   }
 
-  public void getOrCreateExternalDataSource(
-      String blobUrl, String scopedCredentialName, String dataSourceName) throws SQLException {
+  public String getOrCreateExternalDataSourceForResource(
+      AccessInfoModel accessInfoModel, UUID id, AuthenticatedUserRequest userRequest)
+      throws SQLException {
+    String datasourceName = getDataSourceName(id, userRequest.getEmail());
+    String scopedCredentialName = AzureSynapsePdao.getCredentialName(id, userRequest.getEmail());
+    String blobUrl =
+        "%s?%s"
+            .formatted(
+                accessInfoModel.getParquet().getUrl(), accessInfoModel.getParquet().getSasToken());
     getOrCreateExternalDataSource(
-        BlobUrlParts.parse(blobUrl), scopedCredentialName, dataSourceName);
+        BlobUrlParts.parse(blobUrl), scopedCredentialName, datasourceName);
+    return datasourceName;
   }
 
   public void getOrCreateExternalDataSource(

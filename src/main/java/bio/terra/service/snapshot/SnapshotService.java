@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
@@ -817,22 +816,7 @@ public class SnapshotService {
             "Error retrieving preview for snapshot " + snapshot.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-      AccessInfoModel accessInfoModel =
-          metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
-      String credName =
-          AzureSynapsePdao.getCredentialName(snapshot.getId(), userRequest.getEmail());
-      String datasourceName = getDataSourceName(snapshot.getId(), userRequest.getEmail());
-      String metadataUrl =
-          "%s?%s"
-              .formatted(
-                  accessInfoModel.getParquet().getUrl(),
-                  accessInfoModel.getParquet().getSasToken());
-
-      try {
-        azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
-      } catch (Exception e) {
-        throw new RuntimeException("Could not configure external datasource", e);
-      }
+      String datasourceName = getOrCreateExternalDataSource(userRequest, tableName, snapshot);
       String parquetFilePath = IngestUtils.getSnapshotParquetFilePathForQuery(tableName);
       List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
@@ -852,6 +836,18 @@ public class SnapshotService {
           .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
+    }
+  }
+
+  private String getOrCreateExternalDataSource(
+      AuthenticatedUserRequest userRequest, String tableName, Snapshot snapshot) {
+    AccessInfoModel accessInfoModel =
+        metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
+    try {
+      return azureSynapsePdao.getOrCreateExternalDataSourceForResource(
+          accessInfoModel, snapshot.getId(), userRequest);
+    } catch (Exception e) {
+      throw new RuntimeException("Could not configure external datasource", e);
     }
   }
 

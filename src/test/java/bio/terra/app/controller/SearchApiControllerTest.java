@@ -8,14 +8,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SnapshotPreviewModel;
-import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -160,7 +159,7 @@ public class SearchApiControllerTest {
             .content(
                 TestUtils.mapToJson(
                     new QueryDataRequestModel()
-                        .direction(SqlSortDirectionAscDefault.ASC)
+                        .direction(DIRECTION)
                         .limit(LIMIT)
                         .offset(OFFSET)
                         .sort(column))));

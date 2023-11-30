@@ -64,7 +64,7 @@ import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -1056,7 +1056,8 @@ public class DataRepoFixtures {
     request.setLimit(Objects.requireNonNullElse(limit, 10));
     request.filter(Objects.requireNonNullElse(filter, ""));
     request.sort(Objects.requireNonNullElse(sort, PDAO_ROW_ID_COLUMN));
-    request.setDirection(SqlSortDirectionAscDefault.valueOf(direction));
+    request.setDirection(
+        Objects.requireNonNullElse(SqlSortDirection.fromValue(direction), SqlSortDirection.ASC));
     return dataRepoClient.post(user, url, TestUtils.mapToJson(request), new TypeReference<>() {});
   }
 

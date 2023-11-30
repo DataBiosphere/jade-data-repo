@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.TestUtils.assertError;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -8,6 +9,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,6 +24,8 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -39,10 +43,12 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -51,6 +57,8 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import com.azure.resourcemanager.loganalytics.models.Workspace;
 import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.storage.blob.BlobClient;
@@ -118,6 +126,9 @@ public class DatasetServiceTest {
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private AzureMonitoringService azureMonitoringService;
+  @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
+  @MockBean private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
+  @MockBean private AzureSynapsePdao azureSynapsePdao;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
   @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
@@ -661,5 +672,37 @@ public class DatasetServiceTest {
         "When requesting SnapshotBuilderSettings require VIEW_SNAPSHOT_BUILDER_SETTINGS permission",
         actions,
         containsInAnyOrder(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS));
+  }
+
+  @Test
+  public void testUpdateSnapshotBuilderSettings() {
+    UUID datasetId = UUID.randomUUID();
+    datasetService.updateDatasetSnapshotBuilderSettings(
+        datasetId, SnapshotBuilderTestData.SETTINGS);
+    verify(snapshotBuilderSettingsDao)
+        .upsertSnapshotBuilderSettingsByDataset(datasetId, SnapshotBuilderTestData.SETTINGS);
+  }
+
+  @Test
+  public void getOrCreateExternalAzureDataSourceHidesExceptionInformation() throws Exception {
+    UUID datasetId = UUID.randomUUID();
+    Dataset dataset = new Dataset().id(datasetId);
+    when(metadataDataAccessUtils.accessInfoFromDataset(dataset, testUser))
+        .thenReturn(
+            new AccessInfoModel()
+                .parquet(
+                    new AccessInfoParquetModel()
+                        .sasToken(
+                            "sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&sr=b&sig=mysig")
+                        .url("https://fake.url")));
+    doThrow(SQLException.class)
+        .when(azureSynapsePdao)
+        .getOrCreateExternalDataSourceForResource(
+            any(AccessInfoModel.class), any(UUID.class), eq(testUser));
+
+    assertError(
+        RuntimeException.class,
+        "Could not configure external datasource",
+        () -> datasetService.getOrCreateExternalAzureDataSource(dataset, testUser));
   }
 }

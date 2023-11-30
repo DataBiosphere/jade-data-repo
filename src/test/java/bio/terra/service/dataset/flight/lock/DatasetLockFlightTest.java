@@ -1,16 +1,18 @@
-package bio.terra.service.dataset.flight;
+package bio.terra.service.dataset.flight.lock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.*;
 
 import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
+import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -21,13 +23,13 @@ import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-public class DatasetDeleteFlightTest {
+class DatasetLockFlightTest {
   @Mock private ApplicationContext context;
   private FlightMap inputParameters;
   private static final UUID DATASET_ID = UUID.randomUUID();
 
   @BeforeEach
-  void beforeEach() {
+  void setUp() {
     FlightTestUtils.mockFlightSetup(context);
 
     inputParameters = new FlightMap();
@@ -35,19 +37,29 @@ public class DatasetDeleteFlightTest {
   }
 
   @Test
-  void testSnapshotDeleteLocksSnapshot() {
-    var flight = new DatasetDeleteFlight(inputParameters, context);
+  void testCorrectStepsDatasetLockFlight() {
+    var flight = new DatasetLockFlight(inputParameters, context);
 
-    Step firstStep = flight.getSteps().get(0);
+    var steps =
+        flight.getSteps().stream()
+            .map(step -> step.getClass().getSimpleName())
+            .collect(Collectors.toList());
     assertThat(
-        "Dataset deletion flight locks the dataset first",
-        firstStep,
-        instanceOf(LockDatasetStep.class));
+        steps,
+        CoreMatchers.is(
+            List.of(
+                "LockDatasetStep", "JournalRecordUpdateEntryStep", "DatasetLockSetResponseStep")));
+  }
+
+  @Test
+  void testParametersForLockStep() {
+    var flight = new DatasetLockFlight(inputParameters, context);
+    var firstStep = flight.getSteps().get(0);
     LockDatasetStep lockDatasetStep = (LockDatasetStep) firstStep;
     assertThat("Exclusive lock on dataset is obtained", lockDatasetStep.isSharedLock(), is(false));
     assertThat(
-        "Dataset lock step suppresses 'snapshot not found' exceptions",
+        "Dataset lock step should not suppresses exceptions",
         lockDatasetStep.shouldSuppressNotFoundException(),
-        is(true));
+        is(false));
   }
 }

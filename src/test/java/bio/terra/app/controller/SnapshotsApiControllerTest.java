@@ -227,12 +227,12 @@ class SnapshotsApiControllerTest {
     mvc.perform(put(LOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID))
         .andExpect(status().is2xxSuccessful())
         .andReturn();
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT);
+    verifyAuthorizationCall(IamAction.LOCK_RESOURCE);
     verify(snapshotService).manualExclusiveLock(TEST_USER, SNAPSHOT_ID);
   }
 
   @Test
-  void unlockDataset() throws Exception {
+  void unlockSnapshot() throws Exception {
     var lockId = "lockId";
     var fakeFlightId = "fakeFlightId";
     when(snapshotService.manualUnlock(TEST_USER, SNAPSHOT_ID, lockId)).thenReturn(fakeFlightId);
@@ -243,7 +243,7 @@ class SnapshotsApiControllerTest {
     mvc.perform(put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("lockName", lockId))
         .andExpect(status().is2xxSuccessful())
         .andReturn();
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT);
+    verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(snapshotService).manualUnlock(TEST_USER, SNAPSHOT_ID, lockId);
   }
 

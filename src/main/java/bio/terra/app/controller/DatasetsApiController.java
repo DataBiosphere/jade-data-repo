@@ -230,7 +230,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> lockDataset(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        userRequest, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.LOCK_RESOURCE);
     String jobId = datasetService.manualExclusiveLock(userRequest, id);
     return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }
@@ -239,7 +239,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> unlockDataset(UUID id, String lockName) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        userRequest, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.UNLOCK_RESOURCE);
     String jobId = datasetService.manualUnlock(userRequest, id, lockName);
     return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }

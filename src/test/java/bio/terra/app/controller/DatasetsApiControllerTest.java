@@ -517,7 +517,7 @@ class DatasetsApiControllerTest {
     mvc.perform(put(LOCK_DATASET_ENDPOINT, DATASET_ID))
         .andExpect(status().is2xxSuccessful())
         .andReturn();
-    verifyAuthorizationCall(IamAction.MANAGE_SCHEMA);
+    verifyAuthorizationCall(IamAction.LOCK_RESOURCE);
     verify(datasetService).manualExclusiveLock(TEST_USER, DATASET_ID);
   }
 
@@ -533,7 +533,7 @@ class DatasetsApiControllerTest {
     mvc.perform(put(UNLOCK_DATASET_ENDPOINT, DATASET_ID).queryParam("lockName", lockId))
         .andExpect(status().is2xxSuccessful())
         .andReturn();
-    verifyAuthorizationCall(IamAction.MANAGE_SCHEMA);
+    verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, lockId);
   }
 }

@@ -28,6 +28,9 @@ import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCountResponse;
+import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
@@ -74,7 +77,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
 @Tag("bio.terra.common.category.Unit")
 @WebMvcTest
-public class DatasetsApiControllerTest {
+class DatasetsApiControllerTest {
   @Autowired private MockMvc mvc;
   @MockBean private JobService jobService;
   @MockBean private DatasetRequestValidator datasetRequestValidator;
@@ -104,6 +107,8 @@ public class DatasetsApiControllerTest {
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
   private static final String GET_CONCEPTS_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
+  private static final String GET_COUNT_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/count";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final Integer CONCEPT_ID = 0;
@@ -289,30 +294,35 @@ public class DatasetsApiControllerTest {
     verify(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
-  @Test
-  void testCreateCriteriaData() throws Exception {
-    SnapshotBuilderCriteria criteria =
-        TestUtils.mapFromJson(
+  static Stream<Arguments> testCreateCriteriaData() {
+    return Stream.of(
+        arguments(
             """
-        {"kind":"domain","name":"name","id":0}""", SnapshotBuilderCriteria.class);
+            {"kind":"domain","name":"name","id":0}""",
+            SnapshotBuilderCriteria.class,
+            SnapshotBuilderCriteria.KindEnum.DOMAIN),
+        arguments(
+            """
+            {"kind":"list","name":"name","id":0,"values":[]}""",
+            SnapshotBuilderProgramDataListCriteria.class,
+            SnapshotBuilderCriteria.KindEnum.LIST),
+        arguments(
+            """
+            {"kind":"range","name":"name","id":0,"low":0,"high":10}""",
+            SnapshotBuilderProgramDataRangeCriteria.class,
+            SnapshotBuilderCriteria.KindEnum.RANGE));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testCreateCriteriaData(
+      String json,
+      Class<? extends SnapshotBuilderCriteria> criteriaClass,
+      SnapshotBuilderCriteria.KindEnum kind)
+      throws Exception {
+    SnapshotBuilderCriteria criteria = TestUtils.mapFromJson(json, criteriaClass);
     assertThat(criteria.getName(), equalTo("name"));
-    assertThat(criteria.getKind(), equalTo("domain"));
-
-    SnapshotBuilderProgramDataListCriteria listCriteria =
-        TestUtils.mapFromJson(
-            """
-        {"kind":"list","name":"name","id":0,"values":[]}""",
-            SnapshotBuilderProgramDataListCriteria.class);
-    assertThat(listCriteria.getName(), equalTo("name"));
-    assertThat(listCriteria.getKind(), equalTo("list"));
-
-    SnapshotBuilderProgramDataRangeCriteria rangeCriteria =
-        TestUtils.mapFromJson(
-            """
-        {"kind":"range","name":"name","id":0,"low":0,"high":10}""",
-            SnapshotBuilderProgramDataRangeCriteria.class);
-    assertThat(rangeCriteria.getName(), equalTo("name"));
-    assertThat(rangeCriteria.getKind(), equalTo("range"));
+    assertThat(criteria.getKind(), equalTo(kind));
   }
 
   @Test
@@ -324,17 +334,7 @@ public class DatasetsApiControllerTest {
             .researchPurposeStatement("purpose")
             .datasetRequest(
                 new SnapshotBuilderRequest()
-                    .addCohortsItem(
-                        new SnapshotBuilderCohort()
-                            .name("cohort")
-                            .addCriteriaGroupsItem(
-                                new SnapshotBuilderCriteriaGroup()
-                                    .addCriteriaItem(
-                                        new SnapshotBuilderProgramDataListCriteria().kind("list"))
-                                    .addCriteriaItem(new SnapshotBuilderCriteria().kind("domain"))
-                                    .addCriteriaItem(
-                                        new SnapshotBuilderProgramDataRangeCriteria()
-                                            .kind("range"))))
+                    .addCohortsItem(createTestCohort())
                     .addConceptSetsItem(
                         new SnapshotBuilderDatasetConceptSet()
                             .name("conceptSet")
@@ -357,6 +357,21 @@ public class DatasetsApiControllerTest {
         TestUtils.mapFromJson(actualJson, SnapshotBuilderAccessRequest.class);
     assertThat("The method returned the expected request", actual, equalTo(expected));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  private static SnapshotBuilderCohort createTestCohort() {
+    return new SnapshotBuilderCohort()
+        .name("cohort")
+        .addCriteriaGroupsItem(
+            new SnapshotBuilderCriteriaGroup()
+                .addCriteriaItem(
+                    new SnapshotBuilderProgramDataListCriteria()
+                        .kind(SnapshotBuilderCriteria.KindEnum.LIST))
+                .addCriteriaItem(
+                    new SnapshotBuilderCriteria().kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
+                .addCriteriaItem(
+                    new SnapshotBuilderProgramDataRangeCriteria()
+                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
   }
 
   @Test
@@ -382,6 +397,24 @@ public class DatasetsApiControllerTest {
         TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
     assertThat("Concept list and sql is returned", actual, equalTo(expected));
 
+    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  @Test
+  void getSnapshotBuilderCount() throws Exception {
+    mockValidators();
+    var cohorts = List.of(createTestCohort());
+    int count = 1234;
+    when(snapshotBuilderService.getCountResponse(DATASET_ID, cohorts))
+        .thenReturn(
+            new SnapshotBuilderCountResponse()
+                .result(new SnapshotBuilderCountResponseResult().total(count)));
+    mvc.perform(
+            post(GET_COUNT_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(new SnapshotBuilderCountRequest().cohorts(cohorts))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result.total").value(count));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
   }
 

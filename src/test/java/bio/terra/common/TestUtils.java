@@ -296,9 +296,8 @@ public final class TestUtils {
     try {
       return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException ex) {
-      logger.error("unable to map value to JSON. Value is: " + value, ex);
+      throw new RuntimeException("unable to map value to JSON. Value is: " + value, ex);
     }
-    return null;
   }
 
   public static void setConfigParameterValue(

@@ -38,6 +38,8 @@ import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirection;
@@ -194,6 +196,15 @@ public class DatasetsApiController implements DatasetsApi {
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderCountResponse> getSnapshotBuilderCount(
+      UUID id, SnapshotBuilderCountRequest body) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifyDatasetAuthorization(
+        userRequest, id.toString(), IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(snapshotBuilderService.getCountResponse(id, body.getCohorts()));
   }
 
   @Override

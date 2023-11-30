@@ -300,7 +300,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             .offset(offset)
             .limit(limit)
             .sort(sort)
-            .direction(SqlSortDirection.from(direction))
+            .direction(direction)
             .filter(filter));
   }
 

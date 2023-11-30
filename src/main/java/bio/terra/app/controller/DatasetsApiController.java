@@ -264,17 +264,6 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<ColumnStatisticsModel> queryDatasetColumnStatisticsById(
-      UUID id, String table, String column, QueryColumnStatisticsRequestModel requestModel) {
-    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    ColumnStatisticsModel columnStatisticsModel =
-        datasetService.retrieveColumnStatistics(
-            userReq, id, table, column, requestModel.getFilter());
-    return ResponseEntity.ok(columnStatisticsModel);
-  }
-
-  @Override
   public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") UUID id) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.DELETE);

@@ -1,16 +1,15 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import static bio.terra.common.FlightTestUtils.mockFlightAppConfigSetup;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FlightTestUtils;
 import bio.terra.model.CloudPlatform;
@@ -55,14 +54,8 @@ public class DatasetIngestFlightTest {
     DatasetService datasetService = mock(DatasetService.class);
     when(datasetService.retrieve(DATASET_ID)).thenReturn(new Dataset(datasetSummary));
 
-    ApplicationConfiguration appConfig = mock(ApplicationConfiguration.class);
-    when(appConfig.getMaxStairwayThreads()).thenReturn(1);
-
-    when(context.getBean(any(Class.class))).thenReturn(null);
-    // Beans that are interacted with directly in flight construction rather than simply passed
-    // to steps need to be added to our context mock.
+    mockFlightAppConfigSetup(context);
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
-    when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
     when(context.getBean(ConfigurationService.class)).thenReturn(configurationService);
 
     inputParameters = new FlightMap();

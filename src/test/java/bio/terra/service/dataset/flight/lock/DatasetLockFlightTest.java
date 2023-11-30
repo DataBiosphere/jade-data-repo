@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.lock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
 
 import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
@@ -30,7 +29,7 @@ class DatasetLockFlightTest {
 
   @BeforeEach
   void setUp() {
-    FlightTestUtils.mockFlightSetup(context);
+    FlightTestUtils.mockFlightAppConfigSetup(context);
 
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());

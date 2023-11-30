@@ -586,9 +586,14 @@ task verifyPacts(type: Test) {
     if (isCiServer) {
         systemProperty 'pact.verifier.publishResults', true
     }
+    // to run a local pactbroker, see:
+    // https://broadworkbench.atlassian.net/wiki/spaces/IRT/pages/2829680649/Contract+Test+Local+Development
+    if (System.getenv().containsKey('PACT_BROKER_URL')) {
+        systemProperty 'pactbroker.url', System.getenv('PACT_BROKER_URL')
+    }
     systemProperty 'pactbroker.auth.username', System.getenv('PACT_BROKER_USERNAME')
     systemProperty 'pactbroker.auth.password', System.getenv('PACT_BROKER_PASSWORD')
-    systemProperty 'pact.provider.version', System.getenv('PACT_PROVIDER_COMMIT')
+    systemProperty 'pact.provider.version', System.getenv('PACT_PROVIDER_VERSION')
     systemProperty 'pact.provider.branch', System.getenv('PACT_PROVIDER_BRANCH')
 }
 

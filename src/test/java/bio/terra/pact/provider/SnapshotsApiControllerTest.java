@@ -32,6 +32,7 @@ import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestTemplate;
@@ -54,6 +55,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
 @WebMvcTest
 class SnapshotsApiControllerTest {
+  private static final String CONSUMER_BRANCH = System.getenv("CONSUMER_BRANCH");
 
   @Autowired private MockMvc mvc;
 
@@ -73,7 +75,17 @@ class SnapshotsApiControllerTest {
     // runs, and your consumer is publishing such Pacts under their feature branch name, you can add
     // the following to the SelectorBuilder:
     //   .branch("consumer-feature-branch-name")
-    return new SelectorBuilder().mainBranch().deployedOrReleased();
+    // New comments.
+    // The following match condition basically says
+    // If verification is triggered by Pact Broker webhook due to consumer pact change, verify only
+    // the changed pact.
+    // Otherwise, this is a PR, verify all consumer pacts in Pact Broker marked with a deployment
+    // tag (e.g. dev, alpha).
+    if (StringUtils.isBlank(CONSUMER_BRANCH)) {
+      return new SelectorBuilder().mainBranch().deployedOrReleased();
+    } else {
+      return new SelectorBuilder().branch(CONSUMER_BRANCH);
+    }
   }
 
   @BeforeEach

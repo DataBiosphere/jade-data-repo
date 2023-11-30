@@ -6,6 +6,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -39,7 +40,7 @@ import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel;
@@ -64,7 +65,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
@@ -200,8 +200,7 @@ public class DatasetsApiController implements DatasetsApi {
       UUID id, String table, QueryDataRequestModel queryDataRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    SqlSortDirection sortDirection =
-        Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
+    SqlSortDirection sortDirection = SqlSortDirection.from(queryDataRequest.getDirection());
     DatasetDataModel previewModel =
         datasetService.retrieveData(
             userReq,
@@ -222,11 +221,11 @@ public class DatasetsApiController implements DatasetsApi {
       Integer offset,
       Integer limit,
       String sort,
-      SqlSortDirection direction,
+      SqlSortDirectionAscDefault direction,
       String filter) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    SqlSortDirection sortDirection = SqlSortDirection.from(direction);
     DatasetDataModel previewModel =
         datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
     return ResponseEntity.ok(previewModel);
@@ -276,7 +275,7 @@ public class DatasetsApiController implements DatasetsApi {
       Integer offset,
       Integer limit,
       EnumerateSortByParam sort,
-      @RequestParam(defaultValue = "asc") SqlSortDirection direction,
+      SqlSortDirectionAscDefault direction,
       String filter,
       String region,
       List<String> tags) {
@@ -284,7 +283,15 @@ public class DatasetsApiController implements DatasetsApi {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     var edm =
-        datasetService.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles, tags);
+        datasetService.enumerate(
+            offset,
+            limit,
+            sort,
+            SqlSortDirection.from(direction),
+            filter,
+            region,
+            idsAndRoles,
+            tags);
     return ResponseEntity.ok(edm);
   }
 

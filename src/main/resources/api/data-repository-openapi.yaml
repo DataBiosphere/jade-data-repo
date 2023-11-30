@@ -490,7 +490,7 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            $ref: '#/components/schemas/SqlSortDirection'
+            $ref: '#/components/schemas/SqlSortDirectionAscDefault'
         - name: filter
           in: query
           description: Filter the results where this string is a case insensitive match
@@ -860,7 +860,7 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            $ref: '#/components/schemas/SqlSortDirection'
+            $ref: '#/components/schemas/SqlSortDirectionAscDefault'
         - name: filter
           in: query
           description: A SQL WHERE clause to filter the table results.
@@ -1662,7 +1662,7 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            $ref: '#/components/schemas/SqlSortDirection'
+            $ref: '#/components/schemas/SqlSortDirectionAscDefault'
         - name: filter
           in: query
           description: Filter the results where this string is a case insensitive match
@@ -1958,7 +1958,7 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            $ref: '#/components/schemas/SqlSortDirection'
+            $ref: '#/components/schemas/SqlSortDirectionAscDefault'
         - name: filter
           in: query
           description: A SQL WHERE clause to filter the table results.
@@ -3347,7 +3347,7 @@ paths:
           in: query
           description: The direction to sort based on job creation time (default is descending).
           schema:
-            $ref: '#/components/schemas/SqlSortDirection'
+            $ref: '#/components/schemas/SqlSortDirectionDescDefault'
         - name: className
           in: query
           description: Filter by the flight's class
@@ -4352,9 +4352,16 @@ components:
       enum: [ string, boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, text, time, timestamp ]
       description: >
         The type of a column in a table.
-    SqlSortDirection:
+    SqlSortDirectionAscDefault:
       type: string
       enum: [ asc, desc ]
+      default: asc
+      description: >
+        The sort direction of a query result
+    SqlSortDirectionDescDefault:
+      type: string
+      enum: [ asc, desc ]
+      default: desc
       description: >
         The sort direction of a query result
     EnumerateSortByParam:
@@ -5216,7 +5223,7 @@ components:
           type: string
           default: "datarepo_row_id"
         direction:
-          $ref: '#/components/schemas/SqlSortDirection'
+          $ref: '#/components/schemas/SqlSortDirectionAscDefault'
         filter:
           description: A SQL WHERE clause to filter the table results.
           type: string

@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;

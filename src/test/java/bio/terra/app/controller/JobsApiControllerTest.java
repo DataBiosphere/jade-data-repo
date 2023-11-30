@@ -13,10 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.usermetrics.BardClient;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.JobService.JobResultWithStatus;
 import java.util.List;

@@ -4,6 +4,7 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -25,7 +26,7 @@ import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.service.auth.iam.IamAction;
@@ -43,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -179,7 +179,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       Integer offset,
       Integer limit,
       EnumerateSortByParam sort,
-      @RequestParam(defaultValue = "asc") SqlSortDirection direction,
+      SqlSortDirectionAscDefault direction,
       String filter,
       String region,
       List<String> datasetIds,
@@ -195,7 +195,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             offset,
             limit,
             sort,
-            direction,
+            SqlSortDirection.from(direction),
             filter,
             region,
             datasetUUIDs,
@@ -270,8 +270,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<SnapshotPreviewModel> querySnapshotDataById(
       UUID id, String table, QueryDataRequestModel queryDataRequest) {
     snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
-    SqlSortDirection sortDirection =
-        Objects.requireNonNullElse(queryDataRequest.getDirection(), SqlSortDirection.ASC);
+    SqlSortDirection sortDirection = SqlSortDirection.from(queryDataRequest.getDirection());
     SnapshotPreviewModel previewModel =
         snapshotService.retrievePreview(
             getAuthenticatedInfo(),
@@ -280,7 +279,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             queryDataRequest.getLimit(),
             queryDataRequest.getOffset(),
             queryDataRequest.getSort(),
-            queryDataRequest.getDirection(),
+            sortDirection,
             queryDataRequest.getFilter());
     return ResponseEntity.ok(previewModel);
   }
@@ -292,10 +291,10 @@ public class SnapshotsApiController implements SnapshotsApi {
       Integer offset,
       Integer limit,
       String sort,
-      SqlSortDirection direction,
+      SqlSortDirectionAscDefault direction,
       String filter) {
     snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
-    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    SqlSortDirection sortDirection = SqlSortDirection.from(direction);
     SnapshotPreviewModel previewModel =
         snapshotService.retrievePreview(
             getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);

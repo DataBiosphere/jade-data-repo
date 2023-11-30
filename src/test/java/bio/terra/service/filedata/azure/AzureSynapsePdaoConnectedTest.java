@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNull;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -18,7 +19,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;

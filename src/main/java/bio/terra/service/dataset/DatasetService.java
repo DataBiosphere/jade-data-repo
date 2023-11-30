@@ -655,11 +655,12 @@ public class DatasetService {
         .submit();
   }
 
-  public boolean unlock(UUID datasetId, String flightId, boolean sharedLock) {
+  public void unlock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
-      return datasetDao.unlockShared(datasetId, flightId);
+      datasetDao.unlockShared(datasetId, flightId);
+    } else {
+      datasetDao.unlockExclusive(datasetId, flightId);
     }
-    return datasetDao.unlockExclusive(datasetId, flightId);
   }
 
   public String openTransaction(

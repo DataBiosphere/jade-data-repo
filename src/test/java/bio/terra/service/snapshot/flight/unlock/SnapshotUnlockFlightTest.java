@@ -1,0 +1,68 @@
+package bio.terra.service.snapshot.flight.unlock;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.*;
+
+import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.stairway.FlightMap;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationContext;
+
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class SnapshotUnlockFlightTest {
+  @Mock private ApplicationContext context;
+  private FlightMap inputParameters;
+  private static final UUID SNAPSHOT_ID = UUID.randomUUID();
+  private static final String LOCK_NAME = "lock-name";
+
+  @BeforeEach
+  void setUp() {
+    FlightTestUtils.mockFlightSetup(context);
+
+    inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), SNAPSHOT_ID.toString());
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), LOCK_NAME);
+  }
+
+  @Test
+  void testCorrectStepsSnapshotUnockFlight() {
+    var flight = new SnapshotUnlockFlight(inputParameters, context);
+
+    var steps =
+        flight.getSteps().stream()
+            .map(step -> step.getClass().getSimpleName())
+            .collect(Collectors.toList());
+    assertThat(
+        steps,
+        CoreMatchers.is(
+            List.of(
+                "UnlockSnapshotStep",
+                "JournalRecordUpdateEntryStep",
+                "SnapshotLockSetResponseStep")));
+  }
+
+  @Test
+  void testParametersForUnlockStep() {
+    var flight = new SnapshotUnlockFlight(inputParameters, context);
+    var firstStep = flight.getSteps().get(0);
+    UnlockSnapshotStep unlockSnapshotStep = (UnlockSnapshotStep) firstStep;
+    assertThat(
+        "The lock name is passed to the unlock method",
+        unlockSnapshotStep.getLockName(),
+        equalTo(LOCK_NAME));
+  }
+}

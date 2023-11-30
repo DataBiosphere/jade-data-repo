@@ -6,6 +6,7 @@ import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,5 +58,10 @@ public class UnlockSnapshotStep extends DefaultUndoStep {
     logger.debug("rowUpdated on unlock = " + rowUpdated);
 
     return StepResult.getStepResultSuccess();
+  }
+
+  @VisibleForTesting
+  public String getLockName() {
+    return lockName;
   }
 }

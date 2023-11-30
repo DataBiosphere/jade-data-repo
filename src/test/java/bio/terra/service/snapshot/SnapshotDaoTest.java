@@ -604,11 +604,11 @@ public class SnapshotDaoTest {
             snapshotIds,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
-    int index = (direction == SqlSortDirection.ASC) ? offset : snapshotIds.size() - offset - 1;
+    int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
     for (SnapshotSummary summary : summaryList) {
       assertThat("correct id", snapshotIds.get(index), equalTo(summary.getId()));
       assertThat("correct name", makeName(snapshotName, index), equalTo(summary.getName()));
-      index += (direction == SqlSortDirection.ASC) ? 1 : -1;
+      index += (direction.equals(SqlSortDirection.ASC)) ? 1 : -1;
     }
   }
 

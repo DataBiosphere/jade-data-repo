@@ -26,12 +26,12 @@ public class DaoUtilsTest {
     assertThat(
         "order by clause looks correct",
         DaoUtils.orderByClause(EnumerateSortByParam.NAME, SqlSortDirection.ASC, "foo"),
-        equalTo(" ORDER BY foo.name asc "));
+        equalTo(" ORDER BY foo.name ASC "));
 
     assertThat(
         "default order by clause looks correct",
         DaoUtils.orderByClause(null, null, "foo"),
-        equalTo(" ORDER BY foo.created_date desc "));
+        equalTo(" ORDER BY foo.created_date DESC "));
   }
 
   @Test

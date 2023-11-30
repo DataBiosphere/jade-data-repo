@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -39,7 +40,7 @@ import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderRequest;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -456,7 +457,7 @@ class DatasetsApiControllerTest {
         .content(
             TestUtils.mapToJson(
                 new QueryDataRequestModel()
-                    .direction(DIRECTION)
+                    .direction(SqlSortDirectionAscDefault.ASC)
                     .limit(LIMIT)
                     .offset(OFFSET)
                     .sort(columnName)

@@ -28,7 +28,7 @@ public class DatasetDeleteFlightTest {
 
   @BeforeEach
   void beforeEach() {
-    FlightTestUtils.mockFlightSetup(context);
+    FlightTestUtils.mockFlightAppConfigSetup(context);
 
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());

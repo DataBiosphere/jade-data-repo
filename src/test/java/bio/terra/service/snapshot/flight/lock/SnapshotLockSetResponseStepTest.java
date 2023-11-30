@@ -24,7 +24,6 @@ import org.springframework.http.HttpStatus;
 @Tag(Unit.TAG)
 class SnapshotLockSetResponseStepTest {
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
-  private static final String FLIGHT_ID = "flight-id";
   private SnapshotLockSetResponseStep step;
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
@@ -33,7 +32,6 @@ class SnapshotLockSetResponseStepTest {
   void doStep() {
     // Setup
     step = new SnapshotLockSetResponseStep(snapshotService, SNAPSHOT_ID);
-    // when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());
     var lockName = "lock123";
     var locks = new ResourceLocks().exclusive(lockName);
@@ -43,7 +41,7 @@ class SnapshotLockSetResponseStepTest {
     // Perform Step
     step.doStep(flightContext);
 
-    // Confirm Reponse is correctly set
+    // Confirm Response is correctly set
     FlightMap workingMap = flightContext.getWorkingMap();
     assertThat(
         "Response is the ResourceLocks object",

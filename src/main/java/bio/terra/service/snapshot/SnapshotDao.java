@@ -155,6 +155,7 @@ public class SnapshotDao implements TaggableResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("id", snapshotId).addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);
+
     // if no rows were updated, then throw an exception
     if (numRowsUpdated == 0) {
       // this method checks if the snapshot exists
@@ -162,6 +163,7 @@ public class SnapshotDao implements TaggableResourceDao {
       // we don't need the result (snapshot summary) here, just the existence check, so ignore the
       // return value.
       retrieveSummaryById(snapshotId);
+
       throw new SnapshotLockException(
           "Failed to lock the snapshot", LockOperation.LOCK_EXCLUSIVE.getErrorDetails());
     }

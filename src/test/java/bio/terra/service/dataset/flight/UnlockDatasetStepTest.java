@@ -97,6 +97,18 @@ public class UnlockDatasetStepTest {
     verify(datasetService).unlock(DATASET_ID, FLIGHT_ID, sharedLock);
   }
 
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testDoStepWithProvidedLockName(boolean sharedLock) {
+    String lockName = "lock-name";
+    step = new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock, lockName);
+
+    StepResult doResult = step.doStep(flightContext);
+
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(datasetService).unlock(DATASET_ID, lockName, sharedLock);
+  }
+
   private static Stream<Arguments> testDoStepRetriesWhenUnlockThrowsRetryableException() {
     List<Arguments> arguments = new ArrayList<>();
     for (boolean sharedLock : List.of(true, false)) {

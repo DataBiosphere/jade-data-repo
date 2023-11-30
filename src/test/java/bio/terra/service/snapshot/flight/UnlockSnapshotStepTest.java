@@ -18,6 +18,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -67,6 +69,35 @@ public class UnlockSnapshotStepTest {
     assertThat(actualMaybeException.isPresent(), equalTo(true));
     assertThat(actualMaybeException.get(), instanceOf(SnapshotLockException.class));
     verifyNoInteractions(snapshotDao);
+  }
+
+  @Test
+  void testDoStepWithProvidedLockName() {
+    String lockName = "lock-name";
+    step = new UnlockSnapshotStep(snapshotDao, SNAPSHOT_ID, lockName, true);
+    when(snapshotDao.unlock(SNAPSHOT_ID, lockName)).thenReturn(true);
+
+    StepResult doResult = step.doStep(flightContext);
+
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(snapshotDao).unlock(SNAPSHOT_ID, lockName);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testThrowLockException(boolean throwLockException) {
+    String lockName = "lock-name";
+    step = new UnlockSnapshotStep(snapshotDao, SNAPSHOT_ID, lockName, throwLockException);
+    // Mock the case where the lock Fails, so false is returned
+    when(snapshotDao.unlock(SNAPSHOT_ID, lockName)).thenReturn(false);
+
+    StepResult doResult = step.doStep(flightContext);
+
+    if (throwLockException) {
+      assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
+    } else {
+      assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    }
   }
 
   private void mockFlightContextFlightId() {

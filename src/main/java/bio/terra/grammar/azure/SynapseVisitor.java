@@ -1,11 +1,14 @@
 package bio.terra.grammar.azure;
 
+import bio.terra.common.SynapseColumn;
 import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class SynapseVisitor extends DatasetAwareVisitor {
   private final String sourceDatasetDatasource;
@@ -22,19 +25,28 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   @Override
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String tableName = getNameFromContext(ctx.table_name());
+    String datasetName = getNameFromContext(ctx.dataset_name());
+    var columns = getDatasetByName(datasetName).getSchema().getTables().stream().filter(table -> table.getName().equals(tableName)).findFirst().orElseThrow().getColumns();
+
     String alias = generateAlias(tableName);
     return """
-      (SELECT * FROM
+      (SELECT %s FROM
       OPENROWSET(
         BULK '%s',
         DATA_SOURCE = '%s',
         FORMAT = 'parquet') AS %s) AS %s
       """
         .formatted(
+            columns.stream().map(column -> column.getName()).collect(Collectors.joining(", ")),
             FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
             sourceDatasetDatasource,
             "inner_" + alias,
             alias);
+  }
+
+  private String formatSchema(ColumnModel column) {
+    var synapseColumn = SynapseColumn.toSynapseColumn(column);
+    if(column.re)
   }
 
   @Override

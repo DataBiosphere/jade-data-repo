@@ -155,7 +155,9 @@ public class SnapshotRequestDao {
     String sql = "DELETE FROM snapshot_requests WHERE id = :id";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue(requestIdField, requestId);
     try {
-      jdbcTemplate.update(sql, params);
+      if (jdbcTemplate.update(sql, params) == 0) {
+        throw new NotFoundException("Snapshot Request with given id does not exist.");
+      }
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot request found for given id", ex);
     }

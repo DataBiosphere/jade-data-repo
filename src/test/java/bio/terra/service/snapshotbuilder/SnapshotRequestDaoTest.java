@@ -3,7 +3,6 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -41,7 +40,6 @@ class SnapshotRequestDaoTest {
   @Autowired private DaoOperations daoOperations;
   @Autowired private ProfileDao profileDao;
   @Autowired private GoogleResourceDao resourceDao;
-  @Autowired private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   @Autowired private SnapshotRequestDao snapshotRequestDao;
 
   private BillingProfileModel billingProfile;
@@ -154,7 +152,6 @@ class SnapshotRequestDaoTest {
   @Test
   void deleteNotFound() {
     snapshotRequestDao.delete(response.getId());
-    // Nothing is thrown when attempting to delete a request that does not exist
-    assertDoesNotThrow(() -> snapshotRequestDao.delete(response.getId()));
+    assertThrows(NotFoundException.class, () -> snapshotRequestDao.delete(response.getId()));
   }
 }

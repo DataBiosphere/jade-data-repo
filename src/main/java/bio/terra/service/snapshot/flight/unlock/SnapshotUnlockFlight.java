@@ -42,7 +42,11 @@ public class SnapshotUnlockFlight extends Flight {
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId, lockName, true), unlockSnapshotRetry);
     addStep(
         new JournalRecordUpdateEntryStep(
-            journalService, userReq, snapshotId, IamResourceType.DATASNAPSHOT, "Snapshot locked."));
+            journalService,
+            userReq,
+            snapshotId,
+            IamResourceType.DATASNAPSHOT,
+            "Snapshot unlocked."));
     addStep(new SnapshotLockSetResponseStep(snapshotService, snapshotId));
   }
 }

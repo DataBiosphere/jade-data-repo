@@ -16,6 +16,7 @@ name: Verify consumer pacts
 # They are managed by Atlantis and were added to Terraform here:
 # https://github.com/broadinstitute/terraform-ap-deployments/pull/1255
 env:
+  PACTICIPANT: 'datarepo'
   RELEASE_BRANCHES: 'develop'
   TDR_LOG_APPENDER: 'Console-Standard'
   CAN_I_DEPLOY_RUN_NAME: 'can-i-deploy-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}'
@@ -239,6 +240,6 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN }} # github token for access to kick off a job in the private repo
           inputs: '{
             "run-name": "${{ env.CAN_I_DEPLOY_RUN_NAME }}",
-            "pacticipant": "datarepo",
+            "pacticipant": "${{ env.PACTICIPANT }}",
             "version": "${{ needs.verify-consumer-pact.outputs.provider-version }}"
           }'

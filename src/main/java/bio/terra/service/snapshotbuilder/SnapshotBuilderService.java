@@ -2,7 +2,10 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCountResponse;
+import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import java.util.List;
 import java.util.UUID;
@@ -33,5 +36,16 @@ public class SnapshotBuilderService {
                     .name("Stub concept")
                     .hasChildren(true)
                     .id(conceptId + 1)));
+  }
+
+  private int getRollupCount(UUID datasetId, List<SnapshotBuilderCohort> cohorts) {
+    return 100;
+  }
+
+  public SnapshotBuilderCountResponse getCountResponse(
+      UUID id, List<SnapshotBuilderCohort> cohorts) {
+    return new SnapshotBuilderCountResponse()
+        .sql("")
+        .result(new SnapshotBuilderCountResponseResult().total(getRollupCount(id, cohorts)));
   }
 }

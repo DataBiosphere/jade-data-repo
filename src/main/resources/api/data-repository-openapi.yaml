@@ -4403,6 +4403,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/snapshotBuilder/count:
+    post:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Given a list of snapshot builder cohorts, return the unique participant count for this dataset.
+      operationId: getSnapshotBuilderCount
+      parameters:
+        - in: path
+          description: The UUID of the dataset.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: The cohorts to count participants in
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotBuilderCountRequest'
+        required: true
+      responses:
+        200:
+          description: The concepts with the specified concept as their parent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderCountResponse'
+        401:
+          description: Unauthorized - missing permissions to compute count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to compute count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No dataset found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
 components:
   schemas:
     TableDataType:
@@ -6913,6 +6967,26 @@ components:
           type: string
 
     SnapshotAccessRequest:
+    SnapshotBuilderCountRequest:
+      type: object
+      properties:
+        cohorts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderCohort'
+
+    SnapshotBuilderCountResponse:
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            total:
+              type: integer
+        sql:
+          type: string
+
+    SnapshotBuilderAccessRequest:
       type: object
       properties:
         name:
@@ -6975,6 +7049,7 @@ components:
       properties:
         kind:
           type: string
+          enum: [ list, range, domain ]
         name:
           type: string
         id:

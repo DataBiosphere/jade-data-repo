@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -140,7 +141,11 @@ public class SnapshotRequestDao {
             .addValue(requestResearchPurposeField, request.getResearchPurposeStatement())
             .addValue(snapshotBuilderRequestField, jsonValue)
             .addValue(userEmailField, email);
-    jdbcTemplate.update(sql, params, keyHolder);
+    try {
+      jdbcTemplate.update(sql, params, keyHolder);
+    } catch (DataIntegrityViolationException ex) {
+      throw new NotFoundException("Dataset with given dataset id does not exist.");
+    }
     UUID id = keyHolder.getId();
     return getById(id);
   }

@@ -7,7 +7,7 @@ databaseChangeLog:
             tableName: snapshot_requests
             columns:
               - column:
-                  name: request_id
+                  name: id
                   type: ${uuid_type}
                   defaultValueComputed: ${uuid_function}
                   constraints:
@@ -18,7 +18,6 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    unique: true
                     foreignKeyName: fk_dataset_snapshot_requests
                     references: dataset(id)
                     deleteCascade: true

@@ -6935,7 +6935,7 @@ components:
       type: object
       description: the response object for a submitted SnapshotBuilderAccessRequest
       required:
-        - requestId
+        - id
         - datasetId
         - requestName
         - requestResearchPurpose
@@ -6944,7 +6944,7 @@ components:
         - createDate
         - status
       properties:
-        requestId:
+        id:
           type: string
           format: uuid
         datasetId:

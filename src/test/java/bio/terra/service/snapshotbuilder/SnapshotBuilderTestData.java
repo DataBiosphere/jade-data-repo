@@ -150,7 +150,7 @@ public class SnapshotBuilderTestData {
           .datasetRequest(BUILDER_REQUEST);
   public static final SnapshotAccessRequestResponse RESPONSE =
       new SnapshotAccessRequestResponse()
-          .requestId(UUID.randomUUID())
+          .id(UUID.randomUUID())
           .datasetId(UUID.randomUUID())
           .request(SnapshotBuilderTestData.BUILDER_REQUEST)
           .createDate("date")

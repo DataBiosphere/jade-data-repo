@@ -5,13 +5,18 @@ import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotBuilderRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -23,16 +28,57 @@ import org.springframework.transaction.annotation.Transactional;
 public class SnapshotRequestDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final String requestIdField = "request_id";
+  private static final SnapshotAccessRequestResponseMapper responseMapper =
+      new SnapshotAccessRequestResponseMapper();
+  private static final String requestIdField = "id";
   private static final String datasetIdField = "dataset_id";
   private static final String requestNameField = "request_name";
   private static final String requestResearchPurposeField = "request_research_purpose";
   private static final String snapshotBuilderRequestField = "snapshot_builder_request";
   private static final String userEmailField = "user_email";
+  private static final String createDateField = "create_date";
+  private static final String updateDateField = "update_date";
+  private static final String statusField = "status";
 
   @Autowired
   public SnapshotRequestDao(NamedParameterJdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
+  }
+
+  private static class SnapshotAccessRequestResponseMapper
+      implements RowMapper<SnapshotAccessRequestResponse> {
+    public SnapshotAccessRequestResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return new SnapshotAccessRequestResponse()
+          .id(rs.getObject(requestIdField, UUID.class))
+          .datasetId(rs.getObject(datasetIdField, UUID.class))
+          .requestName(rs.getString(requestNameField))
+          .requestResearchPurpose(rs.getString(requestResearchPurposeField))
+          .request(mapRequestFromJson(rs.getString(snapshotBuilderRequestField)))
+          .createDate(getInstantString(rs, createDateField))
+          .updateDate(getInstantString(rs, updateDateField))
+          .userEmail(rs.getString(userEmailField))
+          .status(SnapshotAccessRequestResponse.StatusEnum.valueOf(rs.getString(statusField)));
+    }
+
+    private String getInstantString(ResultSet rs, String columnLabel) throws SQLException {
+      Timestamp timestamp = rs.getTimestamp(columnLabel);
+      if (timestamp != null) {
+        return timestamp.toInstant().toString();
+      }
+      return null;
+    }
+
+    private static SnapshotBuilderRequest mapRequestFromJson(String json) {
+      if (Objects.nonNull(json)) {
+        try {
+          return objectMapper.readValue(json, SnapshotBuilderRequest.class);
+        } catch (JsonProcessingException e) {
+          throw new RuntimeException("Could not read SnapshotBuilderRequest from json.");
+        }
+      } else {
+        return new SnapshotBuilderRequest();
+      }
+    }
   }
 
   /**
@@ -43,12 +89,11 @@ public class SnapshotRequestDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public SnapshotAccessRequestResponse getById(UUID requestId) {
+    String sql = "SELECT * FROM snapshot_requests WHERE id = :id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue(requestIdField, requestId);
     try {
 
-      return jdbcTemplate.queryForObject(
-          "SELECT * FROM snapshot_requests WHERE request_id = :request_id",
-          Map.of(requestIdField, requestId),
-          SnapshotAccessRequestResponse.class);
+      return jdbcTemplate.queryForObject(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot access requests found for given id", ex);
     }
@@ -63,12 +108,10 @@ public class SnapshotRequestDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerateByDatasetId(UUID datasetId) {
+    String sql = "SELECT * FROM snapshot_requests WHERE dataset_id = :dataset_id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue(datasetIdField, datasetId);
     try {
-
-      return jdbcTemplate.queryForList(
-          "SELECT * FROM snapshot_requests WHERE dataset_id = :dataset_id",
-          Map.of(datasetIdField, datasetId),
-          SnapshotAccessRequestResponse.class);
+      return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No dataset found for given id", ex);
     }
@@ -104,10 +147,10 @@ public class SnapshotRequestDao {
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void delete(UUID requestId) {
+    String sql = "DELETE FROM snapshot_requests WHERE id = :id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue(requestIdField, requestId);
     try {
-      jdbcTemplate.update(
-          "DELETE FROM snapshot_requests WHERE request_id = :request_id",
-          Map.of(requestIdField, requestId));
+      jdbcTemplate.update(sql, params);
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot request found for given id", ex);
     }

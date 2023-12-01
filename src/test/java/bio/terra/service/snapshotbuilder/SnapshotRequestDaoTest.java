@@ -61,8 +61,6 @@ class SnapshotRequestDaoTest {
     projectResource.id(projectId);
 
     dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectId);
-    snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
-        dataset.getId(), SnapshotBuilderTestData.SETTINGS);
 
     snapshotAccessRequest = SnapshotBuilderTestData.ACCESS_REQUEST;
     email = "user@gmail.com";
@@ -73,7 +71,7 @@ class SnapshotRequestDaoTest {
   void getById() {
     assertThat(
         "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.getById(response.getRequestId()),
+        snapshotRequestDao.getById(response.getId()),
         equalTo(response));
   }
 
@@ -101,8 +99,8 @@ class SnapshotRequestDaoTest {
     SnapshotAccessRequestResponse response1 =
         snapshotRequestDao.create(dataset.getId(), snapshotAccessRequest, email);
     Assertions.assertNotEquals(
-        response1.getRequestId(),
-        response.getRequestId(),
+        response1.getId(),
+        response.getId(),
         "Snapshot Access Request Response should have unique request id");
     Assertions.assertNotEquals(
         response1.getCreateDate(),
@@ -145,16 +143,15 @@ class SnapshotRequestDaoTest {
   void delete() {
     assertThat(
         "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.getById(response.getRequestId()),
+        snapshotRequestDao.getById(response.getId()),
         equalTo(response));
-    snapshotRequestDao.delete(response.getRequestId());
-    assertThrows(
-        NotFoundException.class, () -> snapshotRequestDao.getById(response.getRequestId()));
+    snapshotRequestDao.delete(response.getId());
+    assertThrows(NotFoundException.class, () -> snapshotRequestDao.getById(response.getId()));
   }
 
   @Test
   void deleteNotFound() {
-    snapshotRequestDao.delete(response.getRequestId());
-    assertThrows(NotFoundException.class, () -> snapshotRequestDao.delete(UUID.randomUUID()));
+    snapshotRequestDao.delete(response.getId());
+    assertThrows(NotFoundException.class, () -> snapshotRequestDao.delete(response.getId()));
   }
 }

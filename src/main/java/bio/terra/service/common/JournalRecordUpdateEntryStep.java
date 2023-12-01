@@ -16,7 +16,23 @@ public class JournalRecordUpdateEntryStep implements Step {
   private final AuthenticatedUserRequest userReq;
   private final UUID resourceKey;
   private final IamResourceType resourceType;
-  private final String note;
+  private String note;
+  private Boolean includeFlightIdInNote = false;
+
+  public JournalRecordUpdateEntryStep(
+      JournalService journalService,
+      AuthenticatedUserRequest userRequest,
+      UUID resourceKey,
+      IamResourceType resourceType,
+      String note,
+      Boolean includeFlightIdInNote) {
+    this.journalService = journalService;
+    this.userReq = userRequest;
+    this.resourceKey = resourceKey;
+    this.resourceType = resourceType;
+    this.note = note;
+    this.includeFlightIdInNote = includeFlightIdInNote;
+  }
 
   public JournalRecordUpdateEntryStep(
       JournalService journalService,
@@ -33,6 +49,9 @@ public class JournalRecordUpdateEntryStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    if (includeFlightIdInNote) {
+      note = note + " (job id = " + context.getFlightId() + ")";
+    }
     journalService.recordUpdate(
         userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();

@@ -498,7 +498,8 @@ class DatasetsApiControllerTest {
   void unlockDataset() throws Exception {
     var lockId = "lockId";
     var fakeFlightId = "fakeFlightId";
-    when(datasetService.manualUnlock(TEST_USER, DATASET_ID, lockId)).thenReturn(fakeFlightId);
+    when(datasetService.manualExclusiveUnlock(TEST_USER, DATASET_ID, lockId))
+        .thenReturn(fakeFlightId);
     when(jobService.retrieveJob(fakeFlightId, TEST_USER))
         .thenReturn(new JobModel().id(fakeFlightId));
     mockValidators();
@@ -507,6 +508,6 @@ class DatasetsApiControllerTest {
         .andExpect(status().is2xxSuccessful())
         .andReturn();
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
-    verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, lockId);
+    verify(datasetService).manualExclusiveUnlock(TEST_USER, DATASET_ID, lockId);
   }
 }

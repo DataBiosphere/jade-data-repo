@@ -241,7 +241,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.UNLOCK_RESOURCE);
-    String jobId = datasetService.manualUnlock(userRequest, id, lockName);
+    String jobId = datasetService.manualExclusiveUnlock(userRequest, id, lockName);
     return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }
 

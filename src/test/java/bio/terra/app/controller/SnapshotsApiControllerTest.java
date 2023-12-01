@@ -235,7 +235,8 @@ class SnapshotsApiControllerTest {
   void unlockSnapshot() throws Exception {
     var lockId = "lockId";
     var fakeFlightId = "fakeFlightId";
-    when(snapshotService.manualUnlock(TEST_USER, SNAPSHOT_ID, lockId)).thenReturn(fakeFlightId);
+    when(snapshotService.manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, lockId))
+        .thenReturn(fakeFlightId);
     when(jobService.retrieveJob(fakeFlightId, TEST_USER))
         .thenReturn(new JobModel().id(fakeFlightId));
     mockValidators();
@@ -244,7 +245,7 @@ class SnapshotsApiControllerTest {
         .andExpect(status().is2xxSuccessful())
         .andReturn();
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
-    verify(snapshotService).manualUnlock(TEST_USER, SNAPSHOT_ID, lockId);
+    verify(snapshotService).manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, lockId);
   }
 
   /** Verify that snapshot authorization was checked. */

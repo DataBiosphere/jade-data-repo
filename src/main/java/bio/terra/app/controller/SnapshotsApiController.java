@@ -247,7 +247,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UNLOCK_RESOURCE);
-    String jobId = snapshotService.manualUnlock(userRequest, id, lockName);
+    String jobId = snapshotService.manualExclusiveUnlock(userRequest, id, lockName);
     return jobToResponse(jobService.retrieveJob(jobId, userRequest));
   }
 

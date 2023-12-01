@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_requests
+      author: rjohanek
+      changes:
+        - createTable:
+            tableName: snapshot_requests
+            columns:
+              - column:
+                  name: request_id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    unique: true
+                    foreignKeyName: fk_dataset_snapshot_requests
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: request_name
+                  type: string
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_research_purpose
+                  type: string
+                  constraints:
+                    nullable: false
+              - column:
+                  name: snapshot_builder_request
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_email
+                  type: string
+                  constraints:
+                    nullable: false
+              - column:
+                  name: create_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: update_date
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: string
+                  defaultValueComputed: 'SUBMITTED'
+                  constraints:
+                    nullable: false

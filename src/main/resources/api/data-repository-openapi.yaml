@@ -2796,14 +2796,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
+              $ref: '#/components/schemas/SnapshotAccessRequest'
       responses:
         200:
           description: The request has been made.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
         400:
           description: Bad request - invalid id, snapshotRequest, or badly formed IamResourceType.
           content:
@@ -6877,7 +6877,42 @@ components:
           items:
             type: string
 
-    SnapshotBuilderAccessRequest:
+    SnapshotAccessRequestResponse:
+      type: object
+      description: the response object for a submitted SnapshotBuilderAccessRequest
+      required:
+        - requestId
+        - datasetId
+        - requestName
+        - requestResearchPurpose
+        - snapshotBuilderRequest
+        - userEmail
+        - createDate
+        - status
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        datasetId:
+          type: string
+          format: uuid
+        requestName:
+          type: string
+        requestResearchPurpose:
+          type: string
+        request:
+          $ref: '#/components/schemas/SnapshotBuilderRequest'
+        userEmail:
+          type: string
+        status:
+          type: string
+          enum: [ SUBMITTED, APPROVED, REJECTED ]
+        createDate:
+          type: string
+        updateDate:
+          type: string
+
+    SnapshotAccessRequest:
       type: object
       properties:
         name:
@@ -6903,7 +6938,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
-      description: Specification of requested a snapshot, returned in SnapshotBuilderAccessRequest.
+      description: Specification of requested a snapshot, returned in SnapshotAccessRequest.
 
     SnapshotBuilderCohort:
       type: object

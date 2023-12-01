@@ -8,7 +8,6 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.lock.DatasetLockSetResponseStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.stairway.Flight;
@@ -41,6 +40,5 @@ public class DatasetUnlockFlight extends Flight {
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService, userReq, datasetId, IamResourceType.DATASET, "Dataset unlocked."));
-    addStep(new DatasetLockSetResponseStep(datasetService, datasetId));
   }
 }

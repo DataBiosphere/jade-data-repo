@@ -43,13 +43,7 @@ class SnapshotLockFlightTest {
         flight.getSteps().stream()
             .map(step -> step.getClass().getSimpleName())
             .collect(Collectors.toList());
-    assertThat(
-        steps,
-        CoreMatchers.is(
-            List.of(
-                "LockSnapshotStep",
-                "JournalRecordUpdateEntryStep",
-                "SnapshotLockSetResponseStep")));
+    assertThat(steps, CoreMatchers.is(List.of("LockSnapshotStep", "JournalRecordUpdateEntryStep")));
   }
 
   @Test

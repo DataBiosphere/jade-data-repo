@@ -18,6 +18,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -234,21 +235,19 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> lockSnapshot(UUID id) {
+  public ResponseEntity<ResourceLocks> lockSnapshot(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.LOCK_RESOURCE);
-    String jobId = snapshotService.manualExclusiveLock(userRequest, id);
-    return jobToResponse(jobService.retrieveJob(jobId, userRequest));
+    return ResponseEntity.ok(snapshotService.manualExclusiveLock(userRequest, id));
   }
 
   @Override
-  public ResponseEntity<JobModel> unlockSnapshot(UUID id, String lockName) {
+  public ResponseEntity<ResourceLocks> unlockSnapshot(UUID id, String lockName) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UNLOCK_RESOURCE);
-    String jobId = snapshotService.manualExclusiveUnlock(userRequest, id, lockName);
-    return jobToResponse(jobService.retrieveJob(jobId, userRequest));
+    return ResponseEntity.ok(snapshotService.manualExclusiveUnlock(userRequest, id, lockName));
   }
 
   @Override

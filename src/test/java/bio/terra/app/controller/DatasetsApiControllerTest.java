@@ -27,9 +27,9 @@ import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
-import bio.terra.model.JobModel;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -481,10 +481,8 @@ class DatasetsApiControllerTest {
 
   @Test
   void lockDataset() throws Exception {
-    var fakeFlightId = "fakeFlightId";
-    when(datasetService.manualExclusiveLock(TEST_USER, DATASET_ID)).thenReturn(fakeFlightId);
-    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
-        .thenReturn(new JobModel().id(fakeFlightId));
+    var resourceLocks = new ResourceLocks();
+    when(datasetService.manualExclusiveLock(TEST_USER, DATASET_ID)).thenReturn(resourceLocks);
     mockValidators();
 
     mvc.perform(put(LOCK_DATASET_ENDPOINT, DATASET_ID))
@@ -497,11 +495,9 @@ class DatasetsApiControllerTest {
   @Test
   void unlockDataset() throws Exception {
     var lockId = "lockId";
-    var fakeFlightId = "fakeFlightId";
+    var resourceLocks = new ResourceLocks().exclusive(lockId);
     when(datasetService.manualExclusiveUnlock(TEST_USER, DATASET_ID, lockId))
-        .thenReturn(fakeFlightId);
-    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
-        .thenReturn(new JobModel().id(fakeFlightId));
+        .thenReturn(resourceLocks);
     mockValidators();
 
     mvc.perform(put(UNLOCK_DATASET_ENDPOINT, DATASET_ID).queryParam("lockName", lockId))

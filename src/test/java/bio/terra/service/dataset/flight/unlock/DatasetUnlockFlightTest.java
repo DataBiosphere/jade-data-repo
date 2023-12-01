@@ -47,12 +47,7 @@ class DatasetUnlockFlightTest {
             .map(step -> step.getClass().getSimpleName())
             .collect(Collectors.toList());
     assertThat(
-        steps,
-        CoreMatchers.is(
-            List.of(
-                "UnlockDatasetStep",
-                "JournalRecordUpdateEntryStep",
-                "DatasetLockSetResponseStep")));
+        steps, CoreMatchers.is(List.of("UnlockDatasetStep", "JournalRecordUpdateEntryStep")));
   }
 
   @Test

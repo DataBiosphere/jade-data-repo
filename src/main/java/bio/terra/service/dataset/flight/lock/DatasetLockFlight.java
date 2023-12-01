@@ -39,6 +39,5 @@ public class DatasetLockFlight extends Flight {
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService, userReq, datasetId, IamResourceType.DATASET, "Dataset locked", true));
-    addStep(new DatasetLockSetResponseStep(datasetService, datasetId));
   }
 }

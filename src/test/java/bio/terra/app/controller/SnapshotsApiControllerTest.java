@@ -21,6 +21,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.JobModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
@@ -217,10 +218,9 @@ class SnapshotsApiControllerTest {
 
   @Test
   void lockSnapshot() throws Exception {
-    var fakeFlightId = "fakeFlightId";
-    when(snapshotService.manualExclusiveLock(TEST_USER, SNAPSHOT_ID)).thenReturn(fakeFlightId);
-    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
-        .thenReturn(new JobModel().id(fakeFlightId));
+    var lockId = "lockId";
+    var resourceLocks = new ResourceLocks().exclusive(lockId);
+    when(snapshotService.manualExclusiveLock(TEST_USER, SNAPSHOT_ID)).thenReturn(resourceLocks);
     mockValidators();
 
     mvc.perform(put(LOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID))
@@ -233,11 +233,9 @@ class SnapshotsApiControllerTest {
   @Test
   void unlockSnapshot() throws Exception {
     var lockId = "lockId";
-    var fakeFlightId = "fakeFlightId";
+    var resourceLocks = new ResourceLocks();
     when(snapshotService.manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, lockId))
-        .thenReturn(fakeFlightId);
-    when(jobService.retrieveJob(fakeFlightId, TEST_USER))
-        .thenReturn(new JobModel().id(fakeFlightId));
+        .thenReturn(resourceLocks);
     mockValidators();
 
     mvc.perform(put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("lockName", lockId))

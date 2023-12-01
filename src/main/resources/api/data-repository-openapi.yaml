@@ -602,27 +602,13 @@ paths:
         - $ref: '#/components/parameters/Id'
       responses:
         200:
-          description: Redirect for lock successful creation
-          headers:
-            location:
-              description: url for the job result
-              schema:
-                type: string
+          description: >
+            Lock successful. ResourceLocks object is returned with the locking job id as the
+            exclusive lock value, showing that there is an exclusive lock this resource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobModel'
-        202:
-          description: Job status of snapshot lock job & url for polling in the response header
-          headers:
-            location:
-              description: url for the job polling
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobModel'
+                $ref: '#/components/schemas/ResourceLocks'
         400:
           description: Bad request - malformed snapshot Id.
           content:
@@ -674,27 +660,13 @@ paths:
             type: string
       responses:
         200:
-          description: Redirect for unlock complete
-          headers:
-            location:
-              description: url for the job result
-              schema:
-                type: string
+          description: >
+            Unlock successful. ResourceLocks object is returned with a "null" value
+            showing that there is no longer an exclusive lock on this resource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobModel'
-        202:
-          description: Job status of unlock snapshot job & url for polling in the response header
-          headers:
-            location:
-              description: url for the job polling
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobModel'
+                $ref: '#/components/schemas/ResourceLocks'
         400:
           description: Bad request - malformed snapshot Id or lock name.
           content:
@@ -2070,28 +2042,13 @@ paths:
         - $ref: '#/components/parameters/Id'
       responses:
         200:
-          description: Redirect for dataset lock
-          headers:
-            location:
-              description: url for the job result
-              schema:
-                type: string
+          description: >
+            Lock successful. ResourceLocks object is returned with the locking job id as the
+            exclusive lock value, showing that there is an exclusive lock this resource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobModel'
-        202:
-          description: Job status of dataset lock job & url for polling in the response
-            header
-          headers:
-            location:
-              description: url for the job polling
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobModel'
+                $ref: '#/components/schemas/ResourceLocks'
         400:
           description: Bad request - malformed dataset Id.
           content:
@@ -2142,27 +2099,13 @@ paths:
             type: string
       responses:
         200:
-          description: Redirect for dataset unlock
-          headers:
-            location:
-              description: url for the job result
-              schema:
-                type: string
+          description: >
+            Unlock successful. ResourceLocks object is returned with a "null" value
+            showing that there is no longer an exclusive lock on this resource.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobModel'
-        202:
-          description: Job status of dataset unlock job & url for polling in the response header
-          headers:
-            location:
-              description: url for the job polling
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobModel'
+                $ref: '#/components/schemas/ResourceLocks'
         400:
           description: Bad request - malformed dataset Id.
           content:

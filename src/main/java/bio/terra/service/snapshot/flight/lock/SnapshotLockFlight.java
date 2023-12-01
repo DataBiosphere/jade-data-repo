@@ -22,7 +22,6 @@ public class SnapshotLockFlight extends Flight {
     super(inputParameters, applicationContext);
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     JournalService journalService = appContext.getBean(JournalService.class);
 
@@ -46,6 +45,5 @@ public class SnapshotLockFlight extends Flight {
             IamResourceType.DATASNAPSHOT,
             "Snapshot locked",
             true));
-    addStep(new SnapshotLockSetResponseStep(snapshotService, snapshotId));
   }
 }

@@ -18,6 +18,11 @@ on:
         default: true
         required: false
         type: string
+      release-branches:
+        description: "Default branch (main, develop, etc)"
+        default: 'main'
+        required: false
+        type: string
     outputs:
       tag:
         description: "The value of the latest tag after running this action"
@@ -54,7 +59,7 @@ jobs:
           HOTFIX_BRANCHES: hotfix.*
           DEFAULT_BUMP: minor
           DRY_RUN: ${{ inputs.dry-run }}
-          RELEASE_BRANCHES: develop
+          RELEASE_BRANCHES: ${{ inputs.release-branches }}
           VERSION_FILE_PATH: build.gradle
           VERSION_LINE_MATCH: "^\\s*version\\s+'.*'"
           VERSION_SUFFIX: SNAPSHOT

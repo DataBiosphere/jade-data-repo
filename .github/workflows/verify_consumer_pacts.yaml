@@ -101,7 +101,7 @@ jobs:
       # The 'dry-run' parameter prevents the new tag from being dispatched.
       # We only need to dispatch a tag once if this is a PR merge.
       dry-run: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-      release-branches: ${{ env.RELEASE_BRANCHES }}
+      release-branches: develop
     secrets: inherit
 
   verify-consumer-pact:

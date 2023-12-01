@@ -47,7 +47,7 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN }} # this allows the push to succeed later
       - name: Bump the tag to a new version
         # https://github.com/DataBiosphere/github-actions/tree/master/actions/bumper
-        uses: databiosphere/github-actions/actions/bumper@bumper-0.0.6
+        uses: databiosphere/github-actions/actions/bumper@bumper-0.1.0
         id: tag
         env:
           GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}

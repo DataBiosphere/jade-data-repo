@@ -29,6 +29,7 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
@@ -633,11 +634,11 @@ public class DatasetService {
     }
   }
 
-  public String manualExclusiveLock(AuthenticatedUserRequest userReq, UUID datasetId) {
+  public ResourceLocks manualExclusiveLock(AuthenticatedUserRequest userReq, UUID datasetId) {
     return jobService
         .newJob("Create manual exclusive lock on dataset.", DatasetLockFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
-        .submit();
+        .submitAndWait(ResourceLocks.class);
   }
 
   public void lock(UUID datasetId, String flightId, boolean sharedLock) {
@@ -648,12 +649,12 @@ public class DatasetService {
     }
   }
 
-  public String manualExclusiveUnlock(
+  public ResourceLocks manualExclusiveUnlock(
       AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
     return jobService
         .newJob("Remove exclusive lock on dataset.", DatasetUnlockFlight.class, lockName, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
-        .submit();
+        .submitAndWait(ResourceLocks.class);
   }
 
   public void unlock(UUID datasetId, String flightId, boolean sharedLock) {

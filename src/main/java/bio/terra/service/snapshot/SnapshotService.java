@@ -28,6 +28,7 @@ import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -1202,19 +1203,19 @@ public class SnapshotService {
         .toList();
   }
 
-  public String manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
+  public ResourceLocks manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
     return jobService
         .newJob(
             "Create manual exclusive lock on a snapshot.", SnapshotLockFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
-        .submit();
+        .submitAndWait(ResourceLocks.class);
   }
 
-  public String manualExclusiveUnlock(
+  public ResourceLocks manualExclusiveUnlock(
       AuthenticatedUserRequest userReq, UUID snapshotId, String lockName) {
     return jobService
         .newJob("Remove lock from Snapshot", SnapshotUnlockFlight.class, lockName, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
-        .submit();
+        .submitAndWait(ResourceLocks.class);
   }
 }

@@ -43,11 +43,7 @@ class DatasetLockFlightTest {
         flight.getSteps().stream()
             .map(step -> step.getClass().getSimpleName())
             .collect(Collectors.toList());
-    assertThat(
-        steps,
-        CoreMatchers.is(
-            List.of(
-                "LockDatasetStep", "JournalRecordUpdateEntryStep", "DatasetLockSetResponseStep")));
+    assertThat(steps, CoreMatchers.is(List.of("LockDatasetStep", "JournalRecordUpdateEntryStep")));
   }
 
   @Test

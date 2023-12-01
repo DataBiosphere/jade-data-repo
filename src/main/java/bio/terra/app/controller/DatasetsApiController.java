@@ -37,6 +37,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotBuilderAccessRequest;
 import bio.terra.model.SnapshotBuilderCountRequest;
@@ -227,21 +228,19 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<JobModel> lockDataset(UUID id) {
+  public ResponseEntity<ResourceLocks> lockDataset(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.LOCK_RESOURCE);
-    String jobId = datasetService.manualExclusiveLock(userRequest, id);
-    return jobToResponse(jobService.retrieveJob(jobId, userRequest));
+    return ResponseEntity.ok(datasetService.manualExclusiveLock(userRequest, id));
   }
 
   @Override
-  public ResponseEntity<JobModel> unlockDataset(UUID id, String lockName) {
+  public ResponseEntity<ResourceLocks> unlockDataset(UUID id, String lockName) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.UNLOCK_RESOURCE);
-    String jobId = datasetService.manualExclusiveUnlock(userRequest, id, lockName);
-    return jobToResponse(jobService.retrieveJob(jobId, userRequest));
+    return ResponseEntity.ok(datasetService.manualExclusiveUnlock(userRequest, id, lockName));
   }
 
   @Override

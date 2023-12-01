@@ -6966,7 +6966,6 @@ components:
         updateDate:
           type: string
 
-    SnapshotAccessRequest:
     SnapshotBuilderCountRequest:
       type: object
       properties:
@@ -6986,7 +6985,7 @@ components:
         sql:
           type: string
 
-    SnapshotBuilderAccessRequest:
+    SnapshotAccessRequest:
       type: object
       properties:
         name:

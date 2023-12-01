@@ -333,22 +333,6 @@ class DatasetsApiControllerTest {
     SnapshotAccessRequestResponse response = SnapshotBuilderTestData.RESPONSE;
     when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(expected), anyString()))
         .thenReturn(response);
-    SnapshotAccessRequest expected =
-        new SnapshotAccessRequest()
-            .name("name")
-            .researchPurposeStatement("purpose")
-            .datasetRequest(
-                new SnapshotBuilderRequest()
-                    .addCohortsItem(createTestCohort())
-                    .addConceptSetsItem(
-                        new SnapshotBuilderDatasetConceptSet()
-                            .name("conceptSet")
-                            .featureValueGroupName("featureValueGroupName"))
-                    .addValueSetsItem(
-                        new SnapshotBuilderFeatureValueGroup()
-                            .name("valueGroup")
-                            .addValuesItem("value")));
-    when(snapshotBuilderService.createSnapshotRequest(DATASET_ID, expected)).thenReturn(expected);
     String actualJson =
         mvc.perform(
                 post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
@@ -362,20 +346,6 @@ class DatasetsApiControllerTest {
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
     assertThat("The method returned the expected request", actual, equalTo(response));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-  }
-  private static SnapshotBuilderCohort createTestCohort() {
-    return new SnapshotBuilderCohort()
-        .name("cohort")
-        .addCriteriaGroupsItem(
-            new SnapshotBuilderCriteriaGroup()
-                .addCriteriaItem(
-                    new SnapshotBuilderProgramDataListCriteria()
-                        .kind(SnapshotBuilderCriteria.KindEnum.LIST))
-                .addCriteriaItem(
-                    new SnapshotBuilderCriteria().kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
-                .addCriteriaItem(
-                    new SnapshotBuilderProgramDataRangeCriteria()
-                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
   }
 
   @Test
@@ -407,7 +377,7 @@ class DatasetsApiControllerTest {
   @Test
   void getSnapshotBuilderCount() throws Exception {
     mockValidators();
-    var cohorts = List.of(createTestCohort());
+    var cohorts = List.of(SnapshotBuilderTestData.COHORT);
     int count = 1234;
     when(snapshotBuilderService.getCountResponse(DATASET_ID, cohorts))
         .thenReturn(

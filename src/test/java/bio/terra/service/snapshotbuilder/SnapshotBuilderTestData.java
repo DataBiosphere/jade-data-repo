@@ -119,22 +119,28 @@ public class SnapshotBuilderTestData {
                               new Column().name("gender_identity").type(TableDataType.INTEGER),
                               new Column().name("ethnicity").type(TableDataType.INTEGER),
                               new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
-
-public static final SnapshotBuilderRequest BUILDER_REQUEST = new SnapshotBuilderRequest()
-    .addCohortsItem(new SnapshotBuilderCohort()
+  public static final SnapshotBuilderCohort COHORT = new SnapshotBuilderCohort()
         .name("cohort")
         .addCriteriaGroupsItem(
             new SnapshotBuilderCriteriaGroup()
-                .addCriteriaItem(new SnapshotBuilderProgramDataListCriteria().kind("list"))
-                .addCriteriaItem(new SnapshotBuilderCriteria().kind("domain"))
-                .addCriteriaItem(new SnapshotBuilderProgramDataRangeCriteria().kind("range"))))
-    .addConceptSetsItem(new SnapshotBuilderDatasetConceptSet()
-                          .name("conceptSet")
-                          .featureValueGroupName("featureValueGroupName"))
-    .addValueSetsItem(
-                      new SnapshotBuilderFeatureValueGroup()
-                          .name("valueGroup")
-                          .addValuesItem("value"));
+                .addCriteriaItem(
+                    new SnapshotBuilderProgramDataListCriteria()
+                        .kind(SnapshotBuilderCriteria.KindEnum.LIST))
+                .addCriteriaItem(
+                    new SnapshotBuilderCriteria().kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
+                .addCriteriaItem(
+                    new SnapshotBuilderProgramDataRangeCriteria()
+                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
+
+  public static final SnapshotBuilderRequest BUILDER_REQUEST = new SnapshotBuilderRequest()
+      .addCohortsItem(COHORT)
+      .addConceptSetsItem(new SnapshotBuilderDatasetConceptSet()
+          .name("conceptSet")
+          .featureValueGroupName("featureValueGroupName"))
+      .addValueSetsItem(
+          new SnapshotBuilderFeatureValueGroup()
+              .name("valueGroup")
+              .addValuesItem("value"));
 
   public static final SnapshotAccessRequest ACCESS_REQUEST =
       new SnapshotAccessRequest()

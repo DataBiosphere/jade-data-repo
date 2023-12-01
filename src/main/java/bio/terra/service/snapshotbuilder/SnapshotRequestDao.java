@@ -50,7 +50,7 @@ public class SnapshotRequestDao {
           Map.of(requestIdField, requestId),
           SnapshotAccessRequestResponse.class);
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot builder settings found for dataset", ex);
+      throw new NotFoundException("No snapshot access requests found for given id", ex);
     }
   }
 
@@ -70,7 +70,7 @@ public class SnapshotRequestDao {
           Map.of(datasetIdField, datasetId),
           SnapshotAccessRequestResponse.class);
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot builder settings found for dataset", ex);
+      throw new NotFoundException("No dataset found for given id", ex);
     }
   }
 
@@ -87,8 +87,8 @@ public class SnapshotRequestDao {
     String sql =
         """
         INSERT INTO snapshot_requests
-        (dataset_id, request_name, request_research_purpose, snapshot_builder_request, request, user_email)
-        VALUES (:dataset_id, :request_name, request_research_purpose, cast(:snapshot_builder_request as jsonb), :user_email)
+        (dataset_id, request_name, request_research_purpose, snapshot_builder_request, user_email)
+        VALUES (:dataset_id, :request_name, :request_research_purpose, cast(:snapshot_builder_request as jsonb), :user_email)
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()

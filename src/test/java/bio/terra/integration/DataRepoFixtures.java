@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.CloudRegion;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -1056,7 +1057,9 @@ public class DataRepoFixtures {
     request.setLimit(Objects.requireNonNullElse(limit, 10));
     request.filter(Objects.requireNonNullElse(filter, ""));
     request.sort(Objects.requireNonNullElse(sort, PDAO_ROW_ID_COLUMN));
-    request.setDirection(SqlSortDirectionAscDefault.valueOf(direction));
+    request.setDirection(
+        SqlSortDirectionAscDefault.valueOf(
+            Objects.requireNonNullElse(direction, SqlSortDirection.ASC.name())));
     return dataRepoClient.post(user, url, TestUtils.mapToJson(request), new TypeReference<>() {});
   }
 

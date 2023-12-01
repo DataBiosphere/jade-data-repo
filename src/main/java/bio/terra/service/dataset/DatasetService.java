@@ -648,7 +648,8 @@ public class DatasetService {
     }
   }
 
-  public String manualUnlock(AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
+  public String manualExclusiveUnlock(
+      AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
     return jobService
         .newJob("Remove exclusive lock on dataset.", DatasetUnlockFlight.class, lockName, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)

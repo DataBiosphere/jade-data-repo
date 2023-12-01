@@ -208,7 +208,6 @@ jobs:
       - name: Verify consumer pacts and publish verification status to Pact Broker
         id: verification-test
         env:
-          PACT_BROKER_URL: 'https://pact-broker.dsp-eng-tools.broadinstitute.org'
           PACT_PROVIDER_VERSION: ${{ env.PROVIDER_VERSION }}
           PACT_PROVIDER_BRANCH:  ${{ env.PROVIDER_BRANCH }}
           PACT_BROKER_USERNAME:  ${{ secrets.PACT_BROKER_USERNAME }}

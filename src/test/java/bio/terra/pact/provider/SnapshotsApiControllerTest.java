@@ -70,17 +70,13 @@ class SnapshotsApiControllerTest {
 
   @PactBrokerConsumerVersionSelectors
   public static SelectorBuilder consumerVersionSelectors() {
-    // Select consumer pacts published from default branch or pacts marked as deployed or released.
-    // If you wish to pick up Pacts from a consumer's feature branch for development purposes or PR
-    // runs, and your consumer is publishing such Pacts under their feature branch name, you can add
-    // the following to the SelectorBuilder:
-    //   .branch("consumer-feature-branch-name")
-    // New comments.
-    // The following match condition basically says
-    // If verification is triggered by Pact Broker webhook due to consumer pact change, verify only
-    // the changed pact.
-    // Otherwise, this is a PR, verify all consumer pacts in Pact Broker marked with a deployment
-    // tag (e.g. dev, alpha).
+    // If CONSUMER_BRANCH envvar is unset, choose consumer pacts from the default branch or those
+    // marked as deployed/released (e.g., dev, staging, production). This scenario covers PRs, merge
+    // commits, or local verification tests.
+
+    // If CONSUMER_BRANCH envvar is set (either locally or in the webhook payload), download the
+    // latest version of the pact from Pact Broker on the specified CONSUMER_BRANCH for
+    // verification.
     if (StringUtils.isBlank(CONSUMER_BRANCH)) {
       return new SelectorBuilder().mainBranch().deployedOrReleased();
     } else {

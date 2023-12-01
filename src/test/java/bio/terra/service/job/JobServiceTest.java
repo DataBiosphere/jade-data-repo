@@ -24,6 +24,9 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.exception.StairwayException;
+import java.sql.Date;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -110,6 +113,35 @@ public class JobServiceTest {
   }
 
   @Test
+  public void enumerateTooLongBackFilterTest() throws Exception {
+    List<JobModel> expectedJobs = new ArrayList<>();
+    int numVisibleJobs = 3;
+    for (int i = 0; i < numVisibleJobs; i++) {
+      String jobId = runFlight(makeDescription(i), makeFlightClass(i), testUser);
+      expectedJobs.add(
+          new JobModel()
+              .id(jobId)
+              .jobStatus(JobStatusEnum.SUCCEEDED)
+              .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+              .description(makeDescription(i))
+              .className(makeFlightClass(i).getName()));
+    }
+    assertThat(
+        "All jobs are returned",
+        jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
+        contains(getJobMatchers(expectedJobs)));
+
+    // Update the submission time of the first job to be a long time ago
+    updateJobSubmissionTime(
+        expectedJobs.get(0).getId(),
+        Instant.now().minus(JobService.DAYS_BACK_TO_QUERY + 1, ChronoUnit.DAYS));
+    assertThat(
+        "The first job is not returned anymore",
+        jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
+        contains(getJobMatchers(expectedJobs.subList(1, numVisibleJobs))));
+  }
+
+  @Test
   public void retrieveTest() throws Exception {
     // We perform 7 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
@@ -126,6 +158,7 @@ public class JobServiceTest {
               .description(makeDescription(i))
               .className(makeFlightClass(i).getName()));
     }
+    // Add a job a long time ago.  This job should not be returned by the enumeration.
 
     // Test single retrieval
     testSingleRetrieval(expectedJobs.get(2));
@@ -322,6 +355,30 @@ public class JobServiceTest {
 
   private Class<? extends Flight> makeFlightClass(int ii) {
     return ii % 2 == 0 ? JobServiceTestFlight.class : JobServiceTestFlightAlt.class;
+  }
+
+  /**
+   * There's not a way to set the submission time (which is reasonable) so we fake it by setting the
+   * submission time artificially
+   *
+   * @param jobId The job id to update
+   */
+  private void updateJobSubmissionTime(String jobId, Instant submitTime) {
+    logger.info("- Removing job {}", jobId);
+    NamedParameterJdbcTemplate jdbcTemplate =
+        new NamedParameterJdbcTemplate(stairwayJdbcConfiguration.getDataSource());
+
+    String sql = """
+update flight
+set submit_time=:submit_time
+where flightid=:id
+""";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("id", jobId)
+            .addValue("submit_time", Date.from(submitTime));
+    jdbcTemplate.update(sql, params);
   }
 
   /**

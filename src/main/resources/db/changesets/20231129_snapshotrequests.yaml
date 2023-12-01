@@ -24,12 +24,12 @@ databaseChangeLog:
                     deleteCascade: true
               - column:
                   name: request_name
-                  type: string
+                  type: text
                   constraints:
                     nullable: false
               - column:
                   name: request_research_purpose
-                  type: string
+                  type: text
                   constraints:
                     nullable: false
               - column:
@@ -39,7 +39,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: user_email
-                  type: string
+                  type: text
                   constraints:
                     nullable: false
               - column:
@@ -50,12 +50,12 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: update_date
-                  type: timestamp
+                  type: timestamptz
                   constraints:
                     nullable: true
               - column:
                   name: status
-                  type: string
-                  defaultValueComputed: 'SUBMITTED'
+                  type: text
+                  defaultValue: 'SUBMITTED'
                   constraints:
                     nullable: false

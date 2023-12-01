@@ -342,7 +342,7 @@ class DatasetsApiControllerTest {
             .getContentAsString();
     SnapshotAccessRequestResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
-    assertThat("The method returned the expected request", actual, equalTo(response));
+    assertThat("The method returned the expected response", actual, equalTo(response));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
   }
 

@@ -62,8 +62,7 @@ public class SnapshotRequestDao {
    *     exist.
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-  public List<SnapshotAccessRequestResponse> enumerateByDatasetId(
-      UUID datasetId) {
+  public List<SnapshotAccessRequestResponse> enumerateByDatasetId(UUID datasetId) {
     try {
 
       return jdbcTemplate.queryForList(
@@ -74,7 +73,6 @@ public class SnapshotRequestDao {
       throw new NotFoundException("No snapshot builder settings found for dataset", ex);
     }
   }
-
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public SnapshotAccessRequestResponse create(
@@ -99,7 +97,7 @@ public class SnapshotRequestDao {
             .addValue(requestResearchPurposeField, request.getResearchPurposeStatement())
             .addValue(snapshotBuilderRequestField, jsonValue)
             .addValue(userEmailField, email);
-    jdbcTemplate.update(sql,params, keyHolder);
+    jdbcTemplate.update(sql, params, keyHolder);
     UUID id = keyHolder.getId();
     return getById(id);
   }

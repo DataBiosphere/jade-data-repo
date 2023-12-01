@@ -20,8 +20,8 @@ class SnapshotBuilderServiceTest {
   void createSnapshotRequest() {
     UUID datasetId = UUID.randomUUID();
     String email = "user@gmail.com";
-    snapshotBuilderService.createSnapshotRequest(datasetId, SnapshotBuilderTestData.ACCESS_REQUEST, email);
-    verify(snapshotRequestDao)
-        .create(datasetId, SnapshotBuilderTestData.ACCESS_REQUEST, email);
+    snapshotBuilderService.createSnapshotRequest(
+        datasetId, SnapshotBuilderTestData.ACCESS_REQUEST, email);
+    verify(snapshotRequestDao).create(datasetId, SnapshotBuilderTestData.ACCESS_REQUEST, email);
   }
 }

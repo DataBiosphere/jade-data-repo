@@ -2,17 +2,26 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.Column;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteria;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataOption;
+import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
+import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
 import java.util.List;
+import java.util.UUID;
 
 public class SnapshotBuilderTestData {
   public static final SnapshotBuilderSettings SETTINGS =
@@ -110,4 +119,33 @@ public class SnapshotBuilderTestData {
                               new Column().name("gender_identity").type(TableDataType.INTEGER),
                               new Column().name("ethnicity").type(TableDataType.INTEGER),
                               new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
+
+public static final SnapshotBuilderRequest BUILDER_REQUEST = new SnapshotBuilderRequest()
+    .addCohortsItem(new SnapshotBuilderCohort()
+        .name("cohort")
+        .addCriteriaGroupsItem(
+            new SnapshotBuilderCriteriaGroup()
+                .addCriteriaItem(new SnapshotBuilderProgramDataListCriteria().kind("list"))
+                .addCriteriaItem(new SnapshotBuilderCriteria().kind("domain"))
+                .addCriteriaItem(new SnapshotBuilderProgramDataRangeCriteria().kind("range"))))
+    .addConceptSetsItem(new SnapshotBuilderDatasetConceptSet()
+                          .name("conceptSet")
+                          .featureValueGroupName("featureValueGroupName"))
+    .addValueSetsItem(
+                      new SnapshotBuilderFeatureValueGroup()
+                          .name("valueGroup")
+                          .addValuesItem("value"));
+
+  public static final SnapshotAccessRequest ACCESS_REQUEST =
+      new SnapshotAccessRequest()
+          .name("name")
+          .researchPurposeStatement("purpose")
+          .datasetRequest(BUILDER_REQUEST);
+  public static final SnapshotAccessRequestResponse RESPONSE = new SnapshotAccessRequestResponse()
+    .requestId(UUID.fromString("requestId"))
+    .datasetId(UUID.fromString("datasetId"))
+    .request(SnapshotBuilderTestData.BUILDER_REQUEST)
+    .createDate("date")
+    .userEmail("user@gmail.com");
+
 }

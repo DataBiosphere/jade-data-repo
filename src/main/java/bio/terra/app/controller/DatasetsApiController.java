@@ -37,7 +37,8 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotBuilderAccessRequest;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirection;
@@ -514,8 +515,8 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotBuilderAccessRequest> createSnapshotRequest(
-      UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
+  public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotRequest(
+      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,
@@ -523,7 +524,8 @@ public class DatasetsApiController implements DatasetsApi {
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(id, snapshotAccessRequest));
+        snapshotBuilderService.createSnapshotRequest(
+            id, snapshotAccessRequest, userRequest.getEmail()));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

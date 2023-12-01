@@ -5,6 +5,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -25,17 +27,13 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
-import bio.terra.model.SnapshotBuilderAccessRequest;
-import bio.terra.model.SnapshotBuilderCohort;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
-import bio.terra.model.SnapshotBuilderCriteriaGroup;
-import bio.terra.model.SnapshotBuilderDatasetConceptSet;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
-import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -52,6 +50,7 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -318,32 +317,10 @@ public class DatasetsApiControllerTest {
   @Test
   void testCreateSnapshotRequest() throws Exception {
     mockValidators();
-    SnapshotBuilderAccessRequest expected =
-        new SnapshotBuilderAccessRequest()
-            .name("name")
-            .researchPurposeStatement("purpose")
-            .datasetRequest(
-                new SnapshotBuilderRequest()
-                    .addCohortsItem(
-                        new SnapshotBuilderCohort()
-                            .name("cohort")
-                            .addCriteriaGroupsItem(
-                                new SnapshotBuilderCriteriaGroup()
-                                    .addCriteriaItem(
-                                        new SnapshotBuilderProgramDataListCriteria().kind("list"))
-                                    .addCriteriaItem(new SnapshotBuilderCriteria().kind("domain"))
-                                    .addCriteriaItem(
-                                        new SnapshotBuilderProgramDataRangeCriteria()
-                                            .kind("range"))))
-                    .addConceptSetsItem(
-                        new SnapshotBuilderDatasetConceptSet()
-                            .name("conceptSet")
-                            .featureValueGroupName("featureValueGroupName"))
-                    .addValueSetsItem(
-                        new SnapshotBuilderFeatureValueGroup()
-                            .name("valueGroup")
-                            .addValuesItem("value")));
-    when(snapshotBuilderService.createSnapshotRequest(DATASET_ID, expected)).thenReturn(expected);
+    SnapshotAccessRequest expected = SnapshotBuilderTestData.ACCESS_REQUEST;
+    SnapshotAccessRequestResponse response = SnapshotBuilderTestData.RESPONSE;
+    when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(expected), anyString()))
+        .thenReturn(response);
     String actualJson =
         mvc.perform(
                 post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
@@ -353,9 +330,9 @@ public class DatasetsApiControllerTest {
             .andReturn()
             .getResponse()
             .getContentAsString();
-    SnapshotBuilderAccessRequest actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderAccessRequest.class);
-    assertThat("The method returned the expected request", actual, equalTo(expected));
+    SnapshotAccessRequestResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
+    assertThat("The method returned the expected request", actual, equalTo(response));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
   }
 

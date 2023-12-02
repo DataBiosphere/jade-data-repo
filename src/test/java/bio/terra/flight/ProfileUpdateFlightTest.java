@@ -1,15 +1,14 @@
 package bio.terra.flight;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.stairway.FlightMap;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -32,18 +31,14 @@ public class ProfileUpdateFlightTest {
     when(map.get(JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class))
         .thenReturn(profileMock);
     var flight = new ProfileUpdateFlight(map, context);
-    var steps =
-        flight.getSteps().stream()
-            .map(step -> step.getClass().getSimpleName())
-            .collect(Collectors.toList());
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
         steps,
-        is(
-            List.of(
-                "UpdateProfileRetrieveExistingProfileStep",
-                "UpdateProfileMetadataStep",
-                "UpdateProfileVerifyAccountStep",
-                "UpdateProfileUpdateGCloudProject",
-                "JournalRecordUpdateEntryStep")));
+        contains(
+            "UpdateProfileRetrieveExistingProfileStep",
+            "UpdateProfileMetadataStep",
+            "UpdateProfileVerifyAccountStep",
+            "UpdateProfileUpdateGCloudProject",
+            "JournalRecordUpdateEntryStep"));
   }
 }

@@ -17,7 +17,7 @@ name: Verify consumer pacts
 # https://github.com/broadinstitute/terraform-ap-deployments/pull/1255
 env:
   PACTICIPANT: 'datarepo'
-  RELEASE_BRANCHES: 'develop'
+  RELEASE_BRANCH: 'develop'
   FEATURE_BRANCH: 'QA-2170-1'
   TDR_LOG_APPENDER: 'Console-Standard'
   CAN_I_DEPLOY_RUN_NAME: 'can-i-deploy-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}'
@@ -82,17 +82,19 @@ jobs:
   needs-context:
     runs-on: ubuntu-latest
     outputs:
-      release-branches: ${{ steps.set-release-branches.outputs.release-branches }}
+      release-branch: ${{ steps.set-release-branch.outputs.release-branch }}
       # You can include more outputs for additional envvar you want to expose to job.
-      feature-branch: ${{ steps.set-feature-branch.outputs.feature-branch }}
+      release-ref: ${{ steps.set-release-ref.outputs.release-ref }}
     steps:
-      - id: set-release-branches
+      - id: set-release-branch
         run: |
-          echo "release-branches=${{ env.RELEASE_BRANCHES }}" >> $GITHUB_OUTPUT
+          echo "release-branch=${{ env.RELEASE_BRANCH }}" >> $GITHUB_OUTPUT
       # You can add more steps for each additional envvar you want to expose to job.
-      - id: set-feature-branch
+      - id: set-release-ref
         run: |
-          echo "feature-branch=${{ env.FEATURE_BRANCH }}" >> $GITHUB_OUTPUT
+          ref=$(echo "refs/heads/${{ env.RELEASE_BRANCH }}" | sed 's#//*#/#g')
+          echo "$ref"
+          echo "release-ref=$ref" >> $GITHUB_OUTPUT
 
   test-needs-context:
     runs-on: ubuntu-latest
@@ -102,6 +104,7 @@ jobs:
       - run: |
           echo "${{ github.event_name }}"
           echo "${{ github.head_ref }}"
+          echo "${{ needs.needs-context.outputs.release-ref }}"
 
   bump-check:
     runs-on: ubuntu-latest
@@ -127,8 +130,8 @@ jobs:
       ref: ${{ github.head_ref || '' }}
       # The 'dry-run' parameter prevents the new tag from being dispatched.
       # We only need to dispatch a tag once if this is a PR merge.
-      dry-run: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-      release-branches: ${{ needs.needs-context.outputs.release-branches }}
+      dry-run: ${{ github.event_name == 'push' && github.ref == needs.needs-context.outputs.release-ref }}
+      release-branches: ${{ needs.needs-context.outputs.release-branch }}
     secrets: inherit
 
   verify-consumer-pact:

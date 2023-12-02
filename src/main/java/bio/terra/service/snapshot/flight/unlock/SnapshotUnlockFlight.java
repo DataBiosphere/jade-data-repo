@@ -9,7 +9,6 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;

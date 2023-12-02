@@ -481,9 +481,15 @@ class DatasetsApiControllerTest {
     when(datasetService.manualExclusiveLock(TEST_USER, DATASET_ID)).thenReturn(resourceLocks);
     mockValidators();
 
-    mvc.perform(put(LOCK_DATASET_ENDPOINT, DATASET_ID))
-        .andExpect(status().is2xxSuccessful())
-        .andReturn();
+    var response =
+        mvc.perform(put(LOCK_DATASET_ENDPOINT, DATASET_ID))
+            .andExpect(status().is2xxSuccessful())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
+
     verifyAuthorizationCall(IamAction.LOCK_RESOURCE);
     verify(datasetService).manualExclusiveLock(TEST_USER, DATASET_ID);
   }
@@ -496,9 +502,14 @@ class DatasetsApiControllerTest {
         .thenReturn(resourceLocks);
     mockValidators();
 
-    mvc.perform(put(UNLOCK_DATASET_ENDPOINT, DATASET_ID).queryParam("lockName", lockId))
-        .andExpect(status().is2xxSuccessful())
-        .andReturn();
+    var response =
+        mvc.perform(put(UNLOCK_DATASET_ENDPOINT, DATASET_ID).queryParam("lockName", lockId))
+            .andExpect(status().is2xxSuccessful())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(datasetService).manualExclusiveUnlock(TEST_USER, DATASET_ID, lockId);
   }

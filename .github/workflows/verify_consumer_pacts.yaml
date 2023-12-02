@@ -17,7 +17,7 @@ name: Verify consumer pacts
 # https://github.com/broadinstitute/terraform-ap-deployments/pull/1255
 env:
   PACTICIPANT: 'datarepo'
-  RELEASE_BRANCHES: 'develop'
+  MY_BRANCH: 'develop'
   TDR_LOG_APPENDER: 'Console-Standard'
   CAN_I_DEPLOY_RUN_NAME: 'can-i-deploy-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}'
 on:
@@ -101,7 +101,7 @@ jobs:
       # The 'dry-run' parameter prevents the new tag from being dispatched.
       # We only need to dispatch a tag once if this is a PR merge.
       dry-run: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-      release-branches: develop
+      release-branches: ${{ env.MY_BRANCH }}
     secrets: inherit
 
   verify-consumer-pact:

@@ -30,6 +30,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -243,11 +244,12 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<ResourceLocks> unlockSnapshot(UUID id, String lockName) {
+  public ResponseEntity<ResourceLocks> unlockSnapshot(
+      UUID id, UnlockResourceRequest unlockRequest) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UNLOCK_RESOURCE);
-    return ResponseEntity.ok(snapshotService.manualExclusiveUnlock(userRequest, id, lockName));
+    return ResponseEntity.ok(snapshotService.manualExclusiveUnlock(userRequest, id, unlockRequest));
   }
 
   @Override

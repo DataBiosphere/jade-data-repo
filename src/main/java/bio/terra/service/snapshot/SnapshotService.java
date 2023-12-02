@@ -48,6 +48,7 @@ import bio.terra.model.TableModel;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -1215,12 +1216,12 @@ public class SnapshotService {
   }
 
   public ResourceLocks manualExclusiveUnlock(
-      AuthenticatedUserRequest userReq, UUID snapshotId, String lockName) {
+      AuthenticatedUserRequest userReq, UUID snapshotId, UnlockResourceRequest unlockRequest) {
     return jobService
         .newJob(
-            "Remove lock " + lockName + " from Snapshot " + snapshotId,
+            "Remove lock " + unlockRequest.getLockName() + " from Snapshot " + snapshotId,
             SnapshotUnlockFlight.class,
-            lockName,
+            unlockRequest,
             userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
         .submitAndWait(ResourceLocks.class);

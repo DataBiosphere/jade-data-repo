@@ -19,6 +19,8 @@ public class UnlockDatasetStep extends DefaultUndoStep {
   private UUID datasetId;
   private String lockName;
 
+  private boolean throwLockException = false;
+
   public UnlockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
     this.datasetService = datasetService;
     this.datasetId = datasetId;
@@ -32,9 +34,14 @@ public class UnlockDatasetStep extends DefaultUndoStep {
   }
 
   public UnlockDatasetStep(
-      DatasetService datasetService, UUID datasetId, boolean sharedLock, String lockName) {
+      DatasetService datasetService,
+      UUID datasetId,
+      boolean sharedLock,
+      String lockName,
+      boolean throwLockException) {
     this(datasetService, datasetId, sharedLock);
     this.lockName = lockName;
+    this.throwLockException = throwLockException;
   }
 
   @VisibleForTesting
@@ -45,6 +52,11 @@ public class UnlockDatasetStep extends DefaultUndoStep {
   @VisibleForTesting
   public String getLockName() {
     return lockName;
+  }
+
+  @VisibleForTesting
+  public boolean isThrowLockException() {
+    return throwLockException;
   }
 
   @Override
@@ -67,7 +79,12 @@ public class UnlockDatasetStep extends DefaultUndoStep {
     }
 
     try {
-      datasetService.unlock(datasetId, lockName, sharedLock);
+      boolean successfulUnlock = datasetService.unlock(datasetId, lockName, sharedLock);
+      if (throwLockException && !successfulUnlock) {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL,
+            new DatasetLockException("Failed to unlock dataset"));
+      }
     } catch (RetryQueryException | TransactionSystemException retryQueryException) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
     }

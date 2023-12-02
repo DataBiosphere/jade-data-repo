@@ -636,7 +636,11 @@ public class DatasetService {
 
   public ResourceLocks manualExclusiveLock(AuthenticatedUserRequest userReq, UUID datasetId) {
     return jobService
-        .newJob("Create manual exclusive lock on dataset.", DatasetLockFlight.class, null, userReq)
+        .newJob(
+            "Create manual exclusive lock on dataset " + datasetId,
+            DatasetLockFlight.class,
+            null,
+            userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .submitAndWait(ResourceLocks.class);
   }
@@ -652,7 +656,11 @@ public class DatasetService {
   public ResourceLocks manualExclusiveUnlock(
       AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
     return jobService
-        .newJob("Remove exclusive lock on dataset.", DatasetUnlockFlight.class, lockName, userReq)
+        .newJob(
+            "Remove exclusive lock " + lockName + " on dataset " + datasetId,
+            DatasetUnlockFlight.class,
+            lockName,
+            userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .submitAndWait(ResourceLocks.class);
   }

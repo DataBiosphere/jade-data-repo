@@ -18,7 +18,6 @@ name: Verify consumer pacts
 env:
   PACTICIPANT: 'datarepo'
   RELEASE_BRANCH: 'develop'
-  FEATURE_BRANCH: 'QA-2170-1'
   TDR_LOG_APPENDER: 'Console-Standard'
   CAN_I_DEPLOY_RUN_NAME: 'can-i-deploy-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}'
 on:

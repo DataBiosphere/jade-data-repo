@@ -36,13 +36,14 @@ public enum IamAction {
   // snapshots
   UPDATE_SNAPSHOT,
   READ_DATA,
-  // journal
-  VIEW_JOURNAL,
   DISCOVER_DATA,
   EXPORT_SNAPSHOT,
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
   LINK,
+  // journal
+  VIEW_JOURNAL,
+  // lock/unlock resources
   LOCK_RESOURCE,
   UNLOCK_RESOURCE;
 

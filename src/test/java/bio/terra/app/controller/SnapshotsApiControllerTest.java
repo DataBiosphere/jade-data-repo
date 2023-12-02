@@ -224,9 +224,13 @@ class SnapshotsApiControllerTest {
     when(snapshotService.manualExclusiveLock(TEST_USER, SNAPSHOT_ID)).thenReturn(resourceLocks);
     mockValidators();
 
-    mvc.perform(put(LOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID))
+    var response = mvc.perform(put(LOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID))
         .andExpect(status().is2xxSuccessful())
-        .andReturn();
+        .andReturn()
+        .getResponse()
+        .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.LOCK_RESOURCE);
     verify(snapshotService).manualExclusiveLock(TEST_USER, SNAPSHOT_ID);
   }
@@ -239,9 +243,13 @@ class SnapshotsApiControllerTest {
         .thenReturn(resourceLocks);
     mockValidators();
 
-    mvc.perform(put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("lockName", lockId))
+    var response = mvc.perform(put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("lockName", lockId))
         .andExpect(status().is2xxSuccessful())
-        .andReturn();
+        .andReturn()
+        .getResponse()
+        .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(snapshotService).manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, lockId);
   }

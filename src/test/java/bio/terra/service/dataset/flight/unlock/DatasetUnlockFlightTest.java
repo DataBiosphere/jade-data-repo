@@ -56,6 +56,7 @@ class DatasetUnlockFlightTest {
     var firstStep = flight.getSteps().get(0);
     UnlockDatasetStep unlockDatasetStep = (UnlockDatasetStep) firstStep;
     assertThat("Unlock the Exclusive lock on dataset", unlockDatasetStep.isSharedLock(), is(false));
+    assertThat("Throw lock exception", unlockDatasetStep.isThrowLockException());
     assertThat(
         "The lock name is passed to the unlock method",
         unlockDatasetStep.getLockName(),

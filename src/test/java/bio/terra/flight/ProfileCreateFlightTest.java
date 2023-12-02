@@ -1,16 +1,15 @@
 package bio.terra.flight;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 
+import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.stairway.FlightMap;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -36,19 +35,15 @@ public class ProfileCreateFlightTest {
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
-    var steps =
-        flight.getSteps().stream()
-            .map(step -> step.getClass().getSimpleName())
-            .collect(Collectors.toList());
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
         steps,
-        is(
-            List.of(
-                "GetOrCreateProfileIdStep",
-                "CreateProfileMetadataStep",
-                "CreateProfileVerifyDeployedApplicationStep",
-                "CreateProfileAuthzIamStep",
-                "CreateProfileJournalEntryStep")));
+        contains(
+            "GetOrCreateProfileIdStep",
+            "CreateProfileMetadataStep",
+            "CreateProfileVerifyDeployedApplicationStep",
+            "CreateProfileAuthzIamStep",
+            "CreateProfileJournalEntryStep"));
   }
 
   @Test
@@ -61,18 +56,14 @@ public class ProfileCreateFlightTest {
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
-    var steps =
-        flight.getSteps().stream()
-            .map(step -> step.getClass().getSimpleName())
-            .collect(Collectors.toList());
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
         steps,
-        is(
-            List.of(
-                "GetOrCreateProfileIdStep",
-                "CreateProfileMetadataStep",
-                "CreateProfileVerifyAccountStep",
-                "CreateProfileAuthzIamStep",
-                "CreateProfileJournalEntryStep")));
+        contains(
+            "GetOrCreateProfileIdStep",
+            "CreateProfileMetadataStep",
+            "CreateProfileVerifyAccountStep",
+            "CreateProfileAuthzIamStep",
+            "CreateProfileJournalEntryStep"));
   }
 }

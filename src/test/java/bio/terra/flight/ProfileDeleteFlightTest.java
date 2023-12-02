@@ -1,13 +1,12 @@
 package bio.terra.flight;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 
+import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.stairway.FlightMap;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -26,19 +25,15 @@ public class ProfileDeleteFlightTest {
   @Test
   public void testConstructFlight() {
     var flight = new ProfileDeleteFlight(new FlightMap(), context);
-    var steps =
-        flight.getSteps().stream()
-            .map(step -> step.getClass().getSimpleName())
-            .collect(Collectors.toList());
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
         steps,
-        is(
-            List.of(
-                "DeleteProfileMarkUnusedProjects",
-                "DeleteProfileDeleteUnusedProjects",
-                "DeleteProfileProjectMetadata",
-                "DeleteProfileMetadataStep",
-                "DeleteProfileAuthzIamStep",
-                "JournalRecordDeleteEntryStep")));
+        contains(
+            "DeleteProfileMarkUnusedProjects",
+            "DeleteProfileDeleteUnusedProjects",
+            "DeleteProfileProjectMetadata",
+            "DeleteProfileMetadataStep",
+            "DeleteProfileAuthzIamStep",
+            "JournalRecordDeleteEntryStep"));
   }
 }

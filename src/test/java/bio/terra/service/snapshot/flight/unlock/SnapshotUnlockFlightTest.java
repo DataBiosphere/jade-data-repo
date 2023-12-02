@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.unlock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.FlightTestUtils;
@@ -8,10 +9,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.stairway.FlightMap;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -41,12 +39,8 @@ class SnapshotUnlockFlightTest {
   void testCorrectStepsSnapshotUnockFlight() {
     var flight = new SnapshotUnlockFlight(inputParameters, context);
 
-    var steps =
-        flight.getSteps().stream()
-            .map(step -> step.getClass().getSimpleName())
-            .collect(Collectors.toList());
-    assertThat(
-        steps, CoreMatchers.is(List.of("UnlockSnapshotStep", "JournalRecordUpdateEntryStep")));
+    var steps = FlightTestUtils.getStepNames(flight);
+    assertThat(steps, contains("UnlockSnapshotStep", "JournalRecordUpdateEntryStep"));
   }
 
   @Test

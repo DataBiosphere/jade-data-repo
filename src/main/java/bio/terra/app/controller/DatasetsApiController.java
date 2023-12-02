@@ -51,6 +51,7 @@ import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -237,11 +238,11 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<ResourceLocks> unlockDataset(UUID id, String lockName) {
+  public ResponseEntity<ResourceLocks> unlockDataset(UUID id, UnlockResourceRequest request) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.UNLOCK_RESOURCE);
-    return ResponseEntity.ok(datasetService.manualExclusiveUnlock(userRequest, id, lockName));
+    return ResponseEntity.ok(datasetService.manualExclusiveUnlock(userRequest, id, request));
   }
 
   @Override

@@ -25,6 +25,8 @@ import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.SqlSortDirection;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -240,7 +242,8 @@ class SnapshotsApiControllerTest {
   void unlockSnapshot() throws Exception {
     var lockId = "lockId";
     var resourceLocks = new ResourceLocks();
-    when(snapshotService.manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, lockId))
+    var unlockRequest = new UnlockResourceRequest().lockName(lockId);
+    when(snapshotService.manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, unlockRequest))
         .thenReturn(resourceLocks);
     mockValidators();
 
@@ -253,7 +256,7 @@ class SnapshotsApiControllerTest {
     ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
     assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
-    verify(snapshotService).manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, lockId);
+    verify(snapshotService).manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, unlockRequest);
   }
 
   /** Verify that snapshot authorization was checked. */

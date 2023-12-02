@@ -41,6 +41,8 @@ import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.SqlSortDirection;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -502,7 +504,8 @@ class DatasetsApiControllerTest {
   void unlockDataset() throws Exception {
     var lockId = "lockId";
     var resourceLocks = new ResourceLocks().exclusive(lockId);
-    when(datasetService.manualExclusiveUnlock(TEST_USER, DATASET_ID, lockId))
+    var unlockRequest = new UnlockResourceRequest().lockName(lockId).forceUnlock(false);
+    when(datasetService.manualExclusiveUnlock(TEST_USER, DATASET_ID, unlockRequest))
         .thenReturn(resourceLocks);
     mockValidators();
 
@@ -515,6 +518,6 @@ class DatasetsApiControllerTest {
     ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
     assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
-    verify(datasetService).manualExclusiveUnlock(TEST_USER, DATASET_ID, lockId);
+    verify(datasetService).manualExclusiveUnlock(TEST_USER, DATASET_ID, unlockRequest);
   }
 }

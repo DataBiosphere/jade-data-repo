@@ -649,13 +649,12 @@ paths:
       operationId: unlockSnapshot
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: lockName
-          in: query
-          description: >
-            The lock id to remove. The lock name is the locking flight id.
-          required: true
-          schema:
-            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockResourceRequest'
+        required: true
       responses:
         200:
           description: >
@@ -687,6 +686,13 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: Not found - a snapshot with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        409:
+          description: >
+            Conflict - the snapshot is not locked or the provided lock name is not the locking flight id.
           content:
             application/json:
               schema:
@@ -2085,13 +2091,11 @@ paths:
       operationId: unlockDataset
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: lockName
-          in: query
-          description: >
-            The lock id to remove. The lock name is the locking flight id.
-          required: true
-          schema:
-            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockResourceRequest'
       responses:
         200:
           description: >
@@ -2122,6 +2126,13 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: Not found - a dataset with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        409:
+          description: >
+            Conflict - the dataset is not locked or the provided lock name is not the locking flight id.
           content:
             application/json:
               schema:
@@ -5638,6 +5649,21 @@ components:
         dataType:
           type: string
           description: Data type of column
+    UnlockResourceRequest:
+      type: object
+      required:
+        - lockName
+      properties:
+        lockName:
+          description: >
+            The lock id to remove. The lock name is the locking flight id.
+          type: string
+        forceUnlock:
+          description: >
+            If false, the unlock operation will fail if the locking job is still running.
+            If true, the unlock operation will succeed even if the locking job is still running. Use caution with this option, as deleting a lock from a running flight could have unintended consequences.
+          type: boolean
+          default: false
     FileModel:
       type: object
       properties:

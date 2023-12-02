@@ -37,6 +37,7 @@ import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -654,12 +655,12 @@ public class DatasetService {
   }
 
   public ResourceLocks manualExclusiveUnlock(
-      AuthenticatedUserRequest userReq, UUID datasetId, String lockName) {
+      AuthenticatedUserRequest userReq, UUID datasetId, UnlockResourceRequest unlockRequest) {
     return jobService
         .newJob(
-            "Remove exclusive lock " + lockName + " on dataset " + datasetId,
+            "Remove exclusive lock " + unlockRequest.getLockName() + " on dataset " + datasetId,
             DatasetUnlockFlight.class,
-            lockName,
+            unlockRequest,
             userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .submitAndWait(ResourceLocks.class);

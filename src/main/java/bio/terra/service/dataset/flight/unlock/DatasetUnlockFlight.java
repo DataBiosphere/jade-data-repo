@@ -9,6 +9,7 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.job.JobService;
 import bio.terra.service.journal.JournalService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -23,6 +24,7 @@ public class DatasetUnlockFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    JobService jobService = appContext.getBean(JobService.class);
 
     // Input parameters
     UUID datasetId =
@@ -36,6 +38,8 @@ public class DatasetUnlockFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // Steps
+    addStep(new UnlockDatasetCheckLockNameStep(datasetService, datasetId, lockName));
+    addStep(new UnlockDatasetCheckJobStateStep(jobService, lockName));
     addStep(
         new UnlockDatasetStep(datasetService, datasetId, false, lockName, true),
         unlockDatasetRetry);

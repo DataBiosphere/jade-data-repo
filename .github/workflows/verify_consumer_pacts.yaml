@@ -99,11 +99,11 @@ jobs:
   test-needs-context:
     runs-on: ubuntu-latest
     needs: [ needs-context ]
-    if: ${{ github.event_name == 'pull_request' && github.head_ref == needs.needs-context.outputs.feature-branch }}
     steps:
       - run: |
           echo "${{ github.event_name }}"
           echo "${{ github.head_ref }}"
+          echo "${{ needs.needs-context.outputs.release-branch }}"
           echo "${{ needs.needs-context.outputs.release-ref }}"
 
   bump-check:

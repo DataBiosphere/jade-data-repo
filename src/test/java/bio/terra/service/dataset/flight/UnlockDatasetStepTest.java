@@ -98,15 +98,33 @@ public class UnlockDatasetStepTest {
   }
 
   @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void testDoStepWithProvidedLockName(boolean sharedLock) {
+  @MethodSource
+  void testDoStepWithProvidedLockNameAndThrowException(
+      boolean sharedLock, boolean throwLockException, boolean successfulLock) {
     String lockName = "lock-name";
-    step = new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock, lockName);
+    step =
+        new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock, lockName, throwLockException);
+    when(datasetService.unlock(DATASET_ID, lockName, sharedLock)).thenReturn(successfulLock);
 
     StepResult doResult = step.doStep(flightContext);
-
-    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    if (successfulLock || (!successfulLock && !throwLockException)) {
+      assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    } else {
+      assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
+    }
     verify(datasetService).unlock(DATASET_ID, lockName, sharedLock);
+  }
+
+  private static Stream<Arguments> testDoStepWithProvidedLockNameAndThrowException() {
+    List<Arguments> arguments = new ArrayList<>();
+    for (boolean sharedLock : List.of(true, false)) {
+      for (boolean throwLockException : List.of(true, false)) {
+        for (boolean successfulLock : List.of(true, false)) {
+          arguments.add(Arguments.arguments(sharedLock, throwLockException, successfulLock));
+        }
+      }
+    }
+    return arguments.stream();
   }
 
   private static Stream<Arguments> testDoStepRetriesWhenUnlockThrowsRetryableException() {

@@ -36,7 +36,9 @@ public class DatasetUnlockFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // Steps
-    addStep(new UnlockDatasetStep(datasetService, datasetId, false, lockName), unlockDatasetRetry);
+    addStep(
+        new UnlockDatasetStep(datasetService, datasetId, false, lockName, true),
+        unlockDatasetRetry);
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService, userReq, datasetId, IamResourceType.DATASET, "Dataset unlocked."));

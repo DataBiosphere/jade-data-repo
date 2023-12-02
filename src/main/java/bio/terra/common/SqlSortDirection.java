@@ -8,7 +8,8 @@ public enum SqlSortDirection {
   DESC;
 
   public static SqlSortDirection from(SqlSortDirectionAscDefault direction) {
-    // Since we don't require the sort direction field, it can still be null
+    // Defaults set for enums in the open-api spec can still get set to null,
+    // either directly by the user or by excluding the field from the request.
     if (direction == null) {
       return ASC;
     }
@@ -16,6 +17,8 @@ public enum SqlSortDirection {
   }
 
   public static SqlSortDirection from(SqlSortDirectionDescDefault direction) {
+    // Defaults set for enums in the open-api spec can still get set to null,
+    // either directly by the user or by excluding the field from the request.
     if (direction == null) {
       return DESC;
     }

@@ -1206,7 +1206,10 @@ public class SnapshotService {
   public ResourceLocks manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
     return jobService
         .newJob(
-            "Create manual exclusive lock on a snapshot.", SnapshotLockFlight.class, null, userReq)
+            "Create manual exclusive lock on a snapshot " + snapshotId,
+            SnapshotLockFlight.class,
+            null,
+            userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
         .submitAndWait(ResourceLocks.class);
   }
@@ -1214,7 +1217,11 @@ public class SnapshotService {
   public ResourceLocks manualExclusiveUnlock(
       AuthenticatedUserRequest userReq, UUID snapshotId, String lockName) {
     return jobService
-        .newJob("Remove lock from Snapshot", SnapshotUnlockFlight.class, lockName, userReq)
+        .newJob(
+            "Remove lock " + lockName + " from Snapshot " + snapshotId,
+            SnapshotUnlockFlight.class,
+            lockName,
+            userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
         .submitAndWait(ResourceLocks.class);
   }

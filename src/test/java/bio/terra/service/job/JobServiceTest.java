@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -13,7 +14,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.usermetrics.BardClient;
 import bio.terra.common.EmbeddedDatabaseTest;
-import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
@@ -25,19 +25,19 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.exception.StairwayException;
 import java.sql.Date;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.hamcrest.Matcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,13 +48,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 @SpringBootTest
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag("bio.terra.common.category.Unit")
 @EmbeddedDatabaseTest
 public class JobServiceTest {
   private static final Logger logger = LoggerFactory.getLogger(JobServiceTest.class);
@@ -92,7 +90,7 @@ public class JobServiceTest {
 
   @MockBean private BardClient bardClient;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     when(samService.isAuthorized(
             testUser, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS))
@@ -106,7 +104,7 @@ public class JobServiceTest {
     jobIds.clear();
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws Exception {
     logger.info("Deleting {} jobs", jobIds.size());
     jobIds.forEach(this::deleteJob);
@@ -114,18 +112,18 @@ public class JobServiceTest {
 
   @Test
   public void enumerateTooLongBackFilterTest() throws Exception {
-    List<JobModel> expectedJobs = new ArrayList<>();
     int numVisibleJobs = 3;
-    for (int i = 0; i < numVisibleJobs; i++) {
-      String jobId = runFlight(makeDescription(i), makeFlightClass(i), testUser);
-      expectedJobs.add(
-          new JobModel()
-              .id(jobId)
-              .jobStatus(JobStatusEnum.SUCCEEDED)
-              .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
-              .description(makeDescription(i))
-              .className(makeFlightClass(i).getName()));
-    }
+    List<JobModel> expectedJobs =
+        IntStream.range(0, numVisibleJobs)
+            .mapToObj(
+                i ->
+                    new JobModel()
+                        .id(runFlight(makeDescription(i), makeFlightClass(i), testUser))
+                        .jobStatus(JobStatusEnum.SUCCEEDED)
+                        .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+                        .description(makeDescription(i))
+                        .className(makeFlightClass(i).getName()))
+            .toList();
     assertThat(
         "All jobs are returned",
         jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
@@ -134,7 +132,7 @@ public class JobServiceTest {
     // Update the submission time of the first job to be a long time ago
     updateJobSubmissionTime(
         expectedJobs.get(0).getId(),
-        Instant.now().minus(JobService.DAYS_BACK_TO_QUERY + 1, ChronoUnit.DAYS));
+        Instant.now().minus(Duration.ofDays(appConfig.getMaxNumberOfDaysToShowJobs() + 1)));
     assertThat(
         "The first job is not returned anymore",
         jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
@@ -146,19 +144,17 @@ public class JobServiceTest {
     // We perform 7 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
-    List<JobModel> expectedJobs = new ArrayList<>();
-
-    for (int i = 0; i < 7; i++) {
-      String jobId = runFlight(makeDescription(i), makeFlightClass(i), testUser);
-      expectedJobs.add(
-          new JobModel()
-              .id(jobId)
-              .jobStatus(JobStatusEnum.SUCCEEDED)
-              .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
-              .description(makeDescription(i))
-              .className(makeFlightClass(i).getName()));
-    }
-    // Add a job a long time ago.  This job should not be returned by the enumeration.
+    List<JobModel> expectedJobs =
+        IntStream.range(0, 7)
+            .mapToObj(
+                i ->
+                    new JobModel()
+                        .id(runFlight(makeDescription(i), makeFlightClass(i), testUser))
+                        .jobStatus(JobStatusEnum.SUCCEEDED)
+                        .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+                        .description(makeDescription(i))
+                        .className(makeFlightClass(i).getName()))
+            .toList();
 
     // Test single retrieval
     testSingleRetrieval(expectedJobs.get(2));
@@ -302,14 +298,15 @@ public class JobServiceTest {
     assertThat(resultHolder.getResult(), is(equalTo(job.getDescription())));
   }
 
-  @Test(expected = StairwayException.class)
+  @Test
   public void testBadIdRetrieveJob() throws InterruptedException {
-    jobService.retrieveJob("abcdef", null);
+    assertThrows(StairwayException.class, () -> jobService.retrieveJob("abcdef", null));
   }
 
-  @Test(expected = StairwayException.class)
+  @Test
   public void testBadIdRetrieveResult() throws InterruptedException {
-    jobService.retrieveJobResult("abcdef", Object.class, null);
+    assertThrows(
+        StairwayException.class, () -> jobService.retrieveJobResult("abcdef", Object.class, null));
   }
 
   private Matcher<JobModel> getJobMatcher(JobModel jobModel) {
@@ -364,7 +361,7 @@ public class JobServiceTest {
    * @param jobId The job id to update
    */
   private void updateJobSubmissionTime(String jobId, Instant submitTime) {
-    logger.info("- Removing job {}", jobId);
+    logger.info("- Updating job {} submission time", jobId);
     NamedParameterJdbcTemplate jdbcTemplate =
         new NamedParameterJdbcTemplate(stairwayJdbcConfiguration.getDataSource());
 

@@ -145,6 +145,9 @@ public class ApplicationConfiguration {
    */
   private List<String> compactIdPrefixAllowList = new ArrayList<>();
 
+  /** Maximum number of days to show jobs in the job history when non-admin users enumerate jobs */
+  private int maxNumberOfDaysToShowJobs;
+
   public String getUserEmail() {
     return userEmail;
   }
@@ -355,6 +358,14 @@ public class ApplicationConfiguration {
 
   public void setCompactIdPrefixAllowList(List<String> compactIdPrefixAllowList) {
     this.compactIdPrefixAllowList = compactIdPrefixAllowList;
+  }
+
+  public int getMaxNumberOfDaysToShowJobs() {
+    return maxNumberOfDaysToShowJobs;
+  }
+
+  public void setMaxNumberOfDaysToShowJobs(int maxNumberOfDaysToShowJobs) {
+    this.maxNumberOfDaysToShowJobs = maxNumberOfDaysToShowJobs;
   }
 
   @Primary

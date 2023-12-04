@@ -40,9 +40,8 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -66,7 +65,6 @@ public class JobService {
   private static final Logger logger = LoggerFactory.getLogger(JobService.class);
   private static final int MIN_SHUTDOWN_TIMEOUT = 14;
   private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
-  @VisibleForTesting static final int DAYS_BACK_TO_QUERY = 30;
 
   private final IamService samService;
   private final ApplicationConfiguration appConfig;
@@ -351,10 +349,11 @@ public class JobService {
 
     // Only return recent flights. This is a performance enhancement since it causes the query to
     // NOT do a full table scan.
-    // TODO: make this an option in the API.  Not tackled yet since I'm not sure of the value
+    // TODO<DR-3379>: make an option in the API. Not tackled yet since I'm not sure of the value
     topLevelBooleans.add(
         makePredicateSubmitTime(
-            FlightFilterOp.GREATER_THAN, Instant.now().minus(DAYS_BACK_TO_QUERY, ChronoUnit.DAYS)));
+            FlightFilterOp.GREATER_THAN,
+            Instant.now().minus(Duration.ofDays(appConfig.getMaxNumberOfDaysToShowJobs()))));
 
     // Make sure that only flights a user has access to are returned if the user is not an admin
     if (!checkUserCanListAnyJob(userReq)) {

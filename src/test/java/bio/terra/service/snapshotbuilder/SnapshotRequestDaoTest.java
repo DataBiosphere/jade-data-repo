@@ -2,6 +2,7 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -21,6 +22,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.UUID;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -137,6 +139,64 @@ class SnapshotRequestDaoTest {
     assertThrows(
         NotFoundException.class,
         () -> snapshotRequestDao.create(UUID.randomUUID(), snapshotAccessRequest, email));
+  }
+
+  @Test
+  void update() {
+    Assert.assertNull("Response was never updated.", response.getUpdateDate());
+    Assert.assertEquals(
+        "New Snapshot Access Request Responses should have submitted status",
+        response.getStatus(),
+        SnapshotAccessRequestResponse.StatusEnum.SUBMITTED);
+
+    SnapshotAccessRequestResponse response1 =
+        snapshotRequestDao.update(
+            response.getId(), SnapshotAccessRequestResponse.StatusEnum.APPROVED);
+
+    Assertions.assertEquals(
+        response1.getId(),
+        response.getId(),
+        "Updated Snapshot Access Request should have the same request id");
+    Assertions.assertEquals(
+        response1.getCreateDate(),
+        response.getCreateDate(),
+        "Updated Snapshot Access Request should maintain their create date timestamp");
+    assertThat(
+        "Updated Snapshot Access Request Response should maintain the same datasetId",
+        response1.getDatasetId(),
+        equalTo(response.getDatasetId()));
+    assertThat(
+        "Updates Snapshot Access Request Response should maintain the same name",
+        response1.getRequestName(),
+        equalTo(response.getRequestName()));
+    assertThat(
+        "Updated Snapshot Access Request Response should maintain the same research purpose",
+        response1.getRequestResearchPurpose(),
+        equalTo(response.getRequestResearchPurpose()));
+    assertThat(
+        "Updated Snapshot Access Request Response should contain the same snapshot builder request",
+        response1.getRequest(),
+        equalTo(response.getRequest()));
+    assertThat(
+        "Updated Snapshot Access Request Response should maintain the same user email",
+        response1.getUserEmail(),
+        equalTo(response.getUserEmail()));
+    assertThat(
+        "Updated Snapshot Access Request Response should have approved status",
+        response1.getStatus(),
+        equalTo(SnapshotAccessRequestResponse.StatusEnum.APPROVED));
+    assertNotNull(
+        "Updated Snapshot Access Request Response should have an update date",
+        response1.getUpdateDate());
+  }
+
+  @Test
+  void updateIdNotFound() {
+    assertThrows(
+        NotFoundException.class,
+        () ->
+            snapshotRequestDao.update(
+                UUID.randomUUID(), SnapshotAccessRequestResponse.StatusEnum.APPROVED));
   }
 
   @Test

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -148,6 +149,26 @@ public class SnapshotRequestDao {
     }
     UUID id = keyHolder.getId();
     return getById(id);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public SnapshotAccessRequestResponse update(
+      UUID requestId, SnapshotAccessRequestResponse.StatusEnum status) {
+    String sql =
+        """
+        UPDATE snapshot_requests SET
+        status = :status, update_date = :update_date
+        WHERE id = :id
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue(statusField, status.toString())
+            .addValue(updateDateField, Timestamp.from(Instant.now()))
+            .addValue(requestIdField, requestId);
+    if (jdbcTemplate.update(sql, params) == 0) {
+      throw new NotFoundException("Snapshot Access Request with given id does not exist.");
+    }
+    return getById(requestId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

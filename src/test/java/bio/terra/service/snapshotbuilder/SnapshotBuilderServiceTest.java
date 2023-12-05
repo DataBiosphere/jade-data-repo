@@ -2,14 +2,20 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.mockito.Mockito.verify;
 
+import bio.terra.common.category.Unit;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
 class SnapshotBuilderServiceTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
-  @Mock private SnapshotBuilderService snapshotBuilderService;
+  private SnapshotBuilderService snapshotBuilderService;
 
   @BeforeEach
   public void setUp() {

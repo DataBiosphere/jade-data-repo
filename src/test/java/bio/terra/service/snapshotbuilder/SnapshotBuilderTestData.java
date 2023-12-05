@@ -152,7 +152,9 @@ public class SnapshotBuilderTestData {
       new SnapshotAccessRequestResponse()
           .id(UUID.randomUUID())
           .datasetId(UUID.randomUUID())
-          .snapshotSpecification(SnapshotBuilderTestData.BUILDER_REQUEST)
+          .snapshotName(ACCESS_REQUEST.getName())
+          .snapshotResearchPurpose(ACCESS_REQUEST.getResearchPurposeStatement())
+          .snapshotSpecification(ACCESS_REQUEST.getDatasetRequest())
           .createdDate("date")
           .createdBy("user@gmail.com");
 }

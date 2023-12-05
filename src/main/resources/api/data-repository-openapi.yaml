@@ -3385,7 +3385,7 @@ paths:
         - jobs
         - repository
       description: >
-        Returns a list of all of the jobs the caller has access to
+        Returns a list of all recently submitted jobs that the caller has access to
       operationId: enumerateJobs
       parameters:
         - name: offset

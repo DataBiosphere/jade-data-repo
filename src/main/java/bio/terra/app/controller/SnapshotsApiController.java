@@ -184,7 +184,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       String filter,
       String region,
       List<String> datasetIds,
-      List<String> tags) {
+      List<String> tags,
+      List<String> duosIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
@@ -200,7 +201,8 @@ public class SnapshotsApiController implements SnapshotsApi {
             filter,
             region,
             datasetUUIDs,
-            tags);
+            tags,
+            duosIds);
     return ResponseEntity.ok(esm);
   }
 

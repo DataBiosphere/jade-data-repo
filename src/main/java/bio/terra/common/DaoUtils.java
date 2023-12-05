@@ -12,6 +12,7 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -129,6 +130,14 @@ public final class DaoUtils {
     } else {
       return null;
     }
+  }
+
+  public static String getInstantString(ResultSet rs, String columnLabel) throws SQLException {
+    Timestamp timestamp = rs.getTimestamp(columnLabel);
+    if (timestamp != null) {
+      return timestamp.toInstant().toString();
+    }
+    return null;
   }
 
   public static class UuidMapper implements RowMapper<UUID> {

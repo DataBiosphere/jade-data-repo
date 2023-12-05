@@ -1,5 +1,7 @@
 package bio.terra.service.duos;
 
+import static bio.terra.common.DaoUtils.getInstantString;
+
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.DuosFirecloudGroupModel;
 import java.sql.ResultSet;
@@ -167,14 +169,6 @@ public class DuosDao {
           .createdBy(rs.getString("created_by"))
           .created(getInstantString(rs, "created_date"))
           .lastSynced(getInstantString(rs, "last_synced_date"));
-    }
-
-    private String getInstantString(ResultSet rs, String columnLabel) throws SQLException {
-      Timestamp timestamp = rs.getTimestamp(columnLabel);
-      if (timestamp != null) {
-        return timestamp.toInstant().toString();
-      }
-      return null;
     }
   }
 }

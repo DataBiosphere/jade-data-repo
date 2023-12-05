@@ -4,7 +4,7 @@ databaseChangeLog:
       author: rjohanek
       changes:
         - createTable:
-            tableName: snapshot_requests
+            tableName: snapshot_request
             columns:
               - column:
                   name: id
@@ -22,33 +22,33 @@ databaseChangeLog:
                     references: dataset(id)
                     deleteCascade: true
               - column:
-                  name: request_name
+                  name: snapshot_name
                   type: text
                   constraints:
                     nullable: false
               - column:
-                  name: request_research_purpose
+                  name: snapshot_research_purpose
                   type: text
                   constraints:
                     nullable: false
               - column:
-                  name: snapshot_builder_request
+                  name: snapshot_specification
                   type: jsonb
                   constraints:
                     nullable: false
               - column:
-                  name: user_email
+                  name: created_by
                   type: text
                   constraints:
                     nullable: false
               - column:
-                  name: create_date
+                  name: created_date
                   type: timestamptz
                   defaultValueComputed: now()
                   constraints:
                     nullable: false
               - column:
-                  name: update_date
+                  name: updated_date
                   type: timestamptz
                   constraints:
                     nullable: true

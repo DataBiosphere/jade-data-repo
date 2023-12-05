@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.fixtures.DaoOperations;
@@ -105,8 +106,8 @@ class SnapshotRequestDaoTest {
         response.getId(),
         "Snapshot Access Request Response should have unique request id");
     Assertions.assertNotEquals(
-        response1.getCreateDate(),
-        response.getCreateDate(),
+        response1.getCreatedDate(),
+        response.getCreatedDate(),
         "Snapshot Access Request Response should have unique create date timestamp");
     assertThat(
         "Snapshot Access Request Response should contain the same datasetId as the example",
@@ -114,20 +115,20 @@ class SnapshotRequestDaoTest {
         equalTo(response.getDatasetId()));
     assertThat(
         "Snapshot Access Request Response should contain the same name as the example",
-        response1.getRequestName(),
-        equalTo(response.getRequestName()));
+        response1.getSnapshotName(),
+        equalTo(response.getSnapshotName()));
     assertThat(
         "Snapshot Access Request Response should contain the same research purpose as the example",
-        response1.getRequestResearchPurpose(),
-        equalTo(response.getRequestResearchPurpose()));
+        response1.getSnapshotResearchPurpose(),
+        equalTo(response.getSnapshotResearchPurpose()));
     assertThat(
         "Snapshot Access Request Response should contain the same snapshot builder request as the example",
-        response1.getRequest(),
-        equalTo(response.getRequest()));
+        response1.getSnapshotSpecification(),
+        equalTo(response.getSnapshotSpecification()));
     assertThat(
         "Snapshot Access Request Response should contain the same user email as the example",
-        response1.getUserEmail(),
-        equalTo(response.getUserEmail()));
+        response1.getCreatedBy(),
+        equalTo(response.getCreatedBy()));
     assertThat(
         "New Snapshot Access Request Response should have submitted status",
         response1.getStatus(),
@@ -143,7 +144,7 @@ class SnapshotRequestDaoTest {
 
   @Test
   void update() {
-    Assert.assertNull("Response was never updated.", response.getUpdateDate());
+    Assert.assertNull("Response was never updated.", response.getUpdatedDate());
     Assert.assertEquals(
         "New Snapshot Access Request Responses should have submitted status",
         response.getStatus(),
@@ -158,8 +159,8 @@ class SnapshotRequestDaoTest {
         response.getId(),
         "Updated Snapshot Access Request should have the same request id");
     Assertions.assertEquals(
-        response1.getCreateDate(),
-        response.getCreateDate(),
+        response1.getCreatedDate(),
+        response.getCreatedDate(),
         "Updated Snapshot Access Request should maintain their create date timestamp");
     assertThat(
         "Updated Snapshot Access Request Response should maintain the same datasetId",
@@ -167,31 +168,32 @@ class SnapshotRequestDaoTest {
         equalTo(response.getDatasetId()));
     assertThat(
         "Updates Snapshot Access Request Response should maintain the same name",
-        response1.getRequestName(),
-        equalTo(response.getRequestName()));
+        response1.getSnapshotName(),
+        equalTo(response.getSnapshotName()));
     assertThat(
         "Updated Snapshot Access Request Response should maintain the same research purpose",
-        response1.getRequestResearchPurpose(),
-        equalTo(response.getRequestResearchPurpose()));
+        response1.getSnapshotResearchPurpose(),
+        equalTo(response.getSnapshotResearchPurpose()));
     assertThat(
         "Updated Snapshot Access Request Response should contain the same snapshot builder request",
-        response1.getRequest(),
-        equalTo(response.getRequest()));
+        response1.getSnapshotSpecification(),
+        equalTo(response.getSnapshotSpecification()));
     assertThat(
         "Updated Snapshot Access Request Response should maintain the same user email",
-        response1.getUserEmail(),
-        equalTo(response.getUserEmail()));
+        response1.getCreatedBy(),
+        equalTo(response.getCreatedBy()));
     assertThat(
         "Updated Snapshot Access Request Response should have approved status",
         response1.getStatus(),
         equalTo(SnapshotAccessRequestResponse.StatusEnum.APPROVED));
     assertNotNull(
         "Updated Snapshot Access Request Response should have an update date",
-        response1.getUpdateDate());
+        response1.getUpdatedDate());
   }
 
   @Test
   void updateIdNotFound() {
+    System.out.println(TestUtils.mapToJson(SnapshotBuilderTestData.SETTINGS));
     assertThrows(
         NotFoundException.class,
         () ->

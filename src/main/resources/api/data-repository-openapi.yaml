@@ -6933,37 +6933,35 @@ components:
 
     SnapshotAccessRequestResponse:
       type: object
-      description: the response object for a submitted SnapshotBuilderAccessRequest
+      description: The response object for a submitted SnapshotAccessRequest.
       required:
         - id
         - datasetId
-        - requestName
-        - requestResearchPurpose
-        - snapshotBuilderRequest
-        - userEmail
-        - createDate
+        - snapshotName
+        - snapshotResearchPurpose
+        - snapshotSpecification
+        - createdBy
+        - createdDate
         - status
       properties:
         id:
-          type: string
-          format: uuid
+          $ref: '#/components/schemas/UniqueIdProperty'
         datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        snapshotName:
           type: string
-          format: uuid
-        requestName:
+        snapshotResearchPurpose:
           type: string
-        requestResearchPurpose:
-          type: string
-        request:
+        snapshotSpecification:
           $ref: '#/components/schemas/SnapshotBuilderRequest'
-        userEmail:
+        createdBy:
           type: string
         status:
           type: string
           enum: [ SUBMITTED, APPROVED, REJECTED ]
-        createDate:
+        createdDate:
           type: string
-        updateDate:
+        updatedDate:
           type: string
 
     SnapshotBuilderCountRequest:
@@ -7011,7 +7009,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
-      description: Specification of requested a snapshot, returned in SnapshotAccessRequest.
+      description: Specification of cohort and participant data for a requested snapshot.
 
     SnapshotBuilderCohort:
       type: object

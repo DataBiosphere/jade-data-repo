@@ -152,7 +152,7 @@ public class SnapshotBuilderTestData {
       new SnapshotAccessRequestResponse()
           .id(UUID.randomUUID())
           .datasetId(UUID.randomUUID())
-          .request(SnapshotBuilderTestData.BUILDER_REQUEST)
-          .createDate("date")
-          .userEmail("user@gmail.com");
+          .snapshotSpecification(SnapshotBuilderTestData.BUILDER_REQUEST)
+          .createdDate("date")
+          .createdBy("user@gmail.com");
 }

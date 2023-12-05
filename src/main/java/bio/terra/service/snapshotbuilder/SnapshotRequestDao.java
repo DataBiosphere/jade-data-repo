@@ -53,12 +53,12 @@ public class SnapshotRequestDao {
       return new SnapshotAccessRequestResponse()
           .id(rs.getObject(requestIdField, UUID.class))
           .datasetId(rs.getObject(datasetIdField, UUID.class))
-          .requestName(rs.getString(requestNameField))
-          .requestResearchPurpose(rs.getString(requestResearchPurposeField))
-          .request(mapRequestFromJson(rs.getString(snapshotBuilderRequestField)))
-          .createDate(getInstantString(rs, createDateField))
-          .updateDate(getInstantString(rs, updateDateField))
-          .userEmail(rs.getString(userEmailField))
+          .snapshotName(rs.getString(requestNameField))
+          .snapshotResearchPurpose(rs.getString(requestResearchPurposeField))
+          .snapshotSpecification(mapRequestFromJson(rs.getString(snapshotBuilderRequestField)))
+          .createdDate(getInstantString(rs, createDateField))
+          .updatedDate(getInstantString(rs, updateDateField))
+          .createdBy(rs.getString(userEmailField))
           .status(SnapshotAccessRequestResponse.StatusEnum.valueOf(rs.getString(statusField)));
     }
 

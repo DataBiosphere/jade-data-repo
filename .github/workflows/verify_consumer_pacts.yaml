@@ -83,16 +83,11 @@ jobs:
     outputs:
       release-branch: ${{ steps.set-release-branch.outputs.release-branch }}
       # You can include more outputs for additional envvar you want to expose to job.
-      release-ref: ${{ steps.set-release-ref.outputs.release-ref }}
     steps:
       - id: set-release-branch
         run: |
           echo "release-branch=${{ env.RELEASE_BRANCH }}" >> $GITHUB_OUTPUT
       # You can add more steps for each additional envvar you want to expose to job.
-      - id: set-release-ref
-        run: |
-          ref=$(echo "refs/heads/${{ env.RELEASE_BRANCH }}" | sed 's#//*#/#g')
-          echo "release-ref=$ref" >> $GITHUB_OUTPUT
 
   bump-check:
     runs-on: ubuntu-latest

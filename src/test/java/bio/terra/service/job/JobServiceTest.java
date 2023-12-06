@@ -15,7 +15,6 @@ import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.usermetrics.BardClient;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SqlSortDirection;
-import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;

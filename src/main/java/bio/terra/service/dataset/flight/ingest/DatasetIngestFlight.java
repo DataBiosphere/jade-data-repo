@@ -113,8 +113,8 @@ public class DatasetIngestFlight extends Flight {
     AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
         new AzureStorageMonitoringStepProvider(monitoringService);
 
-    RetryRule lockDatasetRetry =
-        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+    // Wait up to 30 minutes to acquire a lock
+    RetryRule lockDatasetRetry = new RetryRuleExponentialBackoff(2, 60, 1800);
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -142,12 +142,15 @@ public class DatasetIngestFlight extends Flight {
           .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 
-    // Originally we didn't exclusively lock the dataset, the thinking being that there might
-    // not be files as part of the ingest and ingesting files is what makes exclusive locking
-    // a requirement.  However, if a user is specifying bulk ingest mode, it's fair to assume that
-    // files are included as part of the ingest and that will cause an exclusive lock.
-    boolean useSharedLock = !ingestRequestModel.isBulkMode();
-    addStep(new LockDatasetStep(datasetService, datasetId, useSharedLock), lockDatasetRetry);
+    boolean replaceIngest =
+        (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE);
+    boolean mergeIngest =
+        (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.MERGE);
+
+    // Acquire an ecxlusive lock for merge/replace; shared lock for append.
+    // TODO: mechanism to lock just table, instead of entire dataset
+    boolean useExclusiveLock = replaceIngest || mergeIngest;
+    addStep(new LockDatasetStep(datasetService, datasetId, !useExclusiveLock), lockDatasetRetry);
     boolean autocommit;
     if (cloudPlatform.isGcp()) {
       if (ingestRequestModel.getTransactionId() == null) {
@@ -243,10 +246,6 @@ public class DatasetIngestFlight extends Flight {
               new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryDatasetPdao));
 
-      boolean replaceIngest =
-          (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE);
-      boolean mergeIngest =
-          (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.MERGE);
       if (replaceIngest || mergeIngest) {
         // Ensure that no duplicate IDs are being loaded in
         addStep(new IngestValidateIngestRowsStep(datasetService));
@@ -306,7 +305,7 @@ public class DatasetIngestFlight extends Flight {
             randomBackoffRetry);
       }
     }
-    addStep(new UnlockDatasetStep(datasetService, datasetId, useSharedLock), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, !useExclusiveLock), lockDatasetRetry);
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService,

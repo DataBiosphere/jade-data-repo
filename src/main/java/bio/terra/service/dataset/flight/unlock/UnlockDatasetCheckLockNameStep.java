@@ -14,7 +14,9 @@ public class UnlockDatasetCheckLockNameStep extends DefaultUndoStep {
   private final DatasetService datasetService;
   private final UUID datasetId;
   private final String lockName;
-  public UnlockDatasetCheckLockNameStep(DatasetService datasetService, UUID datasetId, String lockName) {
+
+  public UnlockDatasetCheckLockNameStep(
+      DatasetService datasetService, UUID datasetId, String lockName) {
     this.datasetService = datasetService;
     this.datasetId = datasetId;
     this.lockName = lockName;
@@ -30,8 +32,10 @@ public class UnlockDatasetCheckLockNameStep extends DefaultUndoStep {
     } catch (Exception ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
-    if(!exclusiveLock.equals(lockName)) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new DatasetLockException("Dataset is not locked by lock name: " + lockName));
+    if (!exclusiveLock.equals(lockName)) {
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL,
+          new DatasetLockException("Dataset is not locked by lock name: " + lockName));
     }
     return StepResult.getStepResultSuccess();
   }

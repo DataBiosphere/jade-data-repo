@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
@@ -33,22 +36,43 @@ class DatasetUnlockFlightTest {
 
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());
-    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), LOCK_NAME);
   }
 
-  @Test
-  void testCorrectStepsDatasetUnlockFlight() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testCorrectStepsDatasetUnlockFlight(boolean forceUnlock) {
+    inputParameters.put(
+        JobMapKeys.REQUEST.getKeyName(),
+        new UnlockResourceRequest().lockName(LOCK_NAME).forceUnlock(forceUnlock));
     var flight = new DatasetUnlockFlight(inputParameters, context);
 
     var steps = FlightTestUtils.getStepNames(flight);
-    assertThat(steps, contains("UnlockDatasetStep", "JournalRecordUpdateEntryStep"));
+    if (forceUnlock) {
+      assertThat(
+          steps,
+          contains(
+              "UnlockDatasetCheckLockNameStep",
+              "UnlockResourceCheckJobStateStep",
+              "UnlockDatasetStep",
+              "JournalRecordUpdateEntryStep"));
+    } else {
+      assertThat(
+          steps,
+          contains(
+              "UnlockDatasetCheckLockNameStep",
+              "UnlockDatasetStep",
+              "JournalRecordUpdateEntryStep"));
+    }
   }
 
   @Test
   void testParametersForUnlockStep() {
+    inputParameters.put(
+        JobMapKeys.REQUEST.getKeyName(),
+        new UnlockResourceRequest().lockName(LOCK_NAME).forceUnlock(false));
     var flight = new DatasetUnlockFlight(inputParameters, context);
-    var firstStep = flight.getSteps().get(0);
-    UnlockDatasetStep unlockDatasetStep = (UnlockDatasetStep) firstStep;
+    var secondStep = flight.getSteps().get(1);
+    UnlockDatasetStep unlockDatasetStep = (UnlockDatasetStep) secondStep;
     assertThat("Unlock the Exclusive lock on dataset", unlockDatasetStep.isSharedLock(), is(false));
     assertThat("Throw lock exception", unlockDatasetStep.isThrowLockException());
     assertThat(

@@ -31,7 +31,7 @@ plugins {
     id "org.gradle.test-retry" version "1.4.0"
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.1'
-    id "org.hidetake.swagger.generator" version "2.18.2"
+    id "org.hidetake.swagger.generator" version "2.19.2"
     id "org.springframework.boot" version "2.5.12"
     id "idea"
     id "java"
@@ -59,8 +59,8 @@ allprojects {
             mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.5"
-            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.34"
+            dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.12"
+            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.47"
         }
     }
 }
@@ -404,6 +404,8 @@ clean.doFirst {
     delete("${projectDir}/$generatedOutputDir")
     delete("${rootDir}/datarepo-client/build")
     delete("${rootDir}/datarepo-client/generated")
+    delete("${rootDir}/datarepo-jakarta-client/build")
+    delete("${rootDir}/datarepo-jakarta-client/generated")
 }
 
 sourceSets {

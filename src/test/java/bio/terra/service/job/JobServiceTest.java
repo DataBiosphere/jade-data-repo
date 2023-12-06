@@ -23,6 +23,9 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.stairway.Flight;
+import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.ShortUUID;
 import bio.terra.stairway.exception.StairwayException;
 import java.sql.Date;
 import java.time.Duration;
@@ -397,5 +400,22 @@ delete from flight where flightid=:id;
 
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", jobId);
     jdbcTemplate.update(sql, params);
+  }
+
+  @Test
+  void unauthRetrieveJobState() throws InterruptedException {
+    // Setup
+    var flightId = ShortUUID.get();
+    var expectedFlightStatus = FlightStatus.RUNNING;
+    var stairway = jobService.getStairway();
+    var flightState = new FlightState();
+    flightState.setFlightStatus(expectedFlightStatus);
+    when(stairway.getFlightState(flightId)).thenReturn(flightState);
+
+    // Perform action
+    var flightStatus = jobService.unauthRetrieveJobState(flightId);
+
+    // Verify correct flight status is returned
+    assertThat(flightStatus, equalTo(expectedFlightStatus));
   }
 }

@@ -17,7 +17,6 @@ name: Verify consumer pacts
 # https://github.com/broadinstitute/terraform-ap-deployments/pull/1255
 env:
   PACTICIPANT: 'datarepo'
-  RELEASE_BRANCH: 'develop'
   TDR_LOG_APPENDER: 'Console-Standard'
   CAN_I_DEPLOY_RUN_NAME: 'can-i-deploy-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}'
 on:
@@ -75,20 +74,6 @@ on:
         type: string
 
 jobs:
-  # The workflow key 'jobs.<job_id>.with.<with_id>' lacks 'env' in its context.
-  # However, we can use the 'needs' context to include the necessary envvar.
-  # Reference: https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
-  needs-context:
-    runs-on: ubuntu-latest
-    outputs:
-      release-branch: ${{ steps.set-release-branch.outputs.release-branch }}
-      # You can include more outputs for additional envvar you want to expose to job.
-    steps:
-      - id: set-release-branch
-        run: |
-          echo "release-branch=${{ env.RELEASE_BRANCH }}" >> $GITHUB_OUTPUT
-      # You can add more steps for each additional envvar you want to expose to job.
-
   bump-check:
     runs-on: ubuntu-latest
     outputs:
@@ -104,7 +89,7 @@ jobs:
   # When triggered by a Pact Broker webhook, the provider version (GIT hash or release tag)
   # is already included in the payload, then a new version tag wouldn't be needed.
   regulated-tag-job:
-    needs: [ needs-context, bump-check ]
+    needs: [ bump-check ]
     if: ${{ needs.bump-check.outputs.is-bump == 'no' }}
     uses: ./.github/workflows/tag.yml
     with:
@@ -114,7 +99,7 @@ jobs:
       # The 'dry-run' parameter prevents the new tag from being dispatched.
       # We only need to dispatch a tag once if this is a PR merge.
       dry-run: true
-      release-branches: ${{ needs.needs-context.outputs.release-branch }}
+      release-branches: develop
     secrets: inherit
 
   verify-consumer-pact:

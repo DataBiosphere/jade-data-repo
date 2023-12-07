@@ -54,14 +54,16 @@ class DatasetUnlockFlightTest {
               "UnlockDatasetCheckLockNameStep",
               "UnlockResourceCheckJobStateStep",
               "UnlockDatasetStep",
-              "JournalRecordUpdateEntryStep"));
+              "JournalRecordUpdateEntryStep",
+              "DatasetLockSetResponseStep"));
     } else {
       assertThat(
           steps,
           contains(
               "UnlockDatasetCheckLockNameStep",
               "UnlockDatasetStep",
-              "JournalRecordUpdateEntryStep"));
+              "JournalRecordUpdateEntryStep",
+              "DatasetLockSetResponseStep"));
     }
   }
 

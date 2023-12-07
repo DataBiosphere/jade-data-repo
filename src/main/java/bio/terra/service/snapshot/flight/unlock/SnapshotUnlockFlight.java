@@ -14,6 +14,7 @@ import bio.terra.service.journal.JournalService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.snapshot.flight.lock.SnapshotLockSetResponseStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -45,7 +46,7 @@ public class SnapshotUnlockFlight extends Flight {
 
     // Steps
     addStep(new UnlockSnapshotCheckLockNameStep(snapshotService, snapshotId, lockName));
-    if (unlockRequest.isForceUnlock()) {
+    if (!unlockRequest.isForceUnlock()) {
       addStep(new UnlockResourceCheckJobStateStep(jobService, lockName));
     }
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId, lockName, true), unlockSnapshotRetry);
@@ -56,5 +57,6 @@ public class SnapshotUnlockFlight extends Flight {
             snapshotId,
             IamResourceType.DATASNAPSHOT,
             "Snapshot unlocked."));
+    addStep(new SnapshotLockSetResponseStep(snapshotService, snapshotId));
   }
 }

@@ -18,6 +18,8 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
+import bio.terra.model.SqlSortDirection;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -25,7 +27,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.ShortUUID;
 import bio.terra.stairway.exception.StairwayException;
@@ -408,17 +409,16 @@ delete from flight where flightid=:id;
   void unauthRetrieveJobState() throws InterruptedException {
     // Setup
     var flightId = ShortUUID.get();
-    var expectedFlightStatus = FlightStatus.QUEUED;
-    var stairway = jobService.getStairway();
-    stairway.submitToQueue(flightId, DatasetUnlockFlight.class, new FlightMap());
-    var flightState = new FlightState();
-    flightState.setFlightStatus(expectedFlightStatus);
-    when(stairway.getFlightState(flightId)).thenReturn(flightState);
+    var flightMap = new FlightMap();
+    flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), UUID.randomUUID());
+    flightMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), testUser);
+    flightMap.put(JobMapKeys.REQUEST.getKeyName(), new UnlockResourceRequest().lockName(flightId));
+    jobService.getStairway().submitToQueue(flightId, DatasetUnlockFlight.class, flightMap);
 
     // Perform action
     var flightStatus = jobService.unauthRetrieveJobState(flightId);
 
     // Verify correct flight status is returned
-    assertThat(flightStatus, equalTo(expectedFlightStatus));
+    assertThat(flightStatus, equalTo(FlightStatus.RUNNING));
   }
 }

@@ -207,7 +207,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataById() {
     return Stream.of(
-        arguments("goodColumn", postRequset(TABLE_NAME, "goodColumn")),
+        arguments("goodColumn", postRequest(TABLE_NAME, "goodColumn")),
         arguments("datarepo_row_id", getRequest(TABLE_NAME, "datarepo_row_id")));
   }
 
@@ -247,7 +247,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> provideRequests() {
     return Stream.of(
-        arguments(postRequset(TABLE_NAME, "goodColumn")),
+        arguments(postRequest(TABLE_NAME, "goodColumn")),
         arguments(getRequest(TABLE_NAME, "goodColumn")));
   }
 
@@ -305,7 +305,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataRetrievalFails() {
     return Stream.of(
-        arguments(postRequset("bad_table", "good_column")),
+        arguments(postRequest("bad_table", "good_column")),
         arguments(getRequest("bad_table", "good_column")));
   }
 
@@ -486,7 +486,7 @@ class DatasetsApiControllerTest {
     when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
   }
 
-  private static MockHttpServletRequestBuilder postRequset(String tableName, String columnName) {
+  private static MockHttpServletRequestBuilder postRequest(String tableName, String columnName) {
     return post(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
         .contentType(MediaType.APPLICATION_JSON)
         .content(
@@ -537,7 +537,10 @@ class DatasetsApiControllerTest {
     mockValidators();
 
     var response =
-        mvc.perform(put(UNLOCK_DATASET_ENDPOINT, DATASET_ID).queryParam("lockName", lockId))
+        mvc.perform(
+                put(UNLOCK_DATASET_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(unlockRequest)))
             .andExpect(status().is2xxSuccessful())
             .andReturn()
             .getResponse()

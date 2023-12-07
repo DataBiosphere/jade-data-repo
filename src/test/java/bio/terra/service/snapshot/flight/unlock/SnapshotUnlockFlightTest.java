@@ -53,14 +53,16 @@ class SnapshotUnlockFlightTest {
               "UnlockSnapshotCheckLockNameStep",
               "UnlockResourceCheckJobStateStep",
               "UnlockSnapshotStep",
-              "JournalRecordUpdateEntryStep"));
+              "JournalRecordUpdateEntryStep",
+              "SnapshotLockSetResponseStep"));
     } else {
       assertThat(
           steps,
           contains(
               "UnlockSnapshotCheckLockNameStep",
               "UnlockSnapshotStep",
-              "JournalRecordUpdateEntryStep"));
+              "JournalRecordUpdateEntryStep",
+              "SnapshotLockSetResponseStep"));
     }
   }
 

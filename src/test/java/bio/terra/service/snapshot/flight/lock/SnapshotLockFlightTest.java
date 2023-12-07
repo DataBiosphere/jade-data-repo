@@ -38,7 +38,10 @@ class SnapshotLockFlightTest {
     var flight = new SnapshotLockFlight(inputParameters, context);
 
     var steps = FlightTestUtils.getStepNames(flight);
-    assertThat(steps, contains("LockSnapshotStep", "JournalRecordUpdateEntryStep"));
+    assertThat(
+        steps,
+        contains(
+            "LockSnapshotStep", "JournalRecordUpdateEntryStep", "SnapshotLockSetResponseStep"));
   }
 
   @Test

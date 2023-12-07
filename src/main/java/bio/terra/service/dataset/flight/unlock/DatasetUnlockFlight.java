@@ -10,6 +10,7 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.common.UnlockResourceCheckJobStateStep;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.dataset.flight.lock.DatasetLockSetResponseStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.journal.JournalService;
@@ -43,7 +44,7 @@ public class DatasetUnlockFlight extends Flight {
 
     // Steps
     addStep(new UnlockDatasetCheckLockNameStep(datasetService, datasetId, lockName));
-    if (unlockRequest.isForceUnlock()) {
+    if (!unlockRequest.isForceUnlock()) {
       addStep(new UnlockResourceCheckJobStateStep(jobService, lockName));
     }
     addStep(
@@ -52,5 +53,6 @@ public class DatasetUnlockFlight extends Flight {
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService, userReq, datasetId, IamResourceType.DATASET, "Dataset unlocked."));
+    addStep(new DatasetLockSetResponseStep(datasetService, datasetId));
   }
 }

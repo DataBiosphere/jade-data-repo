@@ -38,7 +38,9 @@ class DatasetLockFlightTest {
     var flight = new DatasetLockFlight(inputParameters, context);
 
     var steps = FlightTestUtils.getStepNames(flight);
-    assertThat(steps, contains("LockDatasetStep", "JournalRecordUpdateEntryStep"));
+    assertThat(
+        steps,
+        contains("LockDatasetStep", "JournalRecordUpdateEntryStep", "DatasetLockSetResponseStep"));
   }
 
   @Test

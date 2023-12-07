@@ -22,7 +22,9 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.stairway.Flight;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.ShortUUID;
@@ -406,8 +408,9 @@ delete from flight where flightid=:id;
   void unauthRetrieveJobState() throws InterruptedException {
     // Setup
     var flightId = ShortUUID.get();
-    var expectedFlightStatus = FlightStatus.RUNNING;
+    var expectedFlightStatus = FlightStatus.QUEUED;
     var stairway = jobService.getStairway();
+    stairway.submitToQueue(flightId, DatasetUnlockFlight.class, new FlightMap());
     var flightState = new FlightState();
     flightState.setFlightStatus(expectedFlightStatus);
     when(stairway.getFlightState(flightId)).thenReturn(flightState);

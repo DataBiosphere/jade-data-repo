@@ -248,7 +248,10 @@ class SnapshotsApiControllerTest {
     mockValidators();
 
     var response =
-        mvc.perform(put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("lockName", lockId))
+        mvc.perform(
+                put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(unlockRequest)))
             .andExpect(status().is2xxSuccessful())
             .andReturn()
             .getResponse()

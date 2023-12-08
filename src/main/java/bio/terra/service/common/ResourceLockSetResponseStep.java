@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 
 public abstract class ResourceLockSetResponseStep extends DefaultUndoStep {
 
-  public ResourceLockSetResponseStep() {}
+  protected ResourceLockSetResponseStep() {}
 
   @Override
   public StepResult doStep(FlightContext context) {

@@ -17,7 +17,7 @@ public class JournalRecordUpdateEntryStep implements Step {
   private final UUID resourceKey;
   private final IamResourceType resourceType;
   private String note;
-  private Boolean includeFlightIdInNote = false;
+  private boolean includeFlightIdInNote = false;
 
   public JournalRecordUpdateEntryStep(
       JournalService journalService,
@@ -25,7 +25,7 @@ public class JournalRecordUpdateEntryStep implements Step {
       UUID resourceKey,
       IamResourceType resourceType,
       String note,
-      Boolean includeFlightIdInNote) {
+      boolean includeFlightIdInNote) {
     this.journalService = journalService;
     this.userReq = userRequest;
     this.resourceKey = resourceKey;

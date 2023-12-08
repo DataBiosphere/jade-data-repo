@@ -12,7 +12,7 @@ import java.util.List;
 public abstract class UnlockResourceCheckLockNameStep extends DefaultUndoStep {
   private final String lockName;
 
-  public UnlockResourceCheckLockNameStep(String lockName) {
+  protected UnlockResourceCheckLockNameStep(String lockName) {
     this.lockName = lockName;
   }
 

@@ -49,6 +49,7 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.stairway.ShortUUID;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1213,5 +1214,15 @@ public class DatasetDaoTest {
         "Locked dataset summary can be enumerated",
         lockedDatasetSummaryEnumerationItemExclusiveLock,
         equalTo(flightId));
+  }
+
+  @Test
+  public void testRetrieveSharedLock() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    String flightId = ShortUUID.get();
+    datasetDao.lockShared(datasetId, flightId);
+    Dataset lockedDataset = datasetDao.retrieve(datasetId);
+    var datasetSharedLocks = ResourceLocksUtils.getSharedLock(lockedDataset.getResourceLocks());
+    assertThat("Correct shared lock is returned", datasetSharedLocks.get(0), equalTo(flightId));
   }
 }

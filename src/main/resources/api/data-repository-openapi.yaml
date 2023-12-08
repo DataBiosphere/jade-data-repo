@@ -2087,7 +2087,7 @@ paths:
         - datasets
         - repository
       description: >
-        Remove an exclusive lock on the dataset.
+        Remove an exclusive or shared lock on the dataset.
       operationId: unlockDataset
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2100,7 +2100,7 @@ paths:
         200:
           description: >
             Unlock successful. ResourceLocks object is returned with a "null" value
-            showing that there is no longer an exclusive lock on this resource.
+            if there are no locks on the resource.
           content:
             application/json:
               schema:

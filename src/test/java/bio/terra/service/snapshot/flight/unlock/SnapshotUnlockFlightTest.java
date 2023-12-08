@@ -51,7 +51,6 @@ class SnapshotUnlockFlightTest {
           steps,
           contains(
               "UnlockSnapshotCheckLockNameStep",
-              "UnlockResourceCheckJobStateStep",
               "UnlockSnapshotStep",
               "JournalRecordUpdateEntryStep",
               "SnapshotLockSetResponseStep"));
@@ -60,6 +59,7 @@ class SnapshotUnlockFlightTest {
           steps,
           contains(
               "UnlockSnapshotCheckLockNameStep",
+              "UnlockResourceCheckJobStateStep",
               "UnlockSnapshotStep",
               "JournalRecordUpdateEntryStep",
               "SnapshotLockSetResponseStep"));
@@ -72,8 +72,8 @@ class SnapshotUnlockFlightTest {
         JobMapKeys.REQUEST.getKeyName(),
         new UnlockResourceRequest().lockName(LOCK_NAME).forceUnlock(false));
     var flight = new SnapshotUnlockFlight(inputParameters, context);
-    var secondStep = flight.getSteps().get(1);
-    UnlockSnapshotStep unlockSnapshotStep = (UnlockSnapshotStep) secondStep;
+    var thirdStep = flight.getSteps().get(2);
+    UnlockSnapshotStep unlockSnapshotStep = (UnlockSnapshotStep) thirdStep;
     assertThat(
         "The lock name is passed to the unlock method",
         unlockSnapshotStep.getLockName(),

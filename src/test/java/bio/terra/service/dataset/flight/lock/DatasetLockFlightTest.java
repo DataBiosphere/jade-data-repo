@@ -27,8 +27,6 @@ class DatasetLockFlightTest {
 
   @BeforeEach
   void setUp() {
-    FlightTestUtils.mockFlightAppConfigSetup(context);
-
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());
   }

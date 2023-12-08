@@ -47,6 +47,7 @@ public class UnlockDatasetStepTest {
   void testDoStepWithIdFromStepConstruction(boolean sharedLock) {
     step = new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock);
     mockFlightContextFlightId();
+    mockFlightContextWorkingMap();
 
     StepResult doResult = step.doStep(flightContext);
 
@@ -89,6 +90,7 @@ public class UnlockDatasetStepTest {
       boolean sharedLock, Exception retryableException) {
     step = new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock);
     mockFlightContextFlightId();
+    mockFlightContextWorkingMap();
     doThrow(retryableException).when(datasetService).unlock(DATASET_ID, FLIGHT_ID, sharedLock);
 
     StepResult doResult = step.doStep(flightContext);

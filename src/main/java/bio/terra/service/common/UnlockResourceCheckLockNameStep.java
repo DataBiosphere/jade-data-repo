@@ -18,6 +18,7 @@ public abstract class UnlockResourceCheckLockNameStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    FlightMap workingMap = context.getWorkingMap();
     List<String> locks;
     try {
       locks = getLocks();
@@ -26,7 +27,8 @@ public abstract class UnlockResourceCheckLockNameStep extends DefaultUndoStep {
     }
     if (locks.isEmpty()) {
       return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new ResourceLockConflict("Resource is not locked"));
+          StepStatus.STEP_RESULT_FAILURE_FATAL,
+          new ResourceLockConflict("Resource is not locked."));
     }
     if (!locks.contains(lockName)) {
       return new StepResult(
@@ -38,7 +40,6 @@ public abstract class UnlockResourceCheckLockNameStep extends DefaultUndoStep {
                   + String.join(", ", locks)
                   + "."));
     }
-    FlightMap workingMap = context.getWorkingMap();
     workingMap.put(DatasetWorkingMapKeys.IS_SHARED_LOCK, isSharedLock(lockName));
     return StepResult.getStepResultSuccess();
   }

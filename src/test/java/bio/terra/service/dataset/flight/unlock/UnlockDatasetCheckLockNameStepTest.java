@@ -11,7 +11,9 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepStatus;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
@@ -41,6 +43,8 @@ class UnlockDatasetCheckLockNameStepTest {
     // Setup
     step = new UnlockDatasetCheckLockNameStep(datasetService, DATASET_ID, requestedLockName);
     when(datasetService.retrieveDatasetSummary(DATASET_ID)).thenReturn(datasetSummaryModel);
+    FlightMap workingMap = new FlightMap();
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     // Perform Step
     var stepResult = step.doStep(flightContext);
@@ -58,7 +62,7 @@ class UnlockDatasetCheckLockNameStepTest {
   private static Stream<Arguments> doStep() {
     return Stream.of(
         arguments(
-            new DatasetSummaryModel().resourceLocks(new ResourceLocks()),
+            new DatasetSummaryModel().resourceLocks(new ResourceLocks().shared(List.of())),
             "lockName",
             StepStatus.STEP_RESULT_FAILURE_FATAL,
             "Resource is not locked."),
@@ -68,9 +72,11 @@ class UnlockDatasetCheckLockNameStepTest {
             StepStatus.STEP_RESULT_SUCCESS,
             null),
         arguments(
-            new DatasetSummaryModel().resourceLocks(new ResourceLocks().exclusive("LockName")),
+            new DatasetSummaryModel()
+                .resourceLocks(
+                    new ResourceLocks().exclusive("LockName").shared(List.of("YetAnotherLock"))),
             "OtherLockName",
             StepStatus.STEP_RESULT_FAILURE_FATAL,
-            "Resource is not locked by lock OtherLockName. Resource is locked by LockName."));
+            "Resource not locked by OtherLockName. It is locked by flight(s) LockName, YetAnotherLock."));
   }
 }

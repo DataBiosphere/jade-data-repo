@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.lock;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
@@ -17,7 +16,6 @@ public class DatasetLockFlight extends Flight {
   public DatasetLockFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
 

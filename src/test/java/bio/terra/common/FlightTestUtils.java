@@ -30,7 +30,6 @@ public class FlightTestUtils {
 
   public static void mockFlightAppConfigSetup(ApplicationContext context) {
     ApplicationConfiguration appConfig = mock(ApplicationConfiguration.class);
-    when(appConfig.getMaxStairwayThreads()).thenReturn(1);
     when(context.getBean(any(Class.class))).thenReturn(null);
     // Beans that are interacted with directly in flight construction rather than simply passed
     // to steps need to be added to our context mock.

@@ -11,6 +11,7 @@ import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -41,6 +42,8 @@ class UnlockSnapshotCheckLockNameStepTest {
     // Setup
     step = new UnlockSnapshotCheckLockNameStep(snapshotService, SNAPSHOT_ID, requestedLockName);
     when(snapshotService.retrieveSnapshotSummary(SNAPSHOT_ID)).thenReturn(snapshotSummaryModel);
+    FlightMap workingMap = new FlightMap();
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     // Perform Step
     var stepResult = step.doStep(flightContext);
@@ -71,6 +74,6 @@ class UnlockSnapshotCheckLockNameStepTest {
             new SnapshotSummaryModel().resourceLocks(new ResourceLocks().exclusive("LockName")),
             "OtherLockName",
             StepStatus.STEP_RESULT_FAILURE_FATAL,
-            "Resource is not locked by lock OtherLockName. Resource is locked by LockName."));
+            "Resource not locked by OtherLockName. It is locked by flight(s) LockName."));
   }
 }

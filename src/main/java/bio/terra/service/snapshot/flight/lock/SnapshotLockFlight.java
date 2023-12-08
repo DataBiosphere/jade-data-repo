@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.lock;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.JournalRecordUpdateEntryStep;
@@ -18,7 +17,6 @@ public class SnapshotLockFlight extends Flight {
   public SnapshotLockFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     JournalService journalService = appContext.getBean(JournalService.class);

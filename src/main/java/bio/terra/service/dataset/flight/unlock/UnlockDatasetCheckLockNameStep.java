@@ -23,12 +23,17 @@ public class UnlockDatasetCheckLockNameStep extends UnlockResourceCheckLockNameS
     if (lockResource.getExclusive() != null) {
       locks.add(lockResource.getExclusive());
     }
-    locks.addAll(lockResource.getShared());
+    if (lockResource.getShared() != null) {
+      locks.addAll(lockResource.getShared());
+    }
     return locks;
   }
 
   protected boolean isSharedLock(String lockName) {
     var lockResource = datasetService.retrieveDatasetSummary(datasetId).getResourceLocks();
+    if (lockResource.getShared() == null) {
+      return false;
+    }
     return lockResource.getShared().contains(lockName);
   }
 }

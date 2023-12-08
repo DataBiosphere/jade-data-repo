@@ -27,8 +27,6 @@ class SnapshotLockFlightTest {
 
   @BeforeEach
   void setUp() {
-    FlightTestUtils.mockFlightAppConfigSetup(context);
-
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), SNAPSHOT_ID.toString());
   }

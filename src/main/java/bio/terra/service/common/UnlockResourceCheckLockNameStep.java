@@ -1,10 +1,13 @@
 package bio.terra.service.common;
 
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
+import java.util.List;
 
 public abstract class UnlockResourceCheckLockNameStep extends DefaultUndoStep {
   private final String lockName;
@@ -15,28 +18,32 @@ public abstract class UnlockResourceCheckLockNameStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    // Is the dataset actually locked by this flight?
-    String exclusiveLock = "";
-    // TODO - But, it could still be locked by a shared lock.
+    List<String> locks;
     try {
-      exclusiveLock = getExclusiveLock();
+      locks = getLocks();
     } catch (Exception ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
-    if (exclusiveLock == null || !exclusiveLock.equals(lockName)) {
-      var message =
-          exclusiveLock == null
-              ? "Resource is not locked by an exclusive lock (But, if this is a dataset, it could be locked by a shared lock. Please contact the TDR team for help removing the shared lock.)"
-              : "Resource is not locked by lock "
-                  + lockName
-                  + ". Resource is locked by "
-                  + exclusiveLock
-                  + ".";
+    if (locks.isEmpty()) {
       return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new ResourceLockConflict(message));
+          StepStatus.STEP_RESULT_FAILURE_FATAL, new ResourceLockConflict("Resource is not locked"));
     }
+    if (!locks.contains(lockName)) {
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL,
+          new ResourceLockConflict(
+              "Resource not locked by "
+                  + lockName
+                  + ". It is locked by flight(s) "
+                  + String.join(", ", locks)
+                  + "."));
+    }
+    FlightMap workingMap = context.getWorkingMap();
+    workingMap.put(DatasetWorkingMapKeys.IS_SHARED_LOCK, isSharedLock(lockName));
     return StepResult.getStepResultSuccess();
   }
 
-  protected abstract String getExclusiveLock();
+  protected abstract List<String> getLocks();
+
+  protected abstract boolean isSharedLock(String lockName);
 }

@@ -15,7 +15,7 @@ import org.springframework.transaction.TransactionSystemException;
 public class UnlockDatasetStep extends DefaultUndoStep {
 
   private final DatasetService datasetService;
-  private final boolean sharedLock;
+  private boolean sharedLock;
   private UUID datasetId;
   private String lockName;
 
@@ -34,12 +34,9 @@ public class UnlockDatasetStep extends DefaultUndoStep {
   }
 
   public UnlockDatasetStep(
-      DatasetService datasetService,
-      UUID datasetId,
-      boolean sharedLock,
-      String lockName,
-      boolean throwLockException) {
-    this(datasetService, datasetId, sharedLock);
+      DatasetService datasetService, UUID datasetId, String lockName, boolean throwLockException) {
+    this.datasetService = datasetService;
+    this.datasetId = datasetId;
     this.lockName = lockName;
     this.throwLockException = throwLockException;
   }
@@ -76,6 +73,9 @@ public class UnlockDatasetStep extends DefaultUndoStep {
     }
     if (lockName == null) {
       lockName = context.getFlightId();
+    }
+    if (map.containsKey(DatasetWorkingMapKeys.IS_SHARED_LOCK)) {
+      sharedLock = map.get(DatasetWorkingMapKeys.IS_SHARED_LOCK, Boolean.class);
     }
 
     try {

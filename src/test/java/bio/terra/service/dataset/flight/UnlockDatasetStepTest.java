@@ -101,9 +101,11 @@ public class UnlockDatasetStepTest {
   @MethodSource
   void testDoStepWithProvidedLockNameAndThrowException(
       boolean sharedLock, boolean throwLockException, boolean successfulLock) {
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(DatasetWorkingMapKeys.IS_SHARED_LOCK, sharedLock);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     String lockName = "lock-name";
-    step =
-        new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock, lockName, throwLockException);
+    step = new UnlockDatasetStep(datasetService, DATASET_ID, lockName, throwLockException);
     when(datasetService.unlock(DATASET_ID, lockName, sharedLock)).thenReturn(successfulLock);
 
     StepResult doResult = step.doStep(flightContext);

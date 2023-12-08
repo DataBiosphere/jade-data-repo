@@ -47,9 +47,7 @@ public class DatasetUnlockFlight extends Flight {
     if (!unlockRequest.isForceUnlock()) {
       addStep(new UnlockResourceCheckJobStateStep(jobService, lockName));
     }
-    addStep(
-        new UnlockDatasetStep(datasetService, datasetId, false, lockName, true),
-        unlockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, lockName, true), unlockDatasetRetry);
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService, userReq, datasetId, IamResourceType.DATASET, "Dataset unlocked."));

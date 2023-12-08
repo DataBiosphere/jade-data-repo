@@ -30,7 +30,7 @@ public class UnlockResourceCheckJobStateStep extends DefaultUndoStep {
                     + lockName
                     + " has state "
                     + status.name()
-                    + ". Unlocking a running flight could have unintended consequences. Please proceed with unlock with caution (You still still unlock by setting forceUnlock to true)."));
+                    + ". Unlocking a running flight could have unintended consequences. Please proceed with unlock with caution (You can still unlock by setting forceUnlock to true)."));
       default:
         return StepResult.getStepResultSuccess();
     }

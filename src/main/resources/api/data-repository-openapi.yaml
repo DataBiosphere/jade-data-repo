@@ -7040,6 +7040,10 @@ components:
       properties:
         exclusive:
           $ref: '#/components/schemas/ShortIdProperty'
+        shared:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShortIdProperty'
 
     ##############################################################################
     ## SNAPSHOT BUILDER API STANDARD MODELS

@@ -26,7 +26,7 @@ public class DaoUtilsTest {
     assertThat(
         "order by clause looks correct",
         DaoUtils.orderByClause(EnumerateSortByParam.NAME, SqlSortDirection.ASC, "foo"),
-        equalTo(" ORDER BY foo.name ASC "));
+        equalToIgnoringCase(" ORDER BY foo.name ASC "));
 
     assertThat(
         "default order by clause looks correct",

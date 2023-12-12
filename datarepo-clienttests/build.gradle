@@ -23,7 +23,7 @@ dependencies {
 
         jackson = "2.10.2"
         kubernetesClient = "10.0.0"
-        logback = "1.2.3"
+        logback = "1.2.13"
         slf4j = "1.7.25"
         hamcrest = "2.1"
         apacheMath = "3.0"

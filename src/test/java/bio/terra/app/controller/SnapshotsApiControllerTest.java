@@ -79,7 +79,7 @@ class SnapshotsApiControllerTest {
   private static final String COLUMN_NAME = PDAO_ROW_ID_COLUMN;
   private static final int LIMIT = 100;
   private static final int OFFSET = 0;
-  private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
+  private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final String FILTER = "";
 
   private static final String RETRIEVE_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}";
@@ -164,7 +164,7 @@ class SnapshotsApiControllerTest {
                 .content(
                     TestUtils.mapToJson(
                         new QueryDataRequestModel()
-                            .direction(SqlSortDirectionAscDefault.ASC)
+                            .direction(DIRECTION)
                             .limit(LIMIT)
                             .offset(OFFSET)
                             .sort(COLUMN_NAME)
@@ -191,7 +191,7 @@ class SnapshotsApiControllerTest {
             LIMIT,
             OFFSET,
             PDAO_ROW_ID_COLUMN,
-            DIRECTION,
+            SqlSortDirection.from(DIRECTION),
             FILTER))
         .thenReturn(expectedSnapshotPreview);
 
@@ -209,7 +209,7 @@ class SnapshotsApiControllerTest {
             LIMIT,
             OFFSET,
             PDAO_ROW_ID_COLUMN,
-            DIRECTION,
+            SqlSortDirection.from(DIRECTION),
             FILTER);
   }
 

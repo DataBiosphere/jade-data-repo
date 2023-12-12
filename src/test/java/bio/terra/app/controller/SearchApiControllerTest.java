@@ -55,7 +55,7 @@ public class SearchApiControllerTest {
   private static final String GET_PREVIEW_ENDPOINT =
       "/api/repository/v1/snapshots/{id}/data/{table}";
   private static final String UPSERT_DELETE_ENDPOINT = "/api/repository/v1/search/{id}/metadata";
-  private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
+  private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = "";
@@ -73,7 +73,14 @@ public class SearchApiControllerTest {
     var list = List.of("hello", "world");
     var result = new SnapshotPreviewModel().result(List.copyOf(list));
     when(snapshotService.retrievePreview(
-            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
+            any(),
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER)))
         .thenReturn(result);
     performQueryDataPost(id, table, column)
         .andExpect(status().isOk())
@@ -82,7 +89,14 @@ public class SearchApiControllerTest {
 
   private void mockSnapshotPreviewByIdError(UUID id, String table, String column) throws Exception {
     when(snapshotService.retrievePreview(
-            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
+            any(),
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER)))
         .thenThrow(SnapshotPreviewException.class);
     performQueryDataPost(id, table, column).andExpect(status().is5xxServerError());
   }
@@ -96,7 +110,14 @@ public class SearchApiControllerTest {
     verify(snapshotService).verifySnapshotReadable(eq(id), any());
     verify(snapshotService)
         .retrievePreview(
-            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
+            any(),
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER));
   }
 
   @Test
@@ -108,7 +129,14 @@ public class SearchApiControllerTest {
     verify(snapshotService).verifySnapshotReadable(eq(id), any());
     verify(snapshotService)
         .retrievePreview(
-            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
+            any(),
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER));
   }
 
   @Test(expected = SnapshotPreviewException.class)
@@ -118,7 +146,8 @@ public class SearchApiControllerTest {
     var column = "bad_column";
     mockSnapshotPreviewByIdError(id, table, column);
     verify(snapshotService).verifySnapshotReadable(eq(id), any());
-    snapshotService.retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+    snapshotService.retrievePreview(
+        TEST_USER, id, table, LIMIT, OFFSET, column, SqlSortDirection.from(DIRECTION), FILTER);
   }
 
   @Test(expected = SnapshotPreviewException.class)
@@ -128,7 +157,8 @@ public class SearchApiControllerTest {
     var column = "good_column";
     mockSnapshotPreviewByIdError(id, table, column);
     verify(snapshotService).verifySnapshotReadable(eq(id), any());
-    snapshotService.retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+    snapshotService.retrievePreview(
+        TEST_USER, id, table, LIMIT, OFFSET, column, SqlSortDirection.from(DIRECTION), FILTER);
   }
 
   @Test

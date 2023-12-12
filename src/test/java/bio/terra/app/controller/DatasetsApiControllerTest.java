@@ -110,7 +110,7 @@ class DatasetsApiControllerTest {
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
   private static final String GET_COUNT_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/count";
-  private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
+  private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final Integer CONCEPT_ID = 0;
   private static final int LIMIT = 10;
@@ -175,14 +175,29 @@ class DatasetsApiControllerTest {
   void testQueryDatasetDataById(String column, MockHttpServletRequestBuilder request)
       throws Exception {
     when(datasetService.retrieveData(
-            TEST_USER, DATASET_ID, TABLE_NAME, LIMIT, OFFSET, column, DIRECTION, FILTER))
+            TEST_USER,
+            DATASET_ID,
+            TABLE_NAME,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER))
         .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
     mockValidators();
     mvc.perform(request).andExpect(status().isOk()).andExpect(jsonPath("$.result").isArray());
     verifyAuthorizationCall(IamAction.READ_DATA);
 
     verify(datasetService)
-        .retrieveData(TEST_USER, DATASET_ID, TABLE_NAME, LIMIT, OFFSET, column, DIRECTION, FILTER);
+        .retrieveData(
+            TEST_USER,
+            DATASET_ID,
+            TABLE_NAME,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER);
   }
 
   private static Stream<Arguments> testQueryDatasetDataById() {
@@ -258,14 +273,29 @@ class DatasetsApiControllerTest {
     var column = "good_column";
 
     when(datasetService.retrieveData(
-            TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+            TEST_USER,
+            DATASET_ID,
+            table,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER))
         .thenThrow(DatasetDataException.class);
     mockValidators();
     mvc.perform(request).andExpect(status().is5xxServerError());
 
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
-        .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+        .retrieveData(
+            TEST_USER,
+            DATASET_ID,
+            table,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER);
   }
 
   private static Stream<Arguments> testQueryDatasetDataRetrievalFails() {

@@ -5,7 +5,7 @@ import java.util.Arrays;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SqlSortDirectionConverterDesc
+public class SqlSortDirectionDescDefaultConverter
     extends OpenApiEnumConverter<SqlSortDirectionDescDefault> {
 
   @Override

@@ -32,7 +32,7 @@ plugins {
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.1'
     id "org.hidetake.swagger.generator" version "2.19.2"
-    id "org.springframework.boot" version "2.5.12"
+    id "org.springframework.boot" version "2.7.4"
     id "idea"
     id "java"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
@@ -200,7 +200,7 @@ dependencies {
     implementation 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
     implementation 'org.postgresql:postgresql:42.2.18'          // Postgres jdbc driver
     implementation 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
-    implementation 'org.codehaus.janino:janino:3.1.6'           // Provides if/else xml parsing for logback config
+    implementation 'org.codehaus.janino:janino:3.1.9'           // Provides if/else xml parsing for logback config
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
 
@@ -217,7 +217,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'javax.servlet:jstl:1.2'
 
-    implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.0'
+    implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.17.15'
 
     implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '11.2.3.jre17'
 
@@ -269,7 +269,7 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.15.2'
     implementation 'com.azure:azure-data-tables:12.3.11'
 
-    implementation platform('io.sentry:sentry-bom:6.25.0') //import bom
+    implementation platform('io.sentry:sentry-bom:6.34.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter')
     implementation('io.sentry:sentry-logback')
 

@@ -2,7 +2,6 @@ package bio.terra.common;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;

@@ -4,13 +4,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -27,12 +27,12 @@ public class DaoUtilsTest {
     assertThat(
         "order by clause looks correct",
         DaoUtils.orderByClause(EnumerateSortByParam.NAME, SqlSortDirection.ASC, "foo"),
-        equalTo(" ORDER BY foo.name asc "));
+        equalToIgnoringCase(" ORDER BY foo.name ASC "));
 
     assertThat(
         "default order by clause looks correct",
         DaoUtils.orderByClause(null, null, "foo"),
-        equalTo(" ORDER BY foo.created_date desc "));
+        equalTo(" ORDER BY foo.created_date DESC "));
   }
 
   @Test

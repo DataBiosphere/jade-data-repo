@@ -3,11 +3,12 @@ package bio.terra.app.controller;
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.JobsApi;
 import bio.terra.model.JobModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionDescDefault;
 import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
@@ -28,7 +29,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @Api(tags = {"jobs"})
@@ -94,13 +94,11 @@ public class JobsApiController implements JobsApi {
   // -- jobs --
   @Override
   public ResponseEntity<List<JobModel>> enumerateJobs(
-      Integer offset,
-      Integer limit,
-      @RequestParam(defaultValue = "desc") SqlSortDirection direction,
-      String className) {
+      Integer offset, Integer limit, SqlSortDirectionDescDefault direction, String className) {
     validateOffsetAndLimit(offset, limit);
     List<JobModel> results =
-        jobService.enumerateJobs(offset, limit, getAuthenticatedInfo(), direction, className);
+        jobService.enumerateJobs(
+            offset, limit, getAuthenticatedInfo(), SqlSortDirection.from(direction), className);
     return new ResponseEntity<>(results, HttpStatus.OK);
   }
 

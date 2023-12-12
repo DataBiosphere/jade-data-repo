@@ -13,7 +13,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;

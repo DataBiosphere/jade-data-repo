@@ -12,13 +12,13 @@ import static bio.terra.common.PdaoConstant.PDAO_TOTAL_ROW_COUNT_COLUMN_NAME;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsDoubleModel;
 import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.common.QueryUtils;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;

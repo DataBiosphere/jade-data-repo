@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -39,7 +40,7 @@ import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderRequest;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -109,7 +110,7 @@ class DatasetsApiControllerTest {
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
   private static final String GET_COUNT_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/count";
-  private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
+  private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final Integer CONCEPT_ID = 0;
   private static final int LIMIT = 10;
@@ -174,14 +175,29 @@ class DatasetsApiControllerTest {
   void testQueryDatasetDataById(String column, MockHttpServletRequestBuilder request)
       throws Exception {
     when(datasetService.retrieveData(
-            TEST_USER, DATASET_ID, TABLE_NAME, LIMIT, OFFSET, column, DIRECTION, FILTER))
+            TEST_USER,
+            DATASET_ID,
+            TABLE_NAME,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER))
         .thenReturn(new DatasetDataModel().addResultItem("hello").addResultItem("world"));
     mockValidators();
     mvc.perform(request).andExpect(status().isOk()).andExpect(jsonPath("$.result").isArray());
     verifyAuthorizationCall(IamAction.READ_DATA);
 
     verify(datasetService)
-        .retrieveData(TEST_USER, DATASET_ID, TABLE_NAME, LIMIT, OFFSET, column, DIRECTION, FILTER);
+        .retrieveData(
+            TEST_USER,
+            DATASET_ID,
+            TABLE_NAME,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER);
   }
 
   private static Stream<Arguments> testQueryDatasetDataById() {
@@ -257,14 +273,29 @@ class DatasetsApiControllerTest {
     var column = "good_column";
 
     when(datasetService.retrieveData(
-            TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+            TEST_USER,
+            DATASET_ID,
+            table,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER))
         .thenThrow(DatasetDataException.class);
     mockValidators();
     mvc.perform(request).andExpect(status().is5xxServerError());
 
     verifyAuthorizationCall(IamAction.READ_DATA);
     verify(datasetService)
-        .retrieveData(TEST_USER, DATASET_ID, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+        .retrieveData(
+            TEST_USER,
+            DATASET_ID,
+            table,
+            LIMIT,
+            OFFSET,
+            column,
+            SqlSortDirection.from(DIRECTION),
+            FILTER);
   }
 
   private static Stream<Arguments> testQueryDatasetDataRetrievalFails() {
@@ -456,7 +487,7 @@ class DatasetsApiControllerTest {
         .content(
             TestUtils.mapToJson(
                 new QueryDataRequestModel()
-                    .direction(DIRECTION)
+                    .direction(SqlSortDirectionAscDefault.ASC)
                     .limit(LIMIT)
                     .offset(OFFSET)
                     .sort(columnName)

@@ -119,6 +119,7 @@ public class SnapshotBuilderTestData {
                               new Column().name("gender_identity").type(TableDataType.INTEGER),
                               new Column().name("ethnicity").type(TableDataType.INTEGER),
                               new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
+
   public static SnapshotBuilderCohort createCohort() {
     return new SnapshotBuilderCohort()
         .name("cohort")

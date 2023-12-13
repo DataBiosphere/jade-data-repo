@@ -4,8 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -54,7 +54,8 @@ class SnapshotRequestDaoTest {
   @BeforeEach
   void beforeEach() throws IOException {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
-    BillingProfileModel billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
+    BillingProfileModel billingProfile =
+        profileDao.createBillingProfile(profileRequest, "testUser");
 
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     UUID projectId = resourceDao.createProject(projectResource);
@@ -70,8 +71,7 @@ class SnapshotRequestDaoTest {
   }
 
   private void verifyResponseContents(SnapshotAccessRequestResponse response) {
-    assertNotNull(
-        response.getId(), "Snapshot Access Request Response should have an id");
+    assertNotNull(response.getId(), "Snapshot Access Request Response should have an id");
     assertNotNull(
         response.getCreatedDate(),
         "Snapshot Access Request Response should have a create date timestamp");
@@ -86,7 +86,9 @@ class SnapshotRequestDaoTest {
     assertThat(
         "Snapshot Access Request Response should contain the same research purpose as the example",
         response.getSnapshotResearchPurpose(),
-        equalTo(SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotResearchPurpose()));
+        equalTo(
+            SnapshotBuilderTestData.createSnapshotAccessRequestResponse()
+                .getSnapshotResearchPurpose()));
     assertThat(
         "Snapshot Access Request Response should contain the same snapshot builder request as the example",
         response.getSnapshotSpecification(),
@@ -170,7 +172,9 @@ class SnapshotRequestDaoTest {
         "Updated Snapshot Access Request Response should have approved status",
         updatedResponse.getStatus(),
         equalTo(SnapshotAccessRequestResponse.StatusEnum.APPROVED));
-    assertNotNull(updatedResponse.getUpdatedDate(), "Updated Snapshot Access Request Response should have an update date");
+    assertNotNull(
+        updatedResponse.getUpdatedDate(),
+        "Updated Snapshot Access Request Response should have an update date");
   }
 
   @Test

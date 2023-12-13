@@ -359,7 +359,8 @@ class DatasetsApiControllerTest {
   void testCreateSnapshotRequest() throws Exception {
     mockValidators();
     SnapshotAccessRequest expected = SnapshotBuilderTestData.createSnapshotAccessRequest();
-    SnapshotAccessRequestResponse response = SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
+    SnapshotAccessRequestResponse response =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(expected), anyString()))
         .thenReturn(response);
     String actualJson =

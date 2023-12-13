@@ -42,7 +42,6 @@ import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderRequest;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;

@@ -18,7 +18,6 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;

@@ -24,7 +24,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotPreviewModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;

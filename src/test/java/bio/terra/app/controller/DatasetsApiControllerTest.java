@@ -38,7 +38,6 @@ import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
-import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -359,8 +358,8 @@ class DatasetsApiControllerTest {
   @Test
   void testCreateSnapshotRequest() throws Exception {
     mockValidators();
-    SnapshotAccessRequest expected = SnapshotBuilderTestData.ACCESS_REQUEST;
-    SnapshotAccessRequestResponse response = SnapshotBuilderTestData.RESPONSE;
+    SnapshotAccessRequest expected = SnapshotBuilderTestData.createSnapshotAccessRequest();
+    SnapshotAccessRequestResponse response = SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(expected), anyString()))
         .thenReturn(response);
     String actualJson =
@@ -407,7 +406,7 @@ class DatasetsApiControllerTest {
   @Test
   void getSnapshotBuilderCount() throws Exception {
     mockValidators();
-    var cohorts = List.of(SnapshotBuilderTestData.COHORT);
+    var cohorts = List.of(SnapshotBuilderTestData.createCohort());
     int count = 1234;
     when(snapshotBuilderService.getCountResponse(DATASET_ID, cohorts))
         .thenReturn(

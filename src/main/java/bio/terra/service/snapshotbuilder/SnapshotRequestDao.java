@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -27,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class SnapshotRequestDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper;
   private static final String ID = "id";
   private static final String DATASET_ID = "dataset_id";
   private static final String SNAPSHOT_NAME = "snapshot_name";
@@ -38,7 +39,7 @@ public class SnapshotRequestDao {
   private static final String UPDATED_DATE = "updated_date";
   private static final String STATUS = "status";
 
-  private static final RowMapper<SnapshotAccessRequestResponse> responseMapper =
+  private final RowMapper<SnapshotAccessRequestResponse> responseMapper =
       (rs, rowNum) ->
           new SnapshotAccessRequestResponse()
               .id(rs.getObject(ID, UUID.class))
@@ -51,11 +52,14 @@ public class SnapshotRequestDao {
               .createdBy(rs.getString(CREATED_BY))
               .status(SnapshotAccessRequestResponse.StatusEnum.valueOf(rs.getString(STATUS)));
 
-  public SnapshotRequestDao(NamedParameterJdbcTemplate jdbcTemplate) {
+  public SnapshotRequestDao(
+      NamedParameterJdbcTemplate jdbcTemplate,
+      @Qualifier("daoObjectMapper") ObjectMapper objectMapper) {
     this.jdbcTemplate = jdbcTemplate;
+    this.objectMapper = objectMapper;
   }
 
-  private static SnapshotBuilderRequest mapRequestFromJson(String json) {
+  private SnapshotBuilderRequest mapRequestFromJson(String json) {
     try {
       return objectMapper.readValue(json, SnapshotBuilderRequest.class);
     } catch (JsonProcessingException e) {
@@ -71,7 +75,7 @@ public class SnapshotRequestDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public SnapshotAccessRequestResponse getById(UUID requestId) {
-    String sql = "SELECT * FROM snapshot_request WHERE " + ID + " = :id";
+    String sql = "SELECT * FROM snapshot_request WHERE id = :id";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue(ID, requestId);
     try {
       return jdbcTemplate.queryForObject(sql, params, responseMapper);
@@ -89,7 +93,7 @@ public class SnapshotRequestDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerateByDatasetId(UUID datasetId) {
-    String sql = "SELECT * FROM snapshot_request WHERE " + DATASET_ID + " = :dataset_id";
+    String sql = "SELECT * FROM snapshot_request WHERE dataset_id = :dataset_id";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue(DATASET_ID, datasetId);
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
@@ -134,14 +138,11 @@ public class SnapshotRequestDao {
   public SnapshotAccessRequestResponse update(
       UUID requestId, SnapshotAccessRequestResponse.StatusEnum status) {
     String sql =
-        "UPDATE snapshot_request SET "
-            + STATUS
-            + " = :status, "
-            + UPDATED_DATE
-            + "= :updated_date "
-            + "WHERE "
-            + ID
-            + " = :id";
+        """
+        UPDATE snapshot_request SET
+        status = :status, updated_date = :updated_date
+        WHERE id = :id
+        """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(STATUS, status.toString())
@@ -155,7 +156,7 @@ public class SnapshotRequestDao {
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void delete(UUID requestId) {
-    String sql = "DELETE FROM snapshot_request WHERE " + ID + " = :id";
+    String sql = "DELETE FROM snapshot_request WHERE id = :id";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException("Snapshot Request with given id does not exist.");

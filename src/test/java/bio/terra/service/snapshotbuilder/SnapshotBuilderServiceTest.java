@@ -1,9 +1,10 @@
 package bio.terra.service.snapshotbuilder;
-
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import java.util.UUID;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -26,8 +27,10 @@ class SnapshotBuilderServiceTest {
   void createSnapshotRequest() {
     UUID datasetId = UUID.randomUUID();
     String email = "user@gmail.com";
-    snapshotBuilderService.createSnapshotRequest(
-        datasetId, SnapshotBuilderTestData.ACCESS_REQUEST, email);
-    verify(snapshotRequestDao).create(datasetId, SnapshotBuilderTestData.ACCESS_REQUEST, email);
+    SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
+    when(snapshotRequestDao.create(datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
+        .thenReturn(response);
+    Assertions.assertEquals(snapshotBuilderService.createSnapshotRequest(
+        datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email), response);
   }
 }

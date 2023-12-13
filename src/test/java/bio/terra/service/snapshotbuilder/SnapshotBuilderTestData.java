@@ -119,42 +119,47 @@ public class SnapshotBuilderTestData {
                               new Column().name("gender_identity").type(TableDataType.INTEGER),
                               new Column().name("ethnicity").type(TableDataType.INTEGER),
                               new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
-  public static final SnapshotBuilderCohort COHORT =
-      new SnapshotBuilderCohort()
-          .name("cohort")
-          .addCriteriaGroupsItem(
-              new SnapshotBuilderCriteriaGroup()
-                  .addCriteriaItem(
-                      new SnapshotBuilderProgramDataListCriteria()
-                          .kind(SnapshotBuilderCriteria.KindEnum.LIST))
-                  .addCriteriaItem(
-                      new SnapshotBuilderCriteria().kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
-                  .addCriteriaItem(
-                      new SnapshotBuilderProgramDataRangeCriteria()
-                          .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
+  public static SnapshotBuilderCohort createCohort() {
+    return new SnapshotBuilderCohort()
+        .name("cohort")
+        .addCriteriaGroupsItem(
+            new SnapshotBuilderCriteriaGroup()
+                .addCriteriaItem(
+                    new SnapshotBuilderProgramDataListCriteria()
+                        .kind(SnapshotBuilderCriteria.KindEnum.LIST))
+                .addCriteriaItem(
+                    new SnapshotBuilderCriteria().kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
+                .addCriteriaItem(
+                    new SnapshotBuilderProgramDataRangeCriteria()
+                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
+  }
 
-  public static final SnapshotBuilderRequest BUILDER_REQUEST =
-      new SnapshotBuilderRequest()
-          .addCohortsItem(COHORT)
-          .addConceptSetsItem(
-              new SnapshotBuilderDatasetConceptSet()
-                  .name("conceptSet")
-                  .featureValueGroupName("featureValueGroupName"))
-          .addValueSetsItem(
-              new SnapshotBuilderFeatureValueGroup().name("valueGroup").addValuesItem("value"));
+  public static SnapshotBuilderRequest createSnapshotBuilderRequest() {
+    return new SnapshotBuilderRequest()
+        .addCohortsItem(createCohort())
+        .addConceptSetsItem(
+            new SnapshotBuilderDatasetConceptSet()
+                .name("conceptSet")
+                .featureValueGroupName("featureValueGroupName"))
+        .addValueSetsItem(
+            new SnapshotBuilderFeatureValueGroup().name("valueGroup").addValuesItem("value"));
+  }
 
-  public static final SnapshotAccessRequest ACCESS_REQUEST =
-      new SnapshotAccessRequest()
-          .name("name")
-          .researchPurposeStatement("purpose")
-          .datasetRequest(BUILDER_REQUEST);
-  public static final SnapshotAccessRequestResponse RESPONSE =
-      new SnapshotAccessRequestResponse()
-          .id(UUID.randomUUID())
-          .datasetId(UUID.randomUUID())
-          .snapshotName(ACCESS_REQUEST.getName())
-          .snapshotResearchPurpose(ACCESS_REQUEST.getResearchPurposeStatement())
-          .snapshotSpecification(ACCESS_REQUEST.getDatasetRequest())
-          .createdDate("date")
-          .createdBy("user@gmail.com");
+  public static SnapshotAccessRequest createSnapshotAccessRequest() {
+    return new SnapshotAccessRequest()
+        .name("name")
+        .researchPurposeStatement("purpose")
+        .datasetRequest(createSnapshotBuilderRequest());
+  }
+
+  public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse() {
+    return new SnapshotAccessRequestResponse()
+        .id(UUID.randomUUID())
+        .datasetId(UUID.randomUUID())
+        .snapshotName(createSnapshotAccessRequest().getName())
+        .snapshotResearchPurpose(createSnapshotAccessRequest().getResearchPurposeStatement())
+        .snapshotSpecification(createSnapshotAccessRequest().getDatasetRequest())
+        .createdDate("date")
+        .createdBy("user@gmail.com");
+  }
 }

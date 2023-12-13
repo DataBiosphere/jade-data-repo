@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -71,36 +72,23 @@ class SnapshotRequestDaoTest {
   }
 
   private void verifyResponseContents(SnapshotAccessRequestResponse response) {
+    SnapshotAccessRequestResponse expected = new SnapshotAccessRequestResponse();
+    expected.datasetId(dataset.getId());
+    expected.snapshotName(
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotName());
+    expected.snapshotResearchPurpose(
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotResearchPurpose());
+    expected.snapshotSpecification(SnapshotBuilderTestData.createSnapshotBuilderRequest());
+    expected.createdBy(EMAIL);
+    expected.status(SnapshotAccessRequestResponse.StatusEnum.SUBMITTED);
+    assertThat(
+        "Given response is the same as expected.",
+        response,
+        samePropertyValuesAs(expected, "id", "createdDate"));
     assertNotNull(response.getId(), "Snapshot Access Request Response should have an id");
     assertNotNull(
         response.getCreatedDate(),
         "Snapshot Access Request Response should have a create date timestamp");
-    assertThat(
-        "Snapshot Access Request Response should contain the same datasetId as the example",
-        response.getDatasetId(),
-        equalTo(dataset.getId()));
-    assertThat(
-        "Snapshot Access Request Response should contain the same name as the example",
-        response.getSnapshotName(),
-        equalTo(SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotName()));
-    assertThat(
-        "Snapshot Access Request Response should contain the same research purpose as the example",
-        response.getSnapshotResearchPurpose(),
-        equalTo(
-            SnapshotBuilderTestData.createSnapshotAccessRequestResponse()
-                .getSnapshotResearchPurpose()));
-    assertThat(
-        "Snapshot Access Request Response should contain the same snapshot builder request as the example",
-        response.getSnapshotSpecification(),
-        equalTo(SnapshotBuilderTestData.createSnapshotBuilderRequest()));
-    assertThat(
-        "Snapshot Access Request Response should contain the same user email as the example",
-        response.getCreatedBy(),
-        equalTo(EMAIL));
-    assertThat(
-        "New Snapshot Access Request Response should have submitted status",
-        response.getStatus(),
-        equalTo(SnapshotAccessRequestResponse.StatusEnum.SUBMITTED));
   }
 
   @Test

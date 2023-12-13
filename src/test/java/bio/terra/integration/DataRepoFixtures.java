@@ -64,7 +64,7 @@ import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -1006,7 +1006,8 @@ public class DataRepoFixtures {
       HttpStatus expectedStatus)
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
-        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, null, null);
+        retrieveDatasetDataByIdRaw(
+            user, datasetId, table, offset, limit, filter, null, SqlSortDirectionAscDefault.ASC);
     assertThat(
         "retrieve dataset data by Id should fail",
         response.getStatusCode(),
@@ -1032,7 +1033,7 @@ public class DataRepoFixtures {
       int limit,
       String filter,
       String sort,
-      String direction)
+      SqlSortDirectionAscDefault direction)
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
         retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, sort, direction);
@@ -1047,7 +1048,7 @@ public class DataRepoFixtures {
       Integer limit,
       String filter,
       String sort,
-      String direction)
+      SqlSortDirectionAscDefault direction)
       throws Exception {
     String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
@@ -1056,8 +1057,7 @@ public class DataRepoFixtures {
     request.setLimit(Objects.requireNonNullElse(limit, 10));
     request.filter(Objects.requireNonNullElse(filter, ""));
     request.sort(Objects.requireNonNullElse(sort, PDAO_ROW_ID_COLUMN));
-    request.setDirection(
-        Objects.requireNonNullElse(SqlSortDirection.fromValue(direction), SqlSortDirection.ASC));
+    request.setDirection(direction);
     return dataRepoClient.post(user, url, TestUtils.mapToJson(request), new TypeReference<>() {});
   }
 

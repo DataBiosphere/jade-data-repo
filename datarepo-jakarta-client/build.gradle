@@ -1,0 +1,131 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'com.jfrog.artifactory' version '4.32.0'
+    id 'org.hidetake.swagger.generator'
+}
+
+java {
+    sourceCompatibility = 11
+    targetCompatibility = 11
+}
+
+// TODO: there may be a better way to supply these values than envvars.
+// This and the test below makes sure the build will fail reasonably if you try
+// to publish without the environment variables defined.
+def artifactory_user = System.getenv('ARTIFACTORY_USER')
+def artifactory_password = System.getenv('ARTIFACTORY_PASSWORD')
+
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.hasTask(artifactoryPublish) &&
+        (artifactory_user == null || artifactory_password == null)) {
+        throw new GradleException("Set env vars ARTIFACTORY_USER and ARTIFACTORY_PASSWORD to publish")
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    ext {
+        jersey = "3.1.2"
+        jackson = "2.16.0"
+        swaggerAnnotations = "2.1.12"
+
+    }
+
+    implementation group: 'org.glassfish.jersey.core', name: 'jersey-common', version: "${jersey}"
+    implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: "${jersey}"
+    implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: "${jersey}"
+    implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: "${jersey}"
+    implementation group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version: "${jersey}"
+
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: "${jackson}"
+
+    implementation group: 'jakarta.annotation', name: 'jakarta.annotation-api', version: '2.1.1'
+    implementation group: 'jakarta.ws.rs', name: 'jakarta.ws.rs-api', version: '3.1.0'
+
+    implementation group: "io.swagger.core.v3", name: "swagger-annotations", version: "${swaggerAnnotations}"
+    swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
+}
+
+// OpenAPI/Swagger Client Generation
+
+swaggerSources {
+    client {
+        inputFile = file("${resourceDir}/data-repository-openapi.yaml")
+        code {
+            language = "java"
+            library = "jersey2"
+            outputDir = file("$projectDir/generated")
+            rawOptions = [
+                "--model-package", "bio.terra.datarepo.model",
+                "--api-package", "bio.terra.datarepo.api",
+                "--invoker-package", "bio.terra.datarepo.client",
+                "--group-id", "bio.terra.datarepo",
+                "--artifact-version", "${version}",
+                "--ignore-file-override", "${projectDir}/.swagger-codegen-ignore",
+                "-D", "apiTests=false," +
+                    "apiDocs=false," +
+                    "modelTests=false," +
+                    "modelDocs=false," +
+                    "jakarta=true," +
+                    "dateLibrary=java8"
+            ]
+        }
+    }
+}
+
+sourceSets.main.java.srcDir "generated/src/main/java"
+compileJava.dependsOn swaggerSources.client.code
+
+publishing {
+    publications {
+        datarepoClientLibrary(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+artifactory {
+    publish {
+        contextUrl = 'https://broadinstitute.jfrog.io/broadinstitute/'
+        repository {
+            repoKey = 'libs-snapshot-local' // The Artifactory repository key to publish to
+            username = "${artifactory_user}" // The publisher user name
+            password = "${artifactory_password}" // The publisher password
+        }
+        defaults {
+            // This is how we tell the Artifactory Plugin which artifacts should be published to Artifactory.
+            // Reference to Gradle publications defined in the build script.
+            publications('datarepoClientLibrary')
+            publishArtifacts = true
+            publishPom = true
+        }
+    }
+}
+
+clean {
+    // clean up all of the swagger codegen crud
+    delete ".gradle/"
+    delete ".swagger-codegen-ignore"
+    delete ".swagger-codegen/"
+    delete ".travis.yml"
+    delete "README.md"
+    delete "build.sbt"
+    delete "docs/"
+    delete "git_push.sh"
+    delete "gradle.properties"
+    delete "gradle/"
+    delete "gradlew"
+    delete "gradlew.bat"
+    delete "pom.xml"
+    delete "src/"
+}
+
+project(":datarepo-jakarta-client") {
+    sonar {
+        skipProject = true
+    }
+}

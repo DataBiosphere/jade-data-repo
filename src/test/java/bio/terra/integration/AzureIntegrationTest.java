@@ -67,7 +67,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
@@ -634,7 +634,7 @@ public class AzureIntegrationTest extends UsersBase {
                 tableRowCount.get(vocabTableName),
                 null,
                 "vocabulary_id",
-                String.valueOf(SqlSortDirection.ASC))
+                SqlSortDirectionAscDefault.ASC)
             .getResult();
     assertThat(
         "record looks as expected - vocabulary_id",
@@ -670,7 +670,7 @@ public class AzureIntegrationTest extends UsersBase {
                 tableRowCount.get(vocabTableName),
                 null,
                 "vocabulary_id",
-                String.valueOf(SqlSortDirection.DESC))
+                SqlSortDirectionAscDefault.DESC)
             .getResult();
     assertThat(
         "correct vocabulary_id returned",

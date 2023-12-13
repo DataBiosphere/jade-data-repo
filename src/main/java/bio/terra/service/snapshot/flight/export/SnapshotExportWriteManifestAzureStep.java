@@ -9,6 +9,7 @@ import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocation;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocationTables;
 import bio.terra.model.SnapshotModel;
+import bio.terra.service.common.azure.AzureUriUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
@@ -102,7 +103,7 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
                 new SnapshotExportResponseModelFormat()
                     .parquet(
                         new SnapshotExportResponseModelFormatParquet()
-                            .manifest(snapshotSignedUrlBlob.toUrl().toString())
+                            .manifest(AzureUriUtils.getUriFromBlobUrlParts(snapshotSignedUrlBlob))
                             .location(
                                 new SnapshotExportResponseModelFormatParquetLocation()
                                     .tables(tables))));

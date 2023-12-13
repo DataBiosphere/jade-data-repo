@@ -4,15 +4,16 @@ import static bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression.m
 import static bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression.makeOr;
 import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateFlightClass;
 import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateInput;
+import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateSubmitTime;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
 import bio.terra.common.stairway.StairwayComponent;
 import bio.terra.model.JobModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -39,6 +40,8 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -343,6 +346,14 @@ public class JobService {
       topLevelBooleans.add(
           makePredicateFlightClass(FlightFilterOp.NOT_EQUAL, FileIngestWorkerFlight.class));
     }
+
+    // Only return recent flights. This is a performance enhancement since it causes the query to
+    // NOT do a full table scan.
+    // TODO<DR-3379>: make an option in the API. Not tackled yet since I'm not sure of the value
+    topLevelBooleans.add(
+        makePredicateSubmitTime(
+            FlightFilterOp.GREATER_THAN,
+            Instant.now().minus(Duration.ofDays(appConfig.getMaxNumberOfDaysToShowJobs()))));
 
     // Make sure that only flights a user has access to are returned if the user is not an admin
     if (!checkUserCanListAnyJob(userReq)) {

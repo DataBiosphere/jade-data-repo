@@ -1,8 +1,8 @@
 package bio.terra.service.dataset.flight.upgrade.predictableFileIds;
 
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;

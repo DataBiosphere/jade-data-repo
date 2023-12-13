@@ -58,6 +58,14 @@ jobs:
           ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ENABLE_SUBPROJECT_TASKS: true
+      - name: "Publish to Artifactory (jakarta)"
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: ':datarepo-jakarta-client:artifactoryPublish'
+        env:
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          ENABLE_SUBPROJECT_TASKS: true
       - name: "Build new delevop docker image"
         uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         with:
@@ -130,14 +138,14 @@ jobs:
       target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
 
   helm_tag_bumper:
-    needs: 
+    needs:
       - update_image
       # We block bumping the tag in datarepo-helm because that will cause a deployment to datarepo-dev
       # too and we don't want to be deploying to datarepo-dev twice simultaneously
       - set-app-version-in-dev
     uses: ./.github/workflows/helmtagbumper.yaml
     secrets: inherit
-    
+
   action_notify:
     runs-on: ubuntu-latest
     if: always()

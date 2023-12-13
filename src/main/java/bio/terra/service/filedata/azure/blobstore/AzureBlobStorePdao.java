@@ -9,6 +9,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.azure.AzureUriUtils;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
@@ -59,7 +60,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
@@ -443,8 +443,11 @@ public class AzureBlobStorePdao implements CloudFileReader {
         // Ignore the empty placeholder file
         .filter(n -> !n.endsWith("/_"))
         // Fully qualify the name by poor-man cloning the original URL and modifying the blob name
-        .map(n -> BlobUrlParts.parse(signedUrl).setBlobName(n).toUrl().toString())
-        .collect(Collectors.toList());
+        // Note: we can't use the BlobUrlParts URL builder since it encodes the blob name, which
+        // ends up being an invalid URL
+        .map(n -> BlobUrlParts.parse(signedUrl).setBlobName(n))
+        .map(AzureUriUtils::getUriFromBlobUrlParts)
+        .toList();
   }
 
   public String signFile(
@@ -562,7 +565,9 @@ public class AzureBlobStorePdao implements CloudFileReader {
     BlobContainerClientFactory targetDataClientFactory =
         getTargetDataClientFactory(profileModel, storageAccount, options);
 
-    return targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
+    return AzureUriUtils.getUriFromBlobUrlParts(
+        BlobUrlParts.parse(
+            targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options)));
   }
 
   @VisibleForTesting

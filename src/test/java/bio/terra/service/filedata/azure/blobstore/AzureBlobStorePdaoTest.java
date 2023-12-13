@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.blobstore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.Assert.assertFalse;
@@ -39,12 +40,14 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.util.polling.LongRunningOperationStatus;
 import com.azure.core.util.polling.PollResponse;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobCopyInfo;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -367,6 +370,32 @@ public class AzureBlobStorePdaoTest {
         IllegalArgumentException.class,
         "Only a single billing project per ingest may be used",
         () -> dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset));
+  }
+
+  @Test
+  public void testListChildren() {
+    String baseBlobName = "metadata/parquet/my_table.parquet";
+    String url = "https://src.blob.core.windows.net/snapid/%s".formatted(baseBlobName);
+    String sasToken = "sp=r";
+    List<String> blobNames = List.of("/_", "/parquetchunk.part");
+    List<BlobItem> blobItems =
+        blobNames.stream()
+            .map(
+                p -> {
+                  BlobItem blob = mock(BlobItem.class);
+                  when(blob.getName()).thenReturn(baseBlobName + p);
+                  return blob;
+                })
+            .toList();
+    PagedIterable<BlobItem> blobItemsStream = mock(PagedIterable.class);
+    when(blobItemsStream.stream()).thenReturn(blobItems.stream());
+    BlobContainerClient sourceBlobContainerClient = mock(BlobContainerClient.class);
+    when(sourceBlobContainerFactory.getBlobContainerClient()).thenReturn(sourceBlobContainerClient);
+    when(sourceBlobContainerClient.listBlobs(any(), any())).thenReturn(blobItemsStream);
+    assertThat(
+        "Returned url is properly encoded and filtered",
+        dao.listChildren("%s?%s".formatted(url, sasToken)).stream().toList(),
+        contains("%s%s?%s".formatted(url, "/parquetchunk.part", sasToken)));
   }
 
   private FSFileInfo mockFileCopy(UUID fileId) {

@@ -234,7 +234,8 @@ public class DrsServiceTest {
     when(resourceService.lookupStorageAccountMetadata(storageAccountResourceId))
         .thenReturn(new AzureStorageAccountResource().region(AzureRegion.DEFAULT_AZURE_REGION));
 
-    drsPassportRequestModel = new DRSPassportRequestModel().addPassportsItem("longPassportToken");
+    drsPassportRequestModel =
+        new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
 
     when(ecmConfiguration.rasIssuer()).thenReturn(RAS_ISSUER);
   }

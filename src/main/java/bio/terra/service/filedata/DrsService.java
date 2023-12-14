@@ -277,7 +277,7 @@ public class DrsService {
    * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
    */
   public DRSObject lookupObjectByDrsId(
-      AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+      AuthenticatedUserRequest authUser, String drsObjectId, boolean expand) {
     try (DrsRequestResource r = new DrsRequestResource()) {
       DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
       String samTimer = performanceLogger.timerStart();
@@ -321,7 +321,7 @@ public class DrsService {
   private DRSObject resolveDRSObject(
       AuthenticatedUserRequest authUser,
       DrsId drsId,
-      Boolean expand,
+      boolean expand,
       List<SnapshotCacheResult> cachedSnapshots,
       boolean passportAuth) {
 
@@ -426,14 +426,14 @@ public class DrsService {
   }
 
   private DRSObject lookupDRSObjectAfterAuth(
-      Boolean expand,
+      boolean expand,
       SnapshotCacheResult snapshot,
       DrsId drsId,
       AuthenticatedUserRequest authUser,
       boolean passportAuth,
       String billingSnapshot) {
     SnapshotProject snapshotProject = getSnapshotProject(snapshot.id);
-    int depth = (Optional.ofNullable(expand).orElse(false) ? -1 : 1);
+    int depth = (expand ? -1 : 1);
 
     FSItem fsObject;
     try {

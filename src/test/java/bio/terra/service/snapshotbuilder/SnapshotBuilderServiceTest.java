@@ -20,7 +20,7 @@ class SnapshotBuilderServiceTest {
   private SnapshotBuilderService snapshotBuilderService;
 
   @BeforeEach
-  public void setUp() {
+  public void beforeEach() {
     snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao);
   }
 

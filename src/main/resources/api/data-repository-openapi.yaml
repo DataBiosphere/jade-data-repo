@@ -2790,14 +2790,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
+              $ref: '#/components/schemas/SnapshotAccessRequest'
       responses:
         200:
           description: The request has been made.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderAccessRequest'
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
         400:
           description: Bad request - invalid id, snapshotRequest, or badly formed IamResourceType.
           content:
@@ -6931,6 +6931,39 @@ components:
           items:
             type: string
 
+    SnapshotAccessRequestResponse:
+      type: object
+      description: The response object for a submitted SnapshotAccessRequest.
+      required:
+        - id
+        - datasetId
+        - snapshotName
+        - snapshotResearchPurpose
+        - snapshotSpecification
+        - createdBy
+        - createdDate
+        - status
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        snapshotName:
+          type: string
+        snapshotResearchPurpose:
+          type: string
+        snapshotSpecification:
+          $ref: '#/components/schemas/SnapshotBuilderRequest'
+        createdBy:
+          type: string
+        status:
+          type: string
+          enum: [ SUBMITTED, APPROVED, REJECTED ]
+        createdDate:
+          type: string
+        updatedDate:
+          type: string
+
     SnapshotBuilderCountRequest:
       type: object
       properties:
@@ -6950,7 +6983,7 @@ components:
         sql:
           type: string
 
-    SnapshotBuilderAccessRequest:
+    SnapshotAccessRequest:
       type: object
       properties:
         name:
@@ -6976,7 +7009,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
-      description: Specification of requested a snapshot, returned in SnapshotBuilderAccessRequest.
+      description: Specification of cohort and participant data for a requested snapshot.
 
     SnapshotBuilderCohort:
       type: object

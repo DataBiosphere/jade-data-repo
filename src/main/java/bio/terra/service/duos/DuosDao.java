@@ -1,6 +1,7 @@
 package bio.terra.service.duos;
 
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.DaoUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -165,16 +166,8 @@ public class DuosDao {
           .firecloudGroupName(rs.getString("firecloud_group_name"))
           .firecloudGroupEmail(rs.getString("firecloud_group_email"))
           .createdBy(rs.getString("created_by"))
-          .created(getInstantString(rs, "created_date"))
-          .lastSynced(getInstantString(rs, "last_synced_date"));
-    }
-
-    private String getInstantString(ResultSet rs, String columnLabel) throws SQLException {
-      Timestamp timestamp = rs.getTimestamp(columnLabel);
-      if (timestamp != null) {
-        return timestamp.toInstant().toString();
-      }
-      return null;
+          .created(DaoUtils.getInstantString(rs, "created_date"))
+          .lastSynced(DaoUtils.getInstantString(rs, "last_synced_date"));
     }
   }
 }

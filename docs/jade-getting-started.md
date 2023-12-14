@@ -121,10 +121,11 @@ necessary, which is done with the configuration below.
 8. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
 environment (IDE) for Java. There are two versions available: **Ultimate** (paid)
 and **Community** (open-source). We recommend the Ultimate Edition to Broad
-employees for its database navigation capabilities. Alternatively, the Community
+employees for its database navigation capabilities (Please reach out to a team member
+for the Broad server license address). Alternatively, the Community
 Edition has all the features needed for development, and this version can be
 installed by switching `intellij-idea` with `intellij-idea-ce` in the Brewfile.
-9. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line
+10. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line
 tool that facilitates continuous development for Kubernetes applications.  It is
 used to test local changes against personal environments.
 
@@ -147,7 +148,11 @@ open -a docker
 gcloud auth login
 gcloud auth application-default login
 gcloud auth configure-docker
+
+# setup kubectl plugin
+gcloud components install gke-gcloud-auth-plugin
 ```
+
 
 ## 6. Create GitHub token
 
@@ -362,6 +367,14 @@ export AZURE_SYNAPSE_INITIALIZE=false
 export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
 export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
 ```
+
+* **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
+  project.
+  1) File -> Project Structure -> Project -> SDKs -> add SDK -> Download JDK -> Version: 17, Vendor - AdoptOpenJDK 17 ( I used Termurin)
+     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/a1e7fe17-92ba-4e17-bf3b-523afe61e099)
+     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/d55f9883-0997-4b1f-979f-f011e78cec58)
+  2) You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
+     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
 instead of `http://local.broadinstitute.org`:

@@ -314,7 +314,7 @@ public class DrsService {
   }
 
   /**
-   * Given the precalculated list of associated snaphots, look up the DRS object in the various
+   * Given the precalculated list of associated snapshots, look up the DRS object in the various
    * firstore/azure table dbs and merged into a single DRSObject. Note: this will fail if object
    * overlap in invalid ways, such as mismatched checksums, multiple names, etc.
    */
@@ -426,14 +426,14 @@ public class DrsService {
   }
 
   private DRSObject lookupDRSObjectAfterAuth(
-      boolean expand,
+      Boolean expand,
       SnapshotCacheResult snapshot,
       DrsId drsId,
       AuthenticatedUserRequest authUser,
       boolean passportAuth,
       String billingSnapshot) {
     SnapshotProject snapshotProject = getSnapshotProject(snapshot.id);
-    int depth = (expand ? -1 : 1);
+    int depth = (Optional.ofNullable(expand).orElse(false) ? -1 : 1);
 
     FSItem fsObject;
     try {

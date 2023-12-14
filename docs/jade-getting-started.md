@@ -125,7 +125,7 @@ employees for its database navigation capabilities (Please reach out to a team m
 for the Broad server license address). Alternatively, the Community
 Edition has all the features needed for development, and this version can be
 installed by switching `intellij-idea` with `intellij-idea-ce` in the Brewfile.
-10. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line
+9. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line
 tool that facilitates continuous development for Kubernetes applications.  It is
 used to test local changes against personal environments.
 

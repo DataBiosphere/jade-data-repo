@@ -67,7 +67,8 @@ class SnapshotBuilderServiceTest {
     EnumerateSnapshotAccessRequest expected = new EnumerateSnapshotAccessRequest();
     expected.add(expectedItem);
 
-    EnumerateSnapshotAccessRequest converted = snapshotBuilderService.convertToEnumerateModel(response);
+    EnumerateSnapshotAccessRequest converted =
+        snapshotBuilderService.convertToEnumerateModel(response);
     EnumerateSnapshotAccessRequestItem convertedItem = converted.get(0);
 
     Assertions.assertEquals(converted.size(), expected.size());

@@ -167,8 +167,7 @@ public class SnapshotBuilderTestData {
         .status(SnapshotAccessRequestStatus.SUBMITTED);
   }
 
-  public static EnumerateSnapshotAccessRequestItem
-      createEnumerateSnapshotAccessRequestModelItem() {
+  public static EnumerateSnapshotAccessRequestItem createEnumerateSnapshotAccessRequestModelItem() {
     return new EnumerateSnapshotAccessRequestItem()
         .id(UUID.randomUUID())
         .name(createSnapshotAccessRequest().getName())

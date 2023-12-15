@@ -2,8 +2,10 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.Column;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
@@ -161,6 +163,17 @@ public class SnapshotBuilderTestData {
         .snapshotResearchPurpose(createSnapshotAccessRequest().getResearchPurposeStatement())
         .snapshotSpecification(createSnapshotAccessRequest().getDatasetRequest())
         .createdDate("date")
-        .createdBy("user@gmail.com");
+        .createdBy("user@gmail.com")
+        .status(SnapshotAccessRequestStatus.SUBMITTED);
+  }
+
+  public static EnumerateSnapshotAccessRequestItem
+      createEnumerateSnapshotAccessRequestModelItem() {
+    return new EnumerateSnapshotAccessRequestItem()
+        .id(UUID.randomUUID())
+        .name(createSnapshotAccessRequest().getName())
+        .researchPurpose(createSnapshotAccessRequest().getResearchPurposeStatement())
+        .createdDate(createSnapshotAccessRequestResponse().getCreatedDate())
+        .status(SnapshotAccessRequestStatus.SUBMITTED);
   }
 }

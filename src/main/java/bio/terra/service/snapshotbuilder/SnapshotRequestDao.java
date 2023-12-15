@@ -7,6 +7,7 @@ import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,7 +51,7 @@ public class SnapshotRequestDao {
               .createdDate(getInstantString(rs, CREATED_DATE))
               .updatedDate(getInstantString(rs, UPDATED_DATE))
               .createdBy(rs.getString(CREATED_BY))
-              .status(SnapshotAccessRequestResponse.StatusEnum.valueOf(rs.getString(STATUS)));
+              .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)));
 
   public SnapshotRequestDao(
       NamedParameterJdbcTemplate jdbcTemplate,
@@ -135,8 +136,7 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotAccessRequestResponse update(
-      UUID requestId, SnapshotAccessRequestResponse.StatusEnum status) {
+  public SnapshotAccessRequestResponse update(UUID requestId, SnapshotAccessRequestStatus status) {
     String sql =
         """
         UPDATE snapshot_request SET

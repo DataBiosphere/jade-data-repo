@@ -26,6 +26,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -543,6 +544,17 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(
         snapshotBuilderService.createSnapshotRequest(
             id, snapshotAccessRequest, userRequest.getEmail()));
+  }
+
+  @Override
+  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(snapshotBuilderService.enumerateByDatasetId(id));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

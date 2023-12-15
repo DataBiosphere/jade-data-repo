@@ -8,14 +8,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.fixtures.DaoOperations;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.common.fixtures.ResourceFixtures;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import java.io.IOException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,24 +27,12 @@ import org.springframework.test.context.ActiveProfiles;
 class SnapshotBuilderSettingsDaoTest {
 
   @Autowired private DaoOperations daoOperations;
-  @Autowired private ProfileDao profileDao;
-  @Autowired private GoogleResourceDao resourceDao;
   @Autowired private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
-
-  private BillingProfileModel billingProfile;
-  private GoogleProjectResource projectResource;
   private Dataset dataset;
 
   @BeforeEach
   void setup() throws IOException {
-    BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
-    billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
-
-    projectResource = ResourceFixtures.randomProjectResource(billingProfile);
-    UUID projectId = resourceDao.createProject(projectResource);
-    projectResource.id(projectId);
-
-    dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectId);
+    dataset = daoOperations.createMinimalDataset();
     snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
         dataset.getId(), SnapshotBuilderTestData.SETTINGS);
   }

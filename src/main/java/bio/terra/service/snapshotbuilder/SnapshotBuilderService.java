@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
-import bio.terra.model.SnapshotBuilderAccessRequest;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountResponse;
@@ -13,10 +14,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotBuilderService {
 
-  public SnapshotBuilderAccessRequest createSnapshotRequest(
-      // TODO: in DC-782 add given request to the database
-      UUID id, SnapshotBuilderAccessRequest snapshotAccessRequest) {
-    return snapshotAccessRequest;
+  private final SnapshotRequestDao snapshotRequestDao;
+
+  public SnapshotBuilderService(SnapshotRequestDao snapshotRequestDao) {
+    this.snapshotRequestDao = snapshotRequestDao;
+  }
+
+  public SnapshotAccessRequestResponse createSnapshotRequest(
+      UUID id, SnapshotAccessRequest snapshotAccessRequest, String email) {
+    return snapshotRequestDao.create(id, snapshotAccessRequest, email);
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId) {

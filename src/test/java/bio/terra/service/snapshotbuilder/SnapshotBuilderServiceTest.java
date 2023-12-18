@@ -65,13 +65,13 @@ class SnapshotBuilderServiceTest {
     expectedItem.name(inputItem.getSnapshotName());
     expectedItem.researchPurpose(inputItem.getSnapshotResearchPurpose());
     EnumerateSnapshotAccessRequest expected = new EnumerateSnapshotAccessRequest();
-    expected.add(expectedItem);
+    expected.addItemsItem(expectedItem);
 
     EnumerateSnapshotAccessRequest converted =
         snapshotBuilderService.convertToEnumerateModel(response);
-    EnumerateSnapshotAccessRequestItem convertedItem = converted.get(0);
+    EnumerateSnapshotAccessRequestItem convertedItem = converted.getItems().get(0);
 
-    Assertions.assertEquals(converted.size(), expected.size());
+    Assertions.assertEquals(converted.getItems().size(), expected.getItems().size());
     Assertions.assertEquals(convertedItem, expectedItem);
   }
 }

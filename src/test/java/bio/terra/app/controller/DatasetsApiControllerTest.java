@@ -388,7 +388,7 @@ class DatasetsApiControllerTest {
     EnumerateSnapshotAccessRequestItem responseItem =
         SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
     EnumerateSnapshotAccessRequest response = new EnumerateSnapshotAccessRequest();
-    response.addAll(List.of(responseItem, responseItem));
+    response.items(List.of(responseItem, responseItem));
     when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(response);
     String actualJson =
         mvc.perform(post(ENUMERATE_SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))

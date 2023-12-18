@@ -59,7 +59,7 @@ public class SnapshotBuilderService {
       List<SnapshotAccessRequestResponse> responses) {
     EnumerateSnapshotAccessRequest enumerateModel = new EnumerateSnapshotAccessRequest();
     for (SnapshotAccessRequestResponse response : responses) {
-      enumerateModel.add(
+      enumerateModel.addItemsItem(
           new EnumerateSnapshotAccessRequestItem()
               .id(response.getId())
               .status(response.getStatus())

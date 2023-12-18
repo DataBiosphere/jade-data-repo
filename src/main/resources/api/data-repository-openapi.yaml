@@ -6977,9 +6977,12 @@ components:
             type: string
 
     EnumerateSnapshotAccessRequest:
-      type: array
-      items:
-        $ref: '#/components/schemas/EnumerateSnapshotAccessRequestItem'
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnumerateSnapshotAccessRequestItem'
 
     EnumerateSnapshotAccessRequestItem:
       type: object

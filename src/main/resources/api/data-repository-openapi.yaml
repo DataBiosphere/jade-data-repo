@@ -7674,6 +7674,7 @@ components:
         expand:
           type: boolean
           example: false
+          default: false
           description: >-
             If false and the object_id refers to a bundle, then the ContentsObject array
             contains only those objects directly contained in the bundle. That is, if the

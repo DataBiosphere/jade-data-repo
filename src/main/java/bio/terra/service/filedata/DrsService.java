@@ -277,7 +277,7 @@ public class DrsService {
    * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
    */
   public DRSObject lookupObjectByDrsId(
-      AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+      AuthenticatedUserRequest authUser, String drsObjectId, boolean expand) {
     try (DrsRequestResource r = new DrsRequestResource()) {
       DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
       String samTimer = performanceLogger.timerStart();
@@ -314,14 +314,14 @@ public class DrsService {
   }
 
   /**
-   * Given the precalculated list of associated snaphots, look up the DRS object in the various
+   * Given the precalculated list of associated snapshots, look up the DRS object in the various
    * firstore/azure table dbs and merged into a single DRSObject. Note: this will fail if object
    * overlap in invalid ways, such as mismatched checksums, multiple names, etc.
    */
   private DRSObject resolveDRSObject(
       AuthenticatedUserRequest authUser,
       DrsId drsId,
-      Boolean expand,
+      boolean expand,
       List<SnapshotCacheResult> cachedSnapshots,
       boolean passportAuth) {
 

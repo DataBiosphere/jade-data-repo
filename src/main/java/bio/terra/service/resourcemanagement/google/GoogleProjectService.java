@@ -45,8 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -479,16 +477,18 @@ public class GoogleProjectService {
   static String extractOperationIdFromName(final String appId, final String opName) {
     // The format returns is apps/{appId}/operations/{useful id} so we need to extract it
     // Add a check in case they ever change the format
-    final String uuidRegex =
-        "\\p{XDigit}{8}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{12}";
-    final Pattern pattern =
-        Pattern.compile(String.format("^apps/%s/operations/(%s)", appId, uuidRegex));
-    final Matcher matcher = pattern.matcher(opName);
-    if (!matcher.find()) {
+    String expectedPrefix = String.format("apps/%s/operations/", appId);
+    if (opName.startsWith(expectedPrefix)) {
+      var split = opName.split("/");
+      if (split.length == 4) {
+        return split[3];
+      }
       throw new AppengineException(
-          String.format("Operation Name does not look as expected: %s", opName));
+          String.format("Operation Name %s expected to have exactly 4 elements", opName));
     }
-    return matcher.group(1);
+    throw new AppengineException(
+        String.format(
+            "Operation Name %s does not start with expected prefix %s", opName, expectedPrefix));
   }
 
   /**

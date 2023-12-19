@@ -42,7 +42,10 @@ public enum IamAction {
   UPDATE_BILLING_ACCOUNT,
   LINK,
   // journal
-  VIEW_JOURNAL;
+  VIEW_JOURNAL,
+  // lock/unlock resources
+  LOCK_RESOURCE,
+  UNLOCK_RESOURCE;
 
   private final String samActionName;
 

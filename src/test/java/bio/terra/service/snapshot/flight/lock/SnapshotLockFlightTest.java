@@ -1,14 +1,14 @@
-package bio.terra.service.snapshot.flight.delete;
+package bio.terra.service.snapshot.flight.lock;
 
-import static bio.terra.common.FlightTestUtils.mockFlightAppConfigSetup;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -19,32 +19,37 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SnapshotDeleteFlightTest {
+@Tag(Unit.TAG)
+class SnapshotLockFlightTest {
   @Mock private ApplicationContext context;
   private FlightMap inputParameters;
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
 
   @BeforeEach
-  void beforeEach() {
-    mockFlightAppConfigSetup(context);
-
+  void setUp() {
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), SNAPSHOT_ID.toString());
   }
 
   @Test
-  void testSnapshotDeleteLocksSnapshot() {
-    var flight = new SnapshotDeleteFlight(inputParameters, context);
+  void testCorrectStepsSnapshotLockFlight() {
+    var flight = new SnapshotLockFlight(inputParameters, context);
 
-    Step firstStep = flight.getSteps().get(0);
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
-        "Snapshot deletion flight locks the snapshot first",
-        firstStep,
-        instanceOf(LockSnapshotStep.class));
+        steps,
+        contains(
+            "LockSnapshotStep", "JournalRecordUpdateEntryStep", "SnapshotLockSetResponseStep"));
+  }
+
+  @Test
+  void testParametersForLockStep() {
+    var flight = new SnapshotLockFlight(inputParameters, context);
+    var firstStep = flight.getSteps().get(0);
+    LockSnapshotStep lockSnapshotStep = (LockSnapshotStep) firstStep;
     assertThat(
-        "Snapshot lock step suppresses 'snapshot not found' exceptions",
-        ((LockSnapshotStep) firstStep).shouldSuppressNotFoundException(),
-        is(true));
+        "Dataset lock step should not suppresses exceptions",
+        lockSnapshotStep.shouldSuppressNotFoundException(),
+        is(false));
   }
 }

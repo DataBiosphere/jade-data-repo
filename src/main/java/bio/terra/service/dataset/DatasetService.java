@@ -654,11 +654,14 @@ public class DatasetService {
     }
   }
 
-  public ResourceLocks manualExclusiveUnlock(
+  public ResourceLocks manualUnlock(
       AuthenticatedUserRequest userReq, UUID datasetId, UnlockResourceRequest unlockRequest) {
     return jobService
         .newJob(
-            "Remove exclusive lock " + unlockRequest.getLockName() + " on dataset " + datasetId,
+            "Remove exclusive or shared lock "
+                + unlockRequest.getLockName()
+                + " on dataset "
+                + datasetId,
             DatasetUnlockFlight.class,
             unlockRequest,
             userReq)

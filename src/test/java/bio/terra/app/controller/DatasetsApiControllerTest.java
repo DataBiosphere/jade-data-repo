@@ -504,7 +504,7 @@ class DatasetsApiControllerTest {
     var lockId = "lockId";
     var resourceLocks = new ResourceLocks().exclusive(lockId);
     var unlockRequest = new UnlockResourceRequest().lockName(lockId).forceUnlock(false);
-    when(datasetService.manualExclusiveUnlock(TEST_USER, DATASET_ID, unlockRequest))
+    when(datasetService.manualUnlock(TEST_USER, DATASET_ID, unlockRequest))
         .thenReturn(resourceLocks);
     mockValidators();
 
@@ -520,6 +520,6 @@ class DatasetsApiControllerTest {
     ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
     assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
-    verify(datasetService).manualExclusiveUnlock(TEST_USER, DATASET_ID, unlockRequest);
+    verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, unlockRequest);
   }
 }

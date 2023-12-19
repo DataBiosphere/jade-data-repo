@@ -1223,6 +1223,6 @@ public class DatasetDaoTest {
     datasetDao.lockShared(datasetId, flightId);
     Dataset lockedDataset = datasetDao.retrieve(datasetId);
     var datasetSharedLocks = ResourceLocksUtils.getSharedLock(lockedDataset.getResourceLocks());
-    assertThat("Correct shared lock is returned", datasetSharedLocks.get(0), equalTo(flightId));
+    assertThat("Correct shared lock is returned", datasetSharedLocks, contains(flightId));
   }
 }

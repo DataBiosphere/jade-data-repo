@@ -199,7 +199,7 @@ dependencies {
     implementation 'org.apache.directory.studio:org.apache.commons.io:2.4'
     implementation 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
     implementation 'org.postgresql:postgresql:42.2.18'          // Postgres jdbc driver
-    implementation 'ch.qos.logback:logback-core:1.2.13'
+    implementation 'ch.qos.logback:logback-core:1.2.13'      // Unpin logback versions with DR-3404 Spring 3 Upgrade
     implementation 'ch.qos.logback:logback-classic:1.2.13'  // logback-classic natively implements slf4j api
 
     implementation 'org.codehaus.janino:janino:3.1.6'           // Provides if/else xml parsing for logback config

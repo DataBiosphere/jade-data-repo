@@ -28,7 +28,6 @@ import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
@@ -367,10 +366,10 @@ class DatasetsApiControllerTest {
   void testCreateSnapshotRequest() throws Exception {
     mockValidators();
     SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest();
-    SnapshotAccessRequestResponse response =
+    SnapshotAccessRequestResponse expectedResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(request), anyString()))
-        .thenReturn(response);
+        .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
                 post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
@@ -382,18 +381,17 @@ class DatasetsApiControllerTest {
             .getContentAsString();
     SnapshotAccessRequestResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
-    assertThat("The method returned the expected response", actual, equalTo(response));
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
   }
 
   @Test
   void testEnumerateSnapshotRequests() throws Exception {
     mockValidators();
-    EnumerateSnapshotAccessRequestItem responseItem =
-        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
-    EnumerateSnapshotAccessRequest response = new EnumerateSnapshotAccessRequest();
-    response.items(List.of(responseItem, responseItem));
-    when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(response);
+    var expectedResponseItem = SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
+    var expectedResponse = new EnumerateSnapshotAccessRequest();
+    expectedResponse.items(List.of(expectedResponseItem, expectedResponseItem));
+    when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(post(ENUMERATE_SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))
             .andExpect(status().isOk())
@@ -402,7 +400,7 @@ class DatasetsApiControllerTest {
             .getContentAsString();
     EnumerateSnapshotAccessRequest actual =
         TestUtils.mapFromJson(actualJson, EnumerateSnapshotAccessRequest.class);
-    assertThat("The method returned the expected response", actual, equalTo(response));
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 

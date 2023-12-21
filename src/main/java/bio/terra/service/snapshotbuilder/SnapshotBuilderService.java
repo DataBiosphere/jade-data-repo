@@ -55,7 +55,7 @@ public class SnapshotBuilderService {
     return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
   }
 
-  public EnumerateSnapshotAccessRequest convertToEnumerateModel(
+  private EnumerateSnapshotAccessRequest convertToEnumerateModel(
       List<SnapshotAccessRequestResponse> responses) {
     EnumerateSnapshotAccessRequest enumerateModel = new EnumerateSnapshotAccessRequest();
     for (SnapshotAccessRequestResponse response : responses) {

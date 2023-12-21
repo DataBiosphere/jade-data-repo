@@ -18,6 +18,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -29,6 +30,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -231,6 +233,23 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.verifySnapshotListable(id, authenticatedInfo);
     SnapshotSummaryModel snapshotSummaryModel = snapshotService.retrieveSnapshotSummary(id);
     return ResponseEntity.ok(snapshotSummaryModel);
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> lockSnapshot(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.LOCK_RESOURCE);
+    return ResponseEntity.ok(snapshotService.manualExclusiveLock(userRequest, id));
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> unlockSnapshot(
+      UUID id, UnlockResourceRequest unlockRequest) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UNLOCK_RESOURCE);
+    return ResponseEntity.ok(snapshotService.manualExclusiveUnlock(userRequest, id, unlockRequest));
   }
 
   @Override

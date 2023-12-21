@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.common.SqlSortDirection;
@@ -21,8 +22,10 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.JobModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -83,6 +86,8 @@ class SnapshotsApiControllerTest {
   private static final String FILTER = "";
 
   private static final String RETRIEVE_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}";
+  private static final String LOCK_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}/lock";
+  private static final String UNLOCK_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}/unlock";
 
   private static final String QUERY_SNAPSHOT_DATA_ENDPOINT =
       RETRIEVE_SNAPSHOT_ENDPOINT + "/data/{table}";
@@ -211,6 +216,49 @@ class SnapshotsApiControllerTest {
             PDAO_ROW_ID_COLUMN,
             SqlSortDirection.from(DIRECTION),
             FILTER);
+  }
+
+  @Test
+  void lockSnapshot() throws Exception {
+    var lockId = "lockId";
+    var resourceLocks = new ResourceLocks().exclusive(lockId);
+    when(snapshotService.manualExclusiveLock(TEST_USER, SNAPSHOT_ID)).thenReturn(resourceLocks);
+    mockValidators();
+
+    var response =
+        mvc.perform(put(LOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID))
+            .andExpect(status().is2xxSuccessful())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
+    verifyAuthorizationCall(IamAction.LOCK_RESOURCE);
+    verify(snapshotService).manualExclusiveLock(TEST_USER, SNAPSHOT_ID);
+  }
+
+  @Test
+  void unlockSnapshot() throws Exception {
+    var lockId = "lockId";
+    var resourceLocks = new ResourceLocks();
+    var unlockRequest = new UnlockResourceRequest().lockName(lockId);
+    when(snapshotService.manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, unlockRequest))
+        .thenReturn(resourceLocks);
+    mockValidators();
+
+    var response =
+        mvc.perform(
+                put(UNLOCK_SNAPSHOT_ENDPOINT, SNAPSHOT_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(unlockRequest)))
+            .andExpect(status().is2xxSuccessful())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
+    verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
+    verify(snapshotService).manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, unlockRequest);
   }
 
   /** Verify that snapshot authorization was checked. */

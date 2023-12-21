@@ -38,6 +38,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
@@ -51,6 +52,7 @@ import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -226,6 +228,22 @@ public class DatasetsApiController implements DatasetsApi {
             sortDirection,
             queryDataRequest.getFilter());
     return ResponseEntity.ok(previewModel);
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> lockDataset(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.LOCK_RESOURCE);
+    return ResponseEntity.ok(datasetService.manualExclusiveLock(userRequest, id));
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> unlockDataset(UUID id, UnlockResourceRequest request) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.UNLOCK_RESOURCE);
+    return ResponseEntity.ok(datasetService.manualUnlock(userRequest, id, request));
   }
 
   @Override

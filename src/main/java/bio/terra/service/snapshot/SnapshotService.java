@@ -28,6 +28,7 @@ import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -47,6 +48,7 @@ import bio.terra.model.TableModel;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -81,6 +83,8 @@ import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
+import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
+import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -1198,5 +1202,28 @@ public class SnapshotService {
         .stream()
         .map(SnapshotSummaryModel::getId)
         .toList();
+  }
+
+  public ResourceLocks manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
+    return jobService
+        .newJob(
+            "Create manual exclusive lock on a snapshot " + snapshotId,
+            SnapshotLockFlight.class,
+            null,
+            userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
+        .submitAndWait(ResourceLocks.class);
+  }
+
+  public ResourceLocks manualExclusiveUnlock(
+      AuthenticatedUserRequest userReq, UUID snapshotId, UnlockResourceRequest unlockRequest) {
+    return jobService
+        .newJob(
+            "Remove lock " + unlockRequest.getLockName() + " from Snapshot " + snapshotId,
+            SnapshotUnlockFlight.class,
+            unlockRequest,
+            userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
+        .submitAndWait(ResourceLocks.class);
   }
 }

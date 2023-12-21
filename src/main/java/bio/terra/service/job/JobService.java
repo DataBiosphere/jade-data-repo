@@ -412,6 +412,20 @@ public class JobService {
     }
   }
 
+  /*
+   * Check the status of a job
+   * We are NOT performing auth checks here. Expecting to have done this in the controller layer.
+   */
+  public FlightStatus unauthRetrieveJobState(String jobId) {
+    try {
+      FlightState flightState = stairway.getFlightState(jobId);
+      return flightState.getFlightStatus();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new JobServiceShutdownException("Job service interrupted", ex);
+    }
+  }
+
   /**
    * There are four cases to handle here:
    *

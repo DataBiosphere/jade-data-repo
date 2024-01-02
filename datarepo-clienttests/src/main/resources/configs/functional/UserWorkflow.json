@@ -1,7 +1,7 @@
 {
   "name": "UserWorkflow",
   "description": "Use billing profile to create dataset, ingest data and create snapshot",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "application": {},
   "testScripts": [

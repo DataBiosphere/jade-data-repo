@@ -1,7 +1,7 @@
 {
   "name": "BillingProfileAccess",
   "description": "Test roles and operations against billing profiles",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 1

@@ -1,7 +1,7 @@
 {
   "name": "LoadSingleFile",
   "description": "One user ingests several files of two different sizes (1KB, 10KB) concurrently, into two datasets.",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 3

@@ -1,7 +1,7 @@
 {
   "name": "CombinedIngestLoadScale50",
   "description": "One user performs many combined metadata ingests into one dataset",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "application": {},
   "testScripts": [

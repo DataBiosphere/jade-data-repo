@@ -74,7 +74,7 @@ import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
-import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
+import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControlsFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
@@ -591,11 +591,13 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public AddAuthDomainResponseModel addSnapshotAuthDomain(
+  public AddAuthDomainResponseModel addSnapshotDataAccessControls(
       AuthenticatedUserRequest userReq, UUID snapshotId, List<String> userGroups) {
-    String description = "Patch auth domain for snapshot " + snapshotId;
+    String userGroupsString = StringUtils.join(userGroups, ", ");
+    String description =
+        "Add data access control groups " + userGroupsString + " to snapshot " + snapshotId;
     return jobService
-        .newJob(description, SnapshotAddAuthDomainFlight.class, userGroups, userReq)
+        .newJob(description, SnapshotAddDataAccessControlsFlight.class, userGroups, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submitAndWait(AddAuthDomainResponseModel.class);
   }

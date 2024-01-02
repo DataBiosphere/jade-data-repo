@@ -1131,11 +1131,18 @@ paths:
       tags:
         - snapshots
         - repository
-      description: Add an auth domain to the snapshot. *** WARNING - Once this is set it cannot be modified ***
-                  A Sam auth domain consists of a collection of user groups. If a snapshot has an auth domain,
-                  users must have access to the resource directly (via a policy) and belong to all user groups
-                  in the auth domain in order to view and export the data. For example, if a user is a snapshot
-                  steward but is not included in the auth domain, Sam will prevent that user from accessing the resource.
+      description: >
+        Add data access control groups to the snapshot.  The provided user groups will be registered
+        as a group constraint policy in Terra Policy Service, and as an auth domain in Sam.
+
+
+        *** WARNING - Once this is set it cannot be modified ***
+
+
+        If a snapshot has data access controls, a user must have access to the resource directly
+        (via a policy) and belong to all of its data access control groups in order to view and
+        export the data. For example, if a user is a steward of a snapshot with but is not a member
+        of its data access control groups, Sam will prevent that user from accessing the resource.
       operationId: addSnapshotAuthDomain
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1149,7 +1156,7 @@ paths:
                 type: string
       responses:
         200:
-          description: Auth domain of this snapshot
+          description: The snapshot's data access control groups
           content:
             application/json:
               schema:
@@ -1161,7 +1168,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to add an auth domain to this snapshot
+          description: No permission to add data access control groups to this snapshot
           content:
             application/json:
               schema:

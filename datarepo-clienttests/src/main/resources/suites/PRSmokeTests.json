@@ -6,6 +6,8 @@
     [
       "basicexamples/BasicAuthenticated.json",
       "basicexamples/BasicUnauthenticated.json",
+      "basicexamples/DRSLookup.json",
+      "basicexamples/SoftDeleteDataset.json",
       "basicexamples/LookupDataset.json",
       "functional/BillingProfileAccess.json",
       "functional/BillingProfileInUse.json",

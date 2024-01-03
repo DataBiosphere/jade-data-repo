@@ -100,10 +100,8 @@ class DatasetsApiControllerTest {
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
   private static final String LOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/lock";
   private static final String UNLOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/unlock";
-  private static final String REQUEST_SNAPSHOT_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/createSnapshotRequest";
-  private static final String ENUMERATE_SNAPSHOT_REQUESTS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/enumerateSnapshotRequests";
+  private static final String SNAPSHOT_REQUESTS_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotRequests";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String QUERY_DATA_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
@@ -372,7 +370,7 @@ class DatasetsApiControllerTest {
         .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
-                post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
+                post(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtils.mapToJson(request)))
             .andExpect(status().isOk())
@@ -388,12 +386,13 @@ class DatasetsApiControllerTest {
   @Test
   void testEnumerateSnapshotRequests() throws Exception {
     mockValidators();
-    var expectedResponseItem = SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
+    var expectedResponseItem =
+        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
     var expectedResponse = new EnumerateSnapshotAccessRequest();
     expectedResponse.items(List.of(expectedResponseItem, expectedResponseItem));
     when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(expectedResponse);
     String actualJson =
-        mvc.perform(post(ENUMERATE_SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))
+        mvc.perform(get(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

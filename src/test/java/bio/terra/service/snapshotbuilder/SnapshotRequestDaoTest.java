@@ -16,6 +16,7 @@ import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.dataset.Dataset;
 import java.io.IOException;
 import java.util.UUID;
@@ -62,7 +63,7 @@ class SnapshotRequestDaoTest {
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotResearchPurpose());
     expected.snapshotSpecification(SnapshotBuilderTestData.createSnapshotBuilderRequest());
     expected.createdBy(EMAIL);
-    expected.status(SnapshotAccessRequestResponse.StatusEnum.SUBMITTED);
+    expected.status(SnapshotAccessRequestStatus.SUBMITTED);
     assertThat(
         "Given response is the same as expected.",
         response,
@@ -135,13 +136,12 @@ class SnapshotRequestDaoTest {
     verifyResponseContents(response);
 
     SnapshotAccessRequestResponse updatedResponse =
-        snapshotRequestDao.update(
-            response.getId(), SnapshotAccessRequestResponse.StatusEnum.APPROVED);
+        snapshotRequestDao.update(response.getId(), SnapshotAccessRequestStatus.APPROVED);
 
     assertThat(
         "Updated Snapshot Access Request Response should have approved status",
         updatedResponse.getStatus(),
-        equalTo(SnapshotAccessRequestResponse.StatusEnum.APPROVED));
+        equalTo(SnapshotAccessRequestStatus.APPROVED));
     assertNotNull(
         updatedResponse.getUpdatedDate(),
         "Updated Snapshot Access Request Response should have an update date");
@@ -152,9 +152,7 @@ class SnapshotRequestDaoTest {
     System.out.println(TestUtils.mapToJson(SnapshotBuilderTestData.SETTINGS));
     assertThrows(
         NotFoundException.class,
-        () ->
-            snapshotRequestDao.update(
-                UUID.randomUUID(), SnapshotAccessRequestResponse.StatusEnum.APPROVED));
+        () -> snapshotRequestDao.update(UUID.randomUUID(), SnapshotAccessRequestStatus.APPROVED));
   }
 
   @Test

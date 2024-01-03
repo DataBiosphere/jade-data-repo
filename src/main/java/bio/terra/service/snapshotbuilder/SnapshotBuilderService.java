@@ -1,5 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
+import bio.terra.model.EnumerateSnapshotAccessRequest;
+import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -47,5 +49,24 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderCountResponse()
         .sql("")
         .result(new SnapshotBuilderCountResponseResult().total(getRollupCount(id, cohorts)));
+  }
+
+  public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
+    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
+  }
+
+  private EnumerateSnapshotAccessRequest convertToEnumerateModel(
+      List<SnapshotAccessRequestResponse> responses) {
+    EnumerateSnapshotAccessRequest enumerateModel = new EnumerateSnapshotAccessRequest();
+    for (SnapshotAccessRequestResponse response : responses) {
+      enumerateModel.addItemsItem(
+          new EnumerateSnapshotAccessRequestItem()
+              .id(response.getId())
+              .status(response.getStatus())
+              .createdDate(response.getCreatedDate())
+              .name(response.getSnapshotName())
+              .researchPurpose(response.getSnapshotResearchPurpose()));
+    }
+    return enumerateModel;
   }
 }

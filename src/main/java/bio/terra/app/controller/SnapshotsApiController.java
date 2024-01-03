@@ -42,7 +42,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -323,7 +322,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             .filter(filter));
   }
 
-  // --snapshot auth domains --
+  // --snapshot data access controls (auth domains, group access constraints) --
 
   @Override
   public ResponseEntity<AddAuthDomainResponseModel> addSnapshotAuthDomain(
@@ -331,7 +330,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_AUTH_DOMAIN);
     AddAuthDomainResponseModel result =
-        snapshotService.addSnapshotAuthDomain(userReq, id, new ArrayList<>(userGroups));
+        snapshotService.addSnapshotDataAccessControls(userReq, id, userGroups);
     return ResponseEntity.ok(result);
   }
 

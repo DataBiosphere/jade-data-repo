@@ -17,9 +17,15 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class SnapshotAddAuthDomainFlight extends Flight {
+/**
+ * This flight adds data access control groups to a snapshot. The provided user groups will be
+ * registered as a group constraint policy in Terra Policy Service, and as an auth domain in Sam. If
+ * a snapshot has data access controls, a user must have access to the resource directly (via a
+ * policy) and belong to all of its data access control groups in order to view and access the data.
+ */
+public class SnapshotAddDataAccessControlsFlight extends Flight {
 
-  public SnapshotAddAuthDomainFlight(FlightMap inputParameters, Object applicationContext) {
+  public SnapshotAddDataAccessControlsFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
@@ -50,7 +56,7 @@ public class SnapshotAddAuthDomainFlight extends Flight {
             userReq,
             snapshotId,
             IamResourceType.DATASNAPSHOT,
-            "The auth domain group for this snapshot was updated."));
+            "Data access control groups were added to this snapshot."));
 
     addStep(new AddSnapshotAuthDomainSetResponseStep(iamService, userReq, snapshotId));
   }

@@ -1141,7 +1141,7 @@ paths:
 
         If a snapshot has data access controls, a user must have access to the resource directly
         (via a policy) and belong to all of its data access control groups in order to view and
-        export the data. For example, if a user is a steward of a snapshot with but is not a member
+        export the data. For example, if a user is a steward of a snapshot but is not a member
         of its data access control groups, Sam will prevent that user from accessing the resource.
       operationId: addSnapshotAuthDomain
       parameters:

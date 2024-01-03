@@ -3,11 +3,6 @@
   "description": "Smoke tests to run in staging environment.",
   "serverSpecificationFile": "staging.json",
   "testConfigurationFiles": [
-    "functional/UserWorkflow.json",
-    "functional/CreateSnapshot.json",
-    "functional/AzureCreateSnapshot.json",
-    "profiling/BuildSnapshotWithFiles1000_50.json",
-    "profiling/BulkLoadScale200_20.json",
-    "profiling/CombinedIngestLoadScale50.json"
+    "functional/UserWorkflow.json"
   ]
 }

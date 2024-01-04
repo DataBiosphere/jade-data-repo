@@ -2,7 +2,8 @@ package bio.terra.common;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -12,16 +13,24 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@Category(Unit.class)
-public class StepUtilsTest {
+@SuppressFBWarnings({
+  "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+  "URF_UNREAD_FIELD",
+  "HE_EQUALS_USE_HASHCODE"
+})
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class StepUtilsTest {
 
   private static final String DESCRIPTION = "a description";
   private static final UUID DATASET_UUID = UUID.randomUUID();
@@ -81,7 +90,6 @@ public class StepUtilsTest {
   static FlightContext createContext() {
     FlightContext context = mock(FlightContext.class);
     when(context.getWorkingMap()).thenReturn(new FlightMap());
-    when(context.getInputParameters()).thenReturn(new FlightMap());
     return context;
   }
 
@@ -89,8 +97,9 @@ public class StepUtilsTest {
   // test for base class annotations
   // add test for reading from inputParameters as well as flightMap
   @Test
-  public void testReadInputs() {
+  void testReadInputs() {
     FlightContext context = createContext();
+    when(context.getInputParameters()).thenReturn(new FlightMap());
     context.getInputParameters().put("description", DESCRIPTION);
     context.getWorkingMap().put("datasetId", DATASET_UUID);
     Step1 step1 = new Step1();
@@ -100,7 +109,7 @@ public class StepUtilsTest {
   }
 
   @Test
-  public void testWriteOutputs() throws JsonProcessingException {
+  void testWriteOutputs() {
     FlightContext context = createContext();
     Step1 step1 = new Step1();
     step1.doStep(context);
@@ -111,27 +120,29 @@ public class StepUtilsTest {
     assertThat(map.get("result", ResultModel.class).field, is(RESULT.field));
   }
 
-  @Test(expected = RuntimeException.class)
-  public void testInputTypeMismatch() {
-    FlightContext context = createContext();
+  @Test
+  void testInputTypeMismatch() {
+    FlightContext context = mock(FlightContext.class);
+    when(context.getInputParameters()).thenReturn(new FlightMap());
     context.getInputParameters().put("description", DESCRIPTION);
     context.getInputParameters().put("datasetId", 123);
     Step1 step1 = new Step1();
-    StepUtils.readInputs(step1, context);
+    assertThrows(RuntimeException.class, () -> StepUtils.readInputs(step1, context));
   }
 
-  @Test(expected = RuntimeException.class)
-  public void testMissingInputs() {
+  @Test
+  void testMissingInputs() {
     FlightContext context = createContext();
+    when(context.getInputParameters()).thenReturn(new FlightMap());
     context.getInputParameters().put("description", DESCRIPTION);
     Step1 step1 = new Step1();
-    StepUtils.readInputs(step1, context);
+    assertThrows(RuntimeException.class, () -> StepUtils.readInputs(step1, context));
   }
   // missing outputs, can't verify
   // mistyped outputs, can't verify
 
   @Test
-  public void testSkipNullOutput() {
+  void testSkipNullOutput() {
     FlightContext context = createContext();
     Step1 step1 = new Step1();
     StepUtils.writeOutputs(step1, context);

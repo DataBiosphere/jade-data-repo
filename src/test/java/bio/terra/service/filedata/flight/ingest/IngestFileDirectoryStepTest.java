@@ -4,6 +4,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.Dataset;
@@ -11,18 +12,18 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
-import java.util.Collections;
 import java.util.UUID;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class IngestFileDirectoryStepTest extends TestCase {
 
@@ -36,11 +37,11 @@ public class IngestFileDirectoryStepTest extends TestCase {
     given(fireStoreDaoService.deleteDirectoryEntry(dataset, fileUuid.toString())).willReturn(true);
 
     IngestFileDirectoryStep step = new IngestFileDirectoryStep(fireStoreDaoService, dataset);
-
-    FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
-    flightContext.getWorkingMap().put(FileMapKeys.FILE_ID, fileUuid.toString());
-    flightContext.getWorkingMap().put(FileMapKeys.INGEST_FILE_ACTION, ingestFileAction);
-    flightContext.setStairway(mock(Stairway.class));
+    FlightContext flightContext = mock(FlightContext.class);
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(FileMapKeys.FILE_ID, fileUuid.toString());
+    workingMap.put(FileMapKeys.INGEST_FILE_ACTION, ingestFileAction);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     assertEquals(StepResult.getStepResultSuccess(), step.undoStep(flightContext));
   }

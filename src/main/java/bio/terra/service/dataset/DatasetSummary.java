@@ -7,11 +7,15 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ResourceLocks;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DatasetSummary {
   private UUID id;
@@ -23,6 +27,16 @@ public class DatasetSummary {
   private Instant createdDate;
   private List<BillingProfileModel> billingProfiles;
   private List<? extends StorageResource<?, ?>> storage;
+  private boolean secureMonitoringEnabled;
+  private CloudPlatform cloudPlatform;
+  private String dataProject;
+  private String storageAccount;
+  private String phsId;
+  private boolean selfHosted;
+  private Object properties;
+  private boolean predictableFileIds;
+  private List<String> tags;
+  private ResourceLocks resourceLocks;
 
   public UUID getId() {
     return id;
@@ -147,5 +161,118 @@ public class DatasetSummary {
                 new StorageResourceNotFoundException(
                     String.format(
                         "%s could not be found for dataset %s", cloudResource.name(), id)));
+  }
+
+  public boolean isSecureMonitoringEnabled() {
+    return secureMonitoringEnabled;
+  }
+
+  public DatasetSummary secureMonitoringEnabled(boolean secureMonitoringEnabled) {
+    this.secureMonitoringEnabled = secureMonitoringEnabled;
+    return this;
+  }
+
+  public CloudPlatform getCloudPlatform() {
+    return cloudPlatform;
+  }
+
+  public DatasetSummary cloudPlatform(CloudPlatform cloudPlatform) {
+    this.cloudPlatform = cloudPlatform;
+    return this;
+  }
+
+  public String getDataProject() {
+    return dataProject;
+  }
+
+  public DatasetSummary dataProject(String dataProject) {
+    this.dataProject = dataProject;
+    return this;
+  }
+
+  public String getStorageAccount() {
+    return storageAccount;
+  }
+
+  public DatasetSummary storageAccount(String storageAccount) {
+    this.storageAccount = storageAccount;
+    return this;
+  }
+
+  public String getPhsId() {
+    return phsId;
+  }
+
+  public DatasetSummary phsId(String phsId) {
+    this.phsId = phsId;
+    return this;
+  }
+
+  public boolean isSelfHosted() {
+    return selfHosted;
+  }
+
+  public DatasetSummary selfHosted(boolean selfHosted) {
+    this.selfHosted = selfHosted;
+    return this;
+  }
+
+  public Object getProperties() {
+    return properties;
+  }
+
+  public DatasetSummary properties(Object properties) {
+    this.properties = properties;
+    return this;
+  }
+
+  public boolean hasPredictableFileIds() {
+    return predictableFileIds;
+  }
+
+  public DatasetSummary predictableFileIds(boolean predictableFileIds) {
+    this.predictableFileIds = predictableFileIds;
+    return this;
+  }
+
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public DatasetSummary tags(List<String> tags) {
+    this.tags = tags;
+    return this;
+  }
+
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
+  }
+
+  public DatasetSummary resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
+    return this;
+  }
+
+  public DatasetSummaryModel toModel() {
+    return new DatasetSummaryModel()
+        .id(getId())
+        .name(getName())
+        .description(getDescription())
+        .createdDate(getCreatedDate().toString())
+        .defaultProfileId(getDefaultProfileId())
+        .storage(toStorageResourceModel())
+        .secureMonitoringEnabled(isSecureMonitoringEnabled())
+        .cloudPlatform(getCloudPlatform())
+        .dataProject(getDataProject())
+        .storageAccount(getStorageAccount())
+        .phsId(getPhsId())
+        .selfHosted(isSelfHosted())
+        .predictableFileIds(hasPredictableFileIds())
+        .tags(getTags())
+        .resourceLocks(getResourceLocks());
+  }
+
+  List<StorageResourceModel> toStorageResourceModel() {
+    return getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
   }
 }

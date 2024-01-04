@@ -5,22 +5,23 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
-import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
@@ -39,12 +40,15 @@ import org.springframework.validation.Validator;
 @Component
 public class DatasetRequestValidator implements Validator {
 
+  private static String PRIMARY_KEY = "PrimaryKey";
+  private static String FOREIGN_KEY = "ForeignKey";
+
   @Override
   public boolean supports(Class<?> clazz) {
     return true;
   }
 
-  private static class SchemaValidationContext {
+  public static class SchemaValidationContext {
 
     private HashMap<String, HashSet<String>> tableColumnMap;
     private HashMap<String, HashSet<String>> tableArrayColumns;
@@ -181,16 +185,21 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
-  private void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
+  public void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
     String tableName = table.getName();
     List<ColumnModel> columns = table.getColumns();
     List<String> primaryKeyList = table.getPrimaryKey();
+    List<String> columnNames = new ArrayList<>();
+    if (columns.isEmpty()) {
+      errors.rejectValue(
+          "schema", "IncompleteSchemaDefinition", "Each table must contain at least one column");
+    } else {
+      columns.stream().map(ColumnModel::getName).forEach(columnNames::add);
+    }
 
-    if (tableName != null && columns != null) {
+    if (tableName != null) {
       validateDataTypes(columns, errors);
 
-      List<String> columnNames =
-          columns.stream().map(ColumnModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(columnNames)) {
         List<String> duplicates = ValidationUtils.findDuplicates(columnNames);
         errors.rejectValue(
@@ -207,16 +216,14 @@ public class DatasetRequestValidator implements Validator {
               "MissingPrimaryKeyColumn",
               String.format("Expected column(s): %s", String.join(", ", missingKeys)));
         }
-
-        for (ColumnModel column : columns) {
-          if (primaryKeyList.contains(column.getName()) && column.isArrayOf()) {
-            errors.rejectValue(
-                "schema",
-                "PrimaryKeyArrayColumn",
-                String.format("Primary Key column: %s", column.getName()));
-          }
-        }
       }
+      for (ColumnModel columnModel : table.getColumns()) {
+        if (primaryKeyList != null && primaryKeyList.contains(columnModel.getName())) {
+          validateColumnType(errors, columnModel, PRIMARY_KEY);
+        }
+        validateColumnMode(errors, columnModel);
+      }
+
       context.addTable(tableName, columns);
     }
 
@@ -257,6 +264,43 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
+  // Primary Keys and Foreign Keys cannot be filerefs or dirrefs and Primary keys cannot be arrays
+  private void validateColumnType(Errors errors, ColumnModel columnModel, String keyType) {
+    if (keyType.equals(PRIMARY_KEY) && columnModel.isArrayOf()) {
+      rejectKey(errors, keyType, columnModel.getName(), "array");
+    }
+
+    Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
+    if (columnModel.getDatatype() != null && invalidTypes.contains(columnModel.getDatatype())) {
+      rejectKey(errors, keyType, columnModel.getName(), columnModel.getDatatype().toString());
+    }
+    if (PRIMARY_KEY.equals(keyType) && Boolean.FALSE.equals(columnModel.isRequired())) {
+      errors.rejectValue(
+          "schema",
+          "OptionalPrimaryKeyColumn",
+          String.format("A %s column cannot be marked as not required", PRIMARY_KEY));
+    }
+  }
+
+  private void validateColumnMode(Errors errors, ColumnModel columnModel) {
+    // Explicitly check if isRequired is true to avoid a null pointer exception.
+    // isArrayOf has a default value set in the open-api spec so it does not require
+    // the same handling.
+    if (Boolean.TRUE.equals(columnModel.isRequired()) && columnModel.isArrayOf()) {
+      errors.rejectValue(
+          "schema",
+          "InvalidColumnMode",
+          String.format("Array column %s cannot be marked as required", columnModel.getName()));
+    }
+  }
+
+  private void rejectKey(Errors errors, String keyType, String columnName, String type) {
+    errors.rejectValue(
+        "schema",
+        String.format("Invalid%s", keyType),
+        String.format("%s %s cannot be a column with %s type", keyType, columnName, type));
+  }
+
   private void validateDataTypes(List<ColumnModel> columns, Errors errors) {
     List<ColumnModel> invalidColumns = new ArrayList<>();
     for (ColumnModel column : columns) {
@@ -271,40 +315,31 @@ public class DatasetRequestValidator implements Validator {
           "InvalidDatatype",
           "invalid datatype in table column(s): "
               + invalidColumns.stream().map(ColumnModel::getName).collect(Collectors.joining(", "))
-              + ", valid DataTypes are "
+              + ", DataTypes must be lowercase, valid DataTypes are "
               + Arrays.toString(TableDataType.values()));
     }
   }
 
-  private void validateRelationshipTerm(
-      RelationshipTermModel term, Errors errors, SchemaValidationContext context) {
-    String table = term.getTable();
-    String column = term.getColumn();
-    if (table != null && column != null) {
-      if (!context.isValidTableColumn(table, column)) {
-        errors.rejectValue(
-            "schema",
-            "InvalidRelationshipTermTableColumn",
-            "invalid table '" + table + "." + column + "'");
-      }
-    }
-  }
-
   private void validateRelationship(
-      RelationshipModel relationship, Errors errors, SchemaValidationContext context) {
-    RelationshipTermModel fromTerm = relationship.getFrom();
-    if (fromTerm != null) {
-      validateRelationshipTerm(fromTerm, errors, context);
-    }
-
-    RelationshipTermModel toTerm = relationship.getTo();
-    if (toTerm != null) {
-      validateRelationshipTerm(toTerm, errors, context);
-    }
+      RelationshipModel relationship,
+      List<TableModel> tables,
+      Errors errors,
+      SchemaValidationContext context) {
+    ArrayList<LinkedHashMap<String, String>> validationErrors =
+        ValidationUtils.getRelationshipValidationErrors(relationship, tables);
+    validationErrors.forEach(e -> rejectValues(errors, e));
 
     String relationshipName = relationship.getName();
     if (relationshipName != null) {
       context.addRelationship(relationshipName);
+    }
+  }
+
+  private void rejectValues(Errors errors, Map<String, String> errorMap) {
+    for (var entry : errorMap.entrySet()) {
+      var errorCode = entry.getKey();
+      var errorMessage = entry.getValue();
+      errors.rejectValue("schema", errorCode, errorMessage);
     }
   }
 
@@ -382,7 +417,10 @@ public class DatasetRequestValidator implements Validator {
   private void validateSchema(DatasetSpecificationModel schema, Errors errors) {
     SchemaValidationContext context = new SchemaValidationContext();
     List<TableModel> tables = schema.getTables();
-    if (tables != null) {
+    if (tables.isEmpty()) {
+      errors.rejectValue(
+          "schema", "IncompleteSchemaDefinition", "Dataset tables must be defined in the schema");
+    } else {
       List<String> tableNames =
           tables.stream().map(TableModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(tableNames)) {
@@ -398,7 +436,8 @@ public class DatasetRequestValidator implements Validator {
       if (ValidationUtils.hasDuplicates(relationshipNames)) {
         errors.rejectValue("schema", "DuplicateRelationshipNames");
       }
-      relationships.forEach((relationship) -> validateRelationship(relationship, errors, context));
+      relationships.forEach(
+          (relationship) -> validateRelationship(relationship, tables, errors, context));
     }
 
     List<AssetModel> assets = schema.getAssets();
@@ -427,11 +466,6 @@ public class DatasetRequestValidator implements Validator {
         CloudPlatformWrapper cloudWrapper =
             CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
         cloudWrapper.ensureValidRegion(datasetRequest.getRegion(), errors);
-
-        if (cloudWrapper.isAzure()) {
-          CloudPlatformWrapper.of(CloudPlatform.GCP)
-              .ensureValidRegion(datasetRequest.getGcpRegion(), errors);
-        }
       }
     }
   }

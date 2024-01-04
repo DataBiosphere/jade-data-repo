@@ -82,9 +82,21 @@ When running locally, we are not using the proxy. Therefore, the system doesn't 
 If you are making code changes, run:
 `./gradlew check`
 
+### Verify Pact contracts
+
+To verify that TDR adheres to the contracts published by its consumers, run:
+```
+./src/test/render-pact-configs.sh
+# Reload your environment variables, e.g. src ~/.zshrc
+./gradlew verifyPacts     # verify contracts published with TDR as the provider
+```
+
+By default, this will fetch published contracts from the live Pact broker.
+Results of Pact verification are only published when running in a CI environment (not locally).
+
 ### Run jade locally
 
-Before you run for the first time, you need to generate the credentials file by running `./render-configs`
+Before you run for the first time, you need to generate the credentials file by running `./render-configs.sh`
 
 To run jade locally:
 `./gradlew bootRun`
@@ -109,7 +121,7 @@ https://local.broadinstitute.org:8080
 
 The integration tests will hit the data repo running in the  broad-jade-integration envrionment by default. To use a
 different data-repo, edit the src/main/resources/application-integration.properties file and specify the URL. Before
-you run the integration tests, you need to generate the correct pem file by running `./render-configs`
+you run the integration tests, you need to generate the correct pem file by running `./render-configs.sh`
 
 To run the tests, use: `./gradlew testIntegration`
 
@@ -200,3 +212,22 @@ The deployments of Terra Data Repository are:
 - [Production](https://data.terra.bio/)
 - [Development](https://jade.datarepo-dev.broadinstitute.org/)
 - [Development - swagger page](https://jade.datarepo-dev.broadinstitute.org/swagger-ui.html)
+
+### Running Sonar locally
+
+[Sonar](https://www.sonarqube.org) is a static analysis code that scans code for a wide
+range of issues, including maintainability and possible bugs. If you get a build failure due to
+SonarQube and want to debug the problem locally, you need to get the sonar token from vault
+before running the gradle task.
+
+```shell
+export SONAR_TOKEN=$(vault read -field=sonar_token secret/secops/ci/sonarcloud/data-repo)
+./gradlew sonar
+```
+
+Running this task produces no output unless your project has errors. To always
+generate a report, run using `--info`:
+
+```shell
+./gradlew sonar --info
+```

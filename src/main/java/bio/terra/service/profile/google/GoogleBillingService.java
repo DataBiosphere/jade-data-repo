@@ -1,7 +1,7 @@
 package bio.terra.service.profile.google;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.exception.BillingServiceException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.api.gax.core.FixedCredentialsProvider;
@@ -50,14 +50,14 @@ public class GoogleBillingService {
       //  If no user, use system credentials, otherwise use user credentials instead
       final String credentialName;
       final GoogleCredentials credentials;
-      if (user == null || !user.getToken().isPresent()) {
+      if (user == null || user.getToken().isEmpty()) {
         credentialName = "service account";
         credentials = serviceAccountCredentials;
       } else {
         credentialName = user.getEmail();
         credentials =
             GoogleCredentials.newBuilder()
-                .setAccessToken(new AccessToken(user.getToken().get(), null))
+                .setAccessToken(new AccessToken(user.getToken(), null))
                 .build();
       }
       CloudBillingSettings cloudBillingSettings =

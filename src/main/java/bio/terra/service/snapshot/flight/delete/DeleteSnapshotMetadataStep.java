@@ -7,12 +7,13 @@ import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
+import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.http.HttpStatus;
 
 public class DeleteSnapshotMetadataStep extends BaseStep {
 
-  private SnapshotDao snapshotDao;
-  private UUID snapshotId;
+  private final SnapshotDao snapshotDao;
+  private final UUID snapshotId;
 
   public DeleteSnapshotMetadataStep(SnapshotDao snapshotDao, UUID snapshotId) {
     this.snapshotDao = snapshotDao;
@@ -21,17 +22,18 @@ public class DeleteSnapshotMetadataStep extends BaseStep {
 
   @Override
   public StepResult perform() {
-    boolean found;
+    DeleteResponseModel.ObjectStateEnum stateEnum;
     try {
-      found = snapshotDao.delete(snapshotId);
+      stateEnum =
+          snapshotDao.delete(snapshotId)
+              ? DeleteResponseModel.ObjectStateEnum.DELETED
+              : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     } catch (SnapshotNotFoundException ex) {
-      found = false;
+      stateEnum = DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+    } catch (CannotSerializeTransactionException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
 
-    DeleteResponseModel.ObjectStateEnum stateEnum =
-        (found)
-            ? DeleteResponseModel.ObjectStateEnum.DELETED
-            : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
     setResponse(deleteResponseModel, HttpStatus.OK);
     return StepResult.getStepResultSuccess();

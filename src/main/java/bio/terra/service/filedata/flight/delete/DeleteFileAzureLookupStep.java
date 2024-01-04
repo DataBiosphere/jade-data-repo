@@ -1,29 +1,27 @@
 package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
-import bio.terra.stairway.*;
-import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 
-public class DeleteFileAzureLookupStep implements Step {
-  private static Logger logger = LoggerFactory.getLogger(DeleteFileAzureLookupStep.class);
+public class DeleteFileAzureLookupStep extends DefaultUndoStep {
 
   private final TableDao tableDao;
   private final String fileId;
   private final Dataset dataset;
-  private final ConfigurationService configService;
   private final ResourceService resourceService;
   private final ProfileDao profileDao;
 
@@ -31,28 +29,17 @@ public class DeleteFileAzureLookupStep implements Step {
       TableDao tableDao,
       String fileId,
       Dataset dataset,
-      ConfigurationService configService,
       ResourceService resourceService,
       ProfileDao profileDao) {
     this.tableDao = tableDao;
     this.fileId = fileId;
     this.dataset = dataset;
-    this.configService = configService;
     this.resourceService = resourceService;
     this.profileDao = profileDao;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    if (configService.testInsertFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
-      logger.info("FILE_DELETE_LOCK_CONFLICT_STOP_FAULT");
-      while (!configService.testInsertFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
-        logger.info("Sleeping for CONTINUE FAULT");
-        TimeUnit.SECONDS.sleep(5);
-      }
-      logger.info("FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
-    }
-
     try {
       // If we are restarting, we may have already retrieved and saved the file,
       // so we check the working map before doing the lookup.
@@ -66,10 +53,10 @@ public class DeleteFileAzureLookupStep implements Step {
 
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
-      workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
+      workingMap.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
 
       if (fireStoreFile == null) {
-        fireStoreFile = tableDao.lookupFile(fileId, storageAuthInfo);
+        fireStoreFile = tableDao.lookupFile(dataset.getId().toString(), fileId, storageAuthInfo);
         if (fireStoreFile != null) {
           workingMap.put(FileMapKeys.FIRESTORE_FILE, fireStoreFile);
         }
@@ -88,11 +75,6 @@ public class DeleteFileAzureLookupStep implements Step {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

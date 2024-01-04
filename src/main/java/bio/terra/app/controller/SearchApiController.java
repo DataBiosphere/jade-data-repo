@@ -2,32 +2,33 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.ApiException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
-import bio.terra.model.SearchMetadataModel;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.search.SearchService;
-import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -41,6 +42,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 @ConditionalOnProperty(name = "features.search.api", havingValue = "enabled")
 public class SearchApiController implements SearchApi {
 
+  private static final Logger logger = LoggerFactory.getLogger(SearchApiController.class);
+
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final ApplicationConfiguration appConfig;
@@ -48,7 +51,6 @@ public class SearchApiController implements SearchApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final SearchService searchService;
   private final SnapshotService snapshotService;
-  private final SnapshotSearchMetadataDao snapshotSearchMetadataDao;
 
   @Autowired
   public SearchApiController(
@@ -58,8 +60,7 @@ public class SearchApiController implements SearchApi {
       IamService iamService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       SearchService searchService,
-      SnapshotService snapshotService,
-      SnapshotSearchMetadataDao snapshotSearchMetadataDao) {
+      SnapshotService snapshotService) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.appConfig = appConfig;
@@ -67,7 +68,6 @@ public class SearchApiController implements SearchApi {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.searchService = searchService;
     this.snapshotService = snapshotService;
-    this.snapshotSearchMetadataDao = snapshotSearchMetadataDao;
   }
 
   @Override
@@ -84,14 +84,14 @@ public class SearchApiController implements SearchApi {
     return authenticatedUserRequestFactory.from(request);
   }
 
-  @Override
-  public ResponseEntity<String> enumerateSnapshotSearch() {
-    List<UUID> ids =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
-    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(ids);
-    // Create the JSON result "by hand" to avoid having to round trip the data to JsonNode.
-    String response = String.format("{ \"result\": [ %s ] }", String.join(",", metadata.values()));
-    return ResponseEntity.ok(response);
+  private JsonNode toJsonNode(String json) {
+    try {
+      return objectMapper.readValue(json, JsonNode.class);
+    } catch (JsonProcessingException e) {
+      // This shouldn't occur, as the data stored in postgres must be valid JSON, because it's
+      // stored as JSONB.
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -112,41 +112,15 @@ public class SearchApiController implements SearchApi {
     }
   }
 
-  @Override
-  public ResponseEntity<SearchMetadataModel> upsertSearchMetadata(UUID id, String body) {
-    try {
-      var user = getAuthenticatedInfo();
-      iamService.verifyAuthorization(
-          user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
-      snapshotSearchMetadataDao.putMetadata(id, body);
-      SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
-      searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
-      return ResponseEntity.ok(searchMetadataModel);
-    } catch (Exception e) {
-      throw new ApiException("Could not upsert metadata for snapshot " + id, e);
-    }
-  }
-
-  @Override
-  public ResponseEntity<Void> deleteSearchMetadata(UUID id) {
-    try {
-      var user = getAuthenticatedInfo();
-      iamService.verifyAuthorization(
-          user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
-      snapshotSearchMetadataDao.deleteMetadata(id);
-      return ResponseEntity.noContent().build();
-    } catch (Exception e) {
-      throw new ApiException("Could not delete metadata for snapshot " + id, e);
-    }
-  }
-
   // TODO: add unit test in SearchAPIControllerTest
   @Override
   public ResponseEntity<SearchQueryResultModel> querySearchIndices(
       SearchQueryRequest searchQueryRequest, Integer offset, Integer limit) {
 
-    List<UUID> accessibleIds =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+    Set<UUID> accessibleIds =
+        iamService
+            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
+            .keySet();
 
     final List<UUID> snapshotIds = searchQueryRequest.getSnapshotIds();
 
@@ -154,7 +128,7 @@ public class SearchApiController implements SearchApi {
         snapshotIds == null || snapshotIds.isEmpty() ? Set.of() : Set.copyOf(snapshotIds);
 
     Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
-    accessibleIds.forEach(inaccessibleIds::remove);
+    inaccessibleIds.removeAll(accessibleIds);
     if (!inaccessibleIds.isEmpty()) {
       throw new IamForbiddenException(
           "User '"

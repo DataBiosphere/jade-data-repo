@@ -12,8 +12,10 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class BlobContainerCopierBuilderTest {
 
@@ -61,6 +63,27 @@ public class BlobContainerCopierBuilderTest {
   public void testBuildCopierUsingSourceBlobUrlAndDestinationFactories_CopierIsBuilt() {
 
     String sourceBlobUrl = "https://mytest.blob.core.windows.net/mytest/test?sp=rl";
+    String destinationBlobName = "destBlobName";
+
+    copier =
+        new BlobContainerCopierBuilder()
+            .sourceBlobUrl(sourceBlobUrl)
+            .destinationBlobName(destinationBlobName)
+            .destinationClientFactory(destinationFactory)
+            .build();
+
+    assertThat(
+        copier,
+        allOf(
+            hasProperty("sourceBlobUrl", equalTo(sourceBlobUrl)),
+            hasProperty("destinationBlobName", equalTo(destinationBlobName)),
+            hasProperty("destinationClientFactory", equalTo(destinationFactory))));
+  }
+
+  @Test
+  public void testBuildCopierUsingSourceGCSBlobUrlAndDestinationFactories_CopierIsBuilt() {
+
+    String sourceBlobUrl = "gs://mybucket/my.blob.txt";
     String destinationBlobName = "destBlobName";
 
     copier =

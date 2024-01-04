@@ -16,6 +16,7 @@ import bio.terra.app.model.AzureStorageAccountSkuType;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
@@ -29,10 +30,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class AzureApplicationDeploymentServiceTest {
 
@@ -64,14 +67,8 @@ public class AzureApplicationDeploymentServiceTest {
                     DEFAULT_REGION_KEY, Map.of(PARAMETER_VALUE_KEY, "AUSTRALIA"),
                     STORAGE_PREFIX_KEY, Map.of(PARAMETER_VALUE_KEY, "tdr"),
                     STORAGE_TYPE_KEY, Map.of(PARAMETER_VALUE_KEY, "Standard_LRS"))));
-    when(genericResources.getById(
-            "/subscriptions/"
-                + billingProfileModel.getSubscriptionId()
-                + "/resourceGroups"
-                + "/"
-                + billingProfileModel.getResourceGroupName()
-                + "/providers/Microsoft.Solutions/applications/"
-                + billingProfileModel.getApplicationDeploymentName()))
+    String appResourceId = MetadataDataAccessUtils.getApplicationDeploymentId(billingProfileModel);
+    when(genericResources.getById(appResourceId, resourceConfiguration.apiVersion()))
         .thenReturn(genericResource);
     when(client.genericResources()).thenReturn(genericResources);
     when(resourceDao.retrieveApplicationDeploymentByName(

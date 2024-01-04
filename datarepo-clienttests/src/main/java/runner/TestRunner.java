@@ -1,5 +1,6 @@
 package runner;
 
+import bio.terra.datarepo.model.CloudPlatform;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import common.utils.FileUtils;
@@ -14,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -181,8 +183,18 @@ public class TestRunner {
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
       TestScript testScriptInstance = testScriptSpecification.scriptClassInstance();
 
+      testScriptInstance.setCloudPlatform(
+          Optional.ofNullable(CloudPlatform.fromValue(config.cloudPlatform))
+              .orElse(CloudPlatform.GCP));
+
       // set the billing account for the test script to use
       testScriptInstance.setBillingAccount(config.billingAccount);
+
+      // set Azure billing profile info
+      testScriptInstance.setTenantId(config.tenantId);
+      testScriptInstance.setSubscriptionId(config.subscriptionId);
+      testScriptInstance.setResourceGroupName(config.resourceGroupName);
+      testScriptInstance.setApplicationDeploymentName(config.applicationDeploymentName);
 
       // set the server specification for the test script to run against
       testScriptInstance.setServer(config.server);

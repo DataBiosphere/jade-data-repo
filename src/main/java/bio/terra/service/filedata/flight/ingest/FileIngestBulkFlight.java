@@ -1,22 +1,27 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.ValidateBucketAccessStep;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.CloudFileReader;
+import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -25,16 +30,19 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import org.springframework.context.ApplicationContext;
 
 /*
@@ -57,19 +65,23 @@ public class FileIngestBulkFlight extends Flight {
     LoadService loadService = appContext.getBean(LoadService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ConfigurationService configurationService = appContext.getBean(ConfigurationService.class);
     JobService jobService = appContext.getBean(JobService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
+    IamService iamService = appContext.getBean(IamService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
+    GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    ExecutorService executor = appContext.getBean("performanceThreadpool", ExecutorService.class);
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    FileService fileService = appContext.getBean(FileService.class);
     ObjectMapper bulkLoadObjectMapper = appConfig.bulkLoadObjectMapper();
 
     // Common input parameters
@@ -97,17 +109,20 @@ public class FileIngestBulkFlight extends Flight {
     // Parameters dependent on which request we get
     int maxFailedFileLoads;
     UUID profileId;
+    boolean isBulkMode;
 
     if (isArray) {
       BulkLoadArrayRequestModel loadRequest =
           inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
       maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
       profileId = loadRequest.getProfileId();
+      isBulkMode = loadRequest.isBulkMode();
     } else {
       BulkLoadRequestModel loadRequest =
           inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
       maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
       profileId = loadRequest.getProfileId();
+      isBulkMode = loadRequest.isBulkMode();
     }
 
     RetryRule randomBackoffRetry =
@@ -144,14 +159,25 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
     }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
-    addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
-    addStep(new LoadLockStep(loadService));
+    // If loading in bulk mode, request an exclusive lock on the dataset
+    addStep(new LockDatasetStep(datasetService, datasetUuid, !isBulkMode), randomBackoffRetry);
+    if (!isBulkMode) {
+      addStep(new LoadLockStep(loadService));
+    }
+    CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
+    addStep(
+        new ValidateBucketAccessStep(cloudFileReader, userReq, dataset),
+        getDefaultExponentialBackoffRetryRule());
     if (platform.isGcp()) {
-      addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-      addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
-
-      addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-      addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      addStep(new VerifyBillingAccountAccessStep(googleBillingService));
+      if (!dataset.isSelfHosted()) {
+        addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
+        addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
+        addStep(
+            new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+            randomBackoffRetry);
+        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      }
     } else if (platform.isAzure()) {
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
@@ -160,56 +186,99 @@ public class FileIngestBulkFlight extends Flight {
           randomBackoffRetry);
     }
 
-    if (isArray) {
-      addStep(new IngestPopulateFileStateFromArrayStep(loadService));
-    } else {
-      if (platform.isGcp()) {
+    if (isBulkMode) {
+      if (isArray) {
         addStep(
-            new IngestPopulateFileStateFromFileGcpStep(
-                loadService,
-                appConfig.getMaxBadLoadFileLineErrorsReported(),
-                appConfig.getLoadFilePopulateBatchSize(),
+            new IngestBulkGcpArrayStep(
+                loadTag,
+                profileId,
+                userReq,
                 gcsPdao,
-                bulkLoadObjectMapper));
+                appConfig.objectMapper(),
+                dataset,
+                maxFailedFileLoads,
+                appConfig.getMaxBadLoadFileLineErrorsReported(),
+                fileDao,
+                fileService,
+                executor,
+                appConfig.getMaxPerformanceThreadQueueSize()));
       } else {
         addStep(
-            new IngestPopulateFileStateFromFileAzureStep(
-                loadService,
+            new IngestBulkGcpBulkFileStep(
+                loadTag,
+                profileId,
+                userReq,
+                gcsPdao,
+                appConfig.objectMapper(),
+                dataset,
+                maxFailedFileLoads,
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
-                appConfig.getLoadFilePopulateBatchSize(),
-                azureBlobStorePdao,
-                bulkLoadObjectMapper));
+                fileDao,
+                fileService,
+                executor,
+                appConfig.getMaxPerformanceThreadQueueSize()));
+      }
+      addStep(new IngestBulkBulkModeResponseStep(isArray));
+    } else {
+      if (isArray) {
+        addStep(new IngestPopulateFileStateFromArrayStep(loadService));
+      } else {
+        if (platform.isGcp()) {
+          addStep(
+              new IngestPopulateFileStateFromFileGcpStep(
+                  loadService,
+                  appConfig.getMaxBadLoadFileLineErrorsReported(),
+                  appConfig.getLoadFilePopulateBatchSize(),
+                  gcsPdao,
+                  bulkLoadObjectMapper,
+                  executor,
+                  userReq,
+                  dataset));
+        } else {
+          addStep(
+              new IngestPopulateFileStateFromFileAzureStep(
+                  loadService,
+                  appConfig.getMaxBadLoadFileLineErrorsReported(),
+                  appConfig.getLoadFilePopulateBatchSize(),
+                  azureBlobStorePdao,
+                  bulkLoadObjectMapper,
+                  executor,
+                  userReq,
+                  dataset));
+        }
+      }
+      addStep(
+          new IngestDriverStep(
+              loadService,
+              configurationService,
+              jobService,
+              datasetId,
+              loadTag,
+              maxFailedFileLoads,
+              driverWaitSeconds,
+              profileId,
+              platform.getCloudPlatform(),
+              userReq),
+          driverRetry);
+
+      if (isArray) {
+        addStep(new IngestBulkArrayResponseStep(loadService, loadTag));
+      } else {
+        addStep(new IngestBulkFileResponseStep(loadService, loadTag));
       }
     }
-    addStep(
-        new IngestDriverStep(
-            loadService,
-            configurationService,
-            jobService,
-            datasetId,
-            loadTag,
-            maxFailedFileLoads,
-            driverWaitSeconds,
-            profileId,
-            platform.getCloudPlatform()),
-        driverRetry);
-
-    if (isArray) {
-      addStep(new IngestBulkArrayResponseStep(loadService, loadTag));
-    } else {
-      addStep(new IngestBulkFileResponseStep(loadService, loadTag));
-    }
-
     if (platform.isGcp()) {
       addStep(
           new IngestCopyLoadHistoryToBQStep(
-              bigQueryPdao,
+              bigQueryDatasetPdao,
               loadService,
               datasetService,
               datasetUuid,
               loadTag,
               loadHistoryWaitSeconds,
-              loadHistoryChunkSize));
+              loadHistoryChunkSize,
+              isBulkMode),
+          randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(
           new IngestCopyLoadHistoryToStorageTableStep(
@@ -218,11 +287,14 @@ public class FileIngestBulkFlight extends Flight {
               datasetService,
               datasetUuid,
               loadTag,
-              loadHistoryChunkSize));
+              loadHistoryChunkSize),
+          randomBackoffRetry);
     }
-    addStep(new IngestCleanFileStateStep(loadService));
+    if (!isBulkMode) {
+      addStep(new IngestCleanFileStateStep(loadService));
+      addStep(new LoadUnlockStep(loadService));
+    }
 
-    addStep(new LoadUnlockStep(loadService));
-    addStep(new UnlockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetUuid, !isBulkMode), randomBackoffRetry);
   }
 }

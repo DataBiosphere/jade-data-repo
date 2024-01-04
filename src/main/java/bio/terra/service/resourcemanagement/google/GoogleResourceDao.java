@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -24,13 +26,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class GoogleResourceDao {
+
   private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final GoogleResourceConfiguration googleResourceConfiguration;
   private final GoogleRegion defaultRegion;
+  private final String tdrServiceAccountEmail;
 
   private static final String sqlProjectRetrieve =
-      "SELECT id, google_project_id, google_project_number, profile_id" + " FROM project_resource";
+      "SELECT id, google_project_id, google_project_number, profile_id, service_account"
+          + " FROM project_resource";
   private static final String sqlProjectRetrieveById =
       sqlProjectRetrieve + " WHERE marked_for_delete = false AND id = :id";
   private static final String sqlProjectRetrieveByProjectId =
@@ -43,7 +48,7 @@ public class GoogleResourceDao {
 
   private static final String sqlBucketRetrieve =
       "SELECT distinct p.id AS project_resource_id, google_project_id, google_project_number, profile_id,"
-          + " b.id AS bucket_resource_id, name, sr.region as region, flightid "
+          + " b.id AS bucket_resource_id, name, sr.region as region, flightid, b.autoclass_enabled "
           + "FROM bucket_resource b "
           + "JOIN project_resource p ON b.project_resource_id = p.id "
           + "LEFT JOIN dataset_bucket db on b.id = db.bucket_resource_id "
@@ -52,8 +57,8 @@ public class GoogleResourceDao {
   private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
   private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
 
-  // Given a profile id, compute the count of all references to projects associated with the profile
-  private static final String sqlProfileProjectRefs =
+  // Check if project is used by any resource
+  private static final String sqlProjectRefs =
       "SELECT pid, dscnt + sncnt + bkcnt AS refcnt FROM "
           + " (SELECT"
           + "  project_resource.id AS pid,"
@@ -63,11 +68,19 @@ public class GoogleResourceDao {
           + "    WHERE bucket_resource.project_resource_id = project_resource.id"
           + "    AND bucket_resource.id = dataset_bucket.bucket_resource_id"
           + "    AND dataset_bucket.successful_ingests > 0) AS bkcnt"
-          + " FROM project_resource"
-          + " WHERE project_resource.profile_id = :profile_id) AS X";
+          + " FROM project_resource";
+
+  // Given a profile id, compute the count of all references to projects associated with the profile
+  private static final String sqlProfileProjectRefs =
+      sqlProjectRefs + " WHERE project_resource.profile_id = :profile_id) AS X";
+
+  // Given a list of projects, compute the count of all references to project
+  private static final String sqlProjectListRefs =
+      sqlProjectRefs + " WHERE project_resource.id IN (:project_ids)) AS X";
 
   // Class for collecting results from the above query
   private static class ProjectRefs {
+
     private UUID projectId;
     private long refCount;
 
@@ -94,11 +107,13 @@ public class GoogleResourceDao {
   public GoogleResourceDao(
       NamedParameterJdbcTemplate jdbcTemplate,
       GcsConfiguration gcsConfiguration,
-      GoogleResourceConfiguration googleResourceConfiguration)
+      GoogleResourceConfiguration googleResourceConfiguration,
+      @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
-    this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.getRegion());
+    this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.region());
     this.googleResourceConfiguration = googleResourceConfiguration;
+    this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
   // -- project resource methods --
@@ -133,6 +148,14 @@ public class GoogleResourceDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public Optional<GoogleProjectResource> retrieveProjectByGoogleProjectIdMaybe(
+      String googleProjectId) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("google_project_id", googleProjectId);
+    return Optional.ofNullable(retrieveProjectBy(sqlProjectRetrieveByProjectId, params, false));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public GoogleProjectResource retrieveProjectByIdForDelete(UUID id) {
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
     return retrieveProjectBy(sqlProjectRetrieveByIdForDelete, params);
@@ -152,6 +175,32 @@ public class GoogleResourceDao {
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
     int rowsAffected = jdbcTemplate.update(sql, params);
     logger.info("Project resource {} was {}", id, (rowsAffected > 0 ? "deleted" : "not found"));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public List<UUID> markUnusedProjectsForDelete(List<UUID> projectResourceIds) {
+    // Check if any of the projects are in use
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("project_ids", projectResourceIds);
+    List<ProjectRefs> projectRefs =
+        jdbcTemplate.query(
+            sqlProjectListRefs,
+            params,
+            (rs, rowNum) ->
+                new ProjectRefs()
+                    .projectId(rs.getObject("pid", UUID.class))
+                    .refCount(rs.getLong("refcnt")));
+
+    List<UUID> projectsToDelete =
+        projectRefs.stream()
+            .filter(projectRef -> projectRef.refCount == 0)
+            .map(projectRef -> projectRef.projectId)
+            .collect(Collectors.toList());
+    // mark those that are not in use for delete
+    markProjectsForDelete(projectsToDelete);
+
+    // return only the projects for delete
+    return projectsToDelete;
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -195,26 +244,42 @@ public class GoogleResourceDao {
     // Common variables for marking projects and buckets for delete.
     List<UUID> projectIds =
         projectRefs.stream().map(ProjectRefs::getProjectId).collect(Collectors.toList());
-    if (projectIds.size() > 0) {
-      MapSqlParameterSource markParams =
-          new MapSqlParameterSource().addValue("project_ids", projectIds);
-
-      final String sqlMarkProjects =
-          "UPDATE project_resource SET marked_for_delete = true" + " WHERE id IN (:project_ids)";
-      jdbcTemplate.update(sqlMarkProjects, markParams);
-
-      final String sqlMarkBuckets =
-          "UPDATE bucket_resource SET marked_for_delete = true"
-              + " WHERE project_resource_id IN (:project_ids)";
-      jdbcTemplate.update(sqlMarkBuckets, markParams);
-    }
+    markProjectsForDelete(projectIds);
 
     return projectIds;
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void markProjectsForDelete(List<UUID> projectIds) {
+    if (!projectIds.isEmpty()) {
+      MapSqlParameterSource markParams =
+          new MapSqlParameterSource().addValue("project_ids", projectIds);
+
+      final String sqlMarkProjects =
+          "UPDATE project_resource SET marked_for_delete = true WHERE id IN (:project_ids)";
+      jdbcTemplate.update(sqlMarkProjects, markParams);
+
+      final String sqlMarkBuckets =
+          "UPDATE bucket_resource SET marked_for_delete = true WHERE project_resource_id IN (:project_ids)";
+      jdbcTemplate.update(sqlMarkBuckets, markParams);
+    }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void updateProjectResourceServiceAccount(UUID projectId, String serviceAccountEmail) {
+    MapSqlParameterSource markParams =
+        new MapSqlParameterSource()
+            .addValue("project_id", projectId)
+            .addValue("service_account", serviceAccountEmail);
+
+    final String sqlMarkProjects =
+        "UPDATE project_resource SET service_account = :service_account WHERE id = :project_id";
+    jdbcTemplate.update(sqlMarkProjects, markParams);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void deleteProjectMetadata(List<UUID> projectIds) {
-    if (projectIds.size() > 0) {
+    if (!projectIds.isEmpty()) {
       MapSqlParameterSource markParams =
           new MapSqlParameterSource().addValue("project_ids", projectIds);
 
@@ -230,8 +295,16 @@ public class GoogleResourceDao {
   }
 
   private GoogleProjectResource retrieveProjectBy(String sql, MapSqlParameterSource params) {
+    return retrieveProjectBy(sql, params, true);
+  }
+
+  private GoogleProjectResource retrieveProjectBy(
+      String sql, MapSqlParameterSource params, boolean failIfNotFound) {
     List<GoogleProjectResource> projectList = retrieveProjectListBy(sql, params);
     if (projectList.size() == 0) {
+      if (!failIfNotFound) {
+        return null;
+      }
       throw new GoogleResourceNotFoundException("Project not found");
     }
     if (projectList.size() > 1) {
@@ -247,12 +320,18 @@ public class GoogleResourceDao {
     return jdbcTemplate.query(
         sql,
         params,
-        (rs, rowNum) ->
-            new GoogleProjectResource()
-                .id(rs.getObject("id", UUID.class))
-                .profileId(rs.getObject("profile_id", UUID.class))
-                .googleProjectId(rs.getString("google_project_id"))
-                .googleProjectNumber(rs.getString("google_project_number")));
+        (rs, rowNum) -> {
+          String serviceAccount = rs.getString("service_account");
+          return new GoogleProjectResource()
+              .id(rs.getObject("id", UUID.class))
+              .profileId(rs.getObject("profile_id", UUID.class))
+              .googleProjectId(rs.getString("google_project_id"))
+              .googleProjectNumber(rs.getString("google_project_number"))
+              .serviceAccount(Optional.ofNullable(serviceAccount).orElse(tdrServiceAccountEmail))
+              .dedicatedServiceAccount(
+                  StringUtils.isNotEmpty(serviceAccount)
+                      && !StringUtils.equalsIgnoreCase(serviceAccount, tdrServiceAccountEmail));
+        });
   }
 
   // -- bucket resource methods --
@@ -268,21 +347,23 @@ public class GoogleResourceDao {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      String flightId) {
+      String flightId,
+      boolean autoclassEnabled) {
     // Put an end to serialization errors here. We only come through here if we really need to
     // create
     // the bucket, so this is not on the path of most bucket lookups.
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE bucket_resource IN EXCLUSIVE MODE");
 
     String sql =
-        "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES "
-            + "(:project_resource_id, :name, :flightid) "
+        "INSERT INTO bucket_resource (project_resource_id, name, flightid, autoclass_enabled) VALUES "
+            + "(:project_resource_id, :name, :flightid, :autoclass_enabled) "
             + "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getId())
             .addValue("name", bucketName)
-            .addValue("flightid", flightId);
+            .addValue("flightid", flightId)
+            .addValue("autoclass_enabled", autoclassEnabled);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
 
     int numRowsUpdated = jdbcTemplate.update(sql, params, keyHolder);
@@ -293,7 +374,8 @@ public class GoogleResourceDao {
           .profileId(projectResource.getProfileId())
           .projectResource(projectResource)
           .name(bucketName)
-          .region(region);
+          .region(region)
+          .autoclassEnabled(autoclassEnabled);
     } else {
       return null;
     }
@@ -411,13 +493,14 @@ public class GoogleResourceDao {
                   .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                   .name(rs.getString("name"))
                   .flightId(rs.getString("flightid"))
-                  .region(region);
+                  .region(region)
+                  .autoclassEnabled(rs.getObject("autoclass_enabled", Boolean.class));
             });
 
     if (bucketResources.size() > 1) {
       // TODO This is only here because of the dev case. It should be removed when we start using
       // RBS in dev.
-      if (googleResourceConfiguration.getAllowReuseExistingBuckets()) {
+      if (googleResourceConfiguration.allowReuseExistingBuckets()) {
         return bucketResources.get(0).region(defaultRegion);
       }
       throw new CorruptMetadataException(

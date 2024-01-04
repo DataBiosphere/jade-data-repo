@@ -3,32 +3,25 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.function.Predicate;
 
-public class IngestFileMakeBucketLinkStep extends SkippableStep {
+public class IngestFileMakeBucketLinkStep implements Step {
   private final DatasetBucketDao datasetBucketDao;
   private final Dataset dataset;
 
-  public IngestFileMakeBucketLinkStep(
-      DatasetBucketDao datasetBucketDao, Dataset dataset, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+  public IngestFileMakeBucketLinkStep(DatasetBucketDao datasetBucketDao, Dataset dataset) {
     this.datasetBucketDao = datasetBucketDao;
     this.dataset = dataset;
   }
 
-  public IngestFileMakeBucketLinkStep(DatasetBucketDao datasetBucketDao, Dataset dataset) {
-    this(datasetBucketDao, dataset, SkippableStep::neverSkip);
-  }
-
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -44,7 +37,7 @@ public class IngestFileMakeBucketLinkStep extends SkippableStep {
   }
 
   @Override
-  public StepResult undoSkippableStep(FlightContext context) {
+  public StepResult undoStep(FlightContext context) {
     // Parallel threads can try create the bucket link. We do not error on a duplicate create
     // attempt.
     // Therefore, we do not delete the link during undo. Instead, we use a counter on the bucket

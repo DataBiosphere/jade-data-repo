@@ -2,8 +2,8 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -13,25 +13,18 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.function.Predicate;
 
-public class IngestFileInitializeProjectStep extends SkippableStep {
+public class IngestFileInitializeProjectStep extends DefaultUndoStep {
   private final ResourceService resourceService;
   private final Dataset dataset;
 
-  public IngestFileInitializeProjectStep(
-      ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+  public IngestFileInitializeProjectStep(ResourceService resourceService, Dataset dataset) {
     this.resourceService = resourceService;
     this.dataset = dataset;
   }
 
-  public IngestFileInitializeProjectStep(ResourceService resourceService, Dataset dataset) {
-    this(resourceService, dataset, SkippableStep::neverSkip);
-  }
-
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {

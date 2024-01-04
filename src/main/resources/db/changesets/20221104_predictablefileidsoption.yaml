@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: predictablefileidsoption
+      author: nm
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              name: predictable_file_ids
+              type: boolean
+              defaultValue: false

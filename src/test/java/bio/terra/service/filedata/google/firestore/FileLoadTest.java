@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -18,11 +19,11 @@ import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
-import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,6 +53,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class FileLoadTest {
   private static final Logger logger = LoggerFactory.getLogger(FileLoadTest.class);
@@ -149,8 +151,8 @@ public class FileLoadTest {
       for (int r = 0; r < repeats; r++) {
         for (int i = 0; i < goodFileSource.length; i++) {
           BulkLoadFileModel fileModel = getFileModel(i, r, testId);
-          String fileLine = objectMapper.writeValueAsString(fileModel) + "\n";
-          writer.write(fileLine);
+          String fileLine = objectMapper.writeValueAsString(fileModel);
+          writer.writeLine(fileLine);
         }
       }
     } catch (IOException ex) {
@@ -178,7 +180,7 @@ public class FileLoadTest {
     model
         .description("bulk load file " + index)
         .sourcePath(infile)
-        .targetPath(testId + fileTarget[index] + repeat);
+        .targetPath("/" + testId + fileTarget[index] + repeat);
     return model;
   }
   // We have a static array of good paths and bad paths with their associated

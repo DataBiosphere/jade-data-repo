@@ -1,23 +1,32 @@
 name: Update API Helm Image Tags
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      notify-slack:
+        default: true
+        type: boolean
+  workflow_call:
+    inputs:
+      notify-slack:
+        default: false
+        type: boolean
 jobs:
 # new integration image updater
   integration_helm_tag_update:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: develop
       - name: 'Get Previous tag'
         id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          TAG=$(git for-each-ref --sort=-creatordate --count 1 --format="%(refname:short)" "refs/tags/")
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
       - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN}}
@@ -47,14 +56,14 @@ jobs:
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "[datarepo-helm-definitions] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.59.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.69.0
         env:
           COMMIT_MESSAGE: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm-definitions
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
       - name: "Notify Slack"
-        if: always()
+        if: ${{ inputs.notify-slack && always() }}
         uses: broadinstitute/action-slack@v3.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,23 +72,21 @@ jobs:
           status: ${{ job.status }}
           fields: job,repo,message,author,took
           author_name: "[API] [datarepo-helm-definitions] Version update for Integration namespaces"
-          mention: fb,muscles
-          mention_if: failure
   datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
     steps:
       - name: 'Checkout develop branch of jade-data-repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: develop
       - name: 'Fetch latest jade-data-repo image tag'
         id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          TAG=$(git for-each-ref --sort=-creatordate --count 1 --format="%(refname:short)" "refs/tags/")
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
       - name: '[datarepo-helm] Checkout repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm'
           path: datarepo-helm
@@ -100,20 +107,20 @@ jobs:
           ((a[2]++))
           printf "increase default api version: ${a[2]}\n\n"
           chartversion="${a[0]}.${a[1]}.${a[2]}"
-          echo "::set-output name=chartversion::$chartversion"
+          echo "chartversion=${chartversion}" >> $GITHUB_OUTPUT
       - name: "[datarepo-helm] [Chart.yaml] Update chart version"
         uses: docker://mikefarah/yq:3
         with:
           args: yq w -i datarepo-helm/charts/datarepo-api/Chart.yaml version ${{ steps.chartversion.outputs.chartversion }}"
       - name: "[datarepo-helm] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.59.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.69.0
         env:
           COMMIT_MESSAGE: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
       - name: "Notify Slack"
-        if: always()
+        if: ${{ inputs.notify-slack && always() }}
         uses: broadinstitute/action-slack@v3.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -122,5 +129,3 @@ jobs:
           status: ${{ job.status }}
           fields: job,repo,message,author,took
           author_name: "[API] [datarepo-helm] Version update for Helm Charts"
-          mention: fb,muscles
-          if_mention: failure

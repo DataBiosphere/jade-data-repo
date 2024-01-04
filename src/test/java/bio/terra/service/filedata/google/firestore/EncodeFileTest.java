@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -13,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoException;
@@ -27,12 +27,12 @@ import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -81,6 +81,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class EncodeFileTest {
   private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
 
@@ -88,7 +89,7 @@ public class EncodeFileTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private ConnectedOperations connectedOperations;
-  @Autowired private GoogleProjectService googleProjectService;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private DrsIdService drsIdService;
   @Autowired private BufferService bufferService;
 
@@ -110,9 +111,10 @@ public class EncodeFileTest {
     profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
     loadTag = "encodeLoadTag" + UUID.randomUUID();
     datasetSummary = connectedOperations.createDataset(profileModel, "encodefiletest-dataset.json");
-    ResourceInfo resourceInfo = bufferService.handoutResource();
+    ResourceInfo resourceInfo =
+        bufferService.handoutResource(datasetSummary.isSecureMonitoringEnabled());
     targetProjectId = resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId();
-    googleProjectService.addLabelsToProject(
+    resourceManagerService.addLabelsToProject(
         targetProjectId, Map.of("test-name", "encode-file-test"));
     // Build a storage object for the data project of the dataset.
     StorageOptions storageOptions =
@@ -344,7 +346,7 @@ public class EncodeFileTest {
 
     List<String> errorDetails = ingestError.getErrorDetail();
     assertNotNull("Error details were returned", errorDetails);
-    assertThat("Bad id was returned in details", errorDetails.get(0), endsWith(ID_GARBAGE));
+    assertThat("Bad id was returned in details", errorDetails.get(0), containsString(ID_GARBAGE));
 
     // Delete the scratch blob
     Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
@@ -382,7 +384,8 @@ public class EncodeFileTest {
         ingestError.getMessage(),
         startsWith(String.format("Ingest control file at gs://%s/scratch/", bucketName)));
 
-    assertThat("All 10 lines of bad file return errors", ingestError.getErrorDetail(), hasSize(10));
+    assertThat(
+        "Max number of bad file lines returned (6)", ingestError.getErrorDetail(), hasSize(6));
 
     // entire error message should be:
     // "Unexpected character (';' (code 59)): was expecting a colon to separate field name
@@ -393,7 +396,10 @@ public class EncodeFileTest {
         ingestError.getErrorDetail().get(0),
         containsString(expectedError));
 
-    assertThat("all errors are the same", Set.copyOf(ingestError.getErrorDetail()), hasSize(1));
+    assertThat(
+        "all errors are the same plus truncate message",
+        Set.copyOf(ingestError.getErrorDetail()),
+        hasSize(2));
 
     // Delete the scratch blob
     Blob scratchBlob = storage.get(BlobId.of(bucketName, targetPath));

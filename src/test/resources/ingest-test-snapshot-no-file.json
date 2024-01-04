@@ -1,0 +1,17 @@
+{
+  "name":"demo",
+  "description":"desc",
+  "contents":[
+    {
+      "datasetName": "IngestTest",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "no_file",
+        "rootValues": [
+          "sample1",
+          "sample2"
+        ]
+      }
+    }
+  ]
+}

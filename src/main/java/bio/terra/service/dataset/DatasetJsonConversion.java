@@ -5,6 +5,7 @@ import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
@@ -12,29 +13,40 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
+@Component
 public final class DatasetJsonConversion {
+  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
-  // only allow use of static methods
-  private DatasetJsonConversion() {}
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
 
-  public static Dataset datasetRequestToDataset(DatasetRequestModel datasetRequest) {
+  public DatasetJsonConversion(
+      MetadataDataAccessUtils metadataDataAccessUtils,
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
+    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
+  }
+
+  public static Dataset datasetRequestToDataset(
+      DatasetRequestModel datasetRequest, UUID datasetId) {
     Map<String, DatasetTable> tablesMap = new HashMap<>();
     Map<String, Relationship> relationshipsMap = new HashMap<>();
     List<AssetSpecification> assetSpecifications = new ArrayList<>();
@@ -66,38 +78,43 @@ public final class DatasetJsonConversion {
     final List<? extends StorageResource<?, ?>> storageResources =
         cloudPlatform.createStorageResourceValues(datasetRequest);
 
+    boolean enableSecureMonitoring =
+        Objects.requireNonNullElse(datasetRequest.isEnableSecureMonitoring(), false);
+
     return new Dataset(
             new DatasetSummary()
+                .id(datasetId)
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)
-                .defaultProfileId(defaultProfileId))
+                .defaultProfileId(defaultProfileId)
+                .secureMonitoringEnabled(enableSecureMonitoring)
+                .phsId(datasetRequest.getPhsId())
+                .selfHosted(datasetRequest.isExperimentalSelfHosted())
+                .properties(datasetRequest.getProperties())
+                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
+                .tags(TagUtils.sanitizeTags(datasetRequest.getTags())))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
   }
 
-  public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(
-      DatasetSummary datasetSummary) {
-    return new DatasetSummaryModel()
-        .id(datasetSummary.getId())
-        .name(datasetSummary.getName())
-        .description(datasetSummary.getDescription())
-        .createdDate(datasetSummary.getCreatedDate().toString())
-        .defaultProfileId(datasetSummary.getDefaultProfileId())
-        .storage(storageResourceModelFromDatasetSummary(datasetSummary));
-  }
-
-  public static DatasetModel populateDatasetModelFromDataset(
+  public DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
-      MetadataDataAccessUtils metadataDataAccessUtils) {
+      AuthenticatedUserRequest userRequest) {
     DatasetModel datasetModel =
         new DatasetModel()
             .id(dataset.getId())
             .name(dataset.getName())
             .description(dataset.getDescription())
-            .createdDate(dataset.getCreatedDate().toString());
+            .createdDate(dataset.getCreatedDate().toString())
+            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
+            .phsId(dataset.getPhsId())
+            .selfHosted(dataset.isSelfHosted())
+            .predictableFileIds(dataset.hasPredictableFileIds())
+            .tags(dataset.getTags())
+            .resourceLocks(dataset.getResourceLocks());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;
@@ -107,29 +124,35 @@ public final class DatasetJsonConversion {
       datasetModel.defaultProfileId(dataset.getDefaultProfileId());
     }
 
+    if (include.contains(DatasetRequestAccessIncludeModel.PROPERTIES)) {
+      datasetModel.properties(dataset.getProperties());
+    }
+
     if (include.contains(DatasetRequestAccessIncludeModel.SCHEMA)) {
       datasetModel.schema(datasetSpecificationModelFromDatasetSchema(dataset));
     }
 
-    if (include.contains(DatasetRequestAccessIncludeModel.DATA_PROJECT)) {
+    if (include.contains(DatasetRequestAccessIncludeModel.DATA_PROJECT)
+        && dataset.getProjectResource() != null) {
       datasetModel.dataProject(dataset.getProjectResource().getGoogleProjectId());
+      datasetModel.ingestServiceAccount(dataset.getProjectResource().getServiceAccount());
     }
 
     if (include.contains(DatasetRequestAccessIncludeModel.STORAGE)) {
-      datasetModel.storage(storageResourceModelFromDatasetSummary(dataset.getDatasetSummary()));
+      datasetModel.storage(dataset.getDatasetSummary().toStorageResourceModel());
     }
 
     if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
-      datasetModel.accessInformation(metadataDataAccessUtils.accessInfoFromDataset(dataset));
+      datasetModel.accessInformation(
+          metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
     }
-    return datasetModel;
-  }
 
-  private static List<StorageResourceModel> storageResourceModelFromDatasetSummary(
-      DatasetSummary datasetSummary) {
-    return datasetSummary.getStorage().stream()
-        .map(StorageResource::toModel)
-        .collect(Collectors.toList());
+    if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
+      datasetModel.snapshotBuilderSettings(
+          snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()));
+    }
+
+    return datasetModel;
   }
 
   public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(
@@ -153,17 +176,17 @@ public final class DatasetJsonConversion {
     Map<String, Column> columnMap = new HashMap<>();
     List<Column> columns = new ArrayList<>();
     DatasetTable datasetTable = new DatasetTable().name(tableModel.getName());
+    List<String> primaryKeys =
+        Optional.ofNullable(tableModel.getPrimaryKey()).orElse(Collections.emptyList());
 
     for (ColumnModel columnModel : tableModel.getColumns()) {
-      Column column = columnModelToDatasetColumn(columnModel).table(datasetTable);
+      Column column = columnModelToDatasetColumn(columnModel, primaryKeys).table(datasetTable);
       columnMap.put(column.getName(), column);
       columns.add(column);
     }
 
     List<Column> primaryKeyColumns =
-        Optional.ofNullable(tableModel.getPrimaryKey()).orElse(Collections.emptyList()).stream()
-            .map(columnMap::get)
-            .collect(Collectors.toList());
+        primaryKeys.stream().map(columnMap::get).collect(Collectors.toList());
     datasetTable.primaryKey(primaryKeyColumns);
 
     BigQueryPartitionConfigV1 partitionConfig;
@@ -232,11 +255,16 @@ public final class DatasetJsonConversion {
                 .collect(Collectors.toList()));
   }
 
-  public static Column columnModelToDatasetColumn(ColumnModel columnModel) {
+  public static Column columnModelToDatasetColumn(
+      ColumnModel columnModel, List<String> primaryKeys) {
+    boolean required =
+        primaryKeys.contains(columnModel.getName())
+            || Boolean.TRUE.equals(columnModel.isRequired());
     return new Column()
         .name(columnModel.getName())
         .type(columnModel.getDatatype())
-        .arrayOf(columnModel.isArrayOf());
+        .arrayOf(columnModel.isArrayOf())
+        .required(required);
   }
 
   public static Relationship relationshipModelToDatasetRelationship(
@@ -267,10 +295,11 @@ public final class DatasetJsonConversion {
   public static AssetSpecification assetModelToAssetSpecification(
       AssetModel assetModel,
       Map<String, DatasetTable> tables,
-      Map<String, Relationship> relationships) {
+      Map<String, Relationship> datasetRelationships) {
     AssetSpecification spec = new AssetSpecification().name(assetModel.getName());
+    List<String> assetRelationships = Objects.requireNonNullElse(assetModel.getFollow(), List.of());
     spec.assetTables(processAssetTables(spec, assetModel, tables));
-    spec.assetRelationships(processAssetRelationships(assetModel.getFollow(), relationships));
+    spec.assetRelationships(processAssetRelationships(assetRelationships, datasetRelationships));
     return spec;
   }
 

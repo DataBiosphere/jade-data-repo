@@ -1,43 +1,43 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.configuration.DuosConfiguration;
 import bio.terra.app.configuration.OauthConfiguration;
+import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.configuration.TerraConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.model.RepositoryStatusModel;
-import bio.terra.service.configuration.StatusService;
 import bio.terra.service.job.JobService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import bio.terra.service.status.StatusService;
 import io.swagger.annotations.Api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Properties;
-import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 @Api(tags = {"unauthenticated"})
 public class UnauthenticatedApiController implements UnauthenticatedApi {
 
-  private final ObjectMapper objectMapper;
-  private final HttpServletRequest request;
   private final OauthConfiguration oauthConfig;
+  private final OpenIDConnectConfiguration openIDConnectConfiguration;
   private final Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
   private final JobService jobService;
   private final Environment env;
   private final StatusService statusService;
   private final SamConfiguration samConfiguration;
   private final TerraConfiguration terraConfiguration;
+  private final DuosConfiguration duosConfiguration;
 
   private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
   private static final String DEFAULT_GITHASH = "00000000";
@@ -45,24 +45,23 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   private final String semVer;
   private final String gitHash;
 
-  @Autowired
   public UnauthenticatedApiController(
-      ObjectMapper objectMapper,
-      HttpServletRequest request,
       OauthConfiguration oauthConfig,
+      OpenIDConnectConfiguration openIDConnectConfiguration,
       JobService jobService,
       Environment env,
       StatusService statusService,
       TerraConfiguration terraConfiguration,
-      SamConfiguration samConfiguration) {
-    this.objectMapper = objectMapper;
-    this.request = request;
+      SamConfiguration samConfiguration,
+      DuosConfiguration duosConfiguration) {
     this.oauthConfig = oauthConfig;
+    this.openIDConnectConfiguration = openIDConnectConfiguration;
     this.jobService = jobService;
     this.env = env;
     this.statusService = statusService;
     this.terraConfiguration = terraConfiguration;
     this.samConfiguration = samConfiguration;
+    this.duosConfiguration = duosConfiguration;
 
     Properties properties = new Properties();
     try (InputStream versionFile =
@@ -76,16 +75,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   }
 
   @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
-  }
-
-  @Override
   public ResponseEntity<RepositoryStatusModel> serviceStatus() {
     RepositoryStatusModel repoStatus = statusService.getStatus();
     HttpStatus httpStatus = repoStatus.isOk() ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
@@ -96,12 +85,15 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
     RepositoryConfigurationModel configurationModel =
         new RepositoryConfigurationModel()
-            .clientId(oauthConfig.getClientId())
+            .clientId(oauthConfig.clientId())
+            .oidcClientId(openIDConnectConfiguration.getClientId())
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))
             .semVer(semVer)
             .gitHash(gitHash)
-            .terraUrl(terraConfiguration.getBasePath())
-            .samUrl(samConfiguration.getBasePath());
+            .terraUrl(terraConfiguration.basePath())
+            .samUrl(samConfiguration.basePath())
+            .authorityEndpoint(openIDConnectConfiguration.getAuthorityEndpoint())
+            .duosUrl(duosConfiguration.basePath());
 
     return new ResponseEntity<>(configurationModel, HttpStatus.OK);
   }
@@ -122,7 +114,13 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   /** Home redirection to swagger api documentation */
   @RequestMapping(value = "/")
   public String index() {
-    System.out.println("swagger-ui.html");
     return "redirect:swagger-ui.html";
+  }
+
+  @RequestMapping(value = "/swagger-ui.html")
+  public String getSwaggerUI(Model model) {
+    model.addAttribute("oauthClientId", oauthConfig.clientId());
+    model.addAttribute("oidcClientId", openIDConnectConfiguration.getClientId());
+    return "index";
   }
 }

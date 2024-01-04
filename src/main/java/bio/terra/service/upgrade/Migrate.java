@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class Migrate {
-  private static final Logger logger = LoggerFactory.getLogger("bio.terra.service.upgrade");
+  private static final Logger logger = LoggerFactory.getLogger(Migrate.class);
   private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
   private final MigrateConfiguration migrateConfiguration;
 
@@ -55,21 +55,20 @@ public class Migrate {
               changesetFile, new ClassLoaderResourceAccessor(), new JdbcConnection(connection));
 
       logger.info(
-          String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
+          String.format("dropAllOnStart is set to %s", migrateConfiguration.dropAllOnStart()));
       boolean allowDropAllOnStart =
           Arrays.stream(env.getActiveProfiles())
               .anyMatch(env -> env.contains("dev") || env.contains("test") || env.contains("int"));
       logger.info(String.format("Allow dropAllOnStart is set to %s", allowDropAllOnStart));
 
-      if (allowDropAllOnStart && migrateConfiguration.getDropAllOnStart()) {
+      if (allowDropAllOnStart && migrateConfiguration.dropAllOnStart()) {
         logger.info("Dropping all db objects in the default schema");
         liquibase
             .dropAll(); // drops everything in the default schema. The migrate schema should be OK
       }
       logger.info(
-          String.format(
-              "updateAllOnStart is set to %s", migrateConfiguration.getUpdateAllOnStart()));
-      if (migrateConfiguration.getUpdateAllOnStart()) {
+          String.format("updateAllOnStart is set to %s", migrateConfiguration.updateAllOnStart()));
+      if (migrateConfiguration.updateAllOnStart()) {
         liquibase.update(new Contexts()); // Run all migrations - no context filtering
       }
     } catch (LiquibaseException | SQLException ex) {

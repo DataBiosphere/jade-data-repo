@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
@@ -20,8 +20,10 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class AzureAuthzServiceTest {
 
@@ -47,7 +49,8 @@ public class AzureAuthzServiceTest {
         .thenReturn(Map.of("parameters", Map.of(AUTH_PARAM_KEY, Map.of("value", USER_EMAIL))));
     when(resourceManager.genericResources()).thenReturn(genericResources);
     when(resourceConfiguration.getClient(SUBSCRIPTION_ID)).thenReturn(resourceManager);
-    when(genericResources.getById(RESOURCE_ID)).thenReturn(genericResource);
+    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.apiVersion()))
+        .thenReturn(genericResource);
     azureAuthzService = new AzureAuthzService(resourceConfiguration);
   }
 
@@ -55,7 +58,11 @@ public class AzureAuthzServiceTest {
   public void testValidateHappyPath() {
     assertThat(
         azureAuthzService.canAccess(
-            new AuthenticatedUserRequest().email(USER_EMAIL),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail(USER_EMAIL)
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),
@@ -66,7 +73,11 @@ public class AzureAuthzServiceTest {
   public void testValidateUserDoesNotHaveAccess() {
     assertThat(
         azureAuthzService.canAccess(
-            new AuthenticatedUserRequest().email("voldemort.admin@test.firecloud.org"),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail("voldemort.admin@test.firecloud.org")
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),
@@ -75,11 +86,16 @@ public class AzureAuthzServiceTest {
 
   @Test
   public void testValidateResourceNotFound() {
-    when(genericResources.getById(RESOURCE_ID)).thenThrow(ResourceManagerException.class);
+    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.apiVersion()))
+        .thenThrow(ResourceManagerException.class);
 
     assertThat(
         azureAuthzService.canAccess(
-            new AuthenticatedUserRequest().email(USER_EMAIL),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail(USER_EMAIL)
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),

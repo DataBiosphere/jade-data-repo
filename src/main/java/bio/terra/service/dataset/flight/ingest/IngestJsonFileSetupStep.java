@@ -1,23 +1,24 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import java.util.ArrayList;
 import java.util.List;
 
-public abstract class IngestJsonFileSetupStep implements Step {
+public abstract class IngestJsonFileSetupStep extends DefaultUndoStep {
 
   final Dataset dataset;
+  final int maxBadLoadFileLineErrorsReported;
 
-  public IngestJsonFileSetupStep(Dataset dataset) {
+  public IngestJsonFileSetupStep(Dataset dataset, int maxBadLoadFileLineErrorsReported) {
     this.dataset = dataset;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
@@ -35,26 +36,21 @@ public abstract class IngestJsonFileSetupStep implements Step {
       return StepResult.getStepResultSuccess();
     }
 
-    List<String> errors = new ArrayList<>();
+    ErrorCollector errorCollector =
+        new ErrorCollector(
+            maxBadLoadFileLineErrorsReported,
+            "Ingest control file at " + ingestRequest.getPath() + " could not be processed");
     // Parse the file models, but don't save them because we don't want to blow up the database.
     // We read from the ingest control file each time we need to get the models to ingest.
-    long fileModelsCount = getFileModelsCount(ingestRequest, fileRefColumns, errors);
+    long fileModelsCount = getFileModelsCount(ingestRequest, fileRefColumns, errorCollector);
 
-    if (!errors.isEmpty()) {
-      IngestFailureException ex =
-          new IngestFailureException(
-              "Ingest control file at " + ingestRequest.getPath() + " could not be processed",
-              errors);
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    if (errorCollector.anyErrorsCollected()) {
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL, errorCollector.getFormattedException());
     }
 
     workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, fileModelsCount);
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
     return StepResult.getStepResultSuccess();
   }
 
@@ -67,5 +63,5 @@ public abstract class IngestJsonFileSetupStep implements Step {
    * @return The number of file ingests that would need to be performed for this control file
    */
   abstract long getFileModelsCount(
-      IngestRequestModel ingestRequest, List<Column> fileRefColumnNames, List<String> errors);
+      IngestRequestModel ingestRequest, List<Column> fileRefColumnNames, ErrorCollector errors);
 }

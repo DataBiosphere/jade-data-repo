@@ -1,62 +1,62 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
-import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.BigQueryFixtures;
-import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionGcsFileModel;
+import bio.terra.model.DataDeletionJsonArrayModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.IngestRequestModel;
-import bio.terra.model.IngestResponseModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.PolicyModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.iam.IamRole;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.cloud.WriteChannel;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobWriteOption;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -78,20 +78,19 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class DatasetIntegrationTest extends UsersBase {
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
-      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
   private static final String omopDatasetRegion = GoogleRegion.US_CENTRAL1.toString();
   private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
-  @Autowired private DataRepoClient dataRepoClient;
-  @Autowired private JsonLoader jsonLoader;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
-  @Autowired private TestConfiguration testConfiguration;
+  @Rule @Autowired public TestJobWatcher testWatcher;
+  @Autowired private JsonLoader jsonLoader;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
 
   private String stewardToken;
   private UUID datasetId;
   private UUID profileId;
-  private List<UUID> snapshotIds;
 
   @Before
   public void setup() throws Exception {
@@ -100,15 +99,11 @@ public class DatasetIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
-    snapshotIds = new LinkedList<>();
   }
 
   @After
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
-    for (UUID snapshotId : snapshotIds) {
-      dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
-    }
 
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
@@ -128,6 +123,9 @@ public class DatasetIntegrationTest extends UsersBase {
     logger.info("dataset id is " + summaryModel.getId());
     assertThat(summaryModel.getName(), startsWith(omopDatasetName));
     assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
+
+    List<String> stewardRoles = dataRepoFixtures.retrieveUserDatasetRoles(steward(), datasetId);
+    assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));
 
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
 
@@ -179,6 +177,16 @@ public class DatasetIntegrationTest extends UsersBase {
                         String.format("dataset %s region is set", storage.getCloudResource()),
                         storage.getRegion(),
                         equalTo(expectedRegion.toString()));
+
+                    assertThat(
+                        "dataset summary has GCP cloud platform",
+                        oneDataset.getCloudPlatform(),
+                        equalTo(CloudPlatform.GCP));
+
+                    assertThat(
+                        "dataset summary has data project",
+                        oneDataset.getDataProject(),
+                        notNullValue());
                   }
 
                   found = true;
@@ -190,8 +198,19 @@ public class DatasetIntegrationTest extends UsersBase {
 
     assertTrue("dataset was found in enumeration", metExpectation);
 
-    // test allowable permissions
+    // Check permissions on lookupDatasetDataById
+    dataRepoFixtures.retrieveDatasetData(
+        steward(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+    dataRepoFixtures.retrieveDatasetDataExpectFailure(
+        custodian(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        HttpStatus.FORBIDDEN);
 
+    // test allowable permissions
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), summaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
@@ -200,13 +219,50 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+
+    // Check permissions on lookupDatasetDataById now that the custodian has been given permission
+    dataRepoFixtures.retrieveDatasetData(
+        custodian(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+    dataRepoFixtures.retrieveDatasetDataExpectFailure(
+        reader(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        HttpStatus.FORBIDDEN);
+
+    List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian(), datasetId);
+    assertThat("The Custodian was given custodian access", custodianRoles, hasItem("custodian"));
+    assertThat(
+        "The Custodian does not have Steward access", custodianRoles, not(hasItem("steward")));
+
+    assertThat(
+        "Default secure monitoring was applied to summary model",
+        summaryModel.isSecureMonitoringEnabled(),
+        is(false));
+
+    assertThat(
+        "Provided PHS ID was added to the summary model",
+        summaryModel.getPhsId(),
+        equalTo("phs100321"));
+
+    assertThat(
+        "Default security classification was propagated to model",
+        datasetModel.isSecureMonitoringEnabled(),
+        is(false));
+
+    assertThat(
+        "Provided PHS ID was added to the dataset model",
+        datasetModel.getPhsId(),
+        equalTo("phs100321"));
   }
 
   @Test
   public void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "it-dataset-omop.json", CloudPlatform.GCP, true);
+            steward(), profileId, "it-dataset-omop.json", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -225,9 +281,9 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetUnauthorizedPermissionsTest() throws Exception {
     // These should fail because they don't have access to the billing profile
     dataRepoFixtures.createDatasetError(
-        custodian(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
+        custodian(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
     dataRepoFixtures.createDatasetError(
-        reader(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
+        reader(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
 
     EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader());
     List<DatasetSummaryModel> items = enumDatasetsResp.getItems();
@@ -251,7 +307,7 @@ public class DatasetIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized to get dataset",
         getDatasetResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // make sure reader cannot delete dataset
     DataRepoResponse<JobModel> deleteResp1 =
@@ -259,7 +315,7 @@ public class DatasetIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized to delete datasets",
         deleteResp1.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // right now the authorization for dataset delete is done directly in the controller.
     // so we need to check the response to the delete request for the unauthorized failure
@@ -284,7 +340,7 @@ public class DatasetIntegrationTest extends UsersBase {
     assertThat(
         "Custodian is not authorized to delete datasets",
         deleteResp2.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // same comment as above for the reader() delete
     //            DataRepoResponse<JobModel> jobResp2 = dataRepoFixtures.deleteDatasetLaunch(
@@ -310,17 +366,22 @@ public class DatasetIntegrationTest extends UsersBase {
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
     assertThat(
-        "Asset specification is as originally expected", originalAssetList.size(), equalTo(1));
-    AssetModel assetModel =
-        new AssetModel()
-            .name("assetName")
-            .rootTable("person")
-            .rootColumn("person_id")
-            .tables(
-                Arrays.asList(
-                    DatasetFixtures.buildAssetParticipantTable(),
-                    DatasetFixtures.buildAssetSampleTable()))
-            .follow(Collections.singletonList("fpk_visit_person"));
+        "Asset specification is as originally expected", originalAssetList.size(), equalTo(2));
+
+    // Test Asset Validation
+    AssetModel invalidAssetModel =
+        jsonLoader.loadObject("dataset-asset-person-invalid-column.json", AssetModel.class);
+
+    ErrorModel errorModel =
+        dataRepoFixtures.addDatasetAssetExpectFailure(
+            steward(), datasetModel.getId(), invalidAssetModel);
+    assertThat(
+        "At least one validation error caught for asset",
+        errorModel.getMessage(),
+        containsString("Invalid asset create request. See causes list for details."));
+
+    // Test successful Asset Creation
+    AssetModel assetModel = jsonLoader.loadObject("dataset-asset-person.json", AssetModel.class);
 
     // have the asset creation fail
     // by calling the fault insertion
@@ -334,10 +395,47 @@ public class DatasetIntegrationTest extends UsersBase {
     List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
     // assert that the asset isn't there
-    assertThat("Additional asset specification has never been added", assetList.size(), equalTo(1));
+    assertThat("Additional asset specification has never been added", assetList.size(), equalTo(2));
   }
 
-  private DataDeletionTableModel deletionTableFile(String tableName, String path) {
+  @Test
+  public void testCreateDatasetWithPolicies() throws Exception {
+    List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
+    String custodianEmail = custodian().getEmail();
+    List<String> custodiansWithDuplicates = List.of(custodianEmail, custodianEmail);
+    String snapshotCreatorEmail = reader().getEmail();
+    DatasetRequestModelPolicies policiesRequest =
+        new DatasetRequestModelPolicies()
+            .stewards(stewards)
+            .custodians(custodiansWithDuplicates)
+            .addSnapshotCreatorsItem(snapshotCreatorEmail);
+
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDatasetWithPolicies(
+            steward(), profileId, "it-dataset-omop.json", policiesRequest);
+    datasetId = summaryModel.getId();
+
+    Map<String, List<String>> rolesToPolicies =
+        dataRepoFixtures.retrieveDatasetPolicies(steward(), datasetId).getPolicies().stream()
+            .collect(Collectors.toMap(PolicyModel::getName, PolicyModel::getMembers));
+
+    assertThat(
+        "All specified stewards added on dataset creation",
+        rolesToPolicies.get(IamRole.STEWARD.toString()),
+        containsInAnyOrder(stewards.toArray()));
+
+    assertThat(
+        "Custodian added on dataset creation, duplicates removed without error",
+        rolesToPolicies.get(IamRole.CUSTODIAN.toString()),
+        contains(custodianEmail));
+
+    assertThat(
+        "Snapshot creator added on dataset creation",
+        rolesToPolicies.get(IamRole.SNAPSHOT_CREATOR.toString()),
+        contains(snapshotCreatorEmail));
+  }
+
+  static DataDeletionTableModel deletionTableFile(String tableName, String path) {
     DataDeletionGcsFileModel deletionGcsFileModel =
         new DataDeletionGcsFileModel()
             .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
@@ -345,275 +443,38 @@ public class DatasetIntegrationTest extends UsersBase {
     return new DataDeletionTableModel().tableName(tableName).gcsFileSpec(deletionGcsFileModel);
   }
 
-  private DataDeletionRequest dataDeletionRequest() {
+  static DataDeletionTableModel deletionTableJson(String tableName, List<UUID> rowIds) {
+    DataDeletionJsonArrayModel deletionJsonArrayModel =
+        new DataDeletionJsonArrayModel().rowIds(rowIds);
+    return new DataDeletionTableModel().tableName(tableName).jsonArraySpec(deletionJsonArrayModel);
+  }
+
+  static DataDeletionRequest dataDeletionRequest() {
     return new DataDeletionRequest()
         .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
         .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
   }
 
-  @Test
-  public void testSoftDeleteHappyPath() throws Exception {
-    datasetId = ingestedDataset();
-
-    // get row ids
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    List<String> participantRowIds = getRowIds(bigQuery, dataset, "participant", 3L);
-    List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 2L);
-
-    // write them to GCS
-    String participantPath = writeListToScratch("softDel", participantRowIds);
-    String samplePath = writeListToScratch("softDel", sampleRowIds);
-
-    // build the deletion request with pointers to the two files with row ids to soft delete
-    List<DataDeletionTableModel> dataDeletionTableModels =
-        Arrays.asList(
-            deletionTableFile("participant", participantPath),
-            deletionTableFile("sample", samplePath));
-    DataDeletionRequest request = dataDeletionRequest().tables(dataDeletionTableModels);
-
-    // send off the soft delete request
-    dataRepoFixtures.deleteData(steward(), datasetId, request);
-
-    // make sure the new counts make sense
-    assertTableCount(bigQuery, dataset, "participant", 2L);
-    assertTableCount(bigQuery, dataset, "sample", 5L);
+  static String writeListToScratch(String bucket, String prefix, List<String> contents)
+      throws IOException {
+    return writeListToScratch(bucket, prefix, contents, null);
   }
 
-  @Test
-  public void wildcardSoftDelete() throws Exception {
-    datasetId = ingestedDataset();
-    String pathPrefix = "softDelWildcard" + UUID.randomUUID().toString();
-
-    // get 5 row ids, we'll write them out to 5 separate files
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 5L);
-    for (String rowId : sampleRowIds) {
-      writeListToScratch(pathPrefix, Collections.singletonList(rowId));
-    }
-
-    // make a wildcard path 'gs://ingestbucket/softDelWildcard/*'
-    String wildcardPath =
-        String.format("gs://%s/scratch/%s/*", testConfiguration.getIngestbucket(), pathPrefix);
-
-    // build a request and send it off
-    DataDeletionRequest request =
-        dataDeletionRequest()
-            .tables(Collections.singletonList(deletionTableFile("sample", wildcardPath)));
-    dataRepoFixtures.deleteData(steward(), datasetId, request);
-
-    // there should be (7 - 5) = 2 rows "visible" in the sample table
-    assertTableCount(bigQuery, dataset, "sample", 2L);
-  }
-
-  @Test
-  public void testSoftDeleteNotInFullView() throws Exception {
-    datasetId = ingestedDataset();
-
-    // get row ids
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    List<String> participantRowIds = getRowIds(bigQuery, dataset, "participant", 3L);
-    List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 2L);
-
-    // swap in these row ids in the request
-    SnapshotRequestModel requestModelAll =
-        jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
-    requestModelAll.getContents().get(0).datasetName(dataset.getName());
-
-    SnapshotSummaryModel snapshotSummaryAll =
-        dataRepoFixtures.createSnapshotWithRequest(
-            steward(), dataset.getName(), profileId, requestModelAll);
-    snapshotIds.add(snapshotSummaryAll.getId());
-    SnapshotModel snapshotAll =
-        dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId(), null);
-    // The steward is the custodian in this case, so is a reader in big query.
-    BigQuery bigQueryAll = BigQueryFixtures.getBigQuery(snapshotAll.getDataProject(), stewardToken);
-
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "participant", 5L);
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "sample", 7L);
-
-    // write them to GCS
-    String participantPath = writeListToScratch("softDel", participantRowIds);
-    String samplePath = writeListToScratch("softDel", sampleRowIds);
-
-    // build the deletion request with pointers to the two files with row ids to soft delete
-    List<DataDeletionTableModel> dataDeletionTableModels =
-        Arrays.asList(
-            deletionTableFile("participant", participantPath),
-            deletionTableFile("sample", samplePath));
-    DataDeletionRequest request = dataDeletionRequest().tables(dataDeletionTableModels);
-
-    // send off the soft delete request
-    dataRepoFixtures.deleteData(steward(), datasetId, request);
-
-    // make sure the new counts make sense
-    assertTableCount(bigQuery, dataset, "participant", 2L);
-    assertTableCount(bigQuery, dataset, "sample", 5L);
-
-    // make full views snapshot
-    SnapshotRequestModel requestModelLess =
-        jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
-    requestModelLess.getContents().get(0).datasetName(dataset.getName());
-
-    SnapshotSummaryModel snapshotSummaryLess =
-        dataRepoFixtures.createSnapshotWithRequest(
-            steward(), dataset.getName(), profileId, requestModelLess);
-    snapshotIds.add(snapshotSummaryLess.getId());
-
-    SnapshotModel snapshotLess =
-        dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId(), null);
-    BigQuery bigQueryLess =
-        BigQueryFixtures.getBigQuery(snapshotLess.getDataProject(), stewardToken);
-
-    // make sure the old counts stayed the same
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "participant", 5L);
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "sample", 7L);
-
-    // make sure the new counts make sense
-    assertSnapshotTableCount(bigQueryLess, snapshotLess, "participant", 2L);
-    assertSnapshotTableCount(bigQueryLess, snapshotLess, "sample", 5L);
-  }
-
-  @Test
-  public void testCombinedMetadataDataIngest() throws Exception {
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    UUID datasetId = datasetSummaryModel.getId();
-
-    IngestRequestModel ingestRequest =
-        new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .ignoreUnknownValues(false)
-            .maxBadRecords(0)
-            .table("sample_vcf")
-            .path(
-                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
-
-    IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-
-    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
-
-    assertThat(
-        "All 4 rows were ingested, including the one with duplicate files",
-        ingestResponse.getRowCount(),
-        equalTo(4L));
-
-    IngestRequestModel secondIngestRequest =
-        new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .ignoreUnknownValues(false)
-            .maxBadRecords(0)
-            .table("sample_vcf")
-            .resolveExistingFiles(true)
-            .path(
-                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-2.json");
-
-    IngestResponseModel secondIngestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, secondIngestRequest);
-
-    assertThat(
-        "A row with a different load tag but same files ingested correctly",
-        secondIngestResponse.getRowCount(),
-        equalTo(2L));
-
-    assertThat(
-        "Only 2 files were loaded because the other 2 already exist",
-        secondIngestResponse.getLoadResult().getLoadSummary().getTotalFiles(),
-        equalTo(2));
-
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-
-    assertTableCount(bigQuery, dataset, "sample_vcf", 6L);
-
-    IngestRequestModel thirdIngestRequest =
-        new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .ignoreUnknownValues(false)
-            .maxBadRecords(0)
-            .table("sample_vcf")
-            .path(
-                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-3.json");
-
-    DataRepoResponse<IngestResponseModel> thirdIngestResponse =
-        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, thirdIngestRequest);
-
-    IngestResponseModel thirdResponseModel = thirdIngestResponse.getResponseObject().orElseThrow();
-
-    assertThat(
-        "Row ingest fails when duplicate files present and not told to resolve",
-        thirdResponseModel.getBadRowCount(),
-        equalTo(1L));
-
-    assertThat(
-        "Files fail to ingest if already exist and not told to resolve",
-        thirdResponseModel.getLoadResult().getLoadSummary().getFailedFiles(),
-        equalTo(2));
-  }
-
-  private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
-      throws InterruptedException {
-
-    String tableRef = BigQueryFixtures.makeTableRef(dataset, tableName);
-    String sql =
-        String.format("SELECT %s FROM %s LIMIT %s", PdaoConstant.PDAO_ROW_ID_COLUMN, tableRef, n);
-    TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-
-    assertThat("got right num of row ids back", result.getTotalRows(), equalTo(n));
-    return StreamSupport.stream(result.getValues().spliterator(), false)
-        .map(fieldValues -> fieldValues.get(0).getStringValue())
-        .collect(Collectors.toList());
-  }
-
-  private String writeListToScratch(String prefix, List<String> contents) throws IOException {
+  static String writeListToScratch(
+      String bucket, String prefix, List<String> contents, String userProject) throws IOException {
     Storage storage = StorageOptions.getDefaultInstance().getService();
-    String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID().toString() + ".csv";
-    BlobInfo blob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
-    try (WriteChannel writer = storage.writer(blob)) {
+    String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID() + ".csv";
+    BlobInfo blob = BlobInfo.newBuilder(bucket, targetPath).build();
+    BlobWriteOption[] options =
+        Optional.ofNullable(userProject)
+            .map(p -> new BlobWriteOption[] {BlobWriteOption.userProject(p)})
+            .orElseGet(() -> new BlobWriteOption[0]);
+
+    try (WriteChannel writer = storage.writer(blob, options)) {
       for (String line : contents) {
         writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
       }
     }
     return String.format("gs://%s/%s", blob.getBucket(), targetPath);
-  }
-
-  private void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
-      throws InterruptedException {
-
-    String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
-    TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-    assertThat(
-        "count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
-  }
-
-  private void assertSnapshotTableCount(
-      BigQuery bigQuery, SnapshotModel snapshot, String tableName, Long n)
-      throws InterruptedException {
-
-    String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(snapshot, tableName);
-    TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-    assertThat(
-        "count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
-  }
-
-  private UUID ingestedDataset() throws Exception {
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-    UUID datasetId = datasetSummaryModel.getId();
-    IngestRequestModel ingestRequest =
-        dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json");
-    IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
-
-    ingestRequest =
-        dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
-    return datasetId;
   }
 }

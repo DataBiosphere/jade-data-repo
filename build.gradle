@@ -15,34 +15,38 @@ import java.text.SimpleDateFormat
 
 buildscript {
     ext {
-        springBootVersion = '2.4.6'
+        springBootVersion = '3.0.4'
     }
     repositories {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger:swagger-codegen:2.4.11')
+        classpath('io.swagger:swagger-codegen:2.4.27')
     }
 }
 
 plugins {
-    id "com.google.cloud.tools.jib" version "1.6.1"
-    id 'org.liquibase.gradle' version '2.0.1'
-    id "org.gradle.test-retry" version "1.2.0"
+    id "com.google.cloud.tools.jib" version "3.2.0"
+    id 'org.liquibase.gradle' version '2.1.1'
+    id "org.gradle.test-retry" version "1.4.0"
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.1'
-    id "org.hidetake.swagger.generator" version "2.18.2"
-    id "org.springframework.boot" version "2.4.6"
+    id "org.hidetake.swagger.generator" version "2.19.2"
+    id "org.springframework.boot" version "2.5.12"
     id "idea"
     id "java"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
-    id "com.diffplug.spotless" version "5.14.0"
+    id "com.diffplug.spotless" version "6.7.1"
+    id "com.dorongold.task-tree" version "2.1.0"
+    // enables release info in sentry events
+    id "com.gorylenko.gradle-git-properties" version "2.4.1"
+    id "org.sonarqube" version "4.2.1.3168"
 }
 
 allprojects {
     group 'bio.terra'
-    version '1.201.0-SNAPSHOT'
+    version '1.568.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -55,8 +59,8 @@ allprojects {
             mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.5"
-            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.22"
+            dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.12"
+            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.47"
         }
     }
 }
@@ -70,13 +74,18 @@ subprojects.each { s ->
     }
 }
 
-sourceCompatibility = 11
-targetCompatibility = 11
+def boolean isCiServer = System.getenv().containsKey("CI")
+
+java {
+    sourceCompatibility = 17
+    targetCompatibility = 17
+}
 
 if (hasProperty('buildScan')) {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
         termsOfServiceAgree = 'yes'
+        uploadInBackground = false
         publishAlways()
         def project = ""; def cluster = ""; def nschunk = "";
         if (System.getenv("NAMESPACEINUSE")) {
@@ -165,45 +174,58 @@ configurations {
     runtimeClasspath
 }
 
+// Fix for CVE-2023-1370 which identifies a vulnerability in json-smart 2.4.8
+// 2.4.9 fixes the vulnerability and 2.4.10 fixes an additional bug
+// This override can be removed when we upgrade to spring-boot v2.6.15+, v2.7.10+, or v3.0.5+
+ext['json-smart.version'] = '2.4.10'
+
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
-    compile 'com.google.cloud:google-cloud-billing:1.1.6'
-    compile 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
-    compile 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
-    compile 'com.google.apis:google-api-services-appengine:v1-rev20201201-1.31.0'
-    compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
-    compile 'com.google.cloud:google-cloud-storage:1.108.0'
-    compile 'com.google.cloud:google-cloud-firestore:1.22.0'
-    compile group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
-    compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
-    compile 'org.apache.commons:commons-lang3:3.9'
-    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-    compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
-    compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
-    compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
-    compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
+    implementation 'com.google.apis:google-api-services-serviceusage:v1-rev20230215-2.0.0'
+    implementation 'com.google.apis:google-api-services-appengine:v1-rev20230206-2.0.0'
+    implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
+    implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
+    implementation platform('com.google.cloud:libraries-bom:26.26.0')
+    implementation 'com.google.cloud:google-cloud-billing'
+    implementation 'com.google.cloud:google-cloud-resourcemanager'
+    implementation 'com.google.cloud:google-cloud-bigquery'
+    implementation 'com.google.cloud:google-cloud-storage'
+    implementation 'com.google.cloud:google-cloud-firestore'
+    implementation 'com.google.cloud:google-cloud-pubsub'
+    implementation 'com.google.http-client:google-http-client'
+    implementation 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
+    implementation 'org.apache.commons:commons-lang3:3.11'
+    implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+    implementation 'org.apache.directory.studio:org.apache.commons.io:2.4'
+    implementation 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
+    implementation 'org.postgresql:postgresql:42.2.18'          // Postgres jdbc driver
+    implementation 'ch.qos.logback:logback-core:1.2.13'      // Unpin logback versions with DR-3404 Spring 3 Upgrade
+    implementation 'ch.qos.logback:logback-classic:1.2.13'  // logback-classic natively implements slf4j api
+
+    implementation 'org.codehaus.janino:janino:3.1.6'           // Provides if/else xml parsing for logback config
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
-    // Fix to this version
-    compile 'com.google.http-client:google-http-client:1.38.0'
 
     implementation group: "io.swagger.core.v3", name: "swagger-annotations"
     swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
 
-    compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
-    compile 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.8.RELEASE'
-    compile "org.springframework.cloud:spring-cloud-starter-sleuth:3.0.2"
-    compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-343dfff-SNAP'
-    compile 'org.antlr:ST4:4.3'                          // String templating
-    compile group: 'io.kubernetes', name: 'client-java', version: '10.0.0'
+    implementation 'org.springframework:spring-jdbc:5.1.9.RELEASE'
+    implementation 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.8.RELEASE'
+    implementation "org.springframework.cloud:spring-cloud-starter-sleuth:3.0.2"
+    implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-ae94a59'
+    implementation 'org.antlr:ST4:4.3'                          // String templating
+    implementation group: 'io.kubernetes', name: 'client-java', version: '18.0.0'
 
-    compile 'io.springfox:springfox-swagger-ui:2.10.0'
-    compile 'io.springfox:springfox-swagger2:2.9.2'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'javax.servlet:jstl:1.2'
 
     implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.0'
-    implementation 'org.elasticsearch:elasticsearch:7.10.0'
 
-    implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '9.2.1.jre11'
+    implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '11.2.3.jre17'
+
+    // For distributed locking of Spring @Scheduled tasks across multiple instances
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.2.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.2.0'
 
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
@@ -211,54 +233,95 @@ dependencies {
     if (project.hasProperty("stairwayjar")) {
         implementation files(project.ext.get("stairwayjar"))
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
     } else {
-        implementation 'bio.terra:stairway:0.0.62-SNAPSHOT'
+        implementation 'bio.terra:stairway:0.0.78-SNAPSHOT'
     }
 
     // Similar development mode for pointing to terra common library
     if (project.hasProperty("commonlibjar")) {
         implementation files(project.ext.get("commonlibjar"))
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
     } else {
-        implementation 'bio.terra:terra-common-lib:0.0.16-SNAPSHOT'
+        implementation ('bio.terra:terra-common-lib:0.0.89-SNAPSHOT') {
+            exclude group: 'org.broadinstitute.dsde.workbench', module: 'sam-client_2.12'
+        }
     }
 
+    implementation group: "bio.terra", name: "terra-policy-client", version: "1.0.4-SNAPSHOT"
     implementation group: "bio.terra", name: "terra-resource-buffer-client", version: "0.4.3-SNAPSHOT"
+    implementation group: "bio.terra", name: "externalcreds-client-resttemplate", version: "0.72.0-SNAPSHOT"
     implementation group: "org.glassfish.jersey.inject", name: "jersey-hk2", version: "2.30.1"
 
+    // Pin the version of the OkHttp client to avoid a conflict with the version used by the Sam client
+    implementation group: "com.squareup.okhttp3", name: "okhttp", version: "4.10.0"
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
+    implementation 'io.micrometer:micrometer-registry-prometheus:1.8.6'
 
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.4'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.2.5'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.4.0'
-    implementation 'com.azure:azure-storage-common:12.11.1'
-    implementation 'com.azure:azure-storage-file-datalake:12.5.1'
-    implementation 'com.azure:azure-data-tables:12.1.0'
+    implementation 'com.azure:azure-identity:1.9.1'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.28.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0-beta.3'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.4'
+    implementation 'com.azure:azure-storage-common:12.21.1'
+    implementation 'com.azure:azure-storage-file-datalake:12.15.2'
+    implementation 'com.azure:azure-data-tables:12.3.11'
+
+    implementation platform('io.sentry:sentry-bom:6.25.0') //import bom
+    implementation('io.sentry:sentry-spring-boot-starter')
+    implementation('io.sentry:sentry-logback')
+
+    testImplementation "org.apache.parquet:parquet-common:1.12.0"
+    testImplementation "org.apache.parquet:parquet-hadoop:1.12.0"
+    testImplementation "org.apache.parquet:parquet-hadoop-bundle:1.12.0"
+    testImplementation "org.apache.parquet:parquet-encoding:1.12.0"
+    testImplementation "org.apache.parquet:parquet-column:1.12.0"
+    testImplementation ('org.apache.hadoop:hadoop-common:3.3.1')  {
+        exclude group: 'com.sun.jersey', module: 'jersey-core'
+        exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.sun.jersey', module: 'jersey-server'
+    }
+    testImplementation ('org.apache.hadoop:hadoop-azure:3.3.1') {
+        exclude group: 'com.sun.jersey', module: 'jersey-core'
+        exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.sun.jersey', module: 'jersey-server'
+    }
+    testImplementation('org.apache.hadoop:hadoop-mapreduce-client-core:3.3.1') {
+        exclude group: 'com.sun.jersey', module: 'jersey-core'
+        exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.sun.jersey', module: 'jersey-server'
+    }
+
+    testImplementation 'au.com.dius.pact.provider:junit5:4.3.19'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
 
     antlr "org.antlr:antlr4:4.8"
-    spotbugs 'com.github.spotbugs:spotbugs:4.2.2'
+    spotbugs 'com.github.spotbugs:spotbugs:4.2.3'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
-    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '3.0.7'
+    runtimeOnly group: 'org.codehaus.groovy', name: 'groovy', version: '3.0.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.8.0'
     liquibaseRuntime 'org.postgresql:postgresql:42.2.7'
-    liquibaseRuntime 'ch.qos.logback:logback-classic:1.2.3'
 
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
-    testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile "org.springframework.boot:spring-boot-starter-test"
-    testCompile 'org.postgresql:postgresql:42.2.8'
-    testCompile 'com.google.code.findbugs:annotations:3.0.1'
+    testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.3.0-M1'
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation 'org.postgresql:postgresql:42.2.8'
+    testImplementation 'com.google.code.findbugs:annotations:3.0.1'
+    testImplementation 'io.zonky.test:embedded-database-spring-test:2.1.1'
+    testImplementation 'io.zonky.test:embedded-postgres:1.3.1'
+    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:12.8.0')
 
     testImplementation 'org.awaitility:awaitility:4.0.3'
 
@@ -267,22 +330,22 @@ dependencies {
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation group: "org.webjars", name: "webjars-locator-core", version: "0.46"
-    runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "3.35.2"
+    runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "4.3.0"
     generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
     constraints {
-        compile('org.bouncycastle:bcpg-jdk15on:1.68') {
+        implementation('org.bouncycastle:bcpg-jdk15on:1.68') {
             because '1.66 has security vulnerabilities'
         }
-        compile('org.bouncycastle:bcpkix-jdk15on:1.68') {
+        implementation('org.bouncycastle:bcpkix-jdk15on:1.68') {
             because '1.66 has security vulnerabilities'
         }
-        compile('org.bouncycastle:bcprov-ext-jdk15on:1.68') {
+        implementation('org.bouncycastle:bcprov-ext-jdk15on:1.68') {
             because '1.66 has security vulnerabilities'
         }
-        compile('org.bouncycastle:bcprov-jdk15on:1.68') {
+        implementation('org.bouncycastle:bcprov-jdk15on:1.68') {
             because '1.66 has security vulnerabilities'
         }
     }
@@ -342,6 +405,8 @@ clean.doFirst {
     delete("${projectDir}/$generatedOutputDir")
     delete("${rootDir}/datarepo-client/build")
     delete("${rootDir}/datarepo-client/generated")
+    delete("${rootDir}/datarepo-jakarta-client/build")
+    delete("${rootDir}/datarepo-jakarta-client/generated")
 }
 
 sourceSets {
@@ -357,7 +422,7 @@ sourceSets {
         runtimeClasspath += generated.output
     }
     jacoco {
-        toolVersion '0.8.3'
+        toolVersion '0.8.7'
     }
 }
 
@@ -372,15 +437,21 @@ jar {
 }
 
 jib {
-    extraDirectories.paths = ['build/gen-expanded']
+    extraDirectories {
+        mkdir 'build/gen-expanded'
+        paths = ['build/gen-expanded']
+    }
     from {
-        image = "gcr.io/distroless/java-debian10:11"
+        image = "us.gcr.io/broad-dsp-gcr-public/base/jre:17-debian"
     }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }
+    // Make sure that we disable remote lookups in message printing.  See
+    // https://www.randori.com/blog/cve-2021-44228/
+    // for more information
     container {
-        jvmFlags = ["-Xms1g", "-Xmx2g"]
+        jvmFlags = ["-Xms1g", "-Xmx2g", "-Dlog4j2.formatMsgNoLookups=true"]
     }
     container.creationTime = buildTime()
 }
@@ -432,52 +503,66 @@ spotless {
 // The default 'test' task runs all of the unit tests.
 // There are separate tasks for running just the unit tests and just the connected tests.
 // connected tests and running all of the tests.
+
+tasks.withType(Test).configureEach {
+    systemProperty 'spring.profiles.include', 'human-readable-logging'
+}
+
 test {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Unit'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
+    maxParallelForks = 2
 }
 
 task testConnected(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Connected'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Connected'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     retry {
-        maxRetries = 3
-        maxFailures = 15
+        if (isCiServer) {
+            maxRetries = 3
+            maxFailures = 15
+        }
     }
+    maxParallelForks = 4
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }
 
 task testIntegration(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Integration'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Integration'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
+
     retry {
-        maxRetries = 3
-        maxFailures = 15
+        if (isCiServer) {
+            maxRetries = 3
+            maxFailures = 15
+        }
     }
+    maxParallelForks = 8
     outputs.upToDateWhen { false }
 }
 
 task testUnit(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Unit'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Unit'
     }
+    maxParallelForks = 2
     outputs.upToDateWhen { false }
 }
 
 task testOnDemand(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.OnDemand'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.OnDemand'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -486,11 +571,33 @@ task testOnDemand(type: Test) {
 }
 
 task testAll(type: Test) {
-    useJUnit {
+    useJUnitPlatform {
         // Note: explicitly not including OnDemand tests
-        includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
+        includeTags 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
+}
+
+task verifyPacts(type: Test) {
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Pact'
+    }
+    testLogging {
+        events = ["passed", "failed", "skipped", "started", "standard_out"]
+    }
+    outputs.upToDateWhen { false }
+    if (isCiServer) {
+        systemProperty 'pact.verifier.publishResults', true
+    }
+    // to run a local pactbroker, see:
+    // https://broadworkbench.atlassian.net/wiki/spaces/IRT/pages/2829680649/Contract+Test+Local+Development
+    if (System.getenv().containsKey('PACT_BROKER_URL')) {
+        systemProperty 'pactbroker.url', System.getenv('PACT_BROKER_URL')
+    }
+    systemProperty 'pactbroker.auth.username', System.getenv('PACT_BROKER_USERNAME')
+    systemProperty 'pactbroker.auth.password', System.getenv('PACT_BROKER_PASSWORD')
+    systemProperty 'pact.provider.version', System.getenv('PACT_PROVIDER_VERSION')
+    systemProperty 'pact.provider.branch', System.getenv('PACT_PROVIDER_BRANCH')
 }
 
 compileGeneratedJava.dependsOn swaggerSources.server.code
@@ -502,9 +609,25 @@ idea.module.sourceDirs += file("$buildDir/generated-src/swagger/src/main/java")
 
 // Run spotless check when running in github actions, otherwise run spotless apply.
 compileJava {
-    if (System.getenv('CI')) {
+    if (isCiServer) {
         dependsOn(spotlessCheck)
     } else {
         dependsOn(spotlessApply)
+    }
+}
+
+sonar {
+    properties {
+        property "sonar.projectKey", "DataBiosphere_jade-data-repo"
+        property "sonar.projectName", "jade-data-repo"
+        property "sonar.organization", "broad-databiosphere"
+        property "sonar.host.url", "https://sonarcloud.io"
+    }
+}
+
+jacocoTestReport {
+    reports {
+        // sonarqube requires XML coverage output to upload coverage data
+        xml.required = true
     }
 }

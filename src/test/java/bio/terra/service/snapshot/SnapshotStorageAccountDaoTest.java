@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.AzureStorageResource;
@@ -28,12 +29,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class SnapshotStorageAccountDaoTest {
 
   @MockBean private SnapshotStorageAccountDao snapshotStorageAccountDao;
@@ -51,6 +55,7 @@ public class SnapshotStorageAccountDaoTest {
     UUID azureApplicationDeploymentResourceId = UUID.randomUUID();
     BillingProfileModel billingProfile =
         new BillingProfileModel().profileName("profileName").id(billingProfileId);
+
     DatasetSummary summary =
         new DatasetSummary()
             .storage(
@@ -59,13 +64,7 @@ public class SnapshotStorageAccountDaoTest {
                         datasetId,
                         AzureCloudResource.STORAGE_ACCOUNT,
                         AzureRegion.DEFAULT_AZURE_REGION)));
-    Snapshot snapshot =
-        new Snapshot()
-            .id(snapshotId)
-            .profileId(billingProfileId)
-            .name("snapshotName")
-            .snapshotSources(
-                List.of(new SnapshotSource().dataset(new Dataset(summary).id(datasetId))));
+    Dataset dataset = new Dataset(summary);
     when(snapshotStorageAccountDao.getStorageAccountResourceIdForSnapshotId(snapshotId))
         .thenReturn(Optional.of(azureStorageAccountResourceId));
     when(storageAccountService.getStorageAccountResourceById(any(), anyBoolean()))
@@ -81,7 +80,7 @@ public class SnapshotStorageAccountDaoTest {
                 .id(azureApplicationDeploymentResourceId)
                 .profileId(billingProfileId)
                 .storageAccountPrefix("tdr"));
-    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any()))
+    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any(), any()))
         .thenReturn(
             new AzureStorageAccountResource()
                 .region(AzureRegion.DEFAULT_AZURE_REGION)
@@ -89,11 +88,15 @@ public class SnapshotStorageAccountDaoTest {
                 .profileId(billingProfileId)
                 .resourceId(azureStorageAccountResourceId));
 
-    resourceService.createSnapshotStorageAccount(snapshot, billingProfile, flightId);
+    AzureStorageAccountResource azureStorageAccountResource =
+        resourceService.createSnapshotStorageAccount(
+            snapshotId,
+            dataset.getStorageAccountRegion(),
+            billingProfile,
+            flightId,
+            dataset.isSecureMonitoringEnabled());
 
     assertThat(
-        "Snapshot has an Azure Storage Account Resource after creating the Storage Account",
-        snapshot.getStorageAccountResource(),
-        notNullValue());
+        "Returns the new storage account resource", azureStorageAccountResource, notNullValue());
   }
 }

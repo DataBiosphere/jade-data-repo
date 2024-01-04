@@ -76,7 +76,9 @@ public class UsersBase {
     reader = users.getUserForRole(READER_ROLE, shuffle);
     discoverer = users.getUserForRole(DISCOVERER_ROLE, shuffle);
     logger.info(
-        "steward: "
+        "admin: "
+            + admin.getName()
+            + "; steward: "
             + steward.getName()
             + "; custodian: "
             + custodian.getName()

@@ -1,0 +1,56 @@
+name: cherry-pick-image
+on:
+  workflow_call:
+    inputs:
+      gcr_tag:
+        description: tag to cherry pick
+        type: string
+        required: true
+      source_gcr_url:
+        type: string
+        required: true
+      target_gcr_url:
+        type: string
+        required: true
+  workflow_dispatch:
+      inputs:
+        gcr_tag:
+          description: tag to cherry pick
+          type: string
+          required: true
+        source_gcr_url:
+          description: gcr url to cherry pick image from
+          type: string
+          required: true
+        target_gcr_url:
+          description: gcr url to cherry pick image to
+          type: string
+          required: true
+jobs:
+  cherry-pick-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Import Vault Secrets for GCR Service Account"
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/gcr-sa-b64 key | B64_APPLICATION_CREDENTIALS ;
+      - name: "Authenticate with GCR SA Credentials"
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: "Perform cherry-pick"
+        run: |
+          SOURCE_IMAGE="${{ inputs.source_gcr_url }}:${{ inputs.gcr_tag }}"
+          TARGET_IMAGE="${{ inputs.target_gcr_url }}:${{ inputs.gcr_tag }}"
+          echo "Cherry picking ${{ inputs.gcr_tag }} from ${SOURCE_IMAGE} to ${TARGET_IMAGE}"
+          gcloud container images add-tag --quiet "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
+

@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -17,14 +18,17 @@ import org.springframework.boot.availability.ReadinessState;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "connectedtest"})
 @SpringBootTest
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class AvailabilityTest {
 
   @Autowired private MockMvc mvc;

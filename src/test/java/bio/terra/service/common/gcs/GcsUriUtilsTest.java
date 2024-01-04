@@ -3,7 +3,9 @@ package bio.terra.service.common.gcs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Unit;
 import com.google.cloud.storage.Blob;
@@ -11,7 +13,9 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class GcsUriUtilsTest {
 
@@ -91,5 +95,11 @@ public class GcsUriUtilsTest {
     final String gsPath = String.format("gs://%s/%s", bucket, name);
     BlobInfo blobInfo = Blob.newBuilder(bucket, name).build();
     assertEquals(gsPath, GcsUriUtils.getGsPathFromBlob(blobInfo));
+  }
+
+  @Test
+  public void testIsValidGcsUri() {
+    assertTrue("is a gs uri", GcsUriUtils.isGsUri("gs://bucket/blob"));
+    assertFalse("is not a uri", GcsUriUtils.isGsUri("https://bucket/blob"));
   }
 }

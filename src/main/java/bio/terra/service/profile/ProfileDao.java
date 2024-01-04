@@ -11,6 +11,7 @@ import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -64,6 +65,8 @@ public class ProfileDao {
             + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, "
             + "     :tenant_id, :subscription_id, :resource_group_name, :application_deployment_name, :created_by)";
 
+    String billingAccountId =
+        Optional.ofNullable(profileRequest.getBillingAccountId()).orElse(null);
     String cloudPlatform =
         Optional.ofNullable(profileRequest.getCloudPlatform())
             .or(() -> Optional.of(CloudPlatform.GCP))
@@ -81,7 +84,7 @@ public class ProfileDao {
             .addValue("id", profileRequest.getId())
             .addValue("name", profileRequest.getProfileName())
             .addValue("biller", profileRequest.getBiller())
-            .addValue("billing_account_id", profileRequest.getBillingAccountId())
+            .addValue("billing_account_id", billingAccountId)
             .addValue("description", profileRequest.getDescription())
             .addValue("cloud_platform", cloudPlatform)
             .addValue("tenant_id", tenantId)
@@ -146,7 +149,7 @@ public class ProfileDao {
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public EnumerateBillingProfileModel enumerateBillingProfiles(
-      int offset, int limit, List<UUID> accessibleProfileId) {
+      int offset, int limit, Collection<UUID> accessibleProfileId) {
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()

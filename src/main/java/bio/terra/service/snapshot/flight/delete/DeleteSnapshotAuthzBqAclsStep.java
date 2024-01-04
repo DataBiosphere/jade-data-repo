@@ -1,13 +1,12 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
-import bio.terra.service.iam.IamService;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -41,14 +40,7 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    // TODO: this probably should fail with a 404 before the flight is even attempted
-    final Snapshot snapshot;
-    try {
-      snapshot = snapshotService.retrieve(snapshotId);
-    } catch (SnapshotNotFoundException e) {
-      logger.warn("Snapshot {} metadata was not found.  Ignoring explicit ACL clear.", snapshotId);
-      return StepResult.getStepResultSuccess();
-    }
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     // These policy emails should not change since the snapshot is locked by the flight
     Map<IamRole, String> policyEmails =

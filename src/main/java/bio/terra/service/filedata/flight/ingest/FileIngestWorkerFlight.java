@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -13,7 +14,6 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import java.util.UUID;
@@ -27,7 +27,7 @@ import org.springframework.context.ApplicationContext;
  * - REQUEST - a FileLoadModel describing the file to load
  */
 
-public class FileIngestWorkerFlight extends Flight {
+public class FileIngestWorkerFlight extends FileIngestTypeFlight {
 
   public FileIngestWorkerFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
@@ -42,6 +42,9 @@ public class FileIngestWorkerFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     TableDao azureTableDao = appContext.getBean(TableDao.class);
 
+    AuthenticatedUserRequest userReq =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
 
@@ -54,6 +57,7 @@ public class FileIngestWorkerFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // The flight plan:
+    // 0. Validate the file load model.
     // 1. Generate the new file id and store it in the working map. We need to allocate the file id
     //   before any other operation so that it is persisted in the working map. In particular,
     //   IngestFileDirectoryStep undo needs to know the file id in order to clean up.
@@ -69,17 +73,20 @@ public class FileIngestWorkerFlight extends Flight {
     //   REST API (and DRS) lookups matches what users will see when they examine the GCS object.
     //   When the file entry is (atomically) created in the file firestore collection,
     //   the file becomes visible for REST API lookups.
-    addStep(new IngestFileIdStep(configService));
+
+    addStep(new ValidateIngestFileLoadModelStep());
+
+    addStep(new IngestFileIdStep());
 
     if (platform.isGcp()) {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-      addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
-      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+      addFileCopyAndDirectoryRecordStepsGcp(
+          fileDao, gcsPdao, configService, dataset, fileSystemRetry);
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
-      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
-      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
+      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
+      addFileCopyAndDirectoryRecordStepsAzure(
+          azureBlobStorePdao, configService, azureTableDao, userReq, dataset, fileSystemRetry);
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
     }
   }

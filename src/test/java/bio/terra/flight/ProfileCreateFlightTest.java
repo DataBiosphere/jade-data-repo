@@ -1,23 +1,25 @@
 package bio.terra.flight;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 
+import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.stairway.FlightMap;
-import java.util.List;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class ProfileCreateFlightTest {
 
@@ -33,15 +35,15 @@ public class ProfileCreateFlightTest {
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
-    var packageName = "bio.terra.service.profile.flight.create";
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
-        flight.context().getStepClassNames(),
-        is(
-            List.of(
-                packageName + ".CreateProfileMetadataStep",
-                packageName + ".CreateProfileVerifyAccountStep",
-                packageName + ".CreateProfileVerifyDeployedApplicationStep",
-                packageName + ".CreateProfileAuthzIamStep")));
+        steps,
+        contains(
+            "GetOrCreateProfileIdStep",
+            "CreateProfileMetadataStep",
+            "CreateProfileVerifyDeployedApplicationStep",
+            "CreateProfileAuthzIamStep",
+            "CreateProfileJournalEntryStep"));
   }
 
   @Test
@@ -54,13 +56,14 @@ public class ProfileCreateFlightTest {
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
-    var packageName = "bio.terra.service.profile.flight.create";
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
-        flight.context().getStepClassNames(),
-        is(
-            List.of(
-                packageName + ".CreateProfileMetadataStep",
-                packageName + ".CreateProfileVerifyAccountStep",
-                packageName + ".CreateProfileAuthzIamStep")));
+        steps,
+        contains(
+            "GetOrCreateProfileIdStep",
+            "CreateProfileMetadataStep",
+            "CreateProfileVerifyAccountStep",
+            "CreateProfileAuthzIamStep",
+            "CreateProfileJournalEntryStep"));
   }
 }

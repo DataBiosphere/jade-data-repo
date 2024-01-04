@@ -1,23 +1,32 @@
 package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.isA;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.exception.FileAlreadyExistsException;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -35,6 +44,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreDirectoryDao directoryDao;
@@ -168,6 +178,134 @@ public class FireStoreDirectoryDaoTest {
       FireStoreDirectoryEntry fso = directoryDao.retrieveById(firestore, collectionId, objectId);
       assertNull("File or dir object is deleted", fso);
     }
+  }
+
+  @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
+  // Tests that bulk filesystem ingest works  initially and when there are collisions with the same
+  // load tag and failures when there are collisions with different load tags
+  public void bulkDirectoryEntryOperationsTest() throws Exception {
+    List<FireStoreDirectoryEntry> initDirectories =
+        List.of(
+            makeFileObject("/adir/A1"),
+            makeFileObject("/adir/bdir/B1"),
+            makeFileObject("/adir/bdir/cdir"),
+            makeFileObject("/adir/bdir/cdir/C2"),
+            makeFileObject("/adir/bdir/B2"),
+            makeFileObject("/adir/A2"));
+
+    String initialLoadTag = "lt1";
+    String nextLoadTag = "lt2";
+
+    initDirectories.forEach(d -> d.loadTag(initialLoadTag));
+
+    Map<UUID, UUID> initInsertResults =
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, initDirectories);
+    assertThat(
+        "the correct number were inserted (e.g. no conflicts)",
+        initInsertResults.entrySet(),
+        empty());
+
+    // Insert a subset of objects (only the B3 directory should be new) using the same load tag
+    List<FireStoreDirectoryEntry> nextDirectories =
+        List.of(makeFileObject("/adir/A1"), makeFileObject("/adir/bdir/B3"));
+    nextDirectories.forEach(d -> d.loadTag(initialLoadTag));
+
+    Map<UUID, UUID> nextInsertResults =
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, nextDirectories);
+    assertThat("the correct number were inserted", nextInsertResults.entrySet(), hasSize(1));
+
+    // Inserts the same subset but with a different load tag.  This should throw
+    nextDirectories.forEach(d -> d.loadTag(nextLoadTag));
+    FileSystemExecutionException conflictingLoadTagsFail =
+        assertThrows(
+            "conflicting load tags fail",
+            FileSystemExecutionException.class,
+            () -> directoryDao.upsertDirectoryEntries(firestore, collectionId, nextDirectories));
+    assertThat(
+        "cause is correct",
+        conflictingLoadTagsFail.getCause().getCause(),
+        isA(FileAlreadyExistsException.class));
+  }
+
+  @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
+  // Tests that bulk directory ingest works  initially and when there are collisions with the same
+  // load tag and failures when there are collisions with different load tags
+  public void bulkDirectoryOperationsFSObjectsTest() throws Exception {
+    List<FireStoreDirectoryEntry> initialFileObjects =
+        List.of(
+            makeFileObject("/m/adir/A1/file"),
+            makeFileObject("/m/adir/bdir/B1/file"),
+            makeFileObject("/m/adir/bdir/cdir/C1/file"),
+            makeFileObject("/m/adir/bdir/cdir/C2/file"),
+            makeFileObject("/m/adir/bdir/B2/file"),
+            makeFileObject("/m/adir/A2/file"));
+
+    String initialLoadTag = "lt1";
+    String secondLoadTag = "lt2";
+
+    initialFileObjects.forEach(f -> f.loadTag(initialLoadTag));
+
+    Map<UUID, UUID> initialConflicts =
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, initialFileObjects);
+    assertThat("the correct number were inserted", initialConflicts.entrySet(), hasSize(0));
+
+    // Insert a subset of objects (only the B3 directory should be new) using the same load tag
+    List<FireStoreDirectoryEntry> nextFileObjects =
+        List.of(makeFileObject("/m/adir/A1/file"), makeFileObject("/m/adir/bdir/B3/file"));
+    nextFileObjects.forEach(f -> f.loadTag(initialLoadTag));
+
+    Map<UUID, UUID> nextConflicts =
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, nextFileObjects);
+    assertThat("the correct number were inserted", nextConflicts.entrySet(), hasSize(1));
+
+    // Inserts the same subset but with a different load tag. This should throw
+    nextFileObjects.forEach(f -> f.loadTag(secondLoadTag));
+    FileSystemExecutionException conflictingLoadTagsFail =
+        assertThrows(
+            "conflicting load tags fail",
+            FileSystemExecutionException.class,
+            () -> directoryDao.upsertDirectoryEntries(firestore, collectionId, nextFileObjects));
+    assertThat(
+        "cause is correct",
+        conflictingLoadTagsFail.getCause().getCause(),
+        isA(FileAlreadyExistsException.class));
+  }
+
+  @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
+  public void testEnumerateFileRefEntries() throws InterruptedException {
+    List<FireStoreDirectoryEntry> noFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 10);
+    assertEquals(noFiles.size(), 0);
+
+    List<FireStoreDirectoryEntry> fireStoreDirectoryEntries =
+        List.of(
+            makeFileObject("/adir/A1"),
+            makeFileObject("/adir/bdir/B1"),
+            makeFileObject("/adir/bdir/B2"),
+            makeFileObject("/adir/bdir/cdir/C1"),
+            makeFileObject("/adir/bdir/cdir/C2"));
+
+    for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fireStoreDirectoryEntries) {
+      directoryDao.createDirectoryEntry(firestore, collectionId, fireStoreDirectoryEntry);
+    }
+
+    List<FireStoreDirectoryEntry> fileEntries =
+        fireStoreDirectoryEntries.stream().filter(FireStoreDirectoryEntry::getIsFileRef).toList();
+
+    List<FireStoreDirectoryEntry> allFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 10);
+    assertThat(allFiles, equalTo(fileEntries));
+
+    List<FireStoreDirectoryEntry> offsetFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 1, 10);
+    assertThat(offsetFiles, equalTo(fileEntries.subList(1, 5)));
+
+    List<FireStoreDirectoryEntry> limitFiles =
+        directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 2);
+    assertThat(limitFiles, equalTo(fileEntries.subList(0, 2)));
   }
 
   private String retrieveDirectoryObjectId(String fullPath) throws InterruptedException {

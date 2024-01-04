@@ -1,0 +1,21 @@
+{
+  "name": "SnapshotScaleCreate",
+  "description": "Create and delete 1+ snapshots based on the same source dataset.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 2
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "SnapshotScaleCreate",
+      "parameters": [10],
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 1,
+      "expectedTimeForEachUnit": "HOURS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

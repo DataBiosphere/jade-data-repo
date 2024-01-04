@@ -1,12 +1,12 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.sas.BlobContainerSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.sas.SasProtocol;
 import java.time.OffsetDateTime;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -26,18 +26,13 @@ public class AzureContainerPdao {
    * @param profileModel The profile that describes information needed to access the storage account
    * @param storageAccountResource Metadata describing the storage account that contains the
    *     container
-   * @param containerType The nature of the container
    * @return A client connection object that can be used to create folders and files
    */
   public BlobContainerClient getOrCreateContainer(
-      BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccountResource,
-      AzureStorageAccountResource.ContainerType containerType) {
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     BlobContainerClient blobContainerClient =
         authService.getBlobContainerClient(
-            profileModel,
-            storageAccountResource,
-            storageAccountResource.determineContainer(containerType));
+            profileModel, storageAccountResource, storageAccountResource.getTopLevelContainer());
 
     if (!blobContainerClient.exists()) {
       blobContainerClient.create();
@@ -45,35 +40,62 @@ public class AzureContainerPdao {
     return blobContainerClient;
   }
 
+  /**
+   * Get a container in an Azure storage account. Note: this will return a client even if the
+   * container does not exist. Existence can be checked with the exists() method on the client.
+   *
+   * @param profileModel The profile that describes information needed to access the storage account
+   * @param storageAccountResource Metadata describing the storage account that contains the
+   *     container
+   * @return A client connection object that can be used to create folders and files
+   */
+  public BlobContainerClient getContainer(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    BlobContainerClient blobContainerClient =
+        authService.getBlobContainerClient(
+            profileModel, storageAccountResource, storageAccountResource.getTopLevelContainer());
+
+    return blobContainerClient;
+  }
+
+  /**
+   * Delete a container in an Azure storage account if it happens to exist. If it does not exist,
+   * nothing will happen.
+   *
+   * @param profileModel The profile that describes information needed to access the storage account
+   * @param storageAccountResource Metadata describing the storage account that contains the
+   *     container
+   */
+  public void deleteContainer(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    BlobContainerClient blobContainerClient =
+        authService.getBlobContainerClient(
+            profileModel, storageAccountResource, storageAccountResource.getTopLevelContainer());
+    blobContainerClient.deleteIfExists();
+  }
+
   public String getDestinationContainerSignedUrl(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
-      ContainerType containerType,
-      boolean enableRead,
-      boolean enableList,
-      boolean enableWrite,
-      boolean enableDelete) {
+      BlobSasTokenOptions blobSasTokenOptions) {
 
-    BlobContainerSasPermission permissions =
-        new BlobContainerSasPermission()
-            .setReadPermission(enableRead)
-            .setWritePermission(enableWrite)
-            .setListPermission(enableList)
-            .setDeletePermission(enableDelete);
-
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime expiryTime = OffsetDateTime.now().plus(blobSasTokenOptions.getDuration());
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token
     BlobServiceSasSignatureValues sasSignatureValues =
-        new BlobServiceSasSignatureValues(expiryTime, permissions)
+        new BlobServiceSasSignatureValues(expiryTime, blobSasTokenOptions.getSasPermissions())
             .setProtocol(sasProtocol)
             // Version is set to a version of the token signing API the supports keys that permit
             // listing files
             .setVersion("2020-04-08");
 
+    if (!StringUtils.isEmpty(blobSasTokenOptions.getContentDisposition())) {
+      sasSignatureValues.setContentDisposition(blobSasTokenOptions.getContentDisposition());
+    }
+
     BlobContainerClient containerClient =
-        getOrCreateContainer(profileModel, storageAccountResource, containerType);
+        getOrCreateContainer(profileModel, storageAccountResource);
     return String.format(
         "%s?%s",
         containerClient.getBlobContainerUrl(), containerClient.generateSas(sasSignatureValues));

@@ -1,5 +1,7 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
@@ -11,13 +13,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,18 +37,31 @@ public class DatasetTableDao {
 
   private static final String sqlInsertTable =
       "INSERT INTO dataset_table "
-          + "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key, bigquery_partition_config) "
-          + "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key, "
+          + "(name, raw_table_name, soft_delete_table_name, row_metadata_table_name, dataset_id, primary_key, bigquery_partition_config) "
+          + "VALUES (:name, :raw_table_name, :soft_delete_table_name, :row_metadata_table_name, :dataset_id, :primary_key, "
           + "cast(:bigquery_partition_config AS jsonb))";
   private static final String sqlInsertColumn =
       "INSERT INTO dataset_column "
-          + "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
+          + "(table_id, name, type, array_of, required, ordinal) "
+          + "VALUES (:table_id, :name, :type, :array_of, :required, :ordinal)";
   private static final String sqlSelectTable =
-      "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, bigquery_partition_config::text, "
+      "SELECT id, name, raw_table_name, soft_delete_table_name, row_metadata_table_name, primary_key, bigquery_partition_config::text, "
           + "(bigquery_partition_config->>'version')::bigint AS bigquery_partition_config_version "
           + "FROM dataset_table WHERE dataset_id = :dataset_id";
   private static final String sqlSelectColumn =
-      "SELECT id, name, type, array_of FROM dataset_column " + "WHERE table_id = :table_id";
+      "SELECT id, name, type, array_of, required "
+          + "FROM dataset_column "
+          + "WHERE table_id = :table_id "
+          + "ORDER BY ordinal";
+
+  private static final String sqlDeleteTable =
+      "DELETE FROM dataset_table WHERE id = :table_id AND dataset_id = :dataset_id";
+
+  private static final String sqlDeleteColumn =
+      "DELETE FROM dataset_column WHERE id = :column_id AND table_id = :table_id";
+
+  private static final String sqlGetMaxColumnOrdinal =
+      "SELECT MAX(ordinal) FROM dataset_column WHERE table_id = :table_id";
 
   private final DataSource jdbcDataSource;
   private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -69,6 +87,7 @@ public class DatasetTableDao {
       params.addValue("name", table.getName());
       params.addValue("raw_table_name", table.getRawTableName());
       params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
+      params.addValue("row_metadata_table_name", table.getRowMetadataTableName());
       params.addValue(
           "bigquery_partition_config",
           objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));
@@ -87,11 +106,38 @@ public class DatasetTableDao {
 
       UUID tableId = keyHolder.getId();
       table.id(tableId);
-      createColumns(tableId, table.getColumns());
+      createColumnsNewTable(tableId, table.getColumns());
     }
   }
 
-  private void createColumns(UUID tableId, Collection<Column> columns) {
+  public void removeTables(UUID parentId, List<String> tableNames) {
+    List<DatasetTable> tablesToDelete =
+        retrieveTables(parentId).stream()
+            .filter(dt -> tableNames.contains(dt.getName()))
+            .collect(Collectors.toList());
+
+    for (DatasetTable tableToDelete : tablesToDelete) {
+      removeColumns(parentId, tableToDelete.getId(), tableToDelete.getColumns());
+      MapSqlParameterSource params = new MapSqlParameterSource();
+      params.addValue("table_id", tableToDelete.getId());
+      params.addValue("dataset_id", parentId);
+      jdbcTemplate.update(sqlDeleteTable, params);
+    }
+  }
+
+  private void createColumnsNewTable(UUID tableId, Collection<Column> columns) {
+    createColumns(tableId, columns, 0);
+  }
+
+  public void createColumnsExistingTable(UUID tableId, Collection<Column> columns) {
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    params.addValue("table_id", tableId);
+    Integer maxOrdinal = jdbcTemplate.queryForObject(sqlGetMaxColumnOrdinal, params, Integer.class);
+    // Need to requireNonNull or else SpotBugs complains
+    createColumns(tableId, columns, Objects.requireNonNullElse(maxOrdinal, 0) + 1);
+  }
+
+  private void createColumns(UUID tableId, Collection<Column> columns, int ordinal) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("table_id", tableId);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
@@ -99,10 +145,33 @@ public class DatasetTableDao {
       params.addValue("name", column.getName());
       params.addValue("type", column.getType().toString());
       params.addValue("array_of", column.isArrayOf());
+      params.addValue("required", column.isRequired());
+      params.addValue("ordinal", ordinal++);
       jdbcTemplate.update(sqlInsertColumn, params, keyHolder);
       UUID columnId = keyHolder.getId();
       column.id(columnId);
     }
+  }
+
+  public void removeColumns(Table table, Collection<Column> columns) {
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    params.addValue("table_id", table.getId());
+
+    List<Column> existingColumns = retrieveColumns(table);
+    Collection<Column> columnsToDelete = CollectionUtils.intersection(existingColumns, columns);
+    for (Column column : columnsToDelete) {
+      params.addValue("column_id", column.getId());
+      jdbcTemplate.update(sqlDeleteColumn, params);
+    }
+  }
+
+  private void removeColumns(UUID datasetId, UUID tableId, Collection<Column> columns) {
+    removeColumns(
+        retrieveTables(datasetId).stream()
+            .filter(dt -> dt.getId().equals(tableId))
+            .findFirst()
+            .orElseThrow(),
+        columns);
   }
 
   public List<DatasetTable> retrieveTables(UUID parentId) {
@@ -116,7 +185,8 @@ public class DatasetTableDao {
                   .id(rs.getObject("id", UUID.class))
                   .name(rs.getString("name"))
                   .rawTableName(rs.getString("raw_table_name"))
-                  .softDeleteTableName(rs.getString("soft_delete_table_name"));
+                  .softDeleteTableName(rs.getString("soft_delete_table_name"))
+                  .rowMetadataTableName(rs.getString("row_metadata_table_name"));
 
           List<Column> columns = retrieveColumns(table);
           table.columns(columns);
@@ -147,7 +217,16 @@ public class DatasetTableDao {
         });
   }
 
-  private List<Column> retrieveColumns(Table table) {
+  List<String> retrieveColumnNames(Table table, boolean includeDataRepoRowId) {
+    List<String> columns = new ArrayList<>();
+    if (includeDataRepoRowId) {
+      columns.add(PDAO_ROW_ID_COLUMN);
+    }
+    columns.addAll(retrieveColumns(table).stream().map(Column::getName).toList());
+    return columns;
+  }
+
+  List<Column> retrieveColumns(Table table) {
     return jdbcTemplate.query(
         sqlSelectColumn,
         new MapSqlParameterSource().addValue("table_id", table.getId()),
@@ -157,6 +236,7 @@ public class DatasetTableDao {
                 .table(table)
                 .name(rs.getString("name"))
                 .type(TableDataType.fromValue(rs.getString("type")))
-                .arrayOf(rs.getBoolean("array_of")));
+                .arrayOf(rs.getBoolean("array_of"))
+                .required(rs.getBoolean("required")));
   }
 }

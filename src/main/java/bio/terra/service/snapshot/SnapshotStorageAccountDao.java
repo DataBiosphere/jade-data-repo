@@ -2,9 +2,9 @@ package bio.terra.service.snapshot;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
+import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.exception.RetryQueryException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -51,7 +50,11 @@ public class SnapshotStorageAccountDao {
             .addValue("storage_account_resource_id", storageAccountResourceId);
 
     try {
-      jdbcTemplate.update(sqlCreateLink, params);
+      int update = jdbcTemplate.update(sqlCreateLink, params);
+
+      if (update == 0) {
+        throw new CorruptMetadataException("Could not link storage account to snapshot");
+      }
     } catch (DataAccessException dataAccessException) {
       if (retryQuery(dataAccessException)) {
         logger.error("snapshotStorageAccount link operation failed with retryable exception.");
@@ -73,18 +76,6 @@ public class SnapshotStorageAccountDao {
       return Optional.of(storageAccountResourceIds.get(0));
     } else {
       return Optional.empty();
-    }
-  }
-
-  private static class UuidMapper implements RowMapper<UUID> {
-    private String columnLabel;
-
-    UuidMapper(String columnLabel) {
-      this.columnLabel = columnLabel;
-    }
-
-    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
-      return rs.getObject(this.columnLabel, UUID.class);
     }
   }
 }

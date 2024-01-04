@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: drsalias
+      author: nm
+      changes:
+        - createTable:
+            tableName: drs_alias
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: alias_drs_object_id
+                  type: varchar(256)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tdr_drs_object_id
+                  type: varchar(256)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+              - column:
+                  name: created_by
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: flightid
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: drs_alias_object_id_idx
+            tableName: drs_alias
+            unique: true
+            columns:
+              - column:
+                  name: alias_drs_object_id

@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
@@ -10,17 +11,24 @@ import bio.terra.service.resourcemanagement.exception.BucketLockFailureException
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import com.google.cloud.Binding;
+import com.google.cloud.Policy;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
+import com.google.cloud.storage.BucketInfo.Autoclass;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.annotations.VisibleForTesting;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +38,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class GoogleBucketService {
   private static final Logger logger = LoggerFactory.getLogger(GoogleBucketService.class);
+
+  @VisibleForTesting
+  public static final String STORAGE_OBJECT_VIEWER_ROLE = "roles/storage.objectViewer";
+
+  public static final String STORAGE_LEGACY_BUCKET_WRITER_ROLE = "roles/storage.legacyBucketWriter";
 
   private final GoogleResourceDao resourceDao;
   private final GcsProjectFactory gcsProjectFactory;
@@ -124,6 +137,7 @@ public class GoogleBucketService {
    * @param bucketName name for a new or existing bucket
    * @param projectResource project in which the bucket should be retrieved or created
    * @param flightId flight making the request
+   * @param daysToLive an optional retention period for the bucket
    * @return a reference to the bucket as a POJO GoogleBucketResource
    * @throws CorruptMetadataException in CASE 5 and CASE 6
    * @throws BucketLockFailureException in CASE 2 and CASE 7, and sometimes case 9
@@ -132,7 +146,11 @@ public class GoogleBucketService {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      String flightId)
+      String flightId,
+      Duration daysToLive,
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount,
+      boolean autoclassEnabled)
       throws InterruptedException {
 
     boolean allowReuseExistingBuckets =
@@ -143,7 +161,6 @@ public class GoogleBucketService {
     GoogleBucketResource googleBucketResource =
         resourceDao.getBucket(bucketName, projectResource.getId());
     Bucket bucket = getCloudBucket(bucketName);
-
     // Test all of the cases
     if (bucket != null) {
       if (googleBucketResource != null) {
@@ -154,7 +171,7 @@ public class GoogleBucketService {
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
           // CASE 2: another flight is creating the bucket
-          throw bucketLockException(flightId);
+          throw bucketLockException(lockingFlightId);
         }
         // CASE 3: we have the flight locked, but we did all of the creating.
         return createFinish(bucket, flightId, googleBucketResource);
@@ -162,7 +179,15 @@ public class GoogleBucketService {
         // bucket exists, but metadata record does not exist.
         if (allowReuseExistingBuckets) {
           // CASE 4: go ahead and reuse the bucket and its location
-          return createMetadataRecord(bucketName, projectResource, region, flightId);
+          return createMetadataRecord(
+              bucketName,
+              projectResource,
+              region,
+              flightId,
+              daysToLive,
+              getReaderGroups,
+              dedicatedServiceAccount,
+              autoclassEnabled);
         } else {
           // CASE 5:
           throw new CorruptMetadataException(
@@ -180,13 +205,27 @@ public class GoogleBucketService {
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
           // CASE 7: another flight is creating the bucket
-          throw bucketLockException(flightId);
+          throw bucketLockException(lockingFlightId);
         }
         // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
-        return createCloudBucket(googleBucketResource, flightId);
+        return createCloudBucket(
+            googleBucketResource,
+            flightId,
+            daysToLive,
+            getReaderGroups,
+            dedicatedServiceAccount,
+            autoclassEnabled);
       } else {
         // CASE 9: no bucket and no record
-        return createMetadataRecord(bucketName, projectResource, region, flightId);
+        return createMetadataRecord(
+            bucketName,
+            projectResource,
+            region,
+            flightId,
+            daysToLive,
+            getReaderGroups,
+            dedicatedServiceAccount,
+            autoclassEnabled);
       }
     }
   }
@@ -200,15 +239,29 @@ public class GoogleBucketService {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      String flightId)
+      String flightId,
+      Duration daysToLive,
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount,
+      boolean autoclassEnabled)
       throws InterruptedException {
 
     // insert a new bucket_resource row and lock it
     GoogleBucketResource googleBucketResource =
-        resourceDao.createAndLockBucket(bucketName, projectResource, region, flightId);
+        resourceDao.createAndLockBucket(
+            bucketName, projectResource, region, flightId, autoclassEnabled);
     if (googleBucketResource == null) {
       // We tried and failed to get the lock. So we ended up in CASE 2 after all.
-      throw bucketLockException(flightId);
+      GoogleBucketResource lockingGoogleBucketResource =
+          resourceDao.getBucket(bucketName, projectResource.getId());
+      if (lockingGoogleBucketResource != null) {
+        throw bucketLockException(lockingGoogleBucketResource.getFlightId());
+      } else {
+        throw new CorruptMetadataException(
+            String.format(
+                "Could not create and lock bucket, but no locking row exists. FlightId: %s",
+                flightId));
+      }
     }
 
     // this fault is used by the ResourceLockTest
@@ -221,16 +274,33 @@ public class GoogleBucketService {
       logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    return createCloudBucket(googleBucketResource, flightId);
+    return createCloudBucket(
+        googleBucketResource,
+        flightId,
+        daysToLive,
+        getReaderGroups,
+        dedicatedServiceAccount,
+        autoclassEnabled);
   }
 
   // Step 2 of creating a new bucket
   private GoogleBucketResource createCloudBucket(
-      GoogleBucketResource bucketResource, String flightId) {
+      GoogleBucketResource bucketResource,
+      String flightId,
+      Duration daysToLive,
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount,
+      boolean enableAutoclass) {
     // If the bucket doesn't exist, create it
     Bucket bucket = getCloudBucket(bucketResource.getName());
     if (bucket == null) {
-      bucket = newCloudBucket(bucketResource);
+      bucket =
+          newCloudBucket(
+              bucketResource,
+              daysToLive,
+              getReaderGroups,
+              dedicatedServiceAccount,
+              enableAutoclass);
     }
     return createFinish(bucket, flightId, bucketResource);
   }
@@ -271,26 +341,95 @@ public class GoogleBucketService {
    * the bucket_resource table.
    *
    * @param bucketResource description of the bucket resource to be created
+   * @param daysToLive An optional amount of days to live for items in the bucket
+   * @param getReaderGroups A Callable to get reader groups that should be added to the bucket. This
+   *     is a Callable so that we don't make extraneous calls to SAM every time we get a bucket and
+   *     only call SAM when we actually create the bucket.
+   * @param dedicatedServiceAccount If not null, the dataset-specific service account associated
+   *     with the dataset that this bucket will be associated with
    * @return a reference to the bucket as a GCS Bucket object
    */
-  private Bucket newCloudBucket(GoogleBucketResource bucketResource) {
+  private Bucket newCloudBucket(
+      GoogleBucketResource bucketResource,
+      Duration daysToLive,
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount,
+      Boolean enableAutoclass) {
+    final List<String> readerGroups;
+    try {
+      if (getReaderGroups != null) {
+        readerGroups = getReaderGroups.call();
+      } else {
+        readerGroups = null;
+      }
+    } catch (Exception e) {
+      throw new IamUnavailableException("Could not get policy groups from SAM", e);
+    }
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
-    GoogleProjectResource projectResource = bucketResource.getProjectResource();
-    String googleProjectId = projectResource.getGoogleProjectId();
-    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
+    GoogleRegion region = bucketResource.getRegion();
+    List<BucketInfo.LifecycleRule> lifecycleRules = null;
+    if (daysToLive != null) {
+      int days = (int) daysToLive.toDays();
+      lifecycleRules =
+          List.of(
+              new BucketInfo.LifecycleRule(
+                  BucketInfo.LifecycleRule.LifecycleAction.newDeleteAction(),
+                  BucketInfo.LifecycleRule.LifecycleCondition.newBuilder().setAge(days).build()));
+    }
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
-            // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
-            .setStorageClass(StorageClass.REGIONAL)
-            .setLocation(bucketResource.getRegion().toString())
+            .setAutoclass(Autoclass.newBuilder().setEnabled(enableAutoclass).build())
+            .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)
+            .setLifecycleRules(lifecycleRules)
             .build();
+
+    GoogleProjectResource projectResource = bucketResource.getProjectResource();
+    String googleProjectId = projectResource.getGoogleProjectId();
+    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId, true);
+
     // the project will have been created before this point, so no need to fetch it
     logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
-    return gcsProject.getStorage().create(bucketInfo);
+    Storage storage = gcsProject.getStorage();
+    Bucket createdBucket = storage.create(bucketInfo);
+
+    grantBucketReaderIam(createdBucket, storage, readerGroups, dedicatedServiceAccount);
+
+    return createdBucket;
+  }
+
+  public void grantBucketReaderIam(
+      Bucket bucket, Storage storage, List<String> readerGroups, String dedicatedServiceAccount) {
+    String bucketName = bucket.getName();
+
+    // Not sure why it needs to be version 3, but that's what the Google documentation says.
+    // https://cloud.google.com/storage/docs/access-control/using-iam-permissions#code-samples
+    Policy originalPolicy =
+        storage.getIamPolicy(bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
+    List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
+
+    if (readerGroups != null) {
+      for (String policy : readerGroups) {
+        Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
+        newMemberBindingBuilder
+            .setRole(STORAGE_OBJECT_VIEWER_ROLE)
+            .setMembers(List.of(String.format("group:%s", policy)));
+        bindings.add(newMemberBindingBuilder.build());
+      }
+    }
+    if (dedicatedServiceAccount != null) {
+      Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
+      newMemberBindingBuilder
+          .setRole(STORAGE_LEGACY_BUCKET_WRITER_ROLE)
+          .setMembers(List.of(String.format("serviceAccount:%s", dedicatedServiceAccount)));
+      bindings.add(newMemberBindingBuilder.build());
+    }
+    Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
+    updatedPolicyBuilder.setBindings(bindings).setVersion(3);
+    storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
   }
 
   /**
@@ -300,7 +439,8 @@ public class GoogleBucketService {
    * @param bucketName name of the bucket to retrieve
    * @return a reference to the bucket as a GCS Bucket object, null if not found
    */
-  Bucket getCloudBucket(String bucketName) {
+  @VisibleForTesting
+  public Bucket getCloudBucket(String bucketName) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
     try {
       return storage.get(bucketName);

@@ -2,11 +2,13 @@ package bio.terra.service.resourcemanagement.google;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.not;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.BufferService;
@@ -33,6 +35,7 @@ public class ResourceServiceConnectedTest {
 
   @Autowired private GoogleResourceConfiguration resourceConfiguration;
   @Autowired private GoogleProjectService projectService;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BufferService bufferService;
@@ -51,7 +54,7 @@ public class ResourceServiceConnectedTest {
 
   @Test
   public void createAndDeleteProjectTest() throws Exception {
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(false);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
     String role = "roles/bigquery.jobUser";
@@ -67,15 +70,22 @@ public class ResourceServiceConnectedTest {
             profile,
             roleToStewardMap,
             GoogleRegion.DEFAULT_GOOGLE_REGION,
-            Map.of("test-name", "resource-service-connected-test"));
+            Map.of("test-name", "resource-service-connected-test"),
+            CollectionType.DATASET);
 
-    Project project = projectService.getProject(projectId);
+    Project project = resourceManagerService.getProject(projectId);
     assertThat("the project is active", project.getLifecycleState(), equalTo("ACTIVE"));
+    assertThat(
+        "the project has the correct label",
+        project.getLabels(),
+        hasEntry(equalTo("test-name"), equalTo("resource-service-connected-test")));
+    assertThat(
+        "the project has the correct name", project.getName(), equalTo("TDR Dataset Project"));
 
     // TODO check to make sure a steward can complete a job in another test
 
     projectService.deleteGoogleProject(projectResource.getId());
-    project = projectService.getProject(projectId);
+    project = resourceManagerService.getProject(projectId);
     assertThat(
         "the project is not active after delete",
         project.getLifecycleState(),

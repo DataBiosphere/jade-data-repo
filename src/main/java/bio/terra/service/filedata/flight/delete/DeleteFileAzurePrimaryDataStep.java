@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.delete;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
@@ -15,9 +16,12 @@ public class DeleteFileAzurePrimaryDataStep implements Step {
       LoggerFactory.getLogger(DeleteFileAzurePrimaryDataStep.class);
 
   private final AzureBlobStorePdao azureBlobStorePdao;
+  private final AuthenticatedUserRequest userRequest;
 
-  public DeleteFileAzurePrimaryDataStep(AzureBlobStorePdao azureBlobStorePdao) {
+  public DeleteFileAzurePrimaryDataStep(
+      AzureBlobStorePdao azureBlobStorePdao, AuthenticatedUserRequest userRequest) {
     this.azureBlobStorePdao = azureBlobStorePdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -25,7 +29,7 @@ public class DeleteFileAzurePrimaryDataStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
     if (fireStoreFile != null) {
-      azureBlobStorePdao.deleteFile(fireStoreFile);
+      azureBlobStorePdao.deleteFile(fireStoreFile, userRequest);
     }
     return StepResult.getStepResultSuccess();
   }

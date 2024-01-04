@@ -3,6 +3,10 @@ package bio.terra.common.configuration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -11,6 +15,10 @@ import org.springframework.stereotype.Component;
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "it")
 public class TestConfiguration {
+  private static Logger logger = LoggerFactory.getLogger(TestConfiguration.class);
+  private static final Pattern INT_SERVER_NUM_FINDER =
+      Pattern.compile("https://jade-(\\d+).datarepo-integration.broadinstitute.org");
+
   private String jadeApiUrl;
   private String jadePemFileName;
   private String jadeEmail;
@@ -21,6 +29,7 @@ public class TestConfiguration {
   private UUID targetTenantId;
   private UUID targetSubscriptionId;
   private String targetResourceGroupName;
+  private String targetManagedResourceGroupName;
   private String targetApplicationName;
   private String sourceStorageAccountName;
   private String ingestRequestContainer;
@@ -144,6 +153,14 @@ public class TestConfiguration {
     this.targetResourceGroupName = targetResourceGroupName;
   }
 
+  public String getTargetManagedResourceGroupName() {
+    return targetManagedResourceGroupName;
+  }
+
+  public void setTargetManagedResourceGroupName(String targetManagedResourceGroupName) {
+    this.targetManagedResourceGroupName = targetManagedResourceGroupName;
+  }
+
   public String getTargetApplicationName() {
     return targetApplicationName;
   }
@@ -166,5 +183,18 @@ public class TestConfiguration {
 
   public void setIngestRequestContainer(String ingestRequestContainer) {
     this.ingestRequestContainer = ingestRequestContainer;
+  }
+
+  /**
+   * Returns the server number that the test is running on or null if the URL isn't in the expected
+   * format
+   */
+  public Integer getIntegrationServerNumber() {
+    Matcher matcher = INT_SERVER_NUM_FINDER.matcher(getJadeApiUrl());
+    if (matcher.find()) {
+      return Integer.getInteger(matcher.group());
+    }
+    logger.warn("Can't get integration server number from url {}", getJadeApiUrl());
+    return null;
   }
 }

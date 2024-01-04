@@ -343,7 +343,7 @@ saved in the resources/serviceaccounts directory. Below are the required fields:
 
 The service account email is stored in the JSON-formatted file.
 
-The JSON key file for the jade-k8-sa service account match the paths used by the render-configs script in the main
+The JSON key file for the jade-k8-sa service account match the paths used by the `render-configs.sh` script in the main
 datarepo project. Jade stores these files in Vault and uses the script to fetch them locally for each test run.
 
 #### Add a new test suite

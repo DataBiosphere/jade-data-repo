@@ -1,8 +1,14 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.app.model.AzureRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
+import bio.terra.model.CloudPlatform;
+import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -18,7 +24,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class Snapshot implements FSContainerInterface {
+public class Snapshot implements FSContainerInterface, LogPrintable {
   private UUID id;
   private String name;
   private String description;
@@ -30,6 +36,20 @@ public class Snapshot implements FSContainerInterface {
   private GoogleProjectResource projectResource;
   private AzureStorageAccountResource storageAccountResource;
   private List<Relationship> relationships = Collections.emptyList();
+  private SnapshotRequestContentsModel creationInformation;
+  private String consentCode;
+  private Object properties;
+  private UUID duosFirecloudGroupId;
+  private DuosFirecloudGroupModel duosFirecloudGroup;
+  private boolean globalFileIds;
+  private String compactIdPrefix;
+  private List<String> tags;
+  private ResourceLocks resourceLocks;
+
+  @Override
+  public CollectionType getCollectionType() {
+    return CollectionType.SNAPSHOT;
+  }
 
   public UUID getId() {
     return id;
@@ -40,6 +60,7 @@ public class Snapshot implements FSContainerInterface {
     return this;
   }
 
+  @Override
   public String getName() {
     return name;
   }
@@ -76,6 +97,10 @@ public class Snapshot implements FSContainerInterface {
     return this;
   }
 
+  public Optional<SnapshotTable> getTableByName(String tableName) {
+    return this.getTables().stream().filter(t -> t.getName().equals(tableName)).findFirst();
+  }
+
   public List<SnapshotSource> getSnapshotSources() {
     return snapshotSources;
   }
@@ -92,6 +117,10 @@ public class Snapshot implements FSContainerInterface {
       throw new CorruptMetadataException("Snapshot sources should never be empty!");
     }
     return snapshotSources.get(0);
+  }
+
+  public Dataset getSourceDataset() {
+    return getFirstSnapshotSource().getDataset();
   }
 
   public Optional<SnapshotTable> getTableById(UUID id) {
@@ -134,8 +163,44 @@ public class Snapshot implements FSContainerInterface {
     return storageAccountResource;
   }
 
-  public Snapshot setStorageAccountResource(AzureStorageAccountResource storageAccountResource) {
+  public Snapshot storageAccountResource(AzureStorageAccountResource storageAccountResource) {
     this.storageAccountResource = storageAccountResource;
+    return this;
+  }
+
+  public String getConsentCode() {
+    return consentCode;
+  }
+
+  public Snapshot consentCode(String consentCode) {
+    this.consentCode = consentCode;
+    return this;
+  }
+
+  public Object getProperties() {
+    return properties;
+  }
+
+  public Snapshot properties(Object properties) {
+    this.properties = properties;
+    return this;
+  }
+
+  public UUID getDuosFirecloudGroupId() {
+    return duosFirecloudGroupId;
+  }
+
+  public Snapshot duosFirecloudGroupId(UUID duosFirecloudGroupId) {
+    this.duosFirecloudGroupId = duosFirecloudGroupId;
+    return this;
+  }
+
+  public DuosFirecloudGroupModel getDuosFirecloudGroup() {
+    return duosFirecloudGroup;
+  }
+
+  public Snapshot duosFirecloudGroup(DuosFirecloudGroupModel duosFirecloudGroup) {
+    this.duosFirecloudGroup = duosFirecloudGroup;
     return this;
   }
 
@@ -161,12 +226,80 @@ public class Snapshot implements FSContainerInterface {
 
   @Override
   public FireStoreProject firestoreConnection() {
-    String datasetProjectId =
-        getFirstSnapshotSource().getDataset().getProjectResource().getGoogleProjectId();
+    String datasetProjectId = getSourceDataset().getProjectResource().getGoogleProjectId();
     return FireStoreProject.get(datasetProjectId);
   }
 
-  public AzureRegion getStorageAccountRegion() {
-    return getFirstSnapshotSource().getDataset().getStorageAccountRegion();
+  public boolean isSecureMonitoringEnabled() {
+    return getSourceDataset().isSecureMonitoringEnabled();
+  }
+
+  public SnapshotRequestContentsModel getCreationInformation() {
+    return creationInformation;
+  }
+
+  public Snapshot creationInformation(SnapshotRequestContentsModel model) {
+    this.creationInformation = model;
+    return this;
+  }
+
+  public boolean isSelfHosted() {
+    return getSourceDataset().isSelfHosted();
+  }
+
+  public boolean hasGlobalFileIds() {
+    return globalFileIds;
+  }
+
+  public Snapshot globalFileIds(boolean globalFileIds) {
+    this.globalFileIds = globalFileIds;
+    return this;
+  }
+
+  public String getCompactIdPrefix() {
+    return compactIdPrefix;
+  }
+
+  public Snapshot compactIdPrefix(String compactIdPrefix) {
+    this.compactIdPrefix = compactIdPrefix;
+    return this;
+  }
+
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public Snapshot tags(List<String> tags) {
+    this.tags = tags;
+    return this;
+  }
+
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
+  }
+
+  public Snapshot resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
+    return this;
+  }
+
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return getSourceDataset().getCloudPlatform();
+  }
+
+  @Override
+  public String toLogString() {
+    return String.format("%s (%s)", this.getName(), this.getId());
+  }
+
+  @Override
+  public boolean isSnapshot() {
+    return true;
+  }
+
+  @Override
+  public boolean isDataset() {
+    return false;
   }
 }

@@ -12,6 +12,8 @@ public interface Table {
 
   Long getRowCount();
 
+  List<Column> getPrimaryKey();
+
   default Optional<Column> getColumnById(UUID id) {
     for (Column tryColumn : getColumns()) {
       if (tryColumn.getId().equals(id)) {
@@ -27,4 +29,13 @@ public interface Table {
     getColumns().forEach(column -> columnMap.put(column.getName(), column));
     return Collections.unmodifiableMap(columnMap);
   }
+
+  /**
+   * @return Columns formatted for use with Azure Synapse
+   */
+  default List<SynapseColumn> getSynapseColumns() {
+    return getColumns().stream().map(Column::toSynapseColumn).toList();
+  }
+
+  Optional<Column> getColumnByName(String columnName);
 }

@@ -1,0 +1,17 @@
+{
+  "name": "AssetPersonTable",
+  "tables": [
+    {
+      "name": "person",
+      "columns": [
+        "person_id",
+        "gender_concept_id"
+      ]
+    }
+  ],
+  "rootTable": "person",
+  "rootColumn": "person_id",
+  "follow": [
+    "fpk_visit_person"
+  ]
+}

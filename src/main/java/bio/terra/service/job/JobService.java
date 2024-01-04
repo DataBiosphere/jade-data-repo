@@ -1,44 +1,56 @@
 package bio.terra.service.job;
 
+import static bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression.makeAnd;
+import static bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression.makeOr;
+import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateFlightClass;
+import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateInput;
+import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateSubmitTime;
+
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.SqlSortDirection;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
+import bio.terra.common.stairway.StairwayComponent;
 import bio.terra.model.JobModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.job.exception.InternalStairwayException;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.common.CommonMapKeys;
+import bio.terra.service.filedata.flight.ingest.FileIngestWorkerFlight;
 import bio.terra.service.job.exception.InvalidResultStateException;
-import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
-import bio.terra.service.job.exception.JobServiceStartupException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.upgrade.Migrate;
-import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightFilter;
+import bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression;
+import bio.terra.stairway.FlightFilter.FlightFilterPredicateInterface;
 import bio.terra.stairway.FlightFilterOp;
+import bio.terra.stairway.FlightFilterSortDirection;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
-import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
+import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,24 +65,26 @@ public class JobService {
   private static final Logger logger = LoggerFactory.getLogger(JobService.class);
   private static final int MIN_SHUTDOWN_TIMEOUT = 14;
   private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
-  private static final String API_POD_FILTER = "datarepo-api";
 
-  private final Stairway stairway;
   private final IamService samService;
   private final ApplicationConfiguration appConfig;
+  private final StairwayComponent stairwayComponent;
   private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
-  private final MigrateConfiguration migrateConfiguration;
   private final KubeService kubeService;
   private final AtomicBoolean isRunning;
   private final Migrate migrate;
+  private final ObjectMapper objectMapper;
+  private final PerformanceLogger performanceLogger;
+  private final ApplicationContext applicationContext;
+  private Stairway stairway;
 
   @Autowired
   public JobService(
       IamService samService,
       ApplicationConfiguration appConfig,
       StairwayJdbcConfiguration stairwayJdbcConfiguration,
-      MigrateConfiguration migrateConfiguration,
-      GoogleResourceConfiguration googleResourceConfiguration,
+      StairwayComponent stairwayComponent,
+      KubeService kubeService,
       ApplicationContext applicationContext,
       Migrate migrate,
       ObjectMapper objectMapper,
@@ -78,37 +92,14 @@ public class JobService {
       throws StairwayExecutionException {
     this.samService = samService;
     this.appConfig = appConfig;
-
+    this.stairwayComponent = stairwayComponent;
     this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
-    this.migrateConfiguration = migrateConfiguration;
     this.isRunning = new AtomicBoolean(true);
     this.migrate = migrate;
-
-    this.kubeService =
-        new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
-
-    String projectId = googleResourceConfiguration.getProjectId();
-    String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
-
-    logger.info(
-        "Creating Stairway: maxStairwayThreads: "
-            + appConfig.getMaxStairwayThreads()
-            + " in project: "
-            + projectId);
-    ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
-    stairway =
-        Stairway.newBuilder()
-            // for debugging stairway flights, set this true and the flight logs will be retained
-            .keepFlightLog(true)
-            .maxParallelFlights(appConfig.getMaxStairwayThreads())
-            .exceptionSerializer(serializer)
-            .applicationContext(applicationContext)
-            .stairwayName(appConfig.getPodName())
-            .stairwayHook(new StairwayLoggingHooks(performanceLogger))
-            .stairwayClusterName(stairwayClusterName)
-            .workQueueProjectId(projectId)
-            .enableWorkQueue(appConfig.isInKubernetes())
-            .build();
+    this.applicationContext = applicationContext;
+    this.objectMapper = objectMapper;
+    this.performanceLogger = performanceLogger;
+    this.kubeService = kubeService;
   }
 
   /**
@@ -116,57 +107,20 @@ public class JobService {
    * and recovering any jobs; i.e., Stairway flights. It lives in this class so that JobService
    * encapsulates all Stairway interaction.
    */
+  @PostConstruct
   public void initialize() {
-    try {
-      List<String> recordedStairways;
-      migrate.migrateDatabase();
+    migrate.migrateDatabase();
 
-      // Initialize stairway - only do the stairway migration if we did the data repo migration
-      recordedStairways =
-          stairway.initialize(
-              stairwayJdbcConfiguration.getDataSource(),
-              migrateConfiguration.getDropAllOnStart(),
-              migrateConfiguration.getUpdateAllOnStart());
-
-      // Order is important here. There are two concerns we need to handle:
-      // 1. We need to avoid a window where a running pod could get onto the Stairway list, but not
-      // be
-      //    on the pod list. That is why we get the recorded list from Stairway *before* we read the
-      // Kubernetes
-      //    pod list.
-      // 2. We want to clean up pods that fail, so we start the kubePodListener as early as possible
-      // so we
-      //    detect pods that get deleted. The Stairway recovery method called by kubePodListener
-      // works once
-      //    Stairway initialization is done, so it is safe to start the listener before we have
-      // called
-      //    Stairway recoveryAndStart
-      kubeService.startPodListener(stairway);
-
-      // Lookup all of the stairway instances we know about
-      Set<String> existingStairways = kubeService.getPodSet();
-      List<String> obsoleteStairways = new LinkedList<>();
-
-      // Any instances that stairway knows about, but we cannot see are obsolete.
-      for (String recordedStairway : recordedStairways) {
-        if (!existingStairways.contains(recordedStairway)) {
-          obsoleteStairways.add(recordedStairway);
-        }
-      }
-
-      // Add our own pod name to the list of obsolete stairways. Sometimes Kubernetes will
-      // restart the container without redeploying the pod. In that case we must ask
-      // Stairway to recover the flights we were working on before being restarted.
-      obsoleteStairways.add(kubeService.getPodName());
-
-      // Recover and start stairway - step 3 of the stairway startup sequence
-      stairway.recoverAndStart(obsoleteStairways);
-
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException("Stairway initialization failed", stairwayEx);
-    } catch (InterruptedException ex) {
-      throw new JobServiceStartupException("Stairway startup process interrupted", ex);
-    }
+    // Initialize stairway - only do the stairway migration if we did the data repo migration
+    ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
+    stairwayComponent.initialize(
+        stairwayComponent
+            .newStairwayOptionsBuilder()
+            .dataSource(stairwayJdbcConfiguration.getDataSource())
+            .context(applicationContext)
+            .addHook(new StairwayLoggingHooks(performanceLogger))
+            .exceptionSerializer(serializer));
+    stairway = stairwayComponent.get();
   }
 
   /** Stop accepting jobs and shutdown stairway */
@@ -250,9 +204,8 @@ public class JobService {
       String jobId = createJobId();
       try {
         stairway.submit(jobId, flightClass, parameterMap);
-      } catch (StairwayException stairwayEx) {
-        throw new InternalStairwayException(stairwayEx);
       } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
         throw new JobServiceShutdownException("Job service interrupted", ex);
       }
       return jobId;
@@ -273,12 +226,26 @@ public class JobService {
     return retrieveJobResult(jobId, resultClass, userReq).getResult();
   }
 
-  void waitForJob(String jobId) {
+  /**
+   * Wait for a flight to complete, polling Stairway at its default interval.
+   *
+   * @param jobId the flight to wait for
+   */
+  private void waitForJob(String jobId) {
+    waitForJob(jobId, null);
+  }
+
+  /**
+   * Wait for a flight to complete, polling Stairway at the specified interval.
+   *
+   * @param jobId the flight to wait for
+   * @param pollSeconds sleep time for each poll cycle
+   */
+  void waitForJob(String jobId, Integer pollSeconds) {
     try {
-      stairway.waitForFlight(jobId, null, null);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
+      stairway.waitForFlight(jobId, pollSeconds, null);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -287,40 +254,14 @@ public class JobService {
   private String createJobId() {
     // in the future, if we have multiple stairways, we may need to maintain a connection from job
     // id to flight id
-    return stairway.createFlightId().toString();
-  }
-
-  public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {
-    try {
-      if (userReq != null) {
-        // currently, this check will be true for stewards only
-        boolean canDeleteAnyJob =
-            samService.isAuthorized(
-                userReq,
-                IamResourceType.DATAREPO,
-                appConfig.getResourceId(),
-                IamAction.DELETE_JOBS);
-
-        // if the user has access to all jobs, no need to check for this one individually
-        // otherwise, check that the user has access to this job before deleting
-        if (!canDeleteAnyJob) {
-          verifyUserAccess(jobId, userReq); // jobId=flightId
-        }
-      }
-      stairway.deleteFlight(jobId, false);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
-    } catch (InterruptedException ex) {
-      throw new JobServiceShutdownException("Job service interrupted", ex);
-    }
+    return stairway.createFlightId();
   }
 
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
     FlightMap inputParameters = flightState.getInputParameters();
     String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
-    FlightStatus flightStatus = flightState.getFlightStatus();
     String submittedDate = flightState.getSubmitted().toString();
-    JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
+    JobModel.JobStatusEnum jobStatus = getJobStatus(flightState);
 
     String completedDate = null;
     HttpStatus statusCode = HttpStatus.ACCEPTED;
@@ -337,60 +278,121 @@ public class JobService {
       completedDate = flightState.getCompleted().get().toString();
     }
 
-    JobModel jobModel =
-        new JobModel()
-            .id(flightState.getFlightId())
-            .description(description)
-            .jobStatus(jobStatus)
-            .statusCode(statusCode.value())
-            .submitted(submittedDate)
-            .completed(completedDate);
-
-    return jobModel;
+    return new JobModel()
+        .id(flightState.getFlightId())
+        .className(flightState.getClassName())
+        .description(description)
+        .jobStatus(jobStatus)
+        .statusCode(statusCode.value())
+        .submitted(submittedDate)
+        .completed(completedDate);
   }
 
-  private JobModel.JobStatusEnum getJobStatus(FlightStatus flightStatus) {
+  private JobModel.JobStatusEnum getJobStatus(FlightState flightState) {
+    FlightStatus flightStatus = flightState.getFlightStatus();
     switch (flightStatus) {
       case ERROR:
-        return JobModel.JobStatusEnum.FAILED;
       case FATAL:
         return JobModel.JobStatusEnum.FAILED;
       case RUNNING:
         return JobModel.JobStatusEnum.RUNNING;
       case SUCCESS:
+        if (getCompletionToFailureException(flightState).isPresent()) {
+          return JobModel.JobStatusEnum.FAILED;
+        }
         return JobModel.JobStatusEnum.SUCCEEDED;
     }
     return JobModel.JobStatusEnum.FAILED;
   }
 
-  public List<JobModel> enumerateJobs(int offset, int limit, AuthenticatedUserRequest userReq) {
-
-    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
+  public List<JobModel> enumerateJobs(
+      int offset,
+      int limit,
+      AuthenticatedUserRequest userReq,
+      SqlSortDirection direction,
+      String className) {
 
     // if the user has access to all jobs, then fetch everything
     // otherwise, filter the jobs on the user
-    List<FlightState> flightStateList;
+    FlightFilter filter = new FlightFilter(createFlightFilter(userReq, className));
+    // Set the order to use to return values
+    switch (direction) {
+      case ASC -> filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
+      case DESC -> filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
+    }
+
     try {
-      FlightFilter filter = new FlightFilter();
+      return stairway.getFlights(offset, limit, filter).stream()
+          .map(this::mapFlightStateToJobModel)
+          .toList();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new JobServiceShutdownException("Job service interrupted", e);
+    }
+  }
 
-      if (!canListAnyJob) {
-        filter.addFilterInputParameter(
-            JobMapKeys.SUBJECT_ID.getKeyName(), FlightFilterOp.EQUAL, userReq.getSubjectId());
-      }
-
-      flightStateList = stairway.getFlights(offset, limit, filter);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
-    } catch (InterruptedException ex) {
-      throw new JobServiceShutdownException("Job service interrupted", ex);
+  private FlightBooleanOperationExpression createFlightFilter(
+      AuthenticatedUserRequest userReq, String className) {
+    List<FlightFilterPredicateInterface> topLevelBooleans = new ArrayList<>();
+    // Exclude FileIngestWorkerFlight subflights since they pollute the jobs page.  We may
+    // eventually add a boolean to re-add or display the subflights as children.
+    // Note: do not add this filter if the user is explicitly requesting FileIngestWorkerFlight's
+    if (!StringUtils.isEmpty(className)) {
+      topLevelBooleans.add(makePredicateFlightClass(FlightFilterOp.EQUAL, className));
+    }
+    if (StringUtils.isEmpty(className)
+        || !StringUtils.isEmpty(className)
+            && !className.equals(FileIngestWorkerFlight.class.getName())) {
+      topLevelBooleans.add(
+          makePredicateFlightClass(FlightFilterOp.NOT_EQUAL, FileIngestWorkerFlight.class));
     }
 
-    List<JobModel> jobModelList = new ArrayList<>();
-    for (FlightState flightState : flightStateList) {
-      JobModel jobModel = mapFlightStateToJobModel(flightState);
-      jobModelList.add(jobModel);
+    // Only return recent flights. This is a performance enhancement since it causes the query to
+    // NOT do a full table scan.
+    // TODO<DR-3379>: make an option in the API. Not tackled yet since I'm not sure of the value
+    topLevelBooleans.add(
+        makePredicateSubmitTime(
+            FlightFilterOp.GREATER_THAN,
+            Instant.now().minus(Duration.ofDays(appConfig.getMaxNumberOfDaysToShowJobs()))));
+
+    // Make sure that only flights a user has access to are returned if the user is not an admin
+    if (!checkUserCanListAnyJob(userReq)) {
+      topLevelBooleans.add(
+          makeOr(
+              Stream.of(
+                      // Always allow the user to see their own flights
+                      makePredicateInput(
+                          JobMapKeys.SUBJECT_ID.getKeyName(),
+                          FlightFilterOp.EQUAL,
+                          userReq.getSubjectId()),
+                      // The user can view flights associated with profiles they have access to
+                      makeResourceTypeFilter(IamResourceType.SPEND_PROFILE, userReq),
+                      // The user can view flights associated with datasets they have access to
+                      makeResourceTypeFilter(IamResourceType.DATASET, userReq),
+                      // The user can view flights associated with snapshots they have access to
+                      makeResourceTypeFilter(IamResourceType.DATASNAPSHOT, userReq))
+                  // Remove nulls (e.g. if the user doesn't have access to any profiles or datasets)
+                  .filter(Objects::nonNull)
+                  .toArray(FlightFilterPredicateInterface[]::new)));
     }
-    return jobModelList;
+
+    return makeAnd(topLevelBooleans.toArray(new FlightFilterPredicateInterface[0]));
+  }
+
+  private FlightBooleanOperationExpression makeResourceTypeFilter(
+      IamResourceType resourceType, AuthenticatedUserRequest userReq) {
+    List<String> authorizedResources =
+        samService.listAuthorizedResources(userReq, resourceType).keySet().stream()
+            .map(UUID::toString)
+            .toList();
+    if (authorizedResources.isEmpty()) {
+      return null;
+    }
+    return makeAnd(
+        makePredicateInput(
+            JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), FlightFilterOp.EQUAL, resourceType),
+        makePredicateInput(
+            JobMapKeys.IAM_RESOURCE_ID.getKeyName(), FlightFilterOp.IN, authorizedResources));
   }
 
   public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
@@ -404,9 +406,22 @@ public class JobService {
       }
       FlightState flightState = stairway.getFlightState(jobId);
       return mapFlightStateToJobModel(flightState);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new JobServiceShutdownException("Job service interrupted", ex);
+    }
+  }
+
+  /*
+   * Check the status of a job
+   * We are NOT performing auth checks here. Expecting to have done this in the controller layer.
+   */
+  public FlightStatus unauthRetrieveJobState(String jobId) {
+    try {
+      FlightState flightState = stairway.getFlightState(jobId);
+      return flightState.getFlightStatus();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -415,7 +430,7 @@ public class JobService {
    * There are four cases to handle here:
    *
    * <ol>
-   *   <li>Flight is still running. Throw an JobNotComplete exception
+   *   <li>Flight is still running. Return a 202 (Accepted) response
    *   <li>Successful flight: extract the resultMap RESPONSE as the target class. If a
    *       statusContainer is present, we try to retrieve the STATUS_CODE from the resultMap and
    *       store it in the container. That allows flight steps used in async REST API endpoints to
@@ -445,9 +460,8 @@ public class JobService {
         verifyUserAccess(jobId, userReq); // jobId=flightId
       }
       return retrieveJobResultWorker(jobId, resultClass);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -466,25 +480,31 @@ public class JobService {
       throws StairwayException, InterruptedException {
 
     FlightState flightState = stairway.getFlightState(jobId);
-    FlightMap resultMap = flightState.getResultMap().orElse(null);
-    if (resultMap == null) {
-      throw new InvalidResultStateException("No result map returned from flight");
-    }
 
-    switch (flightState.getFlightStatus()) {
-      case FATAL:
-      case ERROR:
+    JobModel.JobStatusEnum jobStatus = getJobStatus(flightState);
+
+    switch (jobStatus) {
+      case FAILED:
+        final Exception exceptionToThrow;
+
         if (flightState.getException().isPresent()) {
-          Exception exception = flightState.getException().get();
-          if (exception instanceof RuntimeException) {
-            throw (RuntimeException) exception;
-          } else {
-            throw new JobResponseException("wrap non-runtime exception", exception);
-          }
+          exceptionToThrow = flightState.getException().get();
+        } else if (getCompletionToFailureException(flightState).isPresent()) {
+          exceptionToThrow = getCompletionToFailureException(flightState).get();
+        } else {
+          exceptionToThrow =
+              new InvalidResultStateException("Failed operation with no exception reported");
         }
-        throw new InvalidResultStateException("Failed operation with no exception reported");
-
-      case SUCCESS:
+        if (exceptionToThrow instanceof RuntimeException) {
+          throw (RuntimeException) exceptionToThrow;
+        } else {
+          throw new JobResponseException("wrap non-runtime exception", exceptionToThrow);
+        }
+      case SUCCEEDED:
+        FlightMap resultMap = flightState.getResultMap().orElse(null);
+        if (resultMap == null) {
+          throw new InvalidResultStateException("No result map returned from flight");
+        }
         HttpStatus statusCode =
             resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
         if (statusCode == null) {
@@ -495,9 +515,7 @@ public class JobService {
             .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
 
       case RUNNING:
-        throw new JobNotCompleteException(
-            "Attempt to retrieve job result before job is complete; job id: "
-                + flightState.getFlightId());
+        return new JobResultWithStatus<T>().statusCode(HttpStatus.ACCEPTED);
 
       default:
         throw new InvalidResultStateException("Impossible case reached");
@@ -533,15 +551,33 @@ public class JobService {
       FlightMap inputParameters = flightState.getInputParameters();
       String flightSubjectId =
           inputParameters.get(JobMapKeys.SUBJECT_ID.getKeyName(), String.class);
+
       if (!StringUtils.equals(flightSubjectId, userReq.getSubjectId())) {
-        throw new JobUnauthorizedException("Unauthorized");
+        String resourceId =
+            inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+        IamResourceType resourceType =
+            inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+        IamAction iamAction =
+            inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+        if (resourceId != null
+            && resourceType != null
+            && iamAction != null
+            && !samService.isAuthorized(userReq, resourceType, resourceId, iamAction)) {
+          throw new JobUnauthorizedException("Unauthorized");
+        }
       }
-    } catch (DatabaseOperationException ex) {
-      throw new InternalStairwayException("Stairway exception looking up the job", ex);
     } catch (FlightNotFoundException ex) {
       throw new JobNotFoundException("Job not found", ex);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
+  }
+
+  private Optional<Exception> getCompletionToFailureException(FlightState flightState) {
+    return flightState
+        .getResultMap()
+        .filter(rm -> rm.containsKey(CommonMapKeys.COMPLETION_TO_FAILURE_EXCEPTION))
+        .map(rm -> rm.get(CommonMapKeys.COMPLETION_TO_FAILURE_EXCEPTION, Exception.class));
   }
 }

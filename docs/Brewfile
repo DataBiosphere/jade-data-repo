@@ -3,6 +3,7 @@ brew "helm"
 brew "helmfile"
 brew "jq"
 brew "vault"
+brew "skaffold"
 cask "docker"
 cask "google-cloud-sdk"
 cask "intellij-idea"        # comment this line and uncomment the next line

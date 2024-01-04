@@ -115,7 +115,9 @@ public class AzureApplicationDeploymentService {
     logger.info("Looking up application");
     String applicationResourceId =
         MetadataDataAccessUtils.getApplicationDeploymentId(billingProfile);
-    return client.genericResources().getById(applicationResourceId);
+    return client
+        .genericResources()
+        .getById(applicationResourceId, resourceConfiguration.apiVersion());
   }
 
   /**

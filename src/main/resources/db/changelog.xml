@@ -10,6 +10,9 @@
 
     <property name="identifier_type" value="varchar(63)"/>
     <property name="description_type" value="varchar(2047)"/>
+    <property name="long_description_type" value="text" dbms="postgresql"/>
+    <property name="long_description_type" value="clob" dbms="oracle"/>
+    <property name="long_description_type" value="varchar(max)" dbms="mssql"/>
     <property name="dataset_snapshot_identifier_type" value="varchar(511)"/>
 
     <include file="changesets/20181203_datasettable.yaml" relativeToChangelogFile="true"/>
@@ -44,4 +47,34 @@
     <include file="changesets/20210616_azurestorage.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210902_snapshotmetadata.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20211007_snapshot_storage_account.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20211015_allownullbillingaccountandprojectresourceid.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20211112_rowmetadatatable.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20211206_datasetsecurityattributes.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20211209_datasetrequireslogging.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220112_addsnapshotcreatemode.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220202_adddatasetandsnapshottablecolumnorder.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220217_addphsidandconsentcodecolumns.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220324_addsnapshottablepkfield.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220325_selfhosteddatasets.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220411_requiredcolumns.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220511_dropsnapshotmetadata.yml" relativeToChangelogFile="true" />
+    <include file="changesets/20220526_datasetproperties.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220615_snapshotproperties.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220617_addprojectsa.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/2022104_description_to_text.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221019_journal.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221014_duosfirecloudgroup.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221020_duosfirecloudgroupprimarykey.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221024_snapshotduosfirecloudgroupid.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221104_predictablefileidsoption.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221104_v2drsids.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230208_gcpautoclassbucket.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230307_shedlock.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230323_compactdrsids.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230307_sharestorageaccounts.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230314_datasettags.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230314_snapshottags.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230519_drsalias.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230906_snapshotbuildersettings.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20231129_snapshotrequests.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

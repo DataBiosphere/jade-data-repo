@@ -1,12 +1,18 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import java.util.Objects;
+import java.util.Set;
 import javax.ws.rs.NotSupportedException;
 
 public class SynapseColumn extends Column {
+  private static final Set<TableDataType> FILE_TYPES =
+      Set.of(TableDataType.FILEREF, TableDataType.DIRREF);
   private String synapseDataType;
   private boolean requiresCollate;
   private boolean requiresJSONCast;
+
+  private boolean requiresTypeCast;
 
   public SynapseColumn() {}
 
@@ -14,6 +20,7 @@ public class SynapseColumn extends Column {
     this.synapseDataType = fromColumn.synapseDataType;
     this.requiresCollate = fromColumn.requiresCollate;
     this.requiresJSONCast = fromColumn.requiresJSONCast;
+    this.requiresTypeCast = fromColumn.requiresTypeCast;
   }
 
   public String getSynapseDataType() {
@@ -22,6 +29,15 @@ public class SynapseColumn extends Column {
 
   public SynapseColumn synapseDataType(String synapseDataType) {
     this.synapseDataType = synapseDataType;
+    return this;
+  }
+
+  public boolean getRequiresTypeCast() {
+    return requiresTypeCast;
+  }
+
+  public SynapseColumn requiresTypeCast(boolean requiresTypeCast) {
+    this.requiresTypeCast = requiresTypeCast;
     return this;
   }
 
@@ -43,45 +59,44 @@ public class SynapseColumn extends Column {
     return this;
   }
 
-  static String translateDataType(TableDataType datatype, boolean isArrayOf) {
+  public boolean getIsFileType() {
+    return FILE_TYPES.contains(getType());
+  }
+
+  public static String translateDataType(TableDataType datatype, boolean isArrayOf) {
     if (isArrayOf) {
       return "varchar(8000)";
     }
-    switch (datatype) {
-      case BOOLEAN:
-        return "bit";
-      case BYTES:
-        return "varbinary";
-      case DATE:
-        return "date";
-      case DATETIME:
-      case TIMESTAMP:
-        return "datetime2";
-      case DIRREF:
-      case FILEREF:
-        return "varchar(36)";
-      case FLOAT:
-        return "float";
-      case FLOAT64:
-        return "real";
-      case INTEGER:
-        return "int";
-      case INT64:
-        return "bigint";
-      case NUMERIC:
-        return "numeric";
-      case TEXT:
-      case STRING:
-        return "varchar(8000)";
-      case TIME:
-        return "time";
+    return switch (datatype) {
+      case BOOLEAN -> "bit";
+      case BYTES -> "varbinary";
+      case DATE -> "date";
+      case DATETIME, TIMESTAMP -> "datetime2";
+      case FLOAT, FLOAT64 -> "float";
+      case INTEGER -> "numeric(10, 0)";
+      case INT64 -> "numeric(19, 0)";
+      case NUMERIC -> "real";
+        // DIRREF and FILEREF store a UUID on ingest
+        // But, are translated to DRS URI on Snapshot Creation
+      case DIRREF, FILEREF, TEXT, STRING -> "varchar(8000)";
+      case TIME -> "time";
         // Data of type RECORD contains table-like that can be nested or repeated
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
-      case RECORD:
-        throw new NotSupportedException("RECORD type is not yet supported for synapse");
-      default:
-        throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+      case RECORD -> throw new NotSupportedException(
+          "RECORD type is not yet supported for synapse");
+    };
+  }
+
+  // Cast needed for backwards compatibility after Synapse type change
+  // Sept 2023 int moved to numeric(10,0) and int64 moved to numeric(19,0)
+  static boolean checkForCastTypeArgRequirement(TableDataType dataType, boolean isArrayOf) {
+    if (isArrayOf) {
+      return false;
     }
+    return switch (dataType) {
+      case INTEGER, INT64 -> true;
+      default -> false;
+    };
   }
 
   static boolean checkForCollateArgRequirement(TableDataType dataType, boolean isArrayOf) {
@@ -112,5 +127,21 @@ public class SynapseColumn extends Column {
       default:
         return true;
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    SynapseColumn that = (SynapseColumn) o;
+    return requiresCollate == that.requiresCollate
+        && requiresJSONCast == that.requiresJSONCast
+        && synapseDataType.equals(that.synapseDataType);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), synapseDataType, requiresCollate, requiresJSONCast);
   }
 }

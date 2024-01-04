@@ -5,6 +5,7 @@ import common.utils.FileUtils;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,11 @@ public class TestConfiguration implements SpecificationInterface {
   public String description = "";
   public String serverSpecificationFile;
   public String billingAccount;
+  public UUID tenantId;
+  public UUID subscriptionId;
+  public String resourceGroupName;
+  public String applicationDeploymentName;
+  public String cloudPlatform;
   public boolean isFunctional = false;
   public List<String> testUserFiles;
 

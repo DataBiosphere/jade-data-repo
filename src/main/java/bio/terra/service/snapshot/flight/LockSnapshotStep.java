@@ -7,34 +7,36 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LockSnapshotStep implements Step {
 
-  private SnapshotDao snapshotDao;
-  private UUID snapshotId;
-  private boolean suppressNotFoundException; // default to false
+  private final SnapshotDao snapshotDao;
+  private final UUID snapshotId;
+  private final boolean suppressNotFoundException;
 
   private static Logger logger = LoggerFactory.getLogger(LockSnapshotStep.class);
-
-  public LockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId) {
-    this(snapshotDao, snapshotId, false);
-  }
 
   public LockSnapshotStep(
       SnapshotDao snapshotDao, UUID snapshotId, boolean suppressNotFoundException) {
     this.snapshotDao = snapshotDao;
     this.snapshotId = snapshotId;
 
-    // this will be set to true in cases where we don't want to fail if the snapshot metadata record
-    // doesn't exist.
+    // this should be set to true in cases where we don't want to fail if the snapshot metadata
+    // record doesn't exist.
     // for example, snapshot deletion. we want multiple deletes to succeed, not throw a lock or
-    // notfound exception.
-    // for most cases, this should be set to false because we expect the snapshot metadata record to
-    // exist.
+    // not found exception.
+    // for other cases, this should be set to false because we expect the snapshot metadata record
+    // to exist.
     this.suppressNotFoundException = suppressNotFoundException;
+  }
+
+  @VisibleForTesting
+  public boolean shouldSuppressNotFoundException() {
+    return suppressNotFoundException;
   }
 
   @Override

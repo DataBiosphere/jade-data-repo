@@ -1,28 +1,48 @@
 package bio.terra.app.configuration;
 
-import bio.terra.app.utils.startup.StartupInitializer;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.apache.tomcat.util.buf.EncodedSolidusHandling;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "datarepo")
+@ConditionalOnProperty(
+    prefix = "datarepo",
+    name = "testWithEmbeddedDatabase",
+    matchIfMissing = true)
 public class ApplicationConfiguration {
+  Logger logger = LoggerFactory.getLogger(ApplicationConfiguration.class);
+
+  public static final String APPLICATION_NAME = "Terra Data Repository";
 
   private String userEmail;
   private String dnsName;
@@ -101,9 +121,6 @@ public class ApplicationConfiguration {
   /** Maximum number of DRS lookup requests allowed */
   private int maxDrsLookups;
 
-  /** Size of users in auth cache */
-  private int authCacheSize;
-
   /** Time in seconds of auth cache timeout */
   private int authCacheTimeoutSeconds;
 
@@ -112,7 +129,7 @@ public class ApplicationConfiguration {
    * having each such task create its own threadpool, this property is used to create a globally
    * accessible pool that should be used by all such operations.
    *
-   * <p>Note: this is different than than the flight threadpool.
+   * <p>Note: this is different than the flight threadpool.
    */
   private int numPerformanceThreads;
 
@@ -121,6 +138,15 @@ public class ApplicationConfiguration {
    * submit: maxPerformanceThreadQueueSize + numPerformanceThreads before you get an exception
    */
   private int maxPerformanceThreadQueueSize;
+
+  /**
+   * List of compact id prefixes that are allowed. TODO<DR-2985> This should be in addition to any
+   * prefix registered at identifiers.org that points back to this dnsName value
+   */
+  private List<String> compactIdPrefixAllowList = new ArrayList<>();
+
+  /** Maximum number of days to show jobs in the job history when non-admin users enumerate jobs */
+  private int maxNumberOfDaysToShowJobs;
 
   public String getUserEmail() {
     return userEmail;
@@ -302,14 +328,6 @@ public class ApplicationConfiguration {
     this.maxDrsLookups = maxDrsLookups;
   }
 
-  public int getAuthCacheSize() {
-    return authCacheSize;
-  }
-
-  public void setAuthCacheSize(int authCacheSize) {
-    this.authCacheSize = authCacheSize;
-  }
-
   public int getAuthCacheTimeoutSeconds() {
     return authCacheTimeoutSeconds;
   }
@@ -334,10 +352,40 @@ public class ApplicationConfiguration {
     this.maxPerformanceThreadQueueSize = maxPerformanceThreadQueueSize;
   }
 
+  public List<String> getCompactIdPrefixAllowList() {
+    return compactIdPrefixAllowList;
+  }
+
+  public void setCompactIdPrefixAllowList(List<String> compactIdPrefixAllowList) {
+    this.compactIdPrefixAllowList = compactIdPrefixAllowList;
+  }
+
+  public int getMaxNumberOfDaysToShowJobs() {
+    return maxNumberOfDaysToShowJobs;
+  }
+
+  public void setMaxNumberOfDaysToShowJobs(int maxNumberOfDaysToShowJobs) {
+    this.maxNumberOfDaysToShowJobs = maxNumberOfDaysToShowJobs;
+  }
+
+  @Primary
   @Bean("jdbcTemplate")
   public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(
       DataRepoJdbcConfiguration jdbcConfiguration) {
     return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+  }
+
+  @Bean("synapseJdbcTemplate")
+  public NamedParameterJdbcTemplate synapseJdbcTemplate(
+      AzureResourceConfiguration azureResourceConfiguration) {
+
+    SQLServerDataSource ds = new SQLServerDataSource();
+    ds.setServerName(azureResourceConfiguration.synapse().workspaceName());
+    ds.setUser(azureResourceConfiguration.synapse().sqlAdminUser());
+    ds.setPassword(azureResourceConfiguration.synapse().sqlAdminPassword());
+    ds.setDatabaseName(azureResourceConfiguration.synapse().databaseName());
+
+    return new NamedParameterJdbcTemplate(ds);
   }
 
   @Bean("objectMapper")
@@ -375,15 +423,28 @@ public class ApplicationConfiguration {
         new LinkedBlockingQueue<>(getMaxPerformanceThreadQueueSize()));
   }
 
-  // This is a "magic bean": It supplies a method that Spring calls after the application is setup,
-  // but before the port is opened for business. That lets us do database migration and stairway
-  // initialization on a system that is otherwise fully configured. The rule of thumb is that all
-  // bean initialization should avoid database access. If there is additional database work to be
-  // done, it should happen inside this method.
   @Bean
-  public SmartInitializingSingleton postSetupInitialization(ApplicationContext applicationContext) {
-    return () -> {
-      StartupInitializer.initialize(applicationContext);
-    };
+  public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    return builder.build();
+  }
+
+  @Bean("tdrServiceAccountEmail")
+  public String tdrServiceAccountEmail() throws IOException {
+    GoogleCredentials defaultCredentials = GoogleCredentials.getApplicationDefault();
+    if (defaultCredentials instanceof ServiceAccountCredentials) {
+      return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();
+    }
+    return null;
+  }
+
+  @Bean
+  public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatCustomizer() {
+    // Enable sending %2F (e.g. url encoded forward slashes) in the path of a URL which is helpful
+    // if there is a path parameter that contains a value with a slash in it.
+    logger.info("Configuring Tomcat to allow encoded slashes.");
+    return factory ->
+        factory.addConnectorCustomizers(
+            connector ->
+                connector.setEncodedSolidusHandling(EncodedSolidusHandling.DECODE.getValue()));
   }
 }

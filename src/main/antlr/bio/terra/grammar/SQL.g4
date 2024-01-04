@@ -18,7 +18,7 @@ from_statement : FROM from_item (',' from_item )* ;
 
 from_item : table_expr (AS? alias_name)?  (FOR SYSTEM TIME AS OF string)?
     | from_item join_type? JOIN from_item (on_clause | using_clause)
-    | '(' query_statement ')' (AS? alias_name)?
+    | '(' query_expr ')' (AS? alias_name)?
     | UNNEST'(' array_expr ')' (AS? alias_name)? (WITH OFFSET (AS? alias_name))?
     ;
 
@@ -40,6 +40,7 @@ expr : number
     | expr '&' expr
     | expr '^' expr
     | expr '|' expr
+    | expr NOT? BETWEEN expr AND expr
     | expr ( '='
         | '<'
         | '>'
@@ -48,7 +49,6 @@ expr : number
         | '!='
         | '<>'
         | NOT? LIKE
-        | NOT? BETWEEN expr AND expr
         )  expr
     | expr   IS NOT? S_NULL
         | IS NOT? TRUE
@@ -60,14 +60,29 @@ expr : number
                 )
     | expr AND expr
     | expr OR expr
-    | function_name '(' ((expr (',' expr)*) | '*') ')'
+    | function_name '(' ((expr (',' expr)*) | '*') ')' over_clause?
     | '(' expr ')'
     | column_expr
     | keyword
+    | cast_clause
+    ;
+
+cast_clause
+    : CAST '(' expr AS datatype_name ')'
+    ;
+over_clause
+    : OVER '(' (PARTITION BY expr)? order_by_clause? ')'
+    ;
+order_by_clause :
+  ORDER BY order_bys+=order_by_expression (',' order_bys+=order_by_expression)*;
+
+order_by_expression
+    : order_by=expr (ascending=ASC | descending=DESC)?
     ;
 
 column_expr : dataset_name '.' table_name '.' column_name
     | alias_name '.' column_name
+    | column_name
     ;
 
 join_type : INNER

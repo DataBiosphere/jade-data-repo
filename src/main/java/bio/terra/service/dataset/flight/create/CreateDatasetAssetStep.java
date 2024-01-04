@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.common.BaseStep;
-import bio.terra.common.Relationship;
 import bio.terra.common.StepInput;
 import bio.terra.common.StepOutput;
 import bio.terra.model.AssetModel;
@@ -10,15 +9,10 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -42,37 +36,15 @@ public class CreateDatasetAssetStep extends BaseStep {
     this.datasetService = datasetService;
   }
 
-  private Dataset getDataset() {
-    // Use the dataset id to fetch the Dataset object
-    return datasetService.retrieve(datasetId);
-  }
-
-  private AssetSpecification getNewAssetSpec(Dataset dataset) {
-    // get Asset Model and convert it to a spec
-    AssetModel assetModel = request;
-
-    List<DatasetTable> datasetTables = dataset.getTables();
-    Map<String, Relationship> relationshipMap = new HashMap<>();
-    Map<String, DatasetTable> tablesMap = new HashMap<>();
-
-    datasetTables.forEach(datasetTable -> tablesMap.put(datasetTable.getName(), datasetTable));
-
-    List<Relationship> datasetRelationships = dataset.getRelationships();
-
-    datasetRelationships.forEach(
-        relationship -> relationshipMap.put(relationship.getName(), relationship));
-    AssetSpecification assetSpecification =
-        DatasetJsonConversion.assetModelToAssetSpecification(
-            assetModel, tablesMap, relationshipMap);
-    return assetSpecification;
-  }
-
   @Override
   public StepResult perform() {
-    // TODO: Asset columns and tables need to match things in the dataset schema
-    Dataset dataset = getDataset();
+    Dataset dataset = datasetService.retrieve(datasetId);
+    FlightMap map = context.getWorkingMap();
+
+    dataset.validateDatasetAssetSpecification(assetModel);
+
     // get the dataset assets that already exist --asset name needs to be unique
-    AssetSpecification newAssetSpecification = getNewAssetSpec(dataset);
+    AssetSpecification newAssetSpecification = dataset.getNewAssetSpec(assetModel);
 
     // add a fault that forces an exception to make sure the undo works
     try {
@@ -86,7 +58,7 @@ public class CreateDatasetAssetStep extends BaseStep {
     }
 
     try {
-      assetDao.create(newAssetSpecification, dataset.getId());
+      assetDao.create(newAssetSpecification, datasetId);
       assetCreated = true;
     } catch (InvalidAssetException e) {
       setErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -100,12 +72,12 @@ public class CreateDatasetAssetStep extends BaseStep {
   @Override
   public StepResult undo() {
     if (assetCreated) {
-      Dataset dataset = getDataset();
+      Dataset dataset = datasetService.retrieve(datasetId);
+
       // Search the Asset list in the dataset object to see if the asset you were trying to create
       // got created.
-      AssetSpecification newAssetSpecification = getNewAssetSpec(dataset);
       Optional<AssetSpecification> assetSpecificationToDelete =
-          dataset.getAssetSpecificationByName(newAssetSpecification.getName());
+          dataset.getAssetSpecificationByName(assetModel.getName());
       // This only works if we are sure asset names are unique.
       // You cannot assume that the flight object created when the doStep was run is the same flight
       // object

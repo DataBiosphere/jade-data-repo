@@ -2,18 +2,22 @@ package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.SnapshotCompute;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshot.Snapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.common.collect.Streams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -37,9 +41,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class FireStoreDaoTest {
-  private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreDaoTest");
+  private final Logger logger = LoggerFactory.getLogger(FireStoreDaoTest.class);
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 
@@ -52,23 +56,21 @@ public class FireStoreDaoTest {
   @Autowired private FireStoreDependencyDao fireStoreDependencyDao;
 
   private Firestore firestore;
-  private String pretendDatasetId;
-  private String collectionId;
-  private String snapshotId;
+  private UUID datasetId;
+  private UUID snapshotId;
 
   @Before
   public void setup() throws Exception {
     firestore = TestFirestoreProvider.getFirestore();
-    pretendDatasetId = UUID.randomUUID().toString();
-    collectionId = "fsdaoDset_" + pretendDatasetId;
-    snapshotId = "fsdaoSnap_" + pretendDatasetId;
+    datasetId = UUID.randomUUID();
+    snapshotId = UUID.randomUUID();
   }
 
   @After
   public void cleanup() throws Exception {
-    directoryDao.deleteDirectoryEntriesFromCollection(firestore, snapshotId);
-    directoryDao.deleteDirectoryEntriesFromCollection(firestore, collectionId);
-    fileDao.deleteFilesFromDataset(firestore, collectionId, i -> {});
+    directoryDao.deleteDirectoryEntriesFromCollection(firestore, snapshotId.toString());
+    directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId.toString());
+    fileDao.deleteFilesFromDataset(firestore, datasetId.toString(), i -> {});
   }
 
   // Test for snapshot file system
@@ -81,44 +83,51 @@ public class FireStoreDaoTest {
   @Test
   @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void snapshotTest() throws Exception {
-    String collectionId = "fsdaoDset_" + pretendDatasetId;
-    String snapshotId = "fsdaoSnap_" + pretendDatasetId;
     GoogleProjectResource projectResource =
         new GoogleProjectResource().googleProjectId(System.getenv("GOOGLE_CLOUD_DATA_PROJECT"));
-    Dataset dataset =
-        new Dataset().id(UUID.fromString(pretendDatasetId)).projectResource(projectResource);
-
+    Dataset dataset = new Dataset().id(datasetId).projectResource(projectResource);
+    Snapshot snapshot = new Snapshot().id(snapshotId).projectResource(projectResource);
     // Make files that will be in the snapshot
     List<FireStoreDirectoryEntry> snapObjects = new ArrayList<>();
-    snapObjects.add(makeFileObject(collectionId, "/adir/A1", 1));
-    snapObjects.add(makeFileObject(collectionId, "/adir/bdir/B1", 2));
-    snapObjects.add(makeFileObject(collectionId, "/adir/bdir/cdir/C1", 4));
-    snapObjects.add(makeFileObject(collectionId, "/adir/bdir/cdir/C2", 8));
+    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/A1", 1));
+    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/B1", 2));
+    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/cdir/C1", 4));
+    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/cdir/C2", 8));
 
     // And some files that won't be in the snapshot
     List<FireStoreDirectoryEntry> dsetObjects = new ArrayList<>();
-    dsetObjects.add(makeFileObject(collectionId, "/adir/bdir/B2", 16));
-    dsetObjects.add(makeFileObject(collectionId, "/adir/A2", 32));
+    dsetObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/B2", 16));
+    dsetObjects.add(makeFileObject(datasetId.toString(), "/adir/A2", 32));
+
+    List<String> dsfileIdList =
+        Streams.concat(
+                dsetObjects.stream().map(FireStoreDirectoryEntry::getFileId),
+                snapObjects.stream().map(FireStoreDirectoryEntry::getFileId))
+            .toList();
 
     // Make the dataset file system
     List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>(snapObjects);
     fileObjects.addAll(dsetObjects);
     for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fileObjects) {
-      directoryDao.createDirectoryEntry(firestore, collectionId, fireStoreDirectoryEntry);
+      directoryDao.createDirectoryEntry(firestore, datasetId.toString(), fireStoreDirectoryEntry);
     }
 
     // Make the snapshot file system
-    List<String> fileIdList = new ArrayList<>();
-    for (FireStoreDirectoryEntry fireStoreDirectoryEntry : snapObjects) {
-      fileIdList.add(fireStoreDirectoryEntry.getFileId());
-    }
+    List<String> snapfileIdList =
+        snapObjects.stream().map(FireStoreDirectoryEntry::getFileId).toList();
     directoryDao.addEntriesToSnapshot(
-        firestore, collectionId, "dataset", firestore, snapshotId, fileIdList);
+        firestore,
+        datasetId.toString(),
+        "dataset",
+        firestore,
+        snapshotId.toString(),
+        snapfileIdList,
+        false);
 
     // Validate we can lookup files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : snapObjects) {
       FireStoreDirectoryEntry snapObject =
-          directoryDao.retrieveById(firestore, snapshotId, dsetObject.getFileId());
+          directoryDao.retrieveById(firestore, snapshotId.toString(), dsetObject.getFileId());
       assertNotNull("object found in snapshot", snapObject);
       assertThat("objectId matches", snapObject.getFileId(), equalTo(dsetObject.getFileId()));
       assertThat("path does not match", snapObject.getPath(), not(equalTo(dsetObject.getPath())));
@@ -131,7 +140,8 @@ public class FireStoreDaoTest {
     assertFalse("Dataset should not yet have dependencies", noDependencies);
 
     // Create dependency file system
-    fireStoreDependencyDao.storeSnapshotFileDependencies(dataset, snapshotId, fileIdList);
+    fireStoreDependencyDao.storeSnapshotFileDependencies(
+        dataset, snapshotId.toString(), snapfileIdList);
 
     // Snapshot and File Dependency should now exist for dataset
     boolean hasReference = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
@@ -149,21 +159,42 @@ public class FireStoreDaoTest {
     // Validate we cannot lookup dataset files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : dsetObjects) {
       FireStoreDirectoryEntry snapObject =
-          directoryDao.retrieveById(firestore, snapshotId, dsetObject.getFileId());
+          directoryDao.retrieveById(firestore, snapshotId.toString(), dsetObject.getFileId());
       assertNull("object not found in snapshot", snapObject);
     }
 
     // Compute the size and checksums
-    FireStoreDirectoryEntry topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
+    FireStoreDirectoryEntry topDir =
+        directoryDao.retrieveByPath(firestore, snapshotId.toString(), "/");
     List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
-    FireStoreDao.FirestoreComputeHelper helper = dao.getHelper(firestore, firestore, snapshotId);
+    FireStoreDao.FirestoreComputeHelper helper =
+        dao.getHelper(firestore, firestore, snapshotId.toString());
     SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
-    directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
+    directoryDao.batchStoreDirectoryEntry(firestore, snapshotId.toString(), updateBatch);
 
     // Check the accumulated size on the root dir
-    FireStoreDirectoryEntry snapObject = directoryDao.retrieveByPath(firestore, snapshotId, "/");
+    FireStoreDirectoryEntry snapObject =
+        directoryDao.retrieveByPath(firestore, snapshotId.toString(), "/");
     assertNotNull("root exists", snapObject);
     assertThat("Total size is correct", snapObject.getSize(), equalTo(15L));
+
+    // Check that we can retrieve all with or without directories
+    assertThat(
+        "all dataset files and directories can be returned",
+        dao.retrieveAllFileIds(dataset, true),
+        hasSize(10));
+    assertThat(
+        "all dataset files (only) can be returned",
+        dao.retrieveAllFileIds(dataset, false).stream().sorted().toList(),
+        equalTo(dsfileIdList.stream().sorted().toList()));
+    assertThat(
+        "all snapshot files and directories can be returned",
+        dao.retrieveAllFileIds(snapshot, true),
+        hasSize(9));
+    assertThat(
+        "all snapshot files (only) can be returned",
+        dao.retrieveAllFileIds(snapshot, false).stream().sorted().toList(),
+        equalTo(snapfileIdList.stream().sorted().toList()));
   }
 
   private FireStoreDirectoryEntry makeFileObject(String datasetId, String fullPath, long size)
@@ -181,16 +212,17 @@ public class FireStoreDaoTest {
             .gspath("gs://" + datasetId + "/" + fileId)
             .checksumCrc32c(SnapshotCompute.computeCrc32c(fullPath))
             .checksumMd5(SnapshotCompute.computeMd5(fullPath))
+            .userSpecifiedMd5(false)
             .size(size);
 
-    fileDao.createFileMetadata(firestore, datasetId, newFile);
+    fileDao.upsertFileMetadata(firestore, datasetId, newFile);
 
     return new FireStoreDirectoryEntry()
         .fileId(fileId)
         .isFileRef(true)
         .path(FileMetadataUtils.getDirectoryPath(fullPath))
         .name(FileMetadataUtils.getName(fullPath))
-        .datasetId(collectionId)
+        .datasetId(datasetId)
         .size(size)
         .checksumCrc32c(SnapshotCompute.computeCrc32c(fullPath))
         .checksumMd5(SnapshotCompute.computeMd5(fullPath));

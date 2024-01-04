@@ -1,7 +1,8 @@
 {
     "name": "it_dataset_omop",
-    "description": "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki",
+    "description": "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom",
     "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+    "phsId": "phs100321",
     "schema": {
         "tables": [
             {
@@ -62,7 +63,7 @@
                     },
                     {
                         "name": "vocabulary_reference",
-                        "datatype": "string"
+                        "datatype": "fileref"
                     },
                     {
                         "name": "vocabulary_version",
@@ -88,6 +89,26 @@
                     {
                         "name": "domain_concept_id",
                         "datatype": "int64"
+                    },
+                    {
+                        "name": "domain_array_tags_custom",
+                        "datatype": "string",
+                        "array_of": true
+                    },
+                    {
+                        "name": "domain_files_custom_1",
+                        "datatype": "fileref",
+                        "array_of": true
+                    },
+                    {
+                        "name": "domain_files_custom_2",
+                        "datatype": "fileref",
+                        "array_of": true
+                    },
+                    {
+                        "name": "domain_files_custom_3",
+                        "datatype": "fileref",
+                        "array_of": false
                     }
                 ]
             },
@@ -3894,6 +3915,22 @@
                     "fpk_note_visit",
                     "fpk_drug_visit"
                 ]
+            },
+            {
+                "name": "vocab_single",
+                "tables": [
+                  {
+                    "name": "vocabulary",
+                    "columns": []
+                  },
+                  {
+                    "name": "domain",
+                    "columns": []
+                  }
+                ],
+                "rootTable": "vocabulary",
+                "rootColumn": "vocabulary_id",
+                "follow": []
             }
         ]
     }

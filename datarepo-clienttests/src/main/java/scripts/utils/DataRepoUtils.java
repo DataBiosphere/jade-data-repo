@@ -6,6 +6,7 @@ import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.CloudPlatform;
 import bio.terra.datarepo.model.ConfigEnableModel;
 import bio.terra.datarepo.model.ConfigGroupModel;
 import bio.terra.datarepo.model.ConfigModel;
@@ -31,6 +32,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import javax.ws.rs.client.ClientBuilder;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.jdk.connector.JdkConnectorProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -83,6 +87,14 @@ public final class DataRepoUtils {
 
     apiClient.setAccessToken(userAccessToken.getTokenValue());
 
+    // Workaround for jersey bug on upgrading to Java 17
+    // Needed for PATCH endpoints
+    // More details here: https://github.com/eclipse-ee4j/jersey/issues/4825#issuecomment-925836004
+    // And in PR description: https://github.com/DataBiosphere/jade-data-repo/pull/1288
+    ClientConfig clientConfig = new ClientConfig();
+    clientConfig.connectorProvider(new JdkConnectorProvider());
+    apiClient.setHttpClient(ClientBuilder.newClient(clientConfig));
+
     apiClientsForTestUsers.put(testUser, apiClient);
     return apiClient;
   }
@@ -103,27 +115,6 @@ public final class DataRepoUtils {
       RepositoryApi repositoryApi, JobModel job, TestUserSpecification testUser) throws Exception {
     logger.debug("Waiting for Data Repo job to finish");
     job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob, testUser);
-
-    if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      throw new RuntimeException(
-          "Timed out waiting for job to finish. (jobid=" + job.getId() + ")");
-    }
-
-    return job;
-  }
-
-  /**
-   * Wait until the job finishes, either successfully or not. Times out after {@link
-   * DataRepoUtils#maximumSecondsToWaitForJob} seconds. Polls in intervals of {@link
-   * DataRepoUtils#secondsIntervalToPollJob} seconds.
-   *
-   * @param repositoryApi the api object to use
-   * @param job the job model to poll
-   */
-  public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
-      throws Exception {
-    logger.debug("Waiting for Data Repo job to finish");
-    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob, null);
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       throw new RuntimeException(
@@ -249,12 +240,19 @@ public final class DataRepoUtils {
    * @param profileId the billing profile id
    * @param apipayloadFilename the name of the create dataset payload file in the apipayloads
    *     resources directory
+   * @param testUser - user specification used to refresh credentials on long running job
    * @param randomizeName true to append a random number at the end of the dataset name, false
    *     otherwise
    * @return the completed job model
    */
   public static JobModel createDataset(
-      RepositoryApi repositoryApi, UUID profileId, String apipayloadFilename, boolean randomizeName)
+      RepositoryApi repositoryApi,
+      UUID profileId,
+      CloudPlatform cloudPlatform,
+      String apipayloadFilename,
+      TestUserSpecification testUser,
+      boolean randomizeName,
+      boolean dedicatedIngestServiceAccount)
       throws Exception {
     logger.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
@@ -264,6 +262,8 @@ public final class DataRepoUtils {
     DatasetRequestModel createDatasetRequest =
         objectMapper.readValue(datasetRequestFile, DatasetRequestModel.class);
     createDatasetRequest.defaultProfileId(profileId);
+    createDatasetRequest.setCloudPlatform(cloudPlatform);
+    createDatasetRequest.dedicatedIngestServiceAccount(dedicatedIngestServiceAccount);
 
     if (randomizeName) {
       createDatasetRequest.setName(FileUtils.randomizeName(createDatasetRequest.getName()));
@@ -271,7 +271,7 @@ public final class DataRepoUtils {
 
     // make the create request and wait for the job to finish
     JobModel createDatasetJobResponse = repositoryApi.createDataset(createDatasetRequest);
-    return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse, testUser);
   }
 
   /**
@@ -281,11 +281,27 @@ public final class DataRepoUtils {
    * @param datasetSummaryModel the summary of the dataset used by the snapshot
    * @param apipayloadFilename the name of the create snapshot payload file in the apipayloads
    *     resources directory
+   * @param testUser - user specification used to refresh credentials on long running job
    * @param randomizeName true to append a random number at the end of the snapshot name, false
    *     otherwise
    * @return the completed job model
    */
   public static JobModel createSnapshot(
+      RepositoryApi repositoryApi,
+      DatasetSummaryModel datasetSummaryModel,
+      String apipayloadFilename,
+      TestUserSpecification testUser,
+      boolean randomizeName)
+      throws Exception {
+
+    // make the create request and wait for the job to finish
+    JobModel createSnapshotJobResponse =
+        createSnapshotWithoutWaiting(
+            repositoryApi, datasetSummaryModel, apipayloadFilename, randomizeName);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse, testUser);
+  }
+
+  public static JobModel createSnapshotWithoutWaiting(
       RepositoryApi repositoryApi,
       DatasetSummaryModel datasetSummaryModel,
       String apipayloadFilename,
@@ -306,10 +322,7 @@ public final class DataRepoUtils {
     if (randomizeName) {
       createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));
     }
-
-    // make the create request and wait for the job to finish
-    JobModel createSnapshotJobResponse = repositoryApi.createSnapshot(createSnapshotRequest);
-    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse);
+    return repositoryApi.createSnapshot(createSnapshotRequest);
   }
 
   /**
@@ -318,6 +331,7 @@ public final class DataRepoUtils {
    * @param resourcesApi the api object to use
    * @param billingAccount the Google billing account id
    * @param profileName the name of the new profile
+   * @param testUser a TestUserSpecification to refresh the token for long-running jobs
    * @param randomizeName true to append a random number at the end of the profile name, false
    *     otherwise
    * @return the created billing profile model
@@ -327,6 +341,7 @@ public final class DataRepoUtils {
       RepositoryApi repositoryApi,
       String billingAccount,
       String profileName,
+      TestUserSpecification testUser,
       boolean randomizeName)
       throws Exception {
     logger.debug("Creating a billing profile");
@@ -345,7 +360,47 @@ public final class DataRepoUtils {
 
     // make the create request and wait for the job to finish
     JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
-    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel);
+    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel, testUser);
+
+    BillingProfileModel billingProfile =
+        DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);
+
+    return billingProfile;
+  }
+
+  public static BillingProfileModel createAzureProfile(
+      ResourcesApi resourcesApi,
+      RepositoryApi repositoryApi,
+      UUID tenantId,
+      UUID subscriptionId,
+      String resourceGroupName,
+      String applicationDeploymentName,
+      String profileName,
+      String billingAccount,
+      TestUserSpecification testUser,
+      boolean randomizeName)
+      throws Exception {
+    logger.debug("Creating a billing profile");
+
+    if (randomizeName) {
+      profileName = FileUtils.randomizeName(profileName);
+    }
+
+    BillingProfileRequestModel createProfileRequest =
+        new BillingProfileRequestModel()
+            .id(UUID.randomUUID())
+            .cloudPlatform(CloudPlatform.AZURE)
+            .tenantId(tenantId)
+            .subscriptionId(subscriptionId)
+            .resourceGroupName(resourceGroupName)
+            .applicationDeploymentName(applicationDeploymentName)
+            .profileName(profileName)
+            .biller("direct")
+            .description("test profile description (Azure)");
+
+    // make the create request and wait for the job to finish
+    JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
+    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel, testUser);
 
     BillingProfileModel billingProfile =
         DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);

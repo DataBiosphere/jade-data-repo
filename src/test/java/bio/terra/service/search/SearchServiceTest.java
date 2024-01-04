@@ -15,7 +15,8 @@ import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,8 +43,10 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class SearchServiceTest {
   private static final String timPropertyName = "example:identifier.now";
@@ -60,9 +63,7 @@ public class SearchServiceTest {
 
   private static final String indexName = "idx-mock";
 
-  @Mock private BigQueryPdao bigQueryPdao;
-
-  @Mock private SnapshotSearchMetadataDao snapshotSearchMetadataDao;
+  @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
 
   @Mock private RestHighLevelClient client;
 
@@ -72,11 +73,11 @@ public class SearchServiceTest {
 
   private SearchIndexRequest searchIndexRequest;
   private Snapshot snapshot;
-  private List<Map<String, Object>> values;
+  private List<BigQueryDataResultModel> values;
 
   @Before
   public void setup() throws Exception {
-    service = new SearchService(bigQueryPdao, client);
+    service = new SearchService(bigQuerySnapshotPdao, client);
 
     searchIndexRequest = getSearchIndexRequest();
     snapshot = getSnapshot();
@@ -107,7 +108,7 @@ public class SearchServiceTest {
   @Test
   public void indexSnapshotTest() throws Exception {
     // Mock snapshot table data
-    when(bigQueryPdao.getSnapshotTableData(any(Snapshot.class), any(String.class)))
+    when(bigQuerySnapshotPdao.getSnapshotTableUnsafe(any(Snapshot.class), any(String.class)))
         .thenReturn(values);
 
     // Mock index request
@@ -156,12 +157,17 @@ public class SearchServiceTest {
     return new SearchIndexRequest().sql(sqlQuery);
   }
 
-  private List<Map<String, Object>> getSnapshotTableData() {
-    List<Map<String, Object>> values = new ArrayList<>();
+  private List<BigQueryDataResultModel> getSnapshotTableData() {
+    List<BigQueryDataResultModel> values = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       Instant now = Instant.now();
       String ts = String.format("%f", now.getEpochSecond() + now.getNano() / 1E9);
-      values.add(Map.of("uuid", UUID.randomUUID().toString(), timEncodedName, ts));
+      BigQueryDataResultModel result = new BigQueryDataResultModel();
+      result
+          .rowResult(Map.of("uuid", UUID.randomUUID().toString(), timEncodedName, ts))
+          .filteredCount(3)
+          .totalCount(3);
+      values.add(result);
     }
 
     return values;

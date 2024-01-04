@@ -2,41 +2,36 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.function.Predicate;
+import com.azure.core.management.exception.ManagementException;
 
-public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
+public class ValidateIngestFileAzureDirectoryStep extends DefaultUndoStep {
   public static final String CREATE_ENTRY_ACTION = "createEntry";
   public static final String CHECK_ENTRY_ACTION = "checkEntry";
 
   private final TableDao tableDao;
   private final Dataset dataset;
 
-  public ValidateIngestFileAzureDirectoryStep(
-      TableDao tableDao, Dataset dataset, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+  public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
     this.tableDao = tableDao;
     this.dataset = dataset;
   }
 
-  public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
-    this(tableDao, dataset, SkippableStep::neverSkip);
-  }
-
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap inputParameters = context.getInputParameters();
     FileLoadModel loadModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
@@ -51,7 +46,7 @@ public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
       //      (b) Otherwise, update INGEST_FILE_ACTION to checkEntry
       AzureStorageAuthInfo storageAuthInfo =
           FlightUtils.getContextValue(
-              context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+              context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
       FireStoreDirectoryEntry existingEntry =
           tableDao.lookupDirectoryEntryByPath(dataset, targetPath, storageAuthInfo);
       if (existingEntry == null) {
@@ -60,8 +55,9 @@ public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
         throw new FileAlreadyExistsException("Path already exists: " + targetPath);
       } else {
         workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CHECK_ENTRY_ACTION);
+        workingMap.put(FileMapKeys.FIRESTORE_DIRECTORY_ENTRY, existingEntry);
       }
-    } catch (FileSystemAbortTransactionException e) {
+    } catch (FileSystemAbortTransactionException | ManagementException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
 

@@ -1,41 +1,46 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.ErrorCollector;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IngestBuildAndWriteScratchLoadFileGcpStep
     extends IngestBuildAndWriteScratchLoadFileStep {
   private final GcsPdao gcsPdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestBuildAndWriteScratchLoadFileGcpStep(
       ObjectMapper objectMapper,
       GcsPdao gcsPdao,
       Dataset dataset,
-      Predicate<FlightContext> skipCondition) {
-    super(objectMapper, dataset, skipCondition);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(objectMapper, dataset, maxBadLoadFileLineErrorsReported);
     this.gcsPdao = gcsPdao;
+    this.userRequest = userRequest;
   }
 
   @Override
   Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors) {
+      IngestRequestModel ingestRequest, ErrorCollector errorCollector) {
     return IngestUtils.getJsonNodesStreamFromFile(
         gcsPdao,
         objectMapper,
-        ingestRequest,
+        ingestRequest.getPath(),
+        userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
-        errors);
+        errorCollector);
   }
 
   @Override
@@ -43,10 +48,10 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
     GoogleBucketResource bucket =
         flightContext
             .getWorkingMap()
-            .get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
+            .get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
 
     return GcsUriUtils.getGsPathFromComponents(
-        bucket.getName(), flightContext.getFlightId() + "-scratch.json");
+        bucket.getName(), flightContext.getFlightId() + "/ingest-scratch.json");
   }
 
   @Override
@@ -54,8 +59,14 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
     GoogleBucketResource bucket =
         flightContext
             .getWorkingMap()
-            .get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
+            .get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
     gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
     gcsPdao.writeStreamToCloudFile(path, lines, bucket.projectIdForBucket());
+  }
+
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    IngestUtils.deleteScratchFile(context, gcsPdao);
+    return StepResult.getStepResultSuccess();
   }
 }

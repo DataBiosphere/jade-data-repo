@@ -8,6 +8,8 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
+import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -16,6 +18,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 
 public class IngestFilePrimaryDataStep implements Step {
   private final ConfigurationService configService;
@@ -36,18 +39,41 @@ public class IngestFilePrimaryDataStep implements Step {
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
     FlightMap workingMap = context.getWorkingMap();
-    String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+    String fileId = null;
+    if (!dataset.hasPredictableFileIds()) {
+      fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+    }
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
-      GoogleBucketResource bucketResource =
-          FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
       FSFileInfo fsFileInfo;
-      if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-        fsFileInfo = FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
-      } else {
-        fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+      try {
+        if (dataset.isSelfHosted()) {
+          fsFileInfo =
+              gcsPdao.linkSelfHostedFile(
+                  fileLoadModel, fileId, dataset.getProjectResource().getGoogleProjectId());
+        } else {
+          GoogleBucketResource bucketResource =
+              FlightUtils.getContextValue(
+                  context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+          if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
+            fsFileInfo =
+                FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
+          } else {
+            fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+          }
+        }
+        if (fileId == null) {
+          workingMap.put(FileMapKeys.FILE_ID, fsFileInfo.getFileId());
+        }
+        workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
+      } catch (InvalidUserProjectException ex) {
+        // We retry this exception because often when we've seen this error it has been transient
+        // and untruthful -- i.e. the user project specified exists and has a legal id.
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+      } catch (GoogleInternalServerErrorException ex) {
+        // Google's error message suggests retrying the operation
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
       }
-      workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
     }
     return StepResult.getStepResultSuccess();
   }

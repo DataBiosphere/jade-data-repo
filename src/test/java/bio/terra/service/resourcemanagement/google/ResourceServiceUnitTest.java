@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.google;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.AzureCloudResource;
@@ -31,7 +32,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 public class ResourceServiceUnitTest {
@@ -77,7 +80,8 @@ public class ResourceServiceUnitTest {
       new GoogleBucketResource()
           .resourceId(bucketId)
           .name(bucketName.toString())
-          .projectResource(projectResource);
+          .projectResource(projectResource)
+          .autoclassEnabled(false);
 
   private final BillingProfileModel profileModel =
       ProfileFixtures.randomAzureBillingProfile().id(billingProfileId);
@@ -103,16 +107,19 @@ public class ResourceServiceUnitTest {
 
   @Test
   public void testGrabBucket() throws Exception {
-    when(bucketService.getOrCreateBucket(any(), any(), any(), any())).thenReturn(bucketResource);
+    when(bucketService.getOrCreateBucket(
+            any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(bucketResource);
+    dataset.projectResource(projectResource);
 
     GoogleBucketResource foundBucket =
-        resourceService.getOrCreateBucketForFile(dataset, projectResource, "flightId");
+        resourceService.getOrCreateBucketForFile(dataset, projectResource, "flightId", null);
     Assert.assertEquals(bucketResource, foundBucket);
   }
 
   @Test
   public void testGetOrCreateStorageAccount() throws Exception {
-    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any()))
+    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any(), any()))
         .thenReturn(storageAccountResource);
     when(storageAccountService.getStorageAccountResourceById(storageAccountId, true))
         .thenReturn(storageAccountResource);

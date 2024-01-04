@@ -10,12 +10,19 @@ public enum JobMapKeys {
   AUTH_USER_INFO("auth_user_info"),
   SUBJECT_ID("subjectId"),
   CLOUD_PLATFORM("cloudPlatform"),
+  IAM_ACTION("iamAction"),
+  IAM_RESOURCE_TYPE("iamResourceType"),
+  IAM_RESOURCE_ID("iamResourceId"),
+  PARENT_FLIGHT_ID("parentFlightId"),
 
   // parameters for specific flight types
+  BILLING_ID("billingId"),
   DATASET_ID("datasetId"),
   SNAPSHOT_ID("snapshotId"),
   FILE_ID("fileId"),
-  ASSET_ID("assetId");
+  ASSET_ID("assetId"),
+  TRANSACTION_ID("transactionId"),
+  DELETE_CLOUD_RESOURCES("deleteCloudResources");
 
   private String keyName;
 

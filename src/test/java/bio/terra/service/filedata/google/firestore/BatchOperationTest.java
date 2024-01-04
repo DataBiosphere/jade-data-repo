@@ -19,11 +19,13 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class BatchOperationTest {
 
@@ -35,8 +37,9 @@ public class BatchOperationTest {
 
   @Before
   public void setup() {
-    GoogleResourceConfiguration resourceConfiguration = new GoogleResourceConfiguration();
-    resourceConfiguration.setFirestoreRetries(4);
+    // Use fewer firestoreRetries for testing
+    GoogleResourceConfiguration resourceConfiguration =
+        new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     ConfigurationService configurationService =
         new ConfigurationService(
             samConfiguration, gcsConfiguration, resourceConfiguration, appConfiguration);

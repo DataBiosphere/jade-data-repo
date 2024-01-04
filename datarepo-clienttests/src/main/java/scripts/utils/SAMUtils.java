@@ -84,7 +84,18 @@ public class SAMUtils {
   public static boolean isDataRepoSteward(ApiClient apiClient, String datarepoResourceId)
       throws ApiException {
     ResourcesApi resourcesApi = new ResourcesApi(apiClient);
-    return resourcesApi.resourceAction("datarepo", datarepoResourceId, "create_dataset");
+    return resourcesApi.resourcePermissionV2("datarepo", datarepoResourceId, "create_dataset");
+  }
+
+  /**
+   * Call the SAM endpoint to check if the caller is a Data Repo Admin.
+   *
+   * @return true if the caller is a admin, false otherwise
+   */
+  public static boolean isDataRepoAdmin(ApiClient apiClient, String datarepoResourceId)
+      throws ApiException {
+    ResourcesApi resourcesApi = new ResourcesApi(apiClient);
+    return resourcesApi.resourcePermissionV2("datarepo", datarepoResourceId, "configure");
   }
 
   /**
@@ -118,6 +129,22 @@ public class SAMUtils {
     for (TestUserSpecification testUser : testUsersCopy) {
       ApiClient apiClient = getClientForTestUser(testUser, server);
       if (isDataRepoSteward(apiClient, server.samResourceIdForDatarepo)) {
+        return testUser;
+      }
+    }
+    return null;
+  }
+
+  public static TestUserSpecification findTestUserThatIsDataRepoAdmin(
+      List<TestUserSpecification> testUsers, ServerSpecification server) throws Exception {
+    // create a copy of the list and randomly reorder it
+    List<TestUserSpecification> testUsersCopy = new ArrayList<>(testUsers);
+    Collections.shuffle(testUsersCopy);
+
+    // iterate through the list copy, return the first test user that is a data repo admin
+    for (TestUserSpecification testUser : testUsersCopy) {
+      ApiClient apiClient = getClientForTestUser(testUser, server);
+      if (isDataRepoAdmin(apiClient, server.samResourceIdForDatarepo)) {
         return testUser;
       }
     }

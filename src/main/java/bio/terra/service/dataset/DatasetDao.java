@@ -2,31 +2,45 @@ package bio.terra.service.dataset;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
+import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.common.LockOperation;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.ResourceLocks;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.tags.TagUtils;
+import bio.terra.service.tags.TaggableResourceDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.sql.Array;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +60,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class DatasetDao {
+public class DatasetDao implements TaggableResourceDao {
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final DatasetTableDao tableDao;
@@ -55,13 +69,28 @@ public class DatasetDao {
   private final ConfigurationService configurationService;
   private final ResourceService resourceService;
   private final StorageResourceDao storageResourceDao;
+  private final JournalService journalService;
   private final ObjectMapper objectMapper;
+  private final DataSource jdbcDataSource;
 
   private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
+  private static final String TABLE_NAME = "dataset";
+
   private static final String summaryQueryColumns =
-      " dataset.id, name, description, default_profile_id, project_resource_id, application_resource_id, "
-          + "created_date, ";
+      " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
+          + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
+          + "properties, created_date, predictable_file_ids, tags, flightid, sharedlock,";
+
+  private static final String summaryCloudPlatformQuery =
+      "(SELECT pr.google_project_id "
+          + "  FROM project_resource pr "
+          + "  WHERE pr.id = dataset.project_resource_id) as google_project_id, "
+          + "(SELECT sar.name "
+          + "  FROM dataset_storage_account dsa "
+          + "    LEFT JOIN storage_account_resource sar "
+          + "      on dsa.storage_account_resource_id = sar.id "
+          + "  WHERE dsa.dataset_id = dataset.id) as storage_account_name, ";
 
   private static final String datasetStorageQuery =
       "(SELECT jsonb_agg(json_build_object( "
@@ -96,7 +125,9 @@ public class DatasetDao {
       ConfigurationService configurationService,
       ResourceService resourceService,
       StorageResourceDao storageResourceDao,
-      @Qualifier("daoObjectMapper") ObjectMapper objectMapper)
+      JournalService journalService,
+      @Qualifier("daoObjectMapper") ObjectMapper objectMapper,
+      DataRepoJdbcConfiguration jdbcConfiguration)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
     this.tableDao = tableDao;
@@ -105,7 +136,24 @@ public class DatasetDao {
     this.configurationService = configurationService;
     this.resourceService = resourceService;
     this.storageResourceDao = storageResourceDao;
+    this.journalService = journalService;
     this.objectMapper = objectMapper;
+    this.jdbcDataSource = jdbcConfiguration.getDataSource();
+  }
+
+  @Override
+  public NamedParameterJdbcTemplate getJdbcTemplate() {
+    return jdbcTemplate;
+  }
+
+  @Override
+  public DataSource getJdbcDataSource() {
+    return jdbcDataSource;
+  }
+
+  @Override
+  public String getTable() {
+    return TABLE_NAME;
   }
 
   /**
@@ -138,7 +186,7 @@ public class DatasetDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    performLockQuery(sql, params, LockType.LockExclusive, datasetId);
+    performLockQuery(sql, params, LockOperation.LOCK_EXCLUSIVE, datasetId);
 
     logger.debug(
         "Lock Operation: Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
@@ -163,11 +211,11 @@ public class DatasetDao {
         flightId);
     // update the dataset entry to remove the flightid IF it is currently set to this flightid
     String sql =
-        "UPDATE dataset SET flightid = NULL " + "WHERE id = :datasetid AND flightid = :flightid";
+        "UPDATE dataset SET flightid = NULL WHERE id = :datasetid AND flightid = :flightid";
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockExclusive, null);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UNLOCK_EXCLUSIVE, null);
 
     boolean unlockSucceeded = (numRowsUpdated == 1);
     logger.debug(
@@ -218,7 +266,7 @@ public class DatasetDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockType.LockShared, datasetId);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.LOCK_SHARED, datasetId);
 
     logger.debug(
         "Lock Operation: Shared lock acquired for dataset {}, flight {}, with {} rows updated",
@@ -253,7 +301,7 @@ public class DatasetDao {
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
     logger.debug("Unlocking shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockShared, null);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UNLOCK_SHARED, null);
 
     boolean unlockSucceeded = (numRowsUpdated == 1);
     logger.debug(
@@ -264,16 +312,9 @@ public class DatasetDao {
     return unlockSucceeded;
   }
 
-  private enum LockType {
-    LockExclusive,
-    LockShared,
-    UnlockExclusive,
-    UnlockShared
-  }
-
   private int performLockQuery(
-      String sql, MapSqlParameterSource params, LockType lockType, UUID datasetId) {
-    int numRowsUpdated = 0;
+      String sql, MapSqlParameterSource params, LockOperation lockType, UUID datasetId) {
+    int numRowsUpdated;
     DataAccessException faultToInsert = getFaultToInsert(lockType);
     try {
       if (faultToInsert != null) {
@@ -283,15 +324,14 @@ public class DatasetDao {
 
       numRowsUpdated = jdbcTemplate.update(sql, params);
 
-      if (numRowsUpdated == 0
-          && (lockType.equals(LockType.LockExclusive) || lockType.equals(LockType.LockShared))) {
+      if (numRowsUpdated == 0 && lockType.lockAttempted()) {
         // this method checks if the dataset exists
         // if it does not exist, then the method throws a DatasetNotFoundException
         // we don't need the result (dataset summary) here, just the existence check,
         // so ignore the return value.
         retrieveSummaryById(datasetId);
 
-        throw new DatasetLockException("Failed to lock the dataset");
+        throw new DatasetLockException("Failed to lock the dataset", lockType.getErrorDetails());
       }
     } catch (DatasetNotFoundException notFound) {
       logger.error(
@@ -324,12 +364,12 @@ public class DatasetDao {
     return numRowsUpdated;
   }
 
-  private DataAccessException getFaultToInsert(LockType lockType) {
+  private DataAccessException getFaultToInsert(LockOperation lockType) {
     // fault insert for tests DatasetConnectedTest & FileOperationTests
     ConfigEnum RetryableFault;
     ConfigEnum FatalFault;
 
-    if (lockType.equals(LockType.LockExclusive) || lockType.equals(LockType.LockShared)) {
+    if (lockType.lockAttempted()) {
       RetryableFault = ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
       FatalFault = ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT;
     } else {
@@ -355,9 +395,6 @@ public class DatasetDao {
    * unlock.
    *
    * @param dataset the dataset object to create
-   * @return the id of the new dataset
-   * @throws SQLException
-   * @throws IOException
    * @throws InvalidDatasetException if a row already exists with this dataset name
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -365,12 +402,22 @@ public class DatasetDao {
     logger.debug(
         "Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     String sql =
-        "INSERT INTO dataset "
-            + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
-            + "sharedlock) "
-            + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, ARRAY[]::TEXT[]) ";
+        """
+        INSERT INTO dataset
+        (name, default_profile_id, id, project_resource_id, application_resource_id, flightid,
+         description, secure_monitoring, phs_id, self_hosted, properties, sharedlock,
+         predictable_file_ids, tags)
+        VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id,
+         :flightid, :description, :secure_monitoring, :phs_id, :self_hosted,
+         cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids, :tags)
+       """;
 
+    Array tags;
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      tags = DaoUtils.createSqlStringArray(connection, dataset.getTags());
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("Failed to convert dataset tags list to SQL array", e);
+    }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -379,7 +426,15 @@ public class DatasetDao {
             .addValue("application_resource_id", dataset.getApplicationDeploymentResourceId())
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
-            .addValue("description", dataset.getDescription());
+            .addValue("description", dataset.getDescription())
+            .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
+            .addValue("phs_id", dataset.getPhsId())
+            .addValue("self_hosted", dataset.isSelfHosted())
+            .addValue(
+                "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()))
+            .addValue("predictable_file_ids", dataset.hasPredictableFileIds())
+            .addValue("tags", tags);
+
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
       jdbcTemplate.update(sql, params, keyHolder);
@@ -389,30 +444,12 @@ public class DatasetDao {
     }
     dataset.createdDate(keyHolder.getCreatedDate());
     tableDao.createTables(dataset.getId(), dataset.getTables());
-    relationshipDao.createDatasetRelationships(dataset);
+    relationshipDao.createDatasetRelationships(dataset.getRelationships());
     assetDao.createAssets(dataset);
     storageResourceDao.createStorageAttributes(
         dataset.getDatasetSummary().getStorage(), dataset.getId());
 
     logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
-  }
-
-  /**
-   * TESTING ONLY. This method returns the internal state of the exclusive lock on a dataset. It is
-   * protected because it's for use in tests only. Currently, we don't expose the lock state of a
-   * dataset outside of the DAO for other API code to consume.
-   *
-   * @param id the dataset id
-   * @return the flightid that holds an exclusive lock. null if none.
-   */
-  protected String getExclusiveLock(UUID id) {
-    try {
-      String sql = "SELECT flightid FROM dataset WHERE id = :id";
-      MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-      return jdbcTemplate.queryForObject(sql, params, String.class);
-    } catch (EmptyResultDataAccessException ex) {
-      throw new DatasetNotFoundException("Dataset not found for id " + id);
-    }
   }
 
   /**
@@ -446,33 +483,8 @@ public class DatasetDao {
     return rowsAffected > 0;
   }
 
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean deleteByNameAndFlight(String datasetName, String flightId) {
-    String sql = "DELETE FROM dataset WHERE name = :name AND flightid = :flightid";
-    MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("name", datasetName).addValue("flightid", flightId);
-    int rowsAffected = jdbcTemplate.update(sql, params);
-
-    // TODO: shouldn't we also be deleting from the auxiliary daos for this dataset (table,
-    // relationship, asset)?
-
-    return rowsAffected > 0;
-  }
-
   public Dataset retrieve(UUID id) {
     DatasetSummary summary = retrieveSummaryById(id);
-    return retrieveWorker(summary);
-  }
-
-  /**
-   * This is a convenience wrapper that returns a dataset only if it is NOT exclusively locked. This
-   * method is intended for user-facing API calls (e.g. from RepositoryApiController).
-   *
-   * @param id the dataset id
-   * @return the DatasetSummary object
-   */
-  public Dataset retrieveAvailable(UUID id) {
-    DatasetSummary summary = retrieveSummaryById(id, true);
     return retrieveWorker(summary);
   }
 
@@ -493,7 +505,10 @@ public class DatasetDao {
         // Retrieve the project and application deployment resource associated with the dataset
         // This is a bit sketchy filling in the object via a dao in another package.
         // It seemed like the cleanest thing to me at the time.
-        dataset.projectResource(resourceService.getProjectResource(dataset.getProjectResourceId()));
+        if (dataset.getProjectResourceId() != null) {
+          dataset.projectResource(
+              resourceService.getProjectResource(dataset.getProjectResourceId()));
+        }
         if (dataset.getApplicationDeploymentResourceId() != null) {
           dataset.applicationDeploymentResource(
               resourceService.getApplicationDeploymentResource(
@@ -507,35 +522,21 @@ public class DatasetDao {
   }
 
   /**
-   * This is a convenience wrapper that returns a dataset, regardless of whether it is exclusively
-   * locked. Most places in the API code that are retrieving a dataset will call this method.
+   * Retrieves a DatasetSummary object from the dataset id.
    *
    * @param id the dataset id
    * @return the DatasetSummary object
    */
   public DatasetSummary retrieveSummaryById(UUID id) {
-    return retrieveSummaryById(id, false);
-  }
-
-  /**
-   * Retrieves a DatasetSummary object from the dataset id.
-   *
-   * @param id the dataset id
-   * @param onlyRetrieveAvailable true to exclude datasets that are exclusively locked, false to
-   *     include all datasets
-   * @return the DatasetSummary object
-   */
-  public DatasetSummary retrieveSummaryById(UUID id, boolean onlyRetrieveAvailable) {
     try {
       String sql =
           "SELECT "
               + summaryQueryColumns
+              + summaryCloudPlatformQuery
               + datasetStorageQuery
               + billingProfileQuery
-              + "FROM dataset WHERE dataset.id = :id";
-      if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
-        sql += " AND flightid IS NULL";
-      }
+              + "FROM dataset "
+              + "WHERE dataset.id = :id";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
     } catch (EmptyResultDataAccessException ex) {
@@ -548,9 +549,11 @@ public class DatasetDao {
       String sql =
           "SELECT "
               + summaryQueryColumns
+              + summaryCloudPlatformQuery
               + datasetStorageQuery
               + billingProfileQuery
-              + "FROM dataset WHERE name = :name";
+              + "FROM dataset "
+              + "WHERE dataset.name = :name";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
       return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
     } catch (EmptyResultDataAccessException ex) {
@@ -559,9 +562,8 @@ public class DatasetDao {
   }
 
   /**
-   * Fetch a list of all the available datasets. This method returns summary objects, which do not
-   * include sub-objects associated with datasets (e.g. tables). Note that this method will only
-   * return datasets that are NOT exclusively locked.
+   * Fetch a list of all the accessible datasets. This method returns summary objects, which do not
+   * include sub-objects associated with datasets (e.g. tables).
    *
    * @param offset skip this many datasets from the beginning of the list (intended for "scrolling"
    *     behavior)
@@ -584,11 +586,11 @@ public class DatasetDao {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<UUID> accessibleDatasetIds) {
+      Collection<UUID> accessibleDatasetIds,
+      List<String> tags) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
-    DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses);
-    whereClauses.add(" flightid IS NULL"); // exclude datasets that are exclusively locked
+    DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses, TABLE_NAME);
 
     // get total count of objects
     String countSql =
@@ -599,8 +601,14 @@ public class DatasetDao {
     }
 
     // add the filters to the clause to get the actual items
-    DaoUtils.addFilterClause(filter, params, whereClauses);
+    DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      TagUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException(
+          "Failed to convert dataset request tags list to SQL array", e);
+    }
 
     String whereSql = "";
     if (!whereClauses.isEmpty()) {
@@ -619,11 +627,12 @@ public class DatasetDao {
     String sql =
         "SELECT "
             + summaryQueryColumns
+            + summaryCloudPlatformQuery
             + datasetStorageQuery
             + billingProfileQuery
             + "FROM dataset "
             + whereSql
-            + DaoUtils.orderByClause(sort, direction)
+            + DaoUtils.orderByClause(sort, direction, TABLE_NAME)
             + " OFFSET :offset LIMIT :limit";
     params.addValue("offset", offset).addValue("limit", limit);
     List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
@@ -653,6 +662,25 @@ public class DatasetDao {
         throw new CorruptMetadataException(
             String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
+      Object properties = null;
+      String rsProperties = rs.getString("properties");
+      if (rsProperties != null) {
+        try {
+          properties = objectMapper.readValue(rsProperties, new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+          throw new CorruptMetadataException(
+              String.format("Invalid properties field for dataset - id: %s", datasetId), e);
+        }
+      }
+
+      boolean isAzure =
+          storageResources.stream().anyMatch(sr -> sr.getCloudPlatform() == CloudPlatform.AZURE);
+
+      CloudPlatform datasetCloudPlatform = isAzure ? CloudPlatform.AZURE : CloudPlatform.GCP;
+
+      Array sharedLocksArray = rs.getArray("sharedlock");
+      List<String> sharedLocks = Arrays.asList((String[]) sharedLocksArray.getArray());
+
       return new DatasetSummary()
           .id(datasetId)
           .name(rs.getString("name"))
@@ -662,8 +690,105 @@ public class DatasetDao {
           .applicationDeploymentResourceId(rs.getObject("application_resource_id", UUID.class))
           .createdDate(rs.getTimestamp("created_date").toInstant())
           .storage(storageResources)
-          .billingProfiles(billingProfileModels);
+          .billingProfiles(billingProfileModels)
+          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
+          .cloudPlatform(datasetCloudPlatform)
+          .dataProject(rs.getString("google_project_id"))
+          .storageAccount(rs.getString("storage_account_name"))
+          .phsId(rs.getString("phs_id"))
+          .selfHosted(rs.getBoolean("self_hosted"))
+          .predictableFileIds(rs.getBoolean("predictable_file_ids"))
+          .properties(properties)
+          .tags(DaoUtils.getStringList(rs, "tags"))
+          .resourceLocks(
+              new ResourceLocks().exclusive(rs.getString("flightid")).shared(sharedLocks));
     }
+  }
+
+  /**
+   * Update a dataset according to specified fields in the patch request. Any fields unspecified in
+   * the request will remain unaltered.
+   *
+   * @param id dataset UUID
+   * @param patchRequest updates to merge with existing dataset
+   * @return whether the dataset record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean patch(
+      UUID id, DatasetPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
+    String sql =
+        "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id), "
+            + "description = COALESCE(:description, description), "
+            + "properties = COALESCE(cast(:properties as jsonb), properties) WHERE id = :id";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("phs_id", patchRequest.getPhsId())
+            .addValue("description", patchRequest.getDescription())
+            .addValue(
+                "properties",
+                DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()))
+            .addValue("id", id);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    boolean patchSucceeded = (rowsAffected == 1);
+
+    if (patchSucceeded) {
+      logger.info("Dataset {} patched with {}", id, patchRequest);
+      journalService.recordUpdate(
+          userReq, id, IamResourceType.DATASET, "Patched dataset.", params.getValues());
+    }
+    return patchSucceeded;
+  }
+
+  /**
+   * Set a dataset's secure_monitoring flag
+   *
+   * @param id dataset UUID
+   * @return whether the dataset record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean setSecureMonitoring(
+      UUID id, boolean enableSecureMonitoring, AuthenticatedUserRequest userReq) {
+    String sql = "UPDATE dataset SET secure_monitoring = :enabledSecureMonitoring WHERE id = :id";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("id", id)
+            .addValue("enabledSecureMonitoring", enableSecureMonitoring);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    boolean patchSucceeded = (rowsAffected == 1);
+
+    if (patchSucceeded) {
+      logger.info("Dataset {} set secure monitoring to {}", id, enableSecureMonitoring);
+    }
+    return patchSucceeded;
+  }
+
+  /**
+   * Update a dataset's predictableFileIds flag
+   *
+   * @param id dataset UUID
+   * @param predictableFileIds sets the predictableFileIds flag in the dataset
+   * @return whether the dataset record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean setPredictableFileId(UUID id, boolean predictableFileIds) {
+    String sql =
+        """
+        UPDATE dataset SET predictable_file_ids = :predictable_file_ids
+        WHERE id = :id
+        """;
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("predictable_file_ids", predictableFileIds)
+            .addValue("id", id);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+
+    return (rowsAffected == 1);
   }
 
   /**
@@ -681,7 +806,7 @@ public class DatasetDao {
     } catch (Exception ex) {
       String errorMsg = "Database status check failed";
       logger.error(errorMsg, ex);
-      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex.toString());
+      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex);
     }
   }
 }

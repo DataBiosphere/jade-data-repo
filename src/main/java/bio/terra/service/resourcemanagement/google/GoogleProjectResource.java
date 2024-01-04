@@ -5,8 +5,10 @@ import java.util.UUID;
 public class GoogleProjectResource {
   private UUID id; // id of the project resource in the datarepo metadata
   private UUID profileId; // id of the associated billing profile
-  private String googleProjectId; // google's name of the project
-  private String googleProjectNumber; // google's id of the project
+  private String googleProjectId; // google's user specified, globally unique id of the project
+  private String googleProjectNumber; // google's auto generated numeric id of the project
+  private String serviceAccount; // service account associated with this project
+  private boolean dedicatedServiceAccount; // whether this project has a dedicated service account
 
   // Default constructor for JSON serdes
   public GoogleProjectResource() {}
@@ -44,6 +46,24 @@ public class GoogleProjectResource {
 
   public GoogleProjectResource googleProjectNumber(String googleProjectNumber) {
     this.googleProjectNumber = googleProjectNumber;
+    return this;
+  }
+
+  public String getServiceAccount() {
+    return serviceAccount;
+  }
+
+  public GoogleProjectResource serviceAccount(String serviceAccount) {
+    this.serviceAccount = serviceAccount;
+    return this;
+  }
+
+  public boolean hasDedicatedServiceAccount() {
+    return dedicatedServiceAccount;
+  }
+
+  public GoogleProjectResource dedicatedServiceAccount(boolean dedicatedServiceAccount) {
+    this.dedicatedServiceAccount = dedicatedServiceAccount;
     return this;
   }
 }

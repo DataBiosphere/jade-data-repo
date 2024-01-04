@@ -2,6 +2,7 @@
   "name":        "Minimal",
   "description": "This is a sample dataset definition",
   "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+  "dedicatedIngestServiceAccount": false,
   "schema":      {
     "tables":        [
       {

@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.common.azure.StorageTableName;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -57,39 +58,67 @@ public class TableDependencyDao {
               List<String> existing =
                   entities.stream()
                       .map(e -> e.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME).toString())
-                      .collect(Collectors.toList());
+                      .toList();
               // Create any entities that do not already exist
-              refIdChunk.stream()
-                  .filter(id -> !existing.contains(id))
-                  .forEach(refId -> createDependencyEntity(tableClient, snapshotId, refId));
+              List<TableTransactionAction> batchEntities =
+                  refIdChunk.stream()
+                      .distinct()
+                      .filter(id -> !existing.contains(id))
+                      .map(
+                          refId -> {
+                            FireStoreDependency fireStoreDependency =
+                                new FireStoreDependency()
+                                    .snapshotId(snapshotId.toString())
+                                    .fileId(refId)
+                                    .refCount(1L);
+                            TableEntity fireStoreDependencyEntity =
+                                FireStoreDependency.toTableEntity(fireStoreDependency);
+                            return new TableTransactionAction(
+                                TableTransactionActionType.UPSERT_REPLACE,
+                                fireStoreDependencyEntity);
+                          })
+                      .toList();
+              if (!batchEntities.isEmpty()) {
+                // This can happen if retrying a failed transaction.  This would cause an
+                // IllegalArgumentException with message "A transaction must contain at least one
+                // operation"
+                tableClient.submitTransaction(batchEntities);
+              }
             });
-  }
-
-  private void createDependencyEntity(TableClient tableClient, UUID snapshotId, String refId) {
-    FireStoreDependency fireStoreDependency =
-        new FireStoreDependency().snapshotId(snapshotId.toString()).fileId(refId).refCount(1L);
-    TableEntity fireStoreDependencyEntity = FireStoreDependency.toTableEntity(fireStoreDependency);
-    tableClient.upsertEntity(fireStoreDependencyEntity);
   }
 
   public void deleteSnapshotFileDependencies(
       TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId) {
     String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
-    ;
+
     if (TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName)) {
       TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("snapshotId eq '%s'", snapshotId));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      var batchEntities =
-          entities.stream()
-              .map(entity -> new TableTransactionAction(TableTransactionActionType.DELETE, entity))
-              .collect(Collectors.toList());
       logger.info(
           "Deleting snapshot {} file dependencies from {}", snapshotId, dependencyTableName);
-      tableClient.submitTransaction(batchEntities);
+      entities.stream().forEach(tableClient::deleteEntity);
     } else {
       logger.warn("No snapshot file dependencies found to be deleted from dataset");
     }
+  }
+
+  public List<String> getDatasetSnapshotFileIds(
+      TableServiceClient tableServiceClient, Dataset dataset, String snapshotId) {
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(dataset.getId());
+    TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
+    ListEntitiesOptions options =
+        new ListEntitiesOptions().setFilter(String.format("snapshotId eq '%s'", snapshotId));
+    return tableClient.listEntities(options, null, null).stream()
+        .map(FireStoreDependency::fromTableEntity)
+        .map(FireStoreDependency::getFileId)
+        .toList();
+  }
+
+  public boolean datasetHasSnapshotReference(
+      TableServiceClient tableServiceClient, UUID datasetId) {
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
+    return TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName);
   }
 }

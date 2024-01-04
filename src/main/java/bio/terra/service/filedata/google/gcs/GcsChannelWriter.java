@@ -19,7 +19,8 @@ public class GcsChannelWriter implements Closeable {
     this.writer = storage.writer(targetBlobInfo);
   }
 
-  public int write(String line) throws IOException {
+  public int writeLine(String line) throws IOException {
+    line = line + "\n";
     return writer.write(ByteBuffer.wrap(line.getBytes(StandardCharsets.UTF_8)));
   }
 

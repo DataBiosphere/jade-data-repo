@@ -1,17 +1,13 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Relationship;
 import bio.terra.service.dataset.exception.InvalidAssetException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -23,18 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class AssetDao {
-  private final NamedParameterJdbcTemplate jdbcTemplate;
 
-  @Autowired
-  public AssetDao(DataRepoJdbcConfiguration jdbcConfiguration) {
-    jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-  }
+  @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
-  // part of a transaction propagated from DatasetDao
-  public List<UUID> createAssets(Dataset dataset) {
-    return dataset.getAssetSpecifications().stream()
-        .map(assetSpec -> create(assetSpec, dataset.getId()))
-        .collect(Collectors.toList());
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void createAssets(Dataset dataset) {
+    dataset.getAssetSpecifications().forEach(assetSpec -> create(assetSpec, dataset.getId()));
   }
 
   /**
@@ -43,10 +33,9 @@ public class AssetDao {
    *
    * @param assetSpecification the AssetSpecification being created
    * @param datasetId the ID of the dataset corresponding to the AssetSpecification being created
-   * @return
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public UUID create(AssetSpecification assetSpecification, UUID datasetId) {
+  public void create(AssetSpecification assetSpecification, UUID datasetId) {
     String sql =
         "INSERT INTO asset_specification (dataset_id, name, root_table_id, root_column_id) "
             + "VALUES (:dataset_id, :name, :root_table_id, :root_column_id)";
@@ -69,30 +58,28 @@ public class AssetDao {
 
     createAssetColumns(assetSpecification);
     createAssetRelationships(assetSpecification);
-    return assetSpecId;
   }
 
   private void createAssetColumns(AssetSpecification assetSpec) {
     assetSpec
         .getAssetTables()
         .forEach(
-            assetTable -> {
-              assetTable
-                  .getColumns()
-                  .forEach(
-                      assetCol -> {
-                        String sql =
-                            "INSERT INTO asset_column (asset_id, dataset_column_id) "
-                                + "VALUES (:asset_id, :dataset_column_id)";
-                        MapSqlParameterSource params = new MapSqlParameterSource();
-                        params.addValue("asset_id", assetSpec.getId());
-                        params.addValue("dataset_column_id", assetCol.getDatasetColumn().getId());
-                        DaoKeyHolder keyHolder = new DaoKeyHolder();
-                        jdbcTemplate.update(sql, params, keyHolder);
-                        UUID assetColumnId = keyHolder.getId();
-                        assetCol.id(assetColumnId);
-                      });
-            });
+            assetTable ->
+                assetTable
+                    .getColumns()
+                    .forEach(
+                        assetCol -> {
+                          String sql =
+                              "INSERT INTO asset_column (asset_id, dataset_column_id) "
+                                  + "VALUES (:asset_id, :dataset_column_id)";
+                          MapSqlParameterSource params = new MapSqlParameterSource();
+                          params.addValue("asset_id", assetSpec.getId());
+                          params.addValue("dataset_column_id", assetCol.getDatasetColumn().getId());
+                          DaoKeyHolder keyHolder = new DaoKeyHolder();
+                          jdbcTemplate.update(sql, params, keyHolder);
+                          UUID assetColumnId = keyHolder.getId();
+                          assetCol.id(assetColumnId);
+                        }));
   }
 
   private void createAssetRelationships(AssetSpecification assetSpec) {
@@ -136,13 +123,12 @@ public class AssetDao {
           UUID specId = rs.getObject("id", UUID.class);
           AssetSpecification spec = new AssetSpecification().id(specId).name(rs.getString("name"));
           spec.assetTables(
-              new ArrayList(
-                  retrieveAssetTablesAndColumns(
-                      spec,
-                      rs.getObject("root_table_id", UUID.class),
-                      rs.getObject("root_column_id", UUID.class),
-                      allTables,
-                      allColumns)));
+              retrieveAssetTablesAndColumns(
+                  spec,
+                  rs.getObject("root_table_id", UUID.class),
+                  rs.getObject("root_column_id", UUID.class),
+                  allTables,
+                  allColumns));
           spec.assetRelationships(retrieveAssetRelationships(spec.getId(), allRelationships));
 
           return spec;
@@ -150,7 +136,7 @@ public class AssetDao {
   }
 
   // also retrieves columns
-  private Collection<AssetTable> retrieveAssetTablesAndColumns(
+  private List<AssetTable> retrieveAssetTablesAndColumns(
       AssetSpecification spec,
       UUID rootTableId,
       UUID rootColumnId,
@@ -161,7 +147,8 @@ public class AssetDao {
         "SELECT asset_column.id, asset_column.dataset_column_id, dataset_column.table_id "
             + "FROM asset_column "
             + "INNER JOIN dataset_column ON asset_column.dataset_column_id = dataset_column.id "
-            + "WHERE asset_id = :assetId";
+            + "WHERE asset_id = :assetId "
+            + "ORDER BY dataset_column.ordinal";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", spec.getId());
     List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, params);
     results.forEach(
@@ -182,7 +169,7 @@ public class AssetDao {
           // add the new column to the asset table object
           assetTable.getColumns().add(newColumn);
         });
-    return tables.values();
+    return List.copyOf(tables.values());
   }
 
   private List<AssetRelationship> retrieveAssetRelationships(
@@ -197,6 +184,14 @@ public class AssetDao {
                 .id(rs.getObject("id", UUID.class))
                 .datasetRelationship(
                     allRelationships.get(rs.getObject("relationship_id", UUID.class))));
+  }
+
+  public List<UUID> retrieveSnapshotsForAsset(UUID datasetId, UUID specId) {
+    String sql =
+        "SELECT snapshot_id FROM snapshot_source WHERE dataset_id = :datasetId AND asset_id = :assetId";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("datasetId", datasetId).addValue("assetId", specId);
+    return jdbcTemplate.query(sql, params, (rs, rowNum) -> rs.getObject("snapshot_id", UUID.class));
   }
 
   @Transactional

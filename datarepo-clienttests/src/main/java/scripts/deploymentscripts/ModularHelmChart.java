@@ -224,8 +224,6 @@ public class ModularHelmChart extends DeploymentScript {
     // confirm that the expected environment variables/application properties are set
     final List<String> environmentSpecificVariables =
         Arrays.asList(
-            "GOOGLE_PROJECTID",
-            "GOOGLE_SINGLEDATAPROJECTID",
             "DB_DATAREPO_USERNAME",
             "DB_STAIRWAY_USERNAME",
             "DB_DATAREPO_URI",
@@ -249,7 +247,6 @@ public class ModularHelmChart extends DeploymentScript {
     // always set the following testing-related environment variables
     envSubTree.put("DB_STAIRWAY_FORCECLEAN", "true");
     envSubTree.put("GOOGLE_ALLOWREUSEEXISTINGBUCKETS", "true");
-    envSubTree.put("GOOGLE_ALLOWREUSEEXISTINGPROJECTS", "true");
 
     // set the following environment variables from the application specification object
     // make sure the values are Strings so that they will be quoted in the Helm chart

@@ -8,18 +8,25 @@ import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
+import bio.terra.datarepo.model.CloudPlatform;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
+import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.cloud.storage.BlobId;
+import common.utils.AzureAuthUtils;
+import common.utils.BlobIOTestUtility;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -29,6 +36,7 @@ import scripts.utils.DataRepoUtils;
 
 public class CreateSnapshot extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshot.class);
+  private static final String testDataStorageAccount = "tdrtestdatauseast";
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public CreateSnapshot() {
@@ -39,6 +47,14 @@ public class CreateSnapshot extends SimpleDataset {
 
   private static List<BlobId> scratchFiles = new ArrayList<>();
 
+  private BlobIOTestUtility blobIOTestUtility;
+
+  private AzureResourceManager azureClient;
+
+  private BulkLoadArrayRequestModel arrayLoad;
+
+  private IngestRequestModel ingestRequest;
+
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
     super.setup(testUsers);
@@ -46,12 +62,29 @@ public class CreateSnapshot extends SimpleDataset {
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
+    if (cloudPlatform.equals(CloudPlatform.AZURE)) {
+      azureClient = AzureAuthUtils.getClient(tenantId, subscriptionId);
+      RequestRetryOptions retryOptions =
+          new RequestRetryOptions(RetryPolicyType.EXPONENTIAL, 3, 60, null, null, null);
+      blobIOTestUtility =
+          new BlobIOTestUtility(
+              AzureAuthUtils.getAppToken(tenantId), testDataStorageAccount, null, retryOptions);
+    }
     // Be careful testing this at larger sizes
     DataRepoUtils.setConfigParameter(repositoryApi, "LOAD_BULK_ARRAY_FILES_MAX", filesToLoad);
 
     // set up and start bulk load job of small local files
-    BulkLoadArrayRequestModel arrayLoad =
-        BulkLoadUtils.buildBulkLoadFileRequest100B(filesToLoad, billingProfileModel.getId());
+    long loadStart = System.currentTimeMillis();
+    if (cloudPlatform.equals(CloudPlatform.GCP)) {
+      arrayLoad =
+          BulkLoadUtils.buildBulkLoadFileRequest100B(filesToLoad, billingProfileModel.getId());
+    } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
+      arrayLoad =
+          BulkLoadUtils.buildAzureBulkLoadFileRequest100B(
+              filesToLoad, billingProfileModel.getId(), blobIOTestUtility, azureClient);
+    } else {
+      throw new RuntimeException("Unsupported cloud platform");
+    }
     JobModel bulkLoadArrayJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
@@ -62,30 +95,56 @@ public class CreateSnapshot extends SimpleDataset {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
     BulkLoadResultModel loadSummary = result.getLoadSummary();
+    long loadEnd = System.currentTimeMillis();
+    long loadDuration = loadEnd - loadStart;
+    logger.info(String.format("Bulk load duration: {}", loadDuration));
     assertThat(
         "Number of successful files loaded should equal total files.",
         loadSummary.getTotalFiles(),
         equalTo(loadSummary.getSucceededFiles()));
 
-    // generate load for the simple dataset
-    String testConfigGetIngestbucket = "jade-testdata";
-    String fileRefName =
-        "scratch/buildSnapshotWithFiles/" + FileUtils.randomizeName("input") + ".json";
-    BlobId scratchFile =
-        BulkLoadUtils.writeScratchFileForIngestRequest(
-            server.testRunnerServiceAccount, result, testConfigGetIngestbucket, fileRefName);
-    IngestRequestModel ingestRequest = BulkLoadUtils.makeIngestRequestFromScratchFile(scratchFile);
-    scratchFiles.add(scratchFile); // make sure the scratch file gets cleaned up later
+    long ingestStart = System.currentTimeMillis();
+    if (cloudPlatform.equals(CloudPlatform.GCP)) {
+      // generate load for the simple dataset
+      String testConfigGetIngestbucket = "jade-testdata";
+      String fileRefName =
+          "scratch/buildSnapshotWithFiles/" + FileUtils.randomizeName("input") + ".json";
+      BlobId scratchFile =
+          BulkLoadUtils.writeScratchFileForIngestRequest(
+              server.testRunnerServiceAccount, result, testConfigGetIngestbucket, fileRefName);
+      ingestRequest = BulkLoadUtils.makeIngestRequestFromScratchFile(scratchFile);
+      scratchFiles.add(scratchFile); // make sure the scratch file gets cleaned up later
+    } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
+      String fileRefName = UUID.randomUUID().toString() + "/file-ingest-request.json";
+      String scratchFile =
+          BulkLoadUtils.azureWriteScratchFileForIngestRequest(
+              blobIOTestUtility, result, fileRefName);
+      ingestRequest =
+          new IngestRequestModel()
+              .format(IngestRequestModel.FormatEnum.JSON)
+              .ignoreUnknownValues(false)
+              .maxBadRecords(0)
+              .table("vcf_file")
+              .path(scratchFile)
+              .profileId(billingProfileModel.getId())
+              .loadTag(FileUtils.randomizeName("azureCombinedIngestTest"));
+    } else {
+      throw new RuntimeException("Unsupported cloud platform");
+    }
 
     // load the data
     JobModel ingestTabularDataJobResponse =
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(
+            repositoryApi, ingestTabularDataJobResponse, datasetCreator);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
+    long ingestEnd = System.currentTimeMillis();
+    long ingestDuration = ingestEnd - ingestStart;
+    logger.info(String.format("Dataset ingest duration: {}", ingestDuration));
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
   }
 
@@ -109,7 +168,7 @@ public class CreateSnapshot extends SimpleDataset {
       // make the create snapshot request and wait for the job to finish
       JobModel createSnapshotJobResponse =
           DataRepoUtils.createSnapshot(
-              repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+              repositoryApi, datasetSummaryModel, "snapshot-simple.json", testUser, true);
 
       logger.info("Snapshot job is done");
       if (createSnapshotJobResponse.getJobStatus() == JobModel.JobStatusEnum.FAILED) {
@@ -142,7 +201,8 @@ public class CreateSnapshot extends SimpleDataset {
     if (snapshotModel != null) {
       JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotModel.getId());
       deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+          DataRepoUtils.waitForJobToFinish(
+              repositoryApi, deleteSnapshotJobResponse, datasetCreator);
       DataRepoUtils.expectJobSuccess(
           repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
       logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());
@@ -151,7 +211,11 @@ public class CreateSnapshot extends SimpleDataset {
     // delete the profile and dataset
 
     // delete the scratch files used for ingesting tabular data and soft delete rows
-    StorageUtils.deleteFiles(
-        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
+    if (cloudPlatform.equals(CloudPlatform.GCP)) {
+      StorageUtils.deleteFiles(
+          StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
+    } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
+      blobIOTestUtility.deleteContainers();
+    }
   }
 }

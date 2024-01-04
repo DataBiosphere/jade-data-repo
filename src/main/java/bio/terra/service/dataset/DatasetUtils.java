@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.model.DatasetRequestModel;
+import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;
@@ -13,6 +14,9 @@ public final class DatasetUtils {
 
   private static final String auxTableNamePattern =
       PdaoConstant.PDAO_PREFIX + "<auxId>_<table>_<randomSuffix>";
+
+  private static final String metadataTableNamePattern =
+      PdaoConstant.PDAO_PREFIX + "<auxId>_<table>";
 
   /**
    * Generate a semi-random name for an 'auxiliary' BigQuery table to support a user-defined table.
@@ -33,6 +37,13 @@ public final class DatasetUtils {
     return nameTemplate.render();
   }
 
+  public static String generateMetadataTableName(DatasetTable table, String infixId) {
+    ST nameTemplate = new ST(metadataTableNamePattern);
+    nameTemplate.add("table", table.getName());
+    nameTemplate.add("auxId", infixId);
+    return nameTemplate.render();
+  }
+
   /**
    * Convert a dataset request into a fully-populated dataset model.
    *
@@ -41,14 +52,17 @@ public final class DatasetUtils {
    * method twice on the same request will produce different results.
    */
   public static Dataset convertRequestWithGeneratedNames(DatasetRequestModel request) {
-    Dataset baseDataset = DatasetJsonConversion.datasetRequestToDataset(request);
-    baseDataset
-        .getTables()
-        .forEach(
-            t -> {
-              t.rawTableName(generateAuxTableName(t, "raw"));
-              t.softDeleteTableName(generateAuxTableName(t, "sd"));
-            });
+    Dataset baseDataset = DatasetJsonConversion.datasetRequestToDataset(request, null);
+    fillGeneratedTableNames(baseDataset.getTables());
     return baseDataset;
+  }
+
+  public static void fillGeneratedTableNames(List<DatasetTable> tables) {
+    tables.forEach(
+        t -> {
+          t.rawTableName(generateAuxTableName(t, "raw"));
+          t.softDeleteTableName(generateAuxTableName(t, "sd"));
+          t.rowMetadataTableName(generateMetadataTableName(t, "row_metadata"));
+        });
   }
 }

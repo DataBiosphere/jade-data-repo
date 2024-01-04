@@ -2,16 +2,16 @@ package bio.terra.app.controller;
 
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ConflictException;
-import bio.terra.common.exception.DataRepoException;
+import bio.terra.common.exception.ErrorReportException;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.ServiceUnavailableException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
-import bio.terra.service.iam.sam.SamIam;
+import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
-import java.util.Collections;
 import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -25,44 +25,43 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-  private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.controller.exception.GlobalExceptionHandler");
+  private final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   // -- data repository base exceptions --
   @ExceptionHandler(NotFoundException.class)
   @ResponseStatus(HttpStatus.NOT_FOUND)
-  public ErrorModel notFoundHandler(DataRepoException ex) {
-    return buildErrorModel(ex, ex.getErrorDetails());
+  public ErrorModel notFoundHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   @ExceptionHandler(BadRequestException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
-  public ErrorModel badRequestHandler(DataRepoException ex) {
-    return buildErrorModel(ex, ex.getErrorDetails());
+  public ErrorModel badRequestHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   @ExceptionHandler(InternalServerErrorException.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-  public ErrorModel internalServerErrorHandler(DataRepoException ex) {
-    return buildErrorModel(ex, ex.getErrorDetails());
+  public ErrorModel internalServerErrorHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   @ExceptionHandler(ServiceUnavailableException.class)
   @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-  public ErrorModel serviceUnavailableHandler(DataRepoException ex) {
-    return buildErrorModel(ex, ex.getErrorDetails());
+  public ErrorModel serviceUnavailableHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   @ExceptionHandler(NotImplementedException.class)
   @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
-  public ErrorModel notImplementedHandler(DataRepoException ex) {
-    return buildErrorModel(ex, ex.getErrorDetails());
+  public ErrorModel notImplementedHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   @ExceptionHandler(ConflictException.class)
   @ResponseStatus(HttpStatus.CONFLICT)
-  public ErrorModel conflictHandler(DataRepoException ex) {
-    return buildErrorModel(ex, ex.getErrorDetails());
+  public ErrorModel conflictHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   // -- exceptions from validations - we don't control the exception raised --
@@ -80,7 +79,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnauthorizedException.class)
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public ErrorModel samAuthorizationException(UnauthorizedException ex) {
-    return buildErrorModel(ex, Collections.emptyList());
+    return buildErrorModel(ex, ex.getCauses());
+  }
+
+  @ExceptionHandler(ForbiddenException.class)
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  public ErrorModel forbiddenHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   // -- job response exception -- we use the JobResponseException to wrap non-runtime exceptions
@@ -102,7 +107,7 @@ public class GlobalExceptionHandler {
     // the conversion,
     // but want to add in a logging message that there's an escaped SAM ApiException somewhere.
     logger.error("SAM ApiException caught outside the service/iam package", ex);
-    DataRepoException drex = SamIam.convertSAMExToDataRepoEx(ex);
+    ErrorReportException drex = SamIam.convertSAMExToDataRepoEx(ex);
     return buildErrorModel(drex);
   }
 

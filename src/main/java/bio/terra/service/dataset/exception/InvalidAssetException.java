@@ -16,6 +16,10 @@ public class InvalidAssetException extends BadRequestException {
     super(cause);
   }
 
+  public InvalidAssetException(String message, List<String> causes) {
+    super(message, causes);
+  }
+
   public InvalidAssetException(String message, Throwable cause, List<String> errorDetails) {
     super(message, cause, errorDetails);
   }

@@ -5,6 +5,7 @@ import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.RelationshipModel;
@@ -64,6 +65,10 @@ public final class DatasetFixtures {
         .to(buildSampleTerm());
   }
 
+  public static AssetTableModel generateAssetTable(String tableName, List<String> columnNames) {
+    return new AssetTableModel().name(tableName).columns(columnNames);
+  }
+
   public static AssetTableModel buildAssetParticipantTable() {
     return new AssetTableModel().name("participant").columns(Collections.emptyList());
   }
@@ -113,10 +118,31 @@ public final class DatasetFixtures {
             .id(UUID.randomUUID())
             .name(name)
             .rawTableName(name)
+            .softDeleteTableName(name)
             .columns(columns)
             .primaryKey(columns.subList(0, 0));
     datasetTable.getColumns().forEach(c -> c.table(datasetTable));
 
     return datasetTable;
+  }
+
+  public static TableModel tableModel(String tableName, List<String> columns) {
+    return new TableModel()
+        .name(tableName)
+        .columns(columns.stream().map(DatasetFixtures::columnModel).collect(Collectors.toList()));
+  }
+
+  public static DatasetSchemaColumnUpdateModel columnUpdateModel(
+      String tableName, List<ColumnModel> columns) {
+    return new DatasetSchemaColumnUpdateModel().tableName(tableName).columns(columns);
+  }
+
+  public static ColumnModel columnModel(String name) {
+    return columnModel(name, TableDataType.STRING, false, false);
+  }
+
+  public static ColumnModel columnModel(
+      String name, TableDataType type, boolean arrayOf, boolean isRequired) {
+    return new ColumnModel().name(name).datatype(type).arrayOf(arrayOf).required(isRequired);
   }
 }

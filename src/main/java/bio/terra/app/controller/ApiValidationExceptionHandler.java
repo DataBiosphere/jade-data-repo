@@ -2,7 +2,7 @@ package bio.terra.app.controller;
 
 import static java.util.stream.Collectors.toList;
 
-import bio.terra.common.exception.DataRepoException;
+import bio.terra.common.exception.ErrorReportException;
 import bio.terra.model.ErrorModel;
 import java.util.Collections;
 import java.util.List;
@@ -76,9 +76,9 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
     final List<String> details;
     Throwable rootCause = ExceptionUtils.getRootCause(ex);
 
-    if (rootCause instanceof DataRepoException) {
+    if (rootCause instanceof ErrorReportException) {
       message = rootCause.getMessage();
-      details = ((DataRepoException) rootCause).getErrorDetails();
+      details = ((ErrorReportException) rootCause).getCauses();
     } else {
       message = status + " - see error details";
       details = Collections.singletonList(rootCause.getMessage());

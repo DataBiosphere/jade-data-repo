@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
@@ -14,12 +13,13 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -46,9 +46,7 @@ public class SimpleScenarioFaultTests extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
-  @Autowired private DataRepoClient dataRepoClient;
-
-  @Autowired private TestConfiguration testConfig;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private UUID profileId;
   private UUID datasetId;

@@ -1,13 +1,13 @@
 package bio.terra.app.controller;
 
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.UpgradeApi;
 import bio.terra.model.JobModel;
 import bio.terra.model.UpgradeModel;
+import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.dataset.AssetModelValidator;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
-import bio.terra.service.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import bio.terra.service.upgrade.UpgradeService;
 import com.fasterxml.jackson.databind.ObjectMapper;

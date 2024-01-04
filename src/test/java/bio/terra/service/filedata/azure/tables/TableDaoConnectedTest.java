@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.Names;
 import bio.terra.service.common.azure.StorageTableName;
@@ -18,6 +19,7 @@ import bio.terra.service.filedata.SnapshotCompute;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotSource;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
@@ -44,6 +46,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class TableDaoConnectedTest {
   private final Logger logger = LoggerFactory.getLogger(TableDaoConnectedTest.class);
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
@@ -82,7 +85,10 @@ public class TableDaoConnectedTest {
     dataset = new Dataset().id(datasetId).name(Names.randomizeName("dataset"));
     refIds = new ArrayList<>();
     snapshotId = UUID.randomUUID();
-    snapshot = new Snapshot().id(snapshotId);
+    snapshot =
+        new Snapshot()
+            .id(snapshotId)
+            .snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
     loadTag = Names.randomizeName("loadTag");
     logger.info(
         "Test details: Dataset Name: {}, Dataset Id: {}, Snapshot Id: {}, Snapshot Table Name: {}, loadTag: {}",
@@ -116,14 +122,16 @@ public class TableDaoConnectedTest {
   @After
   public void cleanup() {
     // delete entries from dataset
-    refIds.stream()
-        .forEach(
-            refId -> {
-              boolean success =
-                  tableDirectoryDao.deleteDirectoryEntry(
-                      tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), refId);
-              logger.info("Delete {}: {}", refId, success);
-            });
+    refIds.forEach(
+        refId -> {
+          boolean success =
+              tableDirectoryDao.deleteDirectoryEntry(
+                  tableServiceClient,
+                  datasetId,
+                  StorageTableName.DATASET.toTableName(datasetId),
+                  refId);
+          logger.info("Delete {}: {}", refId, success);
+        });
 
     // delete entire snapshot table
     tableDirectoryDao.deleteDirectoryEntriesFromCollection(
@@ -133,9 +141,15 @@ public class TableDaoConnectedTest {
   @Test
   public void testAddFilesToSnapshot() {
     // First, make sure the directory entries exist in the dataset's storage table
-    checkThatEntriesExist(datasetId, StorageTableName.DATASET.toTableName(), false);
+    checkThatEntriesExist(datasetId, StorageTableName.DATASET.toTableName(datasetId), false);
 
-    tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
+    tableDao.addFilesToSnapshot(
+        tableServiceClient,
+        tableServiceClient,
+        dataset.getId(),
+        dataset.getName(),
+        snapshot.getId(),
+        refIds);
 
     // Now make sure that the same directory entries exist in the snapshot's storage table
     checkThatEntriesExist(snapshotId, StorageTableName.SNAPSHOT.toTableName(snapshotId), true);
@@ -151,12 +165,15 @@ public class TableDaoConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), newEntry);
+        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), targetPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
   }
 
@@ -168,7 +185,7 @@ public class TableDaoConnectedTest {
       datasetNamePlaceholder = "/" + dataset.getName();
     }
 
-    List<String> directories = new ArrayList();
+    List<String> directories = new ArrayList<>();
     directories.add("/_dr_");
     directories.add(String.format("/_dr_%s/%s", datasetNamePlaceholder, uniqueTestDirectory));
     directories.add(String.format("/_dr_%s/%s/path", datasetNamePlaceholder, uniqueTestDirectory));
@@ -224,7 +241,10 @@ public class TableDaoConnectedTest {
     fileObjects.addAll(dsetObjects);
     for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fileObjects) {
       tableDirectoryDao.createDirectoryEntry(
-          tableServiceClient, datasetId, "dataset", fireStoreDirectoryEntry);
+          tableServiceClient,
+          datasetId,
+          StorageTableName.DATASET.toTableName(datasetId),
+          fireStoreDirectoryEntry);
     }
 
     // Make the snapshot file system
@@ -273,9 +293,10 @@ public class TableDaoConnectedTest {
             .fileCreatedDate(Instant.now().toString())
             .gspath(endpoint + "/" + fullPath)
             .checksumMd5(SnapshotCompute.computeMd5(fullPath))
+            .userSpecifiedMd5(false)
             .size(size);
 
-    tableFileDao.createFileMetadata(tableServiceClient, newFile);
+    tableFileDao.createFileMetadata(tableServiceClient, datasetId.toString(), newFile);
 
     return new FireStoreDirectoryEntry()
         .fileId(fileId)

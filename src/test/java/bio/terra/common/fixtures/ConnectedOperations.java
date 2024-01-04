@@ -1,5 +1,6 @@
 package bio.terra.common.fixtures;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -19,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
@@ -30,6 +32,7 @@ import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -42,17 +45,24 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetDaoUtils;
-import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
+import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.tabulardata.DataResultModel;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -62,11 +72,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
-import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +89,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 // Common code for creating and deleting datasets and snapshots via MockMvc
 // and tracking what is created so it can be deleted.
@@ -112,6 +126,11 @@ public class ConnectedOperations {
     createdScratchFiles = new ArrayList<>();
   }
 
+  private static Map<UUID, Set<IamRole>> uuidsToAuthMap(List<UUID> uuids) {
+    return uuids.stream()
+        .collect(Collectors.toMap(Function.identity(), x -> Set.of(IamRole.READER)));
+  }
+
   public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
     // The policy email must be a real google group, otherwise request that
     // update bigquery dataset policies will fail
@@ -125,22 +144,28 @@ public class ConnectedOperations {
 
     when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
     when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-    when(samService.createDatasetResource(any(), any())).thenReturn(datasetPolicies);
+    when(samService.createDatasetResource(any(), any(), any())).thenReturn(datasetPolicies);
+    when(samService.listActions(any(), eq(IamResourceType.DATASET), any()))
+        .thenReturn(List.of(IamAction.READ_DATASET.toString()));
+
+    when(samService.retrievePolicyEmails(any(), eq(IamResourceType.DATASET), any()))
+        .thenReturn(datasetPolicies);
 
     // when asked what datasets/snapshots the caller has access to, return all the
     // datasets/snapshots contained
     // in the bookkeeping lists (createdDatasetIds/createdDatasetIds) in this class.
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASET)))
-        .thenAnswer((Answer<List<UUID>>) invocation -> createdDatasetIds);
+        .thenAnswer(invocation -> uuidsToAuthMap(createdDatasetIds));
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
-        .thenAnswer((Answer<List<UUID>>) invocation -> createdSnapshotIds);
+        .thenAnswer(invocation -> uuidsToAuthMap(createdSnapshotIds));
     doNothing().when(samService).deleteSnapshotResource(any(), any());
     doNothing().when(samService).deleteDatasetResource(any(), any());
 
     // Mock the billing profile calls
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
-        .thenAnswer((Answer<List<UUID>>) invocation -> createdProfileIds);
-    when(samService.hasActions(any(), eq(IamResourceType.SPEND_PROFILE), any())).thenReturn(true);
+        .thenAnswer(invocation -> uuidsToAuthMap(createdProfileIds));
+    when(samService.hasAnyActions(any(), eq(IamResourceType.SPEND_PROFILE), any()))
+        .thenReturn(true);
 
     doNothing().when(samService).createProfileResource(any(), any());
     doNothing().when(samService).deleteProfileResource(any(), any());
@@ -266,8 +291,17 @@ public class ConnectedOperations {
   public SnapshotSummaryModel createSnapshot(
       DatasetSummaryModel datasetSummaryModel, String resourcePath, String infix) throws Exception {
 
+    SnapshotRequestModel snapshotRequest =
+        jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
+    return createSnapshot(datasetSummaryModel, snapshotRequest, infix);
+  }
+
+  public SnapshotSummaryModel createSnapshot(
+      DatasetSummaryModel datasetSummaryModel, SnapshotRequestModel snapshotRequest, String infix)
+      throws Exception {
+
     MockHttpServletResponse response =
-        launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
+        launchCreateSnapshot(datasetSummaryModel, snapshotRequest, infix);
     SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
 
     return snapshotSummary;
@@ -289,6 +323,12 @@ public class ConnectedOperations {
       DatasetSummaryModel datasetSummaryModel, String resourcePath, String infix) throws Exception {
     SnapshotRequestModel snapshotRequest =
         jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
+    return launchCreateSnapshot(datasetSummaryModel, snapshotRequest, infix);
+  }
+
+  public MockHttpServletResponse launchCreateSnapshot(
+      DatasetSummaryModel datasetSummaryModel, SnapshotRequestModel snapshotRequest, String infix)
+      throws Exception {
     String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
 
     return launchCreateSnapshotName(datasetSummaryModel, snapshotRequest, snapshotName);
@@ -447,7 +487,9 @@ public class ConnectedOperations {
   }
 
   public boolean deleteTestProfile(UUID id) throws Exception {
-    MvcResult result = mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
+    MvcResult result =
+        mvc.perform(delete("/api/resources/v1/profiles/{id}?deleteCloudResources=true", id))
+            .andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
     return checkDeleteResponse(response);
   }
@@ -455,7 +497,6 @@ public class ConnectedOperations {
   public boolean deleteTestSnapshot(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return checkDeleteResponse(response);
   }
 
@@ -465,7 +506,6 @@ public class ConnectedOperations {
             .andReturn();
     logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return checkDeleteResponse(response);
   }
 
@@ -498,20 +538,77 @@ public class ConnectedOperations {
 
   public MvcResult ingestTableRaw(UUID datasetId, IngestRequestModel ingestRequestModel)
       throws Exception {
+    return ingestTableRaw(datasetId, ingestRequestModel, null);
+  }
+
+  public MvcResult ingestTableRaw(
+      UUID datasetId, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq)
+      throws Exception {
     String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
     String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
 
-    return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(jsonRequest))
+    return mvc.perform(
+            performAs(post(url), userReq)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
         .andReturn();
   }
 
   public IngestResponseModel ingestTableSuccess(
       UUID datasetId, IngestRequestModel ingestRequestModel) throws Exception {
-    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
+    return ingestTableSuccess(datasetId, ingestRequestModel, null);
+  }
+
+  public IngestResponseModel ingestTableSuccess(
+      UUID datasetId, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userRequest)
+      throws Exception {
+    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel, userRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
 
     IngestResponseModel ingestResponse = checkIngestTableResponse(response);
     return ingestResponse;
+  }
+
+  public void checkTableRowCount(
+      FSContainerInterface tdrResource, String tableName, String prefix, int expectedRowCount) {
+    int rowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, tableName);
+    assertThat("Expected row count", rowCount, equalTo(expectedRowCount));
+  }
+
+  public void checkDataModel(
+      FSContainerInterface tdrResource,
+      List<String> columnNames,
+      String prefix,
+      String tableName,
+      int expectedRowCount)
+      throws InterruptedException {
+    List<BigQueryDataResultModel> results =
+        BigQueryPdao.getTable(
+            tdrResource,
+            tableName,
+            columnNames,
+            expectedRowCount + 1,
+            0,
+            PDAO_ROW_ID_COLUMN,
+            null,
+            null);
+    DataResultModel result = results.get(0);
+    assertNotNull("collection type should be defined as a snapshot or dataset.", tdrResource);
+    switch (tdrResource.getCollectionType()) {
+      case DATASET:
+        assertThat(
+            "Total row count should be correct since we includeTotalRowCount for datasets",
+            result.getTotalCount(),
+            equalTo(expectedRowCount));
+        break;
+      case SNAPSHOT:
+        assertThat(
+            "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
+            result.getTotalCount(),
+            equalTo(0));
+        break;
+    }
+    assertThat("Expected filtered count", result.getFilteredCount(), equalTo(expectedRowCount));
   }
 
   public IngestResponseModel checkIngestTableResponse(MockHttpServletResponse response)
@@ -524,7 +621,13 @@ public class ConnectedOperations {
 
   public ErrorModel ingestTableFailure(UUID datasetId, IngestRequestModel ingestRequestModel)
       throws Exception {
-    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
+    return ingestTableFailure(datasetId, ingestRequestModel, null);
+  }
+
+  public ErrorModel ingestTableFailure(
+      UUID datasetId, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userRequest)
+      throws Exception {
+    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel, userRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
     return handleFailureCase(response);
   }
@@ -798,6 +901,139 @@ public class ConnectedOperations {
     return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
   }
 
+  public MockHttpServletResponse retrieveDatasetDataByIdRaw(
+      UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    String url = "/api/repository/v1/datasets/{id}/data/{table}";
+    var requestModel = new QueryDataRequestModel().limit(limit).offset(offset);
+    if (sort != null) {
+      requestModel.sort(sort);
+    }
+    if (filter != null) {
+      requestModel.filter(filter);
+    }
+    MockHttpServletRequestBuilder request =
+        post(url, datasetId, tableName)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(requestModel));
+    MvcResult result = mvc.perform(request).andReturn();
+    return result.getResponse();
+  }
+
+  public DatasetDataModel retrieveDatasetDataByIdSuccess(
+      UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveDatasetDataByIdRaw(datasetId, tableName, limit, offset, filter, sort);
+    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+    return TestUtils.mapFromJson(response.getContentAsString(), DatasetDataModel.class);
+  }
+
+  public ErrorModel retrieveDatasetDataByIdFailure(
+      UUID datasetId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      String sort,
+      HttpStatus expectedStatus)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveDatasetDataByIdRaw(datasetId, tableName, limit, offset, filter, sort);
+    return handleFailureCase(response, expectedStatus);
+  }
+
+  public MockHttpServletResponse retrieveSnapshotPreviewByIdRaw(
+      UUID snapshotId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    String url = "/api/repository/v1/snapshots/{id}/data/{table}";
+    var requestModel = new QueryDataRequestModel().limit(limit).offset(offset);
+    if (sort != null) {
+      requestModel.sort(sort);
+    }
+    if (filter != null) {
+      requestModel.filter(filter);
+    }
+    MockHttpServletRequestBuilder request =
+        post(url, snapshotId, tableName)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(requestModel));
+    MvcResult result = mvc.perform(request).andReturn();
+    return result.getResponse();
+  }
+
+  public enum TdrResourceType {
+    SNAPSHOT,
+    DATASET
+  };
+
+  public List<Object> retrieveDataSuccess(
+      TdrResourceType resourceType,
+      UUID resourceId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      String sort)
+      throws Exception {
+    switch (resourceType) {
+      case SNAPSHOT:
+        return retrieveSnapshotPreviewByIdSuccess(
+                resourceId, tableName, limit, offset, filter, sort)
+            .getResult();
+      case DATASET:
+        return retrieveDatasetDataByIdSuccess(resourceId, tableName, limit, offset, filter, sort)
+            .getResult();
+      default:
+        throw new NotImplementedException();
+    }
+  }
+
+  public ErrorModel retrieveDataFailure(
+      TdrResourceType resourceType,
+      UUID resourceId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      String sort,
+      HttpStatus expectedStatus)
+      throws Exception {
+    switch (resourceType) {
+      case SNAPSHOT:
+        return retrieveSnapshotPreviewByIdFailure(
+            resourceId, tableName, limit, offset, filter, sort, expectedStatus);
+      case DATASET:
+        return retrieveDatasetDataByIdFailure(
+            resourceId, tableName, limit, offset, filter, sort, expectedStatus);
+      default:
+        throw new NotImplementedException();
+    }
+  }
+
+  public SnapshotPreviewModel retrieveSnapshotPreviewByIdSuccess(
+      UUID snapshotId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter, sort);
+    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+    return TestUtils.mapFromJson(response.getContentAsString(), SnapshotPreviewModel.class);
+  }
+
+  public ErrorModel retrieveSnapshotPreviewByIdFailure(
+      UUID snapshotId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      String sort,
+      HttpStatus expectedStatus)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter, sort);
+    return handleFailureCase(response, expectedStatus);
+  }
+
   /*
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
@@ -827,6 +1063,10 @@ public class ConnectedOperations {
     while (true) {
       MockHttpServletResponse response = result.getResponse();
       HttpStatus status = HttpStatus.valueOf(response.getStatus());
+      // When the status is not found, there is no job to poll
+      if (status == HttpStatus.NOT_FOUND) {
+        return result.getResponse();
+      }
       assertTrue(
           "expected jobs polling status, got " + status.toString(),
           (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
@@ -901,6 +1141,14 @@ public class ConnectedOperations {
     if (fileToRemove != null) {
       createdFileIds.remove(fileToRemove);
     }
+  }
+
+  private MockHttpServletRequestBuilder performAs(
+      MockHttpServletRequestBuilder requestBuilder, AuthenticatedUserRequest userReq) {
+    if (userReq != null) {
+      requestBuilder.header("From", userReq.getEmail());
+    }
+    return requestBuilder;
   }
 
   public void addBucket(String bucketName) {

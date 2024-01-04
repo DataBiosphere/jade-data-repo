@@ -12,7 +12,7 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -27,7 +27,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(CreateSnapshotFireStoreDataStep.class);
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final FireStoreDependencyDao dependencyDao;
   private final DatasetService datasetService;
@@ -36,14 +36,14 @@ public class CreateSnapshotFireStoreDataStep implements Step {
   private final PerformanceLogger performanceLogger;
 
   public CreateSnapshotFireStoreDataStep(
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       FireStoreDependencyDao dependencyDao,
       DatasetService datasetService,
       SnapshotRequestModel snapshotReq,
       FireStoreDao fileDao,
       PerformanceLogger performanceLogger) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.dependencyDao = dependencyDao;
     this.datasetService = datasetService;
@@ -77,7 +77,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
 
             String bigQueryTimer = performanceLogger.timerStart();
             List<String> refIds =
-                bigQueryPdao.getSnapshotRefIds(
+                bigQuerySnapshotPdao.getSnapshotRefIds(
                     snapshotSource.getDataset(),
                     snapshot,
                     mapTable.getFromTable().getName(),

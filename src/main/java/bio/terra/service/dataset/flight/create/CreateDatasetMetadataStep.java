@@ -1,14 +1,11 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -17,6 +14,7 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.CannotSerializeTransactionException;
 
 public class CreateDatasetMetadataStep implements Step {
 
@@ -45,14 +43,11 @@ public class CreateDatasetMetadataStep implements Step {
               .applicationDeploymentResourceId(applicationDeploymentResourceId)
               .id(datasetId);
       datasetDao.createAndLock(newDataset, context.getFlightId());
-
-      DatasetSummaryModel datasetSummary =
-          DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(
-              newDataset.getDatasetSummary());
-      workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
       return StepResult.getStepResultSuccess();
     } catch (InvalidDatasetException idEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, idEx);
+    } catch (CannotSerializeTransactionException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     } catch (Exception ex) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,

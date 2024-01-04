@@ -1,0 +1,242 @@
+name: Verify consumer pacts
+# The purpose of this workflow is to verify ANY consumer contract(s) dependent on datarepo provider using Pact framework.
+#
+# The workflow meets the criteria of Pact Broker *Platinum* as described in https://docs.pact.io/pact_nirvana/step_6.
+# The can-i-deploy job has been added to this workflow to gate the merge of PRs into develop branch.
+#
+# This workflow is triggered when
+#
+# 1. Consumer makes a change that results in a new pact published to Pact Broker (will verify ONLY the changed pact and publish the verification results back to the broker)
+# 2. Provider makes a change (runs verification tests against ALL DEPLOYED consumer pact versions and publishes corresponding verification results)
+#
+#
+# The workflow requires the following Pact broker credentials:
+# - PACT_BROKER_USERNAME - the Pact Broker username
+# - PACT_BROKER_PASSWORD - the Pact Broker password
+# They are managed by Atlantis and were added to Terraform here:
+# https://github.com/broadinstitute/terraform-ap-deployments/pull/1255
+env:
+  PACTICIPANT: 'datarepo'
+  TDR_LOG_APPENDER: 'Console-Standard'
+  CAN_I_DEPLOY_RUN_NAME: 'can-i-deploy-${{ github.event.repository.name }}-${{ github.run_id }}-${{ github.run_attempt }}'
+on:
+  pull_request:
+    branches:
+      - develop
+    paths-ignore:
+      - 'README.md'
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - 'README.md'
+  workflow_dispatch:
+    inputs:
+      pb-event-type:
+        description: 'the Pact Broker event type that triggers this workflow'
+        required: true
+        type: string
+      consumer-name:
+        description: 'the consumer name'
+        required: true
+        type: string
+      consumer-version-number:
+        description: 'the version number of the most recent consumer version associated with the pact content'
+        required: true
+        type: string
+      provider-version-number:
+        description: 'the provider version number for the verification result'
+        required: false
+        type: string
+      consumer-version-tags:
+        description: 'the list of tag names for the most recent consumer version associated with the pact content, separated by ", "'
+        required: true
+        type: string
+      consumer-version-branch:
+        description: 'the name of the branch for most recent consumer version associated with the pact content'
+        required: true
+        type: string
+      provider-version-branch:
+        description: 'the name of the branch for the provider version associated with the verification result'
+        required: false
+        type: string
+      consumer-labels:
+        description: 'the list of labels for the consumer associated with the pact content, separated by ", "'
+        required: false
+        type: string
+      provider-labels:
+        description: 'the list of labels for the provider associated with the pact content, separated by ", "'
+        required: false
+        type: string
+      pact-url:
+        description: 'the "permalink" URL to the newly published pact (the URL specifying the consumer version URL, rather than the "/latest" format'
+        required: true
+        type: string
+
+jobs:
+  bump-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is-bump: ${{ steps.skiptest.outputs.is-bump }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Skip version bump merges
+        id: skiptest
+        uses: ./.github/actions/bump-skip
+        with:
+          event-name: ${{ github.event_name }}
+  # We only need a new version tag when this workflow is triggered by opening, updating a PR or PR merge.
+  # When triggered by a Pact Broker webhook, the provider version (GIT hash or release tag)
+  # is already included in the payload, then a new version tag wouldn't be needed.
+  regulated-tag-job:
+    needs: [ bump-check ]
+    if: ${{ needs.bump-check.outputs.is-bump == 'no' }}
+    uses: ./.github/workflows/tag.yml
+    with:
+      # The 'ref' parameter ensures that the provider version is postfixed with the HEAD commit of the PR branch,
+      # facilitating cross-referencing of a pact between Pact Broker and GitHub.
+      ref: ${{ github.head_ref || '' }}
+      # The 'dry-run' parameter prevents the new tag from being dispatched.
+      dry-run: true
+      release-branches: develop
+    secrets: inherit
+
+  verify-consumer-pact:
+    runs-on: ubuntu-latest
+    needs: [ bump-check, regulated-tag-job ]
+    if: ${{ needs.bump-check.outputs.is-bump == 'no' }}
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    outputs:
+      provider-version: ${{ steps.verification-test.outputs.provider-version }}
+
+    steps:
+      - name: Checkout current code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract branch
+        id: extract-branch
+        run: |
+          GITHUB_EVENT_NAME=${{ github.event_name }}
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            GITHUB_REF=${{ github.ref }}
+          elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            GITHUB_REF=refs/heads/${{ github.head_ref }}
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            GITHUB_REF=${{ github.ref }} # The Git Ref that this workflow runs on
+          else
+            echo "Failed to extract branch information"
+            exit 1
+          fi
+          echo "CURRENT_BRANCH=${GITHUB_REF/refs\/heads\//""}" >> $GITHUB_ENV
+
+      - name: Capture webhook event payload as envvars
+        if: ${{ inputs.pb-event-type != '' }}
+        run: |
+          echo "pb-event-type=${{ inputs.pb-event-type }}"
+          echo "consumer-name=${{ inputs.consumer-name }}"
+
+          # The consumer-version-branch and consumer-version-number identify the most recent
+          # consumer branch and version associated with the pact content.
+          echo "consumer-version-branch/consumer-version-number=${{ inputs.consumer-version-branch }}/${{ inputs.consumer-version-number }}"
+
+          # The provider-version-number represents the provider version number in the webhook event payload.
+          # This corresponds to the GitHub release tag recorded by Sherlock for the corresponding
+          # deployment environment (dev, staging, and prod).
+          echo "provider-version-branch/provider-version-number=${{ inputs.provider-version-branch }}/${{ inputs.provider-version-number }}"
+
+          # The pact-url is included here in case future pact4s client supports it.
+          echo "pact-url=${{ inputs.pact-url }}"
+
+          # Save webhook event parameters as envvars
+          echo "PROVIDER_BRANCH=${{ inputs.provider-version-branch }}" >> $GITHUB_ENV
+          echo "PROVIDER_TAG=${{ inputs.provider-version-number }}" >> $GITHUB_ENV
+          echo "CONSUMER_BRANCH=${{ inputs.consumer-version-branch }}" >> $GITHUB_ENV
+          echo "CONSUMER_NAME=${{ inputs.consumer-name }}" >> $GITHUB_ENV
+          echo "CONSUMER_VERSION=${{ inputs.consumer-version-number }}" >> $GITHUB_ENV
+
+      - name: Set PROVIDER_VERSION envvar
+        run: |
+          # The PROVIDER_VERSION envvar is used to identify the provider version
+          # for publishing the results of provider verification.
+          if [[ -z "${{ inputs.pb-event-type }}" ]]; then
+            echo "PROVIDER_BRANCH=${{ env.CURRENT_BRANCH }}" >> $GITHUB_ENV
+            echo "PROVIDER_VERSION=${{ needs.regulated-tag-job.outputs.new-tag }}" >> $GITHUB_ENV
+          else
+            echo "PROVIDER_VERSION=${{ env.PROVIDER_TAG }}" >> $GITHUB_ENV
+          fi
+
+      - name: Switch to appropriate provider branch
+        run: |
+          echo "This workflow has been triggered by '${{ github.event_name }}' event."
+
+          # If the PROVIDER_TAG envvar exists, switch to the corresponding tag.
+          # This condition is true when the workflow is triggered by a Pact Broker webhook event.
+          if [[ -n "${{ env.PROVIDER_TAG }}" ]]; then
+            echo "git checkout tags/${{ env.PROVIDER_TAG }}"
+            git checkout tags/${{ env.PROVIDER_TAG }}
+
+          # Otherwise, switch to CURRENT_BRANCH if the workflow has been triggered by a
+          # PR commit or merge onto the main branch.
+          elif [[ "${{ github.event_name }}" == "pull_request" ]] || [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "git checkout ${{ env.CURRENT_BRANCH }}"
+            git checkout ${{ env.CURRENT_BRANCH }}
+          fi
+
+          # Echo the HEAD commit of the provider branch that has been switched to.
+          echo "git rev-parse HEAD"
+          git rev-parse HEAD
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Gradle cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: v1-${{ runner.os }}-gradle-${{ github.ref }}-${{ github.sha }}
+          restore-keys: v1-${{ runner.os }}-gradle-${{ github.ref }}
+
+      - name: Verify consumer pacts and publish verification status to Pact Broker
+        id: verification-test
+        env:
+          PACT_PROVIDER_VERSION: ${{ env.PROVIDER_VERSION }}
+          PACT_PROVIDER_BRANCH:  ${{ env.PROVIDER_BRANCH }}
+          PACT_BROKER_USERNAME:  ${{ secrets.PACT_BROKER_USERNAME }}
+          PACT_BROKER_PASSWORD:  ${{ secrets.PACT_BROKER_PASSWORD }}
+        run: |
+          echo "provider-version=${{ env.PACT_PROVIDER_VERSION }}" >> $GITHUB_OUTPUT
+          echo "env.CONSUMER_BRANCH=${{ env.CONSUMER_BRANCH }}   # This reflects the consumer branch for pact verification (generated by Pact Broker)"
+          echo "env.PROVIDER_BRANCH=${{ env.PROVIDER_BRANCH }}   # This reflects the provider branch to switch to for pact verification"
+          echo "env.CONSUMER_VERSION=${{ env.CONSUMER_VERSION }} # This reflects the consumer version for pact verification (generated by Pact Broker)"
+          echo "env.PROVIDER_VERSION=${{ env.PROVIDER_VERSION }} # Deprecate env.PACT_PROVIDER_COMMIT. This new envvar is used for migrating GIT hash to app versioning"
+          ./gradlew --build-cache verifyPacts --scan
+
+  can-i-deploy:
+    # The can-i-deploy job will run as a result of a jade-data-repo PR.
+    # It reports the pact verification statuses on all deployed environments.
+    runs-on: ubuntu-latest
+    if: ${{ inputs.pb-event-type == '' && needs.bump-check.outputs.is-bump == 'no' }}
+    needs: [ verify-consumer-pact, bump-check ]
+    steps:
+      - name: Dispatch to terra-github-workflows
+        uses: broadinstitute/workflow-dispatch@v4.0.0
+        with:
+          run-name: "${{ env.CAN_I_DEPLOY_RUN_NAME }}"
+          workflow: .github/workflows/can-i-deploy.yaml
+          repo: broadinstitute/terra-github-workflows
+          ref: refs/heads/main
+          token: ${{ secrets.BROADBOT_TOKEN }} # github token for access to kick off a job in the private repo
+          inputs: '{
+            "run-name": "${{ env.CAN_I_DEPLOY_RUN_NAME }}",
+            "pacticipant": "${{ env.PACTICIPANT }}",
+            "version": "${{ needs.verify-consumer-pact.outputs.provider-version }}"
+          }'

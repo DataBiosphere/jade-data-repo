@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Unit;
+import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.grammar.exception.MissingDatasetException;
 import bio.terra.grammar.google.BigQueryVisitor;
@@ -16,7 +17,9 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class GrammarTest {
 
@@ -100,15 +103,91 @@ public class GrammarTest {
   }
 
   @Test
+  public void testWhereLike() {
+    Query query =
+        Query.parse(
+            "SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux "
+                + "WHERE baz.quux.x LIKE 'lux' AND baz.quux.y NOT LIKE 'box'");
+    List<String> columnNames = query.getColumnNames();
+    assertThat("there are three columns", columnNames.size(), equalTo(3));
+    assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
+  }
+
+  @Test
+  public void testBetween() {
+    // test for DR-2703 Fix ANTLR error when parsing between clause
+    Query.parse("SELECT foo.bar.datarepo_row_id FROM foo.bar WHERE foo.bar.x BETWEEN 1 and 2");
+  }
+
+  @Test
+  public void testJSONDataInStringField() {
+    Query.parse(
+        "SELECT * FROM foo.bar WHERE CAST(JSON_EXTRACT_SCALAR(Description, '$.favoriteNumber') AS INT64) > 5");
+  }
+
+  @Test
   public void test1000Genomes() {
     // test for DR-2143 Fix validating dataset names that start with a number
     Query.parse("SELECT * FROM 1000GenomesDataset.sample_info");
   }
 
-  @Test(expected = InvalidQueryException.class)
+  @Test
   public void testColumnNotFullyQualifiedName() {
-    // note that the col `datarepo_row_id` does not have a table or dataset attached
+    // allow non-fully qualified column names to support preview filtering
     Query.parse("SELECT datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+    Query.parse("SELECT * FROM snapshot.table WHERE column = val");
+  }
+
+  @Test
+  public void testSynapseTranslate() {
+    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
+    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
+    Query query =
+        Query.parse(
+            "SELECT vocabulary.datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary.vocabulary_id IN ('1')");
+    String expectedQuery =
+        "SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/vocabulary/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339\n WHERE alias927641339.vocabulary_id IN ( '1' )";
+    String translatedQuery = query.translateSql(synapseVisitor);
+    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
+  }
+
+  @Test
+  public void testSynapseTranslate_NoTableNameAlias() {
+    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
+    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
+    Query query =
+        Query.parse(
+            "SELECT datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary_id IN ('1')");
+    String expectedQuery =
+        "SELECT datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/vocabulary/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339\n WHERE vocabulary_id IN ( '1' )";
+    String translatedQuery = query.translateSql(synapseVisitor);
+    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
+  }
+
+  @Test
+  public void testSynapseTranslate_UIQuery() {
+    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
+    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
+    Query query =
+        Query.parse(
+            "SELECT it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.datarepo_row_id FROM it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary  WHERE (it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.vocabulary_id IN (\"1\"))");
+    String translatedQuery = query.translateSql(synapseVisitor);
+    String expectedQuery =
+        "SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/vocabulary/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339\n WHERE ( alias927641339.vocabulary_id IN ( '1' ) )";
+    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
+  }
+
+  @Test
+  public void testSynapseTranslate_UIQueryWithJoin() {
+    String userQuery =
+        "SELECT Azure_V2F_GWAS_Summary_Statistics.variant.datarepo_row_id FROM Azure_V2F_GWAS_Summary_Statistics.variant JOIN Azure_V2F_GWAS_Summary_Statistics.ancestry_specific_meta_analysis ON Azure_V2F_GWAS_Summary_Statistics.ancestry_specific_meta_analysis.variant_id = Azure_V2F_GWAS_Summary_Statistics.variant.id WHERE Azure_V2F_GWAS_Summary_Statistics.ancestry_specific_meta_analysis.variant_id  IN (\"1:104535993:T:C\")";
+    String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
+    SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
+    Query query = Query.parse(userQuery);
+    String translatedQuery = query.translateSql(synapseVisitor);
+    String expectedQuery =
+        "SELECT alias236785828.datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/variant/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias236785828) AS alias236785828\n JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/ancestry_specific_meta_analysis/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias1748223664) AS alias1748223664\n ON alias1748223664.variant_id = alias236785828.id WHERE alias1748223664.variant_id IN ( '1:104535993:T:C' )";
+    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
   }
 
   @Test
@@ -232,5 +311,40 @@ public class GrammarTest {
     BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
     Query query = Query.parse("SELECT * FROM noDataset.table WHERE noDataset.table.x = 'string'");
     query.translateSql(bqVisitor);
+  }
+
+  @Test(expected = InvalidQueryException.class)
+  public void testDeleteInvalid() {
+    Query query = Query.parse("DELETE * FROM foo.bar");
+    query.getDatasetNames();
+  }
+
+  @Test(expected = InvalidQueryException.class)
+  public void testSemicolonsInvalid() {
+    Query query = Query.parse("SELECT * FROM foo.bar; DELETE * FROM foo.bar");
+    query.getDatasetNames();
+  }
+
+  @Test(expected = InvalidQueryException.class)
+  public void testUpdateInvalid() {
+    Query query = Query.parse("INSERT INTO foo.bar (x, y, z) VALUES 1 2 3");
+    query.getDatasetNames();
+  }
+
+  @Test
+  public void testNestedQuery() {
+    Query.parse(
+        """
+          SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM ( SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM DATABASE.TABLE ) """);
+  }
+
+  @Test
+  public void testOverClause() {
+    Query.parse(
+        """
+            SELECT datarepo_row_id, file_id, sample_id, sample_vcf, total_row_count, count(*) over() as filtered_row_count FROM (
+                          Select datarepo_row_id, file_id, sample_id, sample_vcf, count(*) over () as total_row_count FROM datarepo_test_v2_drs_anvil_v3.file
+                        ) WHERE file_id = 'TEST_File_002' LIMIT 1000
+            """);
   }
 }

@@ -1,29 +1,29 @@
 package bio.terra.app.controller;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SearchIndexRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
+import bio.terra.model.SnapshotPreviewModel;
+import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.search.SearchService;
-import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -33,71 +33,132 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = "features.search.api=enabled")
+@SpringBootTest(
+    properties = {"features.search.api=enabled", "datarepo.testWithEmbeddedDatabase=false"})
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class SearchApiControllerTest {
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
+  private static final String GET_PREVIEW_ENDPOINT =
+      "/api/repository/v1/snapshots/{id}/data/{table}";
   private static final String UPSERT_DELETE_ENDPOINT = "/api/repository/v1/search/{id}/metadata";
+  private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
+  private static final int LIMIT = 10;
+  private static final int OFFSET = 0;
+  private static final String FILTER = "";
 
   @Autowired private MockMvc mvc;
 
   @MockBean private IamService iamService;
 
-  @MockBean private SnapshotSearchMetadataDao snapshotMetadataDao;
-
   @MockBean private SearchService searchService;
 
   @MockBean private SnapshotService snapshotService;
 
-  @Test
-  public void testUpsert() throws Exception {
-    var id = UUID.randomUUID();
-    String json = "{\"dct:identifier\": \"my snapshot\", \"dcat:byteSize\" : \"10000\"}";
-    mvc.perform(
-            put(UPSERT_DELETE_ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.metadataSummary").value(containsString(id.toString())));
-    verify(iamService)
-        .verifyAuthorization(
+  private void mockSnapshotPreviewByIdSuccess(UUID id, String table, String column)
+      throws Exception {
+    var list = List.of("hello", "world");
+    var result = new SnapshotPreviewModel().result(List.copyOf(list));
+    when(snapshotService.retrievePreview(
             any(),
-            eq(IamResourceType.DATASNAPSHOT),
-            eq(id.toString()),
-            eq(IamAction.UPDATE_SNAPSHOT));
-    verify(snapshotMetadataDao).putMetadata(id, json);
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER)))
+        .thenReturn(result);
+    performQueryDataPost(id, table, column)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result").isArray());
+  }
+
+  private void mockSnapshotPreviewByIdError(UUID id, String table, String column) throws Exception {
+    when(snapshotService.retrievePreview(
+            any(),
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER)))
+        .thenThrow(SnapshotPreviewException.class);
+    performQueryDataPost(id, table, column).andExpect(status().is5xxServerError());
   }
 
   @Test
-  public void testDelete() throws Exception {
+  public void testSnapshotPreviewById() throws Exception {
     var id = UUID.randomUUID();
-    mvc.perform(delete(UPSERT_DELETE_ENDPOINT, id)).andExpect(status().isNoContent());
-    verify(iamService)
-        .verifyAuthorization(
+    var table = "good_table";
+    var column = "good_column";
+    mockSnapshotPreviewByIdSuccess(id, table, column);
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
+    verify(snapshotService)
+        .retrievePreview(
             any(),
-            eq(IamResourceType.DATASNAPSHOT),
-            eq(id.toString()),
-            eq(IamAction.UPDATE_SNAPSHOT));
-    verify(snapshotMetadataDao).deleteMetadata(id);
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER));
   }
 
   @Test
-  public void testEnumerateSnapshotSearch() throws Exception {
-    var endpoint = "/api/repository/v1/search/metadata";
-    var json = "{\"test\":\"data\"}";
-    UUID uuid = UUID.randomUUID();
-    List<UUID> uuids = List.of(uuid);
-    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
-        .thenReturn(uuids);
-    when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
-    mvc.perform(get(endpoint))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result[0].test").value("data"));
-    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
-    verify(snapshotMetadataDao).getMetadata(uuids);
+  public void testSnapshotPreviewByIdHandlesDataRepoRowId() throws Exception {
+    var id = UUID.randomUUID();
+    var table = "good_table";
+    var column = "datarepo_row_id";
+    mockSnapshotPreviewByIdSuccess(id, table, column);
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
+    verify(snapshotService)
+        .retrievePreview(
+            any(),
+            eq(id),
+            eq(table),
+            eq(LIMIT),
+            eq(OFFSET),
+            eq(column),
+            eq(SqlSortDirection.from(DIRECTION)),
+            eq(FILTER));
+  }
+
+  @Test(expected = SnapshotPreviewException.class)
+  public void testSnapshotPreviewByIdBadColumn() throws Exception {
+    var id = UUID.randomUUID();
+    var table = "good_table";
+    var column = "bad_column";
+    mockSnapshotPreviewByIdError(id, table, column);
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
+    snapshotService.retrievePreview(
+        TEST_USER, id, table, LIMIT, OFFSET, column, SqlSortDirection.from(DIRECTION), FILTER);
+  }
+
+  @Test(expected = SnapshotPreviewException.class)
+  public void testSnapshotPreviewByIdBadTable() throws Exception {
+    var id = UUID.randomUUID();
+    var table = "bad_table";
+    var column = "good_column";
+    mockSnapshotPreviewByIdError(id, table, column);
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
+    snapshotService.retrievePreview(
+        TEST_USER, id, table, LIMIT, OFFSET, column, SqlSortDirection.from(DIRECTION), FILTER);
   }
 
   @Test
@@ -119,5 +180,19 @@ public class SearchApiControllerTest {
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
     verify(searchService).indexSnapshot(eq(snapshot), eq(searchIndexRequest));
+  }
+
+  private ResultActions performQueryDataPost(UUID id, String table, String column)
+      throws Exception {
+    return mvc.perform(
+        post(GET_PREVIEW_ENDPOINT, id, table)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                TestUtils.mapToJson(
+                    new QueryDataRequestModel()
+                        .direction(SqlSortDirectionAscDefault.ASC)
+                        .limit(LIMIT)
+                        .offset(OFFSET)
+                        .sort(column))));
   }
 }

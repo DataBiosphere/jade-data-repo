@@ -1,5 +1,7 @@
 package bio.terra.service.resourcemanagement.azure;
 
+import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
+
 import bio.terra.app.model.AzureRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
@@ -8,10 +10,12 @@ import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundExcep
 import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
+import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -122,6 +126,7 @@ public class AzureStorageAccountService {
    * steps.
    *
    * @param storageAccountName name for a new or existing storage account
+   * @param collectionId id of the collection (e.g. dataset or snapshot)
    * @param applicationResource application deployment in which the storage account should be
    *     retrieved or created
    * @param region location of the storage account
@@ -133,6 +138,7 @@ public class AzureStorageAccountService {
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public AzureStorageAccountResource getOrCreateStorageAccount(
       String storageAccountName,
+      String collectionId,
       AzureApplicationDeploymentResource applicationResource,
       AzureRegion region,
       String flightId)
@@ -143,7 +149,9 @@ public class AzureStorageAccountService {
         profileDao.getBillingProfileById(applicationResource.getProfileId());
     AzureStorageAccountResource storageAccountResource =
         resourceDao.getStorageAccount(
-            storageAccountName, applicationResource.getAzureApplicationDeploymentName());
+            storageAccountName,
+            collectionId,
+            applicationResource.getAzureApplicationDeploymentName());
     StorageAccount storageAccount = getCloudStorageAccount(profileModel, storageAccountResource);
 
     // Test all of the cases
@@ -159,7 +167,7 @@ public class AzureStorageAccountService {
           throw storageAccountLockException(flightId);
         }
         // CASE 3: we have the flight locked, but we did all of the creating.
-        return createFinish(storageAccount, flightId, storageAccountResource);
+        return createFinish(flightId, storageAccountResource, collectionId);
       } else {
         // CASE 4: This code as currently implemented is unreachable since an empty resource make it
         // impossible
@@ -184,11 +192,12 @@ public class AzureStorageAccountService {
         }
         // CASE 7: this flight has the metadata locked, but didn't finish creating the storage
         // account
-        return createCloudStorageAccount(profileModel, storageAccountResource, flightId);
+        return createCloudStorageAccount(
+            profileModel, storageAccountResource, collectionId, flightId);
       } else {
         // CASE 8: no storage account and no record
         return createMetadataRecord(
-            profileModel, storageAccountName, applicationResource, region, flightId);
+            profileModel, storageAccountName, collectionId, applicationResource, region, flightId);
       }
     }
   }
@@ -198,21 +207,46 @@ public class AzureStorageAccountService {
     return resourceDao.retrieveStorageAccountById(storageAccountId);
   }
 
-  /**
-   * Delete metadata and cloud storage account resource. Note: this runs in a transaction so if the
-   * cloud delete fails, the metadata deleted should rollback
-   */
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void deleteCloudStorageAccount(
-      AzureStorageAccountResource storageAccountResource, String flightId) {
-    BillingProfileModel profileModel =
-        profileDao.getBillingProfileById(storageAccountResource.getProfileId());
-    logger.info("Deleting Azure storage account metadata");
+  public void markForDeleteCloudStorageAccountMetadata(
+      String storageAccountResourceName, String topLevelContainer, String flightId) {
+    logger.info(
+        "Marking for delete Azure storage account metadata named {} with top level container {}",
+        storageAccountResourceName,
+        topLevelContainer);
     boolean deleted =
-        resourceDao.deleteStorageAccountMetadata(storageAccountResource.getName(), flightId);
-    logger.info("Metadata removed: {}", deleted);
-    logger.info("Deleting Azure storage account");
-    deleteCloudStorageAccount(profileModel, storageAccountResource);
+        resourceDao.markForDeleteStorageAccountMetadata(
+            storageAccountResourceName, topLevelContainer, flightId);
+    logger.info("Metadata marked for delete: {}", deleted);
+  }
+
+  /**
+   * Delete the Azure cloud storage account resource.
+   *
+   * @param profileModel the TDR billing profile associated with this storage account
+   * @param storageAccountResource
+   */
+  public void deleteCloudStorageAccount(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    logger.info("Deleting storage account {}", storageAccountResource.getName());
+    AzureResourceManager clientSa =
+        resourceConfiguration.getClient(profileModel.getSubscriptionId());
+    clientSa
+        .storageAccounts()
+        .deleteByResourceGroup(
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
+  }
+
+  public List<AzureStorageAccountResource> listStorageAccountPerAppDeployment(
+      List<UUID> applicationResourceIds, boolean markedForDelete) {
+    return applicationResourceIds.stream()
+        .flatMap(
+            applicationResourceId ->
+                resourceDao
+                    .retrieveStorageAccountsByApplicationResource(
+                        applicationResourceId, markedForDelete)
+                    .stream())
+        .toList();
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {
@@ -223,6 +257,7 @@ public class AzureStorageAccountService {
   private AzureStorageAccountResource createMetadataRecord(
       BillingProfileModel profileModel,
       String storageAccountName,
+      String containerId,
       AzureApplicationDeploymentResource applicationResource,
       AzureRegion region,
       String flightId)
@@ -233,35 +268,35 @@ public class AzureStorageAccountService {
         Optional.ofNullable(region).orElse(applicationResource.getDefaultRegion());
 
     AzureStorageAccountResource storageAccountResource =
-        resourceDao.createAndLockStorageAccount(
-            storageAccountName, applicationResource, regionToUse, flightId);
+        resourceDao.createAndLockStorage(
+            storageAccountName, containerId, applicationResource, regionToUse, flightId);
     if (storageAccountResource == null) {
       // We tried and failed to get the lock. So we ended up in CASE 2 after all.
       throw storageAccountLockException(flightId);
     }
 
-    return createCloudStorageAccount(profileModel, storageAccountResource, flightId);
+    return createCloudStorageAccount(profileModel, storageAccountResource, containerId, flightId);
   }
 
   // Step 2 of creating a new storage account
   private AzureStorageAccountResource createCloudStorageAccount(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
+      String containerId,
       String flightId) {
     // If the storage account doesn't exist, create it
     StorageAccount storageAccount = getCloudStorageAccount(profileModel, storageAccountResource);
     if (storageAccount == null) {
-      storageAccount = newCloudStorageAccount(profileModel, storageAccountResource);
+      newCloudStorageAccount(profileModel, storageAccountResource);
     }
-    return createFinish(storageAccount, flightId, storageAccountResource);
+
+    return createFinish(flightId, storageAccountResource, containerId);
   }
 
   // Step 3 (last) of creating a new storage account
   private AzureStorageAccountResource createFinish(
-      StorageAccount storageAccount,
-      String flightId,
-      AzureStorageAccountResource storageAccountResource) {
-    resourceDao.unlockStorageAccount(storageAccountResource.getName(), flightId);
+      String flightId, AzureStorageAccountResource storageAccountResource, String containerId) {
+    resourceDao.unlockStorageAccount(storageAccountResource.getName(), containerId, flightId);
 
     return storageAccountResource;
   }
@@ -303,7 +338,7 @@ public class AzureStorageAccountService {
    * @return a reference to the storage account as an Azure storage account object, null if not
    *     found
    */
-  StorageAccount getCloudStorageAccount(
+  public StorageAccount getCloudStorageAccount(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     if (storageAccountResource == null) {
       return null;
@@ -316,28 +351,12 @@ public class AzureStorageAccountService {
               storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
               storageAccountResource.getName());
     } catch (ManagementException e) {
-      if (e.getValue().getCode().equals("ResourceNotFound")) {
+      if (e.getValue().getCode().equals(RESOURCE_NOT_FOUND_CODE)) {
         return null;
       }
       throw new AzureResourceException("Could not check storage account existence", e);
     } catch (Exception e) {
       throw new AzureResourceException("Could not check storage account existence", e);
     }
-  }
-
-  /**
-   * Delete a storage account cloud resource
-   *
-   * @param profileModel the TDR billing profile associated with this storage account
-   * @param storageAccountResource storage account resource to look up storage account.
-   */
-  void deleteCloudStorageAccount(
-      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
-    resourceConfiguration
-        .getClient(profileModel.getSubscriptionId())
-        .storageAccounts()
-        .deleteByResourceGroup(
-            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-            storageAccountResource.getName());
   }
 }

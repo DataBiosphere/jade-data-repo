@@ -66,4 +66,11 @@ public class AssetSpecification {
     this.assetTables = includedTables;
     return this;
   }
+
+  public AssetTable getAssetTableByName(String tableName) {
+    return this.assetTables.stream()
+        .filter(at -> at.getTable().getName().equals(tableName))
+        .findFirst()
+        .orElseThrow();
+  }
 }

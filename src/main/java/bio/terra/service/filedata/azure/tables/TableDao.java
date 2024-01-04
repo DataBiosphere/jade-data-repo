@@ -1,7 +1,9 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.CollectionType;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.FileModel;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -85,41 +87,73 @@ public class TableDao {
     return directoryDao.deleteDirectoryEntry(tableServiceClient, collectionId, tableName, fileId);
   }
 
-  public void createFileMetadata(FireStoreFile newFile, AzureStorageAuthInfo storageAuthInfo) {
+  public void createFileMetadata(
+      String collectionId, FireStoreFile newFile, AzureStorageAuthInfo storageAuthInfo) {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
-    fileDao.createFileMetadata(tableServiceClient, newFile);
+    fileDao.createFileMetadata(tableServiceClient, collectionId, newFile);
   }
 
-  public boolean deleteFileMetadata(String fileId, AzureStorageAuthInfo storageAuthInfo) {
+  public boolean deleteFileMetadata(
+      String collectionId, String fileId, AzureStorageAuthInfo storageAuthInfo) {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
-    return fileDao.deleteFileMetadata(tableServiceClient, fileId);
+    return fileDao.deleteFileMetadata(tableServiceClient, collectionId, fileId);
   }
 
   public void deleteFilesFromDataset(
-      AzureStorageAuthInfo storageAuthInfo, InterruptibleConsumer<FireStoreFile> func) {
+      AzureStorageAuthInfo storageAuthInfo,
+      UUID datasetId,
+      InterruptibleConsumer<FireStoreFile> func) {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     if (configurationService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
       // If we didn't load files, don't try to delete them
-      fileDao.deleteFilesFromDataset(tableServiceClient, f -> {});
+      fileDao.deleteFilesFromDataset(tableServiceClient, datasetId, f -> {});
     } else {
       logger.info("deleting files from dataset");
-      fileDao.deleteFilesFromDataset(tableServiceClient, func);
+      fileDao.deleteFilesFromDataset(tableServiceClient, datasetId, func);
     }
     logger.info("deleting directory entries");
     directoryDao.deleteDirectoryEntriesFromCollection(
-        tableServiceClient, StorageTableName.DATASET.toTableName());
+        tableServiceClient, StorageTableName.DATASET.toTableName(datasetId));
+  }
+
+  public void deleteFilesFromSnapshot(AzureStorageAuthInfo storageAuthInfo, UUID snapshotId) {
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    logger.info("deleting directory entries");
+    directoryDao.deleteDirectoryEntriesFromCollection(
+        tableServiceClient, StorageTableName.SNAPSHOT.toTableName(snapshotId));
   }
 
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
       Dataset dataset, String path, AzureStorageAuthInfo storageAuthInfo) {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return directoryDao.retrieveByPath(
-        tableServiceClient, dataset.getId(), StorageTableName.DATASET.toTableName(), path);
+        tableServiceClient,
+        dataset.getId(),
+        StorageTableName.DATASET.toTableName(dataset.getId()),
+        path);
   }
 
-  public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
+  public FireStoreFile lookupFile(
+      String collectionId, String fileId, AzureStorageAuthInfo storageAuthInfo) {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
-    return fileDao.retrieveFileMetadata(tableServiceClient, fileId);
+    return fileDao.retrieveFileMetadata(tableServiceClient, collectionId, fileId);
+  }
+
+  public List<FileModel> batchRetrieveFiles(
+      String collectionId,
+      AzureStorageAuthInfo storageAuthInfo,
+      String datasetId,
+      AzureStorageAuthInfo datasetStorageAuthInfo,
+      int offset,
+      int limit) {
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    List<FireStoreDirectoryEntry> directoryEntries =
+        directoryDao.enumerateFileRefEntries(tableServiceClient, collectionId, offset, limit);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
+    List<FireStoreFile> files =
+        fileDao.batchRetrieveFileMetadata(datasetTableServiceClient, datasetId, directoryEntries);
+    return FileMetadataUtils.toFileModel(directoryEntries, files, collectionId);
   }
 
   public void snapshotCompute(
@@ -128,6 +162,7 @@ public class TableDao {
       TableServiceClient datasetTableServiceClient)
       throws InterruptedException {
 
+    UUID datasetId = snapshot.getSourceDataset().getId();
     UUID snapshotId = snapshot.getId();
     String snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
     FireStoreDirectoryEntry topDir =
@@ -142,7 +177,7 @@ public class TableDao {
       String retrieveTimer = performanceLogger.timerStart();
 
       StorageTableComputeHelper helper =
-          getHelper(datasetTableServiceClient, snapshotTableServiceClient, snapshotId);
+          getHelper(datasetTableServiceClient, snapshotTableServiceClient, datasetId, snapshotId);
       SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
 
       performanceLogger.timerEndAndLog(
@@ -172,7 +207,10 @@ public class TableDao {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fullPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            fullPath);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -187,7 +225,10 @@ public class TableDao {
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fullPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            fullPath);
     return Optional.ofNullable(fireStoreDirectoryEntry)
         .map(
             entry ->
@@ -203,29 +244,60 @@ public class TableDao {
   /**
    * Retrieve an FSItem by id
    *
-   * @param datasetId - dataset or snapshot containing file's directory entry
+   * @param collectionType - The type of collection this represents
+   * @param datasetId - ID for dataset containing file's metadata entry
+   * @param collectionId - ID for dataset or snapshot containing file's directory entry
    * @param fileId - id of the file or directory
    * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all; 1
    *     means contents of this directory; 2 means this and its directories, etc. -1 means the
    *     entire tree.
-   * @param storageAuthInfo - an AzureStorageAuthInfo object for connecting to the table service
-   *     client
+   * @param tableStorageAuthInfo - an AzureStorageAuthInfo object for connecting to the table
+   *     service client
    * @return FSFile or FSDir of retrieved file; can return null on not found
    */
-  // TODO - Azure snapshot: Support passing in snapshotID
   public FSItem retrieveById(
-      UUID datasetId, String fileId, int enumerateDepth, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
-    FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveById(
-            tableServiceClient, StorageTableName.DATASET.toTableName(), fileId);
+      CollectionType collectionType,
+      UUID datasetId,
+      UUID collectionId,
+      String fileId,
+      int enumerateDepth,
+      AzureStorageAuthInfo tableStorageAuthInfo,
+      AzureStorageAuthInfo datasetTableStorageAuthInfo) {
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(tableStorageAuthInfo);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(datasetTableStorageAuthInfo);
+    FireStoreDirectoryEntry fireStoreDirectoryEntry;
+    switch (collectionType) {
+      case DATASET:
+        fireStoreDirectoryEntry =
+            directoryDao.retrieveById(
+                tableServiceClient, StorageTableName.DATASET.toTableName(collectionId), fileId);
+        break;
+      case SNAPSHOT:
+        fireStoreDirectoryEntry =
+            directoryDao.retrieveById(
+                tableServiceClient, StorageTableName.SNAPSHOT.toTableName(collectionId), fileId);
+        break;
+      default:
+        throw new IllegalArgumentException(
+            String.format("Invalid collection type: %s", collectionType));
+    }
     return retrieveWorker(
         tableServiceClient,
-        tableServiceClient,
+        datasetTableServiceClient,
         datasetId.toString(),
         enumerateDepth,
         fireStoreDirectoryEntry,
         fileId);
+  }
+
+  public List<String> retrieveAllFileIds(TableServiceClient tableServiceClient, UUID snapshotId) {
+    return directoryDao
+        .enumerateAll(tableServiceClient, StorageTableName.SNAPSHOT.toTableName(snapshotId))
+        .stream()
+        .map(FireStoreDirectoryEntry::getFileId)
+        .toList();
   }
 
   //   -- private methods --
@@ -318,7 +390,9 @@ public class TableDao {
       List<FSItem> fsContents = new ArrayList<>();
       List<FireStoreDirectoryEntry> dirContents =
           directoryDao.enumerateDirectory(
-              tableServiceClient, StorageTableName.DATASET.toTableName(), fullPath);
+              tableServiceClient,
+              StorageTableName.DATASET.toTableName(UUID.fromString(collectionId)),
+              fullPath);
       for (FireStoreDirectoryEntry fso : dirContents) {
         if (fso.getIsFileRef()) {
           // Files that are in the middle of being ingested can have a directory entry, but not yet
@@ -343,7 +417,7 @@ public class TableDao {
   // Handle files - the fireStoreDirectoryEntry is a reference to a file in a dataset.
   private FSItem makeFSFile(
       TableServiceClient datasetTableServiceClient,
-      String collectionId,
+      String datasetId,
       FireStoreDirectoryEntry fireStoreDirectoryEntry) {
     if (!fireStoreDirectoryEntry.getIsFileRef()) {
       throw new IllegalStateException("Expected file; got directory!");
@@ -357,12 +431,13 @@ public class TableDao {
     // Lookup the file in its owning dataset, not in the collection. The collection may be a
     // snapshot directory
     // pointing to the files in one or more datasets.
-    FireStoreFile fireStoreFile = fileDao.retrieveFileMetadata(datasetTableServiceClient, fileId);
+    FireStoreFile fireStoreFile =
+        fileDao.retrieveFileMetadata(datasetTableServiceClient, datasetId, fileId);
 
     FSFile fsFile = new FSFile();
     fsFile
         .fileId(UUID.fromString(fileId))
-        .collectionId(UUID.fromString(collectionId))
+        .collectionId(UUID.fromString(datasetId))
         .datasetId(UUID.fromString(fireStoreDirectoryEntry.getDatasetId()))
         .createdDate(Instant.parse(fireStoreFile.getFileCreatedDate()))
         .path(fullPath)
@@ -382,17 +457,17 @@ public class TableDao {
   public void addFilesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
-      Dataset dataset,
-      Snapshot snapshot,
+      UUID datasetId,
+      String datasetName,
+      UUID snapshotId,
       List<String> refIds) {
-    String datasetDirName = dataset.getName();
 
     directoryDao.addEntriesToSnapshot(
         datasetTableServiceClient,
         snapshotTableServiceClient,
-        dataset.getId(),
-        datasetDirName,
-        snapshot.getId(),
+        datasetId,
+        datasetName,
+        snapshotId,
         refIds);
   }
 
@@ -401,12 +476,14 @@ public class TableDao {
   public StorageTableComputeHelper getHelper(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
+      UUID datasetId,
       UUID snapshotId) {
     return new StorageTableComputeHelper(
         directoryDao,
         fileDao,
         datasetTableServiceClient,
         snapshotTableServiceClient,
+        datasetId,
         snapshotId,
         configurationService.getParameterValue(ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE));
   }
@@ -417,6 +494,7 @@ public class TableDao {
     private final TableFileDao fileDao;
     private final TableServiceClient datasetTableServiceClient;
     private final TableServiceClient snapshotTableServiceClient;
+    private final UUID datasetId;
     private final UUID snapshotId;
     private final Integer snapshotBatchSize;
     private final String snapshotTableName;
@@ -426,12 +504,14 @@ public class TableDao {
         TableFileDao fileDao,
         TableServiceClient datasetTableServiceClient,
         TableServiceClient snapshotTableServiceClient,
+        UUID datasetId,
         UUID snapshotId,
         Integer snapshotBatchSize) {
       this.directoryDao = directoryDao;
       this.fileDao = fileDao;
       this.datasetTableServiceClient = datasetTableServiceClient;
       this.snapshotTableServiceClient = snapshotTableServiceClient;
+      this.datasetId = datasetId;
       this.snapshotId = snapshotId;
       this.snapshotBatchSize = snapshotBatchSize;
       this.snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
@@ -440,7 +520,8 @@ public class TableDao {
     @Override
     public List<FireStoreFile> batchRetrieveFileMetadata(
         Map.Entry<String, List<FireStoreDirectoryEntry>> entry) {
-      return fileDao.batchRetrieveFileMetadata(datasetTableServiceClient, entry.getValue());
+      return fileDao.batchRetrieveFileMetadata(
+          datasetTableServiceClient, datasetId.toString(), entry.getValue());
     }
 
     @Override

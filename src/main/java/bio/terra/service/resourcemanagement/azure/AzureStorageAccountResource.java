@@ -4,6 +4,7 @@ import bio.terra.app.model.AzureRegion;
 import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.stringtemplate.v4.ST;
 
 public class AzureStorageAccountResource {
   private UUID resourceId;
@@ -11,6 +12,7 @@ public class AzureStorageAccountResource {
   private UUID profileId;
   private AzureApplicationDeploymentResource applicationResource;
   private String name;
+  private String topLevelContainer;
   private String dataContainer;
   private String metadataContainer;
   private String dbName;
@@ -64,6 +66,15 @@ public class AzureStorageAccountResource {
     return this;
   }
 
+  public String getTopLevelContainer() {
+    return topLevelContainer;
+  }
+
+  public AzureStorageAccountResource topLevelContainer(String topLevelContainer) {
+    this.topLevelContainer = topLevelContainer;
+    return this;
+  }
+
   public String getDataContainer() {
     return dataContainer;
   }
@@ -100,8 +111,22 @@ public class AzureStorageAccountResource {
     return this;
   }
 
-  public String determineContainer(ContainerType containerType) {
-    return containerType.getContainer(this);
+  public String getStorageAccountUrl() {
+    String storageAccountURLTemplate = "https://<storageAccount>.blob.core.windows.net";
+
+    ST storageAccountURL = new ST(storageAccountURLTemplate);
+    storageAccountURL.add("storageAccount", name);
+    return storageAccountURL.render();
+  }
+
+  public String getStorageAccountId() {
+    String storageAccountIdTemplate =
+        "/subscriptions/<subscriptionId>/resourceGroups/<resourceGroup>/providers/Microsoft.Storage/storageAccounts/<storageAccount>";
+    return new ST(storageAccountIdTemplate)
+        .add("subscriptionId", applicationResource.getSubscriptionId())
+        .add("resourceGroup", applicationResource.getAzureResourceGroupName())
+        .add("storageAccount", name)
+        .render();
   }
 
   @Override
@@ -153,23 +178,29 @@ public class AzureStorageAccountResource {
         .toString();
   }
 
-  public enum ContainerType {
+  public enum FolderType {
     DATA() {
-      String getContainer(AzureStorageAccountResource account) {
-        return account.getDataContainer();
+      public String getPath(String path) {
+        return "data/" + path;
       }
     },
     METADATA() {
-      String getContainer(AzureStorageAccountResource account) {
-        return account.getMetadataContainer();
+      public String getPath(String path) {
+        return "metadata/" + path;
       }
     },
     SCRATCH() {
-      String getContainer(AzureStorageAccountResource accountResource) {
-        return "ingest-scratch-container";
+      public String getPath(String path) {
+        return "scratch/" + path;
       }
     };
 
-    abstract String getContainer(AzureStorageAccountResource account);
+    /**
+     * Given a blob path, will prepend the correct top level directory
+     *
+     * @param path the blob path to qualify
+     * @return the path with the proper folder path prepended
+     */
+    public abstract String getPath(String path);
   }
 }

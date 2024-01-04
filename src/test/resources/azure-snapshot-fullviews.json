@@ -1,0 +1,10 @@
+{
+  "name":"demo",
+  "description":"desc",
+  "contents":[
+    {
+      "datasetName": "IngestTest",
+      "mode": "byFullView"
+    }
+  ]
+}

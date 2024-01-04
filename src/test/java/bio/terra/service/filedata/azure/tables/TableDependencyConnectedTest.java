@@ -1,15 +1,13 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.common.azure.StorageTableName;
-import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -18,6 +16,7 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import java.util.List;
 import java.util.UUID;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -33,6 +32,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class TableDependencyConnectedTest {
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
@@ -70,7 +70,7 @@ public class TableDependencyConnectedTest {
     dependencyDao.storeSnapshotFileDependencies(
         tableServiceClient, DATASET_ID, SNAPSHOT_ID, REF_IDS);
     TableEntity createdEntity = tableClient.getEntity(SNAPSHOT_ID.toString(), FILE_ID);
-    assertEntityCorrect(createdEntity, SNAPSHOT_ID, FILE_ID, 1L);
+    azureUtils.assertEntityCorrect(createdEntity, SNAPSHOT_ID, FILE_ID, 1L);
 
     // Add same file in a different snapshot
     dependencyDao.storeSnapshotFileDependencies(
@@ -87,12 +87,18 @@ public class TableDependencyConnectedTest {
         TableServiceException.class, () -> tableClient.getEntity(SNAPSHOT_ID2.toString(), FILE_ID));
   }
 
-  private void assertEntityCorrect(
-      TableEntity entity, UUID snapshotId, String fileId, Long refCount) {
-    assertThat(
-        snapshotId.toString(),
-        equalTo(entity.getProperty(FireStoreDependency.SNAPSHOT_ID_FIELD_NAME)));
-    assertThat(fileId, equalTo(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME)));
-    assertThat(refCount, equalTo(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME)));
+  @Test
+  public void testDatasetHasSnapshotReference() {
+    Assert.assertFalse(dependencyDao.datasetHasSnapshotReference(tableServiceClient, DATASET_ID));
+    String tableName = StorageTableName.DEPENDENCIES.toTableName(DATASET_ID);
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+
+    // Add snapshot file dependency
+    dependencyDao.storeSnapshotFileDependencies(
+        tableServiceClient, DATASET_ID, SNAPSHOT_ID, REF_IDS);
+    TableEntity createdEntity = tableClient.getEntity(SNAPSHOT_ID.toString(), FILE_ID);
+    azureUtils.assertEntityCorrect(createdEntity, SNAPSHOT_ID, FILE_ID, 1L);
+
+    Assert.assertTrue(dependencyDao.datasetHasSnapshotReference(tableServiceClient, DATASET_ID));
   }
 }

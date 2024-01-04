@@ -1,6 +1,6 @@
 package bio.terra.service.job;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.exception.InvalidJobParameterException;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;

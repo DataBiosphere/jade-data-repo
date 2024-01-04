@@ -1,10 +1,13 @@
 package bio.terra.service.tabulardata.google;
 
+import static bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao.logQuery;
+
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.AclUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
-import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.filedata.FSContainerInterface;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -13,6 +16,7 @@ import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
@@ -20,12 +24,15 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.http.HttpTransportOptions;
+import com.google.cloud.storage.StorageOptions;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.commons.lang.StringUtils;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,11 +42,23 @@ public final class BigQueryProject {
       new ConcurrentHashMap<>();
   private final String projectId;
   private final BigQuery bigQuery;
+  private final int TIMEOUT_SECONDS = 40;
 
   private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
-    bigQuery = BigQueryOptions.newBuilder().setProjectId(projectId).build().getService();
+    HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
+    transportOptions =
+        transportOptions.toBuilder()
+            .setConnectTimeout(TIMEOUT_SECONDS * 1000)
+            .setReadTimeout(TIMEOUT_SECONDS * 1000)
+            .build();
+    bigQuery =
+        BigQueryOptions.newBuilder()
+            .setTransportOptions(transportOptions)
+            .setProjectId(projectId)
+            .build()
+            .getService();
   }
 
   public static BigQueryProject get(String projectId) {
@@ -51,16 +70,12 @@ public final class BigQueryProject {
     PROJECT_CACHE.put(bigQueryProject.getProjectId(), bigQueryProject);
   }
 
-  public static BigQueryProject from(bio.terra.service.dataset.Dataset dataset) {
-    return get(dataset.getProjectResource().getGoogleProjectId());
-  }
-
-  public static BigQueryProject from(Snapshot snapshot) {
-    return get(snapshot.getProjectResource().getGoogleProjectId());
-  }
-
   public static BigQueryProject from(SnapshotModel snapshotModel) {
     return get(snapshotModel.getDataProject());
+  }
+
+  public static BigQueryProject from(FSContainerInterface fsContainerInterface) {
+    return get(fsContainerInterface.getProjectResource().getGoogleProjectId());
   }
 
   public String getProjectId() {
@@ -146,12 +161,32 @@ public final class BigQueryProject {
     return bigQuery.delete(tableId);
   }
 
-  public void updateDatasetAcls(Dataset dataset, List<Acl> acls) {
+  public void updateDatasetAcls(Dataset dataset, List<Acl> acls) throws InterruptedException {
     DatasetInfo datasetInfo = dataset.toBuilder().setAcl(acls).build();
-    bigQuery.update(datasetInfo);
+    AclUtils.aclUpdateRetry(
+        () -> {
+          try {
+            bigQuery.update(datasetInfo);
+          } catch (BigQueryException ex) {
+            bigQueryAclUpdateShouldRetry(ex);
+          }
+          return null;
+        });
   }
 
-  public void addDatasetAcls(String datasetId, List<Acl> acls) {
+  private void bigQueryAclUpdateShouldRetry(BigQueryException ex) {
+    String message = ex.getMessage();
+    if (message.startsWith("IAM setPolicy") && message.endsWith("does not exist.")) {
+      throw new AclUtils.AclRetryException(
+          "Policy does not exist. Retrying to wait for propagation", ex, "propagation");
+    }
+    if (message.startsWith("Read timed out") || ex.getCause() instanceof SocketTimeoutException) {
+      throw new AclUtils.AclRetryException("Timeout.", ex, "Timeout");
+    }
+    throw ex;
+  }
+
+  public void addDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
     Dataset dataset = bigQuery.getDataset(datasetId);
     if (dataset == null) {
       throw new PdaoException(String.format("Dataset %s was not found", datasetId));
@@ -164,18 +199,27 @@ public final class BigQueryProject {
     updateDatasetAcls(dataset, newAcls);
   }
 
-  public void removeDatasetAcls(String datasetId, List<Acl> acls) {
+  public void removeDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
     Dataset dataset = bigQuery.getDataset(datasetId);
     if (dataset != null) { // can be null if create dataset step failed before it was created
-      Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
-      datasetAcls.removeAll(acls);
-      updateDatasetAcls(dataset, new ArrayList(datasetAcls));
+      updateDatasetAcls(
+          dataset,
+          dataset.getAcl().stream()
+              .filter(acl -> !acls.contains(acl))
+              .collect(Collectors.toList()));
     }
   }
 
   public TableResult query(String sql) throws InterruptedException {
+    return query(sql, Map.of());
+  }
+
+  public TableResult query(String sql, Map<String, QueryParameterValue> values)
+      throws InterruptedException {
     try {
-      QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+      QueryJobConfiguration queryConfig =
+          QueryJobConfiguration.newBuilder(sql).setNamedParameters(values).build();
+      logQuery(queryConfig);
       return bigQuery.query(queryConfig);
     } catch (BigQueryException e) {
       throw new PdaoException("Failure executing query...\n" + sql, e);

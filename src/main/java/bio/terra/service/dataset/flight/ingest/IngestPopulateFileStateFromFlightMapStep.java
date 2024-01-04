@@ -1,38 +1,38 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
-public abstract class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
+public abstract class IngestPopulateFileStateFromFlightMapStep implements Step {
 
   private final LoadService loadService;
   private final FileService fileService;
   final ObjectMapper objectMapper;
   final Dataset dataset;
   private final int batchSize;
+  private final int maxBadLoadFileLineErrorsReported;
 
   public IngestPopulateFileStateFromFlightMapStep(
       LoadService loadService,
@@ -40,27 +40,30 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      int maxBadLoadFileLineErrorsReported) {
     this.loadService = loadService;
     this.fileService = fileService;
     this.objectMapper = objectMapper;
     this.dataset = dataset;
     this.batchSize = batchSize;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
   @SuppressFBWarnings(
       value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
       justification = "Spotbugs doesn't understand resource try construct")
-  public StepResult doSkippableStep(FlightContext context) {
+  public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
     List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
 
-    List<String> errors = new ArrayList<>();
-    try (var bulkFileLoadModels = getModelsStream(ingestRequest, fileColumns, errors)) {
+    ErrorCollector errorCollector =
+        new ErrorCollector(
+            maxBadLoadFileLineErrorsReported,
+            "Ingest control file at " + ingestRequest.getPath() + " could not be processed");
+    try (var bulkFileLoadModels = getModelsStream(ingestRequest, fileColumns, errorCollector)) {
 
       if (ingestRequest.isResolveExistingFiles()) {
         Set<FileModel> existingFiles = new HashSet<>();
@@ -76,12 +79,9 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
 
       // Check for parsing errors after files are populated in the load table because that's when
       // the stream is actually materialized.
-      if (!errors.isEmpty()) {
-        IngestFailureException ingestFailureException =
-            new IngestFailureException(
-                "Ingest control file at " + ingestRequest.getPath() + " could not be processed",
-                errors);
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ingestFailureException);
+      if (errorCollector.anyErrorsCollected()) {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL, errorCollector.getFormattedException());
       }
     }
     return StepResult.getStepResultSuccess();
@@ -112,7 +112,7 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
   }
 
   @Override
-  public StepResult undoSkippableStep(FlightContext context) {
+  public StepResult undoStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
@@ -121,5 +121,5 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
   }
 
   abstract Stream<BulkLoadFileModel> getModelsStream(
-      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors);
+      IngestRequestModel ingestRequest, List<Column> fileRefColumns, ErrorCollector errorCollector);
 }

@@ -5,7 +5,7 @@ import bio.terra.common.Table;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.util.HashSet;
@@ -15,13 +15,15 @@ import java.util.Set;
 public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
 
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final FireStoreDao fileDao;
 
   public IngestValidateGcpRefsStep(
-      DatasetService datasetService, BigQueryPdao bigQueryPdao, FireStoreDao fileDao) {
+      DatasetService datasetService,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
+      FireStoreDao fileDao) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.fileDao = fileDao;
   }
 
@@ -35,14 +37,12 @@ public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
     // Then probe the file system to validate that the file exists and is part
     // of this dataset. We check all ids and return one complete error.
 
-    Set<String> invalidRefIds = new HashSet<>();
+    Set<InvalidRefId> invalidRefIds = new HashSet<>();
     for (Column column : table.getColumns()) {
       if (column.isFileOrDirRef()) {
-        List<String> refIdArray = bigQueryPdao.getRefIds(dataset, stagingTableName, column);
+        List<String> refIdArray = bigQueryDatasetPdao.getRefIds(dataset, stagingTableName, column);
         List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
-        if (badRefIds != null) {
-          invalidRefIds.addAll(badRefIds);
-        }
+        badRefIds.forEach(id -> invalidRefIds.add(new InvalidRefId(id, column.getName())));
       }
     }
 

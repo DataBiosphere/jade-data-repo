@@ -2,15 +2,19 @@ package bio.terra.service.profile;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -22,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -40,6 +43,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class GoogleBillingServiceTest {
   private final Logger logger = LoggerFactory.getLogger(GoogleBillingServiceTest.class);
 
@@ -55,15 +59,22 @@ public class GoogleBillingServiceTest {
   private GoogleProjectResource projectResource;
   private String oldBillingAccountId;
   private String newBillingAccountId;
-  private boolean resetBillingAccount;
 
   @Before
   public void setup() throws Exception {
-    oldBillingAccountId = testConfig.getGoogleBillingAccountId();
-    newBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
-    resetBillingAccount = false;
+    // The "no spend" google account is the default account in the RBS tools environment
+    oldBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
+    // Alternate billing account that we should use for testing
+    newBillingAccountId = testConfig.getGoogleBillingAccountId();
 
-    profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
+    assertThat(
+        "Testing against two different billing accounts",
+        oldBillingAccountId,
+        not(newBillingAccountId));
+
+    // We want to create the project with this alternate billing account
+    // Confirm that on project create, the billing account is switched to this account
+    profile = connectedOperations.createProfileForAccount(newBillingAccountId);
     connectedOperations.stubOutSamCalls(samService);
 
     // get or created project in which to do the bucket work
@@ -72,16 +83,16 @@ public class GoogleBillingServiceTest {
 
   @After
   public void teardown() throws Exception {
-    if (resetBillingAccount) {
-      googleBillingService.assignProjectBilling(profile, projectResource);
-    }
     // Connected operations resets the configuration
     connectedOperations.teardown();
   }
 
   @Test
   public void getBillingAccount() {
-    System.out.println("billingAccountId: " + profile.getBillingAccountId());
+    assertThat(
+        "Billing account is set to the account provided in setup.",
+        profile.getBillingAccountId(),
+        equalTo(newBillingAccountId));
     ProjectBillingInfo billingAccount =
         googleBillingService.getProjectBilling(projectResource.getGoogleProjectId());
     logger.info(
@@ -94,42 +105,40 @@ public class GoogleBillingServiceTest {
         containsString(profile.getBillingAccountId()));
   }
 
-  @Ignore(
-      "assignProjectBilling manipulates billing accounts, so ignoring until we can test by creating a "
-          + "new project, test changing the billing account, and then delete the project")
   @Test
   public void assignProjectBilling() {
     // Check state before Assigning new billing account Id
     ProjectBillingInfo billingAccount =
         googleBillingService.getProjectBilling(projectResource.getGoogleProjectId());
     assertThat(
-        "Billing account should be equal to the 'old' billing account.",
+        "Billing account should be equal to the 'new' billing account.",
         billingAccount.getBillingAccountName(),
-        containsString(oldBillingAccountId));
+        containsString(newBillingAccountId));
     logger.info(
         "Before assigning project billing: Billing Account Name {} for Project {}",
         billingAccount.getBillingAccountName(),
         projectResource.getGoogleProjectId());
 
-    // Assign a the new Billing Account to the existing Project
+    // Assign a different Billing Account to the existing Project --
+    // Attempt to assign the project back to the default RBS tools account id,
+    // confirming we are able to update the billing account
     BillingProfileModel newBillingProfile = new BillingProfileModel();
-    newBillingProfile.setBillingAccountId(newBillingAccountId);
+    newBillingProfile.setBillingAccountId(oldBillingAccountId);
     boolean billingEnabled =
         googleBillingService.assignProjectBilling(newBillingProfile, projectResource);
-    resetBillingAccount = true;
     assertTrue("Billing should be enabled after updating the billing account", billingEnabled);
 
     // Check if the change was successful
-    ProjectBillingInfo newBillingAccount =
+    ProjectBillingInfo updatedBillingAccount =
         googleBillingService.getProjectBilling(projectResource.getGoogleProjectId());
     logger.info(
         "After assigning project billing: Billing Account Name {} for Project {}",
-        newBillingAccount.getBillingAccountName(),
+        updatedBillingAccount.getBillingAccountName(),
         projectResource.getGoogleProjectId());
     assertThat(
         "Billing account should be equal to the one we set.",
-        newBillingAccount.getBillingAccountName(),
-        containsString(newBillingAccountId));
+        updatedBillingAccount.getBillingAccountName(),
+        containsString(oldBillingAccountId));
   }
 
   private GoogleProjectResource buildProjectResource() throws Exception {
@@ -140,13 +149,14 @@ public class GoogleBillingServiceTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
-    ResourceInfo resourceInfo = bufferService.handoutResource();
+    ResourceInfo resourceInfo = bufferService.handoutResource(false);
     // create project metadata
     return projectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
         profile,
         roleToStewardMap,
         GoogleRegion.DEFAULT_GOOGLE_REGION,
-        Map.of("test-name", "google-billing-service-test"));
+        Map.of("test-name", "google-billing-service-test"),
+        CollectionType.DATASET);
   }
 }

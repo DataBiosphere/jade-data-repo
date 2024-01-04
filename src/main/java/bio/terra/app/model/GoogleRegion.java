@@ -35,7 +35,7 @@ public enum GoogleRegion implements CloudRegion {
   US_WEST2("us-west2"),
   US_WEST3("us-west3"),
   US_WEST4("us-west4"),
-  US("us", "us-east4", "us-east4");
+  US("us", "us-east4", "us-east4", true);
 
   public static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
 
@@ -47,19 +47,25 @@ public enum GoogleRegion implements CloudRegion {
   private final String value;
   private final String firestoreFallbackRegion;
   private final String bucketFallbackRegion;
+  private final boolean isMultiRegional;
 
   GoogleRegion(String value) {
-    this(value, value, value);
+    this(value, value, value, false);
   }
 
   GoogleRegion(String value, String firestoreFallbackRegion) {
-    this(value, firestoreFallbackRegion, value);
+    this(value, firestoreFallbackRegion, value, false);
   }
 
-  GoogleRegion(String value, String firestoreFallbackRegion, String bucketFallbackRegion) {
+  GoogleRegion(
+      String value,
+      String firestoreFallbackRegion,
+      String bucketFallbackRegion,
+      boolean isMultiRegional) {
     this.value = value;
     this.firestoreFallbackRegion = firestoreFallbackRegion;
     this.bucketFallbackRegion = bucketFallbackRegion;
+    this.isMultiRegional = isMultiRegional;
   }
 
   public GoogleRegion getRegionOrFallbackFirestoreRegion() {
@@ -119,5 +125,9 @@ public enum GoogleRegion implements CloudRegion {
       }
     }
     return true;
+  }
+
+  public boolean isMultiRegional() {
+    return isMultiRegional;
   }
 }

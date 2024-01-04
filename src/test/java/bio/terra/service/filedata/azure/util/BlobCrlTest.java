@@ -1,11 +1,12 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
+import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.storage.blob.BlobClient;
@@ -16,6 +17,7 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import java.time.Duration;
+import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,13 +42,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class BlobCrlTest {
 
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
 
-  private BlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility blobIOTestUtility;
 
   private BlobCrl blobCrl;
 
@@ -55,13 +58,13 @@ public class BlobCrlTest {
     RequestRetryOptions retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
-            azureResourceConfiguration.getMaxRetries(),
-            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            azureResourceConfiguration.maxRetries(),
+            azureResourceConfiguration.retryTimeoutSeconds(),
             null,
             null,
             null);
     blobIOTestUtility =
-        new BlobIOTestUtility(
+        new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName(),
@@ -71,7 +74,7 @@ public class BlobCrlTest {
 
   @After
   public void cleanUp() {
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtility.teardown();
   }
 
   @Test
@@ -101,6 +104,34 @@ public class BlobCrlTest {
     BlobProperties properties = blobCrl.getBlobProperties(blobName);
 
     assertThat(properties.getBlobSize(), equalTo(MIB / 10));
+  }
+
+  @Test
+  public void testDeletePrefix() {
+    String prefix = "prefix";
+    String blob1 = prefix + "/blob1";
+    String blob2 = prefix + "/blob2";
+    String blob3 = prefix + "/blobs/blob3";
+    String dontDeletePrefix = "dontDelete";
+    String dontDeleteBlob = dontDeletePrefix + "/shouldNotBeDeleted";
+
+    blobIOTestUtility.uploadDestinationFile(blob1, MIB / 10);
+    blobIOTestUtility.uploadDestinationFile(blob2, MIB / 10);
+    blobIOTestUtility.uploadDestinationFile(blob3, MIB / 10);
+    blobIOTestUtility.uploadDestinationFile(dontDeleteBlob, MIB / 10);
+    blobCrl.deleteBlobsWithPrefix(prefix);
+
+    boolean blobsExist = false;
+    for (var blob : List.of(prefix, blob1, blob2, blob3)) {
+      blobsExist = blobsExist || blobCrl.blobExists(blob);
+    }
+
+    assertThat("the blobs beginning with 'prefix' do not exist", !blobsExist);
+
+    assertThat(
+        "the blobs not beginning with 'prefix' still exist", blobCrl.blobExists(dontDeleteBlob));
+
+    blobCrl.deleteBlobsWithPrefix(dontDeletePrefix);
   }
 
   @Test

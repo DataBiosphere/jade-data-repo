@@ -1,12 +1,14 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'com.jfrog.artifactory' version '4.13.0'
+    id 'com.jfrog.artifactory' version '4.32.0'
     id 'org.hidetake.swagger.generator'
 }
 
-sourceCompatibility = 11
-targetCompatibility = 11
+java {
+    sourceCompatibility = 11
+    targetCompatibility = 11
+}
 
 // TODO: there may be a better way to supply these values than envvars.
 // This and the test below makes sure the build will fail reasonably if you try
@@ -115,4 +117,10 @@ clean {
     delete "gradlew.bat"
     delete "pom.xml"
     delete "src/"
+}
+
+project(":datarepo-client") {
+    sonar {
+        skipProject = true
+    }
 }

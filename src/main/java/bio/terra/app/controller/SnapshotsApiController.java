@@ -4,8 +4,12 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.ValidationUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
+import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
@@ -13,27 +17,35 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotIdsAndRolesModel;
+import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotPatchRequestModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
+import bio.terra.model.UnlockResourceRequest;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -41,8 +53,6 @@ import javax.validation.Valid;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -55,12 +65,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Api(tags = {"snapshots"})
 public class SnapshotsApiController implements SnapshotsApi {
 
-  private Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
+  private final Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
+  // We do not include Access_Information since it can get expensive
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
-      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT";
+      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,DUOS";
 
-  private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final JobService jobService;
   private final SnapshotRequestValidator snapshotRequestValidator;
@@ -71,9 +81,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
 
-  @Autowired
   public SnapshotsApiController(
-      ObjectMapper objectMapper,
       HttpServletRequest request,
       JobService jobService,
       SnapshotRequestValidator snapshotRequestValidator,
@@ -83,7 +91,6 @@ public class SnapshotsApiController implements SnapshotsApi {
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator) {
-    this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
     this.snapshotRequestValidator = snapshotRequestValidator;
@@ -100,16 +107,6 @@ public class SnapshotsApiController implements SnapshotsApi {
     binder.addValidators(snapshotRequestValidator);
     binder.addValidators(ingestRequestValidator);
     binder.addValidators(assetModelValidator);
-  }
-
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
@@ -140,59 +137,126 @@ public class SnapshotsApiController implements SnapshotsApi {
       // we can retrieve the job we just created
       return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
-    throw new IamUnauthorizedException(
+    throw new IamForbiddenException(
         "User is not authorized to create snapshots for these datasets " + unauthorized);
   }
 
   @Override
   public ResponseEntity<JobModel> deleteSnapshot(@PathVariable("id") UUID id) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.DELETE);
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.DELETE);
     String jobId = snapshotService.deleteSnapshot(id, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override
+  public ResponseEntity<SnapshotSummaryModel> patchSnapshot(
+      UUID id, SnapshotPatchRequestModel patchRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    Set<IamAction> actions = snapshotService.patchSnapshotIamActions(patchRequest);
+    verifySnapshotAuthorizations(userReq, id.toString(), actions);
+    return ResponseEntity.ok(snapshotService.patch(id, patchRequest, userReq));
+  }
+
+  @Override
+  public ResponseEntity<JobModel> exportSnapshot(
+      @PathVariable("id") UUID id,
+      Boolean exportGsPaths,
+      Boolean validatePrimaryKeyUniqueness,
+      Boolean signUrls) {
+    logger.debug("Verifying user access");
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.EXPORT_SNAPSHOT);
+    String jobId =
+        snapshotService.exportSnapshot(
+            id, userReq, exportGsPaths, validatePrimaryKeyUniqueness, signUrls);
+    // we can retrieve the job we just created
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
   public ResponseEntity<EnumerateSnapshotModel> enumerateSnapshots(
-      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-      @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date")
-          EnumerateSortByParam sort,
-      @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc")
-          SqlSortDirection direction,
-      @Valid @RequestParam(value = "filter", required = false) String filter,
-      @Valid @RequestParam(value = "region", required = false) String region,
-      @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
+      Integer offset,
+      Integer limit,
+      EnumerateSortByParam sort,
+      SqlSortDirectionAscDefault direction,
+      String filter,
+      String region,
+      List<String> datasetIds,
+      List<String> tags) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    List<UUID> resources =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
-    EnumerateSnapshotModel edm =
+    var esm =
         snapshotService.enumerateSnapshots(
-            offset, limit, sort, direction, filter, region, datasetUUIDs, resources);
-    return new ResponseEntity<>(edm, HttpStatus.OK);
+            getAuthenticatedInfo(),
+            offset,
+            limit,
+            sort,
+            SqlSortDirection.from(direction),
+            filter,
+            region,
+            datasetUUIDs,
+            tags);
+    return ResponseEntity.ok(esm);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotIdsAndRolesModel> getSnapshotIdsAndRoles() {
+    return ResponseEntity.ok(snapshotService.getSnapshotIdsAndRoles(getAuthenticatedInfo()));
   }
 
   @Override
   public ResponseEntity<SnapshotModel> retrieveSnapshot(
-      @PathVariable("id") UUID id,
-      @Valid
-          @RequestParam(
+      UUID id,
+      @RequestParam(
               value = "include",
               required = false,
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
-          List<SnapshotRequestAccessIncludeModel> include) {
-    logger.info("Verifying user access");
+          List<SnapshotRetrieveIncludeModel> include) {
+    logger.debug("Verifying user access");
+    AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
+    snapshotService.verifySnapshotReadable(id, authenticatedInfo);
+    logger.debug("Retrieving snapshot");
+    SnapshotModel snapshotModel =
+        snapshotService.retrieveSnapshotModel(id, include, authenticatedInfo);
+    return ResponseEntity.ok(snapshotModel);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotSummaryModel> retrieveSnapshotSummary(UUID id) {
+    AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
+    snapshotService.verifySnapshotListable(id, authenticatedInfo);
+    SnapshotSummaryModel snapshotSummaryModel = snapshotService.retrieveSnapshotSummary(id);
+    return ResponseEntity.ok(snapshotSummaryModel);
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> lockSnapshot(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
-    logger.info("Retrieving snapshot");
-    SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(id, include);
-    return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.LOCK_RESOURCE);
+    return ResponseEntity.ok(snapshotService.manualExclusiveLock(userRequest, id));
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> unlockSnapshot(
+      UUID id, UnlockResourceRequest unlockRequest) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UNLOCK_RESOURCE);
+    return ResponseEntity.ok(snapshotService.manualExclusiveUnlock(userRequest, id, unlockRequest));
+  }
+
+  @Override
+  public ResponseEntity<List<FileModel>> listFiles(UUID id, Integer offset, Integer limit) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_DATA);
+    List<FileModel> results = fileService.listSnapshotFiles(id.toString(), offset, limit);
+    return ResponseEntity.ok(results);
   }
 
   @Override
@@ -201,10 +265,9 @@ public class SnapshotsApiController implements SnapshotsApi {
       @PathVariable("fileid") String fileid,
       @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    verifySnapshotAuthorization(getAuthenticatedInfo(), id.toString(), IamAction.READ_DATA);
     FileModel fileModel = fileService.lookupSnapshotFile(id.toString(), fileid, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
   }
 
   @Override
@@ -213,13 +276,62 @@ public class SnapshotsApiController implements SnapshotsApi {
       @RequestParam(value = "path", required = true) String path,
       @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    verifySnapshotAuthorization(getAuthenticatedInfo(), id.toString(), IamAction.READ_DATA);
     if (!ValidationUtils.isValidPath(path)) {
       throw new ValidationException("InvalidPath");
     }
     FileModel fileModel = fileService.lookupSnapshotPath(id.toString(), path, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotPreviewModel> querySnapshotDataById(
+      UUID id, String table, QueryDataRequestModel queryDataRequest) {
+    snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
+    SqlSortDirection sortDirection = SqlSortDirection.from(queryDataRequest.getDirection());
+    SnapshotPreviewModel previewModel =
+        snapshotService.retrievePreview(
+            getAuthenticatedInfo(),
+            id,
+            table,
+            queryDataRequest.getLimit(),
+            queryDataRequest.getOffset(),
+            queryDataRequest.getSort(),
+            sortDirection,
+            queryDataRequest.getFilter());
+    return ResponseEntity.ok(previewModel);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirectionAscDefault direction,
+      String filter) {
+    return querySnapshotDataById(
+        id,
+        table,
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(direction)
+            .filter(filter));
+  }
+
+  // --snapshot data access controls (auth domains, group access constraints) --
+
+  @Override
+  public ResponseEntity<AddAuthDomainResponseModel> addSnapshotAuthDomain(
+      UUID id, List<String> userGroups) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_AUTH_DOMAIN);
+    AddAuthDomainResponseModel result =
+        snapshotService.addSnapshotDataAccessControls(userReq, id, userGroups);
+    return ResponseEntity.ok(result);
   }
 
   // --snapshot policies --
@@ -228,25 +340,18 @@ public class SnapshotsApiController implements SnapshotsApi {
       @PathVariable("id") UUID id,
       @PathVariable("policyName") String policyName,
       @Valid @RequestBody PolicyMemberRequest policyMember) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     PolicyModel policy =
         iamService.addPolicyMember(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASNAPSHOT,
-            id,
-            policyName,
-            policyMember.getEmail());
+            userReq, IamResourceType.DATASNAPSHOT, id, policyName, policyMember.getEmail());
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
-  public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") UUID id) {
-    PolicyResponse response =
-        new PolicyResponse()
-            .policies(
-                iamService.retrievePolicies(
-                    getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+  public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(UUID id) {
+    PolicyResponse response = snapshotService.retrieveSnapshotPolicies(id, getAuthenticatedInfo());
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -258,11 +363,62 @@ public class SnapshotsApiController implements SnapshotsApi {
     if (!ValidationUtils.isValidEmail(memberEmail)) {
       throw new ValidationException("InvalidMemberEmail");
     }
-
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     PolicyModel policy =
         iamService.deletePolicyMember(
-            getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, policyName, memberEmail);
+            userReq, IamResourceType.DATASNAPSHOT, id, policyName, memberEmail);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
+  }
+
+  @Override
+  public ResponseEntity<List<String>> retrieveUserSnapshotRoles(UUID id) {
+    List<String> roles = snapshotService.retrieveUserSnapshotRoles(id, getAuthenticatedInfo());
+    return ResponseEntity.ok(roles);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotLinkDuosDatasetResponse> linkDuosDatasetToSnapshot(
+      UUID id, String duosId) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.SHARE_POLICY_READER);
+    return ResponseEntity.ok(snapshotService.updateSnapshotDuosDataset(id, userReq, duosId));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotLinkDuosDatasetResponse> unlinkDuosDatasetFromSnapshot(UUID id) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.SHARE_POLICY_READER);
+    return ResponseEntity.ok(snapshotService.updateSnapshotDuosDataset(id, userReq, null));
+  }
+
+  @Override
+  public ResponseEntity<TagCountResultModel> getSnapshotTags(String filter, Integer limit) {
+    return ResponseEntity.ok(snapshotService.getTags(getAuthenticatedInfo(), filter, limit));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotSummaryModel> updateSnapshotTags(
+      UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_SNAPSHOT);
+    return ResponseEntity.ok(snapshotService.updateTags(id, tagUpdateRequest));
+  }
+
+  private void verifySnapshotAuthorization(
+      AuthenticatedUserRequest userReq, String resourceId, IamAction action) {
+    IamResourceType resourceType = IamResourceType.DATASNAPSHOT;
+    // Check if snapshot exists
+    snapshotService.retrieveSnapshotSummary(UUID.fromString(resourceId));
+    // Verify snapshot permissions
+    iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
+  }
+
+  private void verifySnapshotAuthorizations(
+      AuthenticatedUserRequest userReq, String resourceId, Collection<IamAction> actions) {
+    // Check if snapshot exists
+    snapshotService.retrieveSnapshotSummary(UUID.fromString(resourceId));
+    // Verify snapshot permissions
+    iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, resourceId, actions);
   }
 }

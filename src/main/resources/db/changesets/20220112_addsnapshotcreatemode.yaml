@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_snapshot_create_mode
+      author: tjiang
+      changes:
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: creation_information
+              type: jsonb
+              defaultValue: "{}"
+              constraints:
+                nullable: false

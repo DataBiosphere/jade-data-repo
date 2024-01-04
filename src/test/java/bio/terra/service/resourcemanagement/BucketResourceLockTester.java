@@ -47,7 +47,8 @@ public class BucketResourceLockTester implements Runnable {
     try {
       // create the bucket and metadata
       bucketResource =
-          bucketService.getOrCreateBucket(bucketName, projectResource, region, flightId);
+          bucketService.getOrCreateBucket(
+              bucketName, projectResource, region, flightId, null, null, null, true);
       if (createBucketLink) {
         datasetBucketDao.createDatasetBucketLink(datasetId, bucketResource.getResourceId());
       }

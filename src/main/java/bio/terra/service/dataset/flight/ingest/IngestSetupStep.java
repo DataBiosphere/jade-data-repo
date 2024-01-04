@@ -3,19 +3,14 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The setup step required to generate the staging file name.
@@ -35,35 +30,19 @@ import org.slf4j.LoggerFactory;
  * <p>Second, it stores away the dataset name. Several steps only need the dataset name and not the
  * dataset object.
  */
-public class IngestSetupStep implements Step {
-  private Logger logger = LoggerFactory.getLogger(IngestSetupStep.class);
+public class IngestSetupStep extends DefaultUndoStep {
 
   private DatasetService datasetService;
-  private ConfigurationService configService;
   private CloudPlatformWrapper cloudPlatform;
 
-  public IngestSetupStep(
-      DatasetService datasetService,
-      ConfigurationService configService,
-      CloudPlatformWrapper cloudPlatform) {
+  public IngestSetupStep(DatasetService datasetService, CloudPlatformWrapper cloudPlatform) {
     this.datasetService = datasetService;
-    this.configService = configService;
     this.cloudPlatform = cloudPlatform;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-
-    if (configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT)) {
-      logger.info("TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT");
-      while (!configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT)) {
-        logger.info("Sleeping for CONTINUE FAULT");
-        TimeUnit.SECONDS.sleep(5);
-      }
-      logger.info("TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT");
-    }
-
     IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
@@ -75,18 +54,15 @@ public class IngestSetupStep implements Step {
       String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
       IngestUtils.putStagingTableName(context, sgName);
     } else if (cloudPlatform.isAzure()) {
-      IngestUtils.validateBlobAzureBlobFileURL(ingestRequestModel.getPath());
+      // Don't validate if we are ingesting as a payload object
+      if (!IngestUtils.isIngestFromPayload(context.getInputParameters())) {
+        IngestUtils.validateBlobAzureBlobFileURL(ingestRequestModel.getPath());
+      }
       workingMap.put(
           IngestMapKeys.PARQUET_FILE_PATH,
           IngestUtils.getParquetFilePath(targetTable.getName(), context.getFlightId()));
     }
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    // Nothing to undo
     return StepResult.getStepResultSuccess();
   }
 }

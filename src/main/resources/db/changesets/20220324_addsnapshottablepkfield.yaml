@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_and_populate_snapshot_table_pk_field
+      author: nm
+      changes:
+        - addColumn:
+            tableName: snapshot_table
+            columns:
+              name: primary_key
+              # NOTE: Without quotes here, liquibase seems to lose track of the
+              # trailing '[]' and creates a scalar column instead.
+              type: "${identifier_type} []"
+              defaultValue: "{}"
+              constraints:
+                nullable: false
+        - sql:
+            comment: Backfill PK metadata
+            sql: >
+              UPDATE snapshot_table
+              SET primary_key = dt.primary_key
+              FROM snapshot_map_table smt,
+                   dataset_table dt
+              WHERE snapshot_table.id=smt.to_table_id
+                AND smt.from_table_id = dt.id

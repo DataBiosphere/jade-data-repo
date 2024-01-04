@@ -4,6 +4,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -13,12 +14,13 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -74,10 +76,19 @@ public class EncodeFixture {
 
   // Create dataset, load files and tables. Create and return snapshot.
   // Steward owns dataset; custodian is custodian on dataset; reader has access to the snapshot.
+
+  /**
+   * Create dataset, load files and tables. Create and return snapshot. Steward owns dataset;
+   * custodian is custodian on dataset; reader has access to the snapshot.
+   *
+   * @param shouldAssertBqDatasetAccessible if set, verify that the snapshot's underlying BigQuery
+   *     dataset is accessible to the reader
+   */
   public SetupResult setupEncode(
       TestConfiguration.User steward,
       TestConfiguration.User custodian,
-      TestConfiguration.User reader)
+      TestConfiguration.User reader,
+      boolean shouldAssertBqDatasetAccessible)
       throws Exception {
 
     UUID profileId = dataRepoFixtures.createBillingProfile(steward).getId();
@@ -125,34 +136,36 @@ public class EncodeFixture {
     dataRepoFixtures.addSnapshotPolicyMember(
         custodian, snapshotSummary.getId(), IamRole.READER, reader.getEmail());
 
-    // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
-    // issues have shown. We make a BigQuery request as the test to see that READER has access.
-    // We need to get the snapshot, rather than the snapshot summary in order to make a query.
-    // TODO: Add dataProject to SnapshotSummaryModel?
-    SnapshotModel snapshotModel =
-        dataRepoFixtures.getSnapshot(
-            custodian,
-            snapshotSummary.getId(),
-            List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
-    logger.info(
-        "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
-        snapshotModel.getName(),
-        snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
-        snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+    if (shouldAssertBqDatasetAccessible) {
+      // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
+      // issues have shown. We make a BigQuery request as the test to see that READER has access.
+      // We need to get the snapshot, rather than the snapshot summary in order to make a query.
+      // TODO: Add dataProject to SnapshotSummaryModel?
+      SnapshotModel snapshotModel =
+          dataRepoFixtures.getSnapshot(
+              custodian,
+              snapshotSummary.getId(),
+              List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
+      logger.info(
+          "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
+          snapshotModel.getName(),
+          snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+          snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-    // TODO: re-add once CA-1406 is resolved
-    /*
-        String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-        BigQuery bigQueryReader =
-            BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-        boolean hasAccess = BigQueryFixtures.hasAccess(
-        bigQueryReader,
-        snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
-        snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+      String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+      BigQuery bigQueryReader =
+          BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
 
-    assertThat("has access to BQ", hasAccess, equalTo(true));
-         */
-    logger.info("Successfully checked access");
+      BigQueryFixtures.assertBqDatasetAccessible(
+          bigQueryReader,
+          snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+          snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+
+      logger.info("Successfully checked access");
+    } else {
+      logger.info("Skipping BQ dataset access check for snapshot {}", snapshotSummary.getName());
+    }
+
     return new SetupResult(profileId, datasetId, snapshotSummary);
   }
 
@@ -215,8 +228,8 @@ public class EncodeFixture {
         resultModel = resultMap.get(encodeFileIn.getFile_index_gs_path());
         String bamiFileId = (resultModel == null) ? null : resultModel.getFileId();
         EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
-        String fileLine = TestUtils.mapToJson(encodeFileOut) + "\n";
-        writer.write(fileLine);
+        String fileLine = TestUtils.mapToJson(encodeFileOut);
+        writer.writeLine(fileLine);
       }
     }
 

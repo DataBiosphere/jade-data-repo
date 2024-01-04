@@ -2,22 +2,33 @@ package bio.terra.service.dataset;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
+import bio.terra.model.AssetModel;
+import bio.terra.model.CloudPlatform;
+import bio.terra.model.ResourceLocks;
+import bio.terra.service.dataset.exception.InvalidAssetException;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 
-public class Dataset implements FSContainerInterface {
+public class Dataset implements FSContainerInterface, LogPrintable {
 
   private final DatasetSummary datasetSummary;
   private List<DatasetTable> tables = Collections.emptyList();
@@ -32,6 +43,21 @@ public class Dataset implements FSContainerInterface {
 
   public Dataset(DatasetSummary summary) {
     datasetSummary = summary;
+  }
+
+  @Override
+  public CollectionType getCollectionType() {
+    return CollectionType.DATASET;
+  }
+
+  @Override
+  public boolean isSnapshot() {
+    return false;
+  }
+
+  @Override
+  public boolean isDataset() {
+    return true;
   }
 
   public List<DatasetTable> getTables() {
@@ -79,6 +105,105 @@ public class Dataset implements FSContainerInterface {
     return Optional.empty();
   }
 
+  /**
+   * @param tableName the string name of the table the column is in
+   * @param columnName the string name of the column to fetch
+   * @return the column at the specified path
+   * @throws InvalidTableException if there is no table of the specified name
+   * @throws InvalidColumnException if there is no column in the specified table
+   */
+  public Column getColumn(String tableName, String columnName) {
+    return getTableByName(tableName)
+        .orElseThrow(
+            () -> new InvalidTableException("No dataset table exists with the name: " + tableName))
+        .getColumnByName(columnName)
+        .orElseThrow(
+            () ->
+                new InvalidColumnException(
+                    "No column exists in table " + tableName + " with column name: " + columnName));
+  }
+
+  public void validateDatasetAssetSpecification(AssetModel assetModel) {
+    List<String> errors = new ArrayList<>();
+    // Validate Root Table
+    String rootTableName = assetModel.getRootTable();
+    Optional<DatasetTable> rootTable = getAndValidateTable(rootTableName);
+    if (rootTable.isEmpty()) {
+      errors.add("Root table " + rootTableName + " does not exist in dataset.");
+    } else {
+      // Validate Root Column
+      if (!rootTable.get().getColumns().stream()
+          .anyMatch(c -> c.getName().equals(assetModel.getRootColumn()))) {
+        errors.add(
+            "Root column "
+                + assetModel.getRootColumn()
+                + " does not exist in table "
+                + rootTableName);
+      }
+    }
+
+    // Validate Tables
+    for (var assetTable : assetModel.getTables()) {
+      String currentTableName = assetTable.getName();
+      Optional<DatasetTable> currentTable = getAndValidateTable(currentTableName);
+      if (currentTable.isEmpty()) {
+        errors.add("Table " + currentTableName + " does not exist in dataset.");
+      } else {
+        List<String> datasetTableColumnNames =
+            currentTable.get().getColumns().stream().map(c -> c.getName()).toList();
+        assetTable
+            .getColumns()
+            .forEach(
+                assetColumn -> {
+                  if (!datasetTableColumnNames.contains(assetColumn)) {
+                    errors.add(
+                        "Column " + assetColumn + " does not exist in table " + currentTableName);
+                  }
+                });
+      }
+    }
+
+    // Follow should reference an existing relationship as defined in the original dataset create
+    // query
+    for (var assetFollow : ListUtils.emptyIfNull(assetModel.getFollow())) {
+      if (!relationships.stream().anyMatch(r -> r.getName().equals(assetFollow))) {
+        errors.add(
+            "Relationship specified in follow list '"
+                + assetFollow
+                + "' does not exist in dataset's list of relationships");
+      }
+    }
+
+    if (errors.size() > 0) {
+      throw new InvalidAssetException(
+          "Invalid asset create request. See causes list for details.", errors);
+    }
+  }
+
+  private Optional<DatasetTable> getAndValidateTable(String tableName) {
+    return tables.stream()
+        .filter(datasetTable -> datasetTable.getName().equals(tableName))
+        .findFirst();
+  }
+
+  public AssetSpecification getNewAssetSpec(AssetModel assetModel) {
+    Map<String, DatasetTable> tablesMap =
+        tables.stream()
+            .collect(
+                Collectors.toMap(
+                    datasetTable -> datasetTable.getName(), datasetTable -> datasetTable));
+    Map<String, Relationship> relationshipMap =
+        relationships.stream()
+            .collect(
+                Collectors.toMap(
+                    relationship -> relationship.getName(), relationship -> relationship));
+
+    AssetSpecification assetSpecification =
+        DatasetJsonConversion.assetModelToAssetSpecification(
+            assetModel, tablesMap, relationshipMap);
+    return assetSpecification;
+  }
+
   public Map<UUID, Column> getAllColumnsById() {
     Map<UUID, Column> columns = new HashMap<>();
     getTables()
@@ -121,6 +246,7 @@ public class Dataset implements FSContainerInterface {
     return this;
   }
 
+  @Override
   public String getName() {
     return datasetSummary.getName();
   }
@@ -193,6 +319,15 @@ public class Dataset implements FSContainerInterface {
     return this;
   }
 
+  /**
+   * @return whether this dataset has a dedicated GCP service account
+   */
+  public boolean hasDedicatedGcpServiceAccount() {
+    return Optional.ofNullable(projectResource)
+        .map(GoogleProjectResource::hasDedicatedServiceAccount)
+        .orElse(false);
+  }
+
   @Override
   public FireStoreProject firestoreConnection() {
     return FireStoreProject.get(getProjectResource().getGoogleProjectId());
@@ -211,5 +346,48 @@ public class Dataset implements FSContainerInterface {
   public AzureRegion getStorageAccountRegion() {
     return (AzureRegion)
         datasetSummary.getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
+  }
+
+  public boolean isSecureMonitoringEnabled() {
+    return datasetSummary.isSecureMonitoringEnabled();
+  }
+
+  public String getPhsId() {
+    return datasetSummary.getPhsId();
+  }
+
+  public boolean isSelfHosted() {
+    return datasetSummary.isSelfHosted();
+  }
+
+  public Object getProperties() {
+    return datasetSummary.getProperties();
+  }
+
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return datasetSummary.getCloudPlatform();
+  }
+
+  public boolean hasPredictableFileIds() {
+    return datasetSummary.hasPredictableFileIds();
+  }
+
+  public Dataset predictableFileIds(boolean predictableFileIds) {
+    datasetSummary.predictableFileIds(predictableFileIds);
+    return this;
+  }
+
+  public List<String> getTags() {
+    return datasetSummary.getTags();
+  }
+
+  public ResourceLocks getResourceLocks() {
+    return datasetSummary.getResourceLocks();
+  }
+
+  @Override
+  public String toLogString() {
+    return String.format("%s (%s)", this.getName(), this.getId());
   }
 }

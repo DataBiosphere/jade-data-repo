@@ -1,12 +1,18 @@
 package bio.terra.service.filedata.azure.util;
 
 import bio.terra.common.exception.PdaoException;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobHttpHeaders;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
-import java.net.URL;
+import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,19 +96,19 @@ public class BlobCrl {
    * Creates a new instance of {@link BlobContainerCopier} that uses the {@link
    * BlobContainerClientFactory} specified in the constructor as the destination storage account.
    *
-   * @param sourceUrl source blob URL. The URL must include in the query string a SAS token with
-   *     read access.
+   * @param sourceUri source blob URI. The URL must include in the query string a SAS token with
+   *     read access or must be a gs:// path
    * @param destinationBlobName destination blob name. If null or empty the source name will be
    *     used.
    * @return new instance of {@link BlobContainerClientFactory}.
    */
-  public BlobContainerCopier createBlobContainerCopier(URL sourceUrl, String destinationBlobName) {
+  public BlobContainerCopier createBlobContainerCopier(URI sourceUri, String destinationBlobName) {
 
     return new BlobContainerCopierBuilder()
         .destinationClientFactory(blobContainerClientFactory)
         .sourceBlobUrl(
             Objects.requireNonNull(
-                    sourceUrl,
+                    sourceUri,
                     "Source Blob URL is null. It must be a valid URL with read permissions")
                 .toString())
         .destinationBlobName(destinationBlobName)
@@ -126,6 +132,33 @@ public class BlobCrl {
         throw new PdaoException("Error deleting file", e);
       }
     }
+  }
+
+  public boolean deleteBlobsWithPrefix(String blobName) {
+    final String prefix;
+    if (blobName.endsWith("/")) {
+      prefix = blobName.substring(0, blobName.length() - 1);
+    } else {
+      prefix = blobName;
+    }
+    BlobContainerClient blobContainerClient = blobContainerClientFactory.getBlobContainerClient();
+
+    try (Stream<BlobItem> blobsStream = blobContainerClient.listBlobs().stream()) {
+      List<BlobItem> blobsToDelete =
+          blobsStream
+              .filter(blobItem -> blobItem.getName().startsWith(prefix))
+              .collect(Collectors.toList());
+
+      Collections.reverse(blobsToDelete);
+
+      return blobsToDelete.stream()
+          .map(item -> deleteBlob(item.getName()))
+          .reduce(true, Boolean::logicalAnd);
+    }
+  }
+
+  public boolean blobExists(String blobName) {
+    return blobContainerClientFactory.getBlobContainerClient().getBlobClient(blobName).exists();
   }
 
   /**
@@ -155,6 +188,32 @@ public class BlobCrl {
         .getBlobContainerClient()
         .getBlobClient(blobName)
         .getProperties();
+  }
+
+  /**
+   * Set a blob's md5 explicitly See <a
+   * href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-properties-metadata-java">MS
+   * Docs</a> for more information on API usage
+   *
+   * @param blobName blob name
+   * @param contentMd5 the md5 value to set
+   */
+  public void setBlobMd5(String blobName, byte[] contentMd5) {
+    BlobClient blobClient =
+        blobContainerClientFactory.getBlobContainerClient().getBlobClient(blobName);
+
+    BlobProperties properties = blobClient.getProperties();
+
+    BlobHttpHeaders blobHeaders =
+        new BlobHttpHeaders()
+            .setCacheControl(properties.getCacheControl())
+            .setContentDisposition(properties.getContentDisposition())
+            .setContentEncoding(properties.getContentEncoding())
+            .setContentLanguage(properties.getContentLanguage())
+            .setContentType(properties.getContentType())
+            .setContentMd5(contentMd5);
+
+    blobClient.setHttpHeaders(blobHeaders);
   }
 
   /**

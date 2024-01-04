@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -11,43 +12,44 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
+public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndoStep {
   protected final ObjectMapper objectMapper;
   protected final Dataset dataset;
+  protected final int maxBadLoadFileLineErrorsReported;
 
   public IngestBuildAndWriteScratchLoadFileStep(
-      ObjectMapper objectMapper, Dataset dataset, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      ObjectMapper objectMapper, Dataset dataset, int maxBadLoadFileLineErrorsReported) {
     this.objectMapper = objectMapper;
     this.dataset = dataset;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) {
+  public StepResult doStep(FlightContext context) {
     var workingMap = context.getWorkingMap();
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 
-    List<String> errors = new ArrayList<>();
-    try (Stream<JsonNode> jsonNodes = getJsonNodesFromCloudFile(ingestRequest, errors)) {
+    ErrorCollector errorCollector =
+        new ErrorCollector(
+            maxBadLoadFileLineErrorsReported,
+            "Encountered invalid json while combining ingested files with load request");
+    try (Stream<JsonNode> jsonNodes = getJsonNodesFromCloudFile(ingestRequest, errorCollector)) {
 
       List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
       BulkLoadArrayResultModel result =
@@ -83,12 +85,11 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
       writeCloudFile(context, path, linesWithFileIds);
       // Check for parsing errors after new file is written because that's when
       // the stream is actually materialized.
-      if (!errors.isEmpty()) {
-        throw new CorruptMetadataException(
-            "Encountered invalid json while combining ingested files with load request");
+      if (errorCollector.anyErrorsCollected()) {
+        throw errorCollector.getFormattedException();
       }
 
-      workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
+      workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, path);
       workingMap.put(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, failedRowCount.get());
 
       return StepResult.getStepResultSuccess();
@@ -217,7 +218,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
   }
 
   abstract Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors);
+      IngestRequestModel ingestRequest, ErrorCollector errorCollector);
 
   abstract String getOutputFilePath(FlightContext flightContext);
 

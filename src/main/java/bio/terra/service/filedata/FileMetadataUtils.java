@@ -1,14 +1,25 @@
 package bio.terra.service.filedata;
 
+import bio.terra.model.FileDetailModel;
+import bio.terra.model.FileModel;
+import bio.terra.model.FileModelType;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 
@@ -17,6 +28,8 @@ public class FileMetadataUtils {
 
   public FileMetadataUtils() {}
 
+  // TODO: this currently returns the directory as "" if you pass in a one-level deep item
+  // https://broadworkbench.atlassian.net/browse/DR-3005 is to fix (changing breaks tests badly)
   public static String getDirectoryPath(String path) {
     Path pathParts = Paths.get(path);
     Path parentDirectory = pathParts.getParent();
@@ -108,5 +121,108 @@ public class FileMetadataUtils {
       }
     }
     return pathsToCheck;
+  }
+
+  /**
+   * Given an absolute path to a file or directory, return a List of absolute paths for all parent
+   * directories
+   *
+   * @param path An absolute path
+   * @return An ordered list of paths that could potentially be created. Note: this excludes the
+   *     passed in path
+   */
+  public static List<String> extractDirectoryPaths(String path) {
+    Preconditions.checkArgument(path.startsWith("/"), "Paths should be absolute");
+    List<String> allPaths = new ArrayList<>();
+    String interimPath = "";
+    allPaths.add("/");
+    for (String part : getDirectoryPath(path).split("/")) {
+      if (!StringUtils.isEmpty(part)) {
+        interimPath += "/" + part;
+        allPaths.add(interimPath);
+      }
+    }
+    return allPaths;
+  }
+
+  /**
+   * Results of the successful md5 comparison of user a specified MD5 against a cloud provided MD5
+   *
+   * @param effectiveMd5 The final md5 to record
+   * @param type Which md5 was actually used
+   */
+  public record Md5ValidationResult(String effectiveMd5, Md5Type type) {
+    public boolean isUserProvided() {
+      return type().equals(Md5Type.USER_PROVIDED);
+    }
+
+    public enum Md5Type {
+      USER_PROVIDED, // When the user md5 is used (e.g. when it's not present in the cloud)
+      CLOUD_PROVIDED, // When the cloud md5 is used
+      NEITHER // When neither value is provided
+    }
+  }
+
+  /**
+   * Validates that a user specified MD5 checksum matches with a cloud provided MD5 checksum. If the
+   * user provided checksum is null or empty, then assume the cloud checksum is valid and return
+   * that
+   *
+   * @param userSpecifiedMd5 A hex representation of the user specified MD5 file checksum
+   * @param cloudMd5 A hex representation of the MD5 file checksum for the file object
+   * @param sourcePath The cloud path where the file lives
+   * @return A hex representation of the file's md5 hash
+   * @throws InvalidFileChecksumException if the specified checksums don't match
+   */
+  public static Md5ValidationResult validateFileMd5ForIngest(
+      String userSpecifiedMd5, String cloudMd5, String sourcePath)
+      throws InvalidFileChecksumException {
+    if (!StringUtils.isEmpty(userSpecifiedMd5)) {
+      if (!StringUtils.isEmpty(cloudMd5) && !Objects.equals(cloudMd5, userSpecifiedMd5)) {
+        throw new InvalidFileChecksumException(
+            "Checksums do not match for file %s".formatted(sourcePath));
+      }
+      return new Md5ValidationResult(
+          userSpecifiedMd5,
+          Objects.equals(cloudMd5, userSpecifiedMd5)
+              ? Md5Type.CLOUD_PROVIDED
+              : Md5Type.USER_PROVIDED);
+    } else {
+      return new Md5ValidationResult(
+          cloudMd5, StringUtils.isEmpty(cloudMd5) ? Md5Type.NEITHER : Md5Type.CLOUD_PROVIDED);
+    }
+  }
+
+  public static List<FileModel> toFileModel(
+      List<FireStoreDirectoryEntry> directoryEntries,
+      List<FireStoreFile> files,
+      String collectionId) {
+    if (directoryEntries.size() != files.size()) {
+      throw new FileSystemExecutionException("List sizes should be identical");
+    }
+
+    return IntStream.range(0, files.size())
+        .mapToObj(
+            i -> {
+              FireStoreFile file = files.get(i);
+              FireStoreDirectoryEntry entry = directoryEntries.get(i);
+
+              return new FileModel()
+                  .fileId(entry.getFileId())
+                  .collectionId(collectionId)
+                  .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+                  .size(file.getSize())
+                  .created(file.getFileCreatedDate())
+                  .description(file.getDescription())
+                  .fileType(FileModelType.FILE)
+                  .checksums(FileService.makeChecksums(file))
+                  .fileDetail(
+                      new FileDetailModel()
+                          .datasetId(entry.getDatasetId())
+                          .accessUrl(file.getGspath())
+                          .mimeType(file.getMimeType())
+                          .loadTag(file.getLoadTag()));
+            })
+        .toList();
   }
 }

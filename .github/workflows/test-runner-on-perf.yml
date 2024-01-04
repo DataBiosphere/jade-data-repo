@@ -7,7 +7,9 @@ env:
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
+  K8_NAMESPACES: perf
   TDR_LOG_APPENDER: Console-Standard
+  AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
 on:
   workflow_dispatch: {}
   schedule:
@@ -21,25 +23,32 @@ jobs:
         run: |
           CURRENT_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Current Version: $CURRENT_VERSION"
-          echo "::set-output name=CURRENT_SEMVER::$CURRENT_VERSION"
+          echo "CURRENT_SEMVER=${$CURRENT_VERSION}" >> $GITHUB_OUTPUT
           LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
-          echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
+          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_OUTPUT
           LATEST_GITHASH=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           echo "Latest git hash: $LATEST_GITHASH"
-          echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
+          echo "LATEST_GITHASH=${$LATEST_GITHASH}" >> $GITHUB_OUTPUT
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
+      - name: "Setup Java 17"
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
       - name: "Import Vault perf secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
           roleId: ${{ secrets.PERF_ROLE_ID }}
           secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
+            secret/dsde/datarepo/perf/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
             secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
       - name: "Perform IAM policy cleanup for perf"
         run: |
@@ -50,7 +59,7 @@ jobs:
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -73,8 +82,18 @@ jobs:
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
+      - name: "Set up Cloud SDK"
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          install_components: 'gke-gcloud-auth-plugin'
+      - name: 'Get GKE Credentials'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: ${{ env.K8_CLUSTER }}
+          location: ${{ env.GOOGLE_ZONE }}
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -82,9 +101,14 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           google_project: broad-jade-perf
+      - name: "Check that perf namespace is available and set state lock"
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        with:
+          actions_subcommand: 'k8_checknamespace'
+          k8_namespaces: 'perf'
       - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN }}
@@ -96,7 +120,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/datarepo-actions/actions/merger@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.69.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -114,7 +138,7 @@ jobs:
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "[Clear Perf Database] Import Perf Database Secret"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -144,7 +168,7 @@ jobs:
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.69.0
         env:
           NAMESPACEINUSE: perf
           IT_JADE_API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
@@ -161,7 +185,7 @@ jobs:
           echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
           echo "Running test suite"
-          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+          ./gradlew runTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
           echo "Collecting measurements"
           ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
@@ -170,9 +194,23 @@ jobs:
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
+        env:
+          AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
+      - name: 'Re-obtain GKE Credentials'
+        if: always()
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: ${{ env.K8_CLUSTER }}
+          location: ${{ env.GOOGLE_ZONE }}
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+      - name: "Unlock perf namespace if we locked it in this run"
+        if: always() # the task always runs, but the lock is only cleared if this run set it.
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        with:
+          actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -180,25 +218,13 @@ jobs:
           google_project: broad-jade-perf
       - name: "Notify Jade Slack"
         if: always()
-        uses: broadinstitute/action-slack@v3.8.0
+        uses: broadinstitute/action-slack@v3.15.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
           channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-      - name: "Notify QA Slack"
-        if: ${{ github.event_name != 'workflow_dispatch' && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#dsde-qa"
           username: "Data Repo tests"
           text: "Perf tests"
           fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

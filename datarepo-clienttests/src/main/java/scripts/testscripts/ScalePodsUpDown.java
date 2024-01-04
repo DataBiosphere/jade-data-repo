@@ -72,7 +72,7 @@ public class ScalePodsUpDown extends SimpleDataset {
 
     // wait for the job to complete and print out results to debug log level
     BulkLoadResultModel loadSummary =
-        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
+        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse, testUser);
 
     assertThat(
         "Number of successful files loaded should equal total files.",

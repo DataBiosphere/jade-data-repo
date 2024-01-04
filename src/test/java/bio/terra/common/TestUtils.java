@@ -2,8 +2,10 @@ package bio.terra.common;
 
 import static bio.terra.service.filedata.google.gcs.GcsPdao.getBlobFromGsPath;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -21,9 +23,10 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -54,8 +57,10 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.junit.function.ThrowingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.stringtemplate.v4.ST;
 
 public final class TestUtils {
@@ -86,8 +91,12 @@ public final class TestUtils {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change
    * and any consequences downstream to DRS clients.
    */
-  public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods, String token)
-      throws IOException {
+  public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods, String token) {
+    return validateDrsAccessMethods(accessMethods, token, true);
+  }
+
+  public static String validateDrsAccessMethods(
+      List<DRSAccessMethod> accessMethods, String token, boolean shouldAssertHttpsAccessibility) {
     assertThat("Two access methods", accessMethods.size(), equalTo(2));
 
     String gsuri = StringUtils.EMPTY;
@@ -105,17 +114,10 @@ public final class TestUtils {
         gotGs = true;
       } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
         assertFalse("have not seen HTTPS yet", gotHttps);
-        // Make sure that the HTTP url is valid and accessible
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-          HttpUriRequest request = new HttpHead(accessMethod.getAccessUrl().getUrl());
-          request.setHeader("Authorization", String.format("Bearer %s", token));
-          try (CloseableHttpResponse response = client.execute(request); ) {
-            assertThat(
-                "Drs Https Uri is accessible",
-                response.getStatusLine().getStatusCode(),
-                equalTo(200));
-          }
-        }
+        verifyHttpAccess(
+            accessMethod.getAccessUrl().getUrl(),
+            Map.of("Authorization", String.format("Bearer %s", token)),
+            shouldAssertHttpsAccessibility);
         gotHttps = true;
       } else {
         fail("Invalid access method");
@@ -123,6 +125,37 @@ public final class TestUtils {
     }
     assertTrue("got both access methods", gotGs && gotHttps);
     return gsuri;
+  }
+
+  public static void verifyHttpAccess(String url, Map<String, String> headers) {
+    verifyHttpAccess(url, headers, true);
+  }
+
+  /**
+   * Make sure that the HTTP url is valid.
+   *
+   * @param shouldAssertAccessibility if true, also assert that the HTTP url is accessible. When
+   *     debugging certain test failures, disabling the accessibility check can allow the remainder
+   *     of the test to complete.
+   */
+  public static void verifyHttpAccess(
+      String url, Map<String, String> headers, boolean shouldAssertAccessibility) {
+    HttpUriRequest request = new HttpHead(url);
+    headers.forEach(request::setHeader);
+    try (CloseableHttpClient client = HttpClients.createDefault()) {
+      try (CloseableHttpResponse response = client.execute(request)) {
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (shouldAssertAccessibility) {
+          assertThat("Https Uri is accessible", statusCode, equalTo(200));
+        } else if (statusCode == 200) {
+          logger.info("Https Uri is accessible (but not asserted in test): " + response);
+        } else {
+          logger.warn("Https Uri is inaccessible (but not asserted in test): " + response);
+        }
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("Error creating Http client", e);
+    }
   }
 
   /*
@@ -189,7 +222,6 @@ public final class TestUtils {
   /**
    * Execute a SELECT query on BigQuery dataset.
    *
-   * @param bigQueryPdao pass in from the calling test class
    * @param datasetDao pass in from the calling test class
    * @param dataLocationService pass in from the calling test class
    * @param datasetName the name of the Data Repo dataset
@@ -198,7 +230,6 @@ public final class TestUtils {
    * @return the BigQuery TableResult
    */
   public static TableResult selectFromBigQueryDataset(
-      BigQueryPdao bigQueryPdao,
       DatasetDao datasetDao,
       ResourceService dataLocationService,
       String datasetName,
@@ -206,7 +237,7 @@ public final class TestUtils {
       String columns)
       throws Exception {
 
-    String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+    String bqDatasetName = BigQueryPdao.prefixName(datasetName);
     BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();
@@ -223,11 +254,40 @@ public final class TestUtils {
   }
 
   public static <T> T mapFromJson(String content, Class<T> valueType) throws IOException {
+    if (content == null) {
+      return null;
+    }
     try {
       return objectMapper.readValue(content, valueType);
-    } catch (IOException ex) {
+    } catch (Exception ex) {
       logger.error(
           "unable to map JSON response to " + valueType.getName() + "JSON: " + content, ex);
+      throw ex;
+    }
+  }
+
+  public static <T> T mapFromJson(String content, TypeReference<T> valueType) throws IOException {
+    if (content == null) {
+      return null;
+    }
+    try {
+      return objectMapper.readValue(content, valueType);
+    } catch (Exception ex) {
+      logger.error("unable to map JSON response to " + valueType + "JSON: " + content, ex);
+      throw ex;
+    }
+  }
+
+  public static <T> T mapFromJson(String content) throws IOException {
+    try {
+      return objectMapper.readValue(content, new TypeReference<>() {});
+    } catch (Exception ex) {
+      logger.error(
+          "unable to map JSON response to "
+              + (new TypeReference<T>() {}).getType()
+              + " JSON: "
+              + content,
+          ex);
       throw ex;
     }
   }
@@ -236,9 +296,8 @@ public final class TestUtils {
     try {
       return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException ex) {
-      logger.error("unable to map value to JSON. Value is: " + value, ex);
+      throw new RuntimeException("unable to map value to JSON. Value is: " + value, ex);
     }
-    return null;
   }
 
   public static void setConfigParameterValue(
@@ -269,5 +328,37 @@ public final class TestUtils {
       sb.append('\n');
     }
     return sb.toString();
+  }
+
+  /**
+   * Asserts that a command fails with the type passed in with a message that contains the expected
+   * message
+   *
+   * @param expectedThrowable The class that should be thrown. Note: this is the top level exception
+   *     and not the cause exception
+   * @param expectedMessage The partial message that should be present in the exception
+   * @param runnable The code to test
+   */
+  public static void assertError(
+      Class<? extends Throwable> expectedThrowable,
+      String expectedMessage,
+      ThrowingRunnable runnable) {
+    Throwable throwable = assertThrows("expect a failure", expectedThrowable, runnable);
+    assertThat(throwable.getMessage(), containsString(expectedMessage));
+  }
+
+  /**
+   * Given an object with a private field, extract the value of that field and return it. Note: this
+   * should not be used for classes that we control but for third party library classes that aren't
+   * easily mocked (e.g. certain Google client SDK configuration classes)
+   *
+   * @param object The object to extract the value from
+   * @param fieldName The name of the field to extract
+   * @return A typed object containing the value of the field
+   * @param <T> The expected type of the field
+   */
+  public static <T> T extractValueFromPrivateObject(Object object, String fieldName) {
+    return objectMapper.convertValue(
+        ReflectionTestUtils.getField(object, fieldName), new TypeReference<>() {});
   }
 }

@@ -1,6 +1,7 @@
 {
   "name":        "IngestTest",
   "description": "Dataset for testing ingest",
+  "phsId": "phs100321",
   "schema":      {
     "tables":        [
       {
@@ -9,7 +10,8 @@
           {"name": "id", "datatype": "string"},
           {"name": "age", "datatype": "integer"},
           {"name": "children", "datatype": "string", "array_of": true},
-          {"name": "donated", "datatype": "string", "array_of": true}
+          {"name": "donated", "datatype": "string", "array_of": true},
+          {"name":  "jsonData", "datatype": "string"}
         ],
         "primaryKey": ["id"]
       },
@@ -18,7 +20,7 @@
         "columns": [
           {"name": "id", "datatype": "string"},
           {"name": "participant_ids", "datatype": "string", "array_of": true},
-          {"name": "date_collected", "datatype": "date"},
+          {"name": "date_collected", "datatype": "date", "required":  true},
           {"name": "derived_from", "datatype": "string"}
         ],
         "primaryKey": ["id"]
@@ -36,26 +38,6 @@
         "name": "sample_derived_from",
         "from": {"table": "sample", "column": "derived_from"},
         "to":   {"table": "sample", "column": "id"}
-      },
-      {
-        "name": "participant_samples",
-        "from": {"table": "participant", "column": "donated"},
-        "to":   {"table": "sample", "column": "id"}
-      },
-      {
-        "name": "sample_participants",
-        "from": {"table": "sample", "column": "participant_ids"},
-        "to":   {"table": "participant", "column": "id"}
-      },
-      {
-        "name": "participant_children",
-        "from": {"table": "participant", "column": "children"},
-        "to":   {"table": "participant", "column": "id"}
-      },
-      {
-        "name": "participant_files",
-        "from": {"table": "participant", "column": "donated"},
-        "to":   {"table": "file", "column": "derived_from"}
       }
     ],
     "assets":        [
@@ -69,11 +51,7 @@
           {"name": "file", "columns": []}
         ],
         "follow": [
-          "sample_derived_from",
-          "participant_samples",
-          "sample_participants",
-          "participant_children",
-          "participant_files"
+          "sample_derived_from"
         ]
       },
       {
@@ -86,11 +64,19 @@
           {"name": "file", "columns": []}
         ],
         "follow": [
-          "sample_derived_from",
-          "participant_samples",
-          "sample_participants",
-          "participant_children",
-          "participant_files"
+          "sample_derived_from"
+        ]
+      },
+      {
+        "name":   "no_file",
+        "rootTable": "sample",
+        "rootColumn": "id",
+        "tables": [
+          {"name": "sample", "columns": []},
+          {"name": "participant", "columns": []}
+        ],
+        "follow": [
+          "sample_derived_from"
         ]
       }
     ]

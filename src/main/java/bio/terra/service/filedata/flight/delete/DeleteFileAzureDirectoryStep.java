@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.delete;
 import bio.terra.common.BaseStep;
 import bio.terra.common.StepInput;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -16,7 +17,7 @@ public class DeleteFileAzureDirectoryStep extends BaseStep {
   private final String fileId;
   private final Dataset dataset;
 
-  @StepInput AzureStorageAuthInfo storageAuthInfo;
+  @StepInput AzureStorageAuthInfo datasetStorageAuthInfo;
 
   public DeleteFileAzureDirectoryStep(TableDao tableDao, String fileId, Dataset dataset) {
     this.tableDao = tableDao;
@@ -29,7 +30,10 @@ public class DeleteFileAzureDirectoryStep extends BaseStep {
     try {
       boolean found =
           tableDao.deleteDirectoryEntry(
-              fileId, storageAuthInfo, dataset.getId(), StorageTableName.DATASET.toTableName());
+              fileId,
+              storageAuthInfo,
+              dataset.getId(),
+              StorageTableName.DATASET.toTableName(dataset.getId()));
       DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED

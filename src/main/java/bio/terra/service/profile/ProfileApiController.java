@@ -2,7 +2,10 @@ package bio.terra.service.profile;
 
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.ProfilesApi;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -12,9 +15,10 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
-import bio.terra.service.iam.PolicyMemberValidator;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
@@ -47,6 +51,9 @@ public class ProfileApiController implements ProfilesApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final JobService jobService;
 
+  private final IamService iamService;
+  private final ApplicationConfiguration applicationConfiguration;
+
   @Autowired
   public ProfileApiController(
       ObjectMapper objectMapper,
@@ -56,7 +63,9 @@ public class ProfileApiController implements ProfilesApi {
       ProfileUpdateRequestValidator profileUpdateRequestValidator,
       PolicyMemberValidator policyMemberValidator,
       JobService jobService,
-      AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
+      AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
+      IamService iamService,
+      ApplicationConfiguration applicationConfiguration) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.profileService = profileService;
@@ -65,6 +74,8 @@ public class ProfileApiController implements ProfilesApi {
     this.policyMemberValidator = policyMemberValidator;
     this.jobService = jobService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
+    this.iamService = iamService;
+    this.applicationConfiguration = applicationConfiguration;
   }
 
   @Override
@@ -96,14 +107,21 @@ public class ProfileApiController implements ProfilesApi {
   public ResponseEntity<JobModel> updateProfile(
       @Valid @RequestBody BillingProfileUpdateModel billingProfileRequest) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+    verifyProfileAuthorization(
+        user, billingProfileRequest.getId().toString(), IamAction.UPDATE_BILLING_ACCOUNT);
     String jobId = profileService.updateProfile(billingProfileRequest, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
 
   @Override
-  public ResponseEntity<JobModel> deleteProfile(UUID id) {
+  public ResponseEntity<JobModel> deleteProfile(UUID id, Boolean deleteCloudResources) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-    String jobId = profileService.deleteProfile(id, user);
+    if (deleteCloudResources) {
+      verifyAdminAuthorization(user, id.toString(), IamAction.DELETE);
+    } else {
+      verifyProfileAuthorization(user, id.toString(), IamAction.DELETE);
+    }
+    String jobId = profileService.deleteProfile(id, deleteCloudResources, user);
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
 
@@ -153,5 +171,32 @@ public class ProfileApiController implements ProfilesApi {
     List<PolicyModel> policies = profileService.retrieveProfilePolicies(id, user);
     PolicyResponse response = new PolicyResponse().policies(policies);
     return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  private void verifyProfileAuthorization(
+      AuthenticatedUserRequest userReq, String profileId, IamAction action) {
+    verifyAuthorization(userReq, profileId, IamResourceType.SPEND_PROFILE, profileId, action);
+  }
+
+  private void verifyAdminAuthorization(
+      AuthenticatedUserRequest userReq, String profileId, IamAction action) {
+    verifyAuthorization(
+        userReq,
+        profileId,
+        IamResourceType.DATAREPO,
+        applicationConfiguration.getResourceId(),
+        action);
+  }
+
+  private void verifyAuthorization(
+      AuthenticatedUserRequest userReq,
+      String profileId,
+      IamResourceType resourceType,
+      String resourceId,
+      IamAction action) {
+    // Check if profile exists
+    profileService.getProfileByIdNoCheck(UUID.fromString(profileId));
+    // Verify permissions
+    iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
   }
 }

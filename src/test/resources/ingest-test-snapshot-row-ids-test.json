@@ -1,6 +1,7 @@
 {
   "name":        "snapshot_test",
   "description": "Very simple snapshot for test",
+  "consentCode": "c1",
   "contents": [
     {
       "datasetName": "IngestTest",

@@ -5,6 +5,7 @@ import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.CloudPlatform;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
@@ -47,9 +48,31 @@ public class SimpleDataset extends runner.TestScript {
 
     // create a new profile
     if (billingProfileModel == null) {
-      billingProfileModel =
-          DataRepoUtils.createProfile(
-              resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
+      if (cloudPlatform.equals(CloudPlatform.GCP)) {
+        billingProfileModel =
+            DataRepoUtils.createProfile(
+                resourcesApi,
+                repositoryApi,
+                billingAccount,
+                "profile-simple",
+                datasetCreator,
+                true);
+      } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
+        billingProfileModel =
+            DataRepoUtils.createAzureProfile(
+                resourcesApi,
+                repositoryApi,
+                tenantId,
+                subscriptionId,
+                resourceGroupName,
+                applicationDeploymentName,
+                "azure-profile-simple",
+                billingAccount,
+                datasetCreator,
+                true);
+      } else {
+        throw new RuntimeException("Unsupported cloud platform");
+      }
       logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
     } else {
       logger.info("Using existing profile: {}", billingProfileModel.getProfileName());
@@ -58,7 +81,13 @@ public class SimpleDataset extends runner.TestScript {
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
         DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), "dataset-simple.json", true);
+            repositoryApi,
+            billingProfileModel.getId(),
+            cloudPlatform,
+            "dataset-simple.json",
+            datasetCreator,
+            true,
+            false);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =
@@ -90,20 +119,22 @@ public class SimpleDataset extends runner.TestScript {
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // make the delete dataset request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
     deleteDatasetJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse, datasetCreator);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete the profile
     if (deleteProfile) {
-      resourcesApi.deleteProfile(billingProfileModel.getId());
+      TestUserSpecification admin = SAMUtils.findTestUserThatIsDataRepoAdmin(testUsers, server);
+      ApiClient adminClient = DataRepoUtils.getClientForTestUser(admin, server);
+      ResourcesApi adminResourcesApi = new ResourcesApi(adminClient);
+      adminResourcesApi.deleteProfile(billingProfileModel.getId(), true);
       logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
     } else {
       logger.info("Skipping profile delete because test is using a shared profile");

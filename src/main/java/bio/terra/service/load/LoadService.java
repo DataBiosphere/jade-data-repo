@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -87,6 +88,10 @@ public class LoadService {
     return loadDao.findCandidates(loadId, candidatesToFind);
   }
 
+  public List<LoadFile> getFailedLoads(UUID loadId, int maxRecords) {
+    return loadDao.getFailedLoads(loadId, maxRecords);
+  }
+
   public void setLoadFileSucceeded(
       UUID loadId, String targetPath, String fileId, FSFileInfo fileInfo) {
     loadDao.setLoadFileSucceeded(loadId, targetPath, fileId, fileInfo);
@@ -116,6 +121,10 @@ public class LoadService {
     return new LoadHistoryIterator(loadId, chunkSize);
   }
 
+  public LoadHistoryIterator loadHistoryIterator(
+      List<BulkLoadHistoryModel> backingList, int chunkSize) {
+    return new LoadHistoryIterator(backingList, chunkSize);
+  }
   /**
    * A convenience class wrapping the getting of load history table rows in an Iterator. The
    * Iterator's elements are a list of BulkLoadHistoryModel chunk of the full results retrieved from
@@ -126,6 +135,8 @@ public class LoadService {
     private final UUID loadId;
     private final int chunkSize;
     private final int loadHistorySize;
+    private final List<List<BulkLoadHistoryModel>> backingList;
+
     private int currentChunk;
 
     public LoadHistoryIterator(UUID loadId, int chunkSize) {
@@ -133,6 +144,15 @@ public class LoadService {
       this.chunkSize = chunkSize;
       this.loadHistorySize = loadDao.bulkLoadFileArraySize(loadId);
       this.currentChunk = 0;
+      this.backingList = null;
+    }
+
+    public LoadHistoryIterator(List<BulkLoadHistoryModel> backingList, int chunkSize) {
+      this.loadId = null;
+      this.chunkSize = chunkSize;
+      this.loadHistorySize = backingList.size();
+      this.currentChunk = 0;
+      this.backingList = ListUtils.partition(backingList, chunkSize);
     }
 
     @Override
@@ -142,7 +162,13 @@ public class LoadService {
 
     @Override
     public List<BulkLoadHistoryModel> next() {
-      return loadDao.makeLoadHistoryArray(loadId, chunkSize, currentChunk++);
+      if (backingList == null) {
+        return loadDao.makeLoadHistoryArray(loadId, chunkSize, currentChunk++);
+      }
+      if (currentChunk < backingList.size()) {
+        return backingList.get(currentChunk++);
+      }
+      return null;
     }
   }
 }

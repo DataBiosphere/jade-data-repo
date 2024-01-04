@@ -1,11 +1,11 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.exception.InvalidStorageException;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
@@ -38,12 +38,8 @@ public class StorageResourceDao {
   private static final String SQL_GET_LIST =
       "SELECT " + STORAGE_COLUMNS + "FROM storage_resource where dataset_id in (:dataset_ids)";
   private static final Logger logger = LoggerFactory.getLogger(StorageResourceDao.class);
-  private final NamedParameterJdbcTemplate jdbcTemplate;
 
-  @Autowired
-  public StorageResourceDao(DataRepoJdbcConfiguration jdbcConfiguration) {
-    jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-  }
+  @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<StorageResource<?, ?>> getStorageResourcesByDatasetId(UUID datasetId) {
@@ -86,7 +82,7 @@ public class StorageResourceDao {
               AzureCloudResource.valueOf(rs.getString("cloud_resource")),
               AzureRegion.valueOf(rs.getString("region")));
         default:
-          throw new IllegalArgumentException("Unrecognized cloud platform");
+          throw new InvalidCloudPlatformException();
       }
     }
   }

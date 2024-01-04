@@ -59,3 +59,6 @@ datarepo-client/gradlew.bat
 env_vars
 jade-dev-account.json
 jade-dev-account.pem
+
+# Ignore generated credentials from google-github-actions/auth
+gha-creds-*.json

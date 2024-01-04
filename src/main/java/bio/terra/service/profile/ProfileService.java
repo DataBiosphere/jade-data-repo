@@ -1,8 +1,10 @@
 package bio.terra.service.profile;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
@@ -10,11 +12,10 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.azure.AzureAuthzService;
@@ -26,8 +27,8 @@ import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleApplicationDeploymentException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,16 +101,14 @@ public class ProfileService {
    */
   public String updateProfile(
       BillingProfileUpdateModel billingProfileRequest, AuthenticatedUserRequest user) {
-    iamService.verifyAuthorization(
-        user,
-        IamResourceType.SPEND_PROFILE,
-        billingProfileRequest.getId().toString(),
-        IamAction.UPDATE_BILLING_ACCOUNT);
-
     String description =
         String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
     return jobService
         .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(
+            JobMapKeys.IAM_RESOURCE_ID.getKeyName(), billingProfileRequest.getId().toString())
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.UPDATE_BILLING_ACCOUNT)
         .submit();
   }
 
@@ -123,12 +122,13 @@ public class ProfileService {
    * </ul>
    *
    * @param id the unique id of the bill profile
+   * @param deleteCloudResources flag to also delete azure cloud resources such as storage account
+   *     and monitoring resources
    * @param user the user attempting the delete
    * @return jobId of the submitted stairway job
    */
-  public String deleteProfile(UUID id, AuthenticatedUserRequest user) {
-    iamService.verifyAuthorization(
-        user, IamResourceType.SPEND_PROFILE, id.toString(), IamAction.DELETE);
+  public String deleteProfile(
+      UUID id, boolean deleteCloudResources, AuthenticatedUserRequest user) {
     CloudPlatform platform;
     try {
       BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);
@@ -145,6 +145,10 @@ public class ProfileService {
         .newJob(description, ProfileDeleteFlight.class, null, user)
         .addParameter(ProfileMapKeys.PROFILE_ID, id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
+        .addParameter(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), deleteCloudResources)
         .submit();
   }
 
@@ -158,9 +162,10 @@ public class ProfileService {
    */
   public EnumerateBillingProfileModel enumerateProfiles(
       Integer offset, Integer limit, AuthenticatedUserRequest user) {
-    List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
+    Set<UUID> resources =
+        iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE).keySet();
     if (resources.isEmpty()) {
-      return new EnumerateBillingProfileModel().total(0).items(Collections.emptyList());
+      return new EnumerateBillingProfileModel().total(0).items(List.of());
     }
     return profileDao.enumerateBillingProfiles(offset, limit, resources);
   }
@@ -175,8 +180,9 @@ public class ProfileService {
    * @throws IamUnauthorizedException when the caller does not have access to the billing profile
    */
   public BillingProfileModel getProfileById(UUID id, AuthenticatedUserRequest user) {
-    if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
-      throw new IamUnauthorizedException("unauthorized");
+    if (!iamService.hasAnyActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
+      throw new IamUnauthorizedException(
+          "User '" + user.getEmail() + "' does not have access to billing profile '" + id + "'.");
     }
     return getProfileByIdNoCheck(id);
   }
@@ -209,21 +215,7 @@ public class ProfileService {
     logger.info("Verify authorization for link id={} user={}", profileId, user.getEmail());
     iamService.verifyAuthorization(
         user, IamResourceType.SPEND_PROFILE, profileId.toString(), IamAction.LINK);
-
-    BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
-
-    // TODO: check bill account usable and validate delegation path
-    //  For now we just make sure that the building account is accessible to the
-    //  TDR service account.
-    String billingAccountId = profileModel.getBillingAccountId();
-    if (!googleBillingService.repositoryCanAccess(billingAccountId)) {
-      throw new InaccessibleBillingAccountException(
-          "The repository needs access to billing account "
-              + billingAccountId
-              + " to perform the requested operation");
-    }
-
-    return profileModel;
+    return profileDao.getBillingProfileById(profileId);
   }
 
   public PolicyModel addProfilePolicyMember(
@@ -253,7 +245,8 @@ public class ProfileService {
   }
 
   public List<PolicyModel> retrieveProfilePolicies(UUID profileId, AuthenticatedUserRequest user) {
-    return iamService.retrievePolicies(user, IamResourceType.SPEND_PROFILE, profileId);
+    return PolicyUtils.samToTdrPolicyModels(
+        iamService.retrievePolicies(user, IamResourceType.SPEND_PROFILE, profileId));
   }
 
   // -- methods invoked from billing profile flights --

@@ -8,16 +8,18 @@ import bio.terra.model.DRSError;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.filedata.DrsResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -40,31 +42,40 @@ public class DataRepoClient {
   private final HttpHeaders headers;
 
   public DataRepoClient() {
-    restTemplate = new RestTemplate();
+    restTemplate =
+        new RestTemplateBuilder()
+            .setConnectTimeout(Duration.ofMinutes(5))
+            .setReadTimeout(Duration.ofMinutes(5))
+            .build();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
     restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
 
     headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
   }
 
   // -- RepositoryController Client --
 
   private <T> DataRepoResponse<T> makeDataRepoRequest(
-      String path, HttpMethod method, HttpEntity entity, Class<T> responseClass) throws Exception {
+      String path,
+      HttpMethod method,
+      HttpEntity entity,
+      TestConfiguration.User user,
+      TypeReference<T> responseClass)
+      throws Exception {
     return new DataRepoResponse<T>(
-        makeRequest(path, method, entity, responseClass, ErrorModel.class));
+        makeRequest(path, method, entity, user, responseClass, ErrorModel.class));
   }
 
   public <T> DataRepoResponse<T> get(
-      TestConfiguration.User user, String path, Class<T> responseClass) throws Exception {
+      TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.GET, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> post(
-      TestConfiguration.User user, String path, String json, Class<T> responseClass)
+      TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
       throws Exception {
     return post(user, path, json, responseClass, false);
   }
@@ -73,7 +84,7 @@ public class DataRepoClient {
       TestConfiguration.User user,
       String path,
       String json,
-      Class<T> responseClass,
+      TypeReference<T> responseClass,
       boolean usePetAccount)
       throws Exception {
     HttpEntity<String> entity;
@@ -82,31 +93,37 @@ public class DataRepoClient {
     } else {
       entity = new HttpEntity<>(json, getHeaders(user));
     }
-    return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.POST, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> put(
-      TestConfiguration.User user, String path, String json, Class<T> responseClass)
+      TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
       throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.PUT, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.PUT, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> delete(
-      TestConfiguration.User user, String path, Class<T> responseClass) throws Exception {
-    HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
+      TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
+    return delete(user, path, null, responseClass);
+  }
+
+  public <T> DataRepoResponse<T> delete(
+      TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
+      throws Exception {
+    HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
+    return makeDataRepoRequest(path, HttpMethod.DELETE, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> waitForResponseLog(
       TestConfiguration.User user,
       DataRepoResponse<JobModel> jobModelResponse,
-      Class<T> responseClass)
+      TypeReference<T> responseClass)
       throws Exception {
     DataRepoResponse<T> response = waitForResponse(user, jobModelResponse, responseClass);
     // if not successful, log the response
     if (!response.getStatusCode().is2xxSuccessful()) {
-      logger.error("operation failed - waiting for " + responseClass.getName());
+      logger.error("operation failed - waiting for " + jobModelResponse.getClass().getName());
       if (response.getErrorObject().isPresent()) {
         logger.error("error object: " + response.getErrorObject().get());
       }
@@ -117,7 +134,7 @@ public class DataRepoClient {
   public <T> DataRepoResponse<T> waitForResponse(
       TestConfiguration.User user,
       DataRepoResponse<JobModel> jobModelResponse,
-      Class<T> responseClass)
+      TypeReference<T> responseClass)
       throws Exception {
 
     // if the initial response is bad gateway, then the request probably never got delivered
@@ -148,7 +165,11 @@ public class DataRepoClient {
 
     if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
       throw new IllegalStateException(
-          "unexpected job status code: " + jobModelResponse.getStatusCode());
+          "unexpected job status:"
+              + "\nwith code: "
+              + jobModelResponse.getStatusCode()
+              + jobModelResponse.getErrorObject().map(e -> "\nwith error: " + e).orElse("")
+              + jobModelResponse.getResponseObject().map(r -> "\nwith response: " + r).orElse(""));
     }
 
     location = getLocationHeader(jobModelResponse);
@@ -167,12 +188,12 @@ public class DataRepoClient {
       int sleepSeconds = initialSeconds;
 
       while (true) {
-        logger.info("try #{} until not {} for {}", ++count, notStatus, location);
+        logger.debug("try #{} until not {} for {}", ++count, notStatus, location);
         TimeUnit.SECONDS.sleep(sleepSeconds);
         sleepSeconds = Math.min(2 * sleepSeconds, maxSeconds);
 
-        DataRepoResponse<JobModel> jobModelResponse = get(user, location, JobModel.class);
-        logger.info(
+        DataRepoResponse<JobModel> jobModelResponse = get(user, location, new TypeReference<>() {});
+        logger.debug(
             "Got response. status: "
                 + jobModelResponse.getStatusCode()
                 + " location: "
@@ -204,10 +225,10 @@ public class DataRepoClient {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
    */
-  public <T> DrsResponse<T> drsGet(TestConfiguration.User user, String path, Class<T> responseClass)
-      throws Exception {
+  public <T> DrsResponse<T> drsGet(
+      TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
+    return makeDrsRequest(path, HttpMethod.GET, entity, user, responseClass);
   }
 
   public ResponseEntity<String> makeUnauthenticatedDrsRequest(String path, HttpMethod method) {
@@ -220,8 +241,14 @@ public class DataRepoClient {
    * any consequences downstream to DRS clients.
    */
   private <T> DrsResponse<T> makeDrsRequest(
-      String path, HttpMethod method, HttpEntity entity, Class<T> responseClass) throws Exception {
-    return new DrsResponse<T>(makeRequest(path, method, entity, responseClass, DRSError.class));
+      String path,
+      HttpMethod method,
+      HttpEntity entity,
+      TestConfiguration.User user,
+      TypeReference<T> responseClass)
+      throws Exception {
+    return new DrsResponse<T>(
+        makeRequest(path, method, entity, user, responseClass, DRSError.class));
   }
 
   // -- Common Client Code --
@@ -230,10 +257,16 @@ public class DataRepoClient {
       String path,
       HttpMethod method,
       HttpEntity entity,
-      Class<T> responseClass,
+      TestConfiguration.User user,
+      TypeReference<T> responseClass,
       Class<S> errorClass)
       throws Exception {
-    logger.info("api request: method={} path={}", method.toString(), path);
+    logger.info(
+        "api request: method={} path={} user={} body={}",
+        method.toString(),
+        path,
+        user.getName(),
+        entity.getBody());
 
     ResponseEntity<String> response =
         restTemplate.exchange(testConfig.getJadeApiUrl() + path, method, entity, String.class);
@@ -247,14 +280,17 @@ public class DataRepoClient {
     if (response.getStatusCode().is2xxSuccessful()) {
       if (responseClass != null) {
         T responseObject = mapFromJson(response.getBody(), responseClass);
-        drResponse.setResponseObject(Optional.of(responseObject));
+        if (!method.equals(HttpMethod.GET) && responseObject instanceof JobModel) {
+          logger.info("started job: {}", ((JobModel) responseObject).getId());
+        }
+        drResponse.setResponseObject(Optional.ofNullable(responseObject));
       } else {
         drResponse.setResponseObject(Optional.empty());
       }
       drResponse.setErrorModel(Optional.empty());
     } else {
       S errorObject = mapFromJson(response.getBody(), errorClass);
-      drResponse.setErrorModel(Optional.of(errorObject));
+      drResponse.setErrorModel(Optional.ofNullable(errorObject));
       drResponse.setResponseObject(Optional.empty());
     }
 
@@ -264,14 +300,12 @@ public class DataRepoClient {
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
     copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
     return copy;
   }
 
   private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
     copy.setBearerAuth(authService.getPetAccountAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
     return copy;
   }
 }

@@ -1,14 +1,19 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
@@ -27,14 +32,15 @@ import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.DatabaseOperationException;
-import bio.terra.stairway.exception.DuplicateFlightIdSubmittedException;
+import bio.terra.stairway.exception.DuplicateFlightIdException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayExecutionException;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,9 +56,9 @@ import org.slf4j.LoggerFactory;
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 // - BUCKET_INFO is a GoogleBucketResource
-// - STORAGE_ACCOUNT_INFO is a AzureStorageAccountResource
+// - STORAGE_ACCOUNT_RESOURCE is a AzureStorageAccountResource
 //
-public class IngestDriverStep extends SkippableStep {
+public class IngestDriverStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
@@ -64,6 +70,7 @@ public class IngestDriverStep extends SkippableStep {
   private final int driverWaitSeconds;
   private final UUID profileId;
   private final CloudPlatform platform;
+  private final AuthenticatedUserRequest userReq;
 
   public IngestDriverStep(
       LoadService loadService,
@@ -75,8 +82,7 @@ public class IngestDriverStep extends SkippableStep {
       int driverWaitSeconds,
       UUID profileId,
       CloudPlatform platform,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      AuthenticatedUserRequest userReq) {
     this.loadService = loadService;
     this.configurationService = configurationService;
     this.jobService = jobService;
@@ -86,33 +92,11 @@ public class IngestDriverStep extends SkippableStep {
     this.driverWaitSeconds = driverWaitSeconds;
     this.profileId = profileId;
     this.platform = platform;
-  }
-
-  public IngestDriverStep(
-      LoadService loadService,
-      ConfigurationService configurationService,
-      JobService jobService,
-      String datasetId,
-      String loadTag,
-      int maxFailedFileLoads,
-      int driverWaitSeconds,
-      UUID profileId,
-      CloudPlatform platform) {
-    this(
-        loadService,
-        configurationService,
-        jobService,
-        datasetId,
-        loadTag,
-        maxFailedFileLoads,
-        driverWaitSeconds,
-        profileId,
-        platform,
-        SkippableStep::neverSkip);
+    this.userReq = userReq;
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     // Gather inputs
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
@@ -123,7 +107,11 @@ public class IngestDriverStep extends SkippableStep {
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        workingMap.get(
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+
+    int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
+    boolean maxBadRecordsReached = false;
 
     try {
       // Check for launch orphans - these are loads in the RUNNING state that never
@@ -133,21 +121,25 @@ public class IngestDriverStep extends SkippableStep {
       // Load Loop
       while (true) {
         int podCount = jobService.getActivePodCount();
-        int concurrentFiles =
-            configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
         int scaledConcurrentFiles = podCount * concurrentFiles;
         // Get the state of active and failed loads
         LoadCandidates candidates = getLoadCandidates(context, loadId, scaledConcurrentFiles);
 
         int currentRunning = candidates.getRunningLoads().size();
         int candidateCount = candidates.getCandidateFiles().size();
+
+        if (maxFailedFileLoads != -1 && candidates.getFailedLoads() > maxFailedFileLoads) {
+          maxBadRecordsReached = true;
+        }
+
         if (currentRunning == 0 && candidateCount == 0) {
           // Nothing doing and nothing to do
           break;
         }
 
         // Test for exceeding max failed loads; if so, wait for all RUNNINGs to finish
-        if (maxFailedFileLoads != -1 && candidates.getFailedLoads() > maxFailedFileLoads) {
+        // If we exceed tha max failed loads, fail the flight.
+        if (maxBadRecordsReached) {
           waitForAll(context, loadId, scaledConcurrentFiles);
           break;
         }
@@ -162,6 +154,7 @@ public class IngestDriverStep extends SkippableStep {
 
           launchLoads(
               context,
+              userReq,
               launchCount,
               candidates.getCandidateFiles(),
               profileId,
@@ -179,15 +172,32 @@ public class IngestDriverStep extends SkippableStep {
       }
     } catch (DatabaseOperationException
         | StairwayExecutionException
-        | DuplicateFlightIdSubmittedException ex) {
+        | DuplicateFlightIdException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+    }
+
+    if (maxBadRecordsReached) {
+      String errorMessage =
+          String.format(
+              "More than %d file(s) failed to ingest, which was the allowed amount."
+                  + " See error details for the first %d error(s). "
+                  + " For a full report, see the load history table for this dataset.",
+              maxFailedFileLoads, concurrentFiles);
+
+      List<String> loadErrors =
+          loadService.getFailedLoads(loadId, concurrentFiles).stream()
+              .map(lf -> lf.getSourcePath() + " -> " + lf.getTargetPath() + ": " + lf.getError())
+              .collect(Collectors.toList());
+
+      Exception ex = new IngestFailureException(errorMessage, loadErrors);
+      workingMap.put(CommonMapKeys.COMPLETION_TO_FAILURE_EXCEPTION, ex);
     }
     return StepResult.getStepResultSuccess();
   }
 
   private void waitForAny(
       FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
-      throws DatabaseOperationException, InterruptedException {
+      throws DatabaseOperationException, InterruptedException, DuplicateFlightIdException {
     while (true) {
       // This code used to wait before getting load candidates again. however,
       // when there are a large number of files being loaded, there is always something completing.
@@ -304,8 +314,23 @@ public class IngestDriverStep extends SkippableStep {
     return candidates;
   }
 
+  /** Add existing `key`-val pair from `context`'s input parameters to `flightMap`. */
+  @VisibleForTesting
+  static <T> void propagateContextToFlightMap(
+      FlightContext context, FlightMap flightMap, String key, Class<T> paramType) {
+    try {
+      T param = context.getInputParameters().get(key, paramType);
+      if (param != null) {
+        flightMap.put(key, param);
+      }
+    } catch (Exception ex) {
+      logger.error("Unable to deserialize context input parameter value", ex);
+    }
+  }
+
   private void launchLoads(
       FlightContext context,
+      AuthenticatedUserRequest userReq,
       int launchCount,
       List<LoadFile> loadFiles,
       UUID profileId,
@@ -314,8 +339,7 @@ public class IngestDriverStep extends SkippableStep {
       BillingProfileModel billingProfileModel,
       AzureStorageAccountResource storageAccountResource,
       CloudPlatform platform)
-      throws DatabaseOperationException, StairwayExecutionException, InterruptedException,
-          DuplicateFlightIdSubmittedException {
+      throws DatabaseOperationException, StairwayExecutionException, InterruptedException {
 
     Stairway stairway = context.getStairway();
 
@@ -328,6 +352,7 @@ public class IngestDriverStep extends SkippableStep {
               .sourcePath(loadFile.getSourcePath())
               .targetPath(loadFile.getTargetPath())
               .mimeType(loadFile.getMimeType())
+              .md5(loadFile.getMd5())
               .profileId(profileId)
               .loadTag(loadTag)
               .description(loadFile.getDescription());
@@ -335,16 +360,29 @@ public class IngestDriverStep extends SkippableStep {
       FlightMap inputParameters = new FlightMap();
       inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
+      inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
-      inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
+      inputParameters.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
+      inputParameters.put(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), context.getFlightId());
+
+      // Permissions to view child jobs are inherited from the parent:
+      propagateContextToFlightMap(
+          context,
+          inputParameters,
+          JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(),
+          IamResourceType.class);
+      propagateContextToFlightMap(
+          context, inputParameters, JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+      propagateContextToFlightMap(
+          context, inputParameters, JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
 
       if (platform == CloudPlatform.AZURE) {
         AzureStorageAuthInfo storageAuthInfo =
             AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
                 billingProfileModel, storageAccountResource);
-        inputParameters.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
+        inputParameters.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
       }
 
       logger.debug("~~set running load - flight: " + flightId);

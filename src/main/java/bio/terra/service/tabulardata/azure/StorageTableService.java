@@ -4,6 +4,7 @@ import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.List;
@@ -27,15 +28,13 @@ public class StorageTableService {
   }
 
   public void loadHistoryToAStorageTable(
+      AzureStorageAccountResource storageAccountResource,
       Dataset dataset,
-      String flightId,
       String loadTag,
       Instant loadTime,
       List<BulkLoadHistoryModel> loadHistoryArray)
       throws InterruptedException {
     var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
-    var storageAccountResource =
-        resourceService.getOrCreateDatasetStorageAccount(dataset, billingProfile, flightId);
     TableServiceClient serviceClient =
         azureAuthService.getTableServiceClient(
             billingProfile.getSubscriptionId(),
@@ -58,5 +57,16 @@ public class StorageTableService {
 
     return storageTableDao.getLoadHistory(
         tableServiceClient, dataset.getId(), loadTag, offset, limit);
+  }
+
+  public void dropLoadHistoryTable(Dataset dataset) {
+    var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
+    var storageAccountResource = resourceService.getDatasetStorageAccount(dataset, billingProfile);
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
+    storageTableDao.dropLoadHistoryTable(tableServiceClient, dataset.getId());
   }
 }

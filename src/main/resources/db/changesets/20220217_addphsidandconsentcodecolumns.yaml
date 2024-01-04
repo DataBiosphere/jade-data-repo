@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_phs_id_and_consent_code_columns
+      author: sh
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              name: phs_id
+              type: varchar(100)
+              constraints:
+                nullable: true
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: consent_code
+              type: varchar(100)
+              constraints:
+                nullable: true

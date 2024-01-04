@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: datasetSecurity
+      author: tlangs
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              name: security_classification
+              type: ${identifier_type}
+              defaultValue: "NONE"
+              constraints:
+                nullable: false
+
+

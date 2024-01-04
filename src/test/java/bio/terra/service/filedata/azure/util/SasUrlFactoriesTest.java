@@ -1,10 +1,11 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
+import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.util.BinaryData;
@@ -38,12 +39,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class SasUrlFactoriesTest {
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
 
-  private BlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility blobIOTestUtility;
   private String accountName;
   private String containerName;
   private String blobName;
@@ -54,13 +56,13 @@ public class SasUrlFactoriesTest {
     RequestRetryOptions retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
-            azureResourceConfiguration.getMaxRetries(),
-            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            azureResourceConfiguration.maxRetries(),
+            azureResourceConfiguration.retryTimeoutSeconds(),
             null,
             null,
             null);
     blobIOTestUtility =
-        new BlobIOTestUtility(
+        new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName(),
@@ -78,7 +80,7 @@ public class SasUrlFactoriesTest {
 
   @After
   public void tearDown() {
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtility.teardown();
   }
 
   @Test

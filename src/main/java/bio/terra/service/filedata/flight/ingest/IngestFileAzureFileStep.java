@@ -1,7 +1,9 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.CollectionType;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
@@ -34,7 +36,7 @@ public class IngestFileAzureFileStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -55,13 +57,22 @@ public class IngestFileAzureFileStep implements Step {
               .gspath(fsFileInfo.getCloudPath())
               .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
               .checksumMd5(fsFileInfo.getChecksumMd5())
+              .userSpecifiedMd5(fsFileInfo.isUserSpecifiedMd5())
               .size(fsFileInfo.getSize())
               .loadTag(fileLoadModel.getLoadTag());
 
       try {
-        tableDao.createFileMetadata(newFile, storageAuthInfo);
+        tableDao.createFileMetadata(dataset.getId().toString(), newFile, storageAuthInfo);
         // Retrieve to build the complete FSItem
-        FSItem fsItem = tableDao.retrieveById(dataset.getId(), fileId, 1, storageAuthInfo);
+        FSItem fsItem =
+            tableDao.retrieveById(
+                CollectionType.DATASET,
+                dataset.getId(),
+                dataset.getId(),
+                fileId,
+                1,
+                storageAuthInfo,
+                storageAuthInfo);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
@@ -77,10 +88,10 @@ public class IngestFileAzureFileStep implements Step {
     String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     try {
-      tableDao.deleteFileMetadata(itemId, storageAuthInfo);
+      tableDao.deleteFileMetadata(dataset.getId().toString(), itemId, storageAuthInfo);
     } catch (TableServiceException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }

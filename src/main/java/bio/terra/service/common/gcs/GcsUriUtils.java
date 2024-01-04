@@ -1,7 +1,17 @@
 package bio.terra.service.common.gcs;
 
+import static bio.terra.service.filedata.google.gcs.GcsConstants.REQUESTED_BY_QUERY_PARAM;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
+
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 public final class GcsUriUtils {
@@ -10,7 +20,7 @@ public final class GcsUriUtils {
   /**
    * Parse a Google Cloud Storage URI into its component pieces
    *
-   * @param uri of type gs://<bucket_name>/<file_path_inside_bucket>
+   * @param uri of type gs://[bucket_name]/[file_path_inside_bucket]
    * @return Object representing uri pieces
    */
   public static BlobId parseBlobUri(String uri) throws IllegalArgumentException {
@@ -72,7 +82,83 @@ public final class GcsUriUtils {
     return getGsPathFromComponents(blob.getBucket(), blob.getName());
   }
 
+  public static String getGsPathFromBlob(BlobId blob) {
+    return getGsPathFromComponents(blob.getBucket(), blob.getName());
+  }
+
   public static String getGsPathFromComponents(String bucket, String name) {
     return "gs://" + bucket + "/" + name;
+  }
+
+  public static BlobId getBlobForFlight(String bucket, String name, String flightId) {
+    return parseBlobUri(getPathForFlight(bucket, name, flightId));
+  }
+
+  public static String getPathForFlight(String bucket, String name, String flightId) {
+    return getGsPathFromComponents(bucket, String.format("%s/%s", flightId, name));
+  }
+
+  public static String getControlPath(
+      String path, GoogleBucketResource bucketResource, String flightId) {
+    BlobId controlBlob = GcsUriUtils.parseBlobUri(path);
+    String newPath =
+        GcsUriUtils.getPathForFlight(bucketResource.getName(), controlBlob.getName(), flightId);
+    int lastWildcard = newPath.lastIndexOf("*");
+    return lastWildcard >= 0 ? newPath.substring(0, lastWildcard + 1) : newPath;
+  }
+
+  public static String makeHttpsFromGs(String gspath, String userProject) {
+    BlobId locator = GcsUriUtils.parseBlobUri(gspath);
+    String gsBucket = locator.getBucket();
+    String gsPath = locator.getName();
+    String userProjectParam;
+    if (userProject != null) {
+      userProjectParam = "%s=%s&".formatted(USER_PROJECT_QUERY_PARAM, userProject);
+    } else {
+      userProjectParam = "";
+    }
+    String encodedPath =
+        URLEncoder.encode(gsPath, StandardCharsets.UTF_8)
+            // Google does not recognize the + characters that are produced from spaces by the
+            // URLEncoder.encode method. As a result, these must be converted to %2B.
+            .replaceAll("\\+", "%20");
+    return "https://www.googleapis.com/storage/v1/b/%s/o/%s?%salt=media"
+        .formatted(gsBucket, encodedPath, userProjectParam);
+  }
+
+  /**
+   * Performs rudimentary test on a potential gcs uri to see if it might be valid (note: does not
+   * confirm the validity of the gcs path)
+   *
+   * @param uri A path to evaluate
+   * @return A boolean true is uri might be a valid gs path
+   */
+  public static boolean isGsUri(String uri) {
+    return uri != null && uri.startsWith("gs://");
+  }
+
+  /**
+   * Sign a Google Cloud Storage URL for a given duration
+   *
+   * @param storage Storage object to use for signing
+   * @param gsPath The path of the object to sign
+   * @param duration The duration for which the URL should be valid
+   * @param requestorEmail The email of the user requesting the signed URL
+   * @return A valid type 4 GCS signed URL
+   */
+  public static String signGsUrl(
+      Storage storage, String gsPath, Duration duration, String requestorEmail) {
+    BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
+    BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
+
+    Map<String, String> queryParams = Map.of(REQUESTED_BY_QUERY_PARAM, requestorEmail);
+    return storage
+        .signUrl(
+            blobInfo,
+            duration.toMinutes(),
+            TimeUnit.MINUTES,
+            Storage.SignUrlOption.withQueryParams(queryParams),
+            Storage.SignUrlOption.withV4Signature())
+        .toString();
   }
 }

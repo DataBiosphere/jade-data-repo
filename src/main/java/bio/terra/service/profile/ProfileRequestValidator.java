@@ -27,15 +27,6 @@ public class ProfileRequestValidator implements Validator {
   public void validate(@NotNull Object target, Errors errors) {
     if (target != null && target instanceof BillingProfileRequestModel) {
       BillingProfileRequestModel billingProfileRequestModel = (BillingProfileRequestModel) target;
-      String billingAccountId = billingProfileRequestModel.getBillingAccountId();
-      if (billingAccountId == null || !isValidAccountId(billingAccountId)) {
-        errors.rejectValue(
-            "billingAccountId",
-            "The id must be 3 sets of 6 capitalized alphanumeric characters separated by dashes");
-      }
-      if (billingProfileRequestModel.getId() == null) {
-        errors.rejectValue("id", "The billing profile id must be specified");
-      }
       isValidCloudPlatform(billingProfileRequestModel, errors);
     }
   }
@@ -48,6 +39,7 @@ public class ProfileRequestValidator implements Validator {
   @SuppressFBWarnings
   public static void isValidCloudPlatform(
       BillingProfileRequestModel billingProfileRequestModel, Errors errors) {
+    String billingAccountId = billingProfileRequestModel.getBillingAccountId();
     if (billingProfileRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
       String errorCode = "For Azure, a valid UUID `%s` must be provided";
       if (billingProfileRequestModel.getTenantId() == null) {
@@ -61,6 +53,10 @@ public class ProfileRequestValidator implements Validator {
         errors.rejectValue(
             "resourceGroupName", "For Azure, a non-empty resourceGroupName must be provided");
       }
+      if (billingAccountId != null && !billingAccountId.isEmpty()) {
+        errors.rejectValue(
+            "billingAccountId", "For Azure, the Google billing account id must not be provided.");
+      }
     } else {
       // GCP is the default cloud platform, so there should be no Azure info from here on.
       String errorCode = "For GCP, no Azure information should be provided";
@@ -72,6 +68,11 @@ public class ProfileRequestValidator implements Validator {
       }
       if (billingProfileRequestModel.getResourceGroupName() != null) {
         errors.rejectValue("resourceGroupName", errorCode);
+      }
+      if (billingAccountId == null || !isValidAccountId(billingAccountId)) {
+        errors.rejectValue(
+            "billingAccountId",
+            "The id must be 3 sets of 6 capitalized alphanumeric characters separated by dashes");
       }
     }
   }

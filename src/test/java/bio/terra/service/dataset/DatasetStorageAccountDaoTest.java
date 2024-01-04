@@ -4,10 +4,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
@@ -32,12 +34,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class DatasetStorageAccountDaoTest {
   private static final Logger logger = LoggerFactory.getLogger(DatasetStorageAccountDaoTest.class);
   @Autowired private JsonLoader jsonLoader;
@@ -61,6 +66,12 @@ public class DatasetStorageAccountDaoTest {
   private Dataset dataset;
   private BillingProfileModel billingProfile;
   private AzureApplicationDeploymentResource applicationResource;
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Before
   public void setUp() throws Exception {
@@ -95,8 +106,12 @@ public class DatasetStorageAccountDaoTest {
     datasetIds.add(datasetId);
 
     AzureStorageAccountResource storageAccount =
-        azureResourceDao.createAndLockStorageAccount(
-            "sa", applicationResource, AzureRegion.ASIA_PACIFIC, ShortUUID.get());
+        azureResourceDao.createAndLockStorage(
+            "sa",
+            datasetId.toString(),
+            applicationResource,
+            AzureRegion.ASIA_PACIFIC,
+            ShortUUID.get());
     storageAccountResourceIds.add(storageAccount.getResourceId());
     datasetStorageAccountDao.createDatasetStorageAccountLink(
         datasetId, storageAccount.getResourceId(), false);

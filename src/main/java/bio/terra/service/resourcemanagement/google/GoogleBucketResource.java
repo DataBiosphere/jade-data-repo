@@ -11,6 +11,7 @@ public class GoogleBucketResource {
   private GoogleProjectResource projectResource;
   private String name;
   private GoogleRegion region;
+  private boolean autoclassEnabled;
 
   public GoogleBucketResource() {}
 
@@ -65,6 +66,15 @@ public class GoogleBucketResource {
 
   public GoogleBucketResource region(GoogleRegion region) {
     this.region = region;
+    return this;
+  }
+
+  public boolean getAutoclassEnabled() {
+    return autoclassEnabled;
+  }
+
+  public GoogleBucketResource autoclassEnabled(boolean autoclassEnabled) {
+    this.autoclassEnabled = autoclassEnabled;
     return this;
   }
 

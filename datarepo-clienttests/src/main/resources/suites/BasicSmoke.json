@@ -1,6 +1,6 @@
 {
   "name": "BasicSmoke",
   "description": "Two smoke tests. One requires authentication and one does not. Only queries, no data creation.",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "testConfigurationFiles": ["basicexamples/BasicAuthenticated.json", "basicexamples/BasicUnauthenticated.json"]
 }

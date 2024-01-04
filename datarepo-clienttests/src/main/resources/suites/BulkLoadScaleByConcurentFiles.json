@@ -1,7 +1,7 @@
 {
   "name": "BulkLoadScaleByConcurentFiles",
   "description": "Test bulk load at different scales",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "testConfigurationFiles": [
     "profiling/BulkLoadScale200_20.json",
     "profiling/BulkLoadScale200_40.json",

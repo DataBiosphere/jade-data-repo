@@ -1,7 +1,7 @@
 {
   "name": "BillingProfileInUseTest",
   "description": "Test attempts to delete a bill profile when it is in use",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 1

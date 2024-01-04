@@ -2,5 +2,7 @@
   "name": "StagingSmokeTests",
   "description": "Smoke tests to run in staging environment.",
   "serverSpecificationFile": "staging.json",
-  "testConfigurationFiles": ["functional/UserWorkflow.json"]
+  "testConfigurationFiles": [
+    "functional/UserWorkflow.json"
+  ]
 }

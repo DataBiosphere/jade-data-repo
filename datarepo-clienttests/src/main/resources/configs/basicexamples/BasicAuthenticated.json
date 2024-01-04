@@ -1,7 +1,7 @@
 {
   "name": "BasicAuthenticated",
   "description": "Two users fetch the available profiles repeatedly, concurrently. Authentication required.",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {},
   "application": {},

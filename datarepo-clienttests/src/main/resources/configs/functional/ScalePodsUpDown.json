@@ -1,7 +1,7 @@
 {
   "name": "ScalePods",
   "description": "One user ingests many files into one dataset while we scale the Kubernetes pods down to 1 and up to 4.",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "isFunctional": true,
   "kubernetes": {

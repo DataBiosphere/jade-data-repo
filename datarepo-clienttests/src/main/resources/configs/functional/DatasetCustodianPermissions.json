@@ -1,7 +1,7 @@
 {
   "name": "DatasetCustodianPermissions",
   "description": "Check custodian permissions on a dataset.",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "isFunctional": true,
   "kubernetes": {},

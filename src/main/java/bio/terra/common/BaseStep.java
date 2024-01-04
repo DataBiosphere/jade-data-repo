@@ -5,6 +5,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import com.google.common.annotations.VisibleForTesting;
 import org.springframework.http.HttpStatus;
 
 public abstract class BaseStep implements Step {
@@ -49,7 +50,26 @@ public abstract class BaseStep implements Step {
     statusCode = responseStatus;
   }
 
+  protected void setResponse(Object responseObject) {
+    response = responseObject;
+    statusCode = HttpStatus.OK;
+  }
+
   protected FlightContext getContext() {
     return context;
+  }
+
+  protected String getFlightId() {
+    return context.getFlightId();
+  }
+
+  @VisibleForTesting
+  public Object getResponse() {
+    return response;
+  }
+
+  @VisibleForTesting
+  public HttpStatus getStatusCode() {
+    return statusCode;
   }
 }

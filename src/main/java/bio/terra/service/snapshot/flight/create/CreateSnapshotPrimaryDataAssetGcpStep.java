@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.BaseStep;
+import bio.terra.common.StepInput;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -24,6 +25,8 @@ public class CreateSnapshotPrimaryDataAssetGcpStep extends BaseStep {
   private SnapshotService snapshotService;
   private SnapshotRequestModel snapshotReq;
 
+  @StepInput Long createdAt;
+
   public CreateSnapshotPrimaryDataAssetGcpStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
@@ -44,7 +47,7 @@ public class CreateSnapshotPrimaryDataAssetGcpStep extends BaseStep {
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     SnapshotRequestAssetModel assetSpec = contentsModel.getAssetSpec();
 
-    Instant createdAt = CommonFlightUtils.getCreatedAt(context);
+    Instant createdAt = CommonFlightUtils.getCreatedAt(this.createdAt);
 
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     SnapshotSource source = snapshot.getFirstSnapshotSource();

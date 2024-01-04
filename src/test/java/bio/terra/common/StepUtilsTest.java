@@ -3,6 +3,8 @@ package bio.terra.common;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.stairway.FlightContext;
@@ -76,14 +78,20 @@ public class StepUtilsTest {
     }
   }
 
+  static FlightContext createContext() {
+    FlightContext context = mock(FlightContext.class);
+    when(context.getWorkingMap()).thenReturn(new FlightMap());
+    when(context.getInputParameters()).thenReturn(new FlightMap());
+    return context;
+  }
+
   // flip read/write sense in test names
   // test for base class annotations
   // add test for reading from inputParameters as well as flightMap
   @Test
   public void testReadInputs() {
-    FlightMap inputs = new FlightMap();
-    inputs.put("description", DESCRIPTION);
-    FlightContext context = new FlightContext(inputs, null, null);
+    FlightContext context = createContext();
+    context.getInputParameters().put("description", DESCRIPTION);
     context.getWorkingMap().put("datasetId", DATASET_UUID);
     Step1 step1 = new Step1();
     StepUtils.readInputs(step1, context);
@@ -93,7 +101,7 @@ public class StepUtilsTest {
 
   @Test
   public void testWriteOutputs() throws JsonProcessingException {
-    FlightContext context = new FlightContext(new FlightMap(), null, null);
+    FlightContext context = createContext();
     Step1 step1 = new Step1();
     step1.doStep(context);
     StepUtils.writeOutputs(step1, context);
@@ -105,19 +113,17 @@ public class StepUtilsTest {
 
   @Test(expected = RuntimeException.class)
   public void testInputTypeMismatch() {
-    FlightMap inputs = new FlightMap();
-    inputs.put("description", DESCRIPTION);
-    inputs.put("datasetId", 123);
-    FlightContext context = new FlightContext(inputs, null, null);
+    FlightContext context = createContext();
+    context.getInputParameters().put("description", DESCRIPTION);
+    context.getInputParameters().put("datasetId", 123);
     Step1 step1 = new Step1();
     StepUtils.readInputs(step1, context);
   }
 
   @Test(expected = RuntimeException.class)
   public void testMissingInputs() {
-    FlightMap inputs = new FlightMap();
-    inputs.put("description", DESCRIPTION);
-    FlightContext context = new FlightContext(inputs, null, null);
+    FlightContext context = createContext();
+    context.getInputParameters().put("description", DESCRIPTION);
     Step1 step1 = new Step1();
     StepUtils.readInputs(step1, context);
   }
@@ -126,7 +132,7 @@ public class StepUtilsTest {
 
   @Test
   public void testSkipNullOutput() {
-    FlightContext context = new FlightContext(new FlightMap(), null, null);
+    FlightContext context = createContext();
     Step1 step1 = new Step1();
     StepUtils.writeOutputs(step1, context);
     assertFalse(context.getWorkingMap().containsKey("description"));

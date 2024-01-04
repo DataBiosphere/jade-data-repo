@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.BaseStep;
+import bio.terra.common.StepInput;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -27,6 +28,8 @@ public class CreateSnapshotPrimaryDataRowIdsStep extends BaseStep {
   private SnapshotService snapshotService;
   private SnapshotRequestModel snapshotReq;
 
+  @StepInput Long createdAt;
+
   public CreateSnapshotPrimaryDataRowIdsStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
@@ -44,7 +47,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep extends BaseStep {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     SnapshotSource source = snapshot.getFirstSnapshotSource();
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
-    Instant createdAt = CommonFlightUtils.getCreatedAt(context);
+    Instant createdAt = CommonFlightUtils.getCreatedAt(this.createdAt);
 
     // for each table, make sure all of the row ids match
     for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {

@@ -1,8 +1,7 @@
 package bio.terra.service.dataset.flight.datadelete;
 
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
-
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
+import bio.terra.common.StepInput;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -12,12 +11,8 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.dataset.flight.transactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +34,7 @@ public class DataDeletionStep extends BaseStep {
 
   @StepInput private UUID datasetId;
   @StepInput private DataDeletionRequest request;
+  @StepInput private UUID transactionId;
 
   public DataDeletionStep(
       BigQueryTransactionPdao bigQueryTransactionPdao,
@@ -58,14 +54,13 @@ public class DataDeletionStep extends BaseStep {
   @Override
   public StepResult perform() throws InterruptedException {
     Dataset dataset = datasetService.retrieve(datasetId);
-    String suffix = BigQueryUtils.getSuffix(???);
+    String suffix = BigQueryUtils.getSuffix(getFlightId());
     List<String> tableNames =
         request.getTables().stream()
             .map(DataDeletionTableModel::getTableName)
             .collect(Collectors.toList());
-    UUID transactionId = TransactionUtils.getTransactionId(???);
 
-    bigQueryDatasetPdao.validateDeleteRequest(dataset, dataDeletionRequest.getTables(), suffix);
+    bigQueryDatasetPdao.validateDeleteRequest(dataset, request.getTables(), suffix);
 
     if (configService.testInsertFault(ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
       logger.info("SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT");
@@ -77,7 +72,7 @@ public class DataDeletionStep extends BaseStep {
     }
 
     bigQueryDatasetPdao.applySoftDeletes(
-        dataset, tableNames, suffix, ???, transactionId, userRequest);
+        dataset, tableNames, suffix, getFlightId(), transactionId, userRequest);
 
     // TODO<DR-2407>: this can be more informative, something like # rows deleted per table, or
     // mismatched
@@ -93,7 +88,6 @@ public class DataDeletionStep extends BaseStep {
   public StepResult undo() {
     if (autocommit) {
       Dataset dataset = datasetService.retrieve(datasetId);
-      UUID transactionId = TransactionUtils.getTransactionId(???);
       List<String> tableNames =
           request.getTables().stream()
               .map(DataDeletionTableModel::getTableName)

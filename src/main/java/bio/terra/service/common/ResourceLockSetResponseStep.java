@@ -1,20 +1,16 @@
 package bio.terra.service.common;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
 import bio.terra.model.ResourceLocks;
-import bio.terra.service.job.DefaultUndoStep;
-import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
-import org.springframework.http.HttpStatus;
 
-public abstract class ResourceLockSetResponseStep extends DefaultUndoStep {
+public abstract class ResourceLockSetResponseStep extends BaseStep {
 
   protected ResourceLockSetResponseStep() {}
 
   @Override
-  public StepResult doStep(FlightContext context) {
-    ResourceLocks locks = getResourceLocks();
-    FlightUtils.setResponse(context, locks, HttpStatus.OK);
+  public StepResult perform() {
+    setResponse(getResourceLocks());
     return StepResult.getStepResultSuccess();
   }
 

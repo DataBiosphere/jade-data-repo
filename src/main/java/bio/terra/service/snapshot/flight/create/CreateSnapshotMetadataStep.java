@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.BaseStep;
-import bio.terra.common.FlightUtils;
 import bio.terra.common.StepInput;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -10,7 +9,6 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -28,6 +26,7 @@ public class CreateSnapshotMetadataStep extends BaseStep {
 
   @StepInput private UUID projectResourceId;
   @StepInput private UUID snapshotId;
+  @StepInput private DuosFirecloudGroupModel firecloudGroup;
 
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
@@ -47,13 +46,10 @@ public class CreateSnapshotMetadataStep extends BaseStep {
               .id(snapshotId)
               .projectResourceId(projectResourceId);
       if (snapshotReq.getDuosId() != null) {
-        DuosFirecloudGroupModel duosFirecloudGroup =
-            SnapshotDuosFlightUtils.getFirecloudGroup(context);
-        UUID duosFirecloudGroupId =
-            SnapshotDuosFlightUtils.getDuosFirecloudGroupId(duosFirecloudGroup);
+        UUID duosFirecloudGroupId = SnapshotDuosFlightUtils.getDuosFirecloudGroupId(firecloudGroup);
         snapshot.duosFirecloudGroupId(duosFirecloudGroupId);
       }
-      snapshotDao.createAndLock(snapshot, context.getFlightId());
+      snapshotDao.createAndLock(snapshot, getFlightId());
       return StepResult.getStepResultSuccess();
     } catch (InvalidSnapshotException isEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);

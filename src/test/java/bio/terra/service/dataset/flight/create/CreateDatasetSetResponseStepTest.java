@@ -4,10 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.StepUtils;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -45,17 +45,18 @@ public class CreateDatasetSetResponseStepTest {
   @Test
   void testDoStep() {
     step = new CreateDatasetSetResponseStep(datasetService);
+    StepUtils.readInputs(step, flightContext);
 
-    StepResult doResult = step.doStep(flightContext);
+    StepResult doResult = step.perform();
 
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     assertThat(
         "Dataset summary is written to working map as response",
-        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), DatasetSummaryModel.class),
+        step.getResponse(),
         equalTo(DATASET_SUMMARY));
     assertThat(
         "Created is written to working map as job status",
-        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class),
+        step.getStatusCode(),
         equalTo(HttpStatus.CREATED));
   }
 }

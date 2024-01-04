@@ -22,6 +22,13 @@ public class CommonFlightUtils {
     return null;
   }
 
+  public static Instant getCreatedAt(Long createdAtRaw) {
+    if (createdAtRaw != null) {
+      return Instant.ofEpochMilli(createdAtRaw);
+    }
+    return null;
+  }
+
   /**
    * Obtains flight information of Interest that might be useful in a journal entry. Patterned after
    * an allowList because the flightContext input parameters can contain some sensitive information

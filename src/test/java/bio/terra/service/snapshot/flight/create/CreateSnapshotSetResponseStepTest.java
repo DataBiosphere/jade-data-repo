@@ -4,8 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.StepUtils;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -45,17 +45,18 @@ public class CreateSnapshotSetResponseStepTest {
   @Test
   void testDoStep() {
     step = new CreateSnapshotSetResponseStep(snapshotService);
+    StepUtils.readInputs(step, flightContext);
 
-    StepResult doResult = step.doStep(flightContext);
+    StepResult doResult = step.perform();
 
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     assertThat(
         "Snapshot summary is written to working map as response",
-        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotSummaryModel.class),
+        step.getResponse(),
         equalTo(SNAPSHOT_SUMMARY));
     assertThat(
         "Created is written to working map as job status",
-        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class),
+        step.getStatusCode(),
         equalTo(HttpStatus.CREATED));
   }
 }

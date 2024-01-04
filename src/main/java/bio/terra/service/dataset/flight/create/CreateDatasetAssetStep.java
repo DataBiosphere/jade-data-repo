@@ -39,12 +39,11 @@ public class CreateDatasetAssetStep extends BaseStep {
   @Override
   public StepResult perform() {
     Dataset dataset = datasetService.retrieve(datasetId);
-    FlightMap map = context.getWorkingMap();
 
-    dataset.validateDatasetAssetSpecification(assetModel);
+    dataset.validateDatasetAssetSpecification(request);
 
     // get the dataset assets that already exist --asset name needs to be unique
-    AssetSpecification newAssetSpecification = dataset.getNewAssetSpec(assetModel);
+    AssetSpecification newAssetSpecification = dataset.getNewAssetSpec(request);
 
     // add a fault that forces an exception to make sure the undo works
     try {
@@ -77,7 +76,7 @@ public class CreateDatasetAssetStep extends BaseStep {
       // Search the Asset list in the dataset object to see if the asset you were trying to create
       // got created.
       Optional<AssetSpecification> assetSpecificationToDelete =
-          dataset.getAssetSpecificationByName(assetModel.getName());
+          dataset.getAssetSpecificationByName(request.getName());
       // This only works if we are sure asset names are unique.
       // You cannot assume that the flight object created when the doStep was run is the same flight
       // object

@@ -6,7 +6,11 @@ import bio.terra.stairway.FlightContext;
 public class BigQueryUtils {
 
   public static String getSuffix(FlightContext context) {
-    return context.getFlightId().replace('-', '_');
+    return getSuffix(context.getFlightId());
+  }
+
+  public static String getSuffix(String flightId) {
+    return flightId.replace('-', '_');
   }
 
   public static String gsPathMappingTableName(Snapshot snapshot) {

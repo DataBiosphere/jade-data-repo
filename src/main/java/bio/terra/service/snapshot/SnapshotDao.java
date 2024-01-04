@@ -43,10 +43,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -560,23 +560,18 @@ public class SnapshotDao implements TaggableResourceDao {
       Collection<UUID> accessibleSnapshotIds,
       List<String> tags,
       List<String> duosIds) {
-    logger.debug(
-        "retrieve snapshots offset: "
-            + offset
-            + " limit: "
-            + limit
-            + " sort: "
-            + sort
-            + " direction: "
-            + direction
-            + " filter: "
-            + filter
-            + " datasetIds: "
-            + StringUtils.join(datasetIds, ",")
-            + " tags: "
-            + StringUtils.join(tags, ",")
-            + " duosIds: "
-            + StringUtils.join(duosIds, ","));
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "retrieve snapshots offset: {} limit: {} sort: {} direction: {} filter: {} datasetIds: {} tags: {} duosIds: {}",
+          offset,
+          limit,
+          sort,
+          direction,
+          filter,
+          String.join(",", datasetIds.stream().map(UUID::toString).toList()),
+          String.join(",", tags),
+          String.join(",", duosIds));
+    }
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
@@ -613,7 +608,7 @@ public class SnapshotDao implements TaggableResourceDao {
       throw new IllegalArgumentException(
           "Failed to convert snapshot request tags list to SQL array", e);
     }
-    if (!ListUtils.emptyIfNull(duosIds).isEmpty()) {
+    if (!Objects.requireNonNullElse(duosIds, List.of()).isEmpty()) {
       String duosIdMatchSql = "dfg.duos_id IN (:duosIds)";
       whereClauses.add(duosIdMatchSql);
       params.addValue("duosIds", duosIds);

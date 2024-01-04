@@ -1,7 +1,7 @@
 {
   "name": "BasicUnauthenticated",
   "description": "Two users check the service status repeatedly, concurrently. No authentication required.",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {},
   "application": {},

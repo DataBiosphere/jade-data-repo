@@ -1,7 +1,7 @@
 {
   "name": "BasicAuthenticatedWithSAMTimeout",
   "description": "Two users fetch the available profiles repeatedly, concurrently. SAM timeout fault enabled.",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {},
   "application": {},

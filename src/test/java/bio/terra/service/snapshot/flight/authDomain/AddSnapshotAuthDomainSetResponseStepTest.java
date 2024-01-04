@@ -7,13 +7,13 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.StepUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -45,20 +45,24 @@ public class AddSnapshotAuthDomainSetResponseStepTest {
   void setup() {}
 
   @Test
-  public void testDoAndUndoStepSucceeds() {
+  public void testDoAndUndoStepSucceeds() throws InterruptedException {
     AddSnapshotAuthDomainSetResponseStep step =
         new AddSnapshotAuthDomainSetResponseStep(iamService, TEST_USER, SNAPSHOT_ID);
     when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(userGroups);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());
-    StepUtils.readInputs(step, flightContext);
 
-    StepResult doResult = step.perform();
+    StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService).retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID);
 
-    assertEquals(HttpStatus.OK, step.getStatusCode());
+    FlightMap workingMap = flightContext.getWorkingMap();
+    assertEquals(
+        HttpStatus.OK, workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class));
     assertTrue(
-        ((AddAuthDomainResponseModel) step.getResponse()).getAuthDomain().containsAll(userGroups));
+        workingMap
+            .get(JobMapKeys.RESPONSE.getKeyName(), AddAuthDomainResponseModel.class)
+            .getAuthDomain()
+            .containsAll(userGroups));
   }
 }

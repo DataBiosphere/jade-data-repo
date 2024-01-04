@@ -4,11 +4,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.StepUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -28,7 +28,7 @@ class DatasetLockSetResponseStepTest {
   @Mock private DatasetService datasetService;
 
   @Test
-  void doStep() {
+  void doStep() throws InterruptedException {
     // Setup
     step = new DatasetLockSetResponseStep(datasetService, DATASET_ID);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());
@@ -36,14 +36,19 @@ class DatasetLockSetResponseStepTest {
     var locks = new ResourceLocks().exclusive(lockName);
     var datasetSummaryModel = new DatasetSummaryModel().resourceLocks(locks);
     when(datasetService.retrieveDatasetSummary(DATASET_ID)).thenReturn(datasetSummaryModel);
-    StepUtils.readInputs(step, flightContext);
 
     // Perform Step
-    step.perform();
+    step.doStep(flightContext);
 
     // Confirm Response is correctly set
     FlightMap workingMap = flightContext.getWorkingMap();
-    assertThat("Response is the ResourceLocks object", step.getResponse(), equalTo(locks));
-    assertThat("Response Status is HttpStatus.OK", step.getStatusCode(), equalTo(HttpStatus.OK));
+    assertThat(
+        "Response is the ResourceLocks object",
+        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), ResourceLocks.class),
+        equalTo(locks));
+    assertThat(
+        "Response Status is HttpStatus.OK",
+        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class),
+        equalTo(HttpStatus.OK));
   }
 }

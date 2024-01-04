@@ -4,10 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.StepUtils;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -38,25 +38,25 @@ public class CreateDatasetSetResponseStepTest {
     workingMap = new FlightMap();
     workingMap.put(DatasetWorkingMapKeys.DATASET_ID, DATASET_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(new FlightMap());
 
     when(datasetService.retrieveDatasetSummary(DATASET_ID)).thenReturn(DATASET_SUMMARY);
   }
 
   @Test
-  void testDoStep() {
+  void testDoStep() throws InterruptedException {
     step = new CreateDatasetSetResponseStep(datasetService);
-    StepUtils.readInputs(step, flightContext);
 
-    StepResult doResult = step.perform();
+    StepResult doResult = step.doStep(flightContext);
 
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     assertThat(
         "Dataset summary is written to working map as response",
-        step.getResponse(),
+        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), DatasetSummaryModel.class),
         equalTo(DATASET_SUMMARY));
     assertThat(
         "Created is written to working map as job status",
-        step.getStatusCode(),
+        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class),
         equalTo(HttpStatus.CREATED));
   }
 }

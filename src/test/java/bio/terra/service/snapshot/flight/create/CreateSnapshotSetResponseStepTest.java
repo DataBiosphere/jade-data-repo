@@ -4,8 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.StepUtils;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -38,25 +38,25 @@ public class CreateSnapshotSetResponseStepTest {
     workingMap = new FlightMap();
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(new FlightMap());
 
     when(snapshotService.retrieveSnapshotSummary(SNAPSHOT_ID)).thenReturn(SNAPSHOT_SUMMARY);
   }
 
   @Test
-  void testDoStep() {
+  void testDoStep() throws InterruptedException {
     step = new CreateSnapshotSetResponseStep(snapshotService);
-    StepUtils.readInputs(step, flightContext);
 
-    StepResult doResult = step.perform();
+    StepResult doResult = step.doStep(flightContext);
 
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     assertThat(
         "Snapshot summary is written to working map as response",
-        step.getResponse(),
+        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotSummaryModel.class),
         equalTo(SNAPSHOT_SUMMARY));
     assertThat(
         "Created is written to working map as job status",
-        step.getStatusCode(),
+        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class),
         equalTo(HttpStatus.CREATED));
   }
 }

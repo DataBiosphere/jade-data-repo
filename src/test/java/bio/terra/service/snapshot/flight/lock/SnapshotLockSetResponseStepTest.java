@@ -5,10 +5,10 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.StepUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -29,21 +29,27 @@ class SnapshotLockSetResponseStepTest {
   @Mock private FlightContext flightContext;
 
   @Test
-  void doStep() {
+  void doStep() throws InterruptedException {
     // Setup
     step = new SnapshotLockSetResponseStep(snapshotService, SNAPSHOT_ID);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());
-    StepUtils.readInputs(step, flightContext);
     var lockName = "lock123";
     var locks = new ResourceLocks().exclusive(lockName);
     var snapshotSummaryModel = new SnapshotSummaryModel().resourceLocks(locks);
     when(snapshotService.retrieveSnapshotSummary(SNAPSHOT_ID)).thenReturn(snapshotSummaryModel);
 
     // Perform Step
-    step.perform();
+    step.doStep(flightContext);
 
     // Confirm Response is correctly set
-    assertThat("Response is the ResourceLocks object", step.getResponse(), equalTo(locks));
-    assertThat("Response Status is HttpStatus.OK", step.getStatusCode(), equalTo(HttpStatus.OK));
+    FlightMap workingMap = flightContext.getWorkingMap();
+    assertThat(
+        "Response is the ResourceLocks object",
+        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), ResourceLocks.class),
+        equalTo(locks));
+    assertThat(
+        "Response Status is HttpStatus.OK",
+        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class),
+        equalTo(HttpStatus.OK));
   }
 }

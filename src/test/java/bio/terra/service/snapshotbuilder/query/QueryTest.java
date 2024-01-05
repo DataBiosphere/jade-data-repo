@@ -8,13 +8,17 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Tag(Unit.TAG)
 public class QueryTest {
+  private final Logger logger = LoggerFactory.getLogger(QueryTest.class);
 
   @NotNull
   public static Query createQuery() {
@@ -109,6 +113,7 @@ public class QueryTest {
                             new FieldPointer(tablePointer, "year_of_birth"), tableVariable),
                         BinaryFilterVariable.BinaryOperator.LESS_THAN,
                         new Literal(1983)))));
+
     String querySQL = query.renderSQL();
     assertThat(
         querySQL,
@@ -121,5 +126,47 @@ public class QueryTest {
             containsString(
                 "(c.condition_concept_id = 316139 OR c0.ancestor_concept_id = 316139 OR c.condition_concept_id = 4311280 OR c0.ancestor_concept_id = 4311280)"),
             containsString("AND p.year_of_birth < 1983")));
+  }
+
+  //  SELECT
+  //      name, concept_id
+  //  FROM
+  //  concept AS c
+  //      WHERE
+  //  c.concept_id in (
+  //      SELECT
+  //          descendant_concept_id
+  //        FROM
+  //          concept_ancestor` AS ca
+  //          WHERE
+  //          ca.ancestor_concept_id = :ancestor_concept_id
+  //  )
+  @Test
+  void test() {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
+    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "name");
+    FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
+    FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
+    FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
+
+    TablePointer tablePointer = TablePointer.fromTableName("concept_ancestor");
+    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    FieldPointer fieldPointer = new FieldPointer(tablePointer, "descendant_concept_id");
+    FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
+    BinaryFilterVariable whereClause =
+        new BinaryFilterVariable(
+            new FieldVariable(new FieldPointer(tablePointer, "ancestor_concept_id"), tableVariable),
+            BinaryFilterVariable.BinaryOperator.EQUALS,
+            new Literal(316139));
+    Query subQuery = new Query(List.of(fieldVariable), List.of(tableVariable), whereClause);
+    SubQueryFilterVariable subQueryFilterVariable =
+        new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
+    Query query =
+        new Query(
+            List.of(nameFieldVariable, idFieldVariable),
+            List.of(conceptTableVariable),
+            subQueryFilterVariable);
+    logger.info(query.renderSQL());
   }
 }

@@ -12,6 +12,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.exception.JsonConversionException;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -127,7 +128,7 @@ class StepUtilsTest {
     context.getInputParameters().put("description", DESCRIPTION);
     context.getInputParameters().put("datasetId", 123);
     Step1 step1 = new Step1();
-    assertThrows(RuntimeException.class, () -> StepUtils.readInputs(step1, context));
+    assertThrows(JsonConversionException.class, () -> StepUtils.readInputs(step1, context));
   }
 
   @Test
@@ -136,7 +137,8 @@ class StepUtilsTest {
     when(context.getInputParameters()).thenReturn(new FlightMap());
     context.getInputParameters().put("description", DESCRIPTION);
     Step1 step1 = new Step1();
-    assertThrows(RuntimeException.class, () -> StepUtils.readInputs(step1, context));
+    assertThrows(
+        StepUtils.MissingStepInputException.class, () -> StepUtils.readInputs(step1, context));
   }
   // missing outputs, can't verify
   // mistyped outputs, can't verify

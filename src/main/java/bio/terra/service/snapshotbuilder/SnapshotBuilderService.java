@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -27,6 +26,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVari
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -37,7 +37,8 @@ public class SnapshotBuilderService {
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
 
-  public SnapshotBuilderService(SnapshotRequestDao snapshotRequestDao, DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+  public SnapshotBuilderService(SnapshotRequestDao snapshotRequestDao, DatasetService datasetService,
+                                BigQueryPdao bigQueryPdao) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
@@ -50,9 +51,6 @@ public class SnapshotBuilderService {
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId,
                                                                AuthenticatedUserRequest userRequest) {
-    // TODO: Build real query - this should get the name and ID from the concept table, the count
-    // from the occurrence table, and the existence of children from the concept_ancestor table.
-
     // Build the query
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
@@ -69,7 +67,7 @@ public class SnapshotBuilderService {
         new BinaryFilterVariable(
             new FieldVariable(new FieldPointer(tablePointer, "ancestor_concept_id"), tableVariable),
             BinaryFilterVariable.BinaryOperator.EQUALS,
-            new Literal(316139));
+            new Literal(conceptId));
     Query subQuery = new Query(List.of(fieldVariable), List.of(tableVariable), whereClause);
     SubQueryFilterVariable subQueryFilterVariable =
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
@@ -90,17 +88,18 @@ public class SnapshotBuilderService {
     logger.info(bqSQL);
 
     // Execute query
-    //bigQueryPdao
+    RowMapper<SnapshotBuilderConcept> rowMapper =
+        (rs, rowNum) ->
+            new SnapshotBuilderConcept()
+                    .id(rs.getInt("concept_id"))
+                    .name(rs.getString("name"))
+                    .hasChildren(true)
+                    .count(100);
 
+    List<SnapshotBuilderConcept> conceptList = bigQueryPdao.query(bqSQL, rowMapper);
 
     return new SnapshotBuilderGetConceptsResponse()
-        .result(
-            List.of(
-                new SnapshotBuilderConcept()
-                    .count(100)
-                    .name("Stub concept")
-                    .hasChildren(true)
-                    .id(conceptId + 1)));
+        .result(conceptList);
   }
 
   private int getRollupCount(UUID datasetId, List<SnapshotBuilderCohort> cohorts) {

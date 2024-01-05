@@ -14,7 +14,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage;
 import java.util.List;
 import java.util.UUID;
-import liquibase.util.StringUtils;
+import liquibase.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +56,7 @@ public class ConvertToPredictableFileIdsUpdateMissingMd5ChecksumsStep extends De
         f -> {
           Blob sourceBlob = GcsPdao.getBlobFromGsPath(storage, f.getGspath(), projectId);
           f.checksumMd5(sourceBlob.getMd5ToHexString());
-          if (StringUtils.isEmpty(f.getChecksumMd5())) {
+          if (StringUtil.isEmpty(f.getChecksumMd5())) {
             logger.warn("File {} has no MD5", f.getGspath());
           }
         });

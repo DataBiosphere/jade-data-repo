@@ -59,6 +59,10 @@ swaggerSources {
             language = "java"
             library = "jersey2"
             outputDir = file("$projectDir/generated")
+            additionalProperties = [
+                "disallowAdditionalPropertiesIfNotPresent": "false",
+                "artifactDescription": "Data Repository API Client Library (Jakarta)"
+            ]
             rawOptions = [
                 "--model-package", "bio.terra.datarepo.model",
                 "--api-package", "bio.terra.datarepo.api",

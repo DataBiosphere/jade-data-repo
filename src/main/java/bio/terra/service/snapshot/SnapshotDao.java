@@ -43,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -557,28 +558,29 @@ public class SnapshotDao implements TaggableResourceDao {
       String region,
       List<UUID> datasetIds,
       Collection<UUID> accessibleSnapshotIds,
-      List<String> tags) {
-    logger.debug(
-        "retrieve snapshots offset: "
-            + offset
-            + " limit: "
-            + limit
-            + " sort: "
-            + sort
-            + " direction: "
-            + direction
-            + " filter: "
-            + filter
-            + " datasetIds: "
-            + StringUtils.join(datasetIds, ",")
-            + " tags: "
-            + StringUtils.join(tags, ","));
+      List<String> tags,
+      List<String> duosIds) {
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "retrieve snapshots offset: {} limit: {} sort: {} direction: {} filter: {} datasetIds: {} tags: {} duosIds: {}",
+          offset,
+          limit,
+          sort,
+          direction,
+          filter,
+          String.join(",", datasetIds.stream().map(UUID::toString).toList()),
+          String.join(",", tags),
+          String.join(",", duosIds));
+    }
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
     String joinSql =
-        " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
-            + "JOIN dataset on dataset.id = snapshot_source.dataset_id ";
+        """
+      JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id
+          JOIN dataset ON dataset.id = snapshot_source.dataset_id
+            LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id
+      """;
 
     if (!datasetIds.isEmpty()) {
       String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
@@ -606,6 +608,11 @@ public class SnapshotDao implements TaggableResourceDao {
       throw new IllegalArgumentException(
           "Failed to convert snapshot request tags list to SQL array", e);
     }
+    if (!Objects.requireNonNullElse(duosIds, List.of()).isEmpty()) {
+      String duosIdMatchSql = "dfg.duos_id IN (:duosIds)";
+      whereClauses.add(duosIdMatchSql);
+      params.addValue("duosIds", duosIds);
+    }
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
@@ -624,7 +631,8 @@ public class SnapshotDao implements TaggableResourceDao {
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
             + "snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
             + "snapshot_source.id, "
-            + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+            + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id,"
+            + "dataset.self_hosted, dfg.duos_id,"
             + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
@@ -651,11 +659,13 @@ public class SnapshotDao implements TaggableResourceDao {
     try {
       String sql =
           "SELECT snapshot.*, dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
+              + "dfg.duos_id,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + "LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id "
               + "WHERE snapshot.id = :id ";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
@@ -673,12 +683,13 @@ public class SnapshotDao implements TaggableResourceDao {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
               + "snapshot.consent_code, snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
-              + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
+              + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted, dfg.duos_id, "
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + "LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id "
               + "WHERE snapshot_source.dataset_id = :datasetId";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
       return jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -801,7 +812,8 @@ public class SnapshotDao implements TaggableResourceDao {
           .selfHosted(rs.getBoolean("self_hosted"))
           .globalFileIds(rs.getBoolean("global_file_ids"))
           .tags(DaoUtils.getStringList(rs, "tags"))
-          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")));
+          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")))
+          .duosId(rs.getString("duos_id"));
     }
   }
 

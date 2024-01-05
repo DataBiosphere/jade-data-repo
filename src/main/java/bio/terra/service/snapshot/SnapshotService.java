@@ -380,7 +380,8 @@ public class SnapshotService {
       String filter,
       String region,
       List<UUID> datasetIds,
-      List<String> tags) {
+      List<String> tags,
+      List<String> duosIds) {
     List<ErrorModel> errors = new ArrayList<>();
     Map<UUID, Set<IamRole>> idsAndRoles = listAuthorizedSnapshots(userReq, errors);
     if (idsAndRoles.isEmpty()) {
@@ -388,7 +389,16 @@ public class SnapshotService {
     }
     var enumeration =
         snapshotDao.retrieveSnapshots(
-            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet(), tags);
+            offset,
+            limit,
+            sort,
+            direction,
+            filter,
+            region,
+            datasetIds,
+            idsAndRoles.keySet(),
+            tags,
+            duosIds);
     List<SnapshotSummaryModel> models =
         enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
 
@@ -1199,6 +1209,7 @@ public class SnapshotService {
             "",
             "",
             List.of(datasetId),
+            List.of(),
             List.of())
         .getItems()
         .stream()

@@ -413,10 +413,11 @@ public class SnapshotServiceTest {
             any(),
             any(),
             eq(resourcesAndRoles.keySet()),
+            any(),
             any()))
         .thenReturn(metadataEnumeration);
     var snapshots =
-        service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of(), null);
+        service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of(), null, null);
     assertThat(snapshots.getItems().get(0).getId(), equalTo(snapshotId));
     assertThat(snapshots.getRoleMap(), hasEntry(snapshotId.toString(), List.of(role.toString())));
   }

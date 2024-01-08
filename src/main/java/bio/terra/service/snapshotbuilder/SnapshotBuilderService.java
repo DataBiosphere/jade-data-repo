@@ -10,10 +10,6 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -23,10 +19,15 @@ import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.TableResult;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -35,13 +36,11 @@ public class SnapshotBuilderService {
 
   private final SnapshotRequestDao snapshotRequestDao;
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
 
-  public SnapshotBuilderService(SnapshotRequestDao snapshotRequestDao, DatasetService datasetService,
-                                BigQueryPdao bigQueryPdao) {
+  public SnapshotBuilderService(
+      SnapshotRequestDao snapshotRequestDao, DatasetService datasetService) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
@@ -49,8 +48,8 @@ public class SnapshotBuilderService {
     return snapshotRequestDao.create(id, snapshotAccessRequest, email);
   }
 
-  public SnapshotBuilderGetConceptsResponse getConceptChildren(UUID datasetId, Integer conceptId,
-                                                               AuthenticatedUserRequest userRequest) {
+  public SnapshotBuilderGetConceptsResponse getConceptChildren(
+      UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     // Build the query
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
@@ -81,25 +80,40 @@ public class SnapshotBuilderService {
     // Translate query to BigQuery SQL
     bio.terra.grammar.Query grammarQuery = bio.terra.grammar.Query.parse(sql);
     DatasetModel dataset = datasetService.retrieveDatasetModel(datasetId, userRequest);
-    Map<String, DatasetModel> datasetMap =
-        Collections.singletonMap(dataset.getName(), dataset);
-     BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+    Map<String, DatasetModel> datasetMap = Collections.singletonMap(dataset.getName(), dataset);
+    BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
     String bqSQL = grammarQuery.translateSql(bqVisitor);
     logger.info(bqSQL);
 
     // Execute query
-    RowMapper<SnapshotBuilderConcept> rowMapper =
-        (rs, rowNum) ->
-            new SnapshotBuilderConcept()
-                    .id(rs.getInt("concept_id"))
-                    .name(rs.getString("name"))
-                    .hasChildren(true)
-                    .count(100);
+    //    RowMapper<SnapshotBuilderConcept> rowMapper =
+    //        (rs, rowNum) ->
+    //            new SnapshotBuilderConcept()
+    //                    .id(rs.getInt("concept_id"))
+    //                    .name(rs.getString("name"))
+    //                    .hasChildren(true)
+    //                    .count(100);
 
-    List<SnapshotBuilderConcept> conceptList = bigQueryPdao.query(bqSQL, rowMapper);
+    TableResult tableResult;
+    List<SnapshotBuilderConcept> conceptList = new ArrayList<>();
+    try {
+      tableResult = datasetService.query(bqSQL, datasetId);
+      for (FieldValueList fieldValues : tableResult.iterateAll()) {
+        conceptList.add(mapToConcept(fieldValues));
+      }
+    } catch (InterruptedException ex) {
+      throw new RuntimeException(ex);
+    }
 
-    return new SnapshotBuilderGetConceptsResponse()
-        .result(conceptList);
+    return new SnapshotBuilderGetConceptsResponse().result(conceptList);
+  }
+
+  private SnapshotBuilderConcept mapToConcept(FieldValueList value) {
+    return new SnapshotBuilderConcept()
+        .id(Integer.valueOf(value.get("concept_id").getStringValue()))
+        .name(value.get("name").getStringValue())
+        .hasChildren(true)
+        .count(100);
   }
 
   private int getRollupCount(UUID datasetId, List<SnapshotBuilderCohort> cohorts) {

@@ -390,7 +390,8 @@ class DatasetsApiControllerTest {
                         .name("Stub concept")
                         .hasChildren(true)
                         .id(CONCEPT_ID + 1)));
-    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID, any())).thenReturn(expected);
+    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID, any()))
+        .thenReturn(expected);
     String actualJson =
         mvc.perform(get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID))
             .andExpect(status().isOk())

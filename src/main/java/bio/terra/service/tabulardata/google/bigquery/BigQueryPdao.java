@@ -36,19 +36,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.stringtemplate.v4.ST;
 
 public abstract class BigQueryPdao {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
-
-  private final NamedParameterJdbcTemplate jdbcTemplate;
-
-  public BigQueryPdao(NamedParameterJdbcTemplate jdbcTemplate) {
-    this.jdbcTemplate = jdbcTemplate;
-  }
   static void grantReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
       throws InterruptedException {
@@ -366,10 +357,6 @@ public abstract class BigQueryPdao {
     intModel.dataType(column.getType().toString());
     setMinMaxIntResult(result, intModel);
     return intModel;
-  }
-
-  public <T> List<T> query(String sql, RowMapper<T> rowMapper) {
-    return jdbcTemplate.query(sql, rowMapper);
   }
 
   private static TableResult retrieveNumericColumnStats(

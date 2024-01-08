@@ -219,8 +219,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'javax.servlet:jstl:1.2'
 
-    implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.0'
-
     implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '11.2.3.jre17'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances

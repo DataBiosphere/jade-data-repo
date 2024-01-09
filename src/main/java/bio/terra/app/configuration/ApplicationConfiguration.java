@@ -434,7 +434,7 @@ public class ApplicationConfiguration {
     if (defaultCredentials instanceof ServiceAccountCredentials) {
       return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();
     }
-    return null;
+    return "";
   }
 
   @Bean

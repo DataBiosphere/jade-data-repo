@@ -39,6 +39,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
@@ -114,6 +115,21 @@ public class AzureSynapsePdaoConnectedTest {
           .map(r -> r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
           // We can't load array data with CSVs
           .peek(r -> r.put("arrayCol", Optional.empty()))
+          .toList();
+
+  private static final List<Map<String, Optional<Object>>> SAMPLE_DATA_LARGE_FIELDS =
+      SAMPLE_DATA.stream()
+          // Copy the records so that changing them in this list doesn't affect the original
+          .map(r -> r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
+          // Add large fields to expected records
+          .peek(
+              r ->
+                  r.putAll(
+                      Map.of(
+                          "textCol", Optional.of("A".repeat(10000)),
+                          "arrayCol",
+                              Optional.of(
+                                  IntStream.range(0, 8000).mapToObj(Integer::toString).toList()))))
           .toList();
 
   private String snapshotDataSourceName;
@@ -206,6 +222,17 @@ public class AzureSynapsePdaoConnectedTest {
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
     testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA, false, null);
+  }
+
+  @Test
+  public void testSynapseQueryJSONLargeFields() throws Exception {
+    IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
+    testSynapseQuery(
+        ingestRequestModel,
+        "azure-ingest-large-fields-request.json",
+        SAMPLE_DATA_LARGE_FIELDS,
+        false,
+        null);
   }
 
   @Test

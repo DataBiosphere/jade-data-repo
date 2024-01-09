@@ -65,7 +65,7 @@ public class SynapseColumn extends Column {
 
   public static String translateDataType(TableDataType datatype, boolean isArrayOf) {
     if (isArrayOf) {
-      return "varchar(8000)";
+      return "varchar(max)";
     }
     return switch (datatype) {
       case BOOLEAN -> "bit";
@@ -78,7 +78,7 @@ public class SynapseColumn extends Column {
       case NUMERIC -> "real";
         // DIRREF and FILEREF store a UUID on ingest
         // But, are translated to DRS URI on Snapshot Creation
-      case DIRREF, FILEREF, TEXT, STRING -> "varchar(8000)";
+      case DIRREF, FILEREF, TEXT, STRING -> "varchar(max)";
       case TIME -> "time";
         // Data of type RECORD contains table-like that can be nested or repeated
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
@@ -117,16 +117,7 @@ public class SynapseColumn extends Column {
   static boolean checkForJSONCastRequirement(TableDataType dataType, boolean isArrayOf) {
     if (isArrayOf) {
       return false;
-    }
-    switch (dataType) {
-      case DIRREF:
-      case FILEREF:
-      case TEXT:
-      case STRING:
-        return false;
-      default:
-        return true;
-    }
+    } else return dataType.equals(TableDataType.TEXT);
   }
 
   @Override

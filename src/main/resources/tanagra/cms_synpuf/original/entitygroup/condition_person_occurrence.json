@@ -1,0 +1,29 @@
+{
+  "name": "condition_person_occurrence",
+  "type": "CRITERIA_OCCURRENCE",
+  "criteriaEntity": "condition",
+  "occurrenceEntity": "condition_occurrence",
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "relationshipMappings": {
+      "occurrenceToCriteria": {
+        "idPairsTable": { "table": "condition_occurrence" },
+        "idPairsIdA": { "column": "condition_occurrence_id" },
+        "idPairsIdB":  { "column": "condition_concept_id" }
+      },
+      "occurrenceToPrimary": {
+        "idPairsTable": { "table": "condition_occurrence" },
+        "idPairsIdA": { "column": "condition_occurrence_id" },
+        "idPairsIdB":  { "column": "person_id" }
+      },
+      "criteriaToPrimary": {
+        "idPairsTable": { "table": "condition_occurrence" },
+        "idPairsIdA": { "column": "condition_concept_id" },
+        "idPairsIdB":  { "column": "person_id" }
+      }
+    }
+  },
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

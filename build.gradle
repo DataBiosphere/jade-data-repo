@@ -167,6 +167,9 @@ repositories {
     maven {
         url 'https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/'
     }
+    maven {
+        url "https://packages.confluent.io/maven/"
+    }
 }
 
 configurations {
@@ -178,6 +181,8 @@ configurations {
 // 2.4.9 fixes the vulnerability and 2.4.10 fixes an additional bug
 // This override can be removed when we upgrade to spring-boot v2.6.15+, v2.7.10+, or v3.0.5+
 ext['json-smart.version'] = '2.4.10'
+
+ext['beam'] = '2.43.0'
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
@@ -347,6 +352,16 @@ dependencies {
             because '1.66 has security vulnerabilities'
         }
     }
+
+    // Tanagra
+    implementation group: "org.apache.commons", name: "commons-text", version: "1.9"
+    implementation "org.apache.beam:beam-sdks-java-core:${beam}"
+    implementation "org.apache.beam:beam-sdks-java-io-google-cloud-platform:${beam}"
+    implementation "org.apache.beam:beam-sdks-java-io-jdbc:${beam}"
+    implementation "org.apache.beam:beam-sdks-java-extensions-google-cloud-platform-core:${beam}"
+    testRuntimeClasspath "org.apache.beam:beam-runners-direct-java:${beam}"
+    implementation "org.apache.beam:beam-runners-google-cloud-dataflow-java:${beam}"
+    implementation "org.apache.beam:beam-runners-direct-java:${beam}"
 }
 
 def getGitHash = { ->

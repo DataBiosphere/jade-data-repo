@@ -1,0 +1,56 @@
+{
+  "name": "brand",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "name" },
+    { "type": "KEY_AND_DISPLAY", "name": "standard_concept" },
+    { "type": "SIMPLE", "name": "concept_code" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": {
+      "table": "concept",
+      "filter": {
+        "type": "BOOLEAN_AND_OR",
+        "operator": "AND",
+        "subfilters": [
+          { "type": "BINARY",
+            "field": { "column": "domain_id" },
+            "operator": "EQUALS",
+            "value": { "stringVal": "Drug" } },
+          { "type": "BINARY",
+            "field": { "column": "concept_class_id" },
+            "operator": "EQUALS",
+            "value": { "stringVal": "Brand Name" } },
+          { "type": "BINARY",
+            "field": { "column": "invalid_reason" },
+            "operator": "IS",
+            "value": { "stringVal": null } },
+          { "type": "BOOLEAN_AND_OR",
+            "operator": "OR",
+            "subfilters": [
+              { "type": "BINARY",
+                "field": { "column": "vocabulary_id" },
+                "operator": "EQUALS",
+                "value": { "stringVal": "RxNorm" } },
+              { "type": "BINARY",
+                "field": { "column": "vocabulary_id" },
+                "operator": "EQUALS",
+                "value": { "stringVal": "RxNorm Extension" } }
+            ] } ] } },
+    "attributeMappings": {
+      "id": { "value": { "column": "concept_id" } },
+      "name": { "value": { "column": "concept_name" } },
+      "standard_concept": {
+        "value": { "column": "standard_concept" },
+        "display": {
+          "column": "standard_concept",
+          "sqlFunctionWrapper": "(CASE WHEN ${fieldSql} IS NULL THEN 'Source' WHEN ${fieldSql} = 'S' THEN 'Standard' ELSE 'Unknown' END)" } } },
+    "textSearchMapping": { "attributes": [ "name", "id", "concept_code" ] }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

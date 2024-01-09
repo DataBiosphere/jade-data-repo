@@ -1,0 +1,29 @@
+{
+  "name": "device_person_occurrence",
+  "type": "CRITERIA_OCCURRENCE",
+  "criteriaEntity": "device",
+  "occurrenceEntity": "device_occurrence",
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "relationshipMappings": {
+      "occurrenceToCriteria": {
+        "idPairsTable": { "table": "device_exposure" },
+        "idPairsIdA": { "column": "device_exposure_id" },
+        "idPairsIdB":  { "column": "device_concept_id" }
+      },
+      "occurrenceToPrimary": {
+        "idPairsTable": { "table": "device_exposure" },
+        "idPairsIdA": { "column": "device_exposure_id" },
+        "idPairsIdB":  { "column": "person_id" }
+      },
+      "criteriaToPrimary": {
+        "idPairsTable": { "table": "device_exposure" },
+        "idPairsIdA": { "column": "device_concept_id" },
+        "idPairsIdB":  { "column": "person_id" }
+      }
+    }
+  },
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "name": "ingredient",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "name" },
+    { "type": "KEY_AND_DISPLAY", "name": "vocabulary" },
+    { "type": "KEY_AND_DISPLAY", "name": "standard_concept" },
+    { "type": "SIMPLE", "name": "concept_code" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": { "rawSqlFile": "ingredient_all.sql" },
+    "attributeMappings": {
+      "vocabulary": {
+        "value": { "column": "vocabulary_id" },
+        "display": {
+          "column": "vocabulary_id",
+          "foreignTable": "vocabulary",
+          "foreignKey": "vocabulary_id",
+          "foreignColumn": "vocabulary_name" } },
+      "standard_concept": {
+        "value": { "column": "standard_concept" },
+        "display": {
+          "column": "standard_concept",
+          "sqlFunctionWrapper": "(CASE WHEN ${fieldSql} IS NULL THEN 'Source' WHEN ${fieldSql} = 'S' THEN 'Standard' ELSE 'Unknown' END)" } } },
+    "textSearchMapping": { "attributes": [ "name", "concept_code" ] },
+    "hierarchyMappings": {
+      "standard": {
+        "childParent": {
+          "tablePointer": { "rawSqlFile": "ingredient_parentChild.sql" }
+        },
+        "rootNodesFilter": {
+          "tablePointer": {
+            "table": "concept",
+            "filter": {
+              "type": "BOOLEAN_AND_OR",
+              "operator": "AND",
+              "subfilters": [
+                { "type": "BINARY",
+                  "field": { "column": "vocabulary_id" },
+                  "operator": "EQUALS",
+                  "value": { "stringVal": "ATC" } },
+                { "type": "BINARY",
+                  "field": { "column": "concept_class_id" },
+                  "operator": "EQUALS",
+                  "value": { "stringVal": "ATC 1st" } },
+                { "type": "BINARY",
+                  "field": { "column": "standard_concept" },
+                  "operator": "EQUALS",
+                  "value": { "stringVal": "C" } } ] } },
+          "fieldPointers": {
+            "id": { "column": "concept_id" }
+          }
+        },
+        "maxHierarchyDepth": 8
+      }
+    }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

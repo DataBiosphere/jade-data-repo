@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import liquibase.util.StringUtils;
+import liquibase.util.StringUtil;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -58,7 +58,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     }
 
     // Don't log metrics if bard isn't configured or the path is part of the ignore-list
-    if (StringUtils.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
+    if (StringUtil.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
 

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.EcmConfiguration;
+import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.CloudRegion;
@@ -79,6 +80,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -90,6 +92,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,6 +143,8 @@ public class DrsServiceTest {
   @Mock private EcmConfiguration ecmConfiguration;
   @Mock private DrsDao drsDao;
   @Mock private ApplicationConfiguration appConfig;
+  @Mock private MeterRegistry meterRegistry;
+  @Mock private AtomicInteger currentDrsRequestCount;
 
   private DrsIdService drsIdService;
 
@@ -163,6 +168,8 @@ public class DrsServiceTest {
 
   @BeforeEach
   void before() throws Exception {
+    when(meterRegistry.gauge(eq(DrsService.REQUEST_COUNT_GAUGE_NAME), any()))
+        .thenReturn(currentDrsRequestCount);
     drsIdService = new DrsIdService(appConfig);
     drsService =
         spy(
@@ -179,7 +186,7 @@ public class DrsServiceTest {
                 gcsProjectFactory,
                 ecmConfiguration,
                 drsDao,
-                appConfig));
+                meterRegistry));
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
@@ -266,6 +273,14 @@ public class DrsServiceTest {
     assertThrows(
         IamForbiddenException.class,
         () -> drsService.lookupObjectByDrsId(TEST_USER, azureDrsObjectId, false));
+  }
+
+  @Test
+  void lookupObjectByDrsIdTooManyRequests() {
+    when(currentDrsRequestCount.get()).thenReturn(1);
+    assertThrows(
+        TooManyRequestsException.class,
+        () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
   }
 
   @Test
@@ -608,6 +623,14 @@ public class DrsServiceTest {
   }
 
   @Test
+  void lookupAuthorizationsByDrsIdTooManyRequests() {
+    when(currentDrsRequestCount.get()).thenReturn(1);
+    assertThrows(
+        TooManyRequestsException.class,
+        () -> drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
+  }
+
+  @Test
   void lookupObjectByDrsId() {
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
         .thenReturn(new SnapshotSummaryModel().id(snapshotId));
@@ -651,6 +674,14 @@ public class DrsServiceTest {
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
     assertThrows(
         UnauthorizedException.class,
+        () -> drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel));
+  }
+
+  @Test
+  void lookupObjectByDrsIdPassportTooManyRequests() {
+    when(currentDrsRequestCount.get()).thenReturn(1);
+    assertThrows(
+        TooManyRequestsException.class,
         () -> drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel));
   }
 

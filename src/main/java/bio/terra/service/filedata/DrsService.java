@@ -57,7 +57,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BucketGetOption;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
@@ -73,7 +72,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -108,11 +106,7 @@ public class DrsService {
   private final GcsProjectFactory gcsProjectFactory;
   private final EcmConfiguration ecmConfiguration;
   private final DrsDao drsDao;
-
-  // Metrics and Instrumentation
-  static final String REQUEST_COUNT_GAUGE_NAME = "datarepo.drs.requestCountGauge";
-  /** atomic counter that we increment on request arrival and decrement on request response * */
-  private final AtomicInteger currentDrsRequestCount;
+  private final DrsMetricsService drsMetricsService;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -134,7 +128,7 @@ public class DrsService {
       GcsProjectFactory gcsProjectFactory,
       EcmConfiguration ecmConfiguration,
       DrsDao drsDao,
-      MeterRegistry meterRegistry) {
+      DrsMetricsService drsMetricsService) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -147,10 +141,7 @@ public class DrsService {
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmConfiguration = ecmConfiguration;
     this.drsDao = drsDao;
-
-    // Metrics and Instrumentation
-    this.currentDrsRequestCount =
-        meterRegistry.gauge(REQUEST_COUNT_GAUGE_NAME, new AtomicInteger(0));
+    this.drsMetricsService = drsMetricsService;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -159,18 +150,13 @@ public class DrsService {
       int podCount = jobService.getActivePodCount();
       int maxDrsRequestCountDeployment =
           configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
-      int maxDrsRequestCount = maxDrsRequestCountDeployment / podCount;
-
-      if (currentDrsRequestCount.get() >= maxDrsRequestCount) {
-        throw new TooManyRequestsException(
-            "Too many DataRepositoryService requests are being made at once. Please try again later.");
-      }
-      currentDrsRequestCount.incrementAndGet();
+      drsMetricsService.setDrsRequestMax(maxDrsRequestCountDeployment / podCount);
+      drsMetricsService.tryIncrementCurrentDrsRequestCount();
     }
 
     @Override
     public void close() {
-      currentDrsRequestCount.decrementAndGet();
+      drsMetricsService.decrementCurrentDrsRequestCount();
     }
   }
 

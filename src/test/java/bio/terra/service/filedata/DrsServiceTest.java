@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.EcmConfiguration;
-import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.CloudRegion;
@@ -80,7 +79,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -92,7 +90,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -143,8 +140,7 @@ public class DrsServiceTest {
   @Mock private EcmConfiguration ecmConfiguration;
   @Mock private DrsDao drsDao;
   @Mock private ApplicationConfiguration appConfig;
-  @Mock private MeterRegistry meterRegistry;
-  @Mock private AtomicInteger currentDrsRequestCount;
+  @Mock private DrsMetricsService drsMetricsService;
 
   private DrsIdService drsIdService;
 
@@ -168,8 +164,6 @@ public class DrsServiceTest {
 
   @BeforeEach
   void before() throws Exception {
-    when(meterRegistry.gauge(eq(DrsService.REQUEST_COUNT_GAUGE_NAME), any()))
-        .thenReturn(currentDrsRequestCount);
     drsIdService = new DrsIdService(appConfig);
     drsService =
         spy(
@@ -186,7 +180,7 @@ public class DrsServiceTest {
                 gcsProjectFactory,
                 ecmConfiguration,
                 drsDao,
-                meterRegistry));
+                drsMetricsService));
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
@@ -247,14 +241,26 @@ public class DrsServiceTest {
     when(ecmConfiguration.rasIssuer()).thenReturn(RAS_ISSUER);
   }
 
+  private void verifyRequestCountMetricsCollection() {
+    verifyRequestCountMetricsCollection(1);
+  }
+
+  private void verifyRequestCountMetricsCollection(int numOccurrences) {
+    verify(drsMetricsService, times(numOccurrences)).setDrsRequestMax(1);
+    verify(drsMetricsService, times(numOccurrences)).tryIncrementCurrentDrsRequestCount();
+    verify(drsMetricsService, times(numOccurrences)).decrementCurrentDrsRequestCount();
+  }
+
   @Test
   void testLookupPositive() {
     DRSObject googleDrsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    verifyRequestCountMetricsCollection();
     assertThat(googleDrsObject.getId(), is(googleDrsObjectId));
     assertThat(googleDrsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(googleDrsObject.getName(), is(googleFsFile.getPath()));
 
     DRSObject azureDrsObject = drsService.lookupObjectByDrsId(TEST_USER, azureDrsObjectId, false);
+    verifyRequestCountMetricsCollection(2);
     assertThat(azureDrsObject.getId(), is(azureDrsObjectId));
     assertThat(azureDrsObject.getSize(), is(azureFsFile.getSize()));
     assertThat(azureDrsObject.getName(), is(azureFsFile.getPath()));
@@ -269,18 +275,12 @@ public class DrsServiceTest {
     assertThrows(
         IamForbiddenException.class,
         () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
+    verifyRequestCountMetricsCollection();
 
     assertThrows(
         IamForbiddenException.class,
         () -> drsService.lookupObjectByDrsId(TEST_USER, azureDrsObjectId, false));
-  }
-
-  @Test
-  void lookupObjectByDrsIdTooManyRequests() {
-    when(currentDrsRequestCount.get()).thenReturn(1);
-    assertThrows(
-        TooManyRequestsException.class,
-        () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
+    verifyRequestCountMetricsCollection(2);
   }
 
   @Test
@@ -359,6 +359,7 @@ public class DrsServiceTest {
             });
 
     DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, drsId.toDrsObjectId(), false);
+    verifyRequestCountMetricsCollection();
     assertThat(drsObject.getId(), is(drsId.toDrsObjectId()));
     assertThat(drsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(drsObject.getName(), is(googleFsFile.getPath()));
@@ -454,6 +455,7 @@ public class DrsServiceTest {
             });
 
     DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, drsId.toDrsObjectId(), false);
+    verifyRequestCountMetricsCollection();
     assertThat(drsObject.getId(), is(drsId.toDrsObjectId()));
     assertThat(drsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(drsObject.getName(), is(googleFsFile.getPath()));
@@ -606,6 +608,7 @@ public class DrsServiceTest {
     when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
 
     DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(googleDrsObjectId);
+    verifyRequestCountMetricsCollection();
 
     assertThat(
         "Passport authorization available with PHS ID and consent code",
@@ -623,23 +626,16 @@ public class DrsServiceTest {
   }
 
   @Test
-  void lookupAuthorizationsByDrsIdTooManyRequests() {
-    when(currentDrsRequestCount.get()).thenReturn(1);
-    assertThrows(
-        TooManyRequestsException.class,
-        () -> drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
-  }
-
-  @Test
   void lookupObjectByDrsId() {
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
         .thenReturn(new SnapshotSummaryModel().id(snapshotId));
     DRSObject object = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    verifyRequestCountMetricsCollection();
     DRSAccessMethod accessMethod = object.getAccessMethods().get(0);
     assertThat(
         "Only BEARER authorization is included",
-        accessMethod.getAuthorizations().getSupportedTypes().size(),
-        equalTo(1));
+        accessMethod.getAuthorizations().getSupportedTypes(),
+        contains(SupportedTypesEnum.BEARERAUTH));
   }
 
   @Test
@@ -652,6 +648,7 @@ public class DrsServiceTest {
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
     DRSObject object =
         drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel);
+    verifyRequestCountMetricsCollection();
     DRSAccessMethod accessMethod = object.getAccessMethods().get(0);
     assertThat(
         "Correct access method is returned",
@@ -675,14 +672,7 @@ public class DrsServiceTest {
     assertThrows(
         UnauthorizedException.class,
         () -> drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel));
-  }
-
-  @Test
-  void lookupObjectByDrsIdPassportTooManyRequests() {
-    when(currentDrsRequestCount.get()).thenReturn(1);
-    assertThrows(
-        TooManyRequestsException.class,
-        () -> drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel));
+    verifyRequestCountMetricsCollection();
   }
 
   @Test
@@ -803,7 +793,7 @@ public class DrsServiceTest {
     assertThat(
         "Only BEARER authorization is included",
         accessMethod.getAuthorizations().getSupportedTypes(),
-        equalTo(List.of(SupportedTypesEnum.BEARERAUTH)));
+        contains(SupportedTypesEnum.BEARERAUTH));
 
     DRSAccessURL url =
         drsService.getAccessUrlForObjectId(
@@ -869,8 +859,9 @@ public class DrsServiceTest {
     for (var drsId : googleDrsObjectIds) {
       drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
     }
-    verify(snapshotService, times(1)).retrieve(any());
-    verify(snapshotService, times(1)).retrieveSnapshotProject(any());
+    verifyRequestCountMetricsCollection(5);
+    verify(snapshotService).retrieve(any());
+    verify(snapshotService).retrieveSnapshotProject(any());
 
     List<String> azureDrsObjectIds =
         IntStream.range(0, 5)
@@ -887,8 +878,9 @@ public class DrsServiceTest {
     for (var drsId : azureDrsObjectIds) {
       drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
     }
-    verify(snapshotService, times(1)).retrieve(any());
-    verify(snapshotService, times(1)).retrieveSnapshotProject(any());
+    verifyRequestCountMetricsCollection(10);
+    verify(snapshotService).retrieve(any());
+    verify(snapshotService).retrieveSnapshotProject(any());
   }
 
   @Test

@@ -172,11 +172,11 @@ public final class KubernetesClientUtils {
     if (namespace == null || namespace.isEmpty()) {
       list =
           getKubernetesClientCoreObject()
-              .listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
+              .listPodForAllNamespaces(null, null, null, null, null, null, null, null, null, null, null);
     } else {
       list =
           getKubernetesClientCoreObject()
-              .listNamespacedPod(namespace, null, null, null, null, null, null, null, null, null);
+              .listNamespacedPod(namespace, null, null, null, null, null, null, null, null, null, null);
     }
     return list.getItems();
   }

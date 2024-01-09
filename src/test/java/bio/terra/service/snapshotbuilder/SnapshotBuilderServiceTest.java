@@ -1,15 +1,21 @@
 package bio.terra.service.snapshotbuilder;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.service.dataset.DatasetService;
+import com.google.cloud.bigquery.EmptyTableResult;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableResult;
 import java.util.UUID;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -37,17 +43,24 @@ class SnapshotBuilderServiceTest {
     when(snapshotRequestDao.create(
             datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
         .thenReturn(response);
-    Assertions.assertEquals(
+    assertEquals(
         snapshotBuilderService.createSnapshotRequest(
             datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email),
         response);
   }
 
   @Test
-  void getConceptChildren() {
+  void getConceptChildrenEmpty() throws InterruptedException {
     AuthenticatedUserRequest testUser = AuthenticationFixtures.randomUserRequest();
     UUID datasetId = UUID.randomUUID();
+    DatasetModel datasetModel =
+        new DatasetModel().name("name");
+    Schema schema = Schema.of();
+    TableResult tableResult = new TableResult(schema, 1, new EmptyTableResult(schema));
+    when(datasetService.retrieveDatasetModel(datasetId, testUser)).thenReturn(datasetModel);
+    when(datasetService.query( anyString(), eq(datasetId)))
+        .thenReturn(tableResult);
     SnapshotBuilderGetConceptsResponse expected = new SnapshotBuilderGetConceptsResponse();
-    snapshotBuilderService.getConceptChildren(datasetId, 100, testUser);
+    assertEquals(snapshotBuilderService.getConceptChildren(datasetId, 100, testUser), expected);
   }
 }

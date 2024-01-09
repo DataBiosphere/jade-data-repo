@@ -53,7 +53,7 @@ public class SnapshotBuilderService {
     // Build the query
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "name");
+    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
     FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
     FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
     FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
@@ -90,7 +90,7 @@ public class SnapshotBuilderService {
     //        (rs, rowNum) ->
     //            new SnapshotBuilderConcept()
     //                    .id(rs.getInt("concept_id"))
-    //                    .name(rs.getString("name"))
+    //                    .name(rs.getString("concept_name"))
     //                    .hasChildren(true)
     //                    .count(100);
 
@@ -111,7 +111,7 @@ public class SnapshotBuilderService {
   private SnapshotBuilderConcept mapToConcept(FieldValueList value) {
     return new SnapshotBuilderConcept()
         .id(Integer.valueOf(value.get("concept_id").getStringValue()))
-        .name(value.get("name").getStringValue())
+        .name(value.get("concept_name").getStringValue())
         .hasChildren(true)
         .count(100);
   }

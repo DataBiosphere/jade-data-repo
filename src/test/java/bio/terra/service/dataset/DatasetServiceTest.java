@@ -59,10 +59,14 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.azure.resourcemanager.loganalytics.models.Workspace;
 import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
+import com.google.cloud.bigquery.EmptyTableResult;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableResult;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -106,6 +110,8 @@ public class DatasetServiceTest {
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DatasetDao datasetDao;
+
+  @Autowired private BigQueryDatasetPdao bigQueryDatasetPdao;
 
   @Autowired private DatasetService datasetService;
 
@@ -704,5 +710,16 @@ public class DatasetServiceTest {
         RuntimeException.class,
         "Could not configure external datasource",
         () -> datasetService.getOrCreateExternalAzureDataSource(dataset, testUser));
+  }
+
+  @Test
+  public void query() throws Exception {
+    UUID datasetId = UUID.fromString("4d50dd4e-e39e-4b2e-be79-fc7e9b3726d9");
+    Dataset dataset = new Dataset().id(datasetId);
+    Schema schema = Schema.of();
+    TableResult tableResult = new TableResult(schema, 1, new EmptyTableResult(schema));
+    when(datasetDao.retrieve(datasetId)).thenReturn(dataset);
+    when(bigQueryDatasetPdao.query("", dataset)).thenReturn(tableResult);
+    assertThat(datasetService.query("", datasetId), equalTo(tableResult));
   }
 }

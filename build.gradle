@@ -178,8 +178,6 @@ configurations {
 // 2.4.9 fixes the vulnerability and 2.4.10 fixes an additional bug
 // This override can be removed when we upgrade to spring-boot v2.6.15+, v2.7.10+, or v3.0.5+
 ext['json-smart.version'] = '2.4.10'
-// Fix for CVE-2022-42004 which identifies a vulnerability on jackson-databind 2.13.2
-ext["jackson-bom.version"] = '2.16.0'
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
@@ -259,8 +257,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.0'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.0'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.16.1'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.9.1'

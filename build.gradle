@@ -333,6 +333,12 @@ dependencies {
     generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    constraints {
+        implementation('org.apache.commons:commons-compress:1.25.0') {
+            because '1.22 has security vulnerabilities'
+        }
+    }
 }
 
 def getGitHash = { ->

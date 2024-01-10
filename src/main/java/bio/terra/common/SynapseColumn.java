@@ -119,21 +119,21 @@ public class SynapseColumn extends Column {
     if (isArrayOf) {
       return true;
     }
-    switch (dataType) {
-      case DIRREF:
-      case FILEREF:
-      case TEXT:
-      case STRING:
-        return true;
-      default:
-        return false;
-    }
+    return switch (dataType) {
+      case DIRREF, FILEREF, TEXT, STRING -> true;
+      default -> false;
+    };
   }
 
   static boolean checkForJSONCastRequirement(TableDataType dataType, boolean isArrayOf) {
     if (isArrayOf) {
       return false;
-    } else return dataType.equals(TableDataType.TEXT);
+    } else {
+      return switch (dataType) {
+        case TEXT, STRING -> true;
+        default -> false;
+      };
+    }
   }
 
   @Override

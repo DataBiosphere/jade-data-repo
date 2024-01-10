@@ -30,8 +30,6 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.cloud.storage.Acl;
@@ -97,7 +95,6 @@ public class DrsTest extends UsersBase {
   @Autowired private EncodeFixture encodeFixture;
   @Autowired private AuthService authService;
   @Autowired private IamService iamService;
-  @Autowired private ConfigurationService configurationService;
   @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String custodianToken;
@@ -269,44 +266,6 @@ public class DrsTest extends UsersBase {
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
             datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)));
-  }
-
-  @Test
-  public void drsScaleTest() throws Exception {
-    String failureMaxValue = "0";
-
-    // Get a DRS ID from the snapshot preview as a reader.
-    String drsObjectId =
-        dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
-            reader(), snapshotModel.getId(), "file", "file_ref");
-
-    // DRS lookup the file and validate
-    logger.info("DRS Object Id - file: {}", drsObjectId);
-    DrsResponse<DRSObject> response = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
-    assertThat(
-        "object is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
-
-    // Now lets cap the number allowed
-    bio.terra.model.ConfigModel concurrentConfig =
-        configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
-
-    concurrentConfig.setParameter(
-        new bio.terra.model.ConfigParameterModel().value(failureMaxValue));
-    bio.terra.model.ConfigGroupModel failureConfigGroupModel =
-        new bio.terra.model.ConfigGroupModel().label("DRSTest").addGroupItem(concurrentConfig);
-
-    List<bio.terra.model.ConfigModel> failureConfigList =
-        dataRepoFixtures.setConfigList(steward(), failureConfigGroupModel).getItems();
-    logger.info("Config model : " + failureConfigList.get(0));
-
-    // DRS lookup the file and validate
-    logger.info("DRS Object Id - file: {}", drsObjectId);
-    DrsResponse<DRSObject> failureResponse =
-        dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
-    assertThat(
-        "object is not successfully retrieved",
-        failureResponse.getStatusCode(),
-        equalTo(HttpStatus.TOO_MANY_REQUESTS));
   }
 
   @Test

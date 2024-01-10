@@ -33,9 +33,9 @@ class DrsMetricsServiceTest {
     this.currentDrsRequestCount = new AtomicInteger(0);
     this.drsRequestCountMax = new AtomicInteger(1);
 
-    when(meterRegistry.gauge(eq(DrsMetricsService.REQUEST_COUNT_GAUGE_NAME), any()))
+    when(meterRegistry.gauge(eq(DrsMetricsService.OPEN_REQUEST_GAUGE_NAME), any()))
         .thenReturn(currentDrsRequestCount);
-    when(meterRegistry.gauge(eq(DrsMetricsService.REQUEST_COUNT_MAX_GAUGE_NAME), any()))
+    when(meterRegistry.gauge(eq(DrsMetricsService.OPEN_REQUEST_MAX_GAUGE_NAME), any()))
         .thenReturn(drsRequestCountMax);
 
     drsMetricsService = new DrsMetricsService(meterRegistry);

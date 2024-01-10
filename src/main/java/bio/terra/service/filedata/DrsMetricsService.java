@@ -8,18 +8,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class DrsMetricsService {
   private static final String NAME_PREFIX = "datarepo.drs";
-  private static final String REQUEST_COUNT_NAME_PREFIX = NAME_PREFIX + ".requestCount";
-  static final String REQUEST_COUNT_GAUGE_NAME = REQUEST_COUNT_NAME_PREFIX + ".gauge";
-  static final String REQUEST_COUNT_MAX_GAUGE_NAME = REQUEST_COUNT_NAME_PREFIX + ".max";
+  private static final String OPEN_REQUEST_NAME_PREFIX = NAME_PREFIX + ".openRequests";
+  static final String OPEN_REQUEST_GAUGE_NAME = OPEN_REQUEST_NAME_PREFIX + ".gauge";
+  static final String OPEN_REQUEST_MAX_GAUGE_NAME = OPEN_REQUEST_NAME_PREFIX + ".max";
 
   private final AtomicInteger currentDrsRequestCount;
   private final AtomicInteger drsRequestCountMax;
 
   public DrsMetricsService(MeterRegistry meterRegistry) {
     this.currentDrsRequestCount =
-        meterRegistry.gauge(REQUEST_COUNT_GAUGE_NAME, new AtomicInteger(0));
+        meterRegistry.gauge(OPEN_REQUEST_GAUGE_NAME, new AtomicInteger(0));
     this.drsRequestCountMax =
-        meterRegistry.gauge(REQUEST_COUNT_MAX_GAUGE_NAME, new AtomicInteger(0));
+        meterRegistry.gauge(OPEN_REQUEST_MAX_GAUGE_NAME, new AtomicInteger(0));
   }
 
   /**
@@ -45,6 +45,9 @@ public class DrsMetricsService {
     currentDrsRequestCount.decrementAndGet();
   }
 
+  /**
+   * @param newMax value to set as the maximum number of concurrent DRS requests allowed per pod.
+   */
   public void setDrsRequestMax(int newMax) {
     drsRequestCountMax.set(newMax);
   }

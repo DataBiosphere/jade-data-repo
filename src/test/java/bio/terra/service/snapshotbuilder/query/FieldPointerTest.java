@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,7 @@ class FieldPointerTest {
 
   @Test
   void buildVariable() {
-    TablePointer table = new TablePointer("table", null, null);
+    TablePointer table = new TablePointer("table", null, null, Function.identity());
     var fieldPointer = FieldPointer.allFields(table);
     TableVariable primaryTable = TableVariable.forPrimary(table);
     var fieldVariable = fieldPointer.buildVariable(primaryTable, null);
@@ -24,7 +25,7 @@ class FieldPointerTest {
 
   @Test
   void buildVariableForeign() {
-    TablePointer table = new TablePointer("table", null, null);
+    TablePointer table = new TablePointer("table", null, null, Function.identity());
     var fieldPointer = FieldPointer.foreignColumn(table, "column");
     TableVariable primaryTable = TableVariable.forPrimary(table);
     List<TableVariable> tables = new ArrayList<>();

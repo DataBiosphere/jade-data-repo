@@ -293,7 +293,7 @@ public class AzureSynapsePdao {
           <endif>
               ) WITH (
                 <if(isCSV)>
-          <columns:{c|[<c.name>] <c.synapseDataType>
+          <columns:{c|[<c.name>] <c.synapseDataTypeForCsv>
           <if(c.requiresCollate)> COLLATE <collation><endif>
           }; separator=", ">
           <else>doc nvarchar(max)

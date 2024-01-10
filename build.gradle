@@ -215,6 +215,14 @@ dependencies {
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-ae94a59'
     implementation 'org.antlr:ST4:4.3'                          // String templating
     implementation group: 'io.kubernetes', name: 'client-java', version: '18.0.0'
+    // This override can be removed once io.kubernetes.client-java is >= 19.0.0
+    // This is blocked because the terra-common-lib is still on version 16.0.0 and this
+    // update introduces a breaking change
+    constraints {
+        implementation('org.apache.commons:commons-compress:1.25.0') {
+            because '1.22 has security vulnerabilities'
+        }
+    }
 
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'javax.servlet:jstl:1.2'
@@ -333,12 +341,6 @@ dependencies {
     generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
-
-    constraints {
-        implementation('org.apache.commons:commons-compress:1.25.0') {
-            because '1.22 has security vulnerabilities'
-        }
-    }
 }
 
 def getGitHash = { ->

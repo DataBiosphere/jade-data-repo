@@ -11,6 +11,7 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
+import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
@@ -131,7 +132,7 @@ public class SnapshotBuilderTestData {
                     new SnapshotBuilderProgramDataListCriteria()
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
-                    new SnapshotBuilderCriteria().kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
+                    new SnapshotBuilderDomainCriteria().domain("condition").kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataRangeCriteria()
                         .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));

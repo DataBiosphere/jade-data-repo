@@ -30,7 +30,7 @@ class TablePointerTest {
             "table",
             (primaryTable, tables) -> () -> "filter",
             null,
-            QueryTest.generateTableName(dataset));
+            QueryTest.generateTableNameGCP(dataset));
     assertThat(
         tablePointer.renderSQL(),
         is("(SELECT t.* FROM `project.datarepo_name.table` AS t WHERE filter)"));

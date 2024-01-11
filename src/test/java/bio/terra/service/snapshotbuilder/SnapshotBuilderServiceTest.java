@@ -21,11 +21,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class SnapshotBuilderServiceTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
+  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private SnapshotBuilderService snapshotBuilderService;
 
   @BeforeEach
   public void beforeEach() {
-    snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao);
+    snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao, snapshotBuilderSettingsDao);
   }
 
   @Test

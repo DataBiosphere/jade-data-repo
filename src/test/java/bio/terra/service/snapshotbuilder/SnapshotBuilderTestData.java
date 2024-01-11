@@ -132,7 +132,9 @@ public class SnapshotBuilderTestData {
                     new SnapshotBuilderProgramDataListCriteria()
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
-                    new SnapshotBuilderDomainCriteria().domain("condition").kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
+                    new SnapshotBuilderDomainCriteria()
+                        .domain("condition")
+                        .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataRangeCriteria()
                         .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));

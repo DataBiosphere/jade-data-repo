@@ -8,6 +8,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.service.dataset.DatasetService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,10 +23,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SnapshotBuilderServiceTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
   private SnapshotBuilderService snapshotBuilderService;
+  @Mock private DatasetService datasetService;
 
   @BeforeEach
   public void beforeEach() {
-    snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao);
+    snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao, datasetService);
   }
 
   @Test

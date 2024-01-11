@@ -27,6 +27,7 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableDataType;
@@ -115,6 +116,8 @@ public class BigQueryPdaoTest {
   private final List<UUID> datasetIdsToDelete = new ArrayList<>();
   private final List<Dataset> bqDatasetsToDelete = new ArrayList<>();
 
+  private final List<BlobInfo> blobsToDelete = new ArrayList<>();
+
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
@@ -134,6 +137,7 @@ public class BigQueryPdaoTest {
 
   @After
   public void teardown() throws Exception {
+    blobsToDelete.forEach(blob -> storage.delete(blob.getBlobId()));
     connectedOperations.teardown();
   }
 
@@ -203,37 +207,34 @@ public class BigQueryPdaoTest {
     BlobInfo sampleBlob =
         BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample.json").build();
     BlobInfo fileBlob = BlobInfo.newBuilder(bucket, targetPath + "ingest-test-file.json").build();
+    blobsToDelete.addAll(Arrays.asList(participantBlob, sampleBlob, fileBlob));
 
-    try {
-      bigQueryDatasetPdao.createDataset(dataset);
+    bigQueryDatasetPdao.createDataset(dataset);
 
-      storage.create(sampleBlob, readFile("ingest-test-sample.json"));
+    storage.create(sampleBlob, readFile("ingest-test-sample.json"));
 
-      // Ingest staged data into the new dataset.
-      IngestRequestModel ingestRequest =
-          new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
+    // Ingest staged data into the new dataset.
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
 
-      UUID datasetId = dataset.getId();
-      connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
+    UUID datasetId = dataset.getId();
+    connectedOperations.ingestTableSuccess(
+        datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
 
-      // Create a snapshot!
-      DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
-      SnapshotSummaryModel snapshotSummary =
-          connectedOperations.createSnapshot(
-              datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
-      SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+    // Create a snapshot!
+    DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
+    SnapshotSummaryModel snapshotSummary =
+        connectedOperations.createSnapshot(
+            datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
+    SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-      BigQueryProject bigQuerySnapshotProject =
-          TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
+    BigQueryProject bigQuerySnapshotProject =
+        TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
 
-      assertThat(snapshot.getTables().size(), is(equalTo(3)));
-      List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
+    assertThat(snapshot.getTables().size(), is(equalTo(3)));
+    List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
 
-      assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
-    } finally {
-      storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
-    }
+    assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
   }
 
   @Test
@@ -282,12 +283,89 @@ public class BigQueryPdaoTest {
   }
 
   @Test
+  public void snapshotBuilderQuery() throws Exception {
+    var dataset = stageOmopDataset();
+    var bqTablePrefix =
+        String.format(
+            "%s.%s",
+            dataset.getProjectResource().getGoogleProjectId(),
+            BigQueryPdao.prefixName(dataset.getName()));
+
+    var bigQuerySQL =
+        String.format(
+            """
+        SELECT c.concept_name, c.concept_id FROM `%s.concept` AS c
+        WHERE c.concept_id IN
+        (SELECT c.descendant_concept_id FROM `%s.concept_ancestor` AS c
+        WHERE c.ancestor_concept_id = 2);
+        """,
+            bqTablePrefix, bqTablePrefix);
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    TableResult result = bigQueryProject.query(bigQuerySQL);
+
+    final List<SnapshotBuilderConcept> concepts = new ArrayList<>();
+    result
+        .iterateAll()
+        .forEach(
+            rows -> {
+              SnapshotBuilderConcept concept = new SnapshotBuilderConcept();
+              concept.id((int) (rows.get("concept_id").getLongValue()));
+              concept.name(rows.get("concept_name").getStringValue());
+              concepts.add(concept);
+            });
+
+    assertThat(concepts.size(), is(equalTo(2)));
+    assertThat(
+        concepts.stream().map(SnapshotBuilderConcept::getId).toList(),
+        containsInAnyOrder(1, 3));
+  }
+
+  private Dataset stageOmopDataset() throws Exception {
+    Dataset dataset = readDataset("omop/it-dataset-omop.json");
+    connectedOperations.addDataset(dataset.getId());
+
+    // Stage tabular data for ingest.
+    String targetPath = "scratch/file" + UUID.randomUUID() + "/";
+
+    String bucket = testConfig.getIngestbucket();
+    BlobInfo conceptBlob =
+        BlobInfo.newBuilder(bucket, targetPath + "omop/concept-table-data.json").build();
+    BlobInfo conceptAncestorBlob =
+        BlobInfo.newBuilder(bucket, targetPath + "omop/concept-ancestor-table-data.json").build();
+    blobsToDelete.addAll(Arrays.asList(conceptBlob, conceptAncestorBlob));
+
+    bigQueryDatasetPdao.createDataset(dataset);
+
+    storage.create(conceptBlob, readFile("omop/concept-table-data.json"));
+    storage.create(conceptAncestorBlob, readFile("omop/concept-ancestor-table-data.json"));
+
+    // Ingest staged data into the new dataset.
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
+
+    UUID datasetId = dataset.getId();
+    // concept table
+    String conceptTableName = "concept";
+    connectedOperations.ingestTableSuccess(
+        datasetId, ingestRequest.table(conceptTableName).path(gsPath(conceptBlob)));
+    connectedOperations.checkTableRowCount(dataset, conceptTableName, PDAO_PREFIX, 3);
+    connectedOperations.checkDataModel(
+        dataset, List.of("concept_id", "concept_name"), PDAO_PREFIX, conceptTableName, 3);
+    // Concept Ancestor table
+    String conceptAncestorTableName = "concept_ancestor";
+    connectedOperations.ingestTableSuccess(
+        datasetId, ingestRequest.table(conceptAncestorTableName).path(gsPath(conceptAncestorBlob)));
+    connectedOperations.checkTableRowCount(dataset, conceptAncestorTableName, PDAO_PREFIX, 2);
+    return dataset;
+  }
+
+  @Test
   public void testGetFullViews() throws Exception {
     Dataset dataset = readDataset("ingest-test-dataset.json");
     connectedOperations.addDataset(dataset.getId());
 
     // Stage tabular data for ingest.
-    String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
+    String targetPath = "scratch/file" + UUID.randomUUID() + "/";
 
     String bucket = testConfig.getIngestbucket();
 

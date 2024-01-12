@@ -300,24 +300,14 @@ public class BigQueryPdaoTest {
         WHERE c.ancestor_concept_id = 2);
         """,
             bqTablePrefix, bqTablePrefix);
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
-    TableResult result = bigQueryProject.query(bigQuerySQL);
 
-    final List<SnapshotBuilderConcept> concepts = new ArrayList<>();
-    result
-        .iterateAll()
-        .forEach(
-            rows -> {
-              SnapshotBuilderConcept concept = new SnapshotBuilderConcept();
-              concept.id((int) (rows.get("concept_id").getLongValue()));
-              concept.name(rows.get("concept_name").getStringValue());
-              concepts.add(concept);
-            });
+    final List<SnapshotBuilderConcept> concepts =
+        bigQueryDatasetPdao.runSnapshotBuilderQuery(
+            bigQuerySQL, dataset, bigQueryDatasetPdao.aggregateSnapshotBuilderConceptResults());
 
     assertThat(concepts.size(), is(equalTo(2)));
     assertThat(
-        concepts.stream().map(SnapshotBuilderConcept::getId).toList(),
-        containsInAnyOrder(1, 3));
+        concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
   }
 
   private Dataset stageOmopDataset() throws Exception {

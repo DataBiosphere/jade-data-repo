@@ -45,6 +45,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -106,6 +107,7 @@ public class BigQueryPdaoTest {
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private BufferService bufferService;
   @Autowired private SnapshotService snapshotService;
+  @Autowired private SnapshotBuilderService snapshotBuilderService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -285,25 +287,8 @@ public class BigQueryPdaoTest {
   @Test
   public void snapshotBuilderQuery() throws Exception {
     var dataset = stageOmopDataset();
-    var bqTablePrefix =
-        String.format(
-            "%s.%s",
-            dataset.getProjectResource().getGoogleProjectId(),
-            BigQueryPdao.prefixName(dataset.getName()));
-
-    var bigQuerySQL =
-        String.format(
-            """
-        SELECT c.concept_name, c.concept_id FROM `%s.concept` AS c
-        WHERE c.concept_id IN
-        (SELECT c.descendant_concept_id FROM `%s.concept_ancestor` AS c
-        WHERE c.ancestor_concept_id = 2);
-        """,
-            bqTablePrefix, bqTablePrefix);
-
-    final List<SnapshotBuilderConcept> concepts =
-        bigQueryDatasetPdao.runSnapshotBuilderQuery(
-            bigQuerySQL, dataset, bigQueryDatasetPdao.aggregateSnapshotBuilderConceptResults());
+    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 0, TEST_USER);
+    var concepts = conceptResponse.getResult();
 
     assertThat(concepts.size(), is(equalTo(2)));
     assertThat(

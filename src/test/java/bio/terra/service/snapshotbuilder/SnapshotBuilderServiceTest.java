@@ -9,6 +9,7 @@ import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import java.util.List;
 import java.util.UUID;
@@ -26,11 +27,13 @@ class SnapshotBuilderServiceTest {
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
+  @Mock private AzureSynapsePdao azureSynapsePdao;
 
   @BeforeEach
   public void beforeEach() {
     snapshotBuilderService =
-        new SnapshotBuilderService(snapshotRequestDao, datasetService, bigQueryDatasetPdao);
+        new SnapshotBuilderService(
+            snapshotRequestDao, datasetService, bigQueryDatasetPdao, azureSynapsePdao);
   }
 
   @Test

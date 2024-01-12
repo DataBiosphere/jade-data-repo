@@ -1,3 +1,17 @@
-{"concept_id": 1, "concept_name":  "concept1"}
-{"concept_id": 2, "concept_name":  "concept2"}
-{"concept_id": 3, "concept_name":  "concept3"}
+{
+  "table": "concept",
+  "records": [
+    {
+      "concept_id": 1,
+      "concept_name": "concept1"
+    },
+    {
+      "concept_id": 2,
+      "concept_name": "concept2"
+    },
+    {
+      "concept_id": 3,
+      "concept_name": "concept3"
+    }
+  ]
+}

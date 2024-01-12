@@ -118,11 +118,6 @@ public class BigQueryPdaoDatasetConnectedTest {
   }
 
   @Test
-  public void snapshotBuilderQuery() throws Exception {
-    Dataset defaultDataset = readDataset("ingest-test-dataset.json");
-  }
-
-  @Test
   public void datasetTest() throws Exception {
     Dataset defaultDataset = readDataset("ingest-test-dataset.json");
     Dataset eastDataset = readDataset("ingest-test-dataset-east.json");

@@ -24,6 +24,7 @@ import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
@@ -63,6 +64,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import org.apache.commons.collections4.ListUtils;
@@ -1391,6 +1393,31 @@ public class AzureSynapsePdao {
         return resultSet.getInt(1);
       }
     }
+  }
+
+  public <T> List<T> runSnapshotBuilderQuery(
+      String sql, Function<ResultSet, T> aggregateSnapshotBuilderResult) {
+    try {
+      return synapseJdbcTemplate.query(
+          sql, (rs, rowNum) -> aggregateSnapshotBuilderResult.apply(rs));
+    } catch (DataAccessException ex) {
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
+      return new ArrayList<>();
+    }
+  }
+
+  // Convert ResultSet into List<SnapshotBuilderConcept>
+  public Function<ResultSet, SnapshotBuilderConcept> aggregateSnapshotBuilderConceptResult() {
+    return (rs) -> {
+      try {
+        return new SnapshotBuilderConcept()
+            .name(rs.getString("concept_name"))
+            .id((int) rs.getLong("concept_id"));
+      } catch (SQLException e) {
+        // TODO - throw more specific error
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   @VisibleForTesting

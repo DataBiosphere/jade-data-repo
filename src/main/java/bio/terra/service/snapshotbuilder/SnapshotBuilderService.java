@@ -14,6 +14,7 @@ import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import java.util.List;
@@ -28,13 +29,17 @@ public class SnapshotBuilderService {
   private final DatasetService datasetService;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
+  private final AzureSynapsePdao azureSynapsePdao;
+
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
       DatasetService datasetService,
-      BigQueryDatasetPdao bigQueryDatasetPdao) {
+      BigQueryDatasetPdao bigQueryDatasetPdao,
+      AzureSynapsePdao azureSynapsePdao) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
+    this.azureSynapsePdao = azureSynapsePdao;
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
@@ -60,9 +65,9 @@ public class SnapshotBuilderService {
                   SELECT c.concept_name, c.concept_id FROM `%s.concept` AS c
                   WHERE c.concept_id IN
                   (SELECT c.descendant_concept_id FROM `%s.concept_ancestor` AS c
-                  WHERE c.ancestor_concept_id = 2);
+                  WHERE c.ancestor_concept_id = %d);
                   """,
-          bqTablePrefix, bqTablePrefix);
+          bqTablePrefix, bqTablePrefix, conceptId);
     } else if (cloudPlatformWrapper.isAzure()) {
       String conceptParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath("concept");
       String conceptAncestorFilePath =
@@ -73,13 +78,17 @@ public class SnapshotBuilderService {
       return String.format(
           """
             SELECT c.concept_name, c.concept_id FROM
-            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias951024263) "
+            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias951024263)
             AS c WHERE c.concept_id IN
             (SELECT c.descendant_concept_id FROM
-            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias625571305) "
-            AS c WHERE c.ancestor_concept_id = 2)"));
+            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias625571305)
+            AS c WHERE c.ancestor_concept_id = %d)
           """,
-          conceptParquetFilePath, datasourceName, conceptAncestorFilePath, datasourceName);
+          conceptParquetFilePath,
+          datasourceName,
+          conceptAncestorFilePath,
+          datasourceName,
+          conceptId);
 
     } else {
       throw new NotImplementedException("Cloud platform not implemented");
@@ -92,11 +101,23 @@ public class SnapshotBuilderService {
     // from the occurrence table, and the existence of children from the concept_ancestor table.
     Dataset dataset = datasetService.retrieve(datasetId);
 
-    String bigQuerySQL = buildConceptChildrenQuery(dataset, userRequest);
+    String cloudSpecificSQL = buildConceptChildrenQuery(dataset, conceptId, userRequest);
 
-    final List<SnapshotBuilderConcept> concepts =
-        bigQueryDatasetPdao.runSnapshotBuilderQuery(
-            bigQuerySQL, dataset, bigQueryDatasetPdao.aggregateSnapshotBuilderConceptResults());
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    List<SnapshotBuilderConcept> concepts = null;
+    if (cloudPlatformWrapper.isGcp()) {
+      concepts =
+          bigQueryDatasetPdao.runSnapshotBuilderQuery(
+              cloudSpecificSQL,
+              dataset,
+              bigQueryDatasetPdao.aggregateSnapshotBuilderConceptResults());
+    } else if (cloudPlatformWrapper.isAzure()) {
+      concepts =
+          azureSynapsePdao.runSnapshotBuilderQuery(
+              cloudSpecificSQL, azureSynapsePdao.aggregateSnapshotBuilderConceptResult());
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 

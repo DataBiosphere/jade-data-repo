@@ -4,9 +4,9 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class BigQueryVisitor extends DatasetAwareVisitor {
 
@@ -37,7 +37,7 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     return String.format("`%s`.%s", alias, columnName);
   }
 
-  public static Function<String, String> bqTableName(DatasetModel dataset) {
+  public static TableNameGenerator bqTableName(DatasetModel dataset) {
     return (tableName) -> generateTableName(dataset, tableName);
   }
 

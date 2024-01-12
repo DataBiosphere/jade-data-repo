@@ -1,19 +1,17 @@
 package bio.terra.service.snapshotbuilder.query;
 
 import java.util.List;
-import java.util.function.Function;
 
 public record TablePointer(
-    String tableName, Filter filter, String sql, Function<String, String> generateTableName)
+    String tableName, Filter filter, String sql, TableNameGenerator generateTableName)
     implements SqlExpression {
 
-  public static TablePointer fromTableName(
-      String tableName, Function<String, String> generateTableName) {
+  public static TablePointer fromTableName(String tableName, TableNameGenerator generateTableName) {
     return new TablePointer(tableName, null, null, generateTableName);
   }
 
   public static TablePointer fromRawSql(String sql) {
-    return new TablePointer(null, null, sql, Function.identity());
+    return new TablePointer(null, null, sql, s -> s);
   }
 
   @Override
@@ -22,7 +20,7 @@ public record TablePointer(
       return "(" + sql + ")";
     }
     if (filter == null) {
-      return generateTableName.apply(tableName);
+      return generateTableName.generate(tableName);
     }
 
     TablePointer tablePointerWithoutFilter =

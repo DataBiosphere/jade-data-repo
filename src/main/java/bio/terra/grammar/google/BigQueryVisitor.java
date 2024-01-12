@@ -6,6 +6,7 @@ import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class BigQueryVisitor extends DatasetAwareVisitor {
 
@@ -21,11 +22,10 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String datasetName = getNameFromContext(ctx.dataset_name());
     DatasetModel dataset = getDatasetByName(datasetName);
-    String dataProjectId = dataset.getDataProject();
-    String bqDatasetName = PdaoConstant.PDAO_PREFIX + getNameFromContext(ctx.dataset_name());
     String tableName = getNameFromContext(ctx.table_name());
-    String alias = generateAlias(bqDatasetName, tableName);
-    return String.format("`%s.%s.%s` AS `%s`", dataProjectId, bqDatasetName, tableName, alias);
+    String bqTableName = generateTableName(dataset, tableName);
+    String alias = generateAlias(bqTableName, tableName);
+    return String.format("%s AS `%s`", bqTableName, alias);
   }
 
   @Override
@@ -35,5 +35,15 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     String alias = generateAlias(bqDatasetName, tableName);
     String columnName = getNameFromContext(ctx.column_name());
     return String.format("`%s`.%s", alias, columnName);
+  }
+
+  public static Function<String, String> bqTableName(DatasetModel dataset) {
+    return (tableName) -> generateTableName(dataset, tableName);
+  }
+
+  private static String generateTableName(DatasetModel dataset, String tableName) {
+    String dataProjectId = dataset.getDataProject();
+    String bqDatasetName = PdaoConstant.PDAO_PREFIX + dataset.getName();
+    return String.format("`%s.%s.%s`", dataProjectId, bqDatasetName, tableName);
   }
 }

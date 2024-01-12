@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
+import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import java.util.function.Function;
@@ -30,7 +31,7 @@ class TablePointerTest {
             "table",
             (primaryTable, tables) -> () -> "filter",
             null,
-            QueryTest.generateTableName(dataset));
+            BigQueryVisitor.bqTableName(dataset));
     assertThat(
         tablePointer.renderSQL(),
         is("(SELECT t.* FROM `project.datarepo_name.table` AS t WHERE filter)"));

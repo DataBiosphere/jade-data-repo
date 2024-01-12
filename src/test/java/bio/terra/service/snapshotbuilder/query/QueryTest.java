@@ -5,15 +5,14 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Unit;
+import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
-import java.util.function.Function;
 import javax.validation.constraints.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -133,7 +132,7 @@ public class QueryTest {
     DatasetModel dataset =
         new DatasetModel().name("name").dataProject("project").cloudPlatform(CloudPlatform.GCP);
     TablePointer conceptTablePointer =
-        new TablePointer("concept", null, null, generateTableName(dataset));
+        new TablePointer("concept", null, null, BigQueryVisitor.bqTableName(dataset));
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
     FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
@@ -141,7 +140,7 @@ public class QueryTest {
     FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
 
     TablePointer tablePointer =
-        new TablePointer("concept_ancestor", null, null, generateTableName(dataset));
+        new TablePointer("concept_ancestor", null, null, BigQueryVisitor.bqTableName(dataset));
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "descendant_concept_id");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
@@ -166,13 +165,5 @@ public class QueryTest {
                 + "WHERE c.concept_id IN "
                 + "(SELECT c.descendant_concept_id FROM `project.datarepo_name.concept_ancestor` AS c "
                 + "WHERE c.ancestor_concept_id = 100)"));
-  }
-
-  public static Function<String, String> generateTableName(DatasetModel dataset) {
-    return (tableName) -> {
-      String dataProjectId = dataset.getDataProject();
-      String bqDatasetName = PdaoConstant.PDAO_PREFIX + dataset.getName();
-      return String.format("`%s.%s.%s`", dataProjectId, bqDatasetName, tableName);
-    };
   }
 }

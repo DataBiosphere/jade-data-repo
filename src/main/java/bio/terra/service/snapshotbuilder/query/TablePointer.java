@@ -7,10 +7,6 @@ public record TablePointer(
     String tableName, Filter filter, String sql, Function<String, String> generateTableName)
     implements SqlExpression {
 
-  public static TablePointer fromTableName(String tableName) {
-    return new TablePointer(tableName, null, null, Function.identity());
-  }
-
   public static TablePointer fromTableName(
       String tableName, Function<String, String> generateTableName) {
     return new TablePointer(tableName, null, null, generateTableName);

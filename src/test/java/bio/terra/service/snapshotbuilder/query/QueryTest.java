@@ -23,7 +23,7 @@ public class QueryTest {
 
   @NotNull
   public static Query createQuery() {
-    TablePointer tablePointer = TablePointer.fromTableName("table");
+    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     return new Query(
         List.of(new FieldVariable(FieldPointer.allFields(tablePointer), tableVariable)),
@@ -37,7 +37,7 @@ public class QueryTest {
 
   @Test
   void renderSqlGroupBy() {
-    TablePointer tablePointer = TablePointer.fromTableName("table");
+    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
@@ -47,17 +47,17 @@ public class QueryTest {
 
   @Test
   void renderComplexSQL() {
-    TablePointer tablePointer = TablePointer.fromTableName("person");
+    TablePointer tablePointer = QueryTestUtils.fromTableName("person");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
 
-    TablePointer conditionOccurrencePointer = TablePointer.fromTableName("condition_occurrence");
+    TablePointer conditionOccurrencePointer = QueryTestUtils.fromTableName("condition_occurrence");
     TableVariable conditionOccurrenceVariable =
         TableVariable.forJoined(
             conditionOccurrencePointer,
             "person_id",
             new FieldVariable(new FieldPointer(tablePointer, "person_id"), tableVariable));
 
-    TablePointer conditionAncestorPointer = TablePointer.fromTableName("condition_ancestor");
+    TablePointer conditionAncestorPointer = QueryTestUtils.fromTableName("condition_ancestor");
     TableVariable conditionAncestorVariable =
         TableVariable.forJoined(
             conditionAncestorPointer,

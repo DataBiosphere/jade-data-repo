@@ -55,6 +55,18 @@ public class SnapshotBuilderService {
     return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
   }
 
+  public SnapshotBuilderGetConceptsResponse searchConcepts(UUID datasetId, String domainId, String searchText) {
+    return new SnapshotBuilderGetConceptsResponse()
+        .result(
+            List.of(
+                new SnapshotBuilderConcept()
+                    .count(100)
+                    .name("Stub concept")
+                    .hasChildren(true)
+                    .id(1)));
+  }
+
+
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(
       List<SnapshotAccessRequestResponse> responses) {
     EnumerateSnapshotAccessRequest enumerateModel = new EnumerateSnapshotAccessRequest();

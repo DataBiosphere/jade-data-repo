@@ -9,6 +9,16 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.service.snapshotbuilder.query.FieldPointer;
+import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.FilterVariable;
+import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -55,7 +65,46 @@ public class SnapshotBuilderService {
     return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
   }
 
-  public SnapshotBuilderGetConceptsResponse searchConcepts(UUID datasetId, String domainId, String searchText) {
+  public SnapshotBuilderGetConceptsResponse searchConcepts(
+      UUID datasetId, String domainId, String searchText) {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
+    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
+    FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
+    FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
+    FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
+
+    BinaryFilterVariable domainClause =
+        new BinaryFilterVariable(
+            new FieldVariable(
+                new FieldPointer(conceptTablePointer, "domain_id"), conceptTableVariable),
+            BinaryFilterVariable.BinaryOperator.EQUALS,
+            new Literal(domainId));
+    FunctionFilterVariable searchConceptNameClause =
+        new FunctionFilterVariable(
+            FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
+            new FieldVariable(
+                new FieldPointer(conceptTablePointer, "concept_name"), conceptTableVariable),
+            new Literal(searchText));
+    FunctionFilterVariable searchConceptCodeClause =
+        new FunctionFilterVariable(
+            FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
+            new FieldVariable(
+                new FieldPointer(conceptTablePointer, "concept_code"), conceptTableVariable),
+            new Literal(searchText));
+    List<FilterVariable> searches = List.of(searchConceptNameClause, searchConceptCodeClause);
+    BooleanAndOrFilterVariable searchClause =
+        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
+    List<FilterVariable> allFilters = List.of(domainClause, searchClause);
+    BooleanAndOrFilterVariable whereClause =
+        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+
+    Query query =
+        new Query(
+            List.of(nameFieldVariable, idFieldVariable),
+            List.of(conceptTableVariable),
+            whereClause);
+    String sql = query.renderSQL();
     return new SnapshotBuilderGetConceptsResponse()
         .result(
             List.of(
@@ -65,7 +114,6 @@ public class SnapshotBuilderService {
                     .hasChildren(true)
                     .id(1)));
   }
-
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(
       List<SnapshotAccessRequestResponse> responses) {

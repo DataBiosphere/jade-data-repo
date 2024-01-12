@@ -66,4 +66,10 @@ class SnapshotBuilderServiceTest {
         snapshotBuilderService.enumerateByDatasetId(datasetId),
         equalTo(expected));
   }
+
+  @Test
+  void searchConcepts() {
+    UUID datasetId = UUID.randomUUID();
+    snapshotBuilderService.searchConcepts(datasetId, "condition", "cancer");
+  }
 }

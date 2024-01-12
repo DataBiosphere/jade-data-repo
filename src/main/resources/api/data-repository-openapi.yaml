@@ -7321,7 +7321,7 @@ components:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
           properties:
-            domain:
+            domainName:
               type: string
       description: Selection of a domain concept id, part of a CriteriaGroup.
 

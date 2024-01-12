@@ -11,6 +11,7 @@ import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.service.dataset.DatasetService;
 import java.util.List;
 import java.util.UUID;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -24,10 +25,11 @@ class SnapshotBuilderServiceTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private DatasetService datasetService;
+  @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
 
   @BeforeEach
   public void beforeEach() {
-    snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao, datasetService);
+    snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao, datasetService, bigQueryDatasetPdao);
   }
 
   @Test

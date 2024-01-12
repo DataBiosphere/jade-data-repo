@@ -7292,7 +7292,7 @@ components:
         mapping:
           list: '#/components/schemas/SnapshotBuilderProgramDataListCriteria'
           range: '#/components/schemas/SnapshotBuilderProgramDataRangeCriteria'
-          domain: '#/components/schemas/SnapshotBuilderCriteria'
+          domain: '#/components/schemas/SnapshotBuilderDomainCriteria'
 
     SnapshotBuilderProgramDataListCriteria:
       allOf:
@@ -7315,6 +7315,15 @@ components:
             high:
               type: number
       description: Range format program data, part of a CriteriaGroup.
+
+    SnapshotBuilderDomainCriteria:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        - type: object
+          properties:
+            domainName:
+              type: string
+      description: Selection of a domain concept id, part of a CriteriaGroup.
 
     DuosFirecloudGroupModel:
       type: object

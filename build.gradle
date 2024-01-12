@@ -46,7 +46,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.572.0-SNAPSHOT'
+    version '1.574.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -202,7 +202,7 @@ dependencies {
     implementation 'ch.qos.logback:logback-core:1.2.13'      // Unpin logback versions with DR-3404 Spring 3 Upgrade
     implementation 'ch.qos.logback:logback-classic:1.2.13'  // logback-classic natively implements slf4j api
 
-    implementation 'org.codehaus.janino:janino:3.1.6'           // Provides if/else xml parsing for logback config
+    implementation 'org.codehaus.janino:janino:3.1.11'           // Provides if/else xml parsing for logback config
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
 
@@ -211,10 +211,18 @@ dependencies {
 
     implementation 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     implementation 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.8.RELEASE'
-    implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:3.1.7'
+    implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:3.1.10'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-ae94a59'
     implementation 'org.antlr:ST4:4.3'                          // String templating
     implementation group: 'io.kubernetes', name: 'client-java', version: '18.0.0'
+    // This override can be removed once io.kubernetes.client-java is >= 19.0.0
+    // This is blocked because the terra-common-lib is still on version 16.0.0 and this
+    // update introduces a breaking change
+    constraints {
+        implementation('org.apache.commons:commons-compress:1.25.0') {
+            because '1.22 has security vulnerabilities'
+        }
+    }
 
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'javax.servlet:jstl:1.2'
@@ -257,8 +265,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.2'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.16.1'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.9.1'
@@ -332,21 +341,6 @@ dependencies {
     generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
-
-    constraints {
-        implementation('org.bouncycastle:bcpg-jdk15on:1.68') {
-            because '1.66 has security vulnerabilities'
-        }
-        implementation('org.bouncycastle:bcpkix-jdk15on:1.68') {
-            because '1.66 has security vulnerabilities'
-        }
-        implementation('org.bouncycastle:bcprov-ext-jdk15on:1.68') {
-            because '1.66 has security vulnerabilities'
-        }
-        implementation('org.bouncycastle:bcprov-jdk15on:1.68') {
-            because '1.66 has security vulnerabilities'
-        }
-    }
 }
 
 def getGitHash = { ->

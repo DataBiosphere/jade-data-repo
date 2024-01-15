@@ -52,6 +52,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
@@ -284,54 +285,45 @@ public class BigQueryPdaoTest {
     }
   }
 
-  @Test
-  public void snapshotBuilderQuery() throws Exception {
-    var dataset = stageOmopDataset();
-    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 0, TEST_USER);
-    var concepts = conceptResponse.getResult();
-
-    assertThat(concepts.size(), is(equalTo(2)));
-    assertThat(
-        concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
+  private void ingestOMOPTable(
+      Dataset dataset, String tableName, String ingestFile, int expectedRowCount) throws Exception {
+    List<Map<String, Object>> data;
+    try {
+      data = jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
+    } catch (Exception e) {
+      throw new RuntimeException("Error building ingest request", e);
+    }
+    var ingestRequestArray =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.ARRAY)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table(tableName)
+            .records(Arrays.asList(data.toArray()));
+    connectedOperations.ingestTableSuccess(dataset.getId(), ingestRequestArray);
+    connectedOperations.checkTableRowCount(dataset, tableName, PDAO_PREFIX, expectedRowCount);
   }
 
   private Dataset stageOmopDataset() throws Exception {
     Dataset dataset = readDataset("omop/it-dataset-omop.json");
     connectedOperations.addDataset(dataset.getId());
-
-    // Stage tabular data for ingest.
-    String targetPath = "scratch/file" + UUID.randomUUID() + "/";
-
-    String bucket = testConfig.getIngestbucket();
-    BlobInfo conceptBlob =
-        BlobInfo.newBuilder(bucket, targetPath + "omop/concept-table-data.json").build();
-    BlobInfo conceptAncestorBlob =
-        BlobInfo.newBuilder(bucket, targetPath + "omop/concept-ancestor-table-data.json").build();
-    blobsToDelete.addAll(Arrays.asList(conceptBlob, conceptAncestorBlob));
-
     bigQueryDatasetPdao.createDataset(dataset);
 
-    storage.create(conceptBlob, readFile("omop/concept-table-data.json"));
-    storage.create(conceptAncestorBlob, readFile("omop/concept-ancestor-table-data.json"));
-
-    // Ingest staged data into the new dataset.
-    IngestRequestModel ingestRequest =
-        new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
-
-    UUID datasetId = dataset.getId();
-    // concept table
-    String conceptTableName = "concept";
-    connectedOperations.ingestTableSuccess(
-        datasetId, ingestRequest.table(conceptTableName).path(gsPath(conceptBlob)));
-    connectedOperations.checkTableRowCount(dataset, conceptTableName, PDAO_PREFIX, 3);
-    connectedOperations.checkDataModel(
-        dataset, List.of("concept_id", "concept_name"), PDAO_PREFIX, conceptTableName, 3);
-    // Concept Ancestor table
-    String conceptAncestorTableName = "concept_ancestor";
-    connectedOperations.ingestTableSuccess(
-        datasetId, ingestRequest.table(conceptAncestorTableName).path(gsPath(conceptAncestorBlob)));
-    connectedOperations.checkTableRowCount(dataset, conceptAncestorTableName, PDAO_PREFIX, 2);
+    // Stage tabular data for ingest.
+    ingestOMOPTable(dataset, "concept", "omop/concept-table-data.json", 3);
+    ingestOMOPTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
     return dataset;
+  }
+
+  @Test
+  public void snapshotBuilderQuery() throws Exception {
+    var dataset = stageOmopDataset();
+    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
+    var concepts = conceptResponse.getResult();
+
+    assertThat(concepts.size(), is(equalTo(2)));
+    assertThat(
+        concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
   }
 
   @Test

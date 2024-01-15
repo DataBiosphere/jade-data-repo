@@ -17,8 +17,11 @@ import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import com.google.cloud.bigquery.TableResult;
+import java.sql.ResultSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
@@ -95,6 +98,22 @@ public class SnapshotBuilderService {
     }
   }
 
+  private <T> List<T> runSnapshotBuilderQuery(
+      String cloudSpecificSql,
+      Dataset dataset,
+      Function<TableResult, List<T>> gcpFormatQueryFunction,
+      Function<ResultSet, T> synapseFormatQueryFunction) {
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      return bigQueryDatasetPdao.runSnapshotBuilderQuery(
+          cloudSpecificSql, dataset, gcpFormatQueryFunction);
+    } else if (cloudPlatformWrapper.isAzure()) {
+      return azureSynapsePdao.runSnapshotBuilderQuery(cloudSpecificSql, synapseFormatQueryFunction);
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
+  }
+
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     // TODO: Build real query - this should get the name and ID from the concept table, the count
@@ -103,21 +122,12 @@ public class SnapshotBuilderService {
 
     String cloudSpecificSQL = buildConceptChildrenQuery(dataset, conceptId, userRequest);
 
-    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    List<SnapshotBuilderConcept> concepts = null;
-    if (cloudPlatformWrapper.isGcp()) {
-      concepts =
-          bigQueryDatasetPdao.runSnapshotBuilderQuery(
-              cloudSpecificSQL,
-              dataset,
-              bigQueryDatasetPdao.aggregateSnapshotBuilderConceptResults());
-    } else if (cloudPlatformWrapper.isAzure()) {
-      concepts =
-          azureSynapsePdao.runSnapshotBuilderQuery(
-              cloudSpecificSQL, azureSynapsePdao.aggregateSnapshotBuilderConceptResult());
-    } else {
-      throw new NotImplementedException("Cloud platform not implemented");
-    }
+    List<SnapshotBuilderConcept> concepts =
+        runSnapshotBuilderQuery(
+            cloudSpecificSQL,
+            dataset,
+            bigQueryDatasetPdao.aggregateSnapshotBuilderConceptResults(),
+            azureSynapsePdao.aggregateSnapshotBuilderConceptResult());
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 

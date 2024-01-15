@@ -55,6 +55,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
@@ -341,6 +342,50 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.getDatasetRaw(steward, summaryModel2.getId()).getStatusCode().value(),
         equalTo(404));
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
+  }
+
+  private void ingestOMOPTable(String tableName, String ingestFile, int expectedRowCount)
+      throws Exception {
+    List<Map<String, Object>> data;
+    try {
+      data = jsonLoader.loadObjectAsStream("omop/" + ingestFile, new TypeReference<>() {});
+    } catch (Exception e) {
+      throw new RuntimeException("Error building ingest request", e);
+    }
+    var ingestRequestArray =
+        dataRepoFixtures
+            .buildSimpleIngest(tableName, data)
+            .profileId(profileId)
+            .ignoreUnknownValues(true);
+    var ingestResult = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestArray);
+    assertThat("row count matches", ingestResult.getRowCount(), equalTo((long) expectedRowCount));
+    // tableRowCount.put(jsonIngestTableName, 1);
+
+  }
+
+  private void populateOMOPTable() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
+
+    // Ingest Tabular data
+    ingestOMOPTable("concept", "concept-table-data.json", 3);
+    ingestOMOPTable("concept_ancestor", "concept-ancestor-table-data.json", 2);
+  }
+
+  @Test
+  public void testSnapshotBuilder() throws Exception {
+    populateOMOPTable();
+
+    // Test getConcepts
+    var conceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
+    List<String> conceptNames =
+        conceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    assertThat("Correct number of concepts are returned", conceptNames.size(), equalTo(2));
+    assertThat(
+        "expected concepts are returned", conceptNames, containsInAnyOrder("concept1", "concept3"));
   }
 
   @Test
@@ -751,7 +796,7 @@ public class AzureIntegrationTest extends UsersBase {
             datasetSchema.getTables().stream()
                 .filter(t -> t.getName().equals(table.getName()))
                 .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
-                .collect(Collectors.toList()));
+                .toList());
         tableModel.setRowIds(
             dataRepoFixtures
                 .getRowIds(
@@ -1530,7 +1575,7 @@ public class AzureIntegrationTest extends UsersBase {
       List<Map<String, Object>> data =
           Arrays.stream(controlFileContents.split("\\n"))
               .map(j -> jsonLoader.loadJson(j, new TypeReference<Map<String, Object>>() {}))
-              .collect(Collectors.toList());
+              .toList();
       ingestRequest
           .records(Arrays.asList(data.toArray()))
           .format(IngestRequestModel.FormatEnum.ARRAY);

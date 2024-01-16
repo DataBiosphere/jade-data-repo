@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
@@ -429,12 +430,12 @@ public class ApplicationConfiguration {
   }
 
   @Bean("tdrServiceAccountEmail")
-  public String tdrServiceAccountEmail() throws IOException {
+  public @Nullable String tdrServiceAccountEmail() throws IOException {
     GoogleCredentials defaultCredentials = GoogleCredentials.getApplicationDefault();
     if (defaultCredentials instanceof ServiceAccountCredentials) {
       return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();
     }
-    return "";
+    return null;
   }
 
   @Bean

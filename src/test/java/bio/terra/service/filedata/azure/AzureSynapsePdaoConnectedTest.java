@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -32,6 +33,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotTable;
 import com.azure.storage.blob.BlobUrlParts;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import java.sql.Time;
 import java.util.List;
 import java.util.Map;
@@ -181,6 +183,22 @@ public class AzureSynapsePdaoConnectedTest {
         SAMPLE_DATA_CSV,
         false,
         null);
+  }
+
+  @Test
+  public void testSynapseQueryCSVLargeField() throws Exception {
+    IngestRequestModel ingestRequestModel =
+        new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
+    assertThrows(
+        "Should throw an exception when a field is too large",
+        SQLServerException.class,
+        () ->
+            testSynapseQuery(
+                ingestRequestModel,
+                "azure-simple-dataset-ingest-request-large-field.csv",
+                SAMPLE_DATA_LARGE_FIELDS,
+                false,
+                null));
   }
 
   @Test

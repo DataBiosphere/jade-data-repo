@@ -4,6 +4,7 @@ import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import java.util.Map;
 import java.util.Objects;
 
@@ -15,7 +16,7 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     this.sourceDatasetDatasource = sourceDatasetDatasource;
   }
 
-  public String generateAlias(String tableName) {
+  public static String generateAlias(String tableName) {
     return "alias" + Math.abs(Objects.hash(tableName));
   }
 
@@ -62,5 +63,17 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     String quotedString = ctx.getText();
     // Quoted values in synapse must be single quoted
     return quotedString.replace("\"", "'");
+  }
+
+  public static TableNameGenerator azureTableName(String sourceDatasetDatasource) {
+    return (tableName) -> {
+      String alias = generateAlias(tableName);
+      return "(SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS %s)"
+          .formatted(
+              FolderType.METADATA.getPath(
+                  "parquet/%s/*/*.parquet".formatted(tableName)),
+              sourceDatasetDatasource,
+              alias);
+    };
   }
 }

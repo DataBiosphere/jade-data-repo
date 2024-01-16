@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
+import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
@@ -128,35 +129,10 @@ public class QueryTest {
   }
 
   @Test
-  void renderSQLWithDatasetModel() {
+  void renderSQLWithDatasetModelGCP() {
     DatasetModel dataset =
         new DatasetModel().name("name").dataProject("project").cloudPlatform(CloudPlatform.GCP);
-    TablePointer conceptTablePointer =
-        new TablePointer("concept", null, null, BigQueryVisitor.bqTableName(dataset));
-    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
-    FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
-    FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
-    FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
-
-    TablePointer tablePointer =
-        new TablePointer("concept_ancestor", null, null, BigQueryVisitor.bqTableName(dataset));
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-    FieldPointer fieldPointer = new FieldPointer(tablePointer, "descendant_concept_id");
-    FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
-    BinaryFilterVariable whereClause =
-        new BinaryFilterVariable(
-            new FieldVariable(new FieldPointer(tablePointer, "ancestor_concept_id"), tableVariable),
-            BinaryFilterVariable.BinaryOperator.EQUALS,
-            new Literal(100));
-    Query subQuery = new Query(List.of(fieldVariable), List.of(tableVariable), whereClause);
-    SubQueryFilterVariable subQueryFilterVariable =
-        new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
-    Query query =
-        new Query(
-            List.of(nameFieldVariable, idFieldVariable),
-            List.of(conceptTableVariable),
-            subQueryFilterVariable);
+    Query query = buildGetConceptsQuery(100, BigQueryVisitor.bqTableName(dataset));
     String sql = query.renderSQL();
     assertThat(
         sql,
@@ -165,5 +141,48 @@ public class QueryTest {
                 + "WHERE c.concept_id IN "
                 + "(SELECT c.descendant_concept_id FROM `project.datarepo_name.concept_ancestor` AS c "
                 + "WHERE c.ancestor_concept_id = 100)"));
+  }
+
+  @Test
+  void renderSQLWithDatasetModelAzure() {
+    String datasetSource = "source_dataset_data_source_0";
+    Query query = buildGetConceptsQuery(100, SynapseVisitor.azureTableName(datasetSource));
+    String sql = query.renderSQL();
+    assertThat(
+        sql,
+        is(
+            "SELECT c.concept_name, c.concept_id FROM "
+                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet') AS alias951024263) "
+                + "AS c WHERE c.concept_id IN "
+                + "(SELECT c.descendant_concept_id FROM "
+                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept_ancestor/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet') AS alias625571305) "
+                + "AS c WHERE c.ancestor_concept_id = 100)"));
+  }
+
+  private Query buildGetConceptsQuery(
+      Integer conceptId, TableNameGenerator generateTableName) {
+    TablePointer conceptTablePointer = new TablePointer("concept", null, null, generateTableName);
+    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
+    FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
+    FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
+    FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
+
+    TablePointer tablePointer = new TablePointer("concept_ancestor", null, null, generateTableName);
+    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    FieldPointer fieldPointer = new FieldPointer(tablePointer, "descendant_concept_id");
+    FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
+    BinaryFilterVariable whereClause =
+        new BinaryFilterVariable(
+            new FieldVariable(new FieldPointer(tablePointer, "ancestor_concept_id"), tableVariable),
+            BinaryFilterVariable.BinaryOperator.EQUALS,
+            new Literal(conceptId));
+    Query subQuery = new Query(List.of(fieldVariable), List.of(tableVariable), whereClause);
+    SubQueryFilterVariable subQueryFilterVariable =
+        new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
+    return new Query(
+        List.of(nameFieldVariable, idFieldVariable),
+        List.of(conceptTableVariable),
+        subQueryFilterVariable);
   }
 }

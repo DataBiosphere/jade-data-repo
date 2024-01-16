@@ -65,11 +65,11 @@ public class SnapshotBuilderService {
 
       return String.format(
           """
-                  SELECT c.concept_name, c.concept_id FROM `%s.concept` AS c
-                  WHERE c.concept_id IN
-                  (SELECT c.descendant_concept_id FROM `%s.concept_ancestor` AS c
-                  WHERE c.ancestor_concept_id = %d);
-                  """,
+                  SELECT c.concept_name, c.concept_id FROM `%s.concept` AS c%n\
+                  WHERE c.concept_id IN%n\
+                  (SELECT c.descendant_concept_id FROM `%s.concept_ancestor` AS c%n\
+                  WHERE c.ancestor_concept_id = %d)%n\
+          """,
           bqTablePrefix, bqTablePrefix, conceptId);
     } else if (cloudPlatformWrapper.isAzure()) {
       String conceptParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath("concept");
@@ -80,12 +80,12 @@ public class SnapshotBuilderService {
           datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest);
       return String.format(
           """
-            SELECT c.concept_name, c.concept_id FROM
-            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias951024263)
-            AS c WHERE c.concept_id IN
-            (SELECT c.descendant_concept_id FROM
-            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias625571305)
-            AS c WHERE c.ancestor_concept_id = %d)
+            SELECT c.concept_name, c.concept_id FROM%n\
+            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias951024263)%n\
+            AS c WHERE c.concept_id IN%n\
+            (SELECT c.descendant_concept_id FROM%n\
+            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias625571305)%n\
+            AS c WHERE c.ancestor_concept_id = %d)%n\
           """,
           conceptParquetFilePath,
           datasourceName,

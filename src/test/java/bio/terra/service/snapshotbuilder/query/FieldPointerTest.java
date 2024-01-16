@@ -14,7 +14,7 @@ class FieldPointerTest {
 
   @Test
   void buildVariable() {
-    TablePointer table = new TablePointer("table", null, null);
+    TablePointer table = QueryTestUtils.fromTableName("table");
     var fieldPointer = FieldPointer.allFields(table);
     TableVariable primaryTable = TableVariable.forPrimary(table);
     var fieldVariable = fieldPointer.buildVariable(primaryTable, null);
@@ -24,7 +24,7 @@ class FieldPointerTest {
 
   @Test
   void buildVariableForeign() {
-    TablePointer table = new TablePointer("table", null, null);
+    TablePointer table = QueryTestUtils.fromTableName("table");
     var fieldPointer = FieldPointer.foreignColumn(table, "column");
     TableVariable primaryTable = TableVariable.forPrimary(table);
     List<TableVariable> tables = new ArrayList<>();

@@ -7,7 +7,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -20,7 +20,7 @@ class BinaryFilterVariableTest {
   void renderSQL() {
     var binaryOperator = BinaryFilterVariable.BinaryOperator.EQUALS;
     var literal = new Literal("foo");
-    TableVariable tableVariable = TableVariable.forPrimary(new TablePointer("table", null, null));
+    TableVariable tableVariable = TableVariable.forPrimary(QueryTestUtils.fromTableName("table"));
     TableVariable.generateAliases(List.of(tableVariable));
     var filterVariable =
         new BinaryFilterVariable(

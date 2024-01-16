@@ -21,10 +21,11 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
   @Override
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String datasetName = getNameFromContext(ctx.dataset_name());
+    String bqDatasetName = prefixDatasetName(datasetName);
     DatasetModel dataset = getDatasetByName(datasetName);
     String tableName = getNameFromContext(ctx.table_name());
-    String bqTableName = generateTableName(dataset, tableName);
-    String alias = generateAlias(bqTableName, tableName);
+    String bqTableName = generateTableName(dataset, datasetName, tableName);
+    String alias = generateAlias(bqDatasetName, tableName);
     return String.format("%s AS `%s`", bqTableName, alias);
   }
 
@@ -38,12 +39,17 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
   }
 
   public static TableNameGenerator bqTableName(DatasetModel dataset) {
-    return (tableName) -> generateTableName(dataset, tableName);
+    return (tableName) -> generateTableName(dataset, dataset.getName(), tableName);
   }
 
-  private static String generateTableName(DatasetModel dataset, String tableName) {
+  private static String generateTableName(
+      DatasetModel dataset, String datasetName, String tableName) {
     String dataProjectId = dataset.getDataProject();
-    String bqDatasetName = PdaoConstant.PDAO_PREFIX + dataset.getName();
+    String bqDatasetName = prefixDatasetName(datasetName);
     return String.format("`%s.%s.%s`", dataProjectId, bqDatasetName, tableName);
+  }
+
+  private static String prefixDatasetName(String datasetName) {
+    return PdaoConstant.PDAO_PREFIX + datasetName;
   }
 }

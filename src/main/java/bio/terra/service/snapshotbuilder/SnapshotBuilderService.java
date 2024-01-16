@@ -84,21 +84,26 @@ public class SnapshotBuilderService {
 
   public int getRollupCountForCriteriaGroups(
       UUID datasetId, List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
+    Query query = generateRollupCountsQueryForCriteriaGroupsList(criteriaGroupsList);
+    query.renderSQL();
+    return 5;
+  }
+
+  @NotNull
+  private Query generateRollupCountsQueryForCriteriaGroupsList(
+      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
     TablePointer tablePointer = TablePointer.fromTableName("person");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
 
     FieldVariable personId = makePersonCountVariable();
-    Query query =
-        new Query(
-            List.of(personId),
-            List.of(tableVariable),
-            new BooleanAndOrFilterVariable(
-                BooleanAndOrFilterVariable.LogicalOperator.OR,
-                criteriaGroupsList.stream()
-                    .map(this::generateFilterForCriteriaGroups)
-                    .collect(Collectors.toList())));
-    query.renderSQL();
-    return 5;
+    return new Query(
+        List.of(personId),
+        List.of(tableVariable),
+        new BooleanAndOrFilterVariable(
+            BooleanAndOrFilterVariable.LogicalOperator.OR,
+            criteriaGroupsList.stream()
+                .map(this::generateFilterForCriteriaGroups)
+                .collect(Collectors.toList())));
   }
 
   private FilterVariable generateFilterForCriteriaGroups(

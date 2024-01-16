@@ -135,8 +135,8 @@ public class CriteriaQueryUtils {
         SnapshotBuilderDomainCriteria domainCriteria = (SnapshotBuilderDomainCriteria) criteria;
         return generateFilterForDomainCriteria(domainCriteria);
       }
-      default -> throw new BadRequestException(String.format(
-          "Criteria kind %s not one of: domain, range, list", criteria.getKind()));
+      default -> throw new BadRequestException(
+          String.format("Criteria kind %s not one of: domain, range, list", criteria.getKind()));
     }
   }
 }

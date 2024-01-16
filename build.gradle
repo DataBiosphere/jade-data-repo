@@ -174,10 +174,6 @@ configurations {
     runtimeClasspath
 }
 
-// Fix for CVE-2023-1370 which identifies a vulnerability in json-smart 2.4.8
-// 2.4.9 fixes the vulnerability and 2.4.10 fixes an additional bug
-// This override can be removed when we upgrade to spring-boot v2.6.15+, v2.7.10+, or v3.0.5+
-ext['json-smart.version'] = '2.4.10'
 // Fix for CVE-2022-25857 which identifies a vulnerability in snake-yaml 1.30
 // This override can likely be removed or bumped to 2.0 when we upgrade to spring boot 3
 ext['snakeyaml.version'] = '1.33'

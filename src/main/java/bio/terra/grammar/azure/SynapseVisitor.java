@@ -11,6 +11,11 @@ import java.util.Objects;
 public class SynapseVisitor extends DatasetAwareVisitor {
   private final String sourceDatasetDatasource;
 
+  private static final String azureTableName =
+      "(SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet'))";
+  private static final String azureTableNameAliases =
+      azureTableName.substring(0, azureTableName.length() - 1) + "AS %s) AS %s";
+
   public SynapseVisitor(Map<String, DatasetModel> datasetMap, String sourceDatasetDatasource) {
     super(datasetMap);
     this.sourceDatasetDatasource = sourceDatasetDatasource;
@@ -24,18 +29,11 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String tableName = getNameFromContext(ctx.table_name());
     String alias = generateAlias(tableName);
-    return """
-      (SELECT * FROM
-      OPENROWSET(
-        BULK '%s',
-        DATA_SOURCE = '%s',
-        FORMAT = 'parquet') AS %s) AS %s
-      """
-        .formatted(
-            FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
-            sourceDatasetDatasource,
-            "inner_" + alias,
-            alias);
+    return azureTableNameAliases.formatted(
+        FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
+        sourceDatasetDatasource,
+        "inner_" + alias,
+        alias);
   }
 
   @Override
@@ -66,14 +64,8 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   }
 
   public static TableNameGenerator azureTableName(String sourceDatasetDatasource) {
-    return (tableName) -> {
-      String alias = generateAlias(tableName);
-      return "(SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS %s)"
-          .formatted(
-              FolderType.METADATA.getPath(
-                  "parquet/%s/*/*.parquet".formatted(tableName)),
-              sourceDatasetDatasource,
-              alias);
-    };
+    return (tableName) -> azureTableName.formatted(
+        FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
+        sourceDatasetDatasource);
   }
 }

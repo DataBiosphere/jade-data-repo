@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import static bio.terra.grammar.azure.SynapseVisitor.generateTableNameAzure;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -153,15 +152,14 @@ public class QueryTest {
         sql,
         is(
             "SELECT c.concept_name, c.concept_id FROM "
-                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet') AS alias951024263) "
+                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet')) "
                 + "AS c WHERE c.concept_id IN "
                 + "(SELECT c.descendant_concept_id FROM "
-                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept_ancestor/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet') AS alias625571305) "
+                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept_ancestor/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet')) "
                 + "AS c WHERE c.ancestor_concept_id = 100)"));
   }
 
-  private Query buildGetConceptsQuery(
-      Integer conceptId, TableNameGenerator generateTableName) {
+  private Query buildGetConceptsQuery(Integer conceptId, TableNameGenerator generateTableName) {
     TablePointer conceptTablePointer = new TablePointer("concept", null, null, generateTableName);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");

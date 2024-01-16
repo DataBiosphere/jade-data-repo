@@ -3,9 +3,11 @@ package bio.terra.grammar.azure;
 import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class SynapseVisitor extends DatasetAwareVisitor {
   private final String sourceDatasetDatasource;
@@ -62,5 +64,17 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     String quotedString = ctx.getText();
     // Quoted values in synapse must be single quoted
     return quotedString.replace("\"", "'");
+  }
+
+  public static Function<String, String> generateTableNameAzure(String sourceDatasetDatasource) {
+    return (tableName) -> {
+      String alias = "alias" + Math.abs(Objects.hash(tableName));
+      return "(SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS %s)"
+          .formatted(
+              AzureStorageAccountResource.FolderType.METADATA.getPath(
+                  "parquet/%s/*/*.parquet".formatted(tableName)),
+              sourceDatasetDatasource,
+              alias);
+    };
   }
 }

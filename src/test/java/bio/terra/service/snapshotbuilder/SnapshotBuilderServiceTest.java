@@ -26,7 +26,8 @@ class SnapshotBuilderServiceTest {
 
   @BeforeEach
   public void beforeEach() {
-    snapshotBuilderService = new SnapshotBuilderService(snapshotRequestDao, snapshotBuilderSettingsDao);
+    snapshotBuilderService =
+        new SnapshotBuilderService(snapshotRequestDao, snapshotBuilderSettingsDao);
   }
 
   @Test

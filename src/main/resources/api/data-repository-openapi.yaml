@@ -5294,6 +5294,12 @@ components:
             an array of json metadata records to ingest
         format:
           type: string
+          description: >
+            format of the data to ingest.  Currently supported formats are `csv`, `json`, and `array`
+            `array` indicates loading from a JSON object payload in the records field.
+            
+            Note: when ingesting from a CSV file into an Azure dataset, no string or text field may be
+            larger than 8000 bytes
           enum:
             - csv
             - json

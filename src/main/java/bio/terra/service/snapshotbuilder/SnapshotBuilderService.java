@@ -21,6 +21,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -87,14 +88,19 @@ public class SnapshotBuilderService {
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
 
     FieldVariable personId = makePersonCountVariable();
-    return new Query(
-        List.of(personId),
-        List.of(tableVariable),
+    FilterVariable filterVariable =
         new BooleanAndOrFilterVariable(
             BooleanAndOrFilterVariable.LogicalOperator.OR,
             criteriaGroupsList.stream()
                 .map(this::generateFilterForCriteriaGroups)
-                .collect(Collectors.toList())));
+                .collect(Collectors.toList()));
+
+    List<TableVariable> tables =
+        Stream.of(List.of(tableVariable), filterVariable.getTables())
+            .flatMap(List::stream)
+            .distinct()
+            .toList();
+    return new Query(List.of(personId), tables, filterVariable);
   }
 
   private FilterVariable generateFilterForCriteriaGroups(

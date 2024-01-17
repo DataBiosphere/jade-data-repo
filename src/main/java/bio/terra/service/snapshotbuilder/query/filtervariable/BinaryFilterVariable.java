@@ -4,6 +4,8 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
+import java.util.List;
 import org.stringtemplate.v4.ST;
 
 public record BinaryFilterVariable(
@@ -18,6 +20,11 @@ public record BinaryFilterVariable(
         .add("value", value.renderSQL())
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
+  }
+
+  @Override
+  public List<TableVariable> getTables() {
+    return List.of(fieldVariable.getTableVariable());
   }
 
   public enum BinaryOperator implements SqlExpression {

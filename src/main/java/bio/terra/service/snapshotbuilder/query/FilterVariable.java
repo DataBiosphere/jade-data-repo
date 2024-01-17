@@ -1,3 +1,7 @@
 package bio.terra.service.snapshotbuilder.query;
 
-public interface FilterVariable extends SqlExpression {}
+import java.util.List;
+
+public interface FilterVariable extends SqlExpression {
+  List<TableVariable> getTables();
+}

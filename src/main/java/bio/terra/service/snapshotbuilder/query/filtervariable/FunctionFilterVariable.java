@@ -4,6 +4,7 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.stringtemplate.v4.ST;
@@ -35,6 +36,11 @@ public class FunctionFilterVariable implements FilterVariable {
         .add("value", values.stream().map(Literal::renderSQL).collect(Collectors.joining(",")))
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
+  }
+
+  @Override
+  public List<TableVariable> getTables() {
+    return List.of(fieldVariable.getTableVariable());
   }
 
   public enum FunctionTemplate implements SqlExpression {

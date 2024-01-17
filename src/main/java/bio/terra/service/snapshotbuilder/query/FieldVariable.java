@@ -28,6 +28,10 @@ public class FieldVariable implements SqlExpression {
     this.isDistinct = isDistinct;
   }
 
+  public TableVariable getTableVariable() {
+    return tableVariable;
+  }
+
   @Override
   public String renderSQL() {
     return renderSQL(true, true);

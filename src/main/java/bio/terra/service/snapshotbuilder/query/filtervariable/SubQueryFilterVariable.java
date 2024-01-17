@@ -4,6 +4,8 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
+import java.util.List;
 import org.stringtemplate.v4.ST;
 
 public class SubQueryFilterVariable implements FilterVariable {
@@ -26,6 +28,11 @@ public class SubQueryFilterVariable implements FilterVariable {
         .add("subQuery", subQuery.renderSQL())
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
+  }
+
+  @Override
+  public List<TableVariable> getTables() {
+    return List.of(fieldVariable.getTableVariable());
   }
 
   public enum Operator implements SqlExpression {

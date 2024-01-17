@@ -8,6 +8,7 @@ import bio.terra.service.snapshotbuilder.query.Filter;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.SimpleFilterVariableForTests;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,25 +18,19 @@ class BooleanAndOrFilterTest {
 
   @Test
   void buildVariable() {
-    var subFilterVariable =
-        new FilterVariable() {
-          @Override
-          public String renderSQL() {
-            return "sql";
-          }
-        };
+    var filterVariable = new SimpleFilterVariableForTests();
     var subFilter =
         new Filter() {
           @Override
           public FilterVariable buildVariable(
               TableVariable primaryTable, List<TableVariable> tables) {
-            return subFilterVariable;
+            return filterVariable;
           }
         };
     var filter =
         new BooleanAndOrFilter(BooleanAndOrFilterVariable.LogicalOperator.OR, List.of(subFilter));
     var variable = filter.buildVariable(TableVariable.forPrimary(null), List.of());
     assertThat(variable.operator(), is(filter.operator()));
-    assertThat(variable.subFilters().get(0), is(subFilterVariable));
+    assertThat(variable.subFilters().get(0), is(filterVariable));
   }
 }

@@ -17,9 +17,11 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
+import org.apache.arrow.util.VisibleForTesting;
 
 public class CriteriaQueryUtils {
-  private static BooleanAndOrFilterVariable generateFilterForRangeCriteria(
+  @VisibleForTesting
+  public static BooleanAndOrFilterVariable generateFilterForRangeCriteria(
       SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
     TablePointer tablePointer = TablePointer.fromTableName("person");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
@@ -38,7 +40,8 @@ public class CriteriaQueryUtils {
                 new Literal(rangeCriteria.getHigh().doubleValue()))));
   }
 
-  private static FunctionFilterVariable generateFilterForListCriteria(
+  @VisibleForTesting
+  public static FunctionFilterVariable generateFilterForListCriteria(
       SnapshotBuilderProgramDataListCriteria listCriteria) {
     TablePointer tablePointer = TablePointer.fromTableName("person");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
@@ -75,7 +78,8 @@ public class CriteriaQueryUtils {
     };
   }
 
-  private static SubQueryFilterVariable generateFilterForDomainCriteria(
+  @VisibleForTesting
+  public static SubQueryFilterVariable generateFilterForDomainCriteria(
       SnapshotBuilderDomainCriteria domainCriteria) {
     TablePointer tablePointer = TablePointer.fromTableName("person");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);

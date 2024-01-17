@@ -12,6 +12,7 @@ class NotFilterVariableTest {
 
   @Test
   void renderSQL() {
-    assertThat(new NotFilterVariable(() -> "sql").renderSQL(), is("(NOT sql)"));
+    assertThat(
+        new NotFilterVariable(new SimpleFilterVariableForTests()).renderSQL(), is("(NOT filter)"));
   }
 }

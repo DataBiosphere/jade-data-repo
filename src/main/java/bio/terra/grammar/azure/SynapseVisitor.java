@@ -25,7 +25,7 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     this.sourceDatasetDatasource = sourceDatasetDatasource;
   }
 
-  public static String generateAlias(String tableName) {
+  public String generateAlias(String tableName) {
     return "alias" + Math.abs(Objects.hash(tableName));
   }
 

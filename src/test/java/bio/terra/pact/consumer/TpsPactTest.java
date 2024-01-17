@@ -2,6 +2,8 @@ package bio.terra.pact.consumer;
 
 import static au.com.dius.pact.consumer.dsl.LambdaDsl.newJsonBody;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import au.com.dius.pact.consumer.MockServer;
 import au.com.dius.pact.consumer.dsl.PactDslWithProvider;
@@ -23,6 +25,7 @@ import bio.terra.service.policy.PolicyApiService;
 import bio.terra.service.policy.PolicyService;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,8 +39,7 @@ import org.springframework.test.context.ActiveProfiles;
 @PactTestFor(providerName = "tps", pactVersion = PactSpecVersion.V3)
 class TpsPactTest {
 
-  private PolicyServiceConfiguration policyServiceConfiguration;
-  private PolicyApiService policyApiService;
+  private TpsApi tps;
   private final UUID snapshotId = UUID.randomUUID();
   private final TpsPolicyInput protectedDataPolicy =
       new TpsPolicyInput()
@@ -46,6 +48,15 @@ class TpsPactTest {
   private final TpsPolicyInputs policies = new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
 
   static Map<String, String> contentTypeJsonHeader = Map.of("Content-Type", "application/json");
+
+  @BeforeEach
+  void setup(MockServer mockServer) throws Exception {
+    var tpsConfig = mock(PolicyServiceConfiguration.class);
+    when(tpsConfig.getAccessToken()).thenReturn("dummyToken");
+    when(tpsConfig.getBasePath()).thenReturn(mockServer.getUrl());
+    PolicyApiService policyApiService = new PolicyApiService(tpsConfig);
+    tps = policyApiService.getPolicyApi();
+  }
 
   @Pact(consumer = "datarepo")
   RequestResponsePact createPao(PactDslWithProvider builder) {
@@ -84,7 +95,6 @@ class TpsPactTest {
 
   @Pact(consumer = "datarepo")
   RequestResponsePact deletePaoThatDoesNotExist(PactDslWithProvider builder) {
-    //    String nonExistentPolicyId = UUID.randomUUID().toString();
     return builder
         .given("default")
         .uponReceiving("create PAO with ID <uuid>")
@@ -100,10 +110,6 @@ class TpsPactTest {
   @PactTestFor(pactMethod = "createPao")
   void createPaoSuccess(MockServer mockServer) throws ApiException {
     // call createPao with the snapshot id
-    policyServiceConfiguration = new PolicyServiceConfiguration(mockServer.getUrl());
-    //    when(policyServiceConfiguration.basePath()).thenReturn(mockServer.getUrl());
-    policyApiService = new PolicyApiService(policyServiceConfiguration);
-    TpsApi tps = policyApiService.getPolicyApi();
     tps.createPao(
         new TpsPaoCreateRequest()
             .objectId(snapshotId)
@@ -125,10 +131,6 @@ class TpsPactTest {
   @Test
   @PactTestFor(pactMethod = "deletePaoThatDoesNotExist")
   void deletePaoThatDoesNotExist(MockServer mockServer) {
-    policyServiceConfiguration = new PolicyServiceConfiguration(mockServer.getUrl());
-    //    when(policyServiceConfiguration.basePath()).thenReturn(mockServer.getUrl());
-    policyApiService = new PolicyApiService(policyServiceConfiguration);
-    TpsApi tps = policyApiService.getPolicyApi();
     assertThrows(
         ApiException.class,
         () -> tps.deletePao(snapshotId),

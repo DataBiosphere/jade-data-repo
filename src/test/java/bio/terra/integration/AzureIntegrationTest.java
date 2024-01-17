@@ -348,7 +348,7 @@ public class AzureIntegrationTest extends UsersBase {
       throws Exception {
     List<Map<String, Object>> data;
     try {
-      data = jsonLoader.loadObjectAsStream("omop/" + ingestFile, new TypeReference<>() {});
+      data = jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
     } catch (Exception e) {
       throw new RuntimeException("Error building ingest request", e);
     }
@@ -371,8 +371,8 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestOMOPTable("concept", "concept-table-data.json", 3);
-    ingestOMOPTable("concept_ancestor", "concept-ancestor-table-data.json", 2);
+    ingestOMOPTable("concept", "omop/concept-table-data.json", 3);
+    ingestOMOPTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
   }
 
   @Test

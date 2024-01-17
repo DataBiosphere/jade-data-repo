@@ -3,7 +3,6 @@ package bio.terra.service.filedata;
 import static bio.terra.service.filedata.google.gcs.GcsConstants.REQUESTED_BY_QUERY_PARAM;
 import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
@@ -73,16 +72,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /*
@@ -92,16 +87,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class DrsService {
 
-  private final Logger logger = LoggerFactory.getLogger(DrsService.class);
-
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
   @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(15);
-  // atomic counter that we increase on request arrival and decr on request response
-  private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
   private final SnapshotService snapshotService;
   private final FileService fileService;
@@ -115,7 +106,7 @@ public class DrsService {
   private final GcsProjectFactory gcsProjectFactory;
   private final EcmConfiguration ecmConfiguration;
   private final DrsDao drsDao;
-  private final ApplicationConfiguration appConfig;
+  private final DrsMetricsService drsMetricsService;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -124,7 +115,6 @@ public class DrsService {
   private final Map<UUID, SnapshotSummaryModel> snapshotSummariesCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
 
-  @Autowired
   public DrsService(
       SnapshotService snapshotService,
       FileService fileService,
@@ -138,7 +128,7 @@ public class DrsService {
       GcsProjectFactory gcsProjectFactory,
       EcmConfiguration ecmConfiguration,
       DrsDao drsDao,
-      ApplicationConfiguration appConfig) {
+      DrsMetricsService drsMetricsService) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -151,29 +141,22 @@ public class DrsService {
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmConfiguration = ecmConfiguration;
     this.drsDao = drsDao;
-    this.appConfig = appConfig;
+    this.drsMetricsService = drsMetricsService;
   }
 
   private class DrsRequestResource implements AutoCloseable {
 
     DrsRequestResource() {
-      // make sure not too many requests are being made at once
       int podCount = jobService.getActivePodCount();
-      int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
-      int max = maxDRSLookups / podCount;
-      logger.info("Max number of DRS lookups allowed : " + max);
-      logger.info("Current number of requests being made : " + currentDRSRequests);
-
-      if (currentDRSRequests.get() >= max) {
-        throw new TooManyRequestsException(
-            "Too many requests are being made at once. Please try again later.");
-      }
-      currentDRSRequests.incrementAndGet();
+      int maxDrsRequestCountDeployment =
+          configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
+      drsMetricsService.setDrsRequestMax(maxDrsRequestCountDeployment / podCount);
+      drsMetricsService.tryIncrementCurrentDrsRequestCount();
     }
 
     @Override
     public void close() {
-      currentDRSRequests.decrementAndGet();
+      drsMetricsService.decrementCurrentDrsRequestCount();
     }
   }
 
@@ -315,7 +298,7 @@ public class DrsService {
 
   /**
    * Given the precalculated list of associated snapshots, look up the DRS object in the various
-   * firstore/azure table dbs and merged into a single DRSObject. Note: this will fail if object
+   * firestore/azure table dbs and merged into a single DRSObject. Note: this will fail if object
    * overlap in invalid ways, such as mismatched checksums, multiple names, etc.
    */
   private DRSObject resolveDRSObject(
@@ -386,7 +369,6 @@ public class DrsService {
       } else {
         throw new InvalidDrsIdException("Invalid DRS ID version %s".formatted(drsId.getVersion()));
       }
-      // We only look up DRS ids for unlocked snapshots.
       String retrieveTimer = performanceLogger.timerStart();
 
       List<SnapshotCacheResult> snapshots =
@@ -476,7 +458,7 @@ public class DrsService {
 
   private DRSAccessURL getAccessURL(
       AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId, String userProject) {
-    // To avoid having to re-resolve the DRS Id in case it is an alias, use the id from the passed
+    // To avoid having to re-resolve the DRS ID in case it is an alias, use the id from the passed
     // in DRS object.
     DrsId drsId = drsIdService.fromObjectId(drsObject.getId());
 

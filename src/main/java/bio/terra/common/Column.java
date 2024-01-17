@@ -36,7 +36,11 @@ public class Column {
     return (SynapseColumn)
         new SynapseColumn()
             .synapseDataType(
-                SynapseColumn.translateDataType(datasetColumn.getType(), datasetColumn.isArrayOf()))
+                SynapseColumn.translateDataType(
+                    datasetColumn.getType(), datasetColumn.isArrayOf(), false))
+            .synapseDataTypeForCsv(
+                SynapseColumn.translateDataType(
+                    datasetColumn.getType(), datasetColumn.isArrayOf(), true))
             .requiresCollate(
                 SynapseColumn.checkForCollateArgRequirement(
                     datasetColumn.getType(), datasetColumn.isArrayOf()))

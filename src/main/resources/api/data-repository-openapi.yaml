@@ -7158,6 +7158,7 @@ components:
         - createdDate
         - name
         - researchPurpose
+        - createdBy
       properties:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
@@ -7168,6 +7169,8 @@ components:
         name:
           type: string
         researchPurpose:
+          type: string
+        createdBy:
           type: string
 
     SnapshotAccessRequestResponse:

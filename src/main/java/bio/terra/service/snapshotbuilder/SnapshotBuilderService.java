@@ -65,7 +65,8 @@ public class SnapshotBuilderService {
               .status(response.getStatus())
               .createdDate(response.getCreatedDate())
               .name(response.getSnapshotName())
-              .researchPurpose(response.getSnapshotResearchPurpose()));
+              .researchPurpose(response.getSnapshotResearchPurpose())
+              .createdBy(response.getCreatedBy()));
     }
     return enumerateModel;
   }

@@ -63,7 +63,7 @@ class TpsPactTest {
     String snapshotId = UUID.randomUUID().toString();
     return builder
         .given("default")
-        .uponReceiving("create PAO with ID <uuid>")
+        .uponReceiving("create PAO for TDR snapshot")
         .method("POST")
         .path("/api/policy/v1alpha1/pao")
         .body(
@@ -97,7 +97,7 @@ class TpsPactTest {
   RequestResponsePact deletePaoThatDoesNotExist(PactDslWithProvider builder) {
     return builder
         .given("default")
-        .uponReceiving("create PAO with ID <uuid>")
+        .uponReceiving("delete non-existent PAO")
         .method("DELETE")
         .path("/api/policy/v1alpha1/pao/" + snapshotId)
         .willRespondWith()

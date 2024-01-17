@@ -39,6 +39,7 @@ import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
@@ -1414,8 +1415,8 @@ public class AzureSynapsePdao {
             .name(rs.getString("concept_name"))
             .id((int) rs.getLong("concept_id"));
       } catch (SQLException e) {
-        // TODO - throw more specific error
-        throw new RuntimeException(e);
+        throw new ProcessResultSetException(
+            "Error processing result set into SnapshotBuilderConcept model", e);
       }
     };
   }

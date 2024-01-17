@@ -156,12 +156,12 @@ public class QueryTest {
                 OPENROWSET(
                   BULK 'metadata/parquet/concept/*/*.parquet',
                   DATA_SOURCE = 'source_dataset_data_source_0',
-                  FORMAT = 'parquet'))
+                  FORMAT = 'parquet') AS inner_alias951024263)
                  AS c WHERE c.concept_id IN (SELECT c.descendant_concept_id FROM (SELECT * FROM
                 OPENROWSET(
                   BULK 'metadata/parquet/concept_ancestor/*/*.parquet',
                   DATA_SOURCE = 'source_dataset_data_source_0',
-                  FORMAT = 'parquet'))
+                  FORMAT = 'parquet') AS inner_alias625571305)
                  AS c WHERE c.ancestor_concept_id = 100)"""));
   }
 

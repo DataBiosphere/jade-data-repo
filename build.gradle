@@ -308,6 +308,7 @@ dependencies {
 
     testImplementation 'au.com.dius.pact.provider:junit5:4.3.19'
     testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
+    testImplementation 'au.com.dius.pact.consumer:junit5:4.6.1'
 
     antlr "org.antlr:antlr4:4.8"
     spotbugs 'com.github.spotbugs:spotbugs:4.2.3'

@@ -12,9 +12,15 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   private final String sourceDatasetDatasource;
 
   private static final String azureTableName =
-      "(SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet'))";
+      """
+     (SELECT * FROM
+     OPENROWSET(
+       BULK '%s',
+       DATA_SOURCE = '%s',
+       FORMAT = 'parquet'))
+     """;
   private static final String azureTableNameAliases =
-      azureTableName.substring(0, azureTableName.length() - 1) + "AS %s) AS %s";
+      azureTableName.substring(0, azureTableName.length() - 2) + " AS %s) AS %s\n";
 
   public SynapseVisitor(Map<String, DatasetModel> datasetMap, String sourceDatasetDatasource) {
     super(datasetMap);
@@ -64,8 +70,9 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   }
 
   public static TableNameGenerator azureTableName(String sourceDatasetDatasource) {
-    return (tableName) -> azureTableName.formatted(
-        FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
-        sourceDatasetDatasource);
+    return (tableName) ->
+        azureTableName.formatted(
+            FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
+            sourceDatasetDatasource);
   }
 }

@@ -151,12 +151,18 @@ public class QueryTest {
     assertThat(
         sql,
         is(
-            "SELECT c.concept_name, c.concept_id FROM "
-                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet')) "
-                + "AS c WHERE c.concept_id IN "
-                + "(SELECT c.descendant_concept_id FROM "
-                + "(SELECT * FROM OPENROWSET(BULK 'metadata/parquet/concept_ancestor/*/*.parquet', DATA_SOURCE = 'source_dataset_data_source_0', FORMAT = 'parquet')) "
-                + "AS c WHERE c.ancestor_concept_id = 100)"));
+            """
+                SELECT c.concept_name, c.concept_id FROM (SELECT * FROM
+                OPENROWSET(
+                  BULK 'metadata/parquet/concept/*/*.parquet',
+                  DATA_SOURCE = 'source_dataset_data_source_0',
+                  FORMAT = 'parquet'))
+                 AS c WHERE c.concept_id IN (SELECT c.descendant_concept_id FROM (SELECT * FROM
+                OPENROWSET(
+                  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',
+                  DATA_SOURCE = 'source_dataset_data_source_0',
+                  FORMAT = 'parquet'))
+                 AS c WHERE c.ancestor_concept_id = 100)"""));
   }
 
   private Query buildGetConceptsQuery(Integer conceptId, TableNameGenerator generateTableName) {

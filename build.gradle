@@ -571,6 +571,16 @@ task testAll(type: Test) {
     outputs.upToDateWhen { false }
 }
 
+// PACT
+
+task pactTests(type: Test) {
+    useJUnitPlatform {
+        includeTags "pact-test"
+    }
+    environment.put('pact.rootDir', "$buildDir/pacts")
+    environment.put('pact.provider.version', "$project.version")
+}
+
 task verifyPacts(type: Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Pact'

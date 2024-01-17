@@ -19,8 +19,6 @@ public class SynapseVisitor extends DatasetAwareVisitor {
        DATA_SOURCE = '%s',
        FORMAT = 'parquet'))
      """;
-  private static final String azureTableNameAliases =
-      azureTableName.substring(0, azureTableName.length() - 2) + " AS %s) AS %s\n";
 
   public SynapseVisitor(Map<String, DatasetModel> datasetMap, String sourceDatasetDatasource) {
     super(datasetMap);
@@ -35,11 +33,10 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String tableName = getNameFromContext(ctx.table_name());
     String alias = generateAlias(tableName);
-    return azureTableNameAliases.formatted(
-        FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
-        sourceDatasetDatasource,
-        "inner_" + alias,
-        alias);
+    String azureTableName = azureTableName(sourceDatasetDatasource).generate(tableName);
+    String azureTableNameAliased =
+        azureTableName.substring(0, azureTableName.length() - 2) + " AS %s) AS %s\n";
+    return azureTableNameAliased.formatted("inner_" + alias, alias);
   }
 
   @Override

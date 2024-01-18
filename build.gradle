@@ -198,7 +198,7 @@ dependencies {
     implementation 'org.apache.directory.studio:org.apache.commons.io:2.4'
     implementation 'org.liquibase:liquibase-core'
     implementation 'org.postgresql:postgresql'          // Postgres jdbc driver
-    implementation 'ch.qos.logback:logback-core'      // Unpin logback versions with DR-3404 Spring 3 Upgrade
+    implementation 'ch.qos.logback:logback-core'
     implementation 'ch.qos.logback:logback-classic'  // logback-classic natively implements slf4j api
 
     implementation 'org.codehaus.janino:janino'           // Provides if/else xml parsing for logback config
@@ -206,15 +206,16 @@ dependencies {
     implementation 'jakarta.validation:jakarta.validation-api'
     implementation 'jakarta.annotation:jakarta.annotation-api'
 
+    implementation 'org.apache.httpcomponents.client5:httpclient5'
+
     implementation 'io.swagger.core.v3:swagger-annotations'
     swaggerCodegen 'io.swagger.codegen.v3:swagger-codegen-cli'
 
     implementation 'org.springframework:spring-jdbc'
     implementation 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.8.RELEASE'
     implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:3.1.10'
-    implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-5a5bf28'
     implementation 'org.antlr:ST4:4.3'                          // String templating
-    implementation group: 'io.kubernetes', name: 'client-java', version: '18.0.0'
+    implementation 'io.kubernetes:client-java:18.0.0'
     // This override can be removed once io.kubernetes.client-java is >= 19.0.0
     // This is blocked because the terra-common-lib is still on version 16.0.0 and this
     // update introduces a breaking change
@@ -241,7 +242,8 @@ dependencies {
         implementation 'org.apache.commons:commons-collections4:4.4'
         implementation 'org.openapitools:jackson-databind-nullable:0.2.2'
     } else {
-        implementation 'bio.terra:stairway:0.0.78-SNAPSHOT'
+        // Pulls version from terra-common-lib
+        implementation 'bio.terra:stairway'
     }
 
     // Similar development mode for pointing to terra common library
@@ -250,24 +252,22 @@ dependencies {
         implementation 'org.apache.commons:commons-collections4:4.4'
         implementation 'org.openapitools:jackson-databind-nullable:0.2.2'
     } else {
-        implementation ('bio.terra:terra-common-lib:0.1.10-SNAPSHOT') {
-            exclude group: 'org.broadinstitute.dsde.workbench', module: 'sam-client_2.12'
-        }
+        implementation 'bio.terra:terra-common-lib:0.1.9-SNAPSHOT'
     }
 
+    implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-2cd8969'
     implementation 'bio.terra:terra-policy-client:1.0.11-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
     implementation 'bio.terra:externalcreds-client-resttemplate:1.3.0-SNAPSHOT'
 
     implementation 'org.glassfish.jersey.inject:jersey-hk2'
 
-    // Pin the version of the OkHttp client to avoid a conflict with the version used by the Sam client
     implementation 'com.squareup.okhttp3:okhttp'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.2'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.9.1'
@@ -281,6 +281,24 @@ dependencies {
     implementation platform('io.sentry:sentry-bom:6.25.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter')
     implementation('io.sentry:sentry-logback')
+
+    // OpenTelemetry
+    var openTelemetryVersion = '1.32.0'
+    implementation "io.opentelemetry:opentelemetry-api:${openTelemetryVersion}"
+    implementation "io.opentelemetry:opentelemetry-sdk:${openTelemetryVersion}"
+    //implementation "io.opentelemetry:opentelemetry-sdk-common:${openTelemetryVersion}"
+    implementation "io.opentelemetry:opentelemetry-sdk-metrics:${openTelemetryVersion}"
+    implementation "io.opentelemetry:opentelemetry-exporter-logging:${openTelemetryVersion}"
+    implementation "io.opentelemetry:opentelemetry-semconv:1.30.1-alpha"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-spring-webmvc-6.0:${openTelemetryVersion}-alpha"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:${openTelemetryVersion}"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-spring-boot:${openTelemetryVersion}-alpha"
+    implementation "io.opentelemetry:opentelemetry-exporter-prometheus:${openTelemetryVersion}-alpha"
+
+    // Google cloud open telemetry exporters
+    var gcpOpenTelemetryExporterVersion = '0.25.2'
+    implementation "com.google.cloud.opentelemetry:exporter-trace:${gcpOpenTelemetryExporterVersion}"
+    implementation "com.google.cloud.opentelemetry:exporter-metrics:${gcpOpenTelemetryExporterVersion}"
 
     testImplementation 'org.apache.parquet:parquet-common:1.12.0'
     testImplementation 'org.apache.parquet:parquet-hadoop:1.12.0'

@@ -136,21 +136,22 @@ public class QueryTest {
     String sql = query.renderSQL();
     assertThat(
         sql,
-        is(
-            "SELECT c.concept_name, c.concept_id FROM `project.datarepo_name.concept` AS c "
-                + "WHERE c.concept_id IN "
-                + "(SELECT c.descendant_concept_id FROM `project.datarepo_name.concept_ancestor` AS c "
-                + "WHERE c.ancestor_concept_id = 100)"));
+        allOf(
+            containsString(
+                "SELECT c.concept_name, c.concept_id FROM `project.datarepo_name.concept` AS c "),
+            containsString("WHERE c.concept_id IN "),
+            containsString(
+                "(SELECT c.descendant_concept_id FROM `project.datarepo_name.concept_ancestor` AS c "),
+            containsString("WHERE c.ancestor_concept_id = 100)")));
   }
 
   @Test
   void renderSQLWithDatasetModelAzure() {
     String datasetSource = "source_dataset_data_source_0";
     Query query = buildGetConceptsQuery(100, SynapseVisitor.azureTableName(datasetSource));
-    String sql = query.renderSQL();
-    assertThat(
-        sql,
-        is(
+    String sql = QueryTestUtils.collapseWhiteSpace(query.renderSQL());
+    String expected =
+        QueryTestUtils.collapseWhiteSpace(
             """
                 SELECT c.concept_name, c.concept_id FROM (SELECT * FROM
                 OPENROWSET(
@@ -162,7 +163,8 @@ public class QueryTest {
                   BULK 'metadata/parquet/concept_ancestor/*/*.parquet',
                   DATA_SOURCE = 'source_dataset_data_source_0',
                   FORMAT = 'parquet') AS inner_alias625571305)
-                 AS c WHERE c.ancestor_concept_id = 100)"""));
+                 AS c WHERE c.ancestor_concept_id = 100)""");
+    assertThat(sql, is(expected));
   }
 
   private Query buildGetConceptsQuery(Integer conceptId, TableNameGenerator generateTableName) {

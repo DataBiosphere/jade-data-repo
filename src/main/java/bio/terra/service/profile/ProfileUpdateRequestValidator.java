@@ -1,7 +1,7 @@
 package bio.terra.service.profile;
 
 import bio.terra.model.BillingProfileUpdateModel;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;

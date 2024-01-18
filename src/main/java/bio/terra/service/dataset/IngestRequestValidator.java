@@ -5,7 +5,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;

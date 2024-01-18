@@ -1,9 +1,9 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
 public final class TableVariable implements SqlExpression {

@@ -1,9 +1,9 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import jakarta.ws.rs.NotSupportedException;
 import java.util.Objects;
 import java.util.Set;
-import javax.ws.rs.NotSupportedException;
 
 public class SynapseColumn extends Column {
   private static final Set<TableDataType> FILE_TYPES =

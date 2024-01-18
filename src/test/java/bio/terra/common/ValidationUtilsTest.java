@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import bio.terra.common.category.Unit;
 import java.util.Arrays;
 import java.util.Collections;
-import liquibase.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.test.context.ActiveProfiles;
@@ -43,7 +43,7 @@ public class ValidationUtilsTest {
   @Test
   public void testDescriptionFormats() throws Exception {
     assertThat(ValidationUtils.isValidDescription("somedescription")).isTrue();
-    assertThat(ValidationUtils.isValidDescription(StringUtil.repeat("X", 5_000))).isFalse();
+    assertThat(ValidationUtils.isValidDescription(StringUtils.repeat("X", 5_000))).isFalse();
   }
 
   @Test

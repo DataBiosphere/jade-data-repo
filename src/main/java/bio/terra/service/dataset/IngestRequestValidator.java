@@ -6,8 +6,8 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.validation.constraints.NotNull;
-import liquibase.util.StringUtil;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -35,12 +35,12 @@ public class IngestRequestValidator implements Validator {
       validateTableName(ingestRequest.getTable(), errors);
       boolean isPayloadIngest =
           ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY);
-      if (StringUtil.isEmpty(ingestRequest.getPath()) && !isPayloadIngest) {
+      if (StringUtils.isEmpty(ingestRequest.getPath()) && !isPayloadIngest) {
         errors.rejectValue(
             "path", "PathIsMissing", "Path is required when ingesting from a cloud object");
       }
 
-      if (!StringUtil.isEmpty(ingestRequest.getPath()) && isPayloadIngest) {
+      if (!StringUtils.isEmpty(ingestRequest.getPath()) && isPayloadIngest) {
         errors.rejectValue(
             "path", "PathIsPresent", "Path should not be specified when ingesting from an array");
       }
@@ -62,12 +62,12 @@ public class IngestRequestValidator implements Validator {
       }
     } else if (target instanceof BulkLoadRequestModel bulkLoadRequestModel) {
       if (bulkLoadRequestModel.isBulkMode()
-          && StringUtil.isEmpty(bulkLoadRequestModel.getLoadTag())) {
+          && StringUtils.isEmpty(bulkLoadRequestModel.getLoadTag())) {
         errors.rejectValue("loadTag", "MissingLoadTag", "Load tag is required for isBulkMode");
       }
     } else if (target instanceof BulkLoadArrayRequestModel bulkLoadArrayRequestModel) {
       if (bulkLoadArrayRequestModel.isBulkMode()
-          && StringUtil.isEmpty(bulkLoadArrayRequestModel.getLoadTag())) {
+          && StringUtils.isEmpty(bulkLoadArrayRequestModel.getLoadTag())) {
         errors.rejectValue("loadTag", "MissingLoadTag", "Load tag is required for isBulkMode");
       }
     }

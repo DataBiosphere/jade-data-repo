@@ -1,15 +1,15 @@
 package bio.terra.common;
 
-import bio.terra.app.controller.exception.ApiException;
+import bio.terra.common.exception.ApiException;
+import bio.terra.common.exception.ErrorReportException;
+import bio.terra.common.exception.ServiceUnavailableException;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FutureUtils {
@@ -17,7 +17,7 @@ public final class FutureUtils {
   private FutureUtils() {}
 
   public static <T> List<T> waitFor(final List<Future<T>> futures) {
-    return waitFor(futures, Optional.empty());
+    return waitFor(futures, null);
   }
 
   /**
@@ -31,11 +31,9 @@ public final class FutureUtils {
    * @return The resolved values of the futures. There is no guarantee that the order of returned
    *     values matches the order of the passed in futures
    */
-  public static <T> List<T> waitFor(
-      final List<Future<T>> futures, final Optional<Duration> maxThreadWait) {
+  public static <T> List<T> waitFor(final List<Future<T>> futures, final Duration maxThreadWait) {
 
-    final AtomicReference<Optional<ApiException>> foundFailure =
-        new AtomicReference<>(Optional.empty());
+    final AtomicReference<ErrorReportException> foundFailure = new AtomicReference<>();
     try (Stream<Future<T>> stream = futures.stream()) {
       List<T> returnList =
           stream
@@ -43,28 +41,28 @@ public final class FutureUtils {
                   f -> {
                     try {
                       // If a failure was found, all subsequent tasks should be canceled
-                      if (foundFailure.get().isPresent()) {
+                      if (foundFailure.get() != null) {
                         f.cancel(true);
-                      } else if (maxThreadWait.isPresent()) {
-                        return f.get(maxThreadWait.get().toMillis(), TimeUnit.MILLISECONDS);
+                      } else if (maxThreadWait != null) {
+                        return f.get(maxThreadWait.toMillis(), TimeUnit.MILLISECONDS);
                       } else {
                         return f.get();
                       }
                     } catch (TimeoutException e) {
-                      if (!foundFailure.get().isPresent()) {
-                        foundFailure.set(Optional.of(new ApiException("Thread timed out", e)));
-                        // Cancel the thread
-                        f.cancel(true);
-                      }
+                      foundFailure.compareAndSet(
+                          null, new ServiceUnavailableException("Thread timed out", e));
+                      f.cancel(true); // Do we need this?
                     } catch (InterruptedException e) {
-                      if (!foundFailure.get().isPresent()) {
-                        foundFailure.set(
-                            Optional.of(new ApiException("Thread was interrupted", e)));
-                      }
+                      foundFailure.compareAndSet(
+                          null, new ApiException("Thread was interrupted", e));
+                      f.cancel(true); // Do we need this?
                     } catch (ExecutionException e) {
-                      if (!foundFailure.get().isPresent()) {
-                        foundFailure.set(
-                            Optional.of(new ApiException("Error executing thread", e)));
+                      if (e.getCause() instanceof ErrorReportException ere) {
+                        // We do not wrap an ErrorReportException cause to preserve its HTTP status.
+                        foundFailure.compareAndSet(null, ere);
+                      } else {
+                        foundFailure.compareAndSet(
+                            null, new ApiException("Error executing thread", e));
                       }
                     }
                     // Returning null here but this will ultimately result in throwing an exception
@@ -72,15 +70,13 @@ public final class FutureUtils {
                     // never be read
                     return null;
                   })
-              .collect(Collectors.toList());
+              .toList();
 
       // Throw an exception if any of the tasks failed
-      foundFailure
-          .get()
-          .ifPresent(
-              e -> {
-                throw e;
-              });
+      ErrorReportException maybeException = foundFailure.get();
+      if (maybeException != null) {
+        throw maybeException;
+      }
       return returnList;
     }
   }

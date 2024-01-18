@@ -335,7 +335,7 @@ public class GrammarTest {
   public void testNestedQuery() {
     Query.parse(
         """
-          SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM ( SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM DATABASE.TABLE ) """);
+          SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM ( SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM DATABASE.TABLE )""");
   }
 
   @Test

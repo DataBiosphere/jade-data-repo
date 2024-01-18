@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -66,7 +67,8 @@ public class BardClient {
       if (!eventCall.getStatusCode().is2xxSuccessful()) {
         logger.warn(
             "Error logging event {}%n{}",
-            event.getEvent(), eventCall.getStatusCode().getReasonPhrase());
+            event.getEvent(),
+            HttpStatus.valueOf(eventCall.getStatusCode().value()).getReasonPhrase());
       }
     } catch (Exception e) {
       logger.warn("Error logging event {}", event.getEvent(), e);
@@ -102,7 +104,8 @@ public class BardClient {
       if (!syncCall.getStatusCode().is2xxSuccessful()) {
         logger.warn(
             "Error calling sync for user {}%n{}",
-            userReq.getEmail(), syncCall.getStatusCode().getReasonPhrase());
+            userReq.getEmail(),
+            HttpStatus.valueOf(syncCall.getStatusCode().value()).getReasonPhrase());
       } else {
         result = true;
       }

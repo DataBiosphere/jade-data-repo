@@ -11,6 +11,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.validation.BindingResult;
@@ -34,10 +35,10 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
       Exception ex,
       @Nullable Object body,
       HttpHeaders headers,
-      HttpStatus status,
+      HttpStatusCode status,
       WebRequest request) {
 
-    if (HttpStatus.INTERNAL_SERVER_ERROR == status) {
+    if (status.is5xxServerError()) {
       request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
     }
 
@@ -56,7 +57,7 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
   protected ResponseEntity<Object> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex,
       HttpHeaders headers,
-      HttpStatus status,
+      HttpStatusCode status,
       WebRequest request) {
     BindingResult bindingResult = ex.getBindingResult();
 
@@ -66,12 +67,12 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
     ErrorModel errorModel =
         new ErrorModel().message("Validation errors - see error details").errorDetail(errorDetails);
 
-    return new ResponseEntity<>(errorModel, HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(errorModel, HttpStatusCode.valueOf(HttpStatus.BAD_REQUEST.value()));
   }
 
   @Override
   protected ResponseEntity<Object> handleTypeMismatch(
-      TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+      TypeMismatchException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
     final String message;
     final List<String> details;
     Throwable rootCause = ExceptionUtils.getRootCause(ex);

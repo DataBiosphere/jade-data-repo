@@ -306,8 +306,8 @@ dependencies {
         exclude group: 'com.sun.jersey', module: 'jersey-server'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.3.19'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.6.1'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.1'
     testImplementation 'au.com.dius.pact.consumer:junit5:4.6.1'
 
     antlr "org.antlr:antlr4:4.8"
@@ -315,7 +315,7 @@ dependencies {
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
-    runtimeOnly group: 'org.codehaus.groovy', name: 'groovy', version: '3.0.7'
+    runtimeOnly group: 'org.apache.groovy', name: 'groovy', version: '4.0.11'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'

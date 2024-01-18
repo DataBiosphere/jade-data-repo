@@ -15,6 +15,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
+import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
@@ -105,10 +107,9 @@ public class SnapshotBuilderService {
       Function<ResultSet, T> synapseFormatQueryFunction) {
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
-      return bigQueryDatasetPdao.runSnapshotBuilderQuery(
-          cloudSpecificSql, dataset, gcpFormatQueryFunction);
+      return bigQueryDatasetPdao.runQuery(cloudSpecificSql, dataset, gcpFormatQueryFunction);
     } else if (cloudPlatformWrapper.isAzure()) {
-      return azureSynapsePdao.runSnapshotBuilderQuery(cloudSpecificSql, synapseFormatQueryFunction);
+      return azureSynapsePdao.runQuery(cloudSpecificSql, synapseFormatQueryFunction);
     } else {
       throw new NotImplementedException("Cloud platform not implemented");
     }
@@ -126,8 +127,8 @@ public class SnapshotBuilderService {
         runSnapshotBuilderQuery(
             cloudSpecificSQL,
             dataset,
-            bigQueryDatasetPdao.aggregateSnapshotBuilderConceptResults(),
-            azureSynapsePdao.aggregateSnapshotBuilderConceptResult());
+            AggregateBQQueryResultsUtils::aggregateConceptResults,
+            AggregateSynapseQueryResultsUtils::aggregateConceptResult);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 

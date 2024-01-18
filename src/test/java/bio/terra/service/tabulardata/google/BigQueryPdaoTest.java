@@ -205,12 +205,10 @@ public class BigQueryPdaoTest {
 
     String bucket = testConfig.getIngestbucket();
 
-    BlobInfo participantBlob =
-        BlobInfo.newBuilder(bucket, targetPath + "ingest-test-participant.json").build();
     BlobInfo sampleBlob =
         BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample.json").build();
     BlobInfo fileBlob = BlobInfo.newBuilder(bucket, targetPath + "ingest-test-file.json").build();
-    blobsToDelete.addAll(Arrays.asList(participantBlob, sampleBlob, fileBlob));
+    blobsToDelete.addAll(Arrays.asList(sampleBlob, fileBlob));
 
     bigQueryDatasetPdao.createDataset(dataset);
 
@@ -285,21 +283,17 @@ public class BigQueryPdaoTest {
     }
   }
 
-  private void ingestOMOPTable(
+  private void ingestOmopTable(
       Dataset dataset, String tableName, String ingestFile, int expectedRowCount) throws Exception {
-    List<Map<String, Object>> data;
-    try {
-      data = jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
-    } catch (Exception e) {
-      throw new RuntimeException("Error building ingest request", e);
-    }
+    List<Map<String, Object>> data =
+        jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
     var ingestRequestArray =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.ARRAY)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table(tableName)
-            .records(Arrays.asList(data.toArray()));
+            .records(List.of(data.toArray()));
     connectedOperations.ingestTableSuccess(dataset.getId(), ingestRequestArray);
     connectedOperations.checkTableRowCount(dataset, tableName, PDAO_PREFIX, expectedRowCount);
   }
@@ -310,8 +304,8 @@ public class BigQueryPdaoTest {
     bigQueryDatasetPdao.createDataset(dataset);
 
     // Stage tabular data for ingest.
-    ingestOMOPTable(dataset, "concept", "omop/concept-table-data.json", 3);
-    ingestOMOPTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 3);
+    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
     return dataset;
   }
 
@@ -321,7 +315,6 @@ public class BigQueryPdaoTest {
     var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
     var concepts = conceptResponse.getResult();
 
-    assertThat(concepts.size(), is(equalTo(2)));
     assertThat(
         concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
   }

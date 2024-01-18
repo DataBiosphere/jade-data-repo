@@ -2,14 +2,21 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +24,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -74,5 +83,29 @@ class SnapshotBuilderServiceTest {
         "EnumerateByDatasetId returns the expected response",
         snapshotBuilderService.enumerateByDatasetId(datasetId),
         equalTo(expected));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  public void getConceptChildren(CloudPlatform cloudPlatform) {
+    Dataset dataset =
+        new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))
+            .projectResource(new GoogleProjectResource().googleProjectId("project123"))
+            .name("dataset123")
+            .id(UUID.randomUUID());
+    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
+    if (cloudPlatformWrapper.isGcp()) {
+      when(bigQueryDatasetPdao.runQuery(any(), any(), any()))
+          .thenReturn(List.of(new SnapshotBuilderConcept().name("concept1").id(1)));
+    } else {
+      when(azureSynapsePdao.runQuery(any(), any()))
+          .thenReturn(List.of(new SnapshotBuilderConcept().name("concept1").id(1)));
+    }
+    var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, null);
+    assertThat(
+        "getConceptChildren returns the expected response",
+        response.getResult().get(0).getName(),
+        equalTo("concept1"));
   }
 }

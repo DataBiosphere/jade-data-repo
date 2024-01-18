@@ -344,7 +344,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
-  private void ingestOMOPTable(String tableName, String ingestFile, int expectedRowCount)
+  private void ingestOmopTable(String tableName, String ingestFile, long expectedRowCount)
       throws Exception {
     List<Map<String, Object>> data;
     try {
@@ -358,12 +358,10 @@ public class AzureIntegrationTest extends UsersBase {
             .profileId(profileId)
             .ignoreUnknownValues(true);
     var ingestResult = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestArray);
-    assertThat("row count matches", ingestResult.getRowCount(), equalTo((long) expectedRowCount));
-    // tableRowCount.put(jsonIngestTableName, 1);
-
+    assertThat("row count matches", ingestResult.getRowCount(), equalTo(expectedRowCount));
   }
 
-  private void populateOMOPTable() throws Exception {
+  private void populateOmopTable() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
@@ -371,13 +369,13 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestOMOPTable("concept", "omop/concept-table-data.json", 3);
-    ingestOMOPTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    ingestOmopTable("concept", "omop/concept-table-data.json", 3);
+    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
   }
 
   @Test
   public void testSnapshotBuilder() throws Exception {
-    populateOMOPTable();
+    populateOmopTable();
 
     // Test getConcepts
     var conceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);

@@ -30,7 +30,6 @@ import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -1431,34 +1430,15 @@ public class BigQueryDatasetPdao {
     return null;
   }
 
-  /// Snapshot Builder
-  // Pass in SQL query and map into generic BigQuery TableResult
-  public <T> List<T> runSnapshotBuilderQuery(
-      String sql, Dataset dataset, Function<TableResult, List<T>> aggregateSnapshotBuilderResults) {
+  // WARNING: SQL string must be sanitized before calling this method
+  public <T> List<T> runQuery(
+      String sql, Dataset dataset, Function<TableResult, List<T>> aggregateResults) {
     try {
       final BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
       final TableResult result = bigQueryProject.query(sql);
-      return aggregateSnapshotBuilderResults.apply(result);
+      return aggregateResults.apply(result);
     } catch (InterruptedException ex) {
       throw new PdaoException("Snapshot builder query was interrupted", ex);
     }
-  }
-
-  // Convert BigQuery TableResult into List<SnapshotBuilderConcept>
-  public Function<TableResult, List<SnapshotBuilderConcept>>
-      aggregateSnapshotBuilderConceptResults() {
-    return (result) -> {
-      final List<SnapshotBuilderConcept> concepts = new ArrayList<>();
-      result
-          .iterateAll()
-          .forEach(
-              rows -> {
-                SnapshotBuilderConcept concept = new SnapshotBuilderConcept();
-                concept.id((int) (rows.get("concept_id").getLongValue()));
-                concept.name(rows.get("concept_name").getStringValue());
-                concepts.add(concept);
-              });
-      return concepts;
-    };
   }
 }

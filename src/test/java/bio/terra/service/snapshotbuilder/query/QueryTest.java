@@ -133,16 +133,15 @@ public class QueryTest {
     DatasetModel dataset =
         new DatasetModel().name("name").dataProject("project").cloudPlatform(CloudPlatform.GCP);
     Query query = buildGetConceptsQuery(100, BigQueryVisitor.bqTableName(dataset));
-    String sql = query.renderSQL();
-    assertThat(
-        sql,
-        allOf(
-            containsString(
-                "SELECT c.concept_name, c.concept_id FROM `project.datarepo_name.concept` AS c "),
-            containsString("WHERE c.concept_id IN "),
-            containsString(
-                "(SELECT c.descendant_concept_id FROM `project.datarepo_name.concept_ancestor` AS c "),
-            containsString("WHERE c.ancestor_concept_id = 100)")));
+    String sql = QueryTestUtils.collapseWhiteSpace(query.renderSQL());
+    String expected =
+        QueryTestUtils.collapseWhiteSpace(
+            """
+        SELECT c.concept_name, c.concept_id FROM `project.datarepo_name.concept` AS c
+        WHERE c.concept_id IN
+          (SELECT c.descendant_concept_id FROM `project.datarepo_name.concept_ancestor` AS c
+          WHERE c.ancestor_concept_id = 100)""");
+    assertThat(sql, is(expected));
   }
 
   @Test
@@ -168,14 +167,14 @@ public class QueryTest {
   }
 
   private Query buildGetConceptsQuery(Integer conceptId, TableNameGenerator generateTableName) {
-    TablePointer conceptTablePointer = new TablePointer("concept", null, null, generateTableName);
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", generateTableName);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
     FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
     FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
     FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
 
-    TablePointer tablePointer = new TablePointer("concept_ancestor", null, null, generateTableName);
+    TablePointer tablePointer = TablePointer.fromTableName("concept_ancestor", generateTableName);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "descendant_concept_id");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);

@@ -6,7 +6,7 @@ public class QueryTestUtils {
   }
 
   public static String collapseWhiteSpace(String string) {
-    string = string.replaceAll("\\n", " ").replaceAll("\\s+", " ");
+    string = string.replaceAll("\\n", " ").replaceAll("\\s+", " ").trim();
     return string;
   }
 }

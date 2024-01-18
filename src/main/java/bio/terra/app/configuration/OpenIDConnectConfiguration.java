@@ -63,8 +63,7 @@ public class OpenIDConnectConfiguration {
       if (!metadataConfig.getStatusCode().is2xxSuccessful()) {
         throw new ServiceInitializationException(
             String.format(
-                "Error reading OIDC configuration endpoint: %s",
-                metadataConfig.getStatusCode().getReasonPhrase()));
+                "Error reading OIDC configuration endpoint: %s", metadataConfig.getStatusCode()));
       }
       OpenIDProviderMetadata response = metadataConfig.getBody();
       if (response == null) {

@@ -119,10 +119,10 @@ public class DuosClient {
   @VisibleForTesting
   static ErrorReportException convertToDataRepoException(
       HttpStatusCodeException duosEx, String duosId) {
-    return switch (duosEx.getStatusCode()) {
-      case BAD_REQUEST -> new DuosDatasetBadRequestException(
+    return switch (duosEx.getStatusCode().value()) {
+      case 400 -> new DuosDatasetBadRequestException(
           "DUOS dataset identifier %s is malformed".formatted(duosId), duosEx);
-      case NOT_FOUND -> new DuosDatasetNotFoundException(
+      case 404 -> new DuosDatasetNotFoundException(
           "Could not find DUOS dataset for identifier %s".formatted(duosId), duosEx);
       default -> new DuosInternalServerErrorException("Unexpected error from DUOS", duosEx);
     };

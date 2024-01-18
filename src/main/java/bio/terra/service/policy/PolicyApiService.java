@@ -5,8 +5,8 @@ import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.api.TpsApi;
 import bio.terra.policy.client.ApiClient;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
+import jakarta.ws.rs.client.Client;
 import java.io.IOException;
-import javax.ws.rs.client.Client;
 import org.springframework.stereotype.Service;
 
 @Service

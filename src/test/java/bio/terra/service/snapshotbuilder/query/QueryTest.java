@@ -8,8 +8,8 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
-import javax.validation.constraints.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

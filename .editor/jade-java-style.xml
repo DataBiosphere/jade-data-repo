@@ -4,7 +4,7 @@
     <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="50" />
     <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="50" />
     <REPEAT_ANNOTATIONS>
-      <ANNO name="javax.validation.Valid" />
+      <ANNO name="jakarta.validation.Valid" />
       <ANNO name="org.springframework.web.bind.annotation.RequestBody" />
     </REPEAT_ANNOTATIONS>
   </JavaCodeStyleSettings>

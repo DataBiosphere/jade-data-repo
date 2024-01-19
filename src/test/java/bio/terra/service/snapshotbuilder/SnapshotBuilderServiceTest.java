@@ -95,17 +95,17 @@ class SnapshotBuilderServiceTest {
             .id(UUID.randomUUID());
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
+    var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
     if (cloudPlatformWrapper.isGcp()) {
-      when(bigQueryDatasetPdao.runQuery(any(), any(), any()))
-          .thenReturn(List.of(new SnapshotBuilderConcept().name("concept1").id(1)));
+      when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
+          .thenReturn(concepts);
     } else {
-      when(azureSynapsePdao.runQuery(any(), any()))
-          .thenReturn(List.of(new SnapshotBuilderConcept().name("concept1").id(1)));
+      when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
     }
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, null);
     assertThat(
         "getConceptChildren returns the expected response",
-        response.getResult().get(0).getName(),
-        equalTo("concept1"));
+        response.getResult(),
+        equalTo(concepts));
   }
 }

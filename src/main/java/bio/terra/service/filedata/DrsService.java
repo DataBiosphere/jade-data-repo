@@ -245,8 +245,7 @@ public class DrsService {
                             }
                           }))
               .toList();
-      List<SnapshotCacheResult> cachedSnapshots =
-          FutureUtils.waitFor(futures).stream().filter(Objects::nonNull).toList();
+      List<SnapshotCacheResult> cachedSnapshots = FutureUtils.waitFor(futures);
       if (cachedSnapshots.isEmpty()) {
         throw new UnauthorizedException("User does not have access");
       }
@@ -291,8 +290,7 @@ public class DrsService {
                             }
                           }))
               .toList();
-      List<SnapshotCacheResult> cachedSnapshots =
-          FutureUtils.waitFor(futures).stream().filter(Objects::nonNull).toList();
+      List<SnapshotCacheResult> cachedSnapshots = FutureUtils.waitFor(futures);
       if (cachedSnapshots.isEmpty()) {
         throw new IamForbiddenException("User does not have access");
       }

@@ -12,6 +12,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -139,75 +141,44 @@ class FutureUtilsTest {
   }
 
   @Test
-  void testWaitForTasksSomeFail() {
-    final AtomicInteger counter = new AtomicInteger(0);
+  void testWaitFor_RuntimeException() {
+    final Executor delayedExecutor = CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS);
     final RuntimeException rootCause = new RuntimeException("Injected error");
-    final Callable<Integer> action =
-        () -> {
-          try {
-            final int count = counter.getAndIncrement();
-            if (count == 5) {
-              throw rootCause;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            return count;
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        };
-
-    final List<Future<Integer>> futures = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      futures.add(executorService.submit(action));
-    }
-
+    final List<Future<String>> futures =
+        List.of(
+            CompletableFuture.completedFuture("Completed successfully"),
+            CompletableFuture.failedFuture(rootCause),
+            CompletableFuture.supplyAsync(() -> "Should be cancelled with delay", delayedExecutor));
     assertThatThrownBy(() -> FutureUtils.waitFor(futures))
         .isInstanceOf(ApiException.class)
         .hasMessage("Error executing thread")
         .hasRootCause(rootCause);
-    // Note: adding a sleep since getActiveCount represents an approximation of the number of
-    // threads active.
-    Awaitility.await()
-        .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(() -> assertThat(executorService.getActiveCount()).isZero());
-
-    // Make sure that some tasks after the failure were cancelled
+    // Make sure that at least one task after the failure was cancelled
     assertThat(IterableUtils.countMatches(futures, Future::isCancelled)).isPositive();
   }
 
   @Test
-  void testWaitForTasksSomeThrowErrorReportException() {
-    final AtomicInteger counter = new AtomicInteger(0);
+  void testWaitFor_ErrorReportException() {
+    final Executor delayedExecutor = CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS);
     final ErrorReportException rootCause = new IamUnauthorizedException("Unauthorized");
-    final Callable<Integer> action =
-        () -> {
-          try {
-            final int count = counter.getAndIncrement();
-            if (count == 5) {
-              throw rootCause;
-            }
-            TimeUnit.SECONDS.sleep(1);
-            return count;
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        };
-
-    final List<Future<Integer>> futures = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      futures.add(executorService.submit(action));
-    }
-
-    // We do not wrap an ErrorReportException cause to preserve its HTTP status.
+    final List<Future<String>> futures =
+        List.of(
+            CompletableFuture.completedFuture("Completed successfully"),
+            CompletableFuture.failedFuture(rootCause),
+            CompletableFuture.supplyAsync(() -> "Should be cancelled with delay", delayedExecutor));
     assertThatThrownBy(() -> FutureUtils.waitFor(futures)).isEqualTo(rootCause);
-    // Note: adding a sleep since getActiveCount represents an approximation of the number of
-    // threads active.
-    Awaitility.await()
-        .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(() -> assertThat(executorService.getActiveCount()).isZero());
-
-    // Make sure that some tasks after the failure were cancelled
+    // Make sure that at least one task after the failure was cancelled
     assertThat(IterableUtils.countMatches(futures, Future::isCancelled)).isPositive();
+  }
+
+  @Test
+  void testWaitFor_nulLFiltering() {
+    String expected = "Expected";
+    final List<Future<String>> futures =
+        List.of(
+            CompletableFuture.completedFuture(expected), CompletableFuture.completedFuture(null));
+    var actual = FutureUtils.waitFor(futures);
+    assertThat(actual).containsOnly(expected);
   }
 
   @Test

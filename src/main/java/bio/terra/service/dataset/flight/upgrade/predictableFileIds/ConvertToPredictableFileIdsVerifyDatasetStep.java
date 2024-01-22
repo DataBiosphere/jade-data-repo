@@ -37,7 +37,8 @@ public class ConvertToPredictableFileIdsVerifyDatasetStep extends DefaultUndoSte
                 null,
                 null,
                 List.of(datasetId),
-                null)
+                null,
+                List.of())
             .getFilteredTotal();
     if (numSnapshotsFromDataset > 0) {
       throw new IllegalArgumentException(

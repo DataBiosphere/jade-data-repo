@@ -13,11 +13,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /** Configuration for working with Azure resources */
-@ConstructorBinding
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "azure")
 public record AzureResourceConfiguration(

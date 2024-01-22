@@ -47,6 +47,7 @@ public class UnlockDatasetStepTest {
   void testDoStepWithIdFromStepConstruction(boolean sharedLock) {
     step = new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock);
     mockFlightContextFlightId();
+    mockFlightContextWorkingMap();
 
     StepResult doResult = step.doStep(flightContext);
 
@@ -89,12 +90,45 @@ public class UnlockDatasetStepTest {
       boolean sharedLock, Exception retryableException) {
     step = new UnlockDatasetStep(datasetService, DATASET_ID, sharedLock);
     mockFlightContextFlightId();
+    mockFlightContextWorkingMap();
     doThrow(retryableException).when(datasetService).unlock(DATASET_ID, FLIGHT_ID, sharedLock);
 
     StepResult doResult = step.doStep(flightContext);
 
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_RETRY));
     verify(datasetService).unlock(DATASET_ID, FLIGHT_ID, sharedLock);
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void testDoStepWithProvidedLockNameAndThrowException(
+      boolean sharedLock, boolean throwLockException, boolean successfulLock) {
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(DatasetWorkingMapKeys.IS_SHARED_LOCK, sharedLock);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    String lockName = "lock-name";
+    step = new UnlockDatasetStep(datasetService, DATASET_ID, lockName, throwLockException);
+    when(datasetService.unlock(DATASET_ID, lockName, sharedLock)).thenReturn(successfulLock);
+
+    StepResult doResult = step.doStep(flightContext);
+    if (successfulLock || (!successfulLock && !throwLockException)) {
+      assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    } else {
+      assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
+    }
+    verify(datasetService).unlock(DATASET_ID, lockName, sharedLock);
+  }
+
+  private static Stream<Arguments> testDoStepWithProvidedLockNameAndThrowException() {
+    List<Arguments> arguments = new ArrayList<>();
+    for (boolean sharedLock : List.of(true, false)) {
+      for (boolean throwLockException : List.of(true, false)) {
+        for (boolean successfulLock : List.of(true, false)) {
+          arguments.add(Arguments.arguments(sharedLock, throwLockException, successfulLock));
+        }
+      }
+    }
+    return arguments.stream();
   }
 
   private static Stream<Arguments> testDoStepRetriesWhenUnlockThrowsRetryableException() {

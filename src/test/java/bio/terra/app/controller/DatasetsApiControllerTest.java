@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -26,8 +27,10 @@ import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -39,6 +42,7 @@ import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -94,9 +98,10 @@ class DatasetsApiControllerTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
-
-  private static final String REQUEST_SNAPSHOT_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/createSnapshotRequest";
+  private static final String LOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/lock";
+  private static final String UNLOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/unlock";
+  private static final String SNAPSHOT_REQUESTS_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotRequests";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String QUERY_DATA_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
@@ -201,7 +206,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataById() {
     return Stream.of(
-        arguments("goodColumn", postRequset(TABLE_NAME, "goodColumn")),
+        arguments("goodColumn", postRequest(TABLE_NAME, "goodColumn")),
         arguments("datarepo_row_id", getRequest(TABLE_NAME, "datarepo_row_id")));
   }
 
@@ -241,7 +246,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> provideRequests() {
     return Stream.of(
-        arguments(postRequset(TABLE_NAME, "goodColumn")),
+        arguments(postRequest(TABLE_NAME, "goodColumn")),
         arguments(getRequest(TABLE_NAME, "goodColumn")));
   }
 
@@ -299,7 +304,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataRetrievalFails() {
     return Stream.of(
-        arguments(postRequset("bad_table", "good_column")),
+        arguments(postRequest("bad_table", "good_column")),
         arguments(getRequest("bad_table", "good_column")));
   }
 
@@ -358,24 +363,44 @@ class DatasetsApiControllerTest {
   @Test
   void testCreateSnapshotRequest() throws Exception {
     mockValidators();
-    SnapshotAccessRequest expected = SnapshotBuilderTestData.createSnapshotAccessRequest();
-    SnapshotAccessRequestResponse response =
+    SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest();
+    SnapshotAccessRequestResponse expectedResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
-    when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(expected), anyString()))
-        .thenReturn(response);
+    when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(request), anyString()))
+        .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
-                post(REQUEST_SNAPSHOT_ENDPOINT, DATASET_ID)
+                post(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(expected)))
+                    .content(TestUtils.mapToJson(request)))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
     SnapshotAccessRequestResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
-    assertThat("The method returned the expected response", actual, equalTo(response));
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  @Test
+  void testEnumerateSnapshotRequests() throws Exception {
+    mockValidators();
+    var expectedResponseItem =
+        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
+    var expectedResponse = new EnumerateSnapshotAccessRequest();
+    expectedResponse.items(List.of(expectedResponseItem, expectedResponseItem));
+    when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(expectedResponse);
+    String actualJson =
+        mvc.perform(get(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    EnumerateSnapshotAccessRequest actual =
+        TestUtils.mapFromJson(actualJson, EnumerateSnapshotAccessRequest.class);
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 
   @Test
@@ -390,7 +415,7 @@ class DatasetsApiControllerTest {
                         .name("Stub concept")
                         .hasChildren(true)
                         .id(CONCEPT_ID + 1)));
-    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID, any()))
+    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID, TEST_USER))
         .thenReturn(expected);
     String actualJson =
         mvc.perform(get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID))
@@ -455,7 +480,7 @@ class DatasetsApiControllerTest {
     when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
   }
 
-  private static MockHttpServletRequestBuilder postRequset(String tableName, String columnName) {
+  private static MockHttpServletRequestBuilder postRequest(String tableName, String columnName) {
     return post(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
         .contentType(MediaType.APPLICATION_JSON)
         .content(
@@ -475,5 +500,48 @@ class DatasetsApiControllerTest {
         .queryParam("sort", columnName)
         .queryParam("direction", DIRECTION.name())
         .queryParam("filter", FILTER);
+  }
+
+  @Test
+  void lockDataset() throws Exception {
+    var resourceLocks = new ResourceLocks();
+    when(datasetService.manualExclusiveLock(TEST_USER, DATASET_ID)).thenReturn(resourceLocks);
+    mockValidators();
+
+    var response =
+        mvc.perform(put(LOCK_DATASET_ENDPOINT, DATASET_ID))
+            .andExpect(status().is2xxSuccessful())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
+
+    verifyAuthorizationCall(IamAction.LOCK_RESOURCE);
+    verify(datasetService).manualExclusiveLock(TEST_USER, DATASET_ID);
+  }
+
+  @Test
+  void unlockDataset() throws Exception {
+    var lockId = "lockId";
+    var resourceLocks = new ResourceLocks().exclusive(lockId);
+    var unlockRequest = new UnlockResourceRequest().lockName(lockId).forceUnlock(false);
+    when(datasetService.manualUnlock(TEST_USER, DATASET_ID, unlockRequest))
+        .thenReturn(resourceLocks);
+    mockValidators();
+
+    var response =
+        mvc.perform(
+                put(UNLOCK_DATASET_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(unlockRequest)))
+            .andExpect(status().is2xxSuccessful())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ResourceLocks resultingLocks = TestUtils.mapFromJson(response, ResourceLocks.class);
+    assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
+    verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
+    verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, unlockRequest);
   }
 }

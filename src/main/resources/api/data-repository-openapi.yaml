@@ -524,6 +524,17 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/Tag'
+        - name: duosDatasetIds
+          in: query
+          description: >
+            Filter the results where snapshots have been linked to one of these DUOS datasetIds
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/DuosId'
       responses:
         200:
           description: List of snapshots
@@ -588,6 +599,121 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: snapshot
+  /api/repository/v1/snapshots/{id}/lock:
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Add an exclusive lock to the snapshot so that no delete operations can be performed on it.
+      operationId: lockSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: >
+            Lock successful. ResourceLocks object is returned with the locking job id as the
+            exclusive lock value, showing that there is an exclusive lock this resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceLocks'
+        400:
+          description: Bad request - malformed snapshot Id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - the snapshot does not exist or the caller is missing permissions to
+            lock the snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a snapshot with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/unlock:
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Remove an exclusive lock on the snapshot.
+      operationId: unlockSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockResourceRequest'
+        required: true
+      responses:
+        200:
+          description: >
+            Unlock successful. ResourceLocks object is returned with a "null" value
+            showing that there is no longer an exclusive lock on this resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceLocks'
+        400:
+          description: Bad request - malformed snapshot Id or lock name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - snapshot does not exist or the caller is missing permissions to
+            unlock the snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a snapshot with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        409:
+          description: >
+            Conflict - the snapshot is not locked or the provided lock name is not the locking flight id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/roleMap:
     get:
       tags:
@@ -1131,11 +1257,18 @@ paths:
       tags:
         - snapshots
         - repository
-      description: Add an auth domain to the snapshot. *** WARNING - Once this is set it cannot be modified ***
-                  A Sam auth domain consists of a collection of user groups. If a snapshot has an auth domain,
-                  users must have access to the resource directly (via a policy) and belong to all user groups
-                  in the auth domain in order to view and export the data. For example, if a user is a snapshot
-                  steward but is not included in the auth domain, Sam will prevent that user from accessing the resource.
+      description: >
+        Add data access control groups to the snapshot.  The provided user groups will be registered
+        as a group constraint policy in Terra Policy Service, and as an auth domain in Sam.
+
+
+        *** WARNING - Once this is set it cannot be modified ***
+
+
+        If a snapshot has data access controls, a user must have access to the resource directly
+        (via a policy) and belong to all of its data access control groups in order to view and
+        export the data. For example, if a user is a steward of a snapshot but is not a member
+        of its data access control groups, Sam will prevent that user from accessing the resource.
       operationId: addSnapshotAuthDomain
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1149,7 +1282,7 @@ paths:
                 type: string
       responses:
         200:
-          description: Auth domain of this snapshot
+          description: The snapshot's data access control groups
           content:
             application/json:
               schema:
@@ -1161,7 +1294,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to add an auth domain to this snapshot
+          description: No permission to add data access control groups to this snapshot
           content:
             application/json:
               schema:
@@ -1906,6 +2039,118 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: Not found - dataset does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/lock:
+    put:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Add an exclusive lock to the dataset so that no update or delete operations can be performed on it.
+      operationId: lockDataset
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: >
+            Lock successful. ResourceLocks object is returned with the locking job id as the
+            exclusive lock value, showing that there is an exclusive lock this resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceLocks'
+        400:
+          description: Bad request - malformed dataset Id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - dataset does not exist or the caller is missing permissions to lock the dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a dataset with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/unlock:
+    put:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Remove an exclusive or shared lock on the dataset.
+      operationId: unlockDataset
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockResourceRequest'
+      responses:
+        200:
+          description: >
+            Unlock successful. ResourceLocks object is returned with a "null" value
+            if there are no locks on the resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceLocks'
+        400:
+          description: Bad request - malformed dataset Id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - dataset does not exist or the caller is missing permissions to unlock the dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - a dataset with the specified Id does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        409:
+          description: >
+            Conflict - the dataset is not locked or the provided lock name is not the locking flight id.
           content:
             application/json:
               schema:
@@ -2776,7 +3021,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/createSnapshotRequest:
+  /api/repository/v1/datasets/{id}/snapshotRequests:
+    get:
+      tags:
+        - datasets
+      description: As an admin for this dataset, view all snapshot requests for this dataset.
+      operationId: enumerateSnapshotRequests
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The snapshot requests have been retrieved.
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/EnumerateSnapshotAccessRequest'
+        400:
+          description: Bad request - invalid id, or badly formed IamResourceType.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - dataset does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to view snapshot requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No dataset found that meets the request parameter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
     post:
       tags:
         - datasets
@@ -3701,113 +3990,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: upgrade
-
-##############################################################################
-## SEARCH API STANDARD ENDPOINTS
-##############################################################################
-
-  /api/repository/v1/search/{id}/index:
-    post:
-      tags:
-        - search
-        - snapshots
-        - repository
-      description: Create a new search index for a snapshot
-      operationId: createSearchIndex
-      parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
-      requestBody:
-        description: Index to create from SQL
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SearchIndexRequest'
-        required: true
-      responses:
-        200:
-          description: Return index result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchIndexModel'
-        400:
-          description: Bad request - invalid id, badly formed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: No permission to see snapshot
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: Not found - snapshot id does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-
-  /api/repository/v1/search/query:
-    post:
-      tags:
-        - search
-        - snapshots
-        - repository
-      description: Run a query on the metadata of one or more snapshots
-      operationId: querySearchIndices
-      parameters:
-        - name: offset
-          in: query
-          description: The number of results to skip before retrieving the next
-            page
-          schema:
-            type: integer
-            default: 0
-        - name: limit
-          in: query
-          description: The number of search results to return
-          schema:
-            type: integer
-            default: 1000
-      requestBody:
-        description: Search query to run against one or more snapshots
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SearchQueryRequest'
-        required: true
-      responses:
-        200:
-          description: List of search results
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchQueryResultModel'
-        400:
-          description: Bad request - one or more invalid ids, badly formed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: No permission to see one or more snapshots
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: Not found - one or more snapshot ids do not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
 
 ##############################################################################
 ## DRS STANDARD ENDPOINTS
@@ -5112,6 +5294,12 @@ components:
             an array of json metadata records to ingest
         format:
           type: string
+          description: >
+            format of the data to ingest.  Currently supported formats are `csv`, `json`, and `array`
+            `array` indicates loading from a JSON object payload in the records field.
+            
+            Note: when ingesting from a CSV file into an Azure dataset, no string or text field may be
+            larger than 8000 bytes
           enum:
             - csv
             - json
@@ -5422,6 +5610,21 @@ components:
         dataType:
           type: string
           description: Data type of column
+    UnlockResourceRequest:
+      type: object
+      required:
+        - lockName
+      properties:
+        lockName:
+          description: >
+            The lock id to remove. The lock name is the locking flight id.
+          type: string
+        forceUnlock:
+          description: >
+            If false, the unlock operation will fail if the locking job is still running.
+            If true, the unlock operation will succeed even if the locking job is still running. Use caution with this option, as deleting a lock from a running flight could have unintended consequences.
+          type: boolean
+          default: false
     FileModel:
       type: object
       properties:
@@ -5934,6 +6137,8 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
+        duosId:
+          $ref: '#/components/schemas/DuosId'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -6798,6 +7003,10 @@ components:
       properties:
         exclusive:
           $ref: '#/components/schemas/ShortIdProperty'
+        shared:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShortIdProperty'
 
     ##############################################################################
     ## SNAPSHOT BUILDER API STANDARD MODELS
@@ -6931,6 +7140,39 @@ components:
           items:
             type: string
 
+    EnumerateSnapshotAccessRequest:
+      type: object
+      description: The model for enumerated SnapshotAccessRequests.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnumerateSnapshotAccessRequestItem'
+
+    EnumerateSnapshotAccessRequestItem:
+      type: object
+      description: The model for SnapshotAccessRequests when enumerated in a response.
+      required:
+        - id
+        - status
+        - createdDate
+        - name
+        - researchPurpose
+        - createdBy
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        status:
+          $ref: '#/components/schemas/SnapshotAccessRequestStatus'
+        createdDate:
+          type: string
+        name:
+          type: string
+        researchPurpose:
+          type: string
+        createdBy:
+          type: string
+
     SnapshotAccessRequestResponse:
       type: object
       description: The response object for a submitted SnapshotAccessRequest.
@@ -6957,12 +7199,15 @@ components:
         createdBy:
           type: string
         status:
-          type: string
-          enum: [ SUBMITTED, APPROVED, REJECTED ]
+          $ref: '#/components/schemas/SnapshotAccessRequestStatus'
         createdDate:
           type: string
         updatedDate:
           type: string
+
+    SnapshotAccessRequestStatus:
+      type: string
+      enum: [ SUBMITTED, APPROVED, REJECTED ]
 
     SnapshotBuilderCountRequest:
       type: object
@@ -7056,7 +7301,7 @@ components:
         mapping:
           list: '#/components/schemas/SnapshotBuilderProgramDataListCriteria'
           range: '#/components/schemas/SnapshotBuilderProgramDataRangeCriteria'
-          domain: '#/components/schemas/SnapshotBuilderCriteria'
+          domain: '#/components/schemas/SnapshotBuilderDomainCriteria'
 
     SnapshotBuilderProgramDataListCriteria:
       allOf:
@@ -7080,63 +7325,15 @@ components:
               type: number
       description: Range format program data, part of a CriteriaGroup.
 
-    ##############################################################################
-    ## SEARCH API STANDARD MODELS
-    ##############################################################################
-    SearchIndexRequest:
-      required:
-        - sql
-      type: object
-      properties:
-        sql:
-          type: string
-          description: >
-            SQL to index BigQuery columns for searching
-    SearchIndexModel:
-      type: object
-      properties:
-        indexSummary:
-          type: string
-          description: Summary of this index for searching
-    SearchMetadataModel:
-      type: object
-      properties:
-        metadataSummary:
-          type: string
-          description: Summary of this metadata for searching
-    SearchQueryRequest:
-      required:
-        - query
-      type: object
-      properties:
-        snapshotIds:
-          type: array
-          items:
-            $ref: '#/components/schemas/UniqueIdProperty'
-        query:
-          type: string
-          description: >
-            Query to search against snapshot indices
-    SearchQueryResultModel:
-      type: object
-      properties:
-        result:
-          type: array
-          items:
-            type: object
-            additionalProperties:
+    SnapshotBuilderDomainCriteria:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        - type: object
+          properties:
+            domainName:
               type: string
-          description: Results that match the search criteria
-      description: >
-        The available search results that match the filter criteria
-    SearchMetadataResponse:
-      type: object
-      properties:
-        result:
-          type: array
-          items:
-            type: object
-      description: List of snapshot metadata
+      description: Selection of a domain concept id, part of a CriteriaGroup.
+
     DuosFirecloudGroupModel:
       type: object
       description: >

@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.CloudResource;
@@ -40,12 +41,15 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ResourceCreateTags;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.duos.DuosClient;
 import bio.terra.service.duos.DuosDao;
+import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
@@ -70,6 +74,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -96,6 +101,12 @@ public class SnapshotDaoTest {
   @Autowired private DuosDao duosDao;
 
   @Autowired private DrsDao drsDao;
+
+  @MockBean private DuosClient duosClient;
+
+  @MockBean private DuosService duosService;
+
+  @MockBean private IamService iamService;
 
   private Dataset dataset;
   private UUID datasetId;
@@ -339,10 +350,17 @@ public class SnapshotDaoTest {
       } else {
         snapshotRequest.tags(null);
       }
-      createSnapshot(snapshotRequest);
+      Snapshot snapshot = createSnapshot(snapshotRequest);
+      // set a DUOS ID on the first 2 snapshots
+      if (i <= 1) {
+        DuosFirecloudGroupModel duosGroupMode = duosDao.retrieveFirecloudGroupByDuosId(duosId);
+        when(duosService.syncDuosDatasetAuthorizedUsers(duosId)).thenReturn(duosGroupMode);
+        snapshotService.updateSnapshotDuosDataset(snapshot.getId(), TEST_USER, duosId);
+      }
     }
     MetadataEnumeration<SnapshotSummary> allSnapshots =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, null, null);
 
     for (var snapshotSummary : allSnapshots.getItems()) {
       assertThat(
@@ -381,6 +399,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> filteredSnapshotsById = filterIdEnum.getItems();
     assertThat("snapshot filter by id returns one snapshot", filteredSnapshotsById, hasSize(1));
@@ -399,6 +418,7 @@ public class SnapshotDaoTest {
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
     assertThat(
@@ -426,6 +446,7 @@ public class SnapshotDaoTest {
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> filteredNameAndRegionSnapshots = filterNameAndRegionEnum.getItems();
     assertThat(
@@ -459,6 +480,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("filtered and retrieved 2 snapshots", summaryList, hasSize(2));
@@ -469,17 +491,20 @@ public class SnapshotDaoTest {
     }
 
     MetadataEnumeration<SnapshotSummary> emptyEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, "__", null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, "__", null, datasetIds, snapshotIds, null, null);
     assertThat("underscores don't act as wildcards", emptyEnum.getItems(), empty());
 
     MetadataEnumeration<SnapshotSummary> summaryEnum0 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 10, null, null, null, null, datasetIds, snapshotIds, null, null);
     assertThat("no dataset uuid gives all snapshots", summaryEnum0.getTotal(), equalTo(6));
 
     // use the original dataset id and make sure you get all snapshots
     datasetIds = singletonList(datasetId);
     MetadataEnumeration<SnapshotSummary> summaryEnum1 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 10, null, null, null, null, datasetIds, snapshotIds, null, null);
     assertThat(
         "expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(6));
 
@@ -487,14 +512,15 @@ public class SnapshotDaoTest {
     List<UUID> datasetIdsBad = singletonList(UUID.randomUUID());
     MetadataEnumeration<SnapshotSummary> summaryEnum2 =
         snapshotDao.retrieveSnapshots(
-            0, 10, null, null, null, null, datasetIdsBad, snapshotIds, null);
+            0, 10, null, null, null, null, datasetIdsBad, snapshotIds, null, null);
     assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
 
     // Test filtering by tags
 
     // Filtering on all tags for a snapshot returns the snapshot
     MetadataEnumeration<SnapshotSummary> filteredAllTagsMatchEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, tags, null);
     List<SnapshotSummary> filteredAllTagsMatchSnapshots = filteredAllTagsMatchEnum.getItems();
     assertThat(
         "snapshot filter by tags returns correct filtered total",
@@ -509,12 +535,34 @@ public class SnapshotDaoTest {
         filteredAllTagsMatchEnum.getTotal(),
         equalTo(6));
 
+    // Test filtering on DUOS IDs
+    MetadataEnumeration<SnapshotSummary> filteredDuosIdsMatchEnum =
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, null, List.of(duosId));
+    List<SnapshotSummary> filteredDuosIdsMatchSnapshots = filteredDuosIdsMatchEnum.getItems();
+    assertThat(
+        "snapshot filter by duosid returns correct filtered total",
+        filteredDuosIdsMatchSnapshots,
+        hasSize(2));
+    assertThat(
+        "snapshot filter by duosid returns correct snapshot",
+        filteredDuosIdsMatchSnapshots.stream().map(SnapshotSummary::getId).sorted().toList(),
+        equalTo(snapshotIds.subList(0, 2).stream().sorted().toList()));
+    assertThat(
+        "each returned snapshot has the correct duos id",
+        filteredDuosIdsMatchSnapshots.stream().map(SnapshotSummary::getDuosId).distinct().toList(),
+        equalTo(List.of(duosId)));
+    assertThat(
+        "snapshot filter by tags returns correct total",
+        filteredDuosIdsMatchEnum.getTotal(),
+        equalTo(6));
+
     // Filtering on a strict subset of tags for a dataset returns the dataset
     tags.forEach(
         tag -> {
           MetadataEnumeration<SnapshotSummary> filteredSubsetTagsMatchEnum =
               snapshotDao.retrieveSnapshots(
-                  0, 6, null, null, null, null, datasetIds, snapshotIds, List.of(tag));
+                  0, 6, null, null, null, null, datasetIds, snapshotIds, List.of(tag), null);
           List<SnapshotSummary> filteredSubsetTagsMatchSnapshots =
               filteredSubsetTagsMatchEnum.getItems();
           assertThat(
@@ -535,7 +583,8 @@ public class SnapshotDaoTest {
     // matching tags are included
     tags.add(UUID.randomUUID().toString());
     MetadataEnumeration<SnapshotSummary> incompleteTagMatchEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, tags, null);
     assertThat(
         "snapshot filter by tags excludes snapshot which do not match filter completely",
         incompleteTagMatchEnum.getItems(),
@@ -602,6 +651,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
@@ -623,6 +673,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("the full list comes back", summaryList.size(), equalTo(6));
@@ -650,6 +701,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = offset;
@@ -1064,7 +1116,8 @@ public class SnapshotDaoTest {
         equalTo(flightId));
 
     MetadataEnumeration<SnapshotSummary> snapshotEnumeration =
-        snapshotDao.retrieveSnapshots(0, 1, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 1, null, null, null, null, datasetIds, snapshotIds, null, null);
     assertThat(snapshotEnumeration.getTotal(), equalTo(1));
     SnapshotSummary lockedSnapshotSummaryEnumerationItem = snapshotEnumeration.getItems().get(0);
     String lockedSnapshotSummaryEnumerationItemExclusiveLock =

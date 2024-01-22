@@ -36,6 +36,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -79,7 +80,7 @@ public class DatasetDao implements TaggableResourceDao {
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
           + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
-          + "properties, created_date, predictable_file_ids, tags, flightid, ";
+          + "properties, created_date, predictable_file_ids, tags, flightid, sharedlock,";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -677,6 +678,9 @@ public class DatasetDao implements TaggableResourceDao {
 
       CloudPlatform datasetCloudPlatform = isAzure ? CloudPlatform.AZURE : CloudPlatform.GCP;
 
+      Array sharedLocksArray = rs.getArray("sharedlock");
+      List<String> sharedLocks = Arrays.asList((String[]) sharedLocksArray.getArray());
+
       return new DatasetSummary()
           .id(datasetId)
           .name(rs.getString("name"))
@@ -696,7 +700,8 @@ public class DatasetDao implements TaggableResourceDao {
           .predictableFileIds(rs.getBoolean("predictable_file_ids"))
           .properties(properties)
           .tags(DaoUtils.getStringList(rs, "tags"))
-          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")));
+          .resourceLocks(
+              new ResourceLocks().exclusive(rs.getString("flightid")).shared(sharedLocks));
     }
   }
 

@@ -29,6 +29,7 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
@@ -36,6 +37,7 @@ import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -52,9 +54,11 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.dataset.flight.lock.DatasetLockFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
+import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
@@ -632,6 +636,17 @@ public class DatasetService {
     }
   }
 
+  public ResourceLocks manualExclusiveLock(AuthenticatedUserRequest userReq, UUID datasetId) {
+    return jobService
+        .newJob(
+            "Create manual exclusive lock on dataset " + datasetId,
+            DatasetLockFlight.class,
+            null,
+            userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .submitAndWait(ResourceLocks.class);
+  }
+
   public void lock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
       datasetDao.lockShared(datasetId, flightId);
@@ -640,12 +655,26 @@ public class DatasetService {
     }
   }
 
-  public void unlock(UUID datasetId, String flightId, boolean sharedLock) {
+  public ResourceLocks manualUnlock(
+      AuthenticatedUserRequest userReq, UUID datasetId, UnlockResourceRequest unlockRequest) {
+    return jobService
+        .newJob(
+            "Remove exclusive or shared lock "
+                + unlockRequest.getLockName()
+                + " on dataset "
+                + datasetId,
+            DatasetUnlockFlight.class,
+            unlockRequest,
+            userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .submitAndWait(ResourceLocks.class);
+  }
+
+  public boolean unlock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
-      datasetDao.unlockShared(datasetId, flightId);
-    } else {
-      datasetDao.unlockExclusive(datasetId, flightId);
+      return datasetDao.unlockShared(datasetId, flightId);
     }
+    return datasetDao.unlockExclusive(datasetId, flightId);
   }
 
   public String openTransaction(

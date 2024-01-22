@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.google.gcs;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Profile;
 
 /**
@@ -9,7 +8,6 @@ import org.springframework.context.annotation.Profile;
  * That way, implementation specifics can be separated from the interface. We'll see if it works out
  * that way.
  */
-@ConstructorBinding
 @Profile("google")
 @ConfigurationProperties(prefix = "datarepo.gcs")
 public record GcsConfiguration(

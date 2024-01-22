@@ -1,7 +1,7 @@
 {
   "name": "PodDeleteDuringBulkLoad",
   "description": "One user ingests many files into one dataset while we delete a random pod",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "isFunctional": true,
   "kubernetes": {

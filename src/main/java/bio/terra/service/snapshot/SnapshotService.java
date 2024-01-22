@@ -28,6 +28,7 @@ import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -47,6 +48,7 @@ import bio.terra.model.TableModel;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -74,13 +76,15 @@ import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
-import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
+import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControlsFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
+import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
+import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -376,7 +380,8 @@ public class SnapshotService {
       String filter,
       String region,
       List<UUID> datasetIds,
-      List<String> tags) {
+      List<String> tags,
+      List<String> duosIds) {
     List<ErrorModel> errors = new ArrayList<>();
     Map<UUID, Set<IamRole>> idsAndRoles = listAuthorizedSnapshots(userReq, errors);
     if (idsAndRoles.isEmpty()) {
@@ -384,7 +389,16 @@ public class SnapshotService {
     }
     var enumeration =
         snapshotDao.retrieveSnapshots(
-            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet(), tags);
+            offset,
+            limit,
+            sort,
+            direction,
+            filter,
+            region,
+            datasetIds,
+            idsAndRoles.keySet(),
+            tags,
+            duosIds);
     List<SnapshotSummaryModel> models =
         enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
 
@@ -591,11 +605,13 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public AddAuthDomainResponseModel addSnapshotAuthDomain(
+  public AddAuthDomainResponseModel addSnapshotDataAccessControls(
       AuthenticatedUserRequest userReq, UUID snapshotId, List<String> userGroups) {
-    String description = "Patch auth domain for snapshot " + snapshotId;
+    String userGroupsString = StringUtils.join(userGroups, ", ");
+    String description =
+        "Add data access control groups " + userGroupsString + " to snapshot " + snapshotId;
     return jobService
-        .newJob(description, SnapshotAddAuthDomainFlight.class, userGroups, userReq)
+        .newJob(description, SnapshotAddDataAccessControlsFlight.class, userGroups, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submitAndWait(AddAuthDomainResponseModel.class);
   }
@@ -1193,10 +1209,34 @@ public class SnapshotService {
             "",
             "",
             List.of(datasetId),
+            List.of(),
             List.of())
         .getItems()
         .stream()
         .map(SnapshotSummaryModel::getId)
         .toList();
+  }
+
+  public ResourceLocks manualExclusiveLock(AuthenticatedUserRequest userReq, UUID snapshotId) {
+    return jobService
+        .newJob(
+            "Create manual exclusive lock on a snapshot " + snapshotId,
+            SnapshotLockFlight.class,
+            null,
+            userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
+        .submitAndWait(ResourceLocks.class);
+  }
+
+  public ResourceLocks manualExclusiveUnlock(
+      AuthenticatedUserRequest userReq, UUID snapshotId, UnlockResourceRequest unlockRequest) {
+    return jobService
+        .newJob(
+            "Remove lock " + unlockRequest.getLockName() + " from Snapshot " + snapshotId,
+            SnapshotUnlockFlight.class,
+            unlockRequest,
+            userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
+        .submitAndWait(ResourceLocks.class);
   }
 }

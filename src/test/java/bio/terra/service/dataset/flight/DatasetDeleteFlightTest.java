@@ -3,11 +3,9 @@ package bio.terra.service.dataset.flight;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
@@ -22,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 public class DatasetDeleteFlightTest {
   @Mock private ApplicationContext context;
   private FlightMap inputParameters;
@@ -30,13 +28,7 @@ public class DatasetDeleteFlightTest {
 
   @BeforeEach
   void beforeEach() {
-    ApplicationConfiguration appConfig = mock(ApplicationConfiguration.class);
-    when(appConfig.getMaxStairwayThreads()).thenReturn(1);
-
-    when(context.getBean(any(Class.class))).thenReturn(null);
-    // Beans that are interacted with directly in flight construction rather than simply passed
-    // to steps need to be added to our context mock.
-    when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
+    FlightTestUtils.mockFlightAppConfigSetup(context);
 
     inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());

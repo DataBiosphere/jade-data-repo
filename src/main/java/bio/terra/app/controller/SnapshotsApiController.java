@@ -18,6 +18,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -29,6 +30,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -40,7 +42,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -183,7 +184,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       String filter,
       String region,
       List<String> datasetIds,
-      List<String> tags) {
+      List<String> tags,
+      List<String> duosIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
@@ -199,7 +201,8 @@ public class SnapshotsApiController implements SnapshotsApi {
             filter,
             region,
             datasetUUIDs,
-            tags);
+            tags,
+            duosIds);
     return ResponseEntity.ok(esm);
   }
 
@@ -231,6 +234,23 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.verifySnapshotListable(id, authenticatedInfo);
     SnapshotSummaryModel snapshotSummaryModel = snapshotService.retrieveSnapshotSummary(id);
     return ResponseEntity.ok(snapshotSummaryModel);
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> lockSnapshot(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.LOCK_RESOURCE);
+    return ResponseEntity.ok(snapshotService.manualExclusiveLock(userRequest, id));
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> unlockSnapshot(
+      UUID id, UnlockResourceRequest unlockRequest) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UNLOCK_RESOURCE);
+    return ResponseEntity.ok(snapshotService.manualExclusiveUnlock(userRequest, id, unlockRequest));
   }
 
   @Override
@@ -304,7 +324,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             .filter(filter));
   }
 
-  // --snapshot auth domains --
+  // --snapshot data access controls (auth domains, group access constraints) --
 
   @Override
   public ResponseEntity<AddAuthDomainResponseModel> addSnapshotAuthDomain(
@@ -312,7 +332,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifySnapshotAuthorization(userReq, id.toString(), IamAction.UPDATE_AUTH_DOMAIN);
     AddAuthDomainResponseModel result =
-        snapshotService.addSnapshotAuthDomain(userReq, id, new ArrayList<>(userGroups));
+        snapshotService.addSnapshotDataAccessControls(userReq, id, userGroups);
     return ResponseEntity.ok(result);
   }
 

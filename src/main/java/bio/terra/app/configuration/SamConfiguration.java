@@ -1,7 +1,6 @@
 package bio.terra.app.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 
 /*
  * SAM Retry notes:
@@ -16,7 +15,6 @@ import org.springframework.boot.context.properties.ConstructorBinding;
  * operationTimeoutSeconds before we reach retryMaximumSeconds.
  */
 @ConfigurationProperties(prefix = "sam")
-@ConstructorBinding
 public record SamConfiguration(
     String basePath,
     String stewardsGroupEmail,

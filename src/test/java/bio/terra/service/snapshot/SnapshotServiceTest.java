@@ -89,7 +89,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.SnapshotService.SnapshotAccessibleResult;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.service.snapshot.flight.authDomain.SnapshotAddAuthDomainFlight;
+import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControlsFlight;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
@@ -413,10 +413,11 @@ public class SnapshotServiceTest {
             any(),
             any(),
             eq(resourcesAndRoles.keySet()),
+            any(),
             any()))
         .thenReturn(metadataEnumeration);
     var snapshots =
-        service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of(), null);
+        service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of(), null, null);
     assertThat(snapshots.getItems().get(0).getId(), equalTo(snapshotId));
     assertThat(snapshots.getRoleMap(), hasEntry(snapshotId.toString(), List.of(role.toString())));
   }
@@ -1170,11 +1171,14 @@ public class SnapshotServiceTest {
     when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
     when(jobBuilder.submitAndWait(AddAuthDomainResponseModel.class)).thenReturn(jobResponse);
     when(jobService.newJob(
-            anyString(), eq(SnapshotAddAuthDomainFlight.class), eq(userGroups), eq(TEST_USER)))
+            anyString(),
+            eq(SnapshotAddDataAccessControlsFlight.class),
+            eq(userGroups),
+            eq(TEST_USER)))
         .thenReturn(jobBuilder);
 
     AddAuthDomainResponseModel result =
-        service.addSnapshotAuthDomain(TEST_USER, snapshotId, userGroups);
+        service.addSnapshotDataAccessControls(TEST_USER, snapshotId, userGroups);
     assertThat("Job is submitted and response returned", result, equalTo(jobResponse));
     verify(jobBuilder).addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString());
   }

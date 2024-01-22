@@ -72,6 +72,7 @@ public class SecureMonitoringRefolderGcpProjectsStep extends DefaultUndoStep {
             "",
             "",
             List.of(dataset.getId()),
+            List.of(),
             List.of())
         .getItems()
         .stream()

@@ -27,6 +27,7 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableDataType;
@@ -44,12 +45,14 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
@@ -105,6 +108,7 @@ public class BigQueryPdaoTest {
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private BufferService bufferService;
   @Autowired private SnapshotService snapshotService;
+  @Autowired private SnapshotBuilderService snapshotBuilderService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -114,6 +118,8 @@ public class BigQueryPdaoTest {
 
   private final List<UUID> datasetIdsToDelete = new ArrayList<>();
   private final List<Dataset> bqDatasetsToDelete = new ArrayList<>();
+
+  private final List<BlobInfo> blobsToDelete = new ArrayList<>();
 
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
   private static final AuthenticatedUserRequest TEST_USER =
@@ -134,6 +140,7 @@ public class BigQueryPdaoTest {
 
   @After
   public void teardown() throws Exception {
+    blobsToDelete.forEach(blob -> storage.delete(blob.getBlobId()));
     connectedOperations.teardown();
   }
 
@@ -198,42 +205,37 @@ public class BigQueryPdaoTest {
 
     String bucket = testConfig.getIngestbucket();
 
-    BlobInfo participantBlob =
-        BlobInfo.newBuilder(bucket, targetPath + "ingest-test-participant.json").build();
     BlobInfo sampleBlob =
         BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample.json").build();
     BlobInfo fileBlob = BlobInfo.newBuilder(bucket, targetPath + "ingest-test-file.json").build();
+    blobsToDelete.addAll(Arrays.asList(sampleBlob, fileBlob));
 
-    try {
-      bigQueryDatasetPdao.createDataset(dataset);
+    bigQueryDatasetPdao.createDataset(dataset);
 
-      storage.create(sampleBlob, readFile("ingest-test-sample.json"));
+    storage.create(sampleBlob, readFile("ingest-test-sample.json"));
 
-      // Ingest staged data into the new dataset.
-      IngestRequestModel ingestRequest =
-          new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
+    // Ingest staged data into the new dataset.
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
 
-      UUID datasetId = dataset.getId();
-      connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
+    UUID datasetId = dataset.getId();
+    connectedOperations.ingestTableSuccess(
+        datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
 
-      // Create a snapshot!
-      DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
-      SnapshotSummaryModel snapshotSummary =
-          connectedOperations.createSnapshot(
-              datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
-      SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+    // Create a snapshot!
+    DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
+    SnapshotSummaryModel snapshotSummary =
+        connectedOperations.createSnapshot(
+            datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
+    SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-      BigQueryProject bigQuerySnapshotProject =
-          TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
+    BigQueryProject bigQuerySnapshotProject =
+        TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
 
-      assertThat(snapshot.getTables().size(), is(equalTo(3)));
-      List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
+    assertThat(snapshot.getTables().size(), is(equalTo(3)));
+    List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
 
-      assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
-    } finally {
-      storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
-    }
+    assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
   }
 
   @Test
@@ -281,13 +283,49 @@ public class BigQueryPdaoTest {
     }
   }
 
+  private void ingestOmopTable(
+      Dataset dataset, String tableName, String ingestFile, int expectedRowCount) throws Exception {
+    List<Map<String, Object>> data =
+        jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
+    var ingestRequestArray =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.ARRAY)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table(tableName)
+            .records(List.of(data.toArray()));
+    connectedOperations.ingestTableSuccess(dataset.getId(), ingestRequestArray);
+    connectedOperations.checkTableRowCount(dataset, tableName, PDAO_PREFIX, expectedRowCount);
+  }
+
+  private Dataset stageOmopDataset() throws Exception {
+    Dataset dataset = readDataset("omop/it-dataset-omop.json");
+    connectedOperations.addDataset(dataset.getId());
+    bigQueryDatasetPdao.createDataset(dataset);
+
+    // Stage tabular data for ingest.
+    ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 3);
+    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    return dataset;
+  }
+
+  @Test
+  public void snapshotBuilderQuery() throws Exception {
+    var dataset = stageOmopDataset();
+    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
+    var concepts = conceptResponse.getResult();
+
+    assertThat(
+        concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
+  }
+
   @Test
   public void testGetFullViews() throws Exception {
     Dataset dataset = readDataset("ingest-test-dataset.json");
     connectedOperations.addDataset(dataset.getId());
 
     // Stage tabular data for ingest.
-    String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
+    String targetPath = "scratch/file" + UUID.randomUUID() + "/";
 
     String bucket = testConfig.getIngestbucket();
 

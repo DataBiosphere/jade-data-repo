@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import org.apache.commons.collections4.ListUtils;
@@ -97,6 +98,8 @@ public class AzureSynapsePdao {
   private static final String DEFAULT_COLLATION = "Latin1_General_100_CI_AI_SC_UTF8";
   private static final String EMPTY_TABLE_ERROR_MESSAGE =
       "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
+  private static final String QUERY_EMPTY_TABLE_ERROR_MESSAGE =
+      "Unable to query the parquet file for one of the tables in this query. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
   private static final String MAX_BIG_INT = "9223372036854770000";
 
   private static final String DB_CREATION_TEMPLATE =
@@ -1390,6 +1393,16 @@ public class AzureSynapsePdao {
         resultSet.next();
         return resultSet.getInt(1);
       }
+    }
+  }
+
+  // WARNING: SQL string must be sanitized before calling this method
+  public <T> List<T> runQuery(String sql, Function<ResultSet, T> aggregateResult) {
+    try {
+      return synapseJdbcTemplate.query(sql, (rs, rowNum) -> aggregateResult.apply(rs));
+    } catch (DataAccessException ex) {
+      logger.warn(QUERY_EMPTY_TABLE_ERROR_MESSAGE, ex);
+      return new ArrayList<>();
     }
   }
 

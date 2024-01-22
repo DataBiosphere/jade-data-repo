@@ -39,31 +39,27 @@ import org.springframework.test.context.ActiveProfiles;
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "tps", pactVersion = PactSpecVersion.V3)
 class TpsPactTest {
+  private static final String groupName = "testGroup";
+  private static final Map<String, String> contentTypeJsonHeader = Map.of("Content-Type", "application/json");
   private TpsApi tps;
   private final UUID snapshotId = UUID.randomUUID();
   private final TpsPolicyInput protectedDataPolicy =
       new TpsPolicyInput()
           .namespace(PolicyService.POLICY_NAMESPACE)
           .name(PolicyService.PROTECTED_DATA_POLICY_NAME);
-
-  TpsPaoCreateRequest createPAORequest =
+  private final TpsPaoCreateRequest createPAORequest =
       new TpsPaoCreateRequest()
           .objectId(snapshotId)
           .component(TpsComponent.TDR)
           .objectType(TpsObjectType.SNAPSHOT)
           .attributes(new TpsPolicyInputs().addInputsItem(protectedDataPolicy));
-
-  private final String groupName = "testGroup";
   private final TpsPolicyInput groupConstraintPolicy =
       PolicyService.getGroupConstraintPolicyInput(groupName);
-  TpsPaoUpdateRequest updatePAORequest =
+  private final TpsPaoUpdateRequest updatePAORequest =
       new TpsPaoUpdateRequest()
           .updateMode(PolicyService.UPDATE_MODE)
           .addAttributes(new TpsPolicyInputs().addInputsItem(groupConstraintPolicy));
-
-  static Map<String, String> contentTypeJsonHeader = Map.of("Content-Type", "application/json");
-
-  DslPart createPaoJsonBody =
+  private final DslPart createPaoJsonBody =
       newJsonBody(
               object -> {
                 object.stringType("objectId", snapshotId.toString());
@@ -83,8 +79,7 @@ class TpsPactTest {
                                     })));
               })
           .build();
-
-  DslPart updatePaoJsonBody =
+  private final DslPart updatePaoJsonBody =
       newJsonBody(
               object -> {
                 object.stringType("updateMode", PolicyService.UPDATE_MODE.getValue());

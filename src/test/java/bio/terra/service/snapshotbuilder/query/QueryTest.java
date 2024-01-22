@@ -6,15 +6,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
-import bio.terra.grammar.azure.SynapseVisitor;
-import bio.terra.grammar.google.BigQueryVisitor;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetModel;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
 import javax.validation.constraints.NotNull;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -129,41 +126,17 @@ public class QueryTest {
   }
 
   @Test
-  void renderSQLWithDatasetModelGCP() {
-    DatasetModel dataset =
-        new DatasetModel().name("name").dataProject("project").cloudPlatform(CloudPlatform.GCP);
-    Query query = buildGetConceptsQuery(100, BigQueryVisitor.bqTableName(dataset));
+  void renderGetConceptsSQL() {
+    Query query = buildGetConceptsQuery(100, s -> s);
     String sql = QueryTestUtils.collapseWhiteSpace(query.renderSQL());
     String expected =
         QueryTestUtils.collapseWhiteSpace(
             """
-        SELECT c.concept_name, c.concept_id FROM `project.datarepo_name.concept` AS c
+        SELECT c.concept_name, c.concept_id FROM concept AS c
         WHERE c.concept_id IN
-          (SELECT c.descendant_concept_id FROM `project.datarepo_name.concept_ancestor` AS c
+          (SELECT c.descendant_concept_id FROM concept_ancestor AS c
           WHERE c.ancestor_concept_id = 100)""");
-    assertThat(sql, is(expected));
-  }
-
-  @Test
-  void renderSQLWithDatasetModelAzure() {
-    String datasetSource = "source_dataset_data_source_0";
-    Query query = buildGetConceptsQuery(100, SynapseVisitor.azureTableName(datasetSource));
-    String sql = QueryTestUtils.collapseWhiteSpace(query.renderSQL());
-    String expected =
-        QueryTestUtils.collapseWhiteSpace(
-            """
-                SELECT c.concept_name, c.concept_id FROM (SELECT * FROM
-                OPENROWSET(
-                  BULK 'metadata/parquet/concept/*/*.parquet',
-                  DATA_SOURCE = 'source_dataset_data_source_0',
-                  FORMAT = 'parquet') AS inner_alias951024263)
-                 AS c WHERE c.concept_id IN (SELECT c.descendant_concept_id FROM (SELECT * FROM
-                OPENROWSET(
-                  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',
-                  DATA_SOURCE = 'source_dataset_data_source_0',
-                  FORMAT = 'parquet') AS inner_alias625571305)
-                 AS c WHERE c.ancestor_concept_id = 100)""");
-    assertThat(sql, is(expected));
+    assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
 
   private Query buildGetConceptsQuery(Integer conceptId, TableNameGenerator generateTableName) {

@@ -11,7 +11,7 @@ import java.util.Objects;
 public class SynapseVisitor extends DatasetAwareVisitor {
   private final String sourceDatasetDatasource;
 
-  private static final String azureTableName =
+  private static final String AZURE_TABLE_NAME_TEMPLATE =
       """
           (SELECT * FROM
           OPENROWSET(
@@ -33,9 +33,8 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String tableName = getNameFromContext(ctx.table_name());
     String alias = generateAlias(tableName);
-    String azureTableName = azureTableName(sourceDatasetDatasource).generate(tableName);
-    String azureTableNameAliased = azureTableName + " AS %s\n";
-    return azureTableNameAliased.formatted(alias);
+    return "%s AS %s "
+        .formatted(generateTableName(tableName, sourceDatasetDatasource, "inner" + alias), alias);
   }
 
   @Override
@@ -66,12 +65,15 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   }
 
   public static TableNameGenerator azureTableName(String sourceDatasetDatasource) {
-    return (tableName) -> generateTableName(tableName, sourceDatasetDatasource);
+    return (tableName) -> {
+      String alias = generateAlias(tableName);
+      return generateTableName(tableName, sourceDatasetDatasource, alias);
+    };
   }
 
-  private static String generateTableName(String tableName, String sourceDatasetDatasource) {
-    String alias = generateAlias(tableName);
-    return azureTableName.formatted(
+  private static String generateTableName(
+      String tableName, String sourceDatasetDatasource, String alias) {
+    return AZURE_TABLE_NAME_TEMPLATE.formatted(
         FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
         sourceDatasetDatasource,
         "inner_" + alias);

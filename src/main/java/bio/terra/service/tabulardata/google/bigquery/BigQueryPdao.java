@@ -40,6 +40,7 @@ import org.stringtemplate.v4.ST;
 
 public abstract class BigQueryPdao {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
+
   static void grantReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
       throws InterruptedException {

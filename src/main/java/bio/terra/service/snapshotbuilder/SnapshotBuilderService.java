@@ -2,11 +2,11 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
-import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.EnumerateSnapshotAccessRequest;
+import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -16,29 +16,22 @@ import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
-import com.google.cloud.bigquery.TableResult;
-import java.sql.ResultSet;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import com.google.cloud.bigquery.FieldValueList;
+import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
+import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.sql.ResultSet;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.apache.commons.lang3.NotImplementedException;
@@ -69,19 +62,16 @@ public class SnapshotBuilderService {
     return snapshotRequestDao.create(id, snapshotAccessRequest, email);
   }
 
-  // TODO - replace manual query with query builder
-  // The query builder will handle switching between cloud platforms, so we won't
-  // have this duplicated logic in the final solution.
-  private String buildConceptChildrenQuery(
-      Dataset dataset, int conceptId, AuthenticatedUserRequest userRequest) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
+  private static String buildConceptChildrenQuery(
+      int conceptId, TableNameGenerator tableNameGenerator) {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
     FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
     FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
     FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
 
-    TablePointer tablePointer = TablePointer.fromTableName("concept_ancestor");
+    TablePointer tablePointer = TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "descendant_concept_id");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
@@ -98,48 +88,7 @@ public class SnapshotBuilderService {
             List.of(nameFieldVariable, idFieldVariable),
             List.of(conceptTableVariable),
             subQueryFilterVariable);
-    String sql = query.renderSQL();
-
-    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    if (cloudPlatformWrapper.isGcp()) {
-      var bqTablePrefix =
-          String.format(
-              "%s.%s",
-              dataset.getProjectResource().getGoogleProjectId(),
-              BigQueryPdao.prefixName(dataset.getName()));
-
-      return """
-                  SELECT c.concept_name, c.concept_id FROM `%s.concept` AS c
-                  WHERE c.concept_id IN
-                  (SELECT c.descendant_concept_id FROM `%s.concept_ancestor` AS c
-                  WHERE c.ancestor_concept_id = %d)
-          """
-          .formatted(bqTablePrefix, bqTablePrefix, conceptId);
-    } else if (cloudPlatformWrapper.isAzure()) {
-      String conceptParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath("concept");
-      String conceptAncestorFilePath =
-          IngestUtils.getSourceDatasetParquetFilePath("concept_ancestor");
-
-      String datasourceName =
-          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest);
-      return """
-            SELECT c.concept_name, c.concept_id FROM
-            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias951024263)
-            AS c WHERE c.concept_id IN
-            (SELECT c.descendant_concept_id FROM
-            (SELECT * FROM OPENROWSET(BULK '%s', DATA_SOURCE = '%s', FORMAT = 'parquet') AS alias625571305)
-            AS c WHERE c.ancestor_concept_id = %d)
-          """
-          .formatted(
-              conceptParquetFilePath,
-              datasourceName,
-              conceptAncestorFilePath,
-              datasourceName,
-              conceptId);
-
-    } else {
-      throw new NotImplementedException("Cloud platform not implemented");
-    }
+    return query.renderSQL();
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -159,12 +108,21 @@ public class SnapshotBuilderService {
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
-    // TODO: Build real query - this should get the name and ID from the concept table, the count
-    // from the occurrence table, and the existence of children from the concept_ancestor table.
     Dataset dataset = datasetService.retrieve(datasetId);
-
-    String cloudSpecificSQL = buildConceptChildrenQuery(dataset, conceptId, userRequest);
-
+    String cloudSpecificSQL;
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      DatasetModel datasetModel = datasetService.retrieveDatasetModel(datasetId, userRequest);
+      cloudSpecificSQL =
+          buildConceptChildrenQuery(conceptId, BigQueryVisitor.bqTableName(datasetModel));
+    } else if (cloudPlatformWrapper.isAzure()) {
+      String datasourceName =
+          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest);
+      cloudSpecificSQL =
+          buildConceptChildrenQuery(conceptId, SynapseVisitor.azureTableName(datasourceName));
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSQL,

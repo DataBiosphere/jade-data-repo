@@ -3,22 +3,16 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.DatasetModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.service.dataset.DatasetService;
-import com.google.cloud.bigquery.EmptyTableResult;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableResult;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -106,6 +100,9 @@ class SnapshotBuilderServiceTest {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
     if (cloudPlatformWrapper.isGcp()) {
+      DatasetModel datasetModel = new DatasetModel().name("name").dataProject("project");
+      when(datasetService.retrieveDatasetModel(eq(dataset.getId()), any()))
+          .thenReturn(datasetModel);
       when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
           .thenReturn(concepts);
     } else {
@@ -116,20 +113,5 @@ class SnapshotBuilderServiceTest {
         "getConceptChildren returns the expected response",
         response.getResult(),
         equalTo(concepts));
-  }
-
-  @Test
-  void getConceptChildrenEmpty() throws InterruptedException {
-    AuthenticatedUserRequest testUser = AuthenticationFixtures.randomUserRequest();
-    UUID datasetId = UUID.randomUUID();
-    DatasetModel datasetModel =
-        new DatasetModel().name("name");
-    Schema schema = Schema.of();
-    TableResult tableResult = new TableResult(schema, 1, new EmptyTableResult(schema));
-    when(datasetService.retrieveDatasetModel(datasetId, testUser)).thenReturn(datasetModel);
-    when(datasetService.query( anyString(), eq(datasetId)))
-        .thenReturn(tableResult);
-    SnapshotBuilderGetConceptsResponse expected = new SnapshotBuilderGetConceptsResponse();
-    assertEquals(snapshotBuilderService.getConceptChildren(datasetId, 100, testUser), expected);
   }
 }

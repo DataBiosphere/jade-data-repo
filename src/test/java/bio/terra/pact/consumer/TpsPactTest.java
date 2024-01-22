@@ -40,7 +40,8 @@ import org.springframework.test.context.ActiveProfiles;
 @PactTestFor(providerName = "tps", pactVersion = PactSpecVersion.V3)
 class TpsPactTest {
   private static final String groupName = "testGroup";
-  private static final Map<String, String> contentTypeJsonHeader = Map.of("Content-Type", "application/json");
+  private static final Map<String, String> contentTypeJsonHeader =
+      Map.of("Content-Type", "application/json");
   private TpsApi tps;
   private final UUID snapshotId = UUID.randomUUID();
   private final TpsPolicyInput protectedDataPolicy =

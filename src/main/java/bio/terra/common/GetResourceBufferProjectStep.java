@@ -2,13 +2,18 @@ package bio.terra.common;
 
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.service.resourcemanagement.BufferService;
+import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
+import bio.terra.service.resourcemanagement.exception.BufferServiceAuthorizationException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 
 public class GetResourceBufferProjectStep implements Step {
   private final Logger logger = LoggerFactory.getLogger(GetResourceBufferProjectStep.class);
@@ -29,12 +34,29 @@ public class GetResourceBufferProjectStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
-    ResourceInfo resource = bufferService.handoutResource(enableSecureMonitoring);
-    String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
-    logger.info("Retrieved project from RBS with ID: {}", projectId);
+    try {
+      ResourceInfo resource = bufferService.handoutResource(enableSecureMonitoring);
+      String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+      logger.info("Retrieved project from RBS with ID: {}", projectId);
 
-    workingMap.put(ProjectCreatingFlightKeys.GOOGLE_PROJECT_ID, projectId);
-    return StepResult.getStepResultSuccess();
+      workingMap.put(ProjectCreatingFlightKeys.GOOGLE_PROJECT_ID, projectId);
+      return StepResult.getStepResultSuccess();
+    } catch (BufferServiceAPIException e) {
+      // The NOT_FOUND status code indicates that Buffer Service is still creating a project and we
+      // must retry. Retrying TOO_MANY_REQUESTS gives the service time to recover from load.
+      if (e.getStatusCode() == HttpStatus.NOT_FOUND
+          || e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
+      }
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+    } catch (BufferServiceAuthorizationException e) {
+      // If authorization fails, there is no recovering
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+    } catch (GoogleResourceException e) {
+      // thrown on error when refoldering project
+      // We can consider retrying this if needed
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+    }
   }
 
   @Override

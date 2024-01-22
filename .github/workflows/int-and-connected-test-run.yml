@@ -201,8 +201,8 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.582
-          helm_datarepo_ui_chart_version: 0.0.302
+          helm_datarepo_api_chart_version: 0.0.589
+          helm_datarepo_ui_chart_version: 0.0.306
           helm_gcloud_sqlproxy_chart_version: 0.19.9
           helm_oidc_proxy_chart_version: 0.0.42
       - name: "Fetch gitHash for deployed integration version"

@@ -58,6 +58,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -1852,5 +1853,17 @@ public class DataRepoFixtures {
                 Objects.requireNonNullElse(offset, 0), Objects.requireNonNullElse(limit, 10));
     return dataRepoClient.get(
         user, "/api/repository/v1/jobs" + queryParams, new TypeReference<>() {});
+  }
+
+  public SnapshotBuilderGetConceptsResponse getConcepts(
+      TestConfiguration.User user, UUID datasetId, int conceptId) throws Exception {
+    DataRepoResponse<SnapshotBuilderGetConceptsResponse> response =
+        dataRepoClient.get(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/concepts/" + conceptId,
+            new TypeReference<>() {});
+    assertThat("get concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("concept response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
   }
 }

@@ -13,19 +13,19 @@ class TableVariableTest {
 
   @Test
   void renderSQLForPrimary() {
-    TableVariable tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
+    TableVariable tableVariable = TableVariable.forPrimary(QueryTestUtils.fromTableName("table"));
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(tableVariable.renderSQL(), equalToIgnoringCase("table as t"));
   }
 
   @Test
   void renderSQLForJoined() {
-    TablePointer parentTable = TablePointer.fromTableName("parentTable");
+    TablePointer parentTable = QueryTestUtils.fromTableName("parentTable");
     TableVariable parentTableVariable = TableVariable.forPrimary(parentTable);
     FieldVariable joinFieldOnParent =
         new FieldVariable(
             new FieldPointer(parentTable, "parentJoinField"), parentTableVariable, null);
-    TablePointer tablePointer = TablePointer.fromTableName("table");
+    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
     TableVariable tableVariable =
         TableVariable.forJoined(tablePointer, "joinField", joinFieldOnParent);
     TableVariable.generateAliases(List.of(tableVariable, parentTableVariable));

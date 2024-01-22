@@ -199,7 +199,7 @@ public class DatasetsApiController implements DatasetsApi {
         IamResourceType.DATASET,
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId));
+    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId, userRequest));
   }
 
   @Override

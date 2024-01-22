@@ -55,6 +55,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
@@ -218,7 +219,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE, false, region);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE, false, region);
     datasetId = summaryModel.getId();
     String storageAccountName = recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     logger.info("dataset id is " + summaryModel.getId());
@@ -326,7 +327,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Create and delete a dataset and make sure that the profile still can't be deleted
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
-            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
@@ -343,6 +344,48 @@ public class AzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
+  private void ingestOmopTable(String tableName, String ingestFile, long expectedRowCount)
+      throws Exception {
+    List<Map<String, Object>> data;
+    try {
+      data = jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
+    } catch (Exception e) {
+      throw new RuntimeException("Error building ingest request", e);
+    }
+    var ingestRequestArray =
+        dataRepoFixtures
+            .buildSimpleIngest(tableName, data)
+            .profileId(profileId)
+            .ignoreUnknownValues(true);
+    var ingestResult = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestArray);
+    assertThat("row count matches", ingestResult.getRowCount(), equalTo(expectedRowCount));
+  }
+
+  private void populateOmopTable() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
+
+    // Ingest Tabular data
+    ingestOmopTable("concept", "omop/concept-table-data.json", 3);
+    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+  }
+
+  @Test
+  public void testSnapshotBuilder() throws Exception {
+    populateOmopTable();
+
+    // Test getConcepts
+    var conceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
+    List<String> conceptNames =
+        conceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    assertThat("Correct number of concepts are returned", conceptNames.size(), equalTo(2));
+    assertThat(
+        "expected concepts are returned", conceptNames, containsInAnyOrder("concept1", "concept3"));
+  }
+
   @Test
   public void datasetIngestFileHappyPath() throws Exception {
     String blobName = "myBlob";
@@ -351,7 +394,7 @@ public class AzureIntegrationTest extends UsersBase {
     String sourceFileGcs = gcsBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
@@ -751,7 +794,7 @@ public class AzureIntegrationTest extends UsersBase {
             datasetSchema.getTables().stream()
                 .filter(t -> t.getName().equals(table.getName()))
                 .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
-                .collect(Collectors.toList()));
+                .toList());
         tableModel.setRowIds(
             dataRepoFixtures
                 .getRowIds(
@@ -1187,7 +1230,7 @@ public class AzureIntegrationTest extends UsersBase {
     String sourceFile = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
     BulkLoadFileModel fileLoadModel =
@@ -1530,7 +1573,7 @@ public class AzureIntegrationTest extends UsersBase {
       List<Map<String, Object>> data =
           Arrays.stream(controlFileContents.split("\\n"))
               .map(j -> jsonLoader.loadJson(j, new TypeReference<Map<String, Object>>() {}))
-              .collect(Collectors.toList());
+              .toList();
       ingestRequest
           .records(Arrays.asList(data.toArray()))
           .format(IngestRequestModel.FormatEnum.ARRAY);

@@ -14,7 +14,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage;
 import java.util.List;
 import java.util.UUID;
-import liquibase.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

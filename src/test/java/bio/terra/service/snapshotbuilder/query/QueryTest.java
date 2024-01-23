@@ -128,14 +128,13 @@ public class QueryTest {
   @Test
   void renderGetConceptsSQL() {
     Query query = buildGetConceptsQuery(100, s -> s);
-    String sql = QueryTestUtils.collapseWhiteSpace(query.renderSQL());
+    String sql = query.renderSQL();
     String expected =
-        QueryTestUtils.collapseWhiteSpace(
-            """
+        """
         SELECT c.concept_name, c.concept_id FROM concept AS c
         WHERE c.concept_id IN
           (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-          WHERE c.ancestor_concept_id = 100)""");
+          WHERE c.ancestor_concept_id = 100)""";
     assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
 

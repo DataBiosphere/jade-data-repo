@@ -34,7 +34,7 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     String tableName = getNameFromContext(ctx.table_name());
     String alias = generateAlias(tableName);
     return "%s AS %s "
-        .formatted(generateTableName(tableName, sourceDatasetDatasource, "inner" + alias), alias);
+        .formatted(generateTableName(tableName, sourceDatasetDatasource, alias), alias);
   }
 
   @Override

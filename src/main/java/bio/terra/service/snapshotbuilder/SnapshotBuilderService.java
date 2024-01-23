@@ -10,19 +10,10 @@ import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
-import bio.terra.service.snapshotbuilder.query.FieldVariable;
-import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -76,68 +67,11 @@ public class SnapshotBuilderService {
 
   public int getRollupCountForCriteriaGroups(
       UUID datasetId, List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
-    Query query = generateRollupCountsQueryForCriteriaGroupsList(criteriaGroupsList);
+    Query query =
+        new CriteriaQueryBuilder()
+            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroupsList);
     query.renderSQL();
     return 5;
-  }
-
-  @NotNull
-  private Query generateRollupCountsQueryForCriteriaGroupsList(
-      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
-    TablePointer tablePointer = TablePointer.fromTableName("person");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-
-    FieldVariable personId = makePersonCountVariable();
-    FilterVariable filterVariable =
-        new BooleanAndOrFilterVariable(
-            BooleanAndOrFilterVariable.LogicalOperator.OR,
-            criteriaGroupsList.stream()
-                .map(this::generateFilterForCriteriaGroups)
-                .collect(Collectors.toList()));
-
-    List<TableVariable> tables =
-        Stream.of(List.of(tableVariable), filterVariable.getTables())
-            .flatMap(List::stream)
-            .distinct()
-            .toList();
-    return new Query(List.of(personId), tables, filterVariable);
-  }
-
-  private FilterVariable generateFilterForCriteriaGroups(
-      List<SnapshotBuilderCriteriaGroup> criteriaGroups) {
-    return new BooleanAndOrFilterVariable(
-        BooleanAndOrFilterVariable.LogicalOperator.AND,
-        criteriaGroups.stream()
-            .map(this::generateFilterForCriteriaGroup)
-            .collect(Collectors.toList()));
-  }
-
-  private FilterVariable generateFilterForCriteriaGroup(
-      SnapshotBuilderCriteriaGroup criteriaGroup) {
-    if (criteriaGroup.isMustMeet()) {
-      return generateAndOrFilterForCriteriaGroup(criteriaGroup);
-    } else {
-      return new NotFilterVariable(generateAndOrFilterForCriteriaGroup(criteriaGroup));
-    }
-  }
-
-  private FilterVariable generateAndOrFilterForCriteriaGroup(
-      SnapshotBuilderCriteriaGroup criteriaGroup) {
-    return new BooleanAndOrFilterVariable(
-        criteriaGroup.isMeetAll()
-            ? BooleanAndOrFilterVariable.LogicalOperator.AND
-            : BooleanAndOrFilterVariable.LogicalOperator.OR,
-        criteriaGroup.getCriteria().stream()
-            .map(CriteriaQueryUtils::generateFilterForCriteria)
-            .collect(Collectors.toList()));
-  }
-
-  private FieldVariable makePersonCountVariable() {
-    TablePointer tablePointer = TablePointer.fromTableName("person");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-
-    return new FieldVariable(
-        new FieldPointer(tablePointer, "person_id", "COUNT"), tableVariable, null, true);
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(

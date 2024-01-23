@@ -2,6 +2,7 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.model.SnapshotBuilderCriteria;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
@@ -15,48 +16,62 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.arrow.util.VisibleForTesting;
 
-public class CriteriaQueryUtils {
-  @VisibleForTesting
-  public static BooleanAndOrFilterVariable generateFilterForRangeCriteria(
-      SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
-    TablePointer tablePointer = TablePointer.fromTableName("person");
+public class CriteriaQueryBuilder {
+  public static final String ROOT_TABLE_NAME = "person";
+  final Map<String, TableVariable> tables = new HashMap<>();
+
+  CriteriaQueryBuilder() {
+    TablePointer tablePointer = TablePointer.fromTableName(ROOT_TABLE_NAME);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    tables.put(ROOT_TABLE_NAME, tableVariable);
+  }
+
+  private TablePointer getRootTablePointer() {
+    return getRootTableVariable().getTablePointer();
+  }
+
+  private TableVariable getRootTableVariable() {
+    return tables.get(ROOT_TABLE_NAME);
+  }
+
+  @VisibleForTesting
+  public BooleanAndOrFilterVariable generateFilterForRangeCriteria(
+      SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
     return new BooleanAndOrFilterVariable(
         BooleanAndOrFilterVariable.LogicalOperator.AND,
         List.of(
             new BinaryFilterVariable(
                 new FieldVariable(
-                    new FieldPointer(tablePointer, rangeCriteria.getName()), tableVariable),
+                    new FieldPointer(getRootTablePointer(), rangeCriteria.getName()),
+                    getRootTableVariable()),
                 BinaryFilterVariable.BinaryOperator.GREATER_THAN_OR_EQUAL,
-                new Literal(rangeCriteria.getLow().doubleValue())),
+                new Literal(rangeCriteria.getLow().intValue())),
             new BinaryFilterVariable(
                 new FieldVariable(
-                    new FieldPointer(tablePointer, rangeCriteria.getName()), tableVariable),
+                    new FieldPointer(getRootTablePointer(), rangeCriteria.getName()),
+                    getRootTableVariable()),
                 BinaryFilterVariable.BinaryOperator.LESS_THAN_OR_EQUAL,
-                new Literal(rangeCriteria.getHigh().doubleValue()))));
+                new Literal(rangeCriteria.getHigh().intValue()))));
   }
 
   @VisibleForTesting
-  public static FunctionFilterVariable generateFilterForListCriteria(
+  public FunctionFilterVariable generateFilterForListCriteria(
       SnapshotBuilderProgramDataListCriteria listCriteria) {
-    TablePointer tablePointer = TablePointer.fromTableName("person");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-    TablePointer conceptPointer = TablePointer.fromTableName("concept");
-    TableVariable conceptPointerVariable =
-        TableVariable.forJoined(
-            conceptPointer,
-            "concept_id",
-            new FieldVariable(
-                new FieldPointer(tablePointer, listCriteria.getName()), tableVariable));
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
-        new FieldVariable(new FieldPointer(conceptPointer, "concept_id"), conceptPointerVariable),
+        new FieldVariable(
+            new FieldPointer(getRootTablePointer(), listCriteria.getName()),
+            getRootTableVariable()),
         listCriteria.getValues().stream()
-            .map(value -> new Literal(value.doubleValue()))
+            .map(value -> new Literal(value.intValue()))
             .toArray(Literal[]::new));
   }
 
@@ -79,11 +94,8 @@ public class CriteriaQueryUtils {
   }
 
   @VisibleForTesting
-  public static SubQueryFilterVariable generateFilterForDomainCriteria(
+  public SubQueryFilterVariable generateFilterForDomainCriteria(
       SnapshotBuilderDomainCriteria domainCriteria) {
-    TablePointer tablePointer = TablePointer.fromTableName("person");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-
     OccurrenceTable occurrenceTable = getOccurrenceTableFromDomainCriteria(domainCriteria);
 
     TablePointer occurrencePointer = TablePointer.fromTableName(occurrenceTable.tableName());
@@ -99,7 +111,8 @@ public class CriteriaQueryUtils {
                 occurrenceVariable));
 
     return new SubQueryFilterVariable(
-        new FieldVariable(new FieldPointer(tablePointer, "person_id"), tableVariable),
+        new FieldVariable(
+            new FieldPointer(getRootTablePointer(), "person_id"), getRootTableVariable()),
         SubQueryFilterVariable.Operator.IN,
         new Query(
             List.of(
@@ -114,16 +127,16 @@ public class CriteriaQueryUtils {
                             new FieldPointer(occurrencePointer, occurrenceTable.idColumnName()),
                             occurrenceVariable),
                         BinaryFilterVariable.BinaryOperator.EQUALS,
-                        new Literal(domainCriteria.getId().doubleValue())),
+                        new Literal(domainCriteria.getId().intValue())),
                     new BinaryFilterVariable(
                         new FieldVariable(
                             new FieldPointer(ancestorPointer, "ancestor_concept_id"),
                             ancestorVariable),
                         BinaryFilterVariable.BinaryOperator.EQUALS,
-                        new Literal(domainCriteria.getId().doubleValue()))))));
+                        new Literal(domainCriteria.getId().intValue()))))));
   }
 
-  public static FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
+  public FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
     switch (criteria.getKind()) {
       case LIST -> {
         SnapshotBuilderProgramDataListCriteria listCriteria =
@@ -142,5 +155,53 @@ public class CriteriaQueryUtils {
       default -> throw new BadRequestException(
           String.format("Criteria kind %s not one of: domain, range, list", criteria.getKind()));
     }
+  }
+
+  public FilterVariable generateAndOrFilterForCriteriaGroup(
+      SnapshotBuilderCriteriaGroup criteriaGroup) {
+    return new BooleanAndOrFilterVariable(
+        criteriaGroup.isMeetAll()
+            ? BooleanAndOrFilterVariable.LogicalOperator.AND
+            : BooleanAndOrFilterVariable.LogicalOperator.OR,
+        criteriaGroup.getCriteria().stream()
+            .map(this::generateFilterForCriteria)
+            .collect(Collectors.toList()));
+  }
+
+  public FilterVariable generateFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
+    if (criteriaGroup.isMustMeet()) {
+      return generateAndOrFilterForCriteriaGroup(criteriaGroup);
+    } else {
+      return new NotFilterVariable(generateAndOrFilterForCriteriaGroup(criteriaGroup));
+    }
+  }
+
+  public FilterVariable generateFilterForCriteriaGroups(
+      List<SnapshotBuilderCriteriaGroup> criteriaGroups) {
+    return new BooleanAndOrFilterVariable(
+        BooleanAndOrFilterVariable.LogicalOperator.AND,
+        criteriaGroups.stream()
+            .map(this::generateFilterForCriteriaGroup)
+            .collect(Collectors.toList()));
+  }
+
+  public Query generateRollupCountsQueryForCriteriaGroupsList(
+      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
+
+    FieldVariable personId =
+        new FieldVariable(
+            new FieldPointer(getRootTablePointer(), "person_id", "COUNT"),
+            getRootTableVariable(),
+            null,
+            true);
+    ;
+    FilterVariable filterVariable =
+        new BooleanAndOrFilterVariable(
+            BooleanAndOrFilterVariable.LogicalOperator.OR,
+            criteriaGroupsList.stream()
+                .map(this::generateFilterForCriteriaGroups)
+                .collect(Collectors.toList()));
+
+    return new Query(List.of(personId), List.of(getRootTableVariable()), filterVariable);
   }
 }

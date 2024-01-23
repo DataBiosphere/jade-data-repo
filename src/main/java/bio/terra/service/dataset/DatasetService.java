@@ -86,7 +86,6 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.TableResult;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -835,10 +834,5 @@ public class DatasetService {
               }
             })
         .collect(Collectors.toList());
-  }
-
-  public TableResult query(String bqSQL, UUID datasetId) throws InterruptedException {
-    Dataset dataset = datasetDao.retrieve(datasetId);
-    return bigQueryDatasetPdao.query(bqSQL, dataset);
   }
 }

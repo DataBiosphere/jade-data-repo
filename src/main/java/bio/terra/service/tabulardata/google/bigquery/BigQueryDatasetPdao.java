@@ -89,11 +89,6 @@ public class BigQueryDatasetPdao {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryDatasetPdao.class);
 
-  public TableResult query(String sql, Dataset dataset) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
-    return bigQueryProject.query(sql);
-  }
-
   public void createDataset(Dataset dataset) throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
     BigQuery bigQuery = bigQueryProject.getBigQuery();

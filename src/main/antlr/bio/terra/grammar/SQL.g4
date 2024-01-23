@@ -7,8 +7,7 @@ grammar SQL;
 // includes EOF in order to match the entire input
 query_statement: query_expr EOF;
 
-query_expr: select_statement limit_clause? |
-            '(' select_statement limit_clause? ')';
+query_expr: select_statement limit_clause?;
 
 select_statement: SELECT (ALL | DISTINCT)?
     ( ( expr? '.'? '*' (except_statement)? ) | expr (AS? alias_name)? ) ( ',' ( ( expr?  '*' (except_statement)? ) | expr (AS? alias_name)? ) )*

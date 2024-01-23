@@ -28,4 +28,23 @@ class SynapseVisitorTest {
         fullTableName,
         Matchers.equalToCompressingWhiteSpace(expected));
   }
+
+  @Test
+  void azureTableNameNull() {
+    String datasetSource = null;
+    String tableName = null;
+    String fullTableName = SynapseVisitor.azureTableName(datasetSource).generate(tableName);
+    String expected =
+        """
+          (SELECT * FROM
+          OPENROWSET(
+            BULK 'metadata/parquet/null/*/*.parquet',
+            DATA_SOURCE = 'null',
+            FORMAT = 'parquet') AS inner_alias31)
+          """;
+    assertThat(
+        "the expected table name and alias have been generated.",
+        fullTableName,
+        Matchers.equalToCompressingWhiteSpace(expected));
+  }
 }

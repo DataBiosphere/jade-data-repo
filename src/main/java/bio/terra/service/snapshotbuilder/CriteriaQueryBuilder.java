@@ -28,6 +28,24 @@ public class CriteriaQueryBuilder {
   public static final String ROOT_TABLE_NAME = "person";
   final Map<String, TableVariable> tables = new HashMap<>();
 
+  private static Map<String, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
+      Map.of(
+          "Condition", new OccurrenceTable("condition_occurrence", "condition_concept_id"),
+          "Measurement", new OccurrenceTable("measurement", "measurement_concept_id"),
+          "Visit", new OccurrenceTable("visit_occurrence", "visit_concept_id"),
+          "Procedure", new OccurrenceTable("procedure_occurrence", "procedure_concept_id"),
+          "Observation", new OccurrenceTable("observation", "observation_concept_id"),
+          "Device", new OccurrenceTable("device_exposure", "device_concept_id"),
+          "Drug", new OccurrenceTable("drug_exposure", "drug_concept_id"));
+
+  private static OccurrenceTable getOccurrenceTableFromDomain(String domain) {
+    OccurrenceTable occurrenceTable = DOMAIN_TO_OCCURRENCE_TABLE.get(domain);
+    if (occurrenceTable == null) {
+      throw new BadRequestException(String.format("Domain %s is not found in dataset", domain));
+    }
+    return occurrenceTable;
+  }
+
   CriteriaQueryBuilder() {
     TablePointer tablePointer = TablePointer.fromTableName(ROOT_TABLE_NAME);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
@@ -77,26 +95,10 @@ public class CriteriaQueryBuilder {
 
   private record OccurrenceTable(String tableName, String idColumnName) {}
 
-  private static OccurrenceTable getOccurrenceTableFromDomainCriteria(
-      SnapshotBuilderDomainCriteria domainCriteria) {
-    // TODO: Load this information from snapshot builder settings, rather than hardcode
-    return switch (domainCriteria.getDomainName()) {
-      case "Condition" -> new OccurrenceTable("condition_occurrence", "condition_concept_id");
-      case "Measurement" -> new OccurrenceTable("measurement", "measurement_concept_id");
-      case "Visit" -> new OccurrenceTable("visit_occurrence", "visit_concept_id");
-      case "Procedure" -> new OccurrenceTable("procedure_occurrence", "procedure_concept_id");
-      case "Observation" -> new OccurrenceTable("observation", "observation_concept_id");
-      case "Device" -> new OccurrenceTable("device_exposure", "device_concept_id");
-      case "Drug" -> new OccurrenceTable("drug_exposure", "drug_concept_id");
-      default -> throw new BadRequestException(
-          String.format("Domain %s is not found in dataset", domainCriteria.getDomainName()));
-    };
-  }
-
   @VisibleForTesting
   public SubQueryFilterVariable generateFilterForDomainCriteria(
       SnapshotBuilderDomainCriteria domainCriteria) {
-    OccurrenceTable occurrenceTable = getOccurrenceTableFromDomainCriteria(domainCriteria);
+    OccurrenceTable occurrenceTable = getOccurrenceTableFromDomain(domainCriteria.getDomainName());
 
     TablePointer occurrencePointer = TablePointer.fromTableName(occurrenceTable.tableName());
     TableVariable occurrenceVariable = TableVariable.forPrimary(occurrencePointer);
@@ -137,24 +139,12 @@ public class CriteriaQueryBuilder {
   }
 
   public FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
-    switch (criteria.getKind()) {
-      case LIST -> {
-        SnapshotBuilderProgramDataListCriteria listCriteria =
-            (SnapshotBuilderProgramDataListCriteria) criteria;
-        return generateFilterForListCriteria(listCriteria);
-      }
-      case RANGE -> {
-        SnapshotBuilderProgramDataRangeCriteria rangeCriteria =
-            (SnapshotBuilderProgramDataRangeCriteria) criteria;
-        return generateFilterForRangeCriteria(rangeCriteria);
-      }
-      case DOMAIN -> {
-        SnapshotBuilderDomainCriteria domainCriteria = (SnapshotBuilderDomainCriteria) criteria;
-        return generateFilterForDomainCriteria(domainCriteria);
-      }
-      default -> throw new BadRequestException(
-          String.format("Criteria kind %s not one of: domain, range, list", criteria.getKind()));
-    }
+    return switch (criteria.getKind()) {
+      case LIST -> generateFilterForListCriteria((SnapshotBuilderProgramDataListCriteria) criteria);
+      case RANGE -> generateFilterForRangeCriteria(
+          (SnapshotBuilderProgramDataRangeCriteria) criteria);
+      case DOMAIN -> generateFilterForDomainCriteria((SnapshotBuilderDomainCriteria) criteria);
+    };
   }
 
   public FilterVariable generateAndOrFilterForCriteriaGroup(

@@ -19,11 +19,7 @@ public record BooleanAndOrFilterVariable(
 
   @Override
   public List<TableVariable> getTables() {
-    return subFilters.stream()
-        .map(FilterVariable::getTables)
-        .flatMap(List::stream)
-        .distinct()
-        .toList();
+    return subFilters.stream().map(FilterVariable::getTables).flatMap(List::stream).toList();
   }
 
   public enum LogicalOperator implements SqlExpression {

@@ -56,10 +56,6 @@ class TpsPactTest {
           .updateMode(PolicyService.UPDATE_MODE)
           .addAttributes(new TpsPolicyInputs().addInputsItem(groupConstraintPolicy));
 
-  private String createPaoProtectedDataJson;
-  private String createPaoGroupConstraintJson;
-  private String updatePaoJson;
-
   ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
   @BeforeEach
@@ -108,12 +104,11 @@ class TpsPactTest {
   RequestResponsePact updatePao(PactDslWithProvider builder) throws JsonProcessingException {
     String updatePaoJson = mapper.writeValueAsString(updatePAORequest);
     return builder
-        .given(
-            "a PAO with a protected-data policy exists for this snapshot",
-            Map.of("id", snapshotId.toString()))
+        .given("a PAO with a protected-data policy exists for this snapshot")
         .uponReceiving("update snapshot PAO with group constraint policy")
         .method("PATCH")
-        .path("/api/policy/v1alpha1/pao/" + snapshotId)
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
         .body(updatePaoJson)
         .headers(contentTypeJsonHeader)
         .willRespondWith()
@@ -127,12 +122,11 @@ class TpsPactTest {
       throws JsonProcessingException {
     String updatePaoJson = mapper.writeValueAsString(updatePAORequest);
     return builder
-        .given(
-            "a PAO with a group constraint policy exists for this snapshot",
-            Map.of("id", snapshotId.toString()))
+        .given("a PAO with a group constraint policy exists for this snapshot")
         .uponReceiving("update snapshot PAO with duplicate group constraint policy")
         .method("PATCH")
-        .path("/api/policy/v1alpha1/pao/" + snapshotId)
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
         .body(updatePaoJson)
         .headers(contentTypeJsonHeader)
         .willRespondWith()
@@ -143,10 +137,11 @@ class TpsPactTest {
   @Pact(consumer = "datarepo")
   RequestResponsePact deletePao(PactDslWithProvider builder) {
     return builder
-        .given("a PAO with this id exists", Map.of("id", snapshotId.toString()))
+        .given("a PAO with this id exists")
         .uponReceiving("delete PAO")
         .method("DELETE")
-        .path("/api/policy/v1alpha1/pao/" + snapshotId)
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
         .willRespondWith()
         .status(200)
         .toPact();
@@ -155,10 +150,11 @@ class TpsPactTest {
   @Pact(consumer = "datarepo")
   RequestResponsePact deletePaoThatDoesNotExist(PactDslWithProvider builder) {
     return builder
-        .given("a PAO with this id does not exist", Map.of("id", snapshotId.toString()))
+        .given("a PAO with this id does not exist")
         .uponReceiving("delete non-existent PAO")
         .method("DELETE")
-        .path("/api/policy/v1alpha1/pao/" + snapshotId)
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
         .willRespondWith()
         .status(404)
         .toPact();

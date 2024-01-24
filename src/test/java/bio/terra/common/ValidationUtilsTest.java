@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import bio.terra.common.category.Unit;
 import java.util.Arrays;
 import java.util.Collections;
-import liquibase.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.test.context.ActiveProfiles;

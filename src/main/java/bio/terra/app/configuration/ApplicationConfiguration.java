@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
@@ -117,9 +118,6 @@ public class ApplicationConfiguration {
 
   /** Sizes of batches of query results from firestore */
   private int firestoreQueryBatchSize;
-
-  /** Maximum number of DRS lookup requests allowed */
-  private int maxDrsLookups;
 
   /** Time in seconds of auth cache timeout */
   private int authCacheTimeoutSeconds;
@@ -316,18 +314,6 @@ public class ApplicationConfiguration {
     this.firestoreQueryBatchSize = firestoreQueryBatchSize;
   }
 
-  /*
-   * WARNING: if making any changes to these methods make sure to notify the #dsp-batch channel! Describe the change
-   * and any consequences downstream to DRS clients.
-   */
-  public int getMaxDrsLookups() {
-    return maxDrsLookups;
-  }
-
-  public void setMaxDrsLookups(int maxDrsLookups) {
-    this.maxDrsLookups = maxDrsLookups;
-  }
-
   public int getAuthCacheTimeoutSeconds() {
     return authCacheTimeoutSeconds;
   }
@@ -429,7 +415,7 @@ public class ApplicationConfiguration {
   }
 
   @Bean("tdrServiceAccountEmail")
-  public String tdrServiceAccountEmail() throws IOException {
+  public @Nullable String tdrServiceAccountEmail() throws IOException {
     GoogleCredentials defaultCredentials = GoogleCredentials.getApplicationDefault();
     if (defaultCredentials instanceof ServiceAccountCredentials) {
       return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();

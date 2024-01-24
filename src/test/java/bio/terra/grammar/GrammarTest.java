@@ -11,6 +11,7 @@ import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.grammar.exception.MissingDatasetException;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.DatasetModel;
+import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -146,8 +147,15 @@ public class GrammarTest {
         Query.parse(
             "SELECT vocabulary.datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary.vocabulary_id IN ('1')");
     String expectedQuery =
-        "SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/vocabulary/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339\n WHERE alias927641339.vocabulary_id IN ( '1' )";
-    String translatedQuery = query.translateSql(synapseVisitor);
+        QueryTestUtils.collapseWhiteSpace(
+            """
+    SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM
+    OPENROWSET(
+      BULK 'metadata/parquet/vocabulary/*/*.parquet',
+      DATA_SOURCE = 'sourceDatasetDataSourceName1',
+      FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
+    WHERE alias927641339.vocabulary_id IN ( '1' )""");
+    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
     assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
   }
 
@@ -159,8 +167,14 @@ public class GrammarTest {
         Query.parse(
             "SELECT datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary_id IN ('1')");
     String expectedQuery =
-        "SELECT datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/vocabulary/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339\n WHERE vocabulary_id IN ( '1' )";
-    String translatedQuery = query.translateSql(synapseVisitor);
+        QueryTestUtils.collapseWhiteSpace(
+            """
+      SELECT datarepo_row_id FROM (SELECT * FROM OPENROWSET(
+        BULK 'metadata/parquet/vocabulary/*/*.parquet',
+        DATA_SOURCE = 'sourceDatasetDataSourceName1',
+        FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
+      WHERE vocabulary_id IN ( '1' )""");
+    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
     assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
   }
 
@@ -171,9 +185,16 @@ public class GrammarTest {
     Query query =
         Query.parse(
             "SELECT it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.datarepo_row_id FROM it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary  WHERE (it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.vocabulary_id IN (\"1\"))");
-    String translatedQuery = query.translateSql(synapseVisitor);
+    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
     String expectedQuery =
-        "SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/vocabulary/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339\n WHERE ( alias927641339.vocabulary_id IN ( '1' ) )";
+        QueryTestUtils.collapseWhiteSpace(
+            """
+     SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM
+     OPENROWSET(
+       BULK 'metadata/parquet/vocabulary/*/*.parquet',
+       DATA_SOURCE = 'sourceDatasetDataSourceName1',
+         FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
+          WHERE ( alias927641339.vocabulary_id IN ( '1' ) )""");
     assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
   }
 
@@ -184,9 +205,23 @@ public class GrammarTest {
     String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
     Query query = Query.parse(userQuery);
-    String translatedQuery = query.translateSql(synapseVisitor);
+    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
     String expectedQuery =
-        "SELECT alias236785828.datarepo_row_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/variant/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias236785828) AS alias236785828\n JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/ancestry_specific_meta_analysis/*/*.parquet',\n  DATA_SOURCE = 'sourceDatasetDataSourceName1',\n  FORMAT = 'parquet') AS inner_alias1748223664) AS alias1748223664\n ON alias1748223664.variant_id = alias236785828.id WHERE alias1748223664.variant_id IN ( '1:104535993:T:C' )";
+        QueryTestUtils.collapseWhiteSpace(
+            """
+    SELECT alias236785828.datarepo_row_id FROM (SELECT * FROM
+    OPENROWSET(
+       BULK 'metadata/parquet/variant/*/*.parquet',
+       DATA_SOURCE = 'sourceDatasetDataSourceName1',
+       FORMAT = 'parquet') AS inner_alias236785828)
+     AS alias236785828
+     JOIN (SELECT * FROM
+      OPENROWSET(
+        BULK 'metadata/parquet/ancestry_specific_meta_analysis/*/*.parquet',
+        DATA_SOURCE = 'sourceDatasetDataSourceName1',
+        FORMAT = 'parquet') AS inner_alias1748223664)
+     AS alias1748223664
+     ON alias1748223664.variant_id = alias236785828.id WHERE alias1748223664.variant_id IN ( '1:104535993:T:C' )""");
     assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
   }
 

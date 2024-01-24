@@ -7,7 +7,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -19,8 +19,8 @@ class BooleanAndOrFilterVariableTest {
   private final BooleanAndOrFilterVariable variable;
 
   BooleanAndOrFilterVariableTest() {
-    TableVariable table1 = TableVariable.forPrimary(TablePointer.fromTableName("table1"));
-    TableVariable table2 = TableVariable.forPrimary(TablePointer.fromTableName("table2"));
+    TableVariable table1 = TableVariable.forPrimary(QueryTestUtils.fromTableName("table1"));
+    TableVariable table2 = TableVariable.forPrimary(QueryTestUtils.fromTableName("table2"));
     TableVariable.generateAliases(List.of(table1, table2));
     variable =
         new BooleanAndOrFilterVariable(

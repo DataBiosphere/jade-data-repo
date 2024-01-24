@@ -4,11 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.ApiException;
+import bio.terra.common.exception.ErrorReportException;
+import bio.terra.common.exception.ServiceUnavailableException;
+import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -19,43 +24,36 @@ import java.util.stream.IntStream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class FutureUtilsTest {
-  private static Logger logger = LoggerFactory.getLogger(FutureUtilsTest.class);
+@Tag(Unit.TAG)
+class FutureUtilsTest {
+  private static final Logger logger = LoggerFactory.getLogger(FutureUtilsTest.class);
 
   private ThreadPoolExecutor executorService;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void beforeEach() {
     executorService =
         new ThreadPoolExecutor(3, 3, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(10));
   }
 
-  @After
-  public void afterClass() throws Exception {
+  @AfterEach
+  void afterEach() {
     if (executorService != null) {
       executorService.shutdownNow();
     }
   }
 
   @Test
-  public void testWaitForTasks() {
+  void testWaitForTasks() {
     final AtomicInteger counter = new AtomicInteger(0);
     final Callable<Integer> action =
         () -> {
@@ -73,7 +71,7 @@ public class FutureUtilsTest {
     }
 
     final List<Integer> resolved = FutureUtils.waitFor(futures);
-    assertThat(resolved).containsAll(IntStream.range(0, 10).boxed().collect(Collectors.toList()));
+    assertThat(resolved).containsAll(IntStream.range(0, 10).boxed().toList());
     // Note: adding a sleep since getActiveCount represents an approximation of the number of
     // threads active.
     Awaitility.await()
@@ -82,11 +80,10 @@ public class FutureUtilsTest {
   }
 
   @Test
-  public void testWaitForTaskAcrossTwoBatches() throws InterruptedException {
+  void testWaitForTaskAcrossTwoBatches() {
     // Tests two batches of actions being submitted.  The second batch should be shorter (note the
-    // sleep).  Ensure
-    // that it properly finishes before the first batch and that an exception doesn't cause the
-    // first batch to fail
+    // sleep).  Ensure that it properly finishes before the first batch and that an exception
+    // doesn't cause the first batch to fail
 
     // Expand the thread queue for this particular test
     if (executorService != null) {
@@ -139,45 +136,53 @@ public class FutureUtilsTest {
     assertThat(CollectionUtils.collect(batch1Futures, Future::isDone)).doesNotContain(true);
 
     final List<Integer> resolved1 = FutureUtils.waitFor(batch1Futures);
-    assertThat(resolved1).containsAll(IntStream.range(0, 3).boxed().collect(Collectors.toList()));
+    assertThat(resolved1).containsAll(IntStream.range(0, 3).boxed().toList());
     assertThat(executorService.getActiveCount()).isZero();
   }
 
   @Test
-  public void testWaitForTasksSomeFail() throws InterruptedException {
-    final AtomicInteger counter = new AtomicInteger(0);
-    final Callable<Integer> action =
-        () -> {
-          try {
-            final int count = counter.getAndIncrement();
-            if (count == 5) {
-              throw new RuntimeException("Injected error");
-            }
-            TimeUnit.SECONDS.sleep(1);
-            return count;
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        };
-
-    final List<Future<Integer>> futures = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      futures.add(executorService.submit(action));
-    }
-
-    assertThatThrownBy(() -> FutureUtils.waitFor(futures)).hasMessage("Error executing thread");
-    // Note: adding a sleep since getActiveCount represents an approximation of the number of
-    // threads active.
-    Awaitility.await()
-        .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(() -> assertThat(executorService.getActiveCount()).isZero());
-
-    // Make sure that some tasks after the failure were cancelled
+  void testWaitFor_RuntimeException() {
+    final Executor delayedExecutor = CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS);
+    final RuntimeException rootCause = new RuntimeException("Injected error");
+    final List<Future<String>> futures =
+        List.of(
+            CompletableFuture.completedFuture("Completed successfully"),
+            CompletableFuture.failedFuture(rootCause),
+            CompletableFuture.supplyAsync(() -> "Should be cancelled with delay", delayedExecutor));
+    assertThatThrownBy(() -> FutureUtils.waitFor(futures))
+        .isInstanceOf(ApiException.class)
+        .hasMessage("Error executing thread")
+        .hasRootCause(rootCause);
+    // Make sure that at least one task after the failure was cancelled
     assertThat(IterableUtils.countMatches(futures, Future::isCancelled)).isPositive();
   }
 
   @Test
-  public void testThreadTimeoutFailure() throws InterruptedException {
+  void testWaitFor_ErrorReportException() {
+    final Executor delayedExecutor = CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS);
+    final ErrorReportException rootCause = new IamUnauthorizedException("Unauthorized");
+    final List<Future<String>> futures =
+        List.of(
+            CompletableFuture.completedFuture("Completed successfully"),
+            CompletableFuture.failedFuture(rootCause),
+            CompletableFuture.supplyAsync(() -> "Should be cancelled with delay", delayedExecutor));
+    assertThatThrownBy(() -> FutureUtils.waitFor(futures)).isEqualTo(rootCause);
+    // Make sure that at least one task after the failure was cancelled
+    assertThat(IterableUtils.countMatches(futures, Future::isCancelled)).isPositive();
+  }
+
+  @Test
+  void testWaitFor_nulLFiltering() {
+    String expected = "Expected";
+    final List<Future<String>> futures =
+        List.of(
+            CompletableFuture.completedFuture(expected), CompletableFuture.completedFuture(null));
+    var actual = FutureUtils.waitFor(futures);
+    assertThat(actual).containsOnly(expected);
+  }
+
+  @Test
+  void testThreadTimeoutFailure() {
     final AtomicInteger counter = new AtomicInteger(0);
     // Note: Logging statements left in to make understanding test runs easier
     final Callable<Integer> action =
@@ -204,7 +209,8 @@ public class FutureUtilsTest {
       futures.add(executorService.submit(action));
     }
 
-    assertThatThrownBy(() -> FutureUtils.waitFor(futures, Optional.of(Duration.ofMillis(100))))
+    assertThatThrownBy(() -> FutureUtils.waitFor(futures, Duration.ofMillis(100)))
+        .isInstanceOf(ServiceUnavailableException.class)
         .hasMessage("Thread timed out");
     // Note: adding a sleep since getActiveCount represents an approximation of the number of
     // threads active.
@@ -214,7 +220,7 @@ public class FutureUtilsTest {
   }
 
   @Test
-  public void testMaxOutQueue() {
+  void testMaxOutQueue() {
     final AtomicInteger counter = new AtomicInteger(0);
     final Callable<Integer> action =
         () -> {
@@ -245,8 +251,7 @@ public class FutureUtilsTest {
     }
 
     final List<Integer> resolvedSecondRound = FutureUtils.waitFor(futures);
-    assertThat(resolvedSecondRound)
-        .containsAll(IntStream.range(13, 23).boxed().collect(Collectors.toList()));
+    assertThat(resolvedSecondRound).containsAll(IntStream.range(13, 23).boxed().toList());
 
     // Note: adding a sleep since getActiveCount represents an approximation of the number of
     // threads active.

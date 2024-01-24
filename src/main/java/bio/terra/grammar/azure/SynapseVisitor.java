@@ -4,18 +4,28 @@ import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import java.util.Map;
 import java.util.Objects;
 
 public class SynapseVisitor extends DatasetAwareVisitor {
   private final String sourceDatasetDatasource;
 
+  private static final String azureTableName =
+      """
+          (SELECT * FROM
+          OPENROWSET(
+            BULK '%s',
+            DATA_SOURCE = '%s',
+            FORMAT = 'parquet') AS %s)
+          """;
+
   public SynapseVisitor(Map<String, DatasetModel> datasetMap, String sourceDatasetDatasource) {
     super(datasetMap);
     this.sourceDatasetDatasource = sourceDatasetDatasource;
   }
 
-  public String generateAlias(String tableName) {
+  public static String generateAlias(String tableName) {
     return "alias" + Math.abs(Objects.hash(tableName));
   }
 
@@ -23,18 +33,9 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String tableName = getNameFromContext(ctx.table_name());
     String alias = generateAlias(tableName);
-    return """
-      (SELECT * FROM
-      OPENROWSET(
-        BULK '%s',
-        DATA_SOURCE = '%s',
-        FORMAT = 'parquet') AS %s) AS %s
-      """
-        .formatted(
-            FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
-            sourceDatasetDatasource,
-            "inner_" + alias,
-            alias);
+    String azureTableName = azureTableName(sourceDatasetDatasource).generate(tableName);
+    String azureTableNameAliased = azureTableName + " AS %s\n";
+    return azureTableNameAliased.formatted(alias);
   }
 
   @Override
@@ -62,5 +63,17 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     String quotedString = ctx.getText();
     // Quoted values in synapse must be single quoted
     return quotedString.replace("\"", "'");
+  }
+
+  public static TableNameGenerator azureTableName(String sourceDatasetDatasource) {
+    return (tableName) -> generateTableName(tableName, sourceDatasetDatasource);
+  }
+
+  private static String generateTableName(String tableName, String sourceDatasetDatasource) {
+    String alias = generateAlias(tableName);
+    return azureTableName.formatted(
+        FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
+        sourceDatasetDatasource,
+        "inner_" + alias);
   }
 }

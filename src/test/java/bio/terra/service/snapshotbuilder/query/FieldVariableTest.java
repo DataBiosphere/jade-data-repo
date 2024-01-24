@@ -14,7 +14,7 @@ class FieldVariableTest {
 
   @Test
   void renderSQL() {
-    var table = TablePointer.fromTableName("table");
+    var table = QueryTestUtils.fromTableName("table");
 
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
@@ -40,7 +40,7 @@ class FieldVariableTest {
 
   @Test
   void renderSqlForOrderBy() {
-    var table = TablePointer.fromTableName("table");
+    var table = QueryTestUtils.fromTableName("table");
     var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariableFunctionWrapper =
@@ -50,7 +50,7 @@ class FieldVariableTest {
 
   @Test
   void renderSqlForWhere() {
-    TablePointer table = TablePointer.fromTableName("table");
+    TablePointer table = QueryTestUtils.fromTableName("table");
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
@@ -70,7 +70,7 @@ class FieldVariableTest {
     assertThat(new FieldVariable(fieldPointer, null).getAliasOrColumnName(), is("foo"));
     assertThat(new FieldVariable(fieldPointer, null, "bar").getAliasOrColumnName(), is("bar"));
     var fieldPointerForeignKey =
-        FieldPointer.foreignColumn(TablePointer.fromTableName(null), "baz");
+        FieldPointer.foreignColumn(QueryTestUtils.fromTableName(null), "baz");
     assertThat(new FieldVariable(fieldPointerForeignKey, null).getAliasOrColumnName(), is("baz"));
   }
 

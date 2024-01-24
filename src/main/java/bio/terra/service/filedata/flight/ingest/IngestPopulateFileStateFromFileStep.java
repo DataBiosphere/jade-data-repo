@@ -20,13 +20,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final LoadService loadService;
@@ -65,7 +63,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         new ErrorCollector(
             maxBadLoadFileLineErrorsReported,
             "Invalid lines in the control file. [All lines in control file must be valid in order to proceed - 'maxFailedFileLoads' not applicable here.]");
-    List<Future<BulkLoadFileModel>> futures = new ArrayList<>();
+    List<Future<BulkLoadFileModel>> futureFiles = new ArrayList<>();
 
     // Value used in a lambda so needs to be effectively final
     final AtomicLong lineCount = new AtomicLong(0);
@@ -76,7 +74,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
       lineCount.incrementAndGet();
 
       // Run batches in parallel
-      futures.add(
+      futureFiles.add(
           executor.submit(
               () -> {
                 try {
@@ -97,13 +95,9 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
                 }
               }));
       // Keep this check and load out of the inner try; it should only catch objectMapper failures
-      if (futures.size() > batchSize) {
-        List<BulkLoadFileModel> fileList =
-            FutureUtils.waitFor(futures).stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        loadService.populateFiles(loadId, fileList);
-        futures.clear();
+      if (futureFiles.size() > batchSize) {
+        loadService.populateFiles(loadId, FutureUtils.waitFor(futureFiles));
+        futureFiles.clear();
       }
 
       if (shortCircuit.get()) {
@@ -111,12 +105,8 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
       }
     }
 
-    if (futures.size() > 0) {
-      List<BulkLoadFileModel> fileList =
-          FutureUtils.waitFor(futures).stream()
-              .filter(Objects::nonNull)
-              .collect(Collectors.toList());
-      loadService.populateFiles(loadId, fileList);
+    if (futureFiles.size() > 0) {
+      loadService.populateFiles(loadId, FutureUtils.waitFor(futureFiles));
     }
 
     // If there are errors in the load file, don't do the load

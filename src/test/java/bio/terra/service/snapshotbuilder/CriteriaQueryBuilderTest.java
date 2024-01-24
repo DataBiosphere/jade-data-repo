@@ -31,7 +31,7 @@ public class CriteriaQueryBuilderTest {
   void generateRangeCriteriaFilterProducesCorrectSql() {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder().generateFilterForRangeCriteria(rangeCriteria);
+        new CriteriaQueryBuilder("person").generateFilterForRangeCriteria(rangeCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -51,7 +51,7 @@ public class CriteriaQueryBuilderTest {
   void generateListCriteriaFilterProducesCorrectSql() {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder().generateFilterForListCriteria(listCriteria);
+        new CriteriaQueryBuilder("person").generateFilterForListCriteria(listCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -73,7 +73,7 @@ public class CriteriaQueryBuilderTest {
   void generateDomainCriteriaFilterProducesCorrectSql() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder().generateFilterForDomainCriteria(domainCriteria);
+        new CriteriaQueryBuilder("person").generateFilterForDomainCriteria(domainCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -98,14 +98,14 @@ public class CriteriaQueryBuilderTest {
 
     assertThrows(
         BadRequestException.class,
-        () -> new CriteriaQueryBuilder().generateFilterForDomainCriteria(domainCriteria),
+        () -> new CriteriaQueryBuilder("person").generateFilterForDomainCriteria(domainCriteria),
         "Domain unknown is not found in dataset");
   }
 
   @Test
   void generateFilterForCriteriaCorrectlyIdentifiesDomainCriteria() {
     SnapshotBuilderCriteria criteria = generateDomainCriteria();
-    FilterVariable filterVariable = new CriteriaQueryBuilder().generateFilterForCriteria(criteria);
+    FilterVariable filterVariable = new CriteriaQueryBuilder("person").generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -117,7 +117,7 @@ public class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForCriteriaCorrectlyIdentifiesRangeCriteria() {
     SnapshotBuilderCriteria criteria = generateRangeCriteria();
-    FilterVariable filterVariable = new CriteriaQueryBuilder().generateFilterForCriteria(criteria);
+    FilterVariable filterVariable = new CriteriaQueryBuilder("person").generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -129,7 +129,7 @@ public class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForCriteriaCorrectlyIdentifiesListCriteria() {
     SnapshotBuilderCriteria criteria = generateListCriteria();
-    FilterVariable filterVariable = new CriteriaQueryBuilder().generateFilterForCriteria(criteria);
+    FilterVariable filterVariable = new CriteriaQueryBuilder("person").generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -143,7 +143,7 @@ public class CriteriaQueryBuilderTest {
             .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
             .meetAll(true);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder().generateAndOrFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person").generateAndOrFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -160,7 +160,7 @@ public class CriteriaQueryBuilderTest {
             .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
             .meetAll(false);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder().generateAndOrFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person").generateAndOrFilterForCriteriaGroup(criteriaGroup);
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
@@ -177,7 +177,7 @@ public class CriteriaQueryBuilderTest {
             .meetAll(true)
             .mustMeet(true);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder().generateFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person").generateFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -195,7 +195,7 @@ public class CriteriaQueryBuilderTest {
             .meetAll(false)
             .mustMeet(false);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder().generateFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person").generateFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -208,7 +208,7 @@ public class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForCriteriaGroups() {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder()
+        new CriteriaQueryBuilder("person")
             .generateFilterForCriteriaGroups(
                 List.of(
                     new SnapshotBuilderCriteriaGroup()
@@ -231,7 +231,7 @@ public class CriteriaQueryBuilderTest {
   @Test
   void generateRollupCountsQueryFilterForCriteriaGroupsList() {
     Query query =
-        new CriteriaQueryBuilder()
+        new CriteriaQueryBuilder("person")
             .generateRollupCountsQueryForCriteriaGroupsList(
                 List.of(
                     List.of(

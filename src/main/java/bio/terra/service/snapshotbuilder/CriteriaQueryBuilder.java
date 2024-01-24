@@ -25,10 +25,10 @@ import java.util.stream.Collectors;
 import org.apache.arrow.util.VisibleForTesting;
 
 public class CriteriaQueryBuilder {
-  public static final String ROOT_TABLE_NAME = "person";
+  private final String rootTableName;
   final Map<String, TableVariable> tables = new HashMap<>();
 
-  private static Map<String, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
+  private static final Map<String, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
       Map.of(
           "Condition", new OccurrenceTable("condition_occurrence", "condition_concept_id"),
           "Measurement", new OccurrenceTable("measurement", "measurement_concept_id"),
@@ -46,10 +46,11 @@ public class CriteriaQueryBuilder {
     return occurrenceTable;
   }
 
-  CriteriaQueryBuilder() {
-    TablePointer tablePointer = TablePointer.fromTableName(ROOT_TABLE_NAME);
+  CriteriaQueryBuilder(String rootTableName) {
+    this.rootTableName = rootTableName;
+    TablePointer tablePointer = TablePointer.fromTableName(rootTableName);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-    tables.put(ROOT_TABLE_NAME, tableVariable);
+    tables.put(rootTableName, tableVariable);
   }
 
   private TablePointer getRootTablePointer() {
@@ -57,7 +58,7 @@ public class CriteriaQueryBuilder {
   }
 
   private TableVariable getRootTableVariable() {
-    return tables.get(ROOT_TABLE_NAME);
+    return tables.get(rootTableName);
   }
 
   @VisibleForTesting

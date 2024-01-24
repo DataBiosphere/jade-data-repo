@@ -20,13 +20,10 @@ import org.springframework.stereotype.Component;
 public class SnapshotBuilderService {
 
   private final SnapshotRequestDao snapshotRequestDao;
-  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
   public SnapshotBuilderService(
-      SnapshotRequestDao snapshotRequestDao,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
+      SnapshotRequestDao snapshotRequestDao) {
     this.snapshotRequestDao = snapshotRequestDao;
-    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
@@ -68,7 +65,7 @@ public class SnapshotBuilderService {
   public int getRollupCountForCriteriaGroups(
       UUID datasetId, List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
     Query query =
-        new CriteriaQueryBuilder()
+        new CriteriaQueryBuilder("person")
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroupsList);
     query.renderSQL();
     return 5;

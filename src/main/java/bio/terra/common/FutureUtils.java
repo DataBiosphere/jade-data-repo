@@ -62,10 +62,12 @@ public final class FutureUtils {
                   } catch (TimeoutException e) {
                     foundFailure.compareAndSet(
                         null, new ServiceUnavailableException("Thread timed out", e));
-                    f.cancel(true); // Do we need this?
+                    // Cancellation may not be necessary, but it can't hurt:
+                    f.cancel(true);
                   } catch (InterruptedException e) {
                     foundFailure.compareAndSet(null, new ApiException("Thread was interrupted", e));
-                    f.cancel(true); // Do we need this?
+                    // Cancellation may not be necessary, but it can't hurt:
+                    f.cancel(true);
                   } catch (ExecutionException e) {
                     if (e.getCause() instanceof ErrorReportException ere) {
                       // We do not wrap an ErrorReportException cause to preserve its HTTP status.

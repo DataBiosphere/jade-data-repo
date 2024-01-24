@@ -104,14 +104,6 @@ public class BufferService {
       if (e.getCode() == HttpStatus.UNAUTHORIZED.value()) {
         throw new BufferServiceAuthorizationException("Not authorized to access Buffer Service", e);
       } else {
-        // TODO - remove this log
-        // Added to debug issue we're seeing 'Failed to construct exception' error on
-        // BufferServiceAPIException
-        logger.error(
-            "RBS ApiException on handoutResource; Response Body: "
-                + e.getResponseBody()
-                + "; Code: "
-                + e.getCode());
         throw new BufferServiceAPIException(e);
       }
     } catch (GeneralSecurityException e) {

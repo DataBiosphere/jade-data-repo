@@ -42,13 +42,10 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
       request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
     }
 
-    Object responseBody = body;
-    if (responseBody == null) {
-      responseBody =
-          new ErrorModel()
-              .message(status + " - see error details")
-              .addErrorDetailItem(ex.getMessage());
-    }
+    var responseBody =
+        new ErrorModel()
+            .message(status + " - see error details")
+            .addErrorDetailItem(ex.getMessage());
 
     return new ResponseEntity<>(responseBody, headers, status);
   }

@@ -203,7 +203,7 @@ public class DuosService {
         results.stream()
             .map(SyncResult::error)
             .filter(Objects::nonNull)
-            .collect(Collectors.toCollection(ArrayList::new));
+            .collect(Collectors.toCollection(ArrayList::new)); // We need a modifiable list here
     maybeDbError.ifPresent(errors::add);
 
     return new DuosFirecloudGroupsSyncResponse()

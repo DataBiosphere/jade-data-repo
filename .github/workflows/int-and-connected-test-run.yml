@@ -308,12 +308,3 @@ jobs:
           username: "Data Repo tests"
           text: "Nightly Unit, Connected and Integration tests"
           fields: ${{ env.SLACK_FIELDS }}
-      - name: "Notify QA Slack on nightly test run"
-        if: ${{ github.event_name == 'schedule' && always() }}
-        uses: broadinstitute/action-slack@v3.15.0
-        with:
-          status: ${{ env.RUN_STATUS }}
-          channel: "#dsde-qa"
-          username: "Data Repo tests"
-          text: "Nightly Unit, Connected and Integration tests"
-          fields: ${{ env.SLACK_FIELDS }}

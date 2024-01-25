@@ -11,6 +11,7 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
@@ -26,6 +27,7 @@ import org.apache.arrow.util.VisibleForTesting;
 
 public class CriteriaQueryBuilder {
   private final String rootTableName;
+  private final TableNameGenerator tableNameGenerator;
   final Map<String, TableVariable> tables = new HashMap<>();
 
   private static final Map<String, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
@@ -46,9 +48,10 @@ public class CriteriaQueryBuilder {
     return occurrenceTable;
   }
 
-  CriteriaQueryBuilder(String rootTableName) {
+  CriteriaQueryBuilder(String rootTableName, TableNameGenerator tableNameGenerator) {
     this.rootTableName = rootTableName;
-    TablePointer tablePointer = TablePointer.fromTableName(rootTableName);
+    this.tableNameGenerator = tableNameGenerator;
+    TablePointer tablePointer = TablePointer.fromTableName(rootTableName, tableNameGenerator);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     tables.put(rootTableName, tableVariable);
   }
@@ -101,10 +104,12 @@ public class CriteriaQueryBuilder {
       SnapshotBuilderDomainCriteria domainCriteria) {
     OccurrenceTable occurrenceTable = getOccurrenceTableFromDomain(domainCriteria.getDomainName());
 
-    TablePointer occurrencePointer = TablePointer.fromTableName(occurrenceTable.tableName());
+    TablePointer occurrencePointer =
+        TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
     TableVariable occurrenceVariable = TableVariable.forPrimary(occurrencePointer);
 
-    TablePointer ancestorPointer = TablePointer.fromTableName("concept_ancestor");
+    TablePointer ancestorPointer =
+        TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
     TableVariable ancestorVariable =
         TableVariable.forJoined(
             ancestorPointer,
@@ -183,7 +188,7 @@ public class CriteriaQueryBuilder {
         new FieldVariable(
             new FieldPointer(getRootTablePointer(), "person_id", "COUNT"),
             getRootTableVariable(),
-            null,
+            "count",
             true);
     ;
     FilterVariable filterVariable =

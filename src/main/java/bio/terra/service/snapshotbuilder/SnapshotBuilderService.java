@@ -2,6 +2,8 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.azure.SynapseVisitor;
+import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
@@ -12,21 +14,22 @@ import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.service.snapshotbuilder.query.Query;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
@@ -135,7 +138,7 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderCountResponse getCountResponse(
-      UUID id, List<SnapshotBuilderCohort> cohorts) {
+      UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
     return new SnapshotBuilderCountResponse()
         .sql("")
         .result(
@@ -145,7 +148,8 @@ public class SnapshotBuilderService {
                         id,
                         cohorts.stream()
                             .map(SnapshotBuilderCohort::getCriteriaGroups)
-                            .collect(Collectors.toList()))));
+                            .collect(Collectors.toList()),
+                        userRequest)));
   }
 
   public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
@@ -153,12 +157,28 @@ public class SnapshotBuilderService {
   }
 
   public int getRollupCountForCriteriaGroups(
-      UUID datasetId, List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
+      UUID datasetId,
+      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList,
+      AuthenticatedUserRequest userRequest) {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    TableNameGenerator tableNameGenerator =
+        switch (dataset.getCloudPlatform()) {
+          case GCP -> BigQueryVisitor.bqTableName(
+              datasetService.retrieveDatasetModel(datasetId, userRequest));
+          case AZURE -> SynapseVisitor.azureTableName(
+              datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
+        };
     Query query =
-        new CriteriaQueryBuilder("person")
+        new CriteriaQueryBuilder("person", tableNameGenerator)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroupsList);
-    query.renderSQL();
-    return 5;
+    String cloudSpecificSQL = query.renderSQL();
+
+    return runSnapshotBuilderQuery(
+            cloudSpecificSQL,
+            dataset,
+            AggregateBQQueryResultsUtils::rollupCountsMapper,
+            AggregateSynapseQueryResultsUtils::rollupCountsMapper)
+        .get(0);
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(
@@ -171,8 +191,7 @@ public class SnapshotBuilderService {
               .status(response.getStatus())
               .createdDate(response.getCreatedDate())
               .name(response.getSnapshotName())
-              .researchPurpose(response.getSnapshotResearchPurpose())
-              .createdBy(response.getCreatedBy()));
+              .researchPurpose(response.getSnapshotResearchPurpose()));
     }
     return enumerateModel;
   }

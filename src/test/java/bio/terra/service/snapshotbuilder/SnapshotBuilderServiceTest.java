@@ -74,8 +74,7 @@ class SnapshotBuilderServiceTest {
             .status(responseItem.getStatus())
             .createdDate(responseItem.getCreatedDate())
             .name(responseItem.getSnapshotName())
-            .researchPurpose(responseItem.getSnapshotResearchPurpose())
-            .createdBy(responseItem.getCreatedBy());
+            .researchPurpose(responseItem.getSnapshotResearchPurpose());
     EnumerateSnapshotAccessRequest expected =
         new EnumerateSnapshotAccessRequest().addItemsItem(expectedItem);
 

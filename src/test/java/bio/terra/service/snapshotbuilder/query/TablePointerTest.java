@@ -4,10 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.snapshotbuilder.query.filtervariable.SimpleFilterVariableForTests;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
+import bio.terra.service.snapshotbuilder.query.filtervariable.SimpleFilterVariableForTests;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +29,7 @@ class TablePointerTest {
     var tablePointer =
         new TablePointer(
             "table",
-            (primaryTable, tables) -> () -> "filter",
+            (primaryTable, tables) -> new SimpleFilterVariableForTests(),
             null,
             BigQueryVisitor.bqTableName(dataset));
     assertThat(

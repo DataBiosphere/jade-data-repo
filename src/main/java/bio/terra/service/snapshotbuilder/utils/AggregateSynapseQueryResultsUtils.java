@@ -19,4 +19,13 @@ public class AggregateSynapseQueryResultsUtils {
           "Error processing result set into SnapshotBuilderConcept model", e);
     }
   }
+
+  public static int rollupCountsMapper(ResultSet rs) {
+    try {
+      return rs.getInt(0);
+    } catch (SQLException e) {
+      throw new ProcessResultSetException(
+          "Error processing result set into SnapshotBuilderConcept model", e);
+    }
+  }
 }

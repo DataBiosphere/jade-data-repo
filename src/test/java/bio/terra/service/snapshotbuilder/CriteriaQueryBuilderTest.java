@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
@@ -39,12 +40,16 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo("(null.range_column_name >= 0 AND null.range_column_name <= 100)"));
+        equalToCompressingWhiteSpace(
+            "(null.range_column_name >= 0 AND null.range_column_name <= 100)"));
+    // There are actually two entries for "person" because the range filter generates two distinct
+    // filters which each reference person. Distinct is to fix this.
     assertThat(
-        "The filter just has person as the table",
+        "The filter has only person within the table",
         filterVariable.getTables().stream()
             .map(TableVariable::getTablePointer)
             .map(TablePointer::tableName)
+            .distinct()
             .toList(),
         equalTo(List.of("person")));
   }
@@ -60,7 +65,7 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo("null.list_column_name IN (0,1,2)"));
+        equalToCompressingWhiteSpace("null.list_column_name IN (0,1,2)"));
     // The person table is reachable by traversing through the table variables, but isn't directly
     // available
     assertThat(
@@ -83,8 +88,8 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo(
-            "null.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
+        equalToCompressingWhiteSpace(
+            "null.person_id IN (SELECT c.person_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/condition_occurrence/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias128572524)\n AS c  JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias625571305)\n AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
     // The person table is reachable by traversing through the table variables, but isn't directly
     // available
     assertThat(
@@ -116,10 +121,13 @@ public class CriteriaQueryBuilderTest {
             .generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
+    String sql = filterVariable.renderSQL();
     assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(),
-        containsString("SELECT c.person_id FROM condition_occurrence"));
+        "It is aliasing for condition occurrence", sql, containsString("SELECT c.person_id FROM"));
+    assertThat(
+        "Condition occurrence is loaded in with azure namespacing",
+        sql,
+        containsString("'metadata/parquet/condition_occurrence/*/*.parquet'"));
   }
 
   @Test
@@ -162,7 +170,7 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo(
+        equalToCompressingWhiteSpace(
             "(null.list_column_name IN (0,1,2) AND (null.range_column_name >= 0 AND null.range_column_name <= 100))"));
   }
 
@@ -179,7 +187,7 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo(
+        equalToCompressingWhiteSpace(
             "(null.list_column_name IN (0,1,2) OR (null.range_column_name >= 0 AND null.range_column_name <= 100))"));
   }
 
@@ -198,7 +206,7 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo(
+        equalToCompressingWhiteSpace(
             "(null.list_column_name IN (0,1,2) AND (null.range_column_name >= 0 AND null.range_column_name <= 100))"));
   }
 
@@ -217,7 +225,7 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo(
+        equalToCompressingWhiteSpace(
             "(NOT (null.list_column_name IN (0,1,2) OR (null.range_column_name >= 0 AND null.range_column_name <= 100)))"));
   }
 
@@ -240,7 +248,7 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
-        equalTo(
+        equalToCompressingWhiteSpace(
             "(((null.range_column_name >= 0 AND null.range_column_name <= 100)) AND (null.list_column_name IN (0,1,2)))"));
   }
 
@@ -263,8 +271,8 @@ public class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         query.renderSQL(),
-        equalTo(
-            "SELECT COUNT(DISTINCT p.person_id) FROM person AS p WHERE (((p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND p.list_column_name IN (0,1,2) AND (p.range_column_name >= 0 AND p.range_column_name <= 100) AND p.person_id IN (SELECT d.person_id FROM drug_exposure AS d  JOIN concept_ancestor AS c ON c.ancestor_concept_id = d.drug_concept_id WHERE (d.drug_concept_id = 0 OR c.ancestor_concept_id = 0)))))"));
+        equalToCompressingWhiteSpace(
+            "SELECT COUNT(DISTINCT p.person_id) FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/person/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias991716492)\n AS p WHERE (((p.person_id IN (SELECT c.person_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/condition_occurrence/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias128572524)\n AS c  JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias625571305)\n AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND p.list_column_name IN (0,1,2) AND (p.range_column_name >= 0 AND p.range_column_name <= 100) AND p.person_id IN (SELECT d.person_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/drug_exposure/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias2131422491)\n AS d  JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias625571305)\n AS c ON c.ancestor_concept_id = d.drug_concept_id WHERE (d.drug_concept_id = 0 OR c.ancestor_concept_id = 0)))))"));
   }
 
   private static SnapshotBuilderDomainCriteria generateDomainCriteria() {

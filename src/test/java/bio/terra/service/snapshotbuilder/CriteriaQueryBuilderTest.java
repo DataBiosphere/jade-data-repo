@@ -42,7 +42,7 @@ public class CriteriaQueryBuilderTest {
         filterVariable.renderSQL(),
         equalToCompressingWhiteSpace(
             "(null.range_column_name >= 0 AND null.range_column_name <= 100)"));
-    // There are actually two entries for "person" because the range filter generates two distinct
+    // There are actually two entsries for "person" because the range filter generates two distinct
     // filters which each reference person. Distinct is to fix this.
     assertThat(
         "The filter has only person within the table",

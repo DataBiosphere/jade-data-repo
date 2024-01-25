@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
 import java.text.SimpleDateFormat
 
 /*
@@ -21,7 +23,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger:swagger-codegen:2.4.27')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.52')
+        //classpath('io.swagger:swagger-codegen:2.4.33')
     }
 }
 
@@ -56,11 +59,11 @@ allprojects {
     apply plugin: "io.spring.dependency-management"
     dependencyManagement {
         imports {
-            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+            mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.1.12'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.47'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.20'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.51'
         }
     }
 }
@@ -69,12 +72,12 @@ apply from: 'debug.gradle'
 
 // skip subproject tasks by default when building jade-data-repo
 subprojects.each { s ->
-    s.tasks.all {
+    s.tasks.configureEach {
         task -> task.enabled = (System.getenv("ENABLE_SUBPROJECT_TASKS") != null)
     }
 }
 
-def boolean isCiServer = System.getenv().containsKey("CI")
+boolean isCiServer = System.getenv().containsKey("CI")
 
 java {
     sourceCompatibility = 17
@@ -87,7 +90,7 @@ if (hasProperty('buildScan')) {
         termsOfServiceAgree = 'yes'
         uploadInBackground = false
         publishAlways()
-        def project = ""; def cluster = ""; def nschunk = "";
+        def project = ""; def cluster = ""; def nschunk = ""
         if (System.getenv("NAMESPACEINUSE")) {
             project = "broad-jade-integration"
             cluster = "integration-master"
@@ -131,11 +134,12 @@ spotbugsTest {
     }
 }
 
-tasks.withType(JacocoReport) {
+jacocoTestReport {
     reports {
-        xml.enabled false
-        csv.enabled false
-        html.destination file("${buildDir}/jacocoHtml")
+        // sonarqube requires XML coverage output to upload coverage data
+        xml.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
     }
 
     afterEvaluate {
@@ -266,17 +270,18 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    implementation 'com.fasterxml.jackson.core:jackson-core'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.3'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.3'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.3'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.9.1'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.28.0'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0-beta.3'
+    implementation 'com.azure:azure-identity:1.11.1'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.34.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.4'
-    implementation 'com.azure:azure-storage-common:12.21.1'
-    implementation 'com.azure:azure-storage-file-datalake:12.15.2'
-    implementation 'com.azure:azure-data-tables:12.3.11'
+    implementation 'com.azure:azure-storage-common:12.24.1'
+    implementation 'com.azure:azure-storage-file-datalake:12.18.1'
+    implementation 'com.azure:azure-data-tables:12.3.18'
 
     implementation platform('io.sentry:sentry-bom:6.25.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter')
@@ -355,7 +360,7 @@ dependencies {
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
-    runtimeOnly 'org.webjars.npm:swagger-ui-dist:4.3.0'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:5.11.0'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
@@ -391,10 +396,10 @@ swaggerSources {
     }
 }
 
-task generateVersionFile {
+tasks.register('generateVersionFile') {
     def properties = new Properties()
     def versionFile = file "src/main/resources/version.properties"
-    properties.setProperty("semVer", project.version)
+    properties.setProperty("semVer", project.getVersion().toString())
     properties.setProperty("gitHash", getGitHash())
     Writer writer = new FileWriter(versionFile, false)
     properties.store(writer, "DO NOT EDIT. Autogenerated by build.gradle.")
@@ -405,7 +410,7 @@ generateGrammarSource {
     arguments += ["-visitor", "-long-messages"]
 }
 
-task unpack(type: Copy) {
+tasks.register('unpack', Copy) {
     dependsOn bootJar
     from(zipTree(tasks.bootJar.outputs.files.singleFile))
     into("build/dependency")
@@ -432,9 +437,10 @@ sourceSets {
         compileClasspath += generated.output
         runtimeClasspath += generated.output
     }
-    jacoco {
-        toolVersion '0.8.7'
-    }
+}
+
+jacoco {
+    toolVersion = '0.8.9'
 }
 
 sourceSets.main.java.srcDir "${buildDir}/generated-src/swagger"
@@ -467,14 +473,14 @@ jib {
     container.creationTime = buildTime()
 }
 
-def buildTime() {
+static def buildTime() {
     def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'") // you can change it
     df.setTimeZone(TimeZone.getTimeZone("UTC"))
     return df.format(new Date())
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
 // setting above will ensure that the generated classes end up in the right place when jib builds.
-task setupGeneratedDir(type: Copy) {
+tasks.register('setupGeneratedDir', Copy) {
     from file('build/classes/java/generated')
     into file('build/gen-expanded/app/classes')
 }
@@ -527,7 +533,7 @@ test {
     maxParallelForks = 2
 }
 
-task testConnected(type: Test) {
+tasks.register('testConnected', Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Connected'
     }
@@ -545,7 +551,7 @@ task testConnected(type: Test) {
     maxHeapSize = "2g"
 }
 
-task testIntegration(type: Test) {
+tasks.register('testIntegration', Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Integration'
     }
@@ -563,7 +569,7 @@ task testIntegration(type: Test) {
     outputs.upToDateWhen { false }
 }
 
-task testUnit(type: Test) {
+tasks.register('testUnit', Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Unit'
     }
@@ -571,7 +577,7 @@ task testUnit(type: Test) {
     outputs.upToDateWhen { false }
 }
 
-task testOnDemand(type: Test) {
+tasks.register('testOnDemand', Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.OnDemand'
     }
@@ -581,7 +587,7 @@ task testOnDemand(type: Test) {
     outputs.upToDateWhen { false }
 }
 
-task testAll(type: Test) {
+tasks.register('testAll', Test) {
     useJUnitPlatform {
         // Note: explicitly not including OnDemand tests
         includeTags 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
@@ -589,7 +595,7 @@ task testAll(type: Test) {
     outputs.upToDateWhen { false }
 }
 
-task verifyPacts(type: Test) {
+tasks.register('verifyPacts', Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Pact'
     }
@@ -633,12 +639,5 @@ sonar {
         property "sonar.projectName", "jade-data-repo"
         property "sonar.organization", "broad-databiosphere"
         property "sonar.host.url", "https://sonarcloud.io"
-    }
-}
-
-jacocoTestReport {
-    reports {
-        // sonarqube requires XML coverage output to upload coverage data
-        xml.required = true
     }
 }

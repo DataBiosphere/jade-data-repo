@@ -146,10 +146,24 @@ public class CriteriaQueryBuilder {
 
   public FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
     return switch (criteria.getKind()) {
-      case LIST -> generateFilterForListCriteria((SnapshotBuilderProgramDataListCriteria) criteria);
-      case RANGE -> generateFilterForRangeCriteria(
-          (SnapshotBuilderProgramDataRangeCriteria) criteria);
-      case DOMAIN -> generateFilterForDomainCriteria((SnapshotBuilderDomainCriteria) criteria);
+      case LIST -> {
+        if (criteria instanceof SnapshotBuilderProgramDataListCriteria) {
+          yield generateFilterForListCriteria((SnapshotBuilderProgramDataListCriteria) criteria);
+        }
+        throw new BadRequestException("Malformed list criteria");
+      }
+      case RANGE -> {
+        if (criteria instanceof SnapshotBuilderProgramDataRangeCriteria) {
+          yield generateFilterForRangeCriteria((SnapshotBuilderProgramDataRangeCriteria) criteria);
+        }
+        throw new BadRequestException("Malformed range criteria");
+      }
+      case DOMAIN -> {
+        if (criteria instanceof SnapshotBuilderDomainCriteria) {
+          yield generateFilterForDomainCriteria((SnapshotBuilderDomainCriteria) criteria);
+        }
+        throw new BadRequestException("Malformed domain criteria");
+      }
     };
   }
 

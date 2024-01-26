@@ -101,8 +101,7 @@ class SnapshotBuilderServiceTest {
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
     if (cloudPlatformWrapper.isGcp()) {
       DatasetModel datasetModel = new DatasetModel().name("name").dataProject("project");
-      when(datasetService.retrieveDatasetModel(eq(dataset.getId()), any()))
-          .thenReturn(datasetModel);
+      when(datasetService.retrieveModel(eq(dataset), any())).thenReturn(datasetModel);
       when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
           .thenReturn(concepts);
     } else {

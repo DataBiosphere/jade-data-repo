@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
+import static bio.terra.service.snapshotbuilder.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -23,6 +23,7 @@ import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.UUID;
@@ -73,13 +74,7 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    TableNameGenerator tableNameGenerator =
-        switch (dataset.getCloudPlatform()) {
-          case GCP -> BigQueryVisitor.bqTableName(
-              datasetService.retrieveDatasetModel(datasetId, userRequest));
-          case AZURE -> SynapseVisitor.azureTableName(
-              datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
-        };
+    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
     String cloudSpecificSql = buildConceptChildrenQuery(conceptId, tableNameGenerator);
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
@@ -88,6 +83,20 @@ public class SnapshotBuilderService {
             AggregateBQQueryResultsUtils::aggregateConceptResults,
             AggregateSynapseQueryResultsUtils::aggregateConceptResult);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
+  }
+
+  @VisibleForTesting
+  private TableNameGenerator getTableNameGenerator(
+      Dataset dataset, AuthenticatedUserRequest userRequest) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    if (platform.isGcp()) {
+      return BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest));
+    } else if (platform.isAzure()) {
+      return SynapseVisitor.azureTableName(
+          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
   }
 
   private int getRollupCount(UUID datasetId, List<SnapshotBuilderCohort> cohorts) {

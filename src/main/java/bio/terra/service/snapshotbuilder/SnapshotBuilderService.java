@@ -30,7 +30,6 @@ import java.sql.ResultSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
@@ -147,9 +146,7 @@ public class SnapshotBuilderService {
                 .total(
                     getRollupCountForCriteriaGroups(
                         id,
-                        cohorts.stream()
-                            .map(SnapshotBuilderCohort::getCriteriaGroups)
-                            .collect(Collectors.toList()),
+                        cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
                         userRequest)));
   }
 

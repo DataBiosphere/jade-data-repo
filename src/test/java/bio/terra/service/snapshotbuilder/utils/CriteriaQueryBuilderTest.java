@@ -27,7 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-public class CriteriaQueryBuilderTest {
+class CriteriaQueryBuilderTest {
 
   @Test
   void generateRangeCriteriaFilterProducesCorrectSql() {
@@ -104,12 +104,11 @@ public class CriteriaQueryBuilderTest {
   @Test
   void generateDomainCriteriaFilterThrowsIfGivenUnknownDomain() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria().domainName("unknown");
-
+    CriteriaQueryBuilder criteriaQueryBuilder =
+        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"));
     assertThrows(
         BadRequestException.class,
-        () ->
-            new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-                .generateFilterForDomainCriteria(domainCriteria),
+        () -> criteriaQueryBuilder.generateFilterForDomainCriteria(domainCriteria),
         "Domain unknown is not found in dataset");
   }
 

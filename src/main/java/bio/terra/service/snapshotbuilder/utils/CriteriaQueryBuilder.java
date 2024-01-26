@@ -22,10 +22,10 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVari
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.arrow.util.VisibleForTesting;
 
 public class CriteriaQueryBuilder {
+  public static final String PERSON_ID_FIELD_NAME = "person_id";
   private final String rootTableName;
   private final TableNameGenerator tableNameGenerator;
   final Map<String, TableVariable> tables = new HashMap<>();
@@ -120,12 +120,12 @@ public class CriteriaQueryBuilder {
 
     return new SubQueryFilterVariable(
         new FieldVariable(
-            new FieldPointer(getRootTablePointer(), "person_id"), getRootTableVariable()),
+            new FieldPointer(getRootTablePointer(), PERSON_ID_FIELD_NAME), getRootTableVariable()),
         SubQueryFilterVariable.Operator.IN,
         new Query(
             List.of(
                 new FieldVariable(
-                    new FieldPointer(occurrencePointer, "person_id"), occurrenceVariable)),
+                    new FieldPointer(occurrencePointer, PERSON_ID_FIELD_NAME), occurrenceVariable)),
             List.of(occurrenceVariable, ancestorVariable),
             new BooleanAndOrFilterVariable(
                 BooleanAndOrFilterVariable.LogicalOperator.OR,
@@ -147,20 +147,20 @@ public class CriteriaQueryBuilder {
   public FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
     return switch (criteria.getKind()) {
       case LIST -> {
-        if (criteria instanceof SnapshotBuilderProgramDataListCriteria) {
-          yield generateFilterForListCriteria((SnapshotBuilderProgramDataListCriteria) criteria);
+        if (criteria instanceof SnapshotBuilderProgramDataListCriteria listCriteria) {
+          yield generateFilterForListCriteria(listCriteria);
         }
         throw new BadRequestException("Malformed list criteria");
       }
       case RANGE -> {
-        if (criteria instanceof SnapshotBuilderProgramDataRangeCriteria) {
-          yield generateFilterForRangeCriteria((SnapshotBuilderProgramDataRangeCriteria) criteria);
+        if (criteria instanceof SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
+          yield generateFilterForRangeCriteria(rangeCriteria);
         }
         throw new BadRequestException("Malformed range criteria");
       }
       case DOMAIN -> {
-        if (criteria instanceof SnapshotBuilderDomainCriteria) {
-          yield generateFilterForDomainCriteria((SnapshotBuilderDomainCriteria) criteria);
+        if (criteria instanceof SnapshotBuilderDomainCriteria domainCriteria) {
+          yield generateFilterForDomainCriteria(domainCriteria);
         }
         throw new BadRequestException("Malformed domain criteria");
       }
@@ -170,16 +170,14 @@ public class CriteriaQueryBuilder {
   public FilterVariable generateAndOrFilterForCriteriaGroup(
       SnapshotBuilderCriteriaGroup criteriaGroup) {
     return new BooleanAndOrFilterVariable(
-        criteriaGroup.isMeetAll()
+        criteriaGroup.isMeetAll() != null && criteriaGroup.isMeetAll()
             ? BooleanAndOrFilterVariable.LogicalOperator.AND
             : BooleanAndOrFilterVariable.LogicalOperator.OR,
-        criteriaGroup.getCriteria().stream()
-            .map(this::generateFilterForCriteria)
-            .collect(Collectors.toList()));
+        criteriaGroup.getCriteria().stream().map(this::generateFilterForCriteria).toList());
   }
 
   public FilterVariable generateFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
-    if (criteriaGroup.isMustMeet()) {
+    if (criteriaGroup.isMustMeet() != null && criteriaGroup.isMustMeet()) {
       return generateAndOrFilterForCriteriaGroup(criteriaGroup);
     } else {
       return new NotFilterVariable(generateAndOrFilterForCriteriaGroup(criteriaGroup));
@@ -190,9 +188,7 @@ public class CriteriaQueryBuilder {
       List<SnapshotBuilderCriteriaGroup> criteriaGroups) {
     return new BooleanAndOrFilterVariable(
         BooleanAndOrFilterVariable.LogicalOperator.AND,
-        criteriaGroups.stream()
-            .map(this::generateFilterForCriteriaGroup)
-            .collect(Collectors.toList()));
+        criteriaGroups.stream().map(this::generateFilterForCriteriaGroup).toList());
   }
 
   public Query generateRollupCountsQueryForCriteriaGroupsList(
@@ -200,17 +196,15 @@ public class CriteriaQueryBuilder {
 
     FieldVariable personId =
         new FieldVariable(
-            new FieldPointer(getRootTablePointer(), "person_id", "COUNT"),
+            new FieldPointer(getRootTablePointer(), PERSON_ID_FIELD_NAME, "COUNT"),
             getRootTableVariable(),
             "count",
             true);
-    ;
+
     FilterVariable filterVariable =
         new BooleanAndOrFilterVariable(
             BooleanAndOrFilterVariable.LogicalOperator.OR,
-            criteriaGroupsList.stream()
-                .map(this::generateFilterForCriteriaGroups)
-                .collect(Collectors.toList()));
+            criteriaGroupsList.stream().map(this::generateFilterForCriteriaGroups).toList());
 
     return new Query(List.of(personId), List.of(getRootTableVariable()), filterVariable);
   }

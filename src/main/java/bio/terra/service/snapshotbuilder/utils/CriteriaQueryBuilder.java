@@ -1,4 +1,4 @@
-package bio.terra.service.snapshotbuilder;
+package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.model.SnapshotBuilderCriteria;

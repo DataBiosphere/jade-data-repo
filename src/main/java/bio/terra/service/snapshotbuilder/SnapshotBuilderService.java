@@ -162,13 +162,8 @@ public class SnapshotBuilderService {
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList,
       AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    TableNameGenerator tableNameGenerator =
-        switch (dataset.getCloudPlatform()) {
-          case GCP -> BigQueryVisitor.bqTableName(
-              datasetService.retrieveDatasetModel(datasetId, userRequest));
-          case AZURE -> SynapseVisitor.azureTableName(
-              datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
-        };
+    TableNameGenerator tableNameGenerator = getTableNameGenerator(userRequest, dataset);
+
     Query query =
         new CriteriaQueryBuilder("person", tableNameGenerator)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroupsList);
@@ -180,6 +175,20 @@ public class SnapshotBuilderService {
             AggregateBQQueryResultsUtils::rollupCountsMapper,
             AggregateSynapseQueryResultsUtils::rollupCountsMapper)
         .get(0);
+  }
+
+  private TableNameGenerator getTableNameGenerator(
+      AuthenticatedUserRequest userRequest, Dataset dataset) {
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    if (cloudPlatformWrapper.isAzure()) {
+      return SynapseVisitor.azureTableName(
+          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
+    } else if (cloudPlatformWrapper.isGcp()) {
+      return BigQueryVisitor.bqTableName(
+          datasetService.retrieveDatasetModel(dataset.getId(), userRequest));
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(

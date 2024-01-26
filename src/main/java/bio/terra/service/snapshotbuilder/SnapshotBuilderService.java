@@ -1,7 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static org.apache.commons.compress.utils.ArchiveUtils.sanitize;
-
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -127,7 +125,7 @@ public class SnapshotBuilderService {
     }
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            sanitize(cloudSpecificSQL),
+            cloudSpecificSQL,
             dataset,
             AggregateBQQueryResultsUtils::aggregateConceptResults,
             AggregateSynapseQueryResultsUtils::aggregateConceptResult);

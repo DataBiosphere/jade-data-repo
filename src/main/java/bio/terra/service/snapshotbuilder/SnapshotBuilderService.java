@@ -2,6 +2,8 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.azure.SynapseVisitor;
+import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
@@ -15,6 +17,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -157,8 +160,28 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
-      UUID datasetId, String domainId, String searchText) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
+      UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    TableNameGenerator tableNameGenerator =
+        switch (dataset.getCloudPlatform()) {
+          case GCP -> BigQueryVisitor.bqTableName(
+              datasetService.retrieveDatasetModel(datasetId, userRequest));
+          case AZURE -> SynapseVisitor.azureTableName(
+              datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
+        };
+    String cloudSpecificSql = buildSearchConceptsQuery(datasetId, domainId, searchText, tableNameGenerator);
+    List<SnapshotBuilderConcept> concepts =
+        runSnapshotBuilderQuery(
+            cloudSpecificSql,
+            dataset,
+            AggregateBQQueryResultsUtils::aggregateConceptResults,
+            AggregateSynapseQueryResultsUtils::aggregateConceptResult);
+    return new SnapshotBuilderGetConceptsResponse().result(concepts);
+  }
+
+  private String buildSearchConceptsQuery(UUID datasetId, String domainId, String searchText,
+        TableNameGenerator tableNameGenerator) {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
     FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
@@ -195,15 +218,7 @@ public class SnapshotBuilderService {
             List.of(nameFieldVariable, idFieldVariable),
             List.of(conceptTableVariable),
             whereClause);
-    String sql = query.renderSQL();
-    return new SnapshotBuilderGetConceptsResponse()
-        .result(
-            List.of(
-                new SnapshotBuilderConcept()
-                    .count(100)
-                    .name("Stub concept")
-                    .hasChildren(true)
-                    .id(1)));
+    return query.renderSQL();
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(

@@ -7,7 +7,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -18,7 +18,7 @@ class FunctionFilterVariableTest {
 
   @Test
   void renderSQL() {
-    TableVariable table = TableVariable.forPrimary(TablePointer.fromTableName("table"));
+    TableVariable table = TableVariable.forPrimary(QueryTestUtils.fromTableName("table"));
     TableVariable.generateAliases(List.of(table));
     var filterVariable =
         new FunctionFilterVariable(

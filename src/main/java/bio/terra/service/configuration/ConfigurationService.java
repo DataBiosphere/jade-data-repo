@@ -7,7 +7,6 @@ import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CO
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DRS_LOOKUP_MAX;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT;
@@ -216,7 +215,6 @@ public class ConfigurationService {
     addParameter(SNAPSHOT_CACHE_SIZE, appConfiguration.getSnapshotCacheSize());
     addParameter(FIRESTORE_VALIDATE_BATCH_SIZE, appConfiguration.getFirestoreValidateBatchSize());
     addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
-    addParameter(DRS_LOOKUP_MAX, appConfiguration.getMaxDrsLookups());
     addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
     addParameter(
         ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.allowReuseExistingBuckets());

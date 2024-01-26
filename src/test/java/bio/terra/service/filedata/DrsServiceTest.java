@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.configuration.DrsConfiguration;
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
@@ -51,8 +52,6 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.DrsDao.DrsAlias;
@@ -105,6 +104,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -132,7 +132,7 @@ public class DrsServiceTest {
   @Mock private FileService fileService;
   @Mock private IamService samService;
   @Mock private ResourceService resourceService;
-  @Mock private ConfigurationService configurationService;
+  @Mock private DrsConfiguration drsConfiguration;
   @Mock private JobService jobService;
   @Mock private PerformanceLogger performanceLogger;
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
@@ -143,7 +143,6 @@ public class DrsServiceTest {
   @Mock private DrsMetricsService drsMetricsService;
 
   private DrsIdService drsIdService;
-
   private DrsService drsService;
 
   private String googleDrsObjectId;
@@ -173,16 +172,17 @@ public class DrsServiceTest {
                 drsIdService,
                 samService,
                 resourceService,
-                configurationService,
+                drsConfiguration,
                 jobService,
                 performanceLogger,
                 azureBlobStorePdao,
                 gcsProjectFactory,
                 ecmConfiguration,
                 drsDao,
-                drsMetricsService));
+                drsMetricsService,
+                new SimpleAsyncTaskExecutor()));
     when(jobService.getActivePodCount()).thenReturn(1);
-    when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
+    when(drsConfiguration.maxDrsLookups()).thenReturn(1);
 
     snapshotId = UUID.randomUUID();
     SnapshotProject snapshotProject = new SnapshotProject();

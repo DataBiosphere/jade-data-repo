@@ -74,6 +74,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
@@ -1427,5 +1428,17 @@ public class BigQueryDatasetPdao {
       }
     }
     return null;
+  }
+
+  // WARNING: SQL string must be sanitized before calling this method
+  public <T> List<T> runQuery(
+      String sql, Dataset dataset, Function<TableResult, List<T>> aggregateResults) {
+    try {
+      final BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+      final TableResult result = bigQueryProject.query(sql);
+      return aggregateResults.apply(result);
+    } catch (InterruptedException ex) {
+      throw new PdaoException("Snapshot builder query was interrupted", ex);
+    }
   }
 }

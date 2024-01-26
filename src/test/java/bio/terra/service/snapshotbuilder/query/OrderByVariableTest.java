@@ -14,7 +14,7 @@ class OrderByVariableTest {
 
   @NotNull
   private static FieldVariable createVariable() {
-    TablePointer table = TablePointer.fromTableName("table");
+    TablePointer table = QueryTestUtils.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(table);
     var fieldVariable = new FieldVariable(new FieldPointer(table, "column"), tableVariable);
     TableVariable.generateAliases(List.of(tableVariable));

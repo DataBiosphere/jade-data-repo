@@ -65,7 +65,8 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   }
 
   public static TableNameGenerator azureTableName(String sourceDatasetDatasource) {
-    return (tableName) -> generateTableName(tableName, sourceDatasetDatasource, generateAlias(tableName));
+    return (tableName) ->
+        generateTableName(tableName, sourceDatasetDatasource, generateAlias(tableName));
   }
 
   private static String generateTableName(

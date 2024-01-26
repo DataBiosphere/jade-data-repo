@@ -92,14 +92,23 @@ public class SnapshotBuilderService {
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
-      String cloudSpecificSql,
+      Integer conceptId,
       Dataset dataset,
+      AuthenticatedUserRequest userRequest,
       Function<TableResult, List<T>> gcpFormatQueryFunction,
       Function<ResultSet, T> synapseFormatQueryFunction) {
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    String cloudSpecificSql;
     if (cloudPlatformWrapper.isGcp()) {
+      DatasetModel datasetModel = datasetService.retrieveModel(dataset, userRequest);
+      cloudSpecificSql =
+          buildConceptChildrenQuery(conceptId, BigQueryVisitor.bqTableName(datasetModel));
       return bigQueryDatasetPdao.runQuery(cloudSpecificSql, dataset, gcpFormatQueryFunction);
     } else if (cloudPlatformWrapper.isAzure()) {
+      String datasourceName =
+          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest);
+      cloudSpecificSql =
+          buildConceptChildrenQuery(conceptId, SynapseVisitor.azureTableName(datasourceName));
       return azureSynapsePdao.runQuery(cloudSpecificSql, synapseFormatQueryFunction);
     } else {
       throw new NotImplementedException("Cloud platform not implemented");
@@ -109,24 +118,11 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    String cloudSpecificSQL;
-    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    if (cloudPlatformWrapper.isGcp()) {
-      DatasetModel datasetModel = datasetService.retrieveDatasetModel(datasetId, userRequest);
-      cloudSpecificSQL =
-          buildConceptChildrenQuery(conceptId, BigQueryVisitor.bqTableName(datasetModel));
-    } else if (cloudPlatformWrapper.isAzure()) {
-      String datasourceName =
-          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest);
-      cloudSpecificSQL =
-          buildConceptChildrenQuery(conceptId, SynapseVisitor.azureTableName(datasourceName));
-    } else {
-      throw new NotImplementedException("Cloud platform not implemented");
-    }
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            cloudSpecificSQL,
+            conceptId,
             dataset,
+            userRequest,
             AggregateBQQueryResultsUtils::aggregateConceptResults,
             AggregateSynapseQueryResultsUtils::aggregateConceptResult);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);

@@ -4,7 +4,6 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
-import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
@@ -92,23 +91,14 @@ public class SnapshotBuilderService {
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
-      Integer conceptId,
+      String cloudSpecificSql,
       Dataset dataset,
-      AuthenticatedUserRequest userRequest,
       Function<TableResult, List<T>> gcpFormatQueryFunction,
       Function<ResultSet, T> synapseFormatQueryFunction) {
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    String cloudSpecificSql;
     if (cloudPlatformWrapper.isGcp()) {
-      DatasetModel datasetModel = datasetService.retrieveModel(dataset, userRequest);
-      cloudSpecificSql =
-          buildConceptChildrenQuery(conceptId, BigQueryVisitor.bqTableName(datasetModel));
       return bigQueryDatasetPdao.runQuery(cloudSpecificSql, dataset, gcpFormatQueryFunction);
     } else if (cloudPlatformWrapper.isAzure()) {
-      String datasourceName =
-          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest);
-      cloudSpecificSql =
-          buildConceptChildrenQuery(conceptId, SynapseVisitor.azureTableName(datasourceName));
       return azureSynapsePdao.runQuery(cloudSpecificSql, synapseFormatQueryFunction);
     } else {
       throw new NotImplementedException("Cloud platform not implemented");
@@ -118,11 +108,18 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
+    TableNameGenerator tableNameGenerator =
+        switch (dataset.getCloudPlatform()) {
+          case GCP -> BigQueryVisitor.bqTableName(
+              datasetService.retrieveDatasetModel(datasetId, userRequest));
+          case AZURE -> SynapseVisitor.azureTableName(
+              datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
+        };
+    String cloudSpecificSql = buildConceptChildrenQuery(conceptId, tableNameGenerator);
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            conceptId,
+            cloudSpecificSql,
             dataset,
-            userRequest,
             AggregateBQQueryResultsUtils::aggregateConceptResults,
             AggregateSynapseQueryResultsUtils::aggregateConceptResult);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);

@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import static bio.terra.service.snapshotbuilder.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
+import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;

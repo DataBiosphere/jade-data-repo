@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
+import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;

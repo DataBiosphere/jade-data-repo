@@ -12,12 +12,11 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariab
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import java.util.List;
-import java.util.UUID;
 
 public class SearchConceptsQueryBuilder {
 
   public static String buildSearchConceptsQuery(
-      UUID datasetId, String domainId, String searchText, TableNameGenerator tableNameGenerator) {
+      String domainId, String searchText, TableNameGenerator tableNameGenerator) {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");

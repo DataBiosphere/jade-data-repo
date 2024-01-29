@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
 import bio.terra.common.category.Unit;
-import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,8 +17,7 @@ class SearchConceptsQueryBuilderTest {
   public void buildSearchConceptsQuery() {
     assertThat(
         "generated SQL is correct",
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            UUID.randomUUID(), "condition", "cancer", s -> s),
+        SearchConceptsQueryBuilder.buildSearchConceptsQuery("condition", "cancer", s -> s),
         equalToCompressingWhiteSpace(
             "SELECT c.concept_name, c.concept_id FROM concept AS c "
                 + "WHERE (c.domain_id = 'condition' "

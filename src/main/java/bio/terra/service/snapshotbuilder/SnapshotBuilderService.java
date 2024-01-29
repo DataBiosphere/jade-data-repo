@@ -1,5 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
+import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.buildSearchConceptsQuery;
+
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -24,16 +26,6 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
-import bio.terra.service.snapshotbuilder.query.FieldVariable;
-import bio.terra.service.snapshotbuilder.query.FilterVariable;
-import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
@@ -162,14 +154,9 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse searchConcepts(
       UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    TableNameGenerator tableNameGenerator =
-        switch (dataset.getCloudPlatform()) {
-          case GCP -> BigQueryVisitor.bqTableName(
-              datasetService.retrieveDatasetModel(datasetId, userRequest));
-          case AZURE -> SynapseVisitor.azureTableName(
-              datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
-        };
-    String cloudSpecificSql = buildSearchConceptsQuery(datasetId, domainId, searchText, tableNameGenerator);
+    TableNameGenerator tableNameGenerator = getTableNameGenerator(userRequest, dataset);
+    String cloudSpecificSql =
+        buildSearchConceptsQuery(datasetId, domainId, searchText, tableNameGenerator);
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -179,46 +166,18 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
-  private String buildSearchConceptsQuery(UUID datasetId, String domainId, String searchText,
-        TableNameGenerator tableNameGenerator) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
-    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
-    FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
-    FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
-    FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
-
-    BinaryFilterVariable domainClause =
-        new BinaryFilterVariable(
-            new FieldVariable(
-                new FieldPointer(conceptTablePointer, "domain_id"), conceptTableVariable),
-            BinaryFilterVariable.BinaryOperator.EQUALS,
-            new Literal(domainId));
-    FunctionFilterVariable searchConceptNameClause =
-        new FunctionFilterVariable(
-            FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-            new FieldVariable(
-                new FieldPointer(conceptTablePointer, "concept_name"), conceptTableVariable),
-            new Literal(searchText));
-    FunctionFilterVariable searchConceptCodeClause =
-        new FunctionFilterVariable(
-            FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-            new FieldVariable(
-                new FieldPointer(conceptTablePointer, "concept_code"), conceptTableVariable),
-            new Literal(searchText));
-    List<FilterVariable> searches = List.of(searchConceptNameClause, searchConceptCodeClause);
-    BooleanAndOrFilterVariable searchClause =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
-    List<FilterVariable> allFilters = List.of(domainClause, searchClause);
-    BooleanAndOrFilterVariable whereClause =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
-
-    Query query =
-        new Query(
-            List.of(nameFieldVariable, idFieldVariable),
-            List.of(conceptTableVariable),
-            whereClause);
-    return query.renderSQL();
+  private TableNameGenerator getTableNameGenerator(
+      AuthenticatedUserRequest userRequest, Dataset dataset) {
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    if (cloudPlatformWrapper.isAzure()) {
+      return SynapseVisitor.azureTableName(
+          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
+    } else if (cloudPlatformWrapper.isGcp()) {
+      return BigQueryVisitor.bqTableName(
+          datasetService.retrieveDatasetModel(dataset.getId(), userRequest));
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(

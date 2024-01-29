@@ -114,6 +114,8 @@ class DatasetsApiControllerTest {
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
   private static final String GET_COUNT_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/count";
+  private static final String SEARCH_CONCEPTS_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{domainId}/{searchText}";
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final Integer CONCEPT_ID = 0;
@@ -405,16 +407,7 @@ class DatasetsApiControllerTest {
 
   @Test
   void testGetConcepts() throws Exception {
-    SnapshotBuilderGetConceptsResponse expected =
-        new SnapshotBuilderGetConceptsResponse()
-            .sql("SELECT * FROM dataset")
-            .result(
-                List.of(
-                    new SnapshotBuilderConcept()
-                        .count(100)
-                        .name("Stub concept")
-                        .hasChildren(true)
-                        .id(CONCEPT_ID + 1)));
+    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
     when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID, TEST_USER))
         .thenReturn(expected);
     String actualJson =
@@ -446,6 +439,37 @@ class DatasetsApiControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result.total").value(count));
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  @Test
+  void testSearchConcepts() throws Exception {
+    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
+
+    when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", "cancer", TEST_USER))
+        .thenReturn(expected);
+    String actualJson =
+        mvc.perform(get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition", "cancer"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotBuilderGetConceptsResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
+    assertThat("Concept list and sql is returned", actual, equalTo(expected));
+
+    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  private SnapshotBuilderGetConceptsResponse makeGetConceptsResponse() {
+    return new SnapshotBuilderGetConceptsResponse()
+        .sql("SELECT * FROM dataset")
+        .result(
+            List.of(
+                new SnapshotBuilderConcept()
+                    .count(100)
+                    .name("Stub concept")
+                    .hasChildren(true)
+                    .id(CONCEPT_ID + 1)));
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */

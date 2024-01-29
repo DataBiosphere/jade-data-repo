@@ -584,7 +584,8 @@ public class DatasetsApiController implements DatasetsApi {
         IamResourceType.DATASET,
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
+    return ResponseEntity.ok(
+        snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

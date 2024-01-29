@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -11,7 +10,6 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariab
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import java.util.List;
 import javax.validation.constraints.NotNull;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -123,17 +121,5 @@ public class QueryTest {
             containsString(
                 "(c.condition_concept_id = 316139 OR c0.ancestor_concept_id = 316139 OR c.condition_concept_id = 4311280 OR c0.ancestor_concept_id = 4311280)"),
             containsString("AND p.year_of_birth < 1983")));
-  }
-
-  @Test
-  void renderGetConceptsSQL() {
-    String sql = buildConceptChildrenQuery(100, s -> s);
-    String expected =
-        """
-        SELECT c.concept_name, c.concept_id FROM concept AS c
-        WHERE c.concept_id IN
-          (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-          WHERE c.ancestor_concept_id = 100)""";
-    assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
 }

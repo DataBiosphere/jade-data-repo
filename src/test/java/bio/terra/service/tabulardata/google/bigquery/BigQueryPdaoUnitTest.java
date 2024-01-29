@@ -1319,7 +1319,7 @@ public class BigQueryPdaoUnitTest {
         List.of(Map.of("val", Integer.toString(numRowIds))));
   }
 
-  private Page<FieldValueList> mockPage(List<FieldValueList> listOfFieldValueList) {
+  public static Page<FieldValueList> mockPage(List<FieldValueList> listOfFieldValueList) {
     return new Page<>() {
       @Override
       public boolean hasNextPage() {

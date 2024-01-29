@@ -23,7 +23,6 @@ import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
-import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.UUID;
@@ -85,7 +84,6 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
-  @VisibleForTesting
   private TableNameGenerator getTableNameGenerator(
       Dataset dataset, AuthenticatedUserRequest userRequest) {
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());

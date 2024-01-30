@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SearchConceptsQueryBuilderTest {
 
   @Test
-  public void buildSearchConceptsQuery() {
+  void buildSearchConceptsQuery() {
     assertThat(
         "generated SQL is correct",
         SearchConceptsQueryBuilder.buildSearchConceptsQuery("condition", "cancer", s -> s),

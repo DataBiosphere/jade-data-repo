@@ -38,8 +38,9 @@ public class SnapshotBuilderService {
   private final SnapshotRequestDao snapshotRequestDao;
   private final DatasetService datasetService;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
-
   private final AzureSynapsePdao azureSynapsePdao;
+  public static final String CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE =
+      "Cloud platform not implemented";
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
@@ -100,7 +101,7 @@ public class SnapshotBuilderService {
               conceptId);
 
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
     }
   }
 
@@ -115,7 +116,7 @@ public class SnapshotBuilderService {
     } else if (cloudPlatformWrapper.isAzure()) {
       return azureSynapsePdao.runQuery(cloudSpecificSql, synapseFormatQueryFunction);
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
     }
   }
 
@@ -175,7 +176,7 @@ public class SnapshotBuilderService {
       return BigQueryVisitor.bqTableName(
           datasetService.retrieveDatasetModel(dataset.getId(), userRequest));
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
     }
   }
 

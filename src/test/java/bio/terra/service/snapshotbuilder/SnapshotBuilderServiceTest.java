@@ -90,7 +90,7 @@ class SnapshotBuilderServiceTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
-  public void getConceptChildren(CloudPlatform cloudPlatform) {
+  void getConceptChildren(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));

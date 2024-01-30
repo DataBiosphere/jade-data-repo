@@ -15,6 +15,8 @@ import java.util.List;
 
 public class SearchConceptsQueryBuilder {
 
+  private SearchConceptsQueryBuilder() {}
+
   public static String buildSearchConceptsQuery(
       String domainId, String searchText, TableNameGenerator tableNameGenerator) {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);

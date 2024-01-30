@@ -44,8 +44,10 @@ public class GetResourceBufferProjectStep implements Step {
     } catch (BufferServiceAPIException e) {
       // The NOT_FOUND status code indicates that Buffer Service is still creating a project and we
       // must retry. Retrying TOO_MANY_REQUESTS gives the service time to recover from load.
+      // Add retry for internal server errors to help with test flakiness
       if (e.getStatusCode() == HttpStatus.NOT_FOUND
-          || e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+          || e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS
+          || e.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
       }
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);

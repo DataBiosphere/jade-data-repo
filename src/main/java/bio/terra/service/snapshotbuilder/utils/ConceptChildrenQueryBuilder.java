@@ -13,25 +13,30 @@ import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
 
+  private ConceptChildrenQueryBuilder() {}
+
   public static String buildConceptChildrenQuery(
       int conceptId, TableNameGenerator tableNameGenerator) {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldPointer nameFieldPointer = new FieldPointer(conceptTablePointer, "concept_name");
-    FieldVariable nameFieldVariable = new FieldVariable(nameFieldPointer, conceptTableVariable);
-    FieldPointer idFieldPointer = new FieldPointer(conceptTablePointer, "concept_id");
-    FieldVariable idFieldVariable = new FieldVariable(idFieldPointer, conceptTableVariable);
+    FieldVariable nameFieldVariable =
+        makedFieldVariable(conceptTablePointer, conceptTableVariable, "concept_name");
+    FieldVariable idFieldVariable =
+        makedFieldVariable(conceptTablePointer, conceptTableVariable, "concept_id");
 
-    TablePointer tablePointer = TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-    FieldPointer fieldPointer = new FieldPointer(tablePointer, "descendant_concept_id");
-    FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
+    TablePointer ancestorTablePointer =
+        TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
+    TableVariable ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
+    FieldVariable descendantFieldVariable =
+        makedFieldVariable(ancestorTablePointer, ancestorTableVariable, "descendant_concept_id");
+
     BinaryFilterVariable whereClause =
         new BinaryFilterVariable(
-            new FieldVariable(new FieldPointer(tablePointer, "ancestor_concept_id"), tableVariable),
+            makedFieldVariable(ancestorTablePointer, ancestorTableVariable, "ancestor_concept_id"),
             BinaryFilterVariable.BinaryOperator.EQUALS,
             new Literal(conceptId));
-    Query subQuery = new Query(List.of(fieldVariable), List.of(tableVariable), whereClause);
+    Query subQuery =
+        new Query(List.of(descendantFieldVariable), List.of(ancestorTableVariable), whereClause);
     SubQueryFilterVariable subQueryFilterVariable =
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
     Query query =
@@ -40,5 +45,11 @@ public class ConceptChildrenQueryBuilder {
             List.of(conceptTableVariable),
             subQueryFilterVariable);
     return query.renderSQL();
+  }
+
+  private static FieldVariable makedFieldVariable(
+      TablePointer tablePointer, TableVariable tableVariable, String fieldName) {
+    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName);
+    return new FieldVariable(fieldPointer, tableVariable);
   }
 }

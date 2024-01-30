@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetModel;
+import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,7 @@ class BigQueryVisitorTest {
   void bqTableNameNullModel() {
     DatasetModel dataset = null;
     String tableName = null;
-    assertThrows(
-        NullPointerException.class, () -> BigQueryVisitor.bqTableName(dataset).generate(tableName));
+    TableNameGenerator generator = BigQueryVisitor.bqTableName(dataset);
+    assertThrows(NullPointerException.class, () -> generator.generate(tableName));
   }
 }

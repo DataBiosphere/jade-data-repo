@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag(Unit.TAG)
-public class ConceptChildrenQueryBuilderTest {
+class ConceptChildrenQueryBuilderTest {
   @Test
   void buildConceptChildrenQuery() {
     String sql = ConceptChildrenQueryBuilder.buildConceptChildrenQuery(100, s -> s);

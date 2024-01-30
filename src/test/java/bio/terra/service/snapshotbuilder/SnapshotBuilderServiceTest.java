@@ -104,7 +104,7 @@ class SnapshotBuilderServiceTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
-  public void searchConcepts(CloudPlatform cloudPlatform) {
+  void searchConcepts(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
     DatasetModel model = new DatasetModel().name("name").dataProject("project");
     AuthenticatedUserRequest user = AuthenticationFixtures.randomUserRequest();

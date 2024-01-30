@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderUtils.makeFieldVariable;
+
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -20,19 +21,19 @@ public class ConceptChildrenQueryBuilder {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldVariable nameFieldVariable =
-        makedFieldVariable(conceptTablePointer, conceptTableVariable, "concept_name");
+        makeFieldVariable(conceptTablePointer, conceptTableVariable, "concept_name");
     FieldVariable idFieldVariable =
-        makedFieldVariable(conceptTablePointer, conceptTableVariable, "concept_id");
+        makeFieldVariable(conceptTablePointer, conceptTableVariable, "concept_id");
 
     TablePointer ancestorTablePointer =
         TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
     TableVariable ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
     FieldVariable descendantFieldVariable =
-        makedFieldVariable(ancestorTablePointer, ancestorTableVariable, "descendant_concept_id");
+        makeFieldVariable(ancestorTablePointer, ancestorTableVariable, "descendant_concept_id");
 
     BinaryFilterVariable whereClause =
         new BinaryFilterVariable(
-            makedFieldVariable(ancestorTablePointer, ancestorTableVariable, "ancestor_concept_id"),
+            makeFieldVariable(ancestorTablePointer, ancestorTableVariable, "ancestor_concept_id"),
             BinaryFilterVariable.BinaryOperator.EQUALS,
             new Literal(conceptId));
     Query subQuery =
@@ -45,11 +46,5 @@ public class ConceptChildrenQueryBuilder {
             List.of(conceptTableVariable),
             subQueryFilterVariable);
     return query.renderSQL();
-  }
-
-  private static FieldVariable makedFieldVariable(
-      TablePointer tablePointer, TableVariable tableVariable, String fieldName) {
-    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName);
-    return new FieldVariable(fieldPointer, tableVariable);
   }
 }

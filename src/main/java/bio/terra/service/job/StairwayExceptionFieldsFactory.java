@@ -8,17 +8,23 @@ import bio.terra.stairway.Step;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
 
 public class StairwayExceptionFieldsFactory {
 
-  private static final String CONTACT_TEAM_MESSAGE = "Please contact the TDR team for help.";
+  private static final String CONTACT_TEAM_MESSAGE = "Please contact Terra Support for help.";
 
   public static StairwayExceptionFields fromException(Exception ex) {
     String stepName = getStepNameFromStairwayException(ex);
 
     Optional<String> fieldExceptionClassName = Optional.empty();
-    if (ErrorReportException.class.isAssignableFrom(ex.getClass())) {
+    var fieldErrorCode = HttpStatus.INTERNAL_SERVER_ERROR.value();
+    var isApiErrorReportException = false;
+
+    if (ex instanceof ErrorReportException errorReportException) {
       fieldExceptionClassName = Optional.of(ex.getClass().getName());
+      fieldErrorCode = errorReportException.getStatusCode().value();
+      isApiErrorReportException = true;
     }
 
     if (stepName == null) {
@@ -26,14 +32,18 @@ public class StairwayExceptionFieldsFactory {
           .setClassName(fieldExceptionClassName.orElse(JobExecutionException.class.getName()))
           .setDataRepoException(true)
           .setMessage(getJobExceptionMessage(ex))
-          .setErrorDetails(getJobExceptionDetails(ex));
+          .setErrorDetails(getJobExceptionDetails(ex))
+          .setErrorCode(fieldErrorCode)
+          .setApiErrorReportException(isApiErrorReportException);
     }
 
     return new StairwayExceptionFields()
         .setClassName(fieldExceptionClassName.orElse(StepExecutionException.class.getName()))
         .setDataRepoException(true)
         .setMessage(getStepExceptionMessage(stepName, ex))
-        .setErrorDetails(getStepExceptionDetails(ex));
+        .setErrorDetails(getStepExceptionDetails(ex))
+        .setErrorCode(fieldErrorCode)
+        .setApiErrorReportException(isApiErrorReportException);
   }
 
   private static String getStepNameFromStairwayException(Exception ex) {

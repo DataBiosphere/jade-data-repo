@@ -3,6 +3,7 @@ package bio.terra.service.resourcemanagement.exception;
 import bio.terra.buffer.client.ApiException;
 import bio.terra.common.exception.ErrorReportException;
 import java.util.Collections;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 
 /** Wrapper exception for non-200 responses from calls to Buffer Service. */
@@ -17,9 +18,12 @@ public class BufferServiceAPIException extends ErrorReportException {
         HttpStatus.resolve(bufferException.getCode()));
     this.apiException = bufferException;
   }
-
+  
   /** Get the HTTP status code of the underlying response from Buffer Service. */
   public int getApiExceptionStatus() {
+    if (apiException == null) {
+      return HttpStatus.INTERNAL_SERVER_ERROR.value();
+    }
     return apiException.getCode();
   }
 }

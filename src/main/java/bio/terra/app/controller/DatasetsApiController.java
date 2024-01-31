@@ -583,7 +583,7 @@ public class DatasetsApiController implements DatasetsApi {
         userRequest,
         IamResourceType.DATASET,
         id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS); // TODO: change once SQL is sanitized
     return ResponseEntity.ok(
         snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
   }

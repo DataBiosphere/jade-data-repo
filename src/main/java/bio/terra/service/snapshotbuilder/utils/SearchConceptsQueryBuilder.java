@@ -45,7 +45,6 @@ public class SearchConceptsQueryBuilder {
     BooleanAndOrFilterVariable searchClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
 
-
     // DomainClause AND (SearchConceptNameClause OR searchConceptCodeClause)
     List<FilterVariable> allFilters = List.of(domainClause, searchClause);
     BooleanAndOrFilterVariable whereClause =

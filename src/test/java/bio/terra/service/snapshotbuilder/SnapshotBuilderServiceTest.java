@@ -165,6 +165,8 @@ class SnapshotBuilderServiceTest {
       when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
           .thenReturn(concepts);
     } else {
+      when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+          .thenReturn("dataSource");
       when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
     }
   }

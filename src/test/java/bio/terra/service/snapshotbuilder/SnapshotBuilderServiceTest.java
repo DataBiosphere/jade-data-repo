@@ -3,7 +3,9 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
@@ -183,6 +185,7 @@ class SnapshotBuilderServiceTest {
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(
             dataset.getId(), List.of(List.of()), TEST_USER);
+    verify(azureSynapsePdao).runQuery(eq(query.renderSQL()), any());
     assertThat(
         "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
   }

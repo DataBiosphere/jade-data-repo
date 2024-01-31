@@ -32,23 +32,22 @@ public class SearchConceptsQueryBuilder {
     BinaryFilterVariable domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
 
-    // searchConceptName clause has field name "concept_name"
     FunctionFilterVariable searchConceptNameClause =
         createSearchConceptClause(
             conceptTablePointer, conceptTableVariable, searchText, "concept_name");
 
-    // searchConceptCode clause has field name "concept_code"
     FunctionFilterVariable searchConceptCodeClause =
         createSearchConceptClause(
             conceptTablePointer, conceptTableVariable, searchText, "concept_code");
 
-    // DomainClause AND (SearchConceptNameClause OR searchConceptCodeClause)
+    // SearchConceptNameClause OR searchConceptCodeClause
     List<FilterVariable> searches = List.of(searchConceptNameClause, searchConceptCodeClause);
-
     BooleanAndOrFilterVariable searchClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
-    List<FilterVariable> allFilters = List.of(domainClause, searchClause);
 
+
+    // DomainClause AND (SearchConceptNameClause OR searchConceptCodeClause)
+    List<FilterVariable> allFilters = List.of(domainClause, searchClause);
     BooleanAndOrFilterVariable whereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 

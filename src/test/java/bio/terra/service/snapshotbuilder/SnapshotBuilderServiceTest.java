@@ -3,7 +3,6 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -11,16 +10,9 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.grammar.azure.SynapseVisitor;
-import bio.terra.grammar.google.BigQueryVisitor;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
@@ -107,16 +99,8 @@ class SnapshotBuilderServiceTest {
   public void getConceptChildren(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
-    if (cloudPlatformWrapper.isGcp()) {
-      DatasetModel datasetModel = makeDatasetModel();
-      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(datasetModel);
-      when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
-          .thenReturn(concepts);
-    } else {
-      when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
-    }
+    mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(
         "getConceptChildren returns the expected response",
@@ -128,20 +112,11 @@ class SnapshotBuilderServiceTest {
   @EnumSource(CloudPlatform.class)
   void searchConcepts(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
-    DatasetModel model = makeDatasetModel();
-    AuthenticatedUserRequest user = AuthenticationFixtures.randomUserRequest();
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
-    if (cloudPlatformWrapper.isGcp()) {
-      when(datasetService.retrieveDatasetModel(any(), any())).thenReturn(model);
-      when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
-          .thenReturn(concepts);
-    } else {
-      when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
-    }
+    mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
     var response =
-        snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", user);
+        snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", TEST_USER);
     assertThat(
         "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
   }
@@ -153,20 +128,20 @@ class SnapshotBuilderServiceTest {
     DatasetModel model = makeDatasetModel();
     String tableName = "table";
     String dataSource = "dataSource";
-    AuthenticatedUserRequest user = AuthenticationFixtures.randomUserRequest();
     CloudPlatformWrapper wrapper = CloudPlatformWrapper.of(cloudPlatform);
     if (wrapper.isAzure()) {
-      when(datasetService.getOrCreateExternalAzureDataSource(dataset, user)).thenReturn(dataSource);
+      when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+          .thenReturn(dataSource);
       assertThat(
           "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
-          snapshotBuilderService.getTableNameGenerator(user, dataset).generate(tableName),
+          snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset).generate(tableName),
           is(SynapseVisitor.azureTableName(dataSource).generate(tableName)));
     }
     if (wrapper.isGcp()) {
-      when(datasetService.retrieveDatasetModel(dataset.getId(), user)).thenReturn(model);
+      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(model);
       assertThat(
           "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
-          snapshotBuilderService.getTableNameGenerator(user, dataset).generate(tableName),
+          snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset).generate(tableName),
           is(BigQueryVisitor.bqTableName(model).generate(tableName)));
     }
   }
@@ -182,9 +157,11 @@ class SnapshotBuilderServiceTest {
         .id(UUID.randomUUID());
   }
 
-  private void mockRunQuery(CloudPlatform cloudPlatform, List<SnapshotBuilderConcept> concepts) {
+  private void mockRunQueryForConcepts(
+      CloudPlatform cloudPlatform, List<SnapshotBuilderConcept> concepts, Dataset dataset) {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
     if (cloudPlatformWrapper.isGcp()) {
+      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
       when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
           .thenReturn(concepts);
     } else {

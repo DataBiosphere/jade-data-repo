@@ -1,8 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.buildSearchConceptsQuery;
-
 import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
+import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.buildSearchConceptsQuery;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -138,8 +137,7 @@ public class SnapshotBuilderService {
       return SynapseVisitor.azureTableName(
           datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
     } else if (cloudPlatformWrapper.isGcp()) {
-      return BigQueryVisitor.bqTableName(
-          datasetService.retrieveDatasetModel(dataset.getId(), userRequest));
+      return BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest));
     } else {
       throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
     }

@@ -3,6 +3,7 @@ package bio.terra.grammar;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Unit;
@@ -11,10 +12,10 @@ import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.grammar.exception.MissingDatasetException;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.DatasetModel;
-import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -147,16 +148,17 @@ public class GrammarTest {
         Query.parse(
             "SELECT vocabulary.datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary.vocabulary_id IN ('1')");
     String expectedQuery =
-        QueryTestUtils.collapseWhiteSpace(
-            """
+        """
     SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM
     OPENROWSET(
       BULK 'metadata/parquet/vocabulary/*/*.parquet',
       DATA_SOURCE = 'sourceDatasetDataSourceName1',
       FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
-    WHERE alias927641339.vocabulary_id IN ( '1' )""");
-    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
-    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
+    WHERE alias927641339.vocabulary_id IN ( '1' )""";
+    assertThat(
+        "Translation is correct",
+        query.translateSql(synapseVisitor),
+        equalToCompressingWhiteSpace(expectedQuery));
   }
 
   @Test
@@ -167,15 +169,16 @@ public class GrammarTest {
         Query.parse(
             "SELECT datarepo_row_id FROM datasetName.vocabulary WHERE vocabulary_id IN ('1')");
     String expectedQuery =
-        QueryTestUtils.collapseWhiteSpace(
-            """
+        """
       SELECT datarepo_row_id FROM (SELECT * FROM OPENROWSET(
         BULK 'metadata/parquet/vocabulary/*/*.parquet',
         DATA_SOURCE = 'sourceDatasetDataSourceName1',
         FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
-      WHERE vocabulary_id IN ( '1' )""");
-    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
-    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
+      WHERE vocabulary_id IN ( '1' )""";
+    assertThat(
+        "Translation is correct",
+        query.translateSql(synapseVisitor),
+        equalToCompressingWhiteSpace(expectedQuery));
   }
 
   @Test
@@ -184,18 +187,19 @@ public class GrammarTest {
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
     Query query =
         Query.parse(
-            "SELECT it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.datarepo_row_id FROM it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary  WHERE (it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.vocabulary_id IN (\"1\"))");
-    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
+            "SELECT it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.datarepo_row_id FROM it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary WHERE (it_dataset_omop3e3960eb_a12c_441b_ac07_d863f1bce90b.vocabulary.vocabulary_id IN (\"1\"))");
     String expectedQuery =
-        QueryTestUtils.collapseWhiteSpace(
-            """
+        """
      SELECT alias927641339.datarepo_row_id FROM (SELECT * FROM
      OPENROWSET(
        BULK 'metadata/parquet/vocabulary/*/*.parquet',
        DATA_SOURCE = 'sourceDatasetDataSourceName1',
-         FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
-          WHERE ( alias927641339.vocabulary_id IN ( '1' ) )""");
-    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
+       FORMAT = 'parquet') AS inner_alias927641339) AS alias927641339
+     WHERE ( alias927641339.vocabulary_id IN ( '1' ) )""";
+    assertThat(
+        "Translation is correct",
+        query.translateSql(synapseVisitor),
+        Matchers.equalToCompressingWhiteSpace(expectedQuery));
   }
 
   @Test
@@ -205,10 +209,8 @@ public class GrammarTest {
     String sourceDatasetDataSourceName = "sourceDatasetDataSourceName1";
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
     Query query = Query.parse(userQuery);
-    String translatedQuery = QueryTestUtils.collapseWhiteSpace(query.translateSql(synapseVisitor));
     String expectedQuery =
-        QueryTestUtils.collapseWhiteSpace(
-            """
+        """
     SELECT alias236785828.datarepo_row_id FROM (SELECT * FROM
     OPENROWSET(
        BULK 'metadata/parquet/variant/*/*.parquet',
@@ -221,8 +223,11 @@ public class GrammarTest {
         DATA_SOURCE = 'sourceDatasetDataSourceName1',
         FORMAT = 'parquet') AS inner_alias1748223664)
      AS alias1748223664
-     ON alias1748223664.variant_id = alias236785828.id WHERE alias1748223664.variant_id IN ( '1:104535993:T:C' )""");
-    assertThat("Translation is correct", translatedQuery, equalTo(expectedQuery));
+     ON alias1748223664.variant_id = alias236785828.id WHERE alias1748223664.variant_id IN ( '1:104535993:T:C' )""";
+    assertThat(
+        "Translation is correct",
+        query.translateSql(synapseVisitor),
+        equalToCompressingWhiteSpace(expectedQuery));
   }
 
   @Test

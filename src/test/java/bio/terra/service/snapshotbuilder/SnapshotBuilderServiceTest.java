@@ -7,7 +7,10 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
@@ -37,6 +40,8 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
   public void beforeEach() {
@@ -53,6 +58,7 @@ class SnapshotBuilderServiceTest {
     when(snapshotRequestDao.create(
             datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
         .thenReturn(response);
+
     assertThat(
         "createSnapshotRequest returns the expected response",
         snapshotBuilderService.createSnapshotRequest(
@@ -97,12 +103,14 @@ class SnapshotBuilderServiceTest {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
     if (cloudPlatformWrapper.isGcp()) {
+      DatasetModel datasetModel = new DatasetModel().name("name").dataProject("project");
+      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(datasetModel);
       when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
           .thenReturn(concepts);
     } else {
       when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
     }
-    var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, null);
+    var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(
         "getConceptChildren returns the expected response",
         response.getResult(),

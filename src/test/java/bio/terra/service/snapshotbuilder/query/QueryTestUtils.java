@@ -4,9 +4,4 @@ public class QueryTestUtils {
   public static TablePointer fromTableName(String tableName) {
     return TablePointer.fromTableName(tableName, s -> s);
   }
-
-  public static String collapseWhiteSpace(String string) {
-    string = string.replaceAll("\\n", " ").replaceAll("\\s+", " ").trim();
-    return string;
-  }
 }

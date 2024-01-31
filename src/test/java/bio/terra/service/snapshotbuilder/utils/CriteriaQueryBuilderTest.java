@@ -67,7 +67,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(),
         equalToCompressingWhiteSpace(
-            "null.person_id IN (SELECT c.person_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/condition_occurrence/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias128572524)\n AS c  JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias625571305)\n AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
+            "null.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
   }
 
   @Test

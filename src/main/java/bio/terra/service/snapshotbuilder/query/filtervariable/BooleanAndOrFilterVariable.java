@@ -2,7 +2,6 @@ package bio.terra.service.snapshotbuilder.query.filtervariable;
 
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,11 +14,6 @@ public record BooleanAndOrFilterVariable(
     return subFilters.stream()
         .map(SqlExpression::renderSQL)
         .collect(Collectors.joining(" " + operator.renderSQL() + " ", "(", ")"));
-  }
-
-  @Override
-  public List<TableVariable> getTables() {
-    return subFilters.stream().map(FilterVariable::getTables).flatMap(List::stream).toList();
   }
 
   public enum LogicalOperator implements SqlExpression {

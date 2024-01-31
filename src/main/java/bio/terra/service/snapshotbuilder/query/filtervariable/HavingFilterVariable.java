@@ -1,8 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
-import java.util.List;
 
 /** Example: HAVING COUNT(*) > 1 */
 public class HavingFilterVariable implements FilterVariable {
@@ -17,10 +15,5 @@ public class HavingFilterVariable implements FilterVariable {
   @Override
   public String renderSQL() {
     return String.format("HAVING COUNT(*) %s %s", operator.renderSQL(), value);
-  }
-
-  @Override
-  public List<TableVariable> getTables() {
-    return List.of();
   }
 }

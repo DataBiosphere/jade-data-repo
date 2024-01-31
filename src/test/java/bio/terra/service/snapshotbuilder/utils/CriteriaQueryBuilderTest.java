@@ -2,13 +2,11 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
-import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
@@ -16,8 +14,6 @@ import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -30,11 +26,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CriteriaQueryBuilderTest {
 
   @Test
-  void generateRangeCriteriaFilterProducesCorrectSql() {
+  void generateFilterForRangeCriteria() {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForRangeCriteria(rangeCriteria);
+        new CriteriaQueryBuilder("person", null).generateFilter(rangeCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -42,47 +37,26 @@ class CriteriaQueryBuilderTest {
         filterVariable.renderSQL(),
         equalToCompressingWhiteSpace(
             "(null.range_column_name >= 0 AND null.range_column_name <= 100)"));
-    // There are actually two entsries for "person" because the range filter generates two distinct
-    // filters which each reference person. Distinct is to fix this.
-    assertThat(
-        "The filter has only person within the table",
-        filterVariable.getTables().stream()
-            .map(TableVariable::getTablePointer)
-            .map(TablePointer::tableName)
-            .distinct()
-            .toList(),
-        equalTo(List.of("person")));
   }
 
   @Test
-  void generateListCriteriaFilterProducesCorrectSql() {
+  void generateFilterForListCriteria() {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForListCriteria(listCriteria);
+        new CriteriaQueryBuilder("person", null).generateFilter(listCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(),
         equalToCompressingWhiteSpace("null.list_column_name IN (0,1,2)"));
-    // The person table is reachable by traversing through the table variables, but isn't directly
-    // available
-    assertThat(
-        "The filter just has the concept table, but not the person table",
-        filterVariable.getTables().stream()
-            .map(TableVariable::getTablePointer)
-            .map(TablePointer::tableName)
-            .toList(),
-        equalTo(List.of("person")));
   }
 
   @Test
-  void generateDomainCriteriaFilterProducesCorrectSql() {
+  void generateFilterForDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForDomainCriteria(domainCriteria);
+        new CriteriaQueryBuilder("person", null).generateFilter(domainCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -90,51 +64,36 @@ class CriteriaQueryBuilderTest {
         filterVariable.renderSQL(),
         equalToCompressingWhiteSpace(
             "null.person_id IN (SELECT c.person_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/condition_occurrence/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias128572524)\n AS c  JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias625571305)\n AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
-    // The person table is reachable by traversing through the table variables, but isn't directly
-    // available
-    assertThat(
-        "The filter just has the concept table, but not the person table",
-        filterVariable.getTables().stream()
-            .map(TableVariable::getTablePointer)
-            .map(TablePointer::tableName)
-            .toList(),
-        equalTo(List.of("person")));
   }
 
   @Test
-  void generateDomainCriteriaFilterThrowsIfGivenUnknownDomain() {
+  void generateFilterForDomainCriteriaThrowsIfGivenUnknownDomain() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria().domainName("unknown");
-    CriteriaQueryBuilder criteriaQueryBuilder =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"));
+    CriteriaQueryBuilder criteriaQueryBuilder = new CriteriaQueryBuilder("person", null);
     assertThrows(
         BadRequestException.class,
-        () -> criteriaQueryBuilder.generateFilterForDomainCriteria(domainCriteria),
+        () -> criteriaQueryBuilder.generateFilter(domainCriteria),
         "Domain unknown is not found in dataset");
   }
 
   @Test
-  void generateFilterForCriteriaCorrectlyIdentifiesDomainCriteria() {
+  void generateFilterIdentifiesDomainCriteria() {
     SnapshotBuilderCriteria criteria = generateDomainCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForCriteria(criteria);
+        new CriteriaQueryBuilder("person", s -> s).generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     String sql = filterVariable.renderSQL();
     assertThat(
         "It is aliasing for condition occurrence", sql, containsString("SELECT c.person_id FROM"));
-    assertThat(
-        "Condition occurrence is loaded in with azure namespacing",
-        sql,
-        containsString("'metadata/parquet/condition_occurrence/*/*.parquet'"));
+    assertThat("Condition occurrence is loaded in", sql, containsString("condition_occurrence"));
   }
 
   @Test
-  void generateFilterForCriteriaCorrectlyIdentifiesRangeCriteria() {
+  void generateFilterIdentifiesRangeCriteria() {
     SnapshotBuilderCriteria criteria = generateRangeCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForCriteria(criteria);
+        new CriteriaQueryBuilder("person", null).generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -144,11 +103,10 @@ class CriteriaQueryBuilderTest {
   }
 
   @Test
-  void generateFilterForCriteriaCorrectlyIdentifiesListCriteria() {
+  void generateFilterIdentifiesListCriteria() {
     SnapshotBuilderCriteria criteria = generateListCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForCriteria(criteria);
+        new CriteriaQueryBuilder("person", null).generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -162,8 +120,7 @@ class CriteriaQueryBuilderTest {
             .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
             .meetAll(true);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateAndOrFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person", null).generateAndOrFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -180,8 +137,7 @@ class CriteriaQueryBuilderTest {
             .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
             .meetAll(false);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateAndOrFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person", null).generateAndOrFilterForCriteriaGroup(criteriaGroup);
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
@@ -198,8 +154,7 @@ class CriteriaQueryBuilderTest {
             .meetAll(true)
             .mustMeet(true);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person", null).generateFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -217,8 +172,7 @@ class CriteriaQueryBuilderTest {
             .meetAll(false)
             .mustMeet(false);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
-            .generateFilterForCriteriaGroup(criteriaGroup);
+        new CriteriaQueryBuilder("person", null).generateFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -231,7 +185,7 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForCriteriaGroups() {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
+        new CriteriaQueryBuilder("person", null)
             .generateFilterForCriteriaGroups(
                 List.of(
                     new SnapshotBuilderCriteriaGroup()
@@ -252,9 +206,9 @@ class CriteriaQueryBuilderTest {
   }
 
   @Test
-  void generateRollupCountsQueryFilterForCriteriaGroupsList() {
+  void generateRollupCountsQueryForCriteriaGroupsList() {
     Query query =
-        new CriteriaQueryBuilder("person", SynapseVisitor.azureTableName("source_dataset_name"))
+        new CriteriaQueryBuilder("person", s -> s)
             .generateRollupCountsQueryForCriteriaGroupsList(
                 List.of(
                     List.of(
@@ -271,7 +225,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         query.renderSQL(),
         equalToCompressingWhiteSpace(
-            "SELECT COUNT(DISTINCT p.person_id) FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/person/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias991716492)\n AS p WHERE (((p.person_id IN (SELECT c.person_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/condition_occurrence/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias128572524)\n AS c  JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias625571305)\n AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND p.list_column_name IN (0,1,2) AND (p.range_column_name >= 0 AND p.range_column_name <= 100) AND p.person_id IN (SELECT d.person_id FROM (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/drug_exposure/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias2131422491)\n AS d  JOIN (SELECT * FROM\nOPENROWSET(\n  BULK 'metadata/parquet/concept_ancestor/*/*.parquet',\n  DATA_SOURCE = 'source_dataset_name',\n  FORMAT = 'parquet') AS inner_alias625571305)\n AS c ON c.ancestor_concept_id = d.drug_concept_id WHERE (d.drug_concept_id = 0 OR c.ancestor_concept_id = 0)))))"));
+            "SELECT COUNT(DISTINCT p.person_id) FROM person AS p WHERE (((p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND p.list_column_name IN (0,1,2) AND (p.range_column_name >= 0 AND p.range_column_name <= 100) AND p.person_id IN (SELECT d.person_id FROM drug_exposure AS d  JOIN concept_ancestor AS c ON c.ancestor_concept_id = d.drug_concept_id WHERE (d.drug_concept_id = 0 OR c.ancestor_concept_id = 0)))))"));
   }
 
   private static SnapshotBuilderDomainCriteria generateDomainCriteria() {

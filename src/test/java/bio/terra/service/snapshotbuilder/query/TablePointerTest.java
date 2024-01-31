@@ -7,7 +7,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
-import bio.terra.service.snapshotbuilder.query.filtervariable.SimpleFilterVariableForTests;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -17,8 +16,7 @@ class TablePointerTest {
   @Test
   void renderSQL() {
     var tablePointer =
-        new TablePointer(
-            "table", (primaryTable, tables) -> new SimpleFilterVariableForTests(), null, s -> s);
+        new TablePointer("table", (primaryTable, tables) -> () -> "filter", null, s -> s);
     assertThat(tablePointer.renderSQL(), is("(SELECT t.* FROM table AS t WHERE filter)"));
   }
 
@@ -29,7 +27,7 @@ class TablePointerTest {
     var tablePointer =
         new TablePointer(
             "table",
-            (primaryTable, tables) -> new SimpleFilterVariableForTests(),
+            (primaryTable, tables) -> () -> "filter",
             null,
             BigQueryVisitor.bqTableName(dataset));
     assertThat(

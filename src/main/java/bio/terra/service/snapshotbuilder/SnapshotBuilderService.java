@@ -26,6 +26,7 @@ import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.UUID;
@@ -107,7 +108,7 @@ public class SnapshotBuilderService {
     }
   }
 
-  private <T> List<T> runSnapshotBuilderQuery(
+  public <T> List<T> runSnapshotBuilderQuery(
       String cloudSpecificSql,
       Dataset dataset,
       Function<TableResult, List<T>> gcpFormatQueryFunction,
@@ -141,15 +142,13 @@ public class SnapshotBuilderService {
 
   public SnapshotBuilderCountResponse getCountResponse(
       UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
+    var rollupCount =
+        getRollupCountForCriteriaGroups(
+            id,
+            cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
+            userRequest);
     return new SnapshotBuilderCountResponse()
-        .sql("")
-        .result(
-            new SnapshotBuilderCountResponseResult()
-                .total(
-                    getRollupCountForCriteriaGroups(
-                        id,
-                        cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
-                        userRequest)));
+        .result(new SnapshotBuilderCountResponseResult().total(Math.max(rollupCount, 20)));
   }
 
   public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
@@ -158,14 +157,14 @@ public class SnapshotBuilderService {
 
   public int getRollupCountForCriteriaGroups(
       UUID datasetId,
-      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList,
+      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
       AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(userRequest, dataset);
 
     Query query =
         new CriteriaQueryBuilder("person", tableNameGenerator)
-            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroupsList);
+            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
     String cloudSpecificSQL = query.renderSQL();
 
     return runSnapshotBuilderQuery(
@@ -176,7 +175,8 @@ public class SnapshotBuilderService {
         .get(0);
   }
 
-  private TableNameGenerator getTableNameGenerator(
+  @VisibleForTesting
+  public TableNameGenerator getTableNameGenerator(
       AuthenticatedUserRequest userRequest, Dataset dataset) {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     if (cloudPlatformWrapper.isAzure()) {

@@ -7,7 +7,12 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.azure.SynapseVisitor;
+import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
@@ -37,6 +42,9 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
+
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
   public void beforeEach() {
@@ -108,4 +116,57 @@ class SnapshotBuilderServiceTest {
         response.getResult(),
         equalTo(concepts));
   }
+
+  @Test
+  void getTableNameGeneratorHandlesGCPCorrectly() {
+    Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.GCP));
+    when(datasetService.retrieveDatasetModel(dataset.getId(), TEST_USER))
+        .thenReturn(new DatasetModel().name("name").dataProject("data-project"));
+    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset);
+    assertThat(
+        "The generated name is the same as the BQVisitor generated name",
+        tableNameGenerator.generate("table"),
+        equalTo(
+            BigQueryVisitor.bqTableName(
+                    datasetService.retrieveDatasetModel(dataset.getId(), TEST_USER))
+                .generate("table")));
+  }
+
+  @Test
+  void getTableNameGeneratorHandlesAzureCorrectly() {
+    String dataSourceName = "data-source";
+    String tableName = "azure-table";
+    Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE));
+    when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+        .thenReturn(dataSourceName);
+    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset);
+    assertThat(
+        "The generated name is the same as the SynapseVisitor generated name",
+        tableNameGenerator.generate(tableName),
+        equalTo(SynapseVisitor.azureTableName(dataSourceName).generate(tableName)));
+  }
+  //
+  //  @Test
+  //  void getRollupCountForCriteriaGroupsGeneratesAndRunsAQuery() {
+  //    Dataset dataset =
+  //        new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
+  //            .projectResource(new GoogleProjectResource().googleProjectId("project123"))
+  //            .name("dataset123")
+  //            .id(UUID.randomUUID());
+  //    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+  //    Mockito.mockConstruction(
+  //        CriteriaQueryBuilder.class,
+  //        (mock, context) -> {
+  //          when(mock.generateRollupCountsQueryForCriteriaGroupsList(any()))
+  //              .thenReturn(new Query(List.of(), List.of()));
+  //        });
+  //    doReturn(List.of(5))
+  //        .when(spy(snapshotBuilderService))
+  //        .runSnapshotBuilderQuery(any(), eq(dataset), any(), any());
+  //    int rollupCount =
+  //        snapshotBuilderService.getRollupCountForCriteriaGroups(
+  //            dataset.getId(), List.of(List.of()), TEST_USER);
+  //    assertThat(
+  //        "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
+  //  }
 }

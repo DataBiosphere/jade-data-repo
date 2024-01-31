@@ -127,6 +127,7 @@ public class CriteriaQueryBuilder {
                         new Literal(domainCriteria.getId().intValue()))))));
   }
 
+
   FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
     return switch (criteria.getKind()) {
       case LIST -> generateFilter((SnapshotBuilderProgramDataListCriteria) criteria);
@@ -164,7 +165,7 @@ public class CriteriaQueryBuilder {
         new FieldVariable(
             new FieldPointer(getRootTablePointer(), PERSON_ID_FIELD_NAME, "COUNT"),
             rootTable,
-            "count",
+            null,
             true);
 
     FilterVariable filterVariable =

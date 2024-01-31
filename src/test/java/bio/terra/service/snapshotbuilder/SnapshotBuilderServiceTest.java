@@ -137,15 +137,14 @@ class SnapshotBuilderServiceTest {
   @Test
   void getTableNameGeneratorHandlesGCPCorrectly() {
     Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.GCP));
-    when(datasetService.retrieveDatasetModel(dataset.getId(), TEST_USER))
+    when(datasetService.retrieveModel(dataset, TEST_USER))
         .thenReturn(new DatasetModel().name("name").dataProject("data-project"));
     var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER);
     assertThat(
         "The generated name is the same as the BQVisitor generated name",
         tableNameGenerator.generate("table"),
         equalTo(
-            BigQueryVisitor.bqTableName(
-                    datasetService.retrieveDatasetModel(dataset.getId(), TEST_USER))
+            BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, TEST_USER))
                 .generate("table")));
   }
 

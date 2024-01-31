@@ -75,6 +75,7 @@ class SnapshotBuilderServiceTest {
     when(snapshotRequestDao.create(
             datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
         .thenReturn(response);
+
     assertThat(
         "createSnapshotRequest returns the expected response",
         snapshotBuilderService.createSnapshotRequest(
@@ -119,12 +120,14 @@ class SnapshotBuilderServiceTest {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
     if (cloudPlatformWrapper.isGcp()) {
+      DatasetModel datasetModel = new DatasetModel().name("name").dataProject("project");
+      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(datasetModel);
       when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
           .thenReturn(concepts);
     } else {
       when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
     }
-    var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, null);
+    var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(
         "getConceptChildren returns the expected response",
         response.getResult(),
@@ -136,7 +139,7 @@ class SnapshotBuilderServiceTest {
     Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.GCP));
     when(datasetService.retrieveDatasetModel(dataset.getId(), TEST_USER))
         .thenReturn(new DatasetModel().name("name").dataProject("data-project"));
-    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset);
+    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER);
     assertThat(
         "The generated name is the same as the BQVisitor generated name",
         tableNameGenerator.generate("table"),
@@ -153,7 +156,7 @@ class SnapshotBuilderServiceTest {
     Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE));
     when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
         .thenReturn(dataSourceName);
-    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset);
+    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER);
     assertThat(
         "The generated name is the same as the SynapseVisitor generated name",
         tableNameGenerator.generate(tableName),

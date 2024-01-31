@@ -48,7 +48,7 @@ public class CriteriaQueryBuilder {
     return occurrenceTable;
   }
 
-  public CriteriaQueryBuilder(String rootTableName, TableNameGenerator tableNameGenerator) {
+  protected CriteriaQueryBuilder(String rootTableName, TableNameGenerator tableNameGenerator) {
     this.tableNameGenerator = tableNameGenerator;
     TablePointer tablePointer = TablePointer.fromTableName(rootTableName, tableNameGenerator);
     rootTable = TableVariable.forPrimary(tablePointer);

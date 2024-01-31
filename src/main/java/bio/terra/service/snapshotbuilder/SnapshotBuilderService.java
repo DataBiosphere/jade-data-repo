@@ -23,6 +23,7 @@ import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
@@ -44,16 +45,18 @@ public class SnapshotBuilderService {
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
+  private final CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
       DatasetService datasetService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
-      AzureSynapsePdao azureSynapsePdao) {
+      AzureSynapsePdao azureSynapsePdao, CriteriaQueryBuilderFactory criteriaQueryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.azureSynapsePdao = azureSynapsePdao;
+    this.criteriaQueryBuilderFactory = criteriaQueryBuilderFactory;
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
@@ -142,7 +145,7 @@ public class SnapshotBuilderService {
 
   public SnapshotBuilderCountResponse getCountResponse(
       UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
-    var rollupCount =
+    int rollupCount =
         getRollupCountForCriteriaGroups(
             id,
             cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
@@ -163,7 +166,7 @@ public class SnapshotBuilderService {
     TableNameGenerator tableNameGenerator = getTableNameGenerator(userRequest, dataset);
 
     Query query =
-        new CriteriaQueryBuilder("person", tableNameGenerator)
+        criteriaQueryBuilderFactory.createCriteriaQueryBuilder("person", tableNameGenerator)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
     String cloudSpecificSQL = query.renderSQL();
 

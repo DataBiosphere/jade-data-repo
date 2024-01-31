@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
@@ -22,6 +23,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +45,7 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
+  @Mock private CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -50,7 +54,7 @@ class SnapshotBuilderServiceTest {
   public void beforeEach() {
     snapshotBuilderService =
         new SnapshotBuilderService(
-            snapshotRequestDao, datasetService, bigQueryDatasetPdao, azureSynapsePdao);
+            snapshotRequestDao, datasetService, bigQueryDatasetPdao, azureSynapsePdao, criteriaQueryBuilderFactory);
   }
 
   @Test
@@ -145,28 +149,4 @@ class SnapshotBuilderServiceTest {
         tableNameGenerator.generate(tableName),
         equalTo(SynapseVisitor.azureTableName(dataSourceName).generate(tableName)));
   }
-  //
-  //  @Test
-  //  void getRollupCountForCriteriaGroupsGeneratesAndRunsAQuery() {
-  //    Dataset dataset =
-  //        new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
-  //            .projectResource(new GoogleProjectResource().googleProjectId("project123"))
-  //            .name("dataset123")
-  //            .id(UUID.randomUUID());
-  //    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-  //    Mockito.mockConstruction(
-  //        CriteriaQueryBuilder.class,
-  //        (mock, context) -> {
-  //          when(mock.generateRollupCountsQueryForCriteriaGroupsList(any()))
-  //              .thenReturn(new Query(List.of(), List.of()));
-  //        });
-  //    doReturn(List.of(5))
-  //        .when(spy(snapshotBuilderService))
-  //        .runSnapshotBuilderQuery(any(), eq(dataset), any(), any());
-  //    int rollupCount =
-  //        snapshotBuilderService.getRollupCountForCriteriaGroups(
-  //            dataset.getId(), List.of(List.of()), TEST_USER);
-  //    assertThat(
-  //        "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
-  //  }
 }

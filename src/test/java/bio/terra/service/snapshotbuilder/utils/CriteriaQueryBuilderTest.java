@@ -16,6 +16,7 @@ import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import java.math.BigDecimal;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,12 +25,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class CriteriaQueryBuilderTest {
+  CriteriaQueryBuilder criteriaQueryBuilder;
+
+  @BeforeEach
+  void setup() {
+    criteriaQueryBuilder = new CriteriaQueryBuilder("person", s -> s);
+  }
 
   @Test
   void generateFilterForRangeCriteria() {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateFilter(rangeCriteria);
+        criteriaQueryBuilder.generateFilter(rangeCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -43,7 +50,7 @@ class CriteriaQueryBuilderTest {
   void generateFilterForListCriteria() {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateFilter(listCriteria);
+        criteriaQueryBuilder.generateFilter(listCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -56,7 +63,7 @@ class CriteriaQueryBuilderTest {
   void generateFilterForDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateFilter(domainCriteria);
+        criteriaQueryBuilder.generateFilter(domainCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -69,7 +76,6 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForDomainCriteriaThrowsIfGivenUnknownDomain() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria().domainName("unknown");
-    CriteriaQueryBuilder criteriaQueryBuilder = new CriteriaQueryBuilder("person", null);
     assertThrows(
         BadRequestException.class,
         () -> criteriaQueryBuilder.generateFilter(domainCriteria),
@@ -80,7 +86,7 @@ class CriteriaQueryBuilderTest {
   void generateFilterIdentifiesDomainCriteria() {
     SnapshotBuilderCriteria criteria = generateDomainCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", s -> s).generateFilterForCriteria(criteria);
+        criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     String sql = filterVariable.renderSQL();
@@ -93,7 +99,7 @@ class CriteriaQueryBuilderTest {
   void generateFilterIdentifiesRangeCriteria() {
     SnapshotBuilderCriteria criteria = generateRangeCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateFilterForCriteria(criteria);
+        criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -106,7 +112,7 @@ class CriteriaQueryBuilderTest {
   void generateFilterIdentifiesListCriteria() {
     SnapshotBuilderCriteria criteria = generateListCriteria();
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateFilterForCriteria(criteria);
+        criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -120,7 +126,7 @@ class CriteriaQueryBuilderTest {
             .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
             .meetAll(true);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateAndOrFilterForCriteriaGroup(criteriaGroup);
+        criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -137,7 +143,7 @@ class CriteriaQueryBuilderTest {
             .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
             .meetAll(false);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateAndOrFilterForCriteriaGroup(criteriaGroup);
+        criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
@@ -154,7 +160,7 @@ class CriteriaQueryBuilderTest {
             .meetAll(true)
             .mustMeet(true);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateFilterForCriteriaGroup(criteriaGroup);
+        criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -172,7 +178,7 @@ class CriteriaQueryBuilderTest {
             .meetAll(false)
             .mustMeet(false);
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null).generateFilterForCriteriaGroup(criteriaGroup);
+        criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(

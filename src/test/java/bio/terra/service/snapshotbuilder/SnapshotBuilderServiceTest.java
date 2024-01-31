@@ -23,6 +23,11 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshotbuilder.query.FieldPointer;
+import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -161,12 +166,20 @@ class SnapshotBuilderServiceTest {
             .projectResource(new GoogleProjectResource().googleProjectId("project123"))
             .name("dataset123")
             .id(UUID.randomUUID());
+    TablePointer tablePointer = TablePointer.fromRawSql("table-name");
+    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    Query query =
+        new Query(
+            List.of(
+                new FieldVariable(new FieldPointer(tablePointer, "column-name"), tableVariable)),
+            List.of(tableVariable));
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
     when(criteriaQueryBuilderFactory.createCriteriaQueryBuilder(any(), any()))
         .thenReturn(criteriaQueryBuilderMock);
-    when(snapshotBuilderService.runSnapshotBuilderQuery(any(), any(), any(), any()))
-        .thenReturn(List.of(5));
+    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
+        .thenReturn(query);
+    when(azureSynapsePdao.runQuery(any(), any())).thenReturn(List.of(5));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(
             dataset.getId(), List.of(List.of()), TEST_USER);

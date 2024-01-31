@@ -1,9 +1,14 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createDomainClause;
+import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,5 +28,31 @@ class SearchConceptsQueryBuilderTest {
                 + "WHERE (c.domain_id = 'condition' "
                 + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                 + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))"));
+  }
+
+  @Test
+  void testCreateSearchConceptClause() {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", s -> s);
+    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+
+    assertThat(
+        "generated sql is as expected",
+        createSearchConceptClause(
+                conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
+            .renderSQL(),
+        // table name is added when the Query is created
+        equalTo("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
+  }
+
+  @Test
+  void testCreateDomainClause() {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", s -> s);
+    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+
+    assertThat(
+        "generated sql is as expected",
+        createDomainClause(conceptTablePointer, conceptTableVariable, "cancer").renderSQL(),
+        // table name is added when the Query is created
+        equalTo("null.domain_id = 'cancer'"));
   }
 }

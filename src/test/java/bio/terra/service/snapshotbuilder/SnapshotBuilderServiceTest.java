@@ -2,6 +2,7 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -9,6 +10,8 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.azure.SynapseVisitor;
+import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
@@ -106,7 +109,7 @@ class SnapshotBuilderServiceTest {
   @EnumSource(CloudPlatform.class)
   void searchConcepts(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
-    DatasetModel model = new DatasetModel().name("name").dataProject("project");
+    DatasetModel model = makeDatasetModel();
     AuthenticatedUserRequest user = AuthenticationFixtures.randomUserRequest();
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
@@ -122,6 +125,35 @@ class SnapshotBuilderServiceTest {
         snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", user);
     assertThat(
         "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void getTableNameGenerator(CloudPlatform cloudPlatform) {
+    Dataset dataset = makeDataset(cloudPlatform);
+    DatasetModel model = makeDatasetModel();
+    String tableName = "table";
+    String dataSource = "dataSource";
+    AuthenticatedUserRequest user = AuthenticationFixtures.randomUserRequest();
+    CloudPlatformWrapper wrapper = CloudPlatformWrapper.of(cloudPlatform);
+    if (wrapper.isAzure()) {
+      when(datasetService.getOrCreateExternalAzureDataSource(dataset, user)).thenReturn(dataSource);
+      assertThat(
+          "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
+          snapshotBuilderService.getTableNameGenerator(user, dataset).generate(tableName),
+          is(SynapseVisitor.azureTableName(dataSource).generate(tableName)));
+    }
+    if (wrapper.isGcp()) {
+      when(datasetService.retrieveDatasetModel(dataset.getId(), user)).thenReturn(model);
+      assertThat(
+          "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
+          snapshotBuilderService.getTableNameGenerator(user, dataset).generate(tableName),
+          is(BigQueryVisitor.bqTableName(model).generate(tableName)));
+    }
+  }
+
+  private DatasetModel makeDatasetModel() {
+    return new DatasetModel().name("name").dataProject("project");
   }
 
   private static Dataset makeDataset(CloudPlatform cloudPlatform) {

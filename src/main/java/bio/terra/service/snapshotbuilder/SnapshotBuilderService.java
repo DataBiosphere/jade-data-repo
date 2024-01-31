@@ -25,6 +25,7 @@ import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.UUID;
@@ -166,8 +167,8 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
-  private TableNameGenerator getTableNameGenerator(
-      AuthenticatedUserRequest userRequest, Dataset dataset) {
+  @VisibleForTesting
+  TableNameGenerator getTableNameGenerator(AuthenticatedUserRequest userRequest, Dataset dataset) {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     if (cloudPlatformWrapper.isAzure()) {
       return SynapseVisitor.azureTableName(

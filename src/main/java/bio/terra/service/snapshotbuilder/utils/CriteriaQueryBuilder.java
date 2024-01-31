@@ -127,7 +127,6 @@ public class CriteriaQueryBuilder {
                         new Literal(domainCriteria.getId().intValue()))))));
   }
 
-
   FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
     return switch (criteria.getKind()) {
       case LIST -> generateFilter((SnapshotBuilderProgramDataListCriteria) criteria);

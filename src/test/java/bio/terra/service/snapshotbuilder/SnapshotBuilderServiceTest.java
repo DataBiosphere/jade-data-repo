@@ -54,7 +54,11 @@ class SnapshotBuilderServiceTest {
   public void beforeEach() {
     snapshotBuilderService =
         new SnapshotBuilderService(
-            snapshotRequestDao, datasetService, bigQueryDatasetPdao, azureSynapsePdao, criteriaQueryBuilderFactory);
+            snapshotRequestDao,
+            datasetService,
+            bigQueryDatasetPdao,
+            azureSynapsePdao,
+            criteriaQueryBuilderFactory);
   }
 
   @Test
@@ -148,5 +152,25 @@ class SnapshotBuilderServiceTest {
         "The generated name is the same as the SynapseVisitor generated name",
         tableNameGenerator.generate(tableName),
         equalTo(SynapseVisitor.azureTableName(dataSourceName).generate(tableName)));
+  }
+
+  @Test
+  void getRollupCountForCriteriaGroupsGeneratesAndRunsAQuery() {
+    Dataset dataset =
+        new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
+            .projectResource(new GoogleProjectResource().googleProjectId("project123"))
+            .name("dataset123")
+            .id(UUID.randomUUID());
+    var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
+    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    when(criteriaQueryBuilderFactory.createCriteriaQueryBuilder(any(), any()))
+        .thenReturn(criteriaQueryBuilderMock);
+    when(snapshotBuilderService.runSnapshotBuilderQuery(any(), any(), any(), any()))
+        .thenReturn(List.of(5));
+    int rollupCount =
+        snapshotBuilderService.getRollupCountForCriteriaGroups(
+            dataset.getId(), List.of(List.of()), TEST_USER);
+    assertThat(
+        "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
   }
 }

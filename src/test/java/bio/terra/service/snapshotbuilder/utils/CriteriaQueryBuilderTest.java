@@ -35,8 +35,7 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForRangeCriteria() {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
-    FilterVariable filterVariable =
-        criteriaQueryBuilder.generateFilter(rangeCriteria);
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(rangeCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -49,8 +48,7 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForListCriteria() {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria();
-    FilterVariable filterVariable =
-        criteriaQueryBuilder.generateFilter(listCriteria);
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -62,8 +60,7 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterForDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
-    FilterVariable filterVariable =
-        criteriaQueryBuilder.generateFilter(domainCriteria);
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -85,8 +82,7 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterIdentifiesDomainCriteria() {
     SnapshotBuilderCriteria criteria = generateDomainCriteria();
-    FilterVariable filterVariable =
-        criteriaQueryBuilder.generateFilterForCriteria(criteria);
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     String sql = filterVariable.renderSQL();
@@ -98,8 +94,7 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterIdentifiesRangeCriteria() {
     SnapshotBuilderCriteria criteria = generateRangeCriteria();
-    FilterVariable filterVariable =
-        criteriaQueryBuilder.generateFilterForCriteria(criteria);
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
@@ -111,8 +106,7 @@ class CriteriaQueryBuilderTest {
   @Test
   void generateFilterIdentifiesListCriteria() {
     SnapshotBuilderCriteria criteria = generateListCriteria();
-    FilterVariable filterVariable =
-        criteriaQueryBuilder.generateFilterForCriteria(criteria);
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(

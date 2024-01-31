@@ -22,7 +22,6 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -51,7 +50,8 @@ public class SnapshotBuilderService {
       SnapshotRequestDao snapshotRequestDao,
       DatasetService datasetService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
-      AzureSynapsePdao azureSynapsePdao, CriteriaQueryBuilderFactory criteriaQueryBuilderFactory) {
+      AzureSynapsePdao azureSynapsePdao,
+      CriteriaQueryBuilderFactory criteriaQueryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
@@ -166,7 +166,8 @@ public class SnapshotBuilderService {
     TableNameGenerator tableNameGenerator = getTableNameGenerator(userRequest, dataset);
 
     Query query =
-        criteriaQueryBuilderFactory.createCriteriaQueryBuilder("person", tableNameGenerator)
+        criteriaQueryBuilderFactory
+            .createCriteriaQueryBuilder("person", tableNameGenerator)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
     String cloudSpecificSQL = query.renderSQL();
 

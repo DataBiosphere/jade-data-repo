@@ -76,9 +76,13 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
     final List<String> details;
     Throwable rootCause = ExceptionUtils.getRootCause(ex);
 
-    if (rootCause instanceof ErrorReportException) {
+    if (rootCause instanceof ErrorReportException rootErrorReportException) {
       message = rootCause.getMessage();
-      details = ((ErrorReportException) rootCause).getCauses();
+      details = rootErrorReportException.getCauses();
+      if (rootCause.getCause() != null) {
+        details.add(rootCause.getCause().getMessage());
+      }
+      details.removeIf(StringUtils::isEmpty);
     } else {
       message = status + " - see error details";
       details = Collections.singletonList(rootCause.getMessage());

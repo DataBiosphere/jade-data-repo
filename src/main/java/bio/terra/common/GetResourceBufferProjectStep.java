@@ -47,7 +47,7 @@ public class GetResourceBufferProjectStep implements Step {
       // Add retry for internal server errors to help with test flakiness
       if (e.getStatusCode() == HttpStatus.NOT_FOUND
           || e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS
-          || e.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
+          || e.getStatusCode().is5xxServerError()) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
       }
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);

@@ -18,7 +18,14 @@ public class BufferServiceAPIException extends ErrorReportException {
         HttpStatus.resolve(bufferException.getCode()));
     this.apiException = bufferException;
   }
-  
+
+
+  // Used to reconstruct error message when reading job result from stairway
+  public BufferServiceAPIException(String message, List<String> causes, HttpStatus status) {
+    super(message, causes, status);
+    this.apiException = new ApiException(status.value(), message, null, null);
+  }
+
   /** Get the HTTP status code of the underlying response from Buffer Service. */
   public int getApiExceptionStatus() {
     if (apiException == null) {

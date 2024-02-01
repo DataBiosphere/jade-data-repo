@@ -10,6 +10,7 @@ public class TooManyRequestsException extends ErrorReportException {
     super(message);
   }
 
+  // Used to reconstruct error message when reading job result from stairway
   public TooManyRequestsException(String message, List<String> causes, HttpStatus status) {
     super(message, causes, status);
   }

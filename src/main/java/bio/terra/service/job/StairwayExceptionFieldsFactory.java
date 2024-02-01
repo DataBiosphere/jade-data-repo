@@ -5,13 +5,15 @@ import bio.terra.service.job.exception.ExceptionSerializerException;
 import bio.terra.service.job.exception.JobExecutionException;
 import bio.terra.service.job.exception.StepExecutionException;
 import bio.terra.stairway.Step;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 public class StairwayExceptionFieldsFactory {
-
   private static final String CONTACT_TEAM_MESSAGE = "Please contact Terra Support for help.";
 
   public static StairwayExceptionFields fromException(Exception ex) {
@@ -96,15 +98,19 @@ public class StairwayExceptionFieldsFactory {
   }
 
   private static List<String> getErrorReportExceptionCauses(Exception exception) {
-    if (ErrorReportException.class.isAssignableFrom(exception.getClass())) {
-      // Java 17 will make casting unnecessary
-      ErrorReportException errorReportException = (ErrorReportException) exception;
+    if (exception instanceof ErrorReportException errorReportException) {
+      List<String> causes = new ArrayList<>();
       if (!errorReportException.getCauses().isEmpty()) {
-        return errorReportException.getCauses();
+        causes.addAll(errorReportException.getCauses());
       }
+      if (errorReportException.getCause() != null) {
+        causes.add(errorReportException.getCause().getMessage());
+      }
+      causes.removeIf(StringUtils::isEmpty);
+      return causes;
     } else if (StringUtils.isNotEmpty(exception.getMessage())) {
       return List.of(exception.getMessage());
     }
-    return null;
+    return List.of();
   }
 }

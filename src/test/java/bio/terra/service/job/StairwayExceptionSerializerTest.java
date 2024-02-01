@@ -1,7 +1,7 @@
 package bio.terra.service.job;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.*;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;

@@ -25,18 +25,6 @@ public class BufferServiceAPIException extends ErrorReportException {
     this.apiException = new ApiException(status.value(), message, null, null);
   }
 
-  // Fall back method used to reconstruct error message when reading job result from stairway
-  public BufferServiceAPIException(String message, List<String> causes) {
-    super(message, causes, HttpStatus.INTERNAL_SERVER_ERROR);
-    this.apiException = null;
-  }
-
-  // Fall back method used to reconstruct error message when reading job result from stairway
-  public BufferServiceAPIException(String message) {
-    super(message);
-    this.apiException = null;
-  }
-
   /** Get the HTTP status code of the underlying response from Buffer Service. */
   public int getApiExceptionStatus() {
     if (apiException == null) {

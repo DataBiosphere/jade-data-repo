@@ -17,6 +17,7 @@ public class PolicyServiceApiException extends ErrorReportException {
         HttpStatus.resolve(ex.getCode()));
   }
 
+  // Used to reconstruct error message when reading job result from stairway
   public PolicyServiceApiException(String message, List<String> causes, HttpStatus status) {
     super(message, causes, status);
   }

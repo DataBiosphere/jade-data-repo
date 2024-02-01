@@ -12,6 +12,7 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
+import java.util.ArrayList;
 import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -31,37 +32,37 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(NotFoundException.class)
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public ErrorModel notFoundHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   @ExceptionHandler(BadRequestException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ErrorModel badRequestHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   @ExceptionHandler(InternalServerErrorException.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ErrorModel internalServerErrorHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   @ExceptionHandler(ServiceUnavailableException.class)
   @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
   public ErrorModel serviceUnavailableHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   @ExceptionHandler(NotImplementedException.class)
   @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
   public ErrorModel notImplementedHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   @ExceptionHandler(ConflictException.class)
   @ResponseStatus(HttpStatus.CONFLICT)
   public ErrorModel conflictHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   // -- exceptions from validations - we don't control the exception raised --
@@ -79,13 +80,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnauthorizedException.class)
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public ErrorModel samAuthorizationException(UnauthorizedException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   @ExceptionHandler(ForbiddenException.class)
   @ResponseStatus(HttpStatus.FORBIDDEN)
   public ErrorModel forbiddenHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex);
   }
 
   // -- job response exception -- we use the JobResponseException to wrap non-runtime exceptions
@@ -123,16 +124,19 @@ public class GlobalExceptionHandler {
   // the type returned from getCause() is a Throwable.
   // This error handler logs the complete error list so we can debug the underlying causes
   // of errors. We do not want to return that to the client, but need it for our own debugging.
-  private ErrorModel buildErrorModel(Throwable ex) {
-    return buildErrorModel(ex, null);
-  }
 
-  private ErrorModel buildErrorModel(Throwable ex, List<String> errorDetail) {
-    StringBuilder combinedCauseString = new StringBuilder();
-    for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
-      combinedCauseString.append("cause: " + cause.toString() + ", ");
+  private ErrorModel buildErrorModel(Throwable ex) {
+    List<String> causes = new ArrayList<>();
+    if (ex == null) {
+      return new ErrorModel().message("Unknown error");
     }
-    logger.error("Global exception handler: " + combinedCauseString.toString(), ex);
-    return new ErrorModel().message(ex.getMessage()).errorDetail(errorDetail);
+    if (ex.getCause() != null) {
+      causes.add(ex.getCause().getMessage());
+    }
+    if (ex instanceof ErrorReportException errorReportException) {
+      causes.addAll(errorReportException.getCauses());
+    }
+    logger.error("Global exception handler: {} ", causes, ex);
+    return new ErrorModel().message(ex.getMessage()).errorDetail(causes);
   }
 }

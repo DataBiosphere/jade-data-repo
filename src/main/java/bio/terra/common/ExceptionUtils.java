@@ -12,14 +12,18 @@ public class ExceptionUtils {
    * @return A human-readable version of the object
    */
   public static String formatException(final Exception exception) {
-    if (exception instanceof ErrorReportException) {
+    if (exception instanceof ErrorReportException errorReportException) {
       // Bypass the toString that ErrorReportException has intercepted.
       // Copied from Throwable.toString
       final String className = exception.getClass().getName();
       String message = exception.getLocalizedMessage();
       String mainMessage = (message != null) ? (className + ": " + message) : className;
 
-      List<String> causes = ((ErrorReportException) exception).getCauses();
+      List<String> causes = errorReportException.getCauses();
+      if (errorReportException.getCause() != null) {
+        causes.add(errorReportException.getCause().getMessage());
+      }
+
       return String.format(
           "%s%s",
           mainMessage,

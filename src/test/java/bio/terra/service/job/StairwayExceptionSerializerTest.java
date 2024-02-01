@@ -3,6 +3,7 @@ package bio.terra.service.job;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,7 +20,7 @@ public class StairwayExceptionSerializerTest {
 
   @BeforeEach
   void setUp() {
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = new ApplicationConfiguration().objectMapper();
     stairwayExceptionSerializer = new StairwayExceptionSerializer(objectMapper);
   }
 

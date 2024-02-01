@@ -18,4 +18,10 @@ public class AggregateBQQueryResultsUtils {
                     .count(1))
         .toList();
   }
+
+  public static List<Integer> rollupCountsMapper(TableResult result) {
+    return StreamSupport.stream(result.iterateAll().spliterator(), false)
+        .map(row -> (Integer) row.get(0).getValue())
+        .toList();
+  }
 }

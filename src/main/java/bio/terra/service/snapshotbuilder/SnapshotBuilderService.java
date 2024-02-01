@@ -14,13 +14,16 @@ import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
+import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
@@ -33,21 +36,26 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotBuilderService {
 
+  public static final String CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE =
+      "Cloud platform not implemented";
   private final SnapshotRequestDao snapshotRequestDao;
   private final DatasetService datasetService;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
+  private final CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
       DatasetService datasetService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
-      AzureSynapsePdao azureSynapsePdao) {
+      AzureSynapsePdao azureSynapsePdao,
+      CriteriaQueryBuilderFactory criteriaQueryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.azureSynapsePdao = azureSynapsePdao;
+    this.criteriaQueryBuilderFactory = criteriaQueryBuilderFactory;
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
@@ -66,7 +74,7 @@ public class SnapshotBuilderService {
     } else if (cloudPlatformWrapper.isAzure()) {
       return azureSynapsePdao.runQuery(cloudSpecificSql, synapseFormatQueryFunction);
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
     }
   }
 
@@ -84,8 +92,7 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
-  private TableNameGenerator getTableNameGenerator(
-      Dataset dataset, AuthenticatedUserRequest userRequest) {
+  TableNameGenerator getTableNameGenerator(Dataset dataset, AuthenticatedUserRequest userRequest) {
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     if (platform.isGcp()) {
       return BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest));
@@ -102,14 +109,39 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderCountResponse getCountResponse(
-      UUID id, List<SnapshotBuilderCohort> cohorts) {
+      UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
+    int rollupCount =
+        getRollupCountForCriteriaGroups(
+            id,
+            cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
+            userRequest);
     return new SnapshotBuilderCountResponse()
-        .sql("")
-        .result(new SnapshotBuilderCountResponseResult().total(getRollupCount(id, cohorts)));
+        .result(new SnapshotBuilderCountResponseResult().total(Math.max(rollupCount, 20)));
   }
 
   public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
     return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
+  }
+
+  public int getRollupCountForCriteriaGroups(
+      UUID datasetId,
+      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
+      AuthenticatedUserRequest userRequest) {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+
+    Query query =
+        criteriaQueryBuilderFactory
+            .createCriteriaQueryBuilder("person", tableNameGenerator)
+            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
+    String cloudSpecificSQL = query.renderSQL();
+
+    return runSnapshotBuilderQuery(
+            cloudSpecificSQL,
+            dataset,
+            AggregateBQQueryResultsUtils::rollupCountsMapper,
+            AggregateSynapseQueryResultsUtils::rollupCountsMapper)
+        .get(0);
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(

@@ -19,4 +19,15 @@ public class AggregateSynapseQueryResultsUtils {
           "Error processing result set into SnapshotBuilderConcept model", e);
     }
   }
+
+  public static int rollupCountsMapper(ResultSet rs) {
+    try {
+      // Azure ResultSet is 1 indexed
+      // https://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html
+      return rs.getInt(1);
+    } catch (SQLException e) {
+      throw new ProcessResultSetException(
+          "Error processing result set into SnapshotBuilderConcept model", e);
+    }
+  }
 }

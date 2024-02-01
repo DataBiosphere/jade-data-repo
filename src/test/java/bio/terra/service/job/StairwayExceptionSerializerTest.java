@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
-public class StairwayExceptionSerializerTest {
+class StairwayExceptionSerializerTest {
 
   private StairwayExceptionSerializer stairwayExceptionSerializer;
 
@@ -25,7 +25,7 @@ public class StairwayExceptionSerializerTest {
   }
 
   @Test
-  public void deserializeDataRepoException() {
+  void deserializeDataRepoException() {
     var serializedException =
         """
         {"className":"bio.terra.service.resourcemanagement.exception.BufferServiceAPIException","message":"Error from Buffer Service",
@@ -36,7 +36,7 @@ public class StairwayExceptionSerializerTest {
   }
 
   @Test
-  public void deserializeErrorCode() {
+  void deserializeErrorCode() {
     var serializedException =
         """
         {"className":"bio.terra.service.resourcemanagement.exception.BufferServiceAPIException","message":"Error from Buffer Service",

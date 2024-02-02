@@ -44,7 +44,7 @@ public class BatchOperationTest {
         new ConfigurationService(
             samConfiguration, gcsConfiguration, resourceConfiguration, appConfiguration);
 
-    fireStoreUtils = new FireStoreUtils(configurationService);
+    fireStoreUtils = new FireStoreUtils(configurationService, appConfiguration);
   }
 
   @Test

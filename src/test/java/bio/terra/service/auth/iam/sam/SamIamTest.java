@@ -691,6 +691,7 @@ public class SamIamTest {
                             {GooglePubSub=class SubsystemStatus {
                                 ok: true
                                 messages: null
+                                additionalProperties: null
                             }}""")));
     }
 

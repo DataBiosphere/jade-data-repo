@@ -46,6 +46,8 @@ public class FireStoreUtils {
   public static final int MAX_FIRESTORE_BATCH_SIZE = 500;
 
   private final ConfigurationService configurationService;
+  // The number of seconds to wait for a Firestore future to complete. Having an explicit timeout
+  // avoids jobs getting deadlocked forever which has been known to happen
   private final long futureTimoutSeconds;
 
   @Autowired

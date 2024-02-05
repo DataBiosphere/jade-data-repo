@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -43,11 +45,16 @@ public class FireStoreUtils {
   // Firestore limits batches to 500
   public static final int MAX_FIRESTORE_BATCH_SIZE = 500;
 
-  private ConfigurationService configurationService;
+  private final ConfigurationService configurationService;
+  // The number of seconds to wait for a Firestore future to complete. Having an explicit timeout
+  // avoids jobs getting deadlocked forever which has been known to happen
+  private final long futureTimoutSeconds;
 
   @Autowired
-  public FireStoreUtils(ConfigurationService configurationService) {
+  public FireStoreUtils(
+      ConfigurationService configurationService, ApplicationConfiguration configuration) {
     this.configurationService = configurationService;
+    this.futureTimoutSeconds = configuration.getFirestoreFutureTimeoutSeconds();
   }
 
   public int getFirestoreRetries() {
@@ -254,14 +261,15 @@ public class FireStoreUtils {
         ApiFuture<T> future = futures.get(i);
         if (future != null) {
           try {
-            outputs.set(i, future.get());
+            outputs.set(i, future.get(futureTimoutSeconds, TimeUnit.SECONDS));
             completeCount++;
           } catch (DeadlineExceededException
               | UnavailableException
               | AbortedException
               | InternalException
               | StatusRuntimeException
-              | ExecutionException ex) {
+              | ExecutionException
+              | TimeoutException ex) {
             if (shouldRetry(ex, true)) {
               logger.warn(
                   "[batchOperation] Retry-able error in firestore future get - input: "
@@ -321,6 +329,7 @@ public class FireStoreUtils {
         || throwable instanceof StatusRuntimeException
         || throwable instanceof GoogleResourceException
         || throwable instanceof StorageException
+        || throwable instanceof TimeoutException
         || (isBatch && throwable instanceof AbortedException)) {
       return true;
     }

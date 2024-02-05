@@ -119,6 +119,9 @@ public class ApplicationConfiguration {
   /** Sizes of batches of query results from firestore */
   private int firestoreQueryBatchSize;
 
+  /** Maximum time that a request to Firestore should take */
+  private int firestoreFutureTimeoutSeconds;
+
   /** Time in seconds of auth cache timeout */
   private int authCacheTimeoutSeconds;
 
@@ -312,6 +315,14 @@ public class ApplicationConfiguration {
 
   public void setFirestoreQueryBatchSize(int firestoreQueryBatchSize) {
     this.firestoreQueryBatchSize = firestoreQueryBatchSize;
+  }
+
+  public int getFirestoreFutureTimeoutSeconds() {
+    return firestoreFutureTimeoutSeconds;
+  }
+
+  public void setFirestoreFutureTimeoutSeconds(int firestoreFutureTimeoutSeconds) {
+    this.firestoreFutureTimeoutSeconds = firestoreFutureTimeoutSeconds;
   }
 
   public int getAuthCacheTimeoutSeconds() {

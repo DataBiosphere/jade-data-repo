@@ -179,7 +179,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(),
         equalToCompressingWhiteSpace(
-            "(NOT (null.list_column_name IN (0,1,2) ANDg (null.range_column_name >= 0 AND null.range_column_name <= 100)))"));
+            "(NOT (null.list_column_name IN (0,1,2) AND (null.range_column_name >= 0 AND null.range_column_name <= 100)))"));
   }
 
   @Test

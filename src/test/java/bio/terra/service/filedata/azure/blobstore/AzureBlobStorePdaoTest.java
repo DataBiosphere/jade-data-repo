@@ -52,6 +52,7 @@ import com.azure.storage.blob.models.BlobProperties;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobGetOption;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -445,7 +446,8 @@ public class AzureBlobStorePdaoTest {
   private void mockGcsFileAccess(String projectId) {
     Storage storage = mock(Storage.class);
     Blob blob = mock(Blob.class);
-    when(storage.get(eq(BlobId.fromGsUtilUri(SOURCE_GCS_PATH)), any())).thenReturn(blob);
+    when(storage.get(eq(BlobId.fromGsUtilUri(SOURCE_GCS_PATH)), any(BlobGetOption[].class)))
+        .thenReturn(blob);
     when(gcsProjectFactory.getStorage(projectId)).thenReturn(storage);
   }
 }

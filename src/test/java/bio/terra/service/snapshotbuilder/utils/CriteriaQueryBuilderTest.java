@@ -169,7 +169,7 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
             .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
-            .meetAll(false)
+            .meetAll(true)
             .mustMeet(false);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
@@ -179,7 +179,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(),
         equalToCompressingWhiteSpace(
-            "(NOT (null.list_column_name IN (0,1,2) OR (null.range_column_name >= 0 AND null.range_column_name <= 100)))"));
+            "(NOT (null.list_column_name IN (0,1,2) ANDg (null.range_column_name >= 0 AND null.range_column_name <= 100)))"));
   }
 
   @Test

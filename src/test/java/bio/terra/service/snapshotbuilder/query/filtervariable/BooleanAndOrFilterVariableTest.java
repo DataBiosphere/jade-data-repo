@@ -40,4 +40,12 @@ class BooleanAndOrFilterVariableTest {
   void renderSQL() {
     assertThat(variable.renderSQL(), is("(t.field1 = 'value1' AND t0.field2 = 'value2')"));
   }
+
+  @Test
+  void renderSQLWorksWithNoSubqueries() {
+    assertThat(
+        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, List.of())
+            .renderSQL(),
+        is("1=1"));
+  }
 }

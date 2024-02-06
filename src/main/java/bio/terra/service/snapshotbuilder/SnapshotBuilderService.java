@@ -106,10 +106,6 @@ public class SnapshotBuilderService {
     }
   }
 
-  private int getRollupCount(UUID datasetId, List<SnapshotBuilderCohort> cohorts) {
-    return 100;
-  }
-
   public SnapshotBuilderCountResponse getCountResponse(
       UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
     int rollupCount =

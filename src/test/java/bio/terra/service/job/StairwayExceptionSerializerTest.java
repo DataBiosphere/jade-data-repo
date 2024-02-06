@@ -7,28 +7,26 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.buffer.client.ApiException;
 import bio.terra.common.category.Unit;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
+import bio.terra.stairway.Step;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
 class StairwayExceptionSerializerTest {
 
   private StairwayExceptionSerializer stairwayExceptionSerializer;
 
   private String serializedException;
-  private Exception originalException;
 
   @BeforeEach
   void setUp() {
     ObjectMapper objectMapper = new ApplicationConfiguration().objectMapper();
     stairwayExceptionSerializer = new StairwayExceptionSerializer(objectMapper);
 
-    originalException =
+    var originalException =
         new BufferServiceAPIException(
             new ApiException(
                 "No projects are available in the datarepo pool",
@@ -36,13 +34,10 @@ class StairwayExceptionSerializerTest {
                 null,
                 null));
     // Fake providing step info in stack trace
-    var fakeStackTrace =
-        new StackTraceElement(
-            "bio.terra.common.GetResourceBufferProjectStep",
-            "handoutResource",
-            "BufferService.java",
-            83);
-    originalException.setStackTrace(new StackTraceElement[] {fakeStackTrace});
+    StackTraceElement[] fakeStackTrace = {
+      new StackTraceElement(Step.class.getName(), "method", "file", 0)
+    };
+    originalException.setStackTrace(fakeStackTrace);
 
     serializedException = stairwayExceptionSerializer.serialize(originalException);
   }

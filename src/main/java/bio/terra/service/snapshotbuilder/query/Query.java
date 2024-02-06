@@ -11,7 +11,8 @@ public record Query(
     List<TableVariable> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
-    HavingFilterVariable having)
+    HavingFilterVariable having,
+    Integer limit)
     implements SqlExpression {
 
   public Query {
@@ -32,16 +33,21 @@ public record Query(
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables) {
-    this(select, tables, null, null, null);
+    this(select, tables, null, null, null, null);
   }
 
   public Query(
       List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, groupBy, null);
+    this(select, tables, null, groupBy, null, null);
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null);
+    this(select, tables, where, null, null, null);
+  }
+
+  public Query(
+      List<FieldVariable> select, List<TableVariable> tables, FilterVariable where, Integer limit) {
+    this(select, tables, where, null, null, limit);
   }
 
   @Override
@@ -100,6 +106,10 @@ public record Query(
 
     if (having != null) {
       sql += " " + having.renderSQL();
+    }
+
+    if (limit != null) {
+      sql += " LIMIT " + limit;
     }
 
     return sql;

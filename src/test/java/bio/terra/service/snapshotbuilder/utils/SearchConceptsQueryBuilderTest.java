@@ -27,7 +27,8 @@ class SearchConceptsQueryBuilderTest {
             "SELECT c.concept_name, c.concept_id FROM concept AS c "
                 + "WHERE (c.domain_id = 'condition' "
                 + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
-                + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))"));
+                + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
+                + "LIMIT 100"));
   }
 
   @Test

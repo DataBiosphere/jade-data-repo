@@ -25,8 +25,7 @@ public class SearchConceptsQueryBuilder {
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
     // domain clause filters for the given domain id based on field domain_id
-    var domainClause =
-        createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
+    var domainClause = createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
 
     // search concept name clause filters for the search text based on field concept_name
     var searchNameClause =
@@ -51,10 +50,7 @@ public class SearchConceptsQueryBuilder {
     // select nameField, idField from conceptTable WHERE
     // domainClause AND (searchNameClause OR searchCodeClause)
     Query query =
-        new Query(
-            List.of(nameField, idField),
-            List.of(conceptTableVariable),
-            whereClause);
+        new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
 
     return query.renderSQL();
   }

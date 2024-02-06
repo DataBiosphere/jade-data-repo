@@ -91,7 +91,8 @@ public class DatasetCreateFlight extends Flight {
           new GetResourceBufferProjectStep(
               bufferService,
               googleResourceManagerService,
-              datasetRequest.isEnableSecureMonitoring()));
+              datasetRequest.isEnableSecureMonitoring()),
+          getDefaultExponentialBackoffRetryRule());
 
       // Get or initialize the project where the dataset resources will be created
       addStep(

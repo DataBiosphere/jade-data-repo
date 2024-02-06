@@ -141,7 +141,8 @@ public class SnapshotCreateFlight extends Flight {
           new GetResourceBufferProjectStep(
               bufferService,
               googleResourceManagerService,
-              sourceDataset.isSecureMonitoringEnabled()));
+              sourceDataset.isSecureMonitoringEnabled()),
+          getDefaultExponentialBackoffRetryRule());
 
       // Get or initialize the project where the snapshot resources will be created
       addStep(

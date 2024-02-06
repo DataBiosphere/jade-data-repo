@@ -150,4 +150,36 @@ class StepUtilsTest {
     StepUtils.writeOutputs(step1, context);
     assertFalse(context.getWorkingMap().containsKey("description"));
   }
+
+  static class Step3 implements Step {
+    @StepInput("aaa")
+    private String thingOne;
+
+    @StepOutput("bbb")
+    private String thingTwo;
+
+    @Override
+    public StepResult doStep(FlightContext context) {
+      thingTwo = "two";
+      return null;
+    }
+
+    @Override
+    public StepResult undoStep(FlightContext context) {
+      return null;
+    }
+  }
+
+  @Test
+  void testNamedInputOutput() {
+    FlightContext context = createContext();
+    when(context.getInputParameters()).thenReturn(new FlightMap());
+    context.getWorkingMap().put("aaa", "one");
+    Step3 step3 = new Step3();
+    StepUtils.readInputs(step3, context);
+    step3.doStep(context);
+    StepUtils.writeOutputs(step3, context);
+    assertThat(step3.thingOne, is("one"));
+    assertThat(context.getWorkingMap().get("bbb", String.class), is("two"));
+  }
 }

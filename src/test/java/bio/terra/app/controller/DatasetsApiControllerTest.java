@@ -457,7 +457,7 @@ class DatasetsApiControllerTest {
         TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
     assertThat("Concept list and sql is returned", actual, equalTo(expected));
 
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 
   private SnapshotBuilderGetConceptsResponse makeGetConceptsResponse() {

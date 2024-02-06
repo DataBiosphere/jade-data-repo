@@ -102,7 +102,7 @@ public class SnapshotBuilderService {
       return SynapseVisitor.azureTableName(
           datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
     }
   }
 

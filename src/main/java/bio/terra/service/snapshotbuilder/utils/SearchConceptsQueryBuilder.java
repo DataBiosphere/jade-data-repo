@@ -1,7 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderUtils.makeFieldVariable;
-
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -23,10 +21,8 @@ public class SearchConceptsQueryBuilder {
       String domainId, String searchText, TableNameGenerator tableNameGenerator) {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldVariable nameFieldVariable =
-        makeFieldVariable(conceptTablePointer, conceptTableVariable, "concept_name");
-    FieldVariable idFieldVariable =
-        makeFieldVariable(conceptTablePointer, conceptTableVariable, "concept_id");
+    FieldVariable nameFieldVariable = conceptTableVariable.makeFieldVariable("concept_name");
+    FieldVariable idFieldVariable = conceptTableVariable.makeFieldVariable("concept_id");
 
     // domain clause has field name domain_id
     BinaryFilterVariable domainClause =

@@ -428,7 +428,7 @@ class DatasetsApiControllerTest {
     mockValidators();
     var cohorts = List.of(SnapshotBuilderTestData.createCohort());
     int count = 1234;
-    when(snapshotBuilderService.getCountResponse(DATASET_ID, cohorts))
+    when(snapshotBuilderService.getCountResponse(DATASET_ID, cohorts, TEST_USER))
         .thenReturn(
             new SnapshotBuilderCountResponse()
                 .result(new SnapshotBuilderCountResponseResult().total(count)));

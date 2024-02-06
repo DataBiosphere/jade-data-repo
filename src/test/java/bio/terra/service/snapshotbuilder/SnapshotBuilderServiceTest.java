@@ -4,6 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
@@ -23,6 +25,13 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshotbuilder.query.FieldPointer;
+import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +52,8 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
+  @Mock private CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
+
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
@@ -50,7 +61,11 @@ class SnapshotBuilderServiceTest {
   public void beforeEach() {
     snapshotBuilderService =
         new SnapshotBuilderService(
-            snapshotRequestDao, datasetService, bigQueryDatasetPdao, azureSynapsePdao);
+            snapshotRequestDao,
+            datasetService,
+            bigQueryDatasetPdao,
+            azureSynapsePdao,
+            criteriaQueryBuilderFactory);
   }
 
   @Test
@@ -169,5 +184,61 @@ class SnapshotBuilderServiceTest {
           .thenReturn("dataSource");
       when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
     }
+  }
+
+  @Test
+  void getTableNameGeneratorHandlesGCPCorrectly() {
+    Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.GCP));
+    when(datasetService.retrieveModel(dataset, TEST_USER))
+        .thenReturn(new DatasetModel().name("name").dataProject("data-project"));
+    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER);
+    assertThat(
+        "The generated name is the same as the BQVisitor generated name",
+        tableNameGenerator.generate("table"),
+        equalTo(
+            BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, TEST_USER))
+                .generate("table")));
+  }
+
+  @Test
+  void getTableNameGeneratorHandlesAzureCorrectly() {
+    String dataSourceName = "data-source";
+    String tableName = "azure-table";
+    Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE));
+    when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+        .thenReturn(dataSourceName);
+    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER);
+    assertThat(
+        "The generated name is the same as the SynapseVisitor generated name",
+        tableNameGenerator.generate(tableName),
+        equalTo(SynapseVisitor.azureTableName(dataSourceName).generate(tableName)));
+  }
+
+  @Test
+  void getRollupCountForCriteriaGroupsGeneratesAndRunsAQuery() {
+    Dataset dataset =
+        new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
+            .projectResource(new GoogleProjectResource().googleProjectId("project123"))
+            .name("dataset123")
+            .id(UUID.randomUUID());
+    TablePointer tablePointer = TablePointer.fromRawSql("table-name");
+    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    Query query =
+        new Query(
+            List.of(
+                new FieldVariable(new FieldPointer(tablePointer, "column-name"), tableVariable)),
+            List.of(tableVariable));
+    var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
+    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    when(criteriaQueryBuilderFactory.createCriteriaQueryBuilder(any(), any()))
+        .thenReturn(criteriaQueryBuilderMock);
+    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
+        .thenReturn(query);
+    when(azureSynapsePdao.runQuery(eq(query.renderSQL()), any())).thenReturn(List.of(5));
+    int rollupCount =
+        snapshotBuilderService.getRollupCountForCriteriaGroups(
+            dataset.getId(), List.of(List.of()), TEST_USER);
+    assertThat(
+        "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
   }
 }

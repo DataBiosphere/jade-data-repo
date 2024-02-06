@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -65,10 +64,7 @@ public class BardClient {
           restTemplate.exchange(
               getApiUrl(), HttpMethod.POST, new HttpEntity<>(event, authedHeaders), Void.class);
       if (!eventCall.getStatusCode().is2xxSuccessful()) {
-        logger.warn(
-            "Error logging event {}%n{}",
-            event.getEvent(),
-            HttpStatus.valueOf(eventCall.getStatusCode().value()).getReasonPhrase());
+        logger.warn("Error logging event {}%n{}", event.getEvent(), eventCall.getStatusCode());
       }
     } catch (Exception e) {
       logger.warn("Error logging event {}", event.getEvent(), e);
@@ -103,9 +99,7 @@ public class BardClient {
               getSyncPathUrl(), HttpMethod.POST, new HttpEntity<>(null, authedHeaders), Void.class);
       if (!syncCall.getStatusCode().is2xxSuccessful()) {
         logger.warn(
-            "Error calling sync for user {}%n{}",
-            userReq.getEmail(),
-            HttpStatus.valueOf(syncCall.getStatusCode().value()).getReasonPhrase());
+            "Error calling sync for user {}%n{}", userReq.getEmail(), syncCall.getStatusCode());
       } else {
         result = true;
       }

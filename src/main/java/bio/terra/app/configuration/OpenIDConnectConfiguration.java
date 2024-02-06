@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -64,8 +63,7 @@ public class OpenIDConnectConfiguration {
       if (!metadataConfig.getStatusCode().is2xxSuccessful()) {
         throw new ServiceInitializationException(
             String.format(
-                "Error reading OIDC configuration endpoint: %s",
-                HttpStatus.valueOf(metadataConfig.getStatusCode().value()).getReasonPhrase()));
+                "Error reading OIDC configuration endpoint: %s", metadataConfig.getStatusCode()));
       }
       OpenIDProviderMetadata response = metadataConfig.getBody();
       if (response == null) {

@@ -41,12 +41,15 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
     if (status.is5xxServerError()) {
       request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
     }
-
-    var responseBody =
-        new ErrorModel()
-            .message(status + " - see error details")
-            .addErrorDetailItem(ex.getMessage());
-
+    var responseBody = body;
+    // Without specifically grabbing the exception message for validation errors,
+    // TDR will swallow the error and return a 400 with no error message.
+    if (responseBody == null || status.isSameCodeAs(HttpStatus.BAD_REQUEST)) {
+      responseBody =
+          new ErrorModel()
+              .message(status + " - see error details")
+              .addErrorDetailItem(ex.getMessage());
+    }
     return new ResponseEntity<>(responseBody, headers, status);
   }
 
@@ -64,7 +67,7 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
     ErrorModel errorModel =
         new ErrorModel().message("Validation errors - see error details").errorDetail(errorDetails);
 
-    return new ResponseEntity<>(errorModel, HttpStatusCode.valueOf(HttpStatus.BAD_REQUEST.value()));
+    return new ResponseEntity<>(errorModel, HttpStatus.BAD_REQUEST);
   }
 
   @Override

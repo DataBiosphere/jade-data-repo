@@ -51,12 +51,10 @@ public class GetResourceBufferProjectStep implements Step {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
       }
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
-    } catch (BufferServiceAuthorizationException e) {
-      // If authorization fails, there is no recovering
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
-    } catch (GoogleResourceException e) {
-      // thrown on error when refoldering project
-      // We can consider retrying this if needed
+    } catch (BufferServiceAuthorizationException | GoogleResourceException e) {
+      // BufferServiceAuthorizationException - If authorization fails, there is no recovering
+      // GoogleResourceException - Thrown on error when refoldering project
+      // We can consider retrying this Google exception if needed
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }
   }

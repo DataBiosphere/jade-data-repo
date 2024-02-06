@@ -19,36 +19,40 @@ public class SearchConceptsQueryBuilder {
 
   public static String buildSearchConceptsQuery(
       String domainId, String searchText, TableNameGenerator tableNameGenerator) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
-    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldVariable nameFieldVariable = conceptTableVariable.makeFieldVariable("concept_name");
-    FieldVariable idFieldVariable = conceptTableVariable.makeFieldVariable("concept_id");
+    var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+    var nameField = conceptTableVariable.makeFieldVariable("concept_name");
+    var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
-    // domain clause has field name domain_id
-    BinaryFilterVariable domainClause =
+    // domain clause filters for the given domain id based on field domain_id
+    var domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
 
-    FunctionFilterVariable searchConceptNameClause =
+    // search concept name clause filters for the search text based on field concept_name
+    var searchNameClause =
         createSearchConceptClause(
             conceptTablePointer, conceptTableVariable, searchText, "concept_name");
 
-    FunctionFilterVariable searchConceptCodeClause =
+    // search concept name clause filters for the search text based on field concept_code
+    var searchCodeClause =
         createSearchConceptClause(
             conceptTablePointer, conceptTableVariable, searchText, "concept_code");
 
-    // SearchConceptNameClause OR searchConceptCodeClause
-    List<FilterVariable> searches = List.of(searchConceptNameClause, searchConceptCodeClause);
+    // SearchConceptNameClause OR searchCodeClause
+    List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
     BooleanAndOrFilterVariable searchClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
 
-    // DomainClause AND (SearchConceptNameClause OR searchConceptCodeClause)
+    // domainClause AND (searchNameClause OR searchCodeClause)
     List<FilterVariable> allFilters = List.of(domainClause, searchClause);
     BooleanAndOrFilterVariable whereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
+    // select nameField, idField from conceptTable WHERE
+    // domainClause AND (searchNameClause OR searchCodeClause)
     Query query =
         new Query(
-            List.of(nameFieldVariable, idFieldVariable),
+            List.of(nameField, idField),
             List.of(conceptTableVariable),
             whereClause);
 

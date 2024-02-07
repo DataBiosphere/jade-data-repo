@@ -145,7 +145,7 @@ public class CriteriaQueryBuilder {
 
   FilterVariable generateFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
     FilterVariable andOrFilterVariable = generateAndOrFilterForCriteriaGroup(criteriaGroup);
-    return Objects.requireNonNullElse(criteriaGroup.isMeetAll(), false)
+    return Objects.requireNonNullElse(criteriaGroup.isMustMeet(), true)
         ? andOrFilterVariable
         : new NotFilterVariable(andOrFilterVariable);
   }

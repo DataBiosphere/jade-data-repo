@@ -11,9 +11,11 @@ public record BooleanAndOrFilterVariable(
 
   @Override
   public String renderSQL() {
-    return subFilters.stream()
-        .map(SqlExpression::renderSQL)
-        .collect(Collectors.joining(" " + operator.renderSQL() + " ", "(", ")"));
+    return subFilters.isEmpty()
+        ? "1=1"
+        : subFilters.stream()
+            .map(SqlExpression::renderSQL)
+            .collect(Collectors.joining(" " + operator.renderSQL() + " ", "(", ")"));
   }
 
   public enum LogicalOperator implements SqlExpression {

@@ -149,14 +149,14 @@ class SnapshotBuilderServiceTest {
           .thenReturn(dataSource);
       assertThat(
           "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
-          snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset).generate(tableName),
+          snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER).generate(tableName),
           is(SynapseVisitor.azureTableName(dataSource).generate(tableName)));
     }
     if (wrapper.isGcp()) {
       when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(model);
       assertThat(
           "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
-          snapshotBuilderService.getTableNameGenerator(TEST_USER, dataset).generate(tableName),
+          snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER).generate(tableName),
           is(BigQueryVisitor.bqTableName(model).generate(tableName)));
     }
   }

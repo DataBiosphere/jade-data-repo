@@ -27,7 +27,6 @@ import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
-import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.UUID;
@@ -124,7 +123,7 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse searchConcepts(
       UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    TableNameGenerator tableNameGenerator = getTableNameGenerator(userRequest, dataset);
+    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
     String cloudSpecificSql = buildSearchConceptsQuery(domainId, searchText, tableNameGenerator);
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
@@ -133,19 +132,6 @@ public class SnapshotBuilderService {
             AggregateBQQueryResultsUtils::aggregateConceptResults,
             AggregateSynapseQueryResultsUtils::aggregateConceptResult);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
-  }
-
-  @VisibleForTesting
-  TableNameGenerator getTableNameGenerator(AuthenticatedUserRequest userRequest, Dataset dataset) {
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    if (cloudPlatformWrapper.isAzure()) {
-      return SynapseVisitor.azureTableName(
-          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
-    } else if (cloudPlatformWrapper.isGcp()) {
-      return BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest));
-    } else {
-      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
-    }
   }
 
   public int getRollupCountForCriteriaGroups(

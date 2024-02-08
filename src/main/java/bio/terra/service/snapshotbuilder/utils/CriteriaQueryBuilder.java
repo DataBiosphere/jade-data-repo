@@ -86,16 +86,15 @@ public class CriteriaQueryBuilder {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
         getFieldVariableForRootTable(getProgramDataOptionColumnName(listCriteria.getId())),
-        listCriteria.getValues().stream()
-            .map(Literal::new)
-            .toArray(Literal[]::new));
+        listCriteria.getValues().stream().map(Literal::new).toArray(Literal[]::new));
   }
 
   String getProgramDataOptionColumnName(Integer id) {
     return snapshotBuilderSettings.getProgramDataOptions().stream()
         .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
         .findFirst()
-        .orElseThrow(() -> new BadRequestException(String.format("Invalid program data ID given: %d", id)))
+        .orElseThrow(
+            () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)))
         .getColumnName();
   }
 

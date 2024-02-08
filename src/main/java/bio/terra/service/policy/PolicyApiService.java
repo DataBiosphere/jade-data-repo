@@ -1,10 +1,12 @@
 package bio.terra.service.policy;
 
 import bio.terra.app.configuration.PolicyServiceConfiguration;
+import bio.terra.common.tracing.JakartaTracingFilter;
 import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.api.TpsApi;
 import bio.terra.policy.client.ApiClient;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
+import io.opentelemetry.api.OpenTelemetry;
 import jakarta.ws.rs.client.Client;
 import java.io.IOException;
 import org.springframework.stereotype.Service;
@@ -15,9 +17,11 @@ public class PolicyApiService {
   /** Clients should be shared among requests to reduce latency and save memory * */
   private final Client sharedHttpClient;
 
-  public PolicyApiService(PolicyServiceConfiguration policyServiceConfiguration) {
+  public PolicyApiService(
+      PolicyServiceConfiguration policyServiceConfiguration, OpenTelemetry openTelemetry) {
     this.policyServiceConfiguration = policyServiceConfiguration;
-    this.sharedHttpClient = new ApiClient().getHttpClient();
+    this.sharedHttpClient =
+        new ApiClient().getHttpClient().register(new JakartaTracingFilter(openTelemetry));
   }
 
   // -- Policy Attribute Object Interface --

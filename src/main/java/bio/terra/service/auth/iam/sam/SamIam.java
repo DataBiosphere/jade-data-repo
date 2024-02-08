@@ -27,6 +27,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.common.annotations.VisibleForTesting;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -114,6 +115,7 @@ public class SamIam implements IamProviderInterface {
     return authorized;
   }
 
+  @WithSpan
   @Override
   public Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
@@ -139,6 +141,7 @@ public class SamIam implements IamProviderInterface {
                     Collectors.toSet())));
   }
 
+  @WithSpan
   @Override
   public List<String> listActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
@@ -154,6 +157,7 @@ public class SamIam implements IamProviderInterface {
     return samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId);
   }
 
+  @WithSpan
   @Override
   public boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)

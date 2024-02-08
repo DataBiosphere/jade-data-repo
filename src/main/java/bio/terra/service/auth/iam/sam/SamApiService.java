@@ -1,8 +1,10 @@
 package bio.terra.service.auth.iam.sam;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.tracing.OkHttpClientTracingInterceptor;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import io.opentelemetry.api.OpenTelemetry;
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
@@ -24,10 +26,18 @@ public class SamApiService {
   private final OkHttpClient sharedHttpClient;
 
   @Autowired
-  public SamApiService(SamConfiguration samConfig, ConfigurationService configurationService) {
+  public SamApiService(
+      SamConfiguration samConfig,
+      ConfigurationService configurationService,
+      OpenTelemetry openTelemetry) {
     this.samConfig = samConfig;
     this.configurationService = configurationService;
-    this.sharedHttpClient = new ApiClient().getHttpClient();
+    this.sharedHttpClient =
+        new ApiClient()
+            .getHttpClient()
+            .newBuilder()
+            .addInterceptor(new OkHttpClientTracingInterceptor(openTelemetry))
+            .build();
   }
 
   public ResourcesApi resourcesApi(String accessToken) {

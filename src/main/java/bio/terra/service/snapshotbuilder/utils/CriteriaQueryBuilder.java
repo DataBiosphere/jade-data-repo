@@ -6,6 +6,7 @@ import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -28,19 +29,19 @@ public class CriteriaQueryBuilder {
   private final TableNameGenerator tableNameGenerator;
   final TableVariable rootTable;
 
+  final SnapshotBuilderSettings snapshotBuilderSettings;
+
   private record OccurrenceTable(String tableName, String idColumnName) {}
 
-  private static final Map<String, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
+  private static final Map<Integer, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
       Map.of(
-          "Condition", new OccurrenceTable("condition_occurrence", "condition_concept_id"),
-          "Measurement", new OccurrenceTable("measurement", "measurement_concept_id"),
-          "Visit", new OccurrenceTable("visit_occurrence", "visit_concept_id"),
-          "Procedure", new OccurrenceTable("procedure_occurrence", "procedure_concept_id"),
-          "Observation", new OccurrenceTable("observation", "observation_concept_id"),
-          "Device", new OccurrenceTable("device_exposure", "device_concept_id"),
-          "Drug", new OccurrenceTable("drug_exposure", "drug_concept_id"));
+          19, new OccurrenceTable("condition_occurrence", "condition_concept_id"),
+          10, new OccurrenceTable("procedure_occurrence", "procedure_concept_id"),
+          27, new OccurrenceTable("observation", "observation_concept_id"),
+          17, new OccurrenceTable("device_exposure", "device_concept_id"),
+          13, new OccurrenceTable("drug_exposure", "drug_concept_id"));
 
-  private static OccurrenceTable getOccurrenceTableFromDomain(String domain) {
+  private static OccurrenceTable getOccurrenceTableFromDomain(Integer domain) {
     OccurrenceTable occurrenceTable = DOMAIN_TO_OCCURRENCE_TABLE.get(domain);
     if (occurrenceTable == null) {
       throw new BadRequestException(String.format("Domain %s is not found in dataset", domain));
@@ -48,8 +49,12 @@ public class CriteriaQueryBuilder {
     return occurrenceTable;
   }
 
-  protected CriteriaQueryBuilder(String rootTableName, TableNameGenerator tableNameGenerator) {
+  protected CriteriaQueryBuilder(
+      String rootTableName,
+      TableNameGenerator tableNameGenerator,
+      SnapshotBuilderSettings snapshotBuilderSettings) {
     this.tableNameGenerator = tableNameGenerator;
+    this.snapshotBuilderSettings = snapshotBuilderSettings;
     TablePointer tablePointer = TablePointer.fromTableName(rootTableName, tableNameGenerator);
     rootTable = TableVariable.forPrimary(tablePointer);
   }
@@ -63,30 +68,39 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
+    String columnName = getProgramDataOptionColumnName(rangeCriteria.getId());
     return new BooleanAndOrFilterVariable(
         BooleanAndOrFilterVariable.LogicalOperator.AND,
         List.of(
             new BinaryFilterVariable(
-                getFieldVariableForRootTable(rangeCriteria.getName()),
+                getFieldVariableForRootTable(columnName),
                 BinaryFilterVariable.BinaryOperator.GREATER_THAN_OR_EQUAL,
-                new Literal(rangeCriteria.getLow().intValue())),
+                new Literal(rangeCriteria.getLow())),
             new BinaryFilterVariable(
-                getFieldVariableForRootTable(rangeCriteria.getName()),
+                getFieldVariableForRootTable(columnName),
                 BinaryFilterVariable.BinaryOperator.LESS_THAN_OR_EQUAL,
-                new Literal(rangeCriteria.getHigh().intValue()))));
+                new Literal(rangeCriteria.getHigh()))));
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
-        getFieldVariableForRootTable(listCriteria.getName()),
+        getFieldVariableForRootTable(getProgramDataOptionColumnName(listCriteria.getId())),
         listCriteria.getValues().stream()
-            .map(value -> new Literal(value.intValue()))
+            .map(Literal::new)
             .toArray(Literal[]::new));
   }
 
+  String getProgramDataOptionColumnName(Integer id) {
+    return snapshotBuilderSettings.getProgramDataOptions().stream()
+        .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
+        .findFirst()
+        .orElseThrow()
+        .getColumnName();
+  }
+
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {
-    OccurrenceTable occurrenceTable = getOccurrenceTableFromDomain(domainCriteria.getDomainName());
+    OccurrenceTable occurrenceTable = getOccurrenceTableFromDomain(domainCriteria.getId());
 
     TablePointer occurrencePointer =
         TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
@@ -118,13 +132,13 @@ public class CriteriaQueryBuilder {
                             new FieldPointer(occurrencePointer, occurrenceTable.idColumnName()),
                             occurrenceVariable),
                         BinaryFilterVariable.BinaryOperator.EQUALS,
-                        new Literal(domainCriteria.getId().intValue())),
+                        new Literal(domainCriteria.getConceptId())),
                     new BinaryFilterVariable(
                         new FieldVariable(
                             new FieldPointer(ancestorPointer, "ancestor_concept_id"),
                             ancestorVariable),
                         BinaryFilterVariable.BinaryOperator.EQUALS,
-                        new Literal(domainCriteria.getId().intValue()))))));
+                        new Literal(domainCriteria.getConceptId()))))));
   }
 
   FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {

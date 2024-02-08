@@ -133,7 +133,7 @@ public class SnapshotBuilderTestData {
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
-                        .domainName("condition")
+                        .id(19)
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataRangeCriteria()

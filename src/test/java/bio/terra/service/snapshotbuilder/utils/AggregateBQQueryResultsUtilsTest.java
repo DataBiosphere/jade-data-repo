@@ -26,7 +26,8 @@ class AggregateBQQueryResultsUtilsTest {
     Schema schema = Schema.of(Field.of("count_name", StandardSQLTypeName.INT64));
     Page<FieldValueList> page =
         BigQueryPdaoUnitTest.mockPage(
-            List.of(FieldValueList.of(List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, 5)))));
+            List.of(
+                FieldValueList.of(List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "5")))));
 
     TableResult table = new TableResult(schema, 1, page);
     assertThat(

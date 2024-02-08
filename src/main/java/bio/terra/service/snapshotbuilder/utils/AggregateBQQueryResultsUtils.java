@@ -21,7 +21,7 @@ public class AggregateBQQueryResultsUtils {
 
   public static List<Integer> rollupCountsMapper(TableResult result) {
     return StreamSupport.stream(result.iterateAll().spliterator(), false)
-        .map(row -> (Integer) row.get(0).getValue())
+        .map(row -> (int) row.get(0).getLongValue())
         .toList();
   }
 }

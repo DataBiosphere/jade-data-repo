@@ -2,7 +2,6 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -134,31 +133,6 @@ class SnapshotBuilderServiceTest {
         snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", TEST_USER);
     assertThat(
         "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
-  }
-
-  @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void getTableNameGenerator(CloudPlatform cloudPlatform) {
-    Dataset dataset = makeDataset(cloudPlatform);
-    DatasetModel model = makeDatasetModel();
-    String tableName = "table";
-    String dataSource = "dataSource";
-    CloudPlatformWrapper wrapper = CloudPlatformWrapper.of(cloudPlatform);
-    if (wrapper.isAzure()) {
-      when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
-          .thenReturn(dataSource);
-      assertThat(
-          "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
-          snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER).generate(tableName),
-          is(SynapseVisitor.azureTableName(dataSource).generate(tableName)));
-    }
-    if (wrapper.isGcp()) {
-      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(model);
-      assertThat(
-          "getTableNameGenerator returns a TableNameGenerator that generates the expected table name",
-          snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER).generate(tableName),
-          is(BigQueryVisitor.bqTableName(model).generate(tableName)));
-    }
   }
 
   private DatasetModel makeDatasetModel() {

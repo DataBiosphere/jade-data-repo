@@ -95,7 +95,7 @@ public class CriteriaQueryBuilder {
     return snapshotBuilderSettings.getProgramDataOptions().stream()
         .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
         .findFirst()
-        .orElseThrow()
+        .orElseThrow(() -> new BadRequestException(String.format("Invalid program data ID given: %d", id)))
         .getColumnName();
   }
 

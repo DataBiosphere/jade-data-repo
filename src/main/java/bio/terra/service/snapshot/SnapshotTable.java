@@ -4,6 +4,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Table;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -65,5 +66,26 @@ public class SnapshotTable implements Table {
   public SnapshotTable primaryKey(List<Column> primaryKey) {
     this.primaryKey = primaryKey;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    SnapshotTable that = (SnapshotTable) o;
+    return Objects.equals(id, that.id)
+        && Objects.equals(name, that.name)
+        && Objects.equals(columns, that.columns)
+        && Objects.equals(primaryKey, that.primaryKey)
+        && Objects.equals(rowCount, that.rowCount);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, name, columns, primaryKey, rowCount);
   }
 }

@@ -88,6 +88,8 @@ public class SnapshotDaoTest {
 
   @Autowired private SnapshotDao snapshotDao;
 
+  @Autowired private SnapshotTableDao snapshotTableDao;
+
   @Autowired private DatasetDao datasetDao;
 
   @Autowired private ProfileDao profileDao;
@@ -265,16 +267,10 @@ public class SnapshotDaoTest {
             .filter(t -> t.getName().equals("thetable"))
             .findFirst()
             .orElseThrow(AssertionError::new);
-    Table snapshotTable1 =
-        snapshot.getTables().stream()
-            .filter(t -> t.getName().equals("thetable"))
-            .findFirst()
-            .orElseThrow(AssertionError::new);
-    Table snapshotTable2 =
-        snapshot.getTables().stream()
-            .filter(t -> t.getName().equals("anothertable"))
-            .findFirst()
-            .orElseThrow(AssertionError::new);
+    SnapshotTable snapshotTable1 =
+        fromDb.getTableByName("thetable").orElseThrow(AssertionError::new);
+    SnapshotTable snapshotTable2 =
+        fromDb.getTableByName("anothertable").orElseThrow(AssertionError::new);
 
     assertThat(
         "correct map table dataset table",
@@ -329,6 +325,17 @@ public class SnapshotDaoTest {
         "Second table columns are in descending order of name",
         snapshotTable2.getColumns().stream().map(Column::getName).toList(),
         contains("anothercolumn3", "anothercolumn2", "anothercolumn1"));
+
+    // Verify snapshot column can be fetched by individual table
+    assertThat(
+        "First table columns can be fetched",
+        snapshotTableDao.retrieveColumns(snapshotTable1),
+        equalTo(snapshotTable1.getColumns()));
+
+    assertThat(
+        "Second table columns can be fetched",
+        snapshotTableDao.retrieveColumns(snapshotTable2),
+        equalTo(snapshotTable2.getColumns()));
   }
 
   @Test

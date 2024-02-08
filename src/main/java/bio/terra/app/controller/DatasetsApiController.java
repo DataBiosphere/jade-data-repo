@@ -576,6 +576,19 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(snapshotBuilderService.enumerateByDatasetId(id));
   }
 
+  @Override
+  public ResponseEntity<SnapshotBuilderGetConceptsResponse> searchConcepts(
+      UUID id, String domainId, String searchText) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS); // TODO: change once SQL is sanitized
+    return ResponseEntity.ok(
+        snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
+  }
+
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
     Dataset dataset = datasetService.retrieve(datasetId);
     CloudPlatformWrapper platform =

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
+import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.buildSearchConceptsQuery;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -100,12 +101,8 @@ public class SnapshotBuilderService {
       return SynapseVisitor.azureTableName(
           datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
     }
-  }
-
-  private int getRollupCount(UUID datasetId, List<SnapshotBuilderCohort> cohorts) {
-    return 100;
   }
 
   public SnapshotBuilderCountResponse getCountResponse(
@@ -121,6 +118,20 @@ public class SnapshotBuilderService {
 
   public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
     return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
+  }
+
+  public SnapshotBuilderGetConceptsResponse searchConcepts(
+      UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+    String cloudSpecificSql = buildSearchConceptsQuery(domainId, searchText, tableNameGenerator);
+    List<SnapshotBuilderConcept> concepts =
+        runSnapshotBuilderQuery(
+            cloudSpecificSql,
+            dataset,
+            AggregateBQQueryResultsUtils::aggregateConceptResults,
+            AggregateSynapseQueryResultsUtils::aggregateConceptResult);
+    return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
   public int getRollupCountForCriteriaGroups(

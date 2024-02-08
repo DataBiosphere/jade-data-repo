@@ -46,6 +46,11 @@ public final class TableVariable implements SqlExpression {
     return new TableVariable(tablePointer, joinField, joinFieldOnParent, isLeftJoin);
   }
 
+  public FieldVariable makeFieldVariable(String fieldName) {
+    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName);
+    return new FieldVariable(fieldPointer, this);
+  }
+
   @Override
   public String renderSQL() {
     String sql = tablePointer.renderSQL();

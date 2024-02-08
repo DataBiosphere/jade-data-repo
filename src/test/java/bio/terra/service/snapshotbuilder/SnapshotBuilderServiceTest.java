@@ -111,27 +111,53 @@ class SnapshotBuilderServiceTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   public void getConceptChildren(CloudPlatform cloudPlatform) {
-    Dataset dataset =
-        new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))
-            .projectResource(new GoogleProjectResource().googleProjectId("project123"))
-            .name("dataset123")
-            .id(UUID.randomUUID());
+    Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
-    if (cloudPlatformWrapper.isGcp()) {
-      DatasetModel datasetModel = new DatasetModel().name("name").dataProject("project");
-      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(datasetModel);
-      when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
-          .thenReturn(concepts);
-    } else {
-      when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
-    }
+    mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(
         "getConceptChildren returns the expected response",
         response.getResult(),
         equalTo(concepts));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void searchConcepts(CloudPlatform cloudPlatform) {
+    Dataset dataset = makeDataset(cloudPlatform);
+    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
+    mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
+    var response =
+        snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", TEST_USER);
+    assertThat(
+        "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
+  }
+
+  private DatasetModel makeDatasetModel() {
+    return new DatasetModel().name("name").dataProject("project");
+  }
+
+  private static Dataset makeDataset(CloudPlatform cloudPlatform) {
+    return new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))
+        .projectResource(new GoogleProjectResource().googleProjectId("project123"))
+        .name("dataset123")
+        .id(UUID.randomUUID());
+  }
+
+  private void mockRunQueryForConcepts(
+      CloudPlatform cloudPlatform, List<SnapshotBuilderConcept> concepts, Dataset dataset) {
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
+    if (cloudPlatformWrapper.isGcp()) {
+      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
+      when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
+          .thenReturn(concepts);
+    } else {
+      when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+          .thenReturn("dataSource");
+      when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
+    }
   }
 
   @Test

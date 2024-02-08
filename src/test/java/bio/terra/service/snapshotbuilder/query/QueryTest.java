@@ -18,16 +18,39 @@ public class QueryTest {
 
   @NotNull
   public static Query createQuery() {
-    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    TableVariable tableVariable = makeTableVariable();
     return new Query(
-        List.of(new FieldVariable(FieldPointer.allFields(tablePointer), tableVariable)),
+        List.of(
+            new FieldVariable(
+                FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)),
         List.of(tableVariable));
+  }
+
+  @NotNull
+  public static Query createQueryWithLimit() {
+    TableVariable tableVariable = makeTableVariable();
+    return new Query(
+        List.of(
+            new FieldVariable(
+                FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)),
+        List.of(tableVariable),
+        null,
+        25);
+  }
+
+  private static TableVariable makeTableVariable() {
+    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
+    return TableVariable.forPrimary(tablePointer);
   }
 
   @Test
   void renderSQL() {
     assertThat(createQuery().renderSQL(), is("SELECT t.* FROM table AS t"));
+  }
+
+  @Test
+  void renderSQLWithLimit() {
+    assertThat(createQueryWithLimit().renderSQL(), is("SELECT t.* FROM table AS t LIMIT 25"));
   }
 
   @Test

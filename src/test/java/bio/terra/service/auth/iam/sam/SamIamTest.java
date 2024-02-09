@@ -702,10 +702,11 @@ public class SamIamTest {
           new RepositoryStatusModelSystems()
               .ok(false)
               .message(
-                  "Sam status check failed: bio.terra.service.auth.iam.exception.IamInternalServerErrorException: Message: BOOM!\n"
-                      + "HTTP response code: 502\n"
-                      + "HTTP response body: null\n"
-                      + "HTTP response headers: null");
+                  """
+                      Sam status check failed: bio.terra.service.auth.iam.exception.IamInternalServerErrorException: Message: BOOM!
+                      HTTP response code: 502
+                      HTTP response body: null
+                      HTTP response headers: null""");
       var result = samIam.samStatus();
       assertThat(result, equalTo(expected));
     }

@@ -42,7 +42,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
@@ -740,15 +739,13 @@ public class SamIam implements IamProviderInterface {
     logger.warn("SAM client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
-    // If we find an empty message then we try to deserialize the error report and use that message.
     String message = samEx.getMessage();
-    if (StringUtils.isEmpty(message)) {
-      try {
-        ErrorReport errorReport =
-            objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
-        message = extractErrorMessage(errorReport);
-      } catch (JsonProcessingException ex) {
-        logger.debug("Unable to deserialize sam exception response body");
+    try {
+      ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
+      message = extractErrorMessage(errorReport);
+    } catch (JsonProcessingException | IllegalArgumentException ex) {
+      if (message == null) {
+        message = "SAM client exception";
       }
     }
 

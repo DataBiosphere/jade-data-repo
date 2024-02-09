@@ -697,13 +697,13 @@ public class SamIamTest {
 
     @Test
     void testGetStatusException() throws ApiException {
-      when(samStatusApi.getSystemStatus()).thenThrow(new ApiException("BOOM!"));
+      when(samStatusApi.getSystemStatus()).thenThrow(new ApiException("BOOM!", 502, null, null));
       var expected =
           new RepositoryStatusModelSystems()
               .ok(false)
               .message(
                   "Sam status check failed: bio.terra.service.auth.iam.exception.IamInternalServerErrorException: Message: BOOM!\n"
-                      + "HTTP response code: 0\n"
+                      + "HTTP response code: 502\n"
                       + "HTTP response body: null\n"
                       + "HTTP response headers: null");
       var result = samIam.samStatus();

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
 import java.util.Comparator;
 import java.util.List;
@@ -12,7 +13,8 @@ public record Query(
     FilterVariable where,
     List<FieldVariable> groupBy,
     HavingFilterVariable having,
-    Integer limit)
+    Integer limit,
+    CloudPlatformWrapper platform)
     implements SqlExpression {
 
   public Query {
@@ -33,21 +35,26 @@ public record Query(
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables) {
-    this(select, tables, null, null, null, null);
+    this(select, tables, null, null, null, null, null);
   }
 
   public Query(
       List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, groupBy, null, null);
+    this(select, tables, null, groupBy, null, null, null);
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null, null);
+    this(select, tables, where, null, null, null, null);
   }
 
+  // where limit is added, platform must be added as well
   public Query(
-      List<FieldVariable> select, List<TableVariable> tables, FilterVariable where, Integer limit) {
-    this(select, tables, where, null, null, limit);
+      List<FieldVariable> select,
+      List<TableVariable> tables,
+      FilterVariable where,
+      Integer limit,
+      CloudPlatformWrapper platform) {
+    this(select, tables, where, null, null, limit, platform);
   }
 
   @Override
@@ -108,11 +115,17 @@ public record Query(
       sql += " " + having.renderSQL();
     }
 
-    // TODO: DC-836 Implement LIMIT for Azure (TOP N + sql)
-    //  This means passing in the platform to renderSQL
-    //  and refactoring the current TableVariable and tableNameGenerator work
     if (limit != null) {
-      sql += " LIMIT " + limit;
+      if (platform != null) {
+        if (platform.isGcp()) {
+          sql += " LIMIT " + limit;
+        } else if (platform().isAzure()) {
+          sql = "TOP " + limit + " " + sql;
+        }
+        // if platform is not provided limit for GCP is generated
+      } else {
+        sql += " LIMIT " + limit;
+      }
     }
 
     return sql;

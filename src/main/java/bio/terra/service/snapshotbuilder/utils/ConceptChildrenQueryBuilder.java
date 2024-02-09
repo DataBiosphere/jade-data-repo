@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -15,7 +16,7 @@ public class ConceptChildrenQueryBuilder {
   private ConceptChildrenQueryBuilder() {}
 
   public static String buildConceptChildrenQuery(
-      int conceptId, TableNameGenerator tableNameGenerator) {
+      int conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldVariable nameFieldVariable = conceptTableVariable.makeFieldVariable("concept_name");
@@ -36,11 +37,15 @@ public class ConceptChildrenQueryBuilder {
         new Query(List.of(descendantFieldVariable), List.of(ancestorTableVariable), whereClause);
     SubQueryFilterVariable subQueryFilterVariable =
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
+
+    // TODO: Implement pagination, remove hardcoded limit
     Query query =
         new Query(
             List.of(nameFieldVariable, idFieldVariable),
             List.of(conceptTableVariable),
-            subQueryFilterVariable);
+            subQueryFilterVariable,
+            100,
+            platform);
     return query.renderSQL();
   }
 }

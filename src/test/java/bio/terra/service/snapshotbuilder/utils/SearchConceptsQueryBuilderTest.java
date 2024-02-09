@@ -6,29 +6,44 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
 
-  @Test
-  void buildSearchConceptsQuery() {
-    assertThat(
-        "generated SQL is correct",
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery("condition", "cancer", s -> s),
-        equalToCompressingWhiteSpace(
-            "SELECT c.concept_name, c.concept_id FROM concept AS c "
-                + "WHERE (c.domain_id = 'condition' "
-                + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
-                + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
-                + "LIMIT 100"));
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void buildSearchConceptsQuery(CloudPlatform platform) {
+    String expectedSql =
+        "SELECT c.concept_name, c.concept_id FROM concept AS c "
+            + "WHERE (c.domain_id = 'condition' "
+            + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
+            + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) ";
+    String actualSql =
+        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
+            "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform));
+    if (CloudPlatformWrapper.of(platform).isGcp()) {
+      assertThat(
+          "generated SQL is correct",
+          actualSql,
+          equalToCompressingWhiteSpace(expectedSql + " LIMIT 100"));
+    } else if (CloudPlatformWrapper.of(platform).isAzure()) {
+      assertThat(
+          "generated SQL is correct",
+          actualSql,
+          equalToCompressingWhiteSpace("TOP 100 " + expectedSql));
+    }
   }
 
   @Test

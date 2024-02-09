@@ -5,13 +5,17 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @Tag(Unit.TAG)
 public class QueryTest {
@@ -27,7 +31,7 @@ public class QueryTest {
   }
 
   @NotNull
-  public static Query createQueryWithLimit() {
+  public static Query createQueryWithLimit(CloudPlatformWrapper platform) {
     TableVariable tableVariable = makeTableVariable();
     return new Query(
         List.of(
@@ -35,7 +39,8 @@ public class QueryTest {
                 FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)),
         List.of(tableVariable),
         null,
-        25);
+        25,
+        platform);
   }
 
   private static TableVariable makeTableVariable() {
@@ -48,9 +53,26 @@ public class QueryTest {
     assertThat(createQuery().renderSQL(), is("SELECT t.* FROM table AS t"));
   }
 
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQLWithLimit(CloudPlatform platform) {
+    String sql = "SELECT t.* FROM table AS t";
+    if (CloudPlatformWrapper.of(platform).isGcp()) {
+      assertThat(
+          createQueryWithLimit(CloudPlatformWrapper.of(platform)).renderSQL(),
+          is(sql + " LIMIT 25"));
+    } else if (CloudPlatformWrapper.of(platform).isAzure()) {
+      assertThat(
+          createQueryWithLimit(CloudPlatformWrapper.of(platform)).renderSQL(), is("TOP 25 " + sql));
+    }
+  }
+
   @Test
   void renderSQLWithLimit() {
-    assertThat(createQueryWithLimit().renderSQL(), is("SELECT t.* FROM table AS t LIMIT 25"));
+    String sql = "SELECT t.* FROM table AS t";
+    assertThat(
+        createQueryWithLimit(CloudPlatformWrapper.of((CloudPlatform) null)).renderSQL(),
+        is(sql + " LIMIT 25"));
   }
 
   @Test

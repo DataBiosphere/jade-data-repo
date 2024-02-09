@@ -83,7 +83,9 @@ public class SnapshotBuilderService {
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
-    String cloudSpecificSql = buildConceptChildrenQuery(conceptId, tableNameGenerator);
+    String cloudSpecificSql =
+        buildConceptChildrenQuery(
+            conceptId, tableNameGenerator, CloudPlatformWrapper.of(dataset.getCloudPlatform()));
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -124,7 +126,12 @@ public class SnapshotBuilderService {
       UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
-    String cloudSpecificSql = buildSearchConceptsQuery(domainId, searchText, tableNameGenerator);
+    String cloudSpecificSql =
+        buildSearchConceptsQuery(
+            domainId,
+            searchText,
+            tableNameGenerator,
+            CloudPlatformWrapper.of(dataset.getCloudPlatform()));
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,

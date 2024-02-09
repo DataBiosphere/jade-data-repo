@@ -615,6 +615,7 @@ compileJava {
     } else {
         dependsOn(spotlessApply)
     }
+    // UnauthenticatedApiController expects the version.properties file to be present at runtime
     dependsOn(generateVersionFile)
 }
 

@@ -17,7 +17,6 @@ import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -258,8 +257,8 @@ class CriteriaQueryBuilderTest {
   private static SnapshotBuilderProgramDataRangeCriteria generateRangeCriteria() {
     return (SnapshotBuilderProgramDataRangeCriteria)
         new SnapshotBuilderProgramDataRangeCriteria()
-            .low(new BigDecimal(0))
-            .high(new BigDecimal(100))
+            .low(0)
+            .high(100)
             .id(0)
             .name("range_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.RANGE);
@@ -268,7 +267,7 @@ class CriteriaQueryBuilderTest {
   private static SnapshotBuilderProgramDataListCriteria generateListCriteria() {
     return (SnapshotBuilderProgramDataListCriteria)
         new SnapshotBuilderProgramDataListCriteria()
-            .values(List.of(new BigDecimal(0), new BigDecimal(1), new BigDecimal(2)))
+            .values(List.of(0, 1, 2))
             .id(1)
             .name("list_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.LIST);

@@ -394,10 +394,7 @@ public class AzureIntegrationTest extends UsersBase {
     List<String> searchConceptNames =
         searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
     assertThat("Correct number of concepts are returned", searchConceptNames.size(), equalTo(1));
-    assertThat(
-        "expected concepts are returned",
-        searchConceptNames,
-        contains("concept1"));
+    assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
   }
 
   @Test

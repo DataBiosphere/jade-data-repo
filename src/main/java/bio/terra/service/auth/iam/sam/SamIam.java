@@ -739,14 +739,12 @@ public class SamIam implements IamProviderInterface {
     logger.warn("SAM client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
-    String message = samEx.getMessage();
+    String message = null;
     try {
       ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
       message = extractErrorMessage(errorReport);
     } catch (JsonProcessingException | IllegalArgumentException ex) {
-      if (message == null) {
-        message = "SAM client exception";
-      }
+      message = Objects.requireNonNullElse(samEx.getMessage(), "SAM client exception");
     }
 
     switch (samEx.getCode()) {

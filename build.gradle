@@ -304,15 +304,16 @@ dependencies {
         exclude group: 'com.sun.jersey', module: 'jersey-server'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.3.19'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.6.1'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.1'
+    testImplementation 'au.com.dius.pact.consumer:junit5:4.6.1'
 
     antlr 'org.antlr:antlr4:4.8'
     spotbugs 'com.github.spotbugs:spotbugs:4.2.3'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
-    runtimeOnly 'org.codehaus.groovy:groovy:3.0.7'
+    runtimeOnly 'org.apache.groovy:groovy:4.0.11'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
@@ -566,6 +567,16 @@ task testAll(type: Test) {
         includeTags 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
+}
+
+// PACT
+
+task pactTests(type: Test) {
+    useJUnitPlatform {
+        includeTags "pact-test"
+    }
+    environment.put('pact.rootDir', "$buildDir/pacts")
+    environment.put('pact.provider.version', "$project.version")
 }
 
 task verifyPacts(type: Test) {

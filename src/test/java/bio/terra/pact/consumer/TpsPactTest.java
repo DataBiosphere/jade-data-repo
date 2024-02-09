@@ -1,0 +1,236 @@
+package bio.terra.pact.consumer;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import au.com.dius.pact.consumer.MockServer;
+import au.com.dius.pact.consumer.dsl.PactDslWithProvider;
+import au.com.dius.pact.consumer.junit5.PactConsumerTest;
+import au.com.dius.pact.consumer.junit5.PactConsumerTestExt;
+import au.com.dius.pact.consumer.junit5.PactTestFor;
+import au.com.dius.pact.core.model.PactSpecVersion;
+import au.com.dius.pact.core.model.RequestResponsePact;
+import au.com.dius.pact.core.model.annotations.Pact;
+import bio.terra.app.configuration.PolicyServiceConfiguration;
+import bio.terra.policy.api.TpsApi;
+import bio.terra.policy.client.ApiException;
+import bio.terra.policy.model.TpsComponent;
+import bio.terra.policy.model.TpsObjectType;
+import bio.terra.policy.model.TpsPaoCreateRequest;
+import bio.terra.policy.model.TpsPaoUpdateRequest;
+import bio.terra.policy.model.TpsPolicyInput;
+import bio.terra.policy.model.TpsPolicyInputs;
+import bio.terra.service.policy.PolicyApiService;
+import bio.terra.service.policy.PolicyService;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.ActiveProfiles;
+
+@Tag("pact-test")
+@PactConsumerTest
+@ActiveProfiles(bio.terra.common.category.Pact.PROFILE)
+@ExtendWith(PactConsumerTestExt.class)
+@PactTestFor(providerName = "tps", pactVersion = PactSpecVersion.V3)
+class TpsPactTest {
+  private static final String groupName = "testGroup";
+  private static final Map<String, String> contentTypeJsonHeader =
+      Map.of("Content-Type", "application/json");
+  private TpsApi tps;
+  private final UUID snapshotId = UUID.randomUUID();
+  private final TpsPolicyInput protectedDataPolicy =
+      new TpsPolicyInput()
+          .namespace(PolicyService.POLICY_NAMESPACE)
+          .name(PolicyService.PROTECTED_DATA_POLICY_NAME);
+  private final TpsPolicyInput groupConstraintPolicy =
+      PolicyService.getGroupConstraintPolicyInput(groupName);
+  private final TpsPaoUpdateRequest updatePAORequest =
+      new TpsPaoUpdateRequest()
+          .updateMode(PolicyService.UPDATE_MODE)
+          .addAttributes(new TpsPolicyInputs().addInputsItem(groupConstraintPolicy));
+
+  ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+  @BeforeEach
+  void setup(MockServer mockServer) throws Exception {
+    var tpsConfig = mock(PolicyServiceConfiguration.class);
+    when(tpsConfig.getAccessToken()).thenReturn("dummyToken");
+    when(tpsConfig.getBasePath()).thenReturn(mockServer.getUrl());
+    PolicyApiService policyApiService = new PolicyApiService(tpsConfig);
+    tps = policyApiService.getPolicyApi();
+  }
+
+  @Pact(consumer = "datarepo")
+  RequestResponsePact createPaoProtectedData(PactDslWithProvider builder)
+      throws JsonProcessingException {
+    String createPaoProtectedDataJson =
+        mapper.writeValueAsString(createPAORequest(protectedDataPolicy));
+    return createPaoDslRequest(builder, createPaoProtectedDataJson);
+  }
+
+  @Pact(consumer = "datarepo")
+  RequestResponsePact createPaoGroupConstraint(PactDslWithProvider builder)
+      throws JsonProcessingException {
+    String createPaoGroupConstraintJson =
+        mapper.writeValueAsString(createPAORequest(groupConstraintPolicy));
+    return createPaoDslRequest(builder, createPaoGroupConstraintJson);
+  }
+
+  @Pact(consumer = "datarepo")
+  RequestResponsePact createPaoConflict(PactDslWithProvider builder)
+      throws JsonProcessingException {
+    String createPaoProtectedDataJson =
+        mapper.writeValueAsString(createPAORequest(protectedDataPolicy));
+    return builder
+        .given("a PAO with this id exists", Map.of("id", snapshotId.toString()))
+        .uponReceiving("create PAO for TDR snapshot throws conflict error")
+        .method("POST")
+        .path("/api/policy/v1alpha1/pao")
+        .body(createPaoProtectedDataJson)
+        .headers(contentTypeJsonHeader)
+        .willRespondWith()
+        .status(409)
+        .toPact();
+  }
+
+  @Pact(consumer = "datarepo")
+  RequestResponsePact updatePao(PactDslWithProvider builder) throws JsonProcessingException {
+    String updatePaoJson = mapper.writeValueAsString(updatePAORequest);
+    return builder
+        .given("a PAO with a protected-data policy exists for this snapshot")
+        .uponReceiving("update snapshot PAO with group constraint policy")
+        .method("PATCH")
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
+        .body(updatePaoJson)
+        .headers(contentTypeJsonHeader)
+        .willRespondWith()
+        .status(200)
+        .headers(contentTypeJsonHeader)
+        .toPact();
+  }
+
+  @Pact(consumer = "datarepo")
+  RequestResponsePact updatePaoConflict(PactDslWithProvider builder)
+      throws JsonProcessingException {
+    String updatePaoJson = mapper.writeValueAsString(updatePAORequest);
+    return builder
+        .given("a PAO with a group constraint policy exists for this snapshot")
+        .uponReceiving("update snapshot PAO with duplicate group constraint policy")
+        .method("PATCH")
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
+        .body(updatePaoJson)
+        .headers(contentTypeJsonHeader)
+        .willRespondWith()
+        .status(409)
+        .toPact();
+  }
+
+  @Pact(consumer = "datarepo")
+  RequestResponsePact deletePao(PactDslWithProvider builder) {
+    return builder
+        .given("a PAO with this id exists")
+        .uponReceiving("delete PAO")
+        .method("DELETE")
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
+        .willRespondWith()
+        .status(200)
+        .toPact();
+  }
+
+  @Pact(consumer = "datarepo")
+  RequestResponsePact deletePaoThatDoesNotExist(PactDslWithProvider builder) {
+    return builder
+        .given("a PAO with this id does not exist")
+        .uponReceiving("delete non-existent PAO")
+        .method("DELETE")
+        .pathFromProviderState(
+            "/api/policy/v1alpha1/pao/${snapshotId}", "/api/policy/v1alpha1/pao/" + snapshotId)
+        .willRespondWith()
+        .status(404)
+        .toPact();
+  }
+
+  @Test
+  @PactTestFor(pactMethod = "createPaoProtectedData")
+  void createPaoProtectedDataSuccess(MockServer mockServer) throws ApiException {
+    tps.createPao(createPAORequest(protectedDataPolicy));
+  }
+
+  @Test
+  @PactTestFor(pactMethod = "createPaoGroupConstraint")
+  void createPaoGroupConstraintSuccess(MockServer mockServer) throws ApiException {
+    tps.createPao(createPAORequest(groupConstraintPolicy));
+  }
+
+  @Test
+  @PactTestFor(pactMethod = "createPaoConflict")
+  void createPaoConflictError(MockServer mockServer) throws ApiException {
+    assertThrows(
+        ApiException.class,
+        () -> tps.createPao(createPAORequest(protectedDataPolicy)),
+        "creating a policy should return 409 if one already exists");
+  }
+
+  @Test
+  @PactTestFor(pactMethod = "updatePao")
+  void updatePaoSuccess(MockServer mockServer) throws ApiException {
+    tps.updatePao(updatePAORequest, snapshotId);
+  }
+
+  @Test
+  @PactTestFor(pactMethod = "updatePaoConflict")
+  void updatePaoWithDuplicatePolicy(MockServer mockServer) {
+    assertThrows(
+        ApiException.class,
+        () -> tps.updatePao(updatePAORequest, snapshotId),
+        "updating pao with duplicate policy should return 409");
+  }
+
+  @Test
+  @PactTestFor(pactMethod = "deletePao")
+  void deletePaoSuccess(MockServer mockServer) throws ApiException {
+    tps.deletePao(snapshotId);
+  }
+
+  @Test
+  @PactTestFor(pactMethod = "deletePaoThatDoesNotExist")
+  void deletePaoThatDoesNotExist(MockServer mockServer) {
+    assertThrows(
+        ApiException.class,
+        () -> tps.deletePao(snapshotId),
+        "nonexistent policy should return 404");
+  }
+
+  private RequestResponsePact createPaoDslRequest(PactDslWithProvider builder, String body) {
+    return builder
+        .given(
+            "a PAO with this id does not exist",
+            Map.of("id", snapshotId.toString(), "name", PolicyService.PROTECTED_DATA_POLICY_NAME))
+        .uponReceiving("create protected-data PAO for TDR snapshot")
+        .method("POST")
+        .path("/api/policy/v1alpha1/pao")
+        .body(body)
+        .headers(contentTypeJsonHeader)
+        .willRespondWith()
+        .status(204)
+        .toPact();
+  }
+
+  private TpsPaoCreateRequest createPAORequest(TpsPolicyInput policyItem) {
+    return new TpsPaoCreateRequest()
+        .objectId(snapshotId)
+        .component(TpsComponent.TDR)
+        .objectType(TpsObjectType.SNAPSHOT)
+        .attributes(new TpsPolicyInputs().addInputsItem(policyItem));
+  }
+}

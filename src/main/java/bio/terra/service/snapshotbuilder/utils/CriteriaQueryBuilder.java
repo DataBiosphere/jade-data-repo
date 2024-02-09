@@ -41,10 +41,10 @@ public class CriteriaQueryBuilder {
           17, new OccurrenceTable("device_exposure", "device_concept_id"),
           13, new OccurrenceTable("drug_exposure", "drug_concept_id"));
 
-  private static OccurrenceTable getOccurrenceTableFromDomain(Integer domain) {
-    OccurrenceTable occurrenceTable = DOMAIN_TO_OCCURRENCE_TABLE.get(domain);
+  private static OccurrenceTable getOccurrenceTableFromDomain(int domainId) {
+    OccurrenceTable occurrenceTable = DOMAIN_TO_OCCURRENCE_TABLE.get(domainId);
     if (occurrenceTable == null) {
-      throw new BadRequestException(String.format("Domain %s is not found in dataset", domain));
+      throw new BadRequestException(String.format("Domain %s is not found in dataset", domainId));
     }
     return occurrenceTable;
   }
@@ -89,7 +89,7 @@ public class CriteriaQueryBuilder {
         listCriteria.getValues().stream().map(Literal::new).toArray(Literal[]::new));
   }
 
-  String getProgramDataOptionColumnName(Integer id) {
+  String getProgramDataOptionColumnName(int id) {
     return snapshotBuilderSettings.getProgramDataOptions().stream()
         .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
         .findFirst()

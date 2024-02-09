@@ -130,6 +130,7 @@ public class SnapshotBuilderTestData {
             new SnapshotBuilderCriteriaGroup()
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataListCriteria()
+                        .id(0)
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
@@ -137,6 +138,7 @@ public class SnapshotBuilderTestData {
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataRangeCriteria()
+                        .id(1)
                         .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
   }
 

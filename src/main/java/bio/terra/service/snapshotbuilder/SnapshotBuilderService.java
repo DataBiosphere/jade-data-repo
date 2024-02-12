@@ -17,6 +17,7 @@ import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -40,6 +41,7 @@ public class SnapshotBuilderService {
   public static final String CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE =
       "Cloud platform not implemented";
   private final SnapshotRequestDao snapshotRequestDao;
+  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final DatasetService datasetService;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
@@ -48,11 +50,13 @@ public class SnapshotBuilderService {
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       DatasetService datasetService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       AzureSynapsePdao azureSynapsePdao,
       CriteriaQueryBuilderFactory criteriaQueryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
+    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.azureSynapsePdao = azureSynapsePdao;
@@ -139,11 +143,13 @@ public class SnapshotBuilderService {
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
       AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
 
     Query query =
         criteriaQueryBuilderFactory
-            .createCriteriaQueryBuilder("person", tableNameGenerator)
+            .createCriteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
     String cloudSpecificSQL = query.renderSQL();
 

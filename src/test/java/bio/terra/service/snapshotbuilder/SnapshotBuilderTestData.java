@@ -130,13 +130,15 @@ public class SnapshotBuilderTestData {
             new SnapshotBuilderCriteriaGroup()
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataListCriteria()
+                        .id(0)
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
-                        .domainName("condition")
+                        .id(19)
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataRangeCriteria()
+                        .id(1)
                         .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
   }
 

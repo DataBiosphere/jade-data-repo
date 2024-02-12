@@ -47,6 +47,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class SnapshotBuilderServiceTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
+  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
@@ -61,6 +62,7 @@ class SnapshotBuilderServiceTest {
     snapshotBuilderService =
         new SnapshotBuilderService(
             snapshotRequestDao,
+            snapshotBuilderSettingsDao,
             datasetService,
             bigQueryDatasetPdao,
             azureSynapsePdao,
@@ -204,7 +206,7 @@ class SnapshotBuilderServiceTest {
             List.of(tableVariable));
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    when(criteriaQueryBuilderFactory.createCriteriaQueryBuilder(any(), any()))
+    when(criteriaQueryBuilderFactory.createCriteriaQueryBuilder(any(), any(), any()))
         .thenReturn(criteriaQueryBuilderMock);
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
         .thenReturn(query);

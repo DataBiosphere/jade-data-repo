@@ -1,8 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
-import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.buildSearchConceptsQuery;
-
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -24,7 +21,9 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
+import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
@@ -84,7 +83,7 @@ public class SnapshotBuilderService {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
     String cloudSpecificSql =
-        buildConceptChildrenQuery(
+        ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
             conceptId, tableNameGenerator, CloudPlatformWrapper.of(dataset.getCloudPlatform()));
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
@@ -127,7 +126,7 @@ public class SnapshotBuilderService {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
     String cloudSpecificSql =
-        buildSearchConceptsQuery(
+        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainId,
             searchText,
             tableNameGenerator,

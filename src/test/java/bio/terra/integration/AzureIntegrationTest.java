@@ -382,7 +382,7 @@ public class AzureIntegrationTest extends UsersBase {
     var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
     List<String> getConceptNames =
         getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat("Correct number of concepts are returned", getConceptNames.size(), equalTo(2));
+    assertThat("Correct number of concepts are returned", getConceptNames, hasSize(2));
     assertThat(
         "expected concepts are returned",
         getConceptNames,
@@ -393,7 +393,7 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");
     List<String> searchConceptNames =
         searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat("Correct number of concepts are returned", searchConceptNames.size(), equalTo(1));
+    assertThat("Correct number of concepts are returned", searchConceptNames, hasSize(1));
     assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
   }
 

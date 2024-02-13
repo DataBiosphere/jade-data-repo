@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.CloudPlatformWrapper;
 import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;

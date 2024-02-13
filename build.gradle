@@ -209,8 +209,6 @@ dependencies {
 
     implementation 'org.apache.httpcomponents.client5:httpclient5'
 
-    // springdoc includes the swagger-ui
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
     implementation 'io.swagger.core.v3:swagger-annotations'
     swaggerCodegen 'io.swagger.codegen.v3:swagger-codegen-cli'
 
@@ -356,6 +354,7 @@ dependencies {
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.webjars:webjars-locator-core'
+    runtimeOnly 'org.webjars.npm:swagger-ui-dist:4.3.0'
     generatedCompile 'io.swagger.core.v3:swagger-annotations'
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

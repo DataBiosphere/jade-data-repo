@@ -3,12 +3,11 @@ plugins {
     id 'maven-publish'
     id 'com.jfrog.artifactory' version '4.32.0'
     id 'org.hidetake.swagger.generator'
-    id 'org.springframework.boot' version '3.2.2'
 }
 
 java {
-    sourceCompatibility = 11
-    targetCompatibility = 11
+    sourceCompatibility = 17
+    targetCompatibility = 17
 }
 
 // TODO: there may be a better way to supply these values than envvars.

@@ -4,6 +4,7 @@ import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.ErrorReportException;
 import bio.terra.common.exception.ServiceUnavailableException;
 import com.google.common.annotations.VisibleForTesting;
+import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -12,7 +13,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.validation.constraints.NotNull;
 
 public final class FutureUtils {
 

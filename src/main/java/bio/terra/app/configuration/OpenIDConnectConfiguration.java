@@ -2,11 +2,11 @@ package bio.terra.app.configuration;
 
 import bio.terra.common.exception.ServiceInitializationException;
 import com.google.common.annotations.VisibleForTesting;
+import jakarta.annotation.PostConstruct;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -63,8 +63,7 @@ public class OpenIDConnectConfiguration {
       if (!metadataConfig.getStatusCode().is2xxSuccessful()) {
         throw new ServiceInitializationException(
             String.format(
-                "Error reading OIDC configuration endpoint: %s",
-                metadataConfig.getStatusCode().getReasonPhrase()));
+                "Error reading OIDC configuration endpoint: %s", metadataConfig.getStatusCode()));
       }
       OpenIDProviderMetadata response = metadataConfig.getBody();
       if (response == null) {

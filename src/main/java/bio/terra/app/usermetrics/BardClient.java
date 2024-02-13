@@ -64,9 +64,7 @@ public class BardClient {
           restTemplate.exchange(
               getApiUrl(), HttpMethod.POST, new HttpEntity<>(event, authedHeaders), Void.class);
       if (!eventCall.getStatusCode().is2xxSuccessful()) {
-        logger.warn(
-            "Error logging event {}%n{}",
-            event.getEvent(), eventCall.getStatusCode().getReasonPhrase());
+        logger.warn("Error logging event {}%n{}", event.getEvent(), eventCall.getStatusCode());
       }
     } catch (Exception e) {
       logger.warn("Error logging event {}", event.getEvent(), e);
@@ -101,8 +99,7 @@ public class BardClient {
               getSyncPathUrl(), HttpMethod.POST, new HttpEntity<>(null, authedHeaders), Void.class);
       if (!syncCall.getStatusCode().is2xxSuccessful()) {
         logger.warn(
-            "Error calling sync for user {}%n{}",
-            userReq.getEmail(), syncCall.getStatusCode().getReasonPhrase());
+            "Error calling sync for user {}%n{}", userReq.getEmail(), syncCall.getStatusCode());
       } else {
         result = true;
       }

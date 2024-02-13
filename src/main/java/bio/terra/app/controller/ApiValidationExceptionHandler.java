@@ -11,6 +11,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.validation.BindingResult;
@@ -34,21 +35,21 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
       Exception ex,
       @Nullable Object body,
       HttpHeaders headers,
-      HttpStatus status,
+      HttpStatusCode status,
       WebRequest request) {
 
-    if (HttpStatus.INTERNAL_SERVER_ERROR == status) {
+    if (status.is5xxServerError()) {
       request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
     }
-
-    Object responseBody = body;
-    if (responseBody == null) {
+    var responseBody = body;
+    // Without specifically grabbing the exception message for validation errors,
+    // TDR will swallow the error and return a 400 with no error message.
+    if (responseBody == null || status.isSameCodeAs(HttpStatus.BAD_REQUEST)) {
       responseBody =
           new ErrorModel()
               .message(status + " - see error details")
               .addErrorDetailItem(ex.getMessage());
     }
-
     return new ResponseEntity<>(responseBody, headers, status);
   }
 
@@ -56,7 +57,7 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
   protected ResponseEntity<Object> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex,
       HttpHeaders headers,
-      HttpStatus status,
+      HttpStatusCode status,
       WebRequest request) {
     BindingResult bindingResult = ex.getBindingResult();
 
@@ -71,7 +72,7 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
 
   @Override
   protected ResponseEntity<Object> handleTypeMismatch(
-      TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+      TypeMismatchException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
     final String message;
     final List<String> details;
     Throwable rootCause = ExceptionUtils.getRootCause(ex);

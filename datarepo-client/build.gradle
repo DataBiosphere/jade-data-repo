@@ -6,8 +6,8 @@ plugins {
 }
 
 java {
-    sourceCompatibility = 17
-    targetCompatibility = 17
+    sourceCompatibility = 11
+    targetCompatibility = 11
 }
 
 // TODO: there may be a better way to supply these values than envvars.

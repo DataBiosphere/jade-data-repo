@@ -1,0 +1,8 @@
+{
+  "name": "TdrWorkshopScaleTests",
+  "description": "TDR scale tests for workshop operations to run in staging environment.",
+  "serverSpecificationFile": "staging.json",
+  "testConfigurationFiles": [
+    "functional/SnapshotScaleCreate.json"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "SnapshotScaleCreate",
-  "description": "Create and delete 1+ snapshots based on the same source dataset.",
+  "description": "Create and delete 50 snapshots based on the same source dataset.",
   "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
@@ -10,7 +10,7 @@
   "testScripts": [
     {
       "name": "SnapshotScaleCreate",
-      "parameters": [10],
+      "parameters": [50],
       "numberOfUserJourneyThreadsToRun": 1,
       "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 1,

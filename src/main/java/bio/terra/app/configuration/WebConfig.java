@@ -36,6 +36,6 @@ public class WebConfig implements WebMvcConfigurer {
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
     registry
         .addResourceHandler("/webjars/swagger-ui-dist/**")
-        .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui-dist/4.3.0/");
+        .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui-dist/5.11.0/");
   }
 }

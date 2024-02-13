@@ -29,12 +29,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     if: "!contains( github.event.sender.login, 'broadbot')"
     steps:
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'gradle'
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v3
         with:
@@ -46,6 +40,12 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN }}
           path: datarepo-helm-definitions
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
 #      - name: "Bump the tag to a new version"
 #        id: bumperstep
 #        uses: broadinstitute/datarepo-actions/actions/main@0.70.0

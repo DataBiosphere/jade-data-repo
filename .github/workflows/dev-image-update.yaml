@@ -29,6 +29,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     if: "!contains( github.event.sender.login, 'broadbot')"
     steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v3
         with:

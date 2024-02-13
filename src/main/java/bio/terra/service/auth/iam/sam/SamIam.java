@@ -27,6 +27,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.common.annotations.VisibleForTesting;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -41,7 +42,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
@@ -114,6 +114,7 @@ public class SamIam implements IamProviderInterface {
     return authorized;
   }
 
+  @WithSpan
   @Override
   public Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
@@ -139,6 +140,7 @@ public class SamIam implements IamProviderInterface {
                     Collectors.toSet())));
   }
 
+  @WithSpan
   @Override
   public List<String> listActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
@@ -154,6 +156,7 @@ public class SamIam implements IamProviderInterface {
     return samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId);
   }
 
+  @WithSpan
   @Override
   public boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
@@ -736,16 +739,12 @@ public class SamIam implements IamProviderInterface {
     logger.warn("SAM client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
-    // If we find an empty message then we try to deserialize the error report and use that message.
-    String message = samEx.getMessage();
-    if (StringUtils.isEmpty(message)) {
-      try {
-        ErrorReport errorReport =
-            objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
-        message = extractErrorMessage(errorReport);
-      } catch (JsonProcessingException ex) {
-        logger.debug("Unable to deserialize sam exception response body");
-      }
+    String message = null;
+    try {
+      ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
+      message = extractErrorMessage(errorReport);
+    } catch (JsonProcessingException | IllegalArgumentException ex) {
+      message = Objects.requireNonNullElse(samEx.getMessage(), "SAM client exception");
     }
 
     switch (samEx.getCode()) {

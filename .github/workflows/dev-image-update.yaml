@@ -58,14 +58,6 @@ jobs:
           ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ENABLE_SUBPROJECT_TASKS: true
-      - name: "Publish to Artifactory (jakarta)"
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: ':datarepo-jakarta-client:artifactoryPublish'
-        env:
-          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          ENABLE_SUBPROJECT_TASKS: true
       - name: "Build new delevop docker image"
         uses: broadinstitute/datarepo-actions/actions/main@0.70.0
         with:

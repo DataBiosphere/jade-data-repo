@@ -12,11 +12,13 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -31,9 +33,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CriteriaQueryBuilderTest {
   CriteriaQueryBuilder criteriaQueryBuilder;
 
+  private static final SnapshotBuilderSettings SNAPSHOT_BUILDER_SETTINGS =
+      new SnapshotBuilderSettings()
+          .domainOptions(List.of(new SnapshotBuilderDomainOption().id(19)))
+          .programDataOptions(
+              List.of(
+                  new SnapshotBuilderProgramDataOption()
+                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
+                      .columnName("list_column_name")
+                      .id(1),
+                  new SnapshotBuilderProgramDataOption()
+                      .kind(SnapshotBuilderProgramDataOption.KindEnum.RANGE)
+                      .columnName("range_column_name")
+                      .id(0)));
+
   @BeforeEach
   void setup() {
-    criteriaQueryBuilder = new CriteriaQueryBuilder("person", s -> s);
+    criteriaQueryBuilder = new CriteriaQueryBuilder("person", s -> s, SNAPSHOT_BUILDER_SETTINGS);
   }
 
   @ParameterizedTest
@@ -79,7 +95,8 @@ class CriteriaQueryBuilderTest {
 
   @Test
   void generateFilterForDomainCriteriaThrowsIfGivenUnknownDomain() {
-    SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria().domainName("unknown");
+    SnapshotBuilderDomainCriteria domainCriteria =
+        (SnapshotBuilderDomainCriteria) generateDomainCriteria().id(1000);
     assertThrows(
         BadRequestException.class,
         () -> criteriaQueryBuilder.generateFilter(domainCriteria),
@@ -202,7 +219,7 @@ class CriteriaQueryBuilderTest {
   @EnumSource(CloudPlatform.class)
   void generateFilterForCriteriaGroups(CloudPlatform platform) {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null)
+        new CriteriaQueryBuilder("person", null, SNAPSHOT_BUILDER_SETTINGS)
             .generateFilterForCriteriaGroups(
                 List.of(
                     new SnapshotBuilderCriteriaGroup()
@@ -226,7 +243,7 @@ class CriteriaQueryBuilderTest {
   @EnumSource(CloudPlatform.class)
   void generateRollupCountsQueryForCriteriaGroupsList(CloudPlatform platform) {
     Query query =
-        new CriteriaQueryBuilder("person", s -> s)
+        new CriteriaQueryBuilder("person", s -> s, SNAPSHOT_BUILDER_SETTINGS)
             .generateRollupCountsQueryForCriteriaGroupsList(
                 List.of(
                     List.of(
@@ -236,7 +253,7 @@ class CriteriaQueryBuilderTest {
                                     generateDomainCriteria(),
                                     generateListCriteria(),
                                     generateRangeCriteria(),
-                                    generateDomainCriteria().domainName("Drug")))
+                                    generateDomainCriteria().id(13)))
                             .meetAll(true)
                             .mustMeet(true))));
     assertThat(
@@ -249,8 +266,8 @@ class CriteriaQueryBuilderTest {
   private static SnapshotBuilderDomainCriteria generateDomainCriteria() {
     return (SnapshotBuilderDomainCriteria)
         new SnapshotBuilderDomainCriteria()
-            .domainName("Condition")
-            .id(new BigDecimal(0))
+            .conceptId(0)
+            .id(19)
             .name("domain_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN);
   }
@@ -258,9 +275,9 @@ class CriteriaQueryBuilderTest {
   private static SnapshotBuilderProgramDataRangeCriteria generateRangeCriteria() {
     return (SnapshotBuilderProgramDataRangeCriteria)
         new SnapshotBuilderProgramDataRangeCriteria()
-            .low(new BigDecimal(0))
-            .high(new BigDecimal(100))
-            .id(new BigDecimal(0))
+            .low(0)
+            .high(100)
+            .id(0)
             .name("range_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.RANGE);
   }
@@ -268,8 +285,8 @@ class CriteriaQueryBuilderTest {
   private static SnapshotBuilderProgramDataListCriteria generateListCriteria() {
     return (SnapshotBuilderProgramDataListCriteria)
         new SnapshotBuilderProgramDataListCriteria()
-            .values(List.of(new BigDecimal(0), new BigDecimal(1), new BigDecimal(2)))
-            .id(new BigDecimal(0))
+            .values(List.of(0, 1, 2))
+            .id(1)
             .name("list_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.LIST);
   }

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -119,7 +120,7 @@ public class DuosClient {
   @VisibleForTesting
   static ErrorReportException convertToDataRepoException(
       HttpStatusCodeException duosEx, String duosId) {
-    return switch (duosEx.getStatusCode()) {
+    return switch (HttpStatus.valueOf(duosEx.getStatusCode().value())) {
       case BAD_REQUEST -> new DuosDatasetBadRequestException(
           "DUOS dataset identifier %s is malformed".formatted(duosId), duosEx);
       case NOT_FOUND -> new DuosDatasetNotFoundException(

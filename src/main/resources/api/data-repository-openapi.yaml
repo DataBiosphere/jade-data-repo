@@ -7353,6 +7353,7 @@ components:
       type: object
       required:
         - kind
+        - id
       properties:
         kind:
           type: string
@@ -7360,7 +7361,8 @@ components:
         name:
           type: string
         id:
-          type: number
+          description: the ID of either the domain or program data entry
+          type: integer
       discriminator:
         propertyName: kind
         mapping:
@@ -7376,7 +7378,7 @@ components:
             values:
               type: array
               items:
-                type: number
+                type: integer
       description: List format program data, part of a CriteriaGroup.
 
     SnapshotBuilderProgramDataRangeCriteria:
@@ -7385,9 +7387,9 @@ components:
         - type: object
           properties:
             low:
-              type: number
+              type: integer
             high:
-              type: number
+              type: integer
       description: Range format program data, part of a CriteriaGroup.
 
     SnapshotBuilderDomainCriteria:
@@ -7395,8 +7397,8 @@ components:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
           properties:
-            domainName:
-              type: string
+            conceptId:
+              type: integer
       description: Selection of a domain concept id, part of a CriteriaGroup.
 
     DuosFirecloudGroupModel:

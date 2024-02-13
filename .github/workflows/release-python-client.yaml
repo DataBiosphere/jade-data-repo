@@ -11,7 +11,7 @@ jobs:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python 3.7
         uses: actions/setup-python@v4
         with:
@@ -34,7 +34,7 @@ jobs:
           -i src/main/resources/api/data-repository-openapi.yaml \
           -g python \
           -o data-repo-client \
-          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
+          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER},useSpringBoot3=true \
           --skip-validate-spec
       - name: Install pypa/build
         working-directory: ./data-repo-client

@@ -272,7 +272,7 @@ public class DataRepoClient {
         restTemplate.exchange(testConfig.getJadeApiUrl() + path, method, entity, String.class);
 
     ObjectOrErrorResponse<S, T> drResponse = new ObjectOrErrorResponse<>();
-    drResponse.setStatusCode(response.getStatusCode());
+    drResponse.setStatusCode(HttpStatus.valueOf(response.getStatusCode().value()));
 
     URI uri = response.getHeaders().getLocation();
     drResponse.setLocationHeader((uri == null) ? Optional.empty() : Optional.of(uri.toString()));

@@ -2,7 +2,6 @@ package common.utils;
 
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.gson.reflect.TypeToken;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
@@ -28,8 +27,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import okhttp3.Call;
-import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -170,13 +167,9 @@ public final class KubernetesClientUtils {
   public static List<V1Pod> listPods() throws ApiException {
     V1PodList list;
     if (namespace == null || namespace.isEmpty()) {
-      list =
-          getKubernetesClientCoreObject()
-              .listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
+      list = getKubernetesClientCoreObject().listPodForAllNamespaces().execute();
     } else {
-      list =
-          getKubernetesClientCoreObject()
-              .listNamespacedPod(namespace, null, null, null, null, null, null, null, null, null);
+      list = getKubernetesClientCoreObject().listNamespacedPod(namespace).execute();
     }
     return list.getItems();
   }
@@ -191,14 +184,9 @@ public final class KubernetesClientUtils {
   public static List<V1Deployment> listDeployments() throws ApiException {
     V1DeploymentList list;
     if (namespace == null || namespace.isEmpty()) {
-      list =
-          getKubernetesClientAppsObject()
-              .listDeploymentForAllNamespaces(null, null, null, null, null, null, null, null, null);
+      list = getKubernetesClientAppsObject().listDeploymentForAllNamespaces().execute();
     } else {
-      list =
-          getKubernetesClientAppsObject()
-              .listNamespacedDeployment(
-                  namespace, null, null, null, null, null, null, null, null, null);
+      list = getKubernetesClientAppsObject().listNamespacedDeployment(namespace).execute();
     }
     return list.getItems();
   }
@@ -234,12 +222,8 @@ public final class KubernetesClientUtils {
     deployment.setSpec(existingSpec.replicas(numberOfReplicas));
     return getKubernetesClientAppsObject()
         .replaceNamespacedDeployment(
-            deployment.getMetadata().getName(),
-            deployment.getMetadata().getNamespace(),
-            deployment,
-            null,
-            null,
-            null);
+            deployment.getMetadata().getName(), deployment.getMetadata().getNamespace(), deployment)
+        .execute();
   }
 
   /** Select any pod from api pods and delete pod. */
@@ -273,17 +257,7 @@ public final class KubernetesClientUtils {
   }
 
   public static void deletePod(String podNameToDelete) throws ApiException, IOException {
-    // known issue with java api "deleteNamespacedPod()" endpoint
-    // https://github.com/kubernetes-client/java/issues/252
-    // the following few lines were suggested as a workaround
-    // https://github.com/kubernetes-client/java/issues/86
-    Call call =
-        getKubernetesClientCoreObject()
-            .deleteNamespacedPodCall(
-                podNameToDelete, namespace, null, null, null, null, null, null, null);
-    Response response = call.execute();
-    Configuration.getDefaultApiClient()
-        .handleResponse(response, (new TypeToken<V1Pod>() {}).getType());
+    getKubernetesClientCoreObject().deleteNamespacedPod(podNameToDelete, namespace).execute();
   }
 
   /**

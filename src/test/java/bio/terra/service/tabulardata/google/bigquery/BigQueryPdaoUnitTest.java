@@ -148,7 +148,6 @@ public class BigQueryPdaoUnitTest {
     BigQueryProject.put(bigQueryProjectSnapshot);
 
     when(bigQueryProjectDataset.getProjectId()).thenReturn(DATASET_PROJECT_ID);
-    when(bigQueryProjectDataset.getBigQuery()).thenReturn(bigQueryDataset);
     BigQueryProject.put(bigQueryProjectDataset);
 
     bigQueryDatasetPdao = new BigQueryDatasetPdao();
@@ -168,8 +167,6 @@ public class BigQueryPdaoUnitTest {
     sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
     String query = sqlTemplate.render();
 
-    when(bigQueryProjectDataset.tableExists(dataset.getName(), PDAO_LOAD_HISTORY_TABLE))
-        .thenReturn(true);
     Throwable cause =
         new BigQueryException(
             HttpStatus.BAD_REQUEST.value(), "Too many DML statements outstanding against table");

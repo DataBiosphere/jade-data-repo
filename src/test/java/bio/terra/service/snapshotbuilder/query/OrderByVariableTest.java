@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import jakarta.validation.constraints.NotNull;
 import bio.terra.model.CloudPlatform;
 import java.util.List;
 import javax.validation.constraints.NotNull;
@@ -24,26 +25,21 @@ class OrderByVariableTest {
     return fieldVariable;
   }
 
-  @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLAsc(CloudPlatform platform) {
+  @Test
+  void renderSQLAsc() {
     var orderByVariable = new OrderByVariable(createVariable());
-    assertThat(
-        orderByVariable.renderSQL(false, CloudPlatformWrapper.of(platform)), is("t.column ASC"));
+    assertThat(orderByVariable.renderSQL(false), is("t.column ASC"));
   }
 
-  @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLDesc(CloudPlatform platform) {
+  @Test
+  void renderSQLDesc() {
     var orderByVariable = new OrderByVariable(createVariable(), OrderByDirection.DESCENDING);
-    assertThat(
-        orderByVariable.renderSQL(false, CloudPlatformWrapper.of(platform)), is("t.column DESC"));
+    assertThat(orderByVariable.renderSQL(false), is("t.column DESC"));
   }
 
-  @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLRandom(CloudPlatform platform) {
+  @Test
+  void renderSQLRandom() {
     var orderByVariable = OrderByVariable.random();
-    assertThat(orderByVariable.renderSQL(true, CloudPlatformWrapper.of(platform)), is("RAND()"));
+    assertThat(orderByVariable.renderSQL(true), is("RAND()"));
   }
 }

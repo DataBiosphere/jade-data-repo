@@ -691,20 +691,24 @@ public class SamIamTest {
                             {GooglePubSub=class SubsystemStatus {
                                 ok: true
                                 messages: null
+                                additionalProperties: null
                             }}""")));
     }
 
     @Test
     void testGetStatusException() throws ApiException {
-      when(samStatusApi.getSystemStatus()).thenThrow(new ApiException("BOOM!"));
-      assertThat(
-          samIam.samStatus(),
-          is(
-              new RepositoryStatusModelSystems()
-                  .ok(false)
-                  .message(
-                      "Sam status check failed: bio.terra.service.auth.iam.exception.IamInternalServerErrorException: "
-                          + "BOOM!")));
+      when(samStatusApi.getSystemStatus()).thenThrow(new ApiException("BOOM!", 502, null, null));
+      var expected =
+          new RepositoryStatusModelSystems()
+              .ok(false)
+              .message(
+                  """
+                      Sam status check failed: bio.terra.service.auth.iam.exception.IamInternalServerErrorException: Message: BOOM!
+                      HTTP response code: 502
+                      HTTP response body: null
+                      HTTP response headers: null""");
+      var result = samIam.samStatus();
+      assertThat(result, equalTo(expected));
     }
   }
 

@@ -8,6 +8,10 @@ env:
   TDR_LOG_APPENDER: Console-Standard
 on:
   workflow_dispatch: {}
+  ## TODO: remove the below block once tested.
+  push:
+    branches:
+      - okotsopo-WOR-1503-workshop-scale-test
 jobs:
   test-runner-staging:
     runs-on: ubuntu-latest

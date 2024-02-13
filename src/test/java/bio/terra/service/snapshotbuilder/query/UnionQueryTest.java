@@ -4,20 +4,26 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @Tag(Unit.TAG)
 class UnionQueryTest {
 
-  @Test
-  void renderSQL() {
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQL(CloudPlatform platform) {
     var query = QueryTest.createQuery();
     var unionQuery = new UnionQuery(List.of(query, query));
     assertThat(
-        unionQuery.renderSQL(), is("SELECT t.* FROM table AS t UNION SELECT t.* FROM table AS t"));
+        unionQuery.renderSQL(CloudPlatformWrapper.of(platform)),
+        is("SELECT t.* FROM table AS t UNION SELECT t.* FROM table AS t"));
   }
 
   // Suppress the warning about the constructor call inside the assertThrows lambda.

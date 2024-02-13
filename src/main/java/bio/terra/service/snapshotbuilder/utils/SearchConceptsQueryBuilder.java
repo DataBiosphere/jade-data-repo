@@ -53,12 +53,11 @@ public class SearchConceptsQueryBuilder {
 
     // select nameField, idField from conceptTable WHERE
     // domainClause AND (searchNameClause OR searchCodeClause)
-    // TODO: Implement pagination, remove hardcoded limit
+    // TODO: DC-845 Implement pagination, remove hardcoded limit
     Query query =
-        new Query(
-            List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100, platform);
+        new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
 
-    return query.renderSQL();
+    return query.renderSQL(platform);
   }
 
   static FunctionFilterVariable createSearchConceptClause(

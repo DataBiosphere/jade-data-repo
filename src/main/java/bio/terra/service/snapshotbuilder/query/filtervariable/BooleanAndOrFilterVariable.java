@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
 import java.util.List;
@@ -10,12 +11,12 @@ public record BooleanAndOrFilterVariable(
     implements FilterVariable {
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatformWrapper platform) {
     return subFilters.isEmpty()
         ? "1=1"
         : subFilters.stream()
-            .map(SqlExpression::renderSQL)
-            .collect(Collectors.joining(" " + operator.renderSQL() + " ", "(", ")"));
+            .map((exp) -> exp.renderSQL(platform))
+            .collect(Collectors.joining(" " + operator.renderSQL(platform) + " ", "(", ")"));
   }
 
   public enum LogicalOperator implements SqlExpression {
@@ -23,7 +24,7 @@ public record BooleanAndOrFilterVariable(
     OR;
 
     @Override
-    public String renderSQL() {
+    public String renderSQL(CloudPlatformWrapper platform) {
       return name();
     }
   }

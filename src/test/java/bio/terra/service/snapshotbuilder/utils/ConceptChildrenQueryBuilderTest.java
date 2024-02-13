@@ -18,17 +18,13 @@ class ConceptChildrenQueryBuilderTest {
     String sql =
         ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
             101, s -> s, CloudPlatformWrapper.of(platform));
-    String expectedSql =
+    String expected =
         """
         SELECT c.concept_name, c.concept_id FROM concept AS c
         WHERE c.concept_id IN
           (SELECT c.descendant_concept_id FROM concept_ancestor AS c
           WHERE c.ancestor_concept_id = 101)
-        """;
-    if (CloudPlatformWrapper.of(platform).isGcp()) {
-      assertThat(sql, Matchers.equalToCompressingWhiteSpace(expectedSql + " LIMIT 100"));
-    } else if (CloudPlatformWrapper.of(platform).isAzure()) {
-      assertThat(sql, Matchers.equalToCompressingWhiteSpace("TOP 100 " + expectedSql));
-    }
+        LIMIT 100""";
+    assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
 }

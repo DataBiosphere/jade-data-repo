@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -30,9 +31,13 @@ public class FunctionFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL() {
-    return new ST(functionTemplate.renderSQL())
-        .add("value", values.stream().map(Literal::renderSQL).collect(Collectors.joining(",")))
+  public String renderSQL(CloudPlatformWrapper platform) {
+    return new ST(functionTemplate.renderSQL(platform))
+        .add(
+            "value",
+            values.stream()
+                .map((literal) -> (literal.renderSQL(platform)))
+                .collect(Collectors.joining(",")))
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
   }
@@ -52,7 +57,7 @@ public class FunctionFilterVariable implements FilterVariable {
     }
 
     @Override
-    public String renderSQL() {
+    public String renderSQL(CloudPlatformWrapper platform) {
       return template;
     }
   }

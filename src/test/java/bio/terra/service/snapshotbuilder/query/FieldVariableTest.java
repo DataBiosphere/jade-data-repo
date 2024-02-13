@@ -4,38 +4,53 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @Tag(Unit.TAG)
 class FieldVariableTest {
 
-  @Test
-  void renderSQL() {
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQL(CloudPlatform platform) {
     var table = QueryTestUtils.fromTableName("table");
 
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
-    assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(), is("t.field"));
+    assertThat(
+        new FieldVariable(fieldPointer, tableVariable).renderSQL(CloudPlatformWrapper.of(platform)),
+        is("t.field"));
 
     assertThat(
-        new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(), is("t.field AS bar"));
+        new FieldVariable(fieldPointer, tableVariable, "bar")
+            .renderSQL(CloudPlatformWrapper.of(platform)),
+        is("t.field AS bar"));
 
     var fieldPointerForeignKey = FieldPointer.foreignColumn(TablePointer.fromRawSql(null), null);
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
-    assertThrows(UnsupportedOperationException.class, () -> fieldVariableForeignKey.renderSQL());
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> fieldVariableForeignKey.renderSQL(CloudPlatformWrapper.of(platform)));
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSQL(), is("foo(t.field)"));
+    assertThat(
+        fieldVariableFunctionWrapper.renderSQL(CloudPlatformWrapper.of(platform)),
+        is("foo(t.field)"));
 
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
             new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
-    assertThat(fieldVariableSqlFunctionWrapper.renderSQL(), is("custom(t.field)"));
+    assertThat(
+        fieldVariableSqlFunctionWrapper.renderSQL(CloudPlatformWrapper.of(platform)),
+        is("custom(t.field)"));
   }
 
   @Test

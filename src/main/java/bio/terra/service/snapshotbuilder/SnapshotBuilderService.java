@@ -151,7 +151,7 @@ public class SnapshotBuilderService {
         criteriaQueryBuilderFactory
             .createCriteriaQueryBuilder("person", tableNameGenerator)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
-    String cloudSpecificSQL = query.renderSQL();
+    String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     return runSnapshotBuilderQuery(
             cloudSpecificSQL,

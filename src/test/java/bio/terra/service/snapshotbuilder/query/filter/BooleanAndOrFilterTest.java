@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.query.filter;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.Filter;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -20,7 +21,7 @@ class BooleanAndOrFilterTest {
     var subFilterVariable =
         new FilterVariable() {
           @Override
-          public String renderSQL() {
+          public String renderSQL(CloudPlatformWrapper platform) {
             return "sql";
           }
         };

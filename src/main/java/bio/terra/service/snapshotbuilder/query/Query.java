@@ -13,8 +13,7 @@ public record Query(
     FilterVariable where,
     List<FieldVariable> groupBy,
     HavingFilterVariable having,
-    Integer limit,
-    CloudPlatformWrapper platform)
+    Integer limit)
     implements SqlExpression {
 
   public Query {
@@ -35,30 +34,25 @@ public record Query(
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables) {
-    this(select, tables, null, null, null, null, null);
+    this(select, tables, null, null, null, null);
   }
 
   public Query(
       List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, groupBy, null, null, null);
+    this(select, tables, null, groupBy, null, null);
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null, null, null);
+    this(select, tables, where, null, null, null);
   }
 
-  // where limit is added, platform must be added as well
   public Query(
-      List<FieldVariable> select,
-      List<TableVariable> tables,
-      FilterVariable where,
-      Integer limit,
-      CloudPlatformWrapper platform) {
-    this(select, tables, where, null, null, limit, platform);
+      List<FieldVariable> select, List<TableVariable> tables, FilterVariable where, Integer limit) {
+    this(select, tables, where, null, null, limit);
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatformWrapper platform) {
     // generate a unique alias for each TableVariable
     TableVariable.generateAliases(tables);
 
@@ -66,14 +60,14 @@ public record Query(
     String selectSQL =
         select.stream()
             .sorted(Comparator.comparing(FieldVariable::getAlias))
-            .map(FieldVariable::renderSQL)
+            .map((fieldVar) -> fieldVar.renderSQL(platform))
             .collect(Collectors.joining(", "));
 
     // render the primary TableVariable
     String sql =
         new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
             .add("selectSQL", selectSQL)
-            .add("primaryTableFromSQL", getPrimaryTable().renderSQL())
+            .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
             .render();
 
     // render the join TableVariables
@@ -84,7 +78,7 @@ public record Query(
               .add(
                   "joinTablesFromSQL",
                   tables.stream()
-                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL())
+                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
                       .collect(Collectors.joining(" ")))
               .render();
     }
@@ -94,7 +88,7 @@ public record Query(
       sql =
           new ST("<sql> WHERE <whereSQL>")
               .add("sql", sql)
-              .add("whereSQL", where.renderSQL())
+              .add("whereSQL", where.renderSQL(platform))
               .render();
     }
 
@@ -112,20 +106,14 @@ public record Query(
     }
 
     if (having != null) {
-      sql += " " + having.renderSQL();
+      sql += " " + having.renderSQL(platform);
     }
 
+    // TODO: DC-836 Implement LIMIT for Azure (TOP N + sql)
+    //  This means passing in the platform to renderSQL
+    //  and refactoring the current TableVariable and tableNameGenerator work
     if (limit != null) {
-      if (platform != null) {
-        if (platform.isGcp()) {
-          sql += " LIMIT " + limit;
-        } else if (platform().isAzure()) {
-          sql = "TOP " + limit + " " + sql;
-        }
-        // if platform is not provided limit for GCP is generated
-      } else {
-        sql += " LIMIT " + limit;
-      }
+      sql += " LIMIT " + limit;
     }
 
     return sql;

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -12,10 +13,10 @@ public record BinaryFilterVariable(
   private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <operator> <value>";
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatformWrapper platform) {
     return new ST(SUBSTITUTION_TEMPLATE)
-        .add("operator", operator.renderSQL())
-        .add("value", value.renderSQL())
+        .add("operator", operator.renderSQL(platform))
+        .add("value", value.renderSQL(platform))
         .add("fieldVariable", fieldVariable.renderSqlForWhere())
         .render();
   }
@@ -37,7 +38,7 @@ public record BinaryFilterVariable(
     }
 
     @Override
-    public String renderSQL() {
+    public String renderSQL(CloudPlatformWrapper platform) {
       return sql;
     }
   }

@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.util.UrlPathHelper;
 
@@ -30,12 +29,5 @@ public class WebConfig implements WebMvcConfigurer {
     // controller function, the value is decoded.
     urlPathHelper.setUrlDecode(false);
     configurer.setUrlPathHelper(urlPathHelper);
-  }
-
-  @Override
-  public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry
-        .addResourceHandler("/webjars/swagger-ui-dist/**")
-        .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui-dist/5.11.0/");
   }
 }

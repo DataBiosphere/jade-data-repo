@@ -53,7 +53,7 @@ jobs:
       - name: "Publish to Artifactory"
         uses: gradle/gradle-build-action@v3
         with:
-          arguments: ':datarepo-client:artifactoryPublish'
+          arguments: '--info --scan :datarepo-client:artifactoryPublish'
         env:
           ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}

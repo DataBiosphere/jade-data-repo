@@ -120,10 +120,19 @@ jobs:
           alpharelease: ${{ needs.bump_version.outputs.api_image_tag }} # creates gcr build with semver tag
           gcr_google_project: 'broad-jade-dev'
 
+  cherry_pick_image_to_production_gcr:
+    needs: [bump_version, build_container_and_publish]
+    uses: ./.github/workflows/cherry-pick-image.yaml
+    secrets: inherit
+    with:
+      gcr_tag: ${{ needs.bump_version.outputs.api_image_tag }}
+      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
+
   report-to-sherlock:
     name: Report App Version to DevOps
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
-    needs: [bump_version, build_container_and_publish]
+    needs: [bump_version, cherry_pick_image_to_production_gcr]
     with:
       new-version: ${{ needs.bump_version.outputs.api_image_tag }}
       chart-name: datarepo
@@ -144,15 +153,6 @@ jobs:
       sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
     permissions:
       id-token: write
-
-  cherry_pick_image_to_production_gcr:
-    needs: [bump_version, build_container_and_publish]
-    uses: ./.github/workflows/cherry-pick-image.yaml
-    secrets: inherit
-    with:
-      gcr_tag: ${{ needs.bump_version.outputs.api_image_tag }}
-      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
-      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
 
   helm_tag_bumper:
     needs:

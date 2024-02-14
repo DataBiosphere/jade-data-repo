@@ -23,8 +23,7 @@ class ConceptChildrenQueryBuilderTest {
         SELECT c.concept_name, c.concept_id FROM concept AS c
         WHERE c.concept_id IN
           (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-          WHERE c.ancestor_concept_id = 101)
-        LIMIT 100""";
+          WHERE c.ancestor_concept_id = 101)""";
     assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
 }

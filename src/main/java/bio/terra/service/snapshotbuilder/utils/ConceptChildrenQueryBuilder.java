@@ -37,13 +37,11 @@ public class ConceptChildrenQueryBuilder {
         new Query(List.of(descendantFieldVariable), List.of(ancestorTableVariable), whereClause);
     SubQueryFilterVariable subQueryFilterVariable =
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
-    // TODO: DC-846 Implement pagination, remove hardcoded limit
     Query query =
         new Query(
             List.of(nameFieldVariable, idFieldVariable),
             List.of(conceptTableVariable),
-            subQueryFilterVariable,
-            100);
+            subQueryFilterVariable);
     return query.renderSQL(platform);
   }
 }

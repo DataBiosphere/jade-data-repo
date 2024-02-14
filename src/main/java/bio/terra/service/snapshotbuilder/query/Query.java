@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
 import java.util.Comparator;
 import java.util.List;
@@ -51,7 +52,7 @@ public record Query(
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatformWrapper platform) {
     // generate a unique alias for each TableVariable
     TableVariable.generateAliases(tables);
 
@@ -59,14 +60,14 @@ public record Query(
     String selectSQL =
         select.stream()
             .sorted(Comparator.comparing(FieldVariable::getAlias))
-            .map(FieldVariable::renderSQL)
+            .map(fieldVar -> fieldVar.renderSQL(platform))
             .collect(Collectors.joining(", "));
 
     // render the primary TableVariable
     String sql =
         new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
             .add("selectSQL", selectSQL)
-            .add("primaryTableFromSQL", getPrimaryTable().renderSQL())
+            .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
             .render();
 
     // render the join TableVariables
@@ -77,7 +78,7 @@ public record Query(
               .add(
                   "joinTablesFromSQL",
                   tables.stream()
-                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL())
+                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
                       .collect(Collectors.joining(" ")))
               .render();
     }
@@ -87,7 +88,7 @@ public record Query(
       sql =
           new ST("<sql> WHERE <whereSQL>")
               .add("sql", sql)
-              .add("whereSQL", where.renderSQL())
+              .add("whereSQL", where.renderSQL(platform))
               .render();
     }
 
@@ -105,7 +106,7 @@ public record Query(
     }
 
     if (having != null) {
-      sql += " " + having.renderSQL();
+      sql += " " + having.renderSQL(platform);
     }
 
     // TODO: DC-836 Implement LIMIT for Azure (TOP N + sql)

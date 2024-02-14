@@ -3,35 +3,42 @@ package bio.terra.service.snapshotbuilder.query;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @Tag(Unit.TAG)
 class TablePointerTest {
 
-  @Test
-  void renderSQL() {
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQL(CloudPlatform platform) {
     var tablePointer =
-        new TablePointer("table", (primaryTable, tables) -> () -> "filter", null, s -> s);
-    assertThat(tablePointer.renderSQL(), is("(SELECT t.* FROM table AS t WHERE filter)"));
+        new TablePointer(
+            "table", (primaryTable, tables) -> (cloudPlatform) -> "filter", null, s -> s);
+    assertThat(
+        tablePointer.renderSQL(CloudPlatformWrapper.of(platform)),
+        is("(SELECT t.* FROM table AS t WHERE filter)"));
   }
 
-  @Test
-  void renderSQLWithDatasetModel() {
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQLWithDatasetModel(CloudPlatform platform) {
     DatasetModel dataset =
-        new DatasetModel().name("name").dataProject("project").cloudPlatform(CloudPlatform.GCP);
+        new DatasetModel().name("name").dataProject("project").cloudPlatform(platform);
     var tablePointer =
         new TablePointer(
             "table",
-            (primaryTable, tables) -> () -> "filter",
+            (primaryTable, tables) -> (cloudPlatform) -> "filter",
             null,
             BigQueryVisitor.bqTableName(dataset));
     assertThat(
-        tablePointer.renderSQL(),
+        tablePointer.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform())),
         is("(SELECT t.* FROM `project.datarepo_name.table` AS t WHERE filter)"));
   }
 }

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.CloudPlatformWrapper;
 import java.util.List;
 
 public record TablePointer(
@@ -15,7 +16,7 @@ public record TablePointer(
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatformWrapper platform) {
     if (sql != null) {
       return "(" + sql + ")";
     }
@@ -31,6 +32,6 @@ public record TablePointer(
     FilterVariable filterVar = filter.buildVariable(tableVar, List.of(tableVar));
 
     Query query = new Query(List.of(fieldVar), List.of(tableVar), filterVar);
-    return "(" + query.renderSQL() + ")";
+    return "(" + query.renderSQL(platform) + ")";
   }
 }

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 
 public class NotFilterVariable implements FilterVariable {
@@ -10,7 +11,7 @@ public class NotFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL() {
-    return "(NOT " + subFilter.renderSQL() + ")";
+  public String renderSQL(CloudPlatformWrapper platform) {
+    return "(NOT " + subFilter.renderSQL(platform) + ")";
   }
 }

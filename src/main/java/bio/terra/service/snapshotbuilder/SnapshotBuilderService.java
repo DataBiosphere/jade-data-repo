@@ -1,8 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder.buildConceptChildrenQuery;
-import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.buildSearchConceptsQuery;
-
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -25,7 +22,9 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
+import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
@@ -87,7 +86,9 @@ public class SnapshotBuilderService {
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
-    String cloudSpecificSql = buildConceptChildrenQuery(conceptId, tableNameGenerator);
+    String cloudSpecificSql =
+        ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
+            conceptId, tableNameGenerator, CloudPlatformWrapper.of(dataset.getCloudPlatform()));
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -128,7 +129,12 @@ public class SnapshotBuilderService {
       UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
-    String cloudSpecificSql = buildSearchConceptsQuery(domainId, searchText, tableNameGenerator);
+    String cloudSpecificSql =
+        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
+            domainId,
+            searchText,
+            tableNameGenerator,
+            CloudPlatformWrapper.of(dataset.getCloudPlatform()));
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -151,7 +157,7 @@ public class SnapshotBuilderService {
         criteriaQueryBuilderFactory
             .createCriteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
-    String cloudSpecificSQL = query.renderSQL();
+    String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     return runSnapshotBuilderQuery(
             cloudSpecificSQL,

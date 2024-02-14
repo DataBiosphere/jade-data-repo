@@ -210,7 +210,9 @@ class SnapshotBuilderServiceTest {
         .thenReturn(criteriaQueryBuilderMock);
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
         .thenReturn(query);
-    when(azureSynapsePdao.runQuery(eq(query.renderSQL()), any())).thenReturn(List.of(5));
+    when(azureSynapsePdao.runQuery(
+            eq(query.renderSQL(CloudPlatformWrapper.of(CloudPlatform.AZURE))), any()))
+        .thenReturn(List.of(5));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(
             dataset.getId(), List.of(List.of()), TEST_USER);

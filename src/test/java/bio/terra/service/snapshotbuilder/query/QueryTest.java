@@ -5,13 +5,16 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 @Tag(Unit.TAG)
 public class QueryTest {
@@ -43,28 +46,38 @@ public class QueryTest {
     return TableVariable.forPrimary(tablePointer);
   }
 
-  @Test
-  void renderSQL() {
-    assertThat(createQuery().renderSQL(), is("SELECT t.* FROM table AS t"));
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQL(CloudPlatform platform) {
+    assertThat(
+        createQuery().renderSQL(CloudPlatformWrapper.of(platform)),
+        is("SELECT t.* FROM table AS t"));
   }
 
-  @Test
-  void renderSQLWithLimit() {
-    assertThat(createQueryWithLimit().renderSQL(), is("SELECT t.* FROM table AS t LIMIT 25"));
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQLWithLimit(CloudPlatform platform) {
+    assertThat(
+        createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform)),
+        is("SELECT t.* FROM table AS t LIMIT 25"));
   }
 
-  @Test
-  void renderSqlGroupBy() {
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSqlGroupBy(CloudPlatform platform) {
     TablePointer tablePointer = QueryTestUtils.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
     Query query = new Query(List.of(fieldVariable), List.of(tableVariable), List.of(fieldVariable));
-    assertThat(query.renderSQL(), is("SELECT t.field FROM table AS t GROUP BY t.field"));
+    assertThat(
+        query.renderSQL(CloudPlatformWrapper.of(platform)),
+        is("SELECT t.field FROM table AS t GROUP BY t.field"));
   }
 
-  @Test
-  void renderComplexSQL() {
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderComplexSQL(CloudPlatform platform) {
     TablePointer tablePointer = QueryTestUtils.fromTableName("person");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
 
@@ -132,7 +145,7 @@ public class QueryTest {
                             new FieldPointer(tablePointer, "year_of_birth"), tableVariable),
                         BinaryFilterVariable.BinaryOperator.LESS_THAN,
                         new Literal(1983)))));
-    String querySQL = query.renderSQL();
+    String querySQL = query.renderSQL(CloudPlatformWrapper.of(platform));
     assertThat(
         querySQL,
         allOf(

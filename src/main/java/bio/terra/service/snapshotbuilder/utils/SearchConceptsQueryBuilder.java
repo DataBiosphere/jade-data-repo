@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -18,7 +19,10 @@ public class SearchConceptsQueryBuilder {
   private SearchConceptsQueryBuilder() {}
 
   public static String buildSearchConceptsQuery(
-      String domainId, String searchText, TableNameGenerator tableNameGenerator) {
+      String domainId,
+      String searchText,
+      TableNameGenerator tableNameGenerator,
+      CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
@@ -49,10 +53,11 @@ public class SearchConceptsQueryBuilder {
 
     // select nameField, idField from conceptTable WHERE
     // domainClause AND (searchNameClause OR searchCodeClause)
+    // TODO: DC-845 Implement pagination, remove hardcoded limit
     Query query =
         new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
 
-    return query.renderSQL();
+    return query.renderSQL(platform);
   }
 
   static FunctionFilterVariable createSearchConceptClause(

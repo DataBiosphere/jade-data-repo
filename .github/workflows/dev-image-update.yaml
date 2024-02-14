@@ -24,7 +24,7 @@ jobs:
   bump_version:
     runs-on: ubuntu-latest
     outputs:
-      api_image_tag: 1.595.0
+      api_image_tag: ${{ steps.bumperstep.outputs.tag }}
     if: "!contains( github.event.sender.login, 'broadbot')"
     steps:
       - name: Checkout Develop branch of jade-data-repo
@@ -32,16 +32,16 @@ jobs:
         with:
           ref: develop
           token: ${{ secrets.BROADBOT_TOKEN }}
-#      - name: "Bump the tag to a new version"
-#        id: bumperstep
-#        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
-#        with:
-#          actions_subcommand: 'bumper'
-#          role_id: ${{ secrets.ROLE_ID }}
-#          secret_id: ${{ secrets.SECRET_ID }}
-#          version_file_path: build.gradle
-#          version_variable_name: version
-#          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
+      - name: "Bump the tag to a new version"
+        id: bumperstep
+        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
+        with:
+          actions_subcommand: 'bumper'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          version_file_path: build.gradle
+          version_variable_name: version
+          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
 
   build_client_and_publish:
     runs-on: ubuntu-latest

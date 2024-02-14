@@ -156,7 +156,7 @@ jobs:
 
   helm_tag_bumper:
     needs:
-      - bump_version
+      - build_container_and_publish
       # We block bumping the tag in datarepo-helm because that will cause a deployment to datarepo-dev
       # too, and we don't want to be deploying to datarepo-dev twice simultaneously
       - set-app-version-in-dev

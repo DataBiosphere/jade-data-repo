@@ -15,7 +15,7 @@ public record BooleanAndOrFilterVariable(
     return subFilters.isEmpty()
         ? "1=1"
         : subFilters.stream()
-            .map((exp) -> exp.renderSQL(platform))
+            .map(exp -> exp.renderSQL(platform))
             .collect(Collectors.joining(" " + operator.renderSQL(platform) + " ", "(", ")"));
   }
 

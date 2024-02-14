@@ -23,9 +23,10 @@ class FieldVariableTest {
 
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(
-        new FieldVariable(fieldPointer, tableVariable).renderSQL(CloudPlatformWrapper.of(platform)),
+        new FieldVariable(fieldPointer, tableVariable).renderSQL(cloudPlatformWrapper),
         is("t.field"));
 
     assertThat(
@@ -37,20 +38,17 @@ class FieldVariableTest {
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
     assertThrows(
         UnsupportedOperationException.class,
-        () -> fieldVariableForeignKey.renderSQL(CloudPlatformWrapper.of(platform)));
+        () -> fieldVariableForeignKey.renderSQL(cloudPlatformWrapper));
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(
-        fieldVariableFunctionWrapper.renderSQL(CloudPlatformWrapper.of(platform)),
-        is("foo(t.field)"));
+    assertThat(fieldVariableFunctionWrapper.renderSQL(cloudPlatformWrapper), is("foo(t.field)"));
 
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
             new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
     assertThat(
-        fieldVariableSqlFunctionWrapper.renderSQL(CloudPlatformWrapper.of(platform)),
-        is("custom(t.field)"));
+        fieldVariableSqlFunctionWrapper.renderSQL(cloudPlatformWrapper), is("custom(t.field)"));
   }
 
   @Test

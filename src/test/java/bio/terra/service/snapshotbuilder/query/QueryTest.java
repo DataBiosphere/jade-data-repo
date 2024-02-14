@@ -57,9 +57,14 @@ public class QueryTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void renderSQLWithLimit(CloudPlatform platform) {
-    assertThat(
-        createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform)),
-        is("SELECT t.* FROM table AS t LIMIT 25"));
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
+    String actual = createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform));
+    String expected = "SELECT t.* FROM table AS t";
+    if (cloudPlatformWrapper.isAzure()) {
+      assertThat(actual, is("TOP 25 " + expected));
+    } else if (cloudPlatformWrapper.isGcp()) {
+      assertThat(actual, is(expected + " LIMIT 25"));
+    }
   }
 
   @ParameterizedTest

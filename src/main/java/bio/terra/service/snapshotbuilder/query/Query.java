@@ -109,11 +109,12 @@ public record Query(
       sql += " " + having.renderSQL(platform);
     }
 
-    // TODO: DC-836 Implement LIMIT for Azure (TOP N + sql)
-    //  This means passing in the platform to renderSQL
-    //  and refactoring the current TableVariable and tableNameGenerator work
     if (limit != null) {
-      sql += " LIMIT " + limit;
+      if (platform.isGcp()) {
+        sql += " LIMIT " + limit;
+      } else if (platform.isAzure()) {
+        sql = "TOP " + limit + " " + sql;
+      }
     }
 
     return sql;

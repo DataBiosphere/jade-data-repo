@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api_image_tag: ${{ steps.bumperstep.outputs.tag }}
-    if: "!contains( github.event.sender.login, 'broadbot')"
+    if: ${{ !contains( github.event.sender.login, 'broadbot') }}
     steps:
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v3
@@ -165,7 +165,7 @@ jobs:
 
   action_notify:
     runs-on: ubuntu-latest
-    if: always()
+    if: ${{ always() && !contains( github.event.sender.login, 'broadbot') }}
     needs:
       - bump_version
       - build_client_and_publish

@@ -21,165 +21,164 @@ on:
       - '.swagger-codegen-ignore'
 jobs:
 
-#  bump_version:
-#    runs-on: ubuntu-latest
-#    outputs:
-#      api_image_tag: ${{ steps.bumperstep.outputs.tag }}
-#    if: ${{ !contains( github.event.sender.login, 'broadbot') }}
-#    steps:
-#      - name: Checkout Develop branch of jade-data-repo
-#        uses: actions/checkout@v3
-#        with:
-#          ref: develop
-#          token: ${{ secrets.BROADBOT_TOKEN }}
-#      - name: "Bump the tag to a new version"
-#        id: bumperstep
-#        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
-#        with:
-#          actions_subcommand: 'bumper'
-#          role_id: ${{ secrets.ROLE_ID }}
-#          secret_id: ${{ secrets.SECRET_ID }}
-#          version_file_path: build.gradle
-#          version_variable_name: version
-#          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
-#
-#  build_client_and_publish:
-#    runs-on: ubuntu-latest
-#    needs:
-#        - bump_version
-#    steps:
-#      - name: Checkout Develop branch of jade-data-repo
-#        uses: actions/checkout@v3
-#        with:
-#          ref: develop
-#          token: ${{ secrets.BROADBOT_TOKEN }}
-#      - name: Set up JDK
-#        uses: actions/setup-java@v3
-#        with:
-#          java-version: '17'
-#          distribution: 'temurin'
-#          cache: 'gradle'
-#      - name: "Publish to Artifactory"
-#        uses: gradle/gradle-build-action@v2
-#        with:
-#          arguments: ':datarepo-client:artifactoryPublish'
-#        env:
-#          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          ENABLE_SUBPROJECT_TASKS: true
-#
-#  build_container_and_publish:
-#    runs-on: ubuntu-latest
-#    needs:
-#      - bump_version
-#    steps:
-#      - name: Checkout Develop branch of jade-data-repo
-#        uses: actions/checkout@v3
-#        with:
-#          ref: develop
-#          token: ${{ secrets.BROADBOT_TOKEN }}
-#      - name: 'Checkout datarepo-helm-definitions repo'
-#        uses: actions/checkout@v3
-#        with:
-#          repository: 'broadinstitute/datarepo-helm-definitions'
-#          token: ${{ secrets.BROADBOT_TOKEN }}
-#          path: datarepo-helm-definitions
-#      - name: "Build new delevop docker image"
-#        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
-#        with:
-#          actions_subcommand: 'gradlebuild'
-#          role_id: ${{ secrets.ROLE_ID }}
-#          secret_id: ${{ secrets.SECRET_ID }}
-#      - name: "Update Version in helm for Dev Env"
-#        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
-#        with:
-#          actions_subcommand: 'deploytagupdate'
-#          helm_env_prefix: dev
-#      - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
-#        uses: broadinstitute/retry@v2.8.3 #forked from nick-fields/retry
-#        with:
-#          timeout_minutes: 1
-#          polling_interval_seconds: 5
-#          max_attempts: 5
-#          command: |
-#            git fetch --all --tags
-#            git checkout ${{ needs.bump_version.outputs.api_image_tag }}
-#      - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
-#        uses: actions/checkout@v3
-#        with:
-#          repository: 'DataBiosphere/jade-data-repo-ui'
-#          token: ${{ secrets.BROADBOT_TOKEN }}
-#          path: jade-data-repo-ui
-#          ref: develop
-#      - name: 'Release Candidate Container Build: Create release candidate images'
-#        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
-#        with:
-#          actions_subcommand: 'alpharelease'
-#          role_id: ${{ secrets.ROLE_ID }}
-#          secret_id: ${{ secrets.SECRET_ID }}
-#          alpharelease: ${{ needs.bump_version.outputs.api_image_tag }} # creates gcr build with semver tag
-#          gcr_google_project: 'broad-jade-dev'
-#
-#  cherry_pick_image_to_production_gcr:
-#    needs: [bump_version, build_container_and_publish]
-#    uses: ./.github/workflows/cherry-pick-image.yaml
-#    secrets: inherit
-#    with:
-#      gcr_tag: ${{ needs.bump_version.outputs.api_image_tag }}
-#      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
-#      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
-#
-#  report-to-sherlock:
-#    name: Report App Version to DevOps
-#    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
-#    needs: [bump_version, cherry_pick_image_to_production_gcr]
-#    with:
-#      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
-#      chart-name: datarepo
-#    permissions:
-#      contents: read
-#      id-token: write
-#
-#  set-app-version-in-dev:
-#    uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
-#    needs:
-#      - bump_version
-#      - report-to-sherlock
-#    with:
-#      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
-#      chart-name: datarepo
-#      environment-name: dev
-#    secrets:
-#      sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
-#    permissions:
-#      id-token: write
-#
-#  helm_tag_bumper:
-#    needs:
-#      - build_container_and_publish
-#      # We block bumping the tag in datarepo-helm because that will cause a deployment to datarepo-dev
-#      # too, and we don't want to be deploying to datarepo-dev twice simultaneously
-#      - set-app-version-in-dev
-#    uses: ./.github/workflows/helmtagbumper.yaml
-#    secrets: inherit
+  bump_version:
+    runs-on: ubuntu-latest
+    outputs:
+      api_image_tag: ${{ steps.bumperstep.outputs.tag }}
+    if: ${{ !contains( github.event.sender.login, 'broadbot') }}
+    steps:
+      - name: Checkout Develop branch of jade-data-repo
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+          token: ${{ secrets.BROADBOT_TOKEN }}
+      - name: "Bump the tag to a new version"
+        id: bumperstep
+        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
+        with:
+          actions_subcommand: 'bumper'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          version_file_path: build.gradle
+          version_variable_name: version
+          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
+
+  build_client_and_publish:
+    runs-on: ubuntu-latest
+    needs:
+        - bump_version
+    steps:
+      - name: Checkout Develop branch of jade-data-repo
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+          token: ${{ secrets.BROADBOT_TOKEN }}
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+      - name: "Publish to Artifactory"
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: ':datarepo-client:artifactoryPublish'
+        env:
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          ENABLE_SUBPROJECT_TASKS: true
+
+  build_container_and_publish:
+    runs-on: ubuntu-latest
+    needs:
+      - bump_version
+    steps:
+      - name: Checkout Develop branch of jade-data-repo
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+          token: ${{ secrets.BROADBOT_TOKEN }}
+      - name: 'Checkout datarepo-helm-definitions repo'
+        uses: actions/checkout@v3
+        with:
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: "Build new delevop docker image"
+        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
+        with:
+          actions_subcommand: 'gradlebuild'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Update Version in helm for Dev Env"
+        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
+        with:
+          actions_subcommand: 'deploytagupdate'
+          helm_env_prefix: dev
+      - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
+        uses: broadinstitute/retry@v2.8.3 #forked from nick-fields/retry
+        with:
+          timeout_minutes: 1
+          polling_interval_seconds: 5
+          max_attempts: 5
+          command: |
+            git fetch --all --tags
+            git checkout ${{ needs.bump_version.outputs.api_image_tag }}
+      - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
+        uses: actions/checkout@v3
+        with:
+          repository: 'DataBiosphere/jade-data-repo-ui'
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: jade-data-repo-ui
+          ref: develop
+      - name: 'Release Candidate Container Build: Create release candidate images'
+        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
+        with:
+          actions_subcommand: 'alpharelease'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          alpharelease: ${{ needs.bump_version.outputs.api_image_tag }} # creates gcr build with semver tag
+          gcr_google_project: 'broad-jade-dev'
+
+  cherry_pick_image_to_production_gcr:
+    needs: [bump_version, build_container_and_publish]
+    uses: ./.github/workflows/cherry-pick-image.yaml
+    secrets: inherit
+    with:
+      gcr_tag: ${{ needs.bump_version.outputs.api_image_tag }}
+      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
+
+  report-to-sherlock:
+    name: Report App Version to DevOps
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs: [bump_version, cherry_pick_image_to_production_gcr]
+    with:
+      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
+      chart-name: datarepo
+    permissions:
+      contents: read
+      id-token: write
+
+  set-app-version-in-dev:
+    uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
+    needs:
+      - bump_version
+      - report-to-sherlock
+    with:
+      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
+      chart-name: datarepo
+      environment-name: dev
+    secrets:
+      sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
+    permissions:
+      id-token: write
+
+  helm_tag_bumper:
+    needs:
+      - build_container_and_publish
+      # We block bumping the tag in datarepo-helm because that will cause a deployment to datarepo-dev
+      # too, and we don't want to be deploying to datarepo-dev twice simultaneously
+      - set-app-version-in-dev
+    uses: ./.github/workflows/helmtagbumper.yaml
+    secrets: inherit
 
   action_notify:
     runs-on: ubuntu-latest
     if: ${{ always() && !contains( github.event.sender.login, 'broadbot') }}
-#    needs:
-#      - bump_version
-#      - build_client_and_publish
-#      - build_container_and_publish
-#      - report-to-sherlock
-#      - set-app-version-in-dev
-#      - cherry_pick_image_to_production_gcr
-#      - helm_tag_bumper
+    needs:
+      - bump_version
+      - build_client_and_publish
+      - build_container_and_publish
+      - report-to-sherlock
+      - set-app-version-in-dev
+      - cherry_pick_image_to_production_gcr
+      - helm_tag_bumper
     steps:
       - name: Slack job status
         uses: broadinstitute/action-slack@v3.15.0
         with:
-#          status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
-          status: 'success'
+          status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
           fields: repo,message,commit,author,action,eventName,ref,workflow,job
           username: "Data Repo tests"
           text: "Dev Image Update"

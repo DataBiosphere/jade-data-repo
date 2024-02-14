@@ -146,7 +146,7 @@ jobs:
       id-token: write
 
   cherry_pick_image_to_production_gcr:
-    needs: bump_version
+    needs: [bump_version, build_container_and_publish]
     uses: ./.github/workflows/cherry-pick-image.yaml
     secrets: inherit
     with:

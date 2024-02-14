@@ -165,7 +165,7 @@ jobs:
 
   action_notify:
     runs-on: ubuntu-latest
-    if: ${{ always() && contains( github.event.sender.login, 'broadbot') }}
+    if: ${{ always() && !contains( github.event.sender.login, 'broadbot') }}
 #    needs:
 #      - bump_version
 #      - build_client_and_publish

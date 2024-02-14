@@ -25,6 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api_image_tag: ${{ steps.bumperstep.outputs.tag }}
+    # Skip entire workflow if commit is authored by broadbot
+    # broadbot is only used for automated commits, like version bumps
+    # We don't want to trigger a version bump/deploy to dev for those
     if: ${{ !contains( github.event.sender.login, 'broadbot') }}
     steps:
       - name: Checkout Develop branch of jade-data-repo
@@ -41,6 +44,7 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           version_file_path: build.gradle
           version_variable_name: version
+          # Sets the author of the version bump commit to broadbot. This is used in our skip job logic.
           GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
 
   build_client_and_publish:

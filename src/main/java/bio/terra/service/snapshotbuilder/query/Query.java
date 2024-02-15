@@ -109,7 +109,7 @@ public record Query(
       sql += " " + having.renderSQL(platform);
     }
 
-    if (limit != null) {
+    if (limit != null && platform != null) {
       if (platform.isGcp()) {
         sql += " LIMIT " + limit;
       } else if (platform.isAzure()) {

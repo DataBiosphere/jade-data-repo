@@ -13,6 +13,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -65,6 +66,22 @@ public class QueryTest {
     } else if (cloudPlatformWrapper.isGcp()) {
       assertThat(actual, is(expected + " LIMIT 25"));
     }
+  }
+
+  @Test
+  void renderSQLWithLimitNullWrapper() {
+    String actual = createQueryWithLimit().renderSQL(null);
+    String expected = "SELECT t.* FROM table AS t";
+    assertThat(actual, is(expected));
+  }
+
+  @Test
+  void renderSQLWithLimitNullPlatform() {
+    // default platform is GCP
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of((String) null);
+    String actual = createQueryWithLimit().renderSQL(cloudPlatformWrapper);
+    String expected = "SELECT t.* FROM table AS t LIMIT 25";
+    assertThat(actual, is(expected));
   }
 
   @ParameterizedTest

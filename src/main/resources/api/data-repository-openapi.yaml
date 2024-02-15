@@ -4604,7 +4604,6 @@ paths:
         - in: query
           description: User specified text to search concepts for.
           name: searchText
-          required: false
           schema:
             type: string
       responses:

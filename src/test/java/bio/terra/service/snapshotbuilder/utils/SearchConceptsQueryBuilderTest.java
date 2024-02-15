@@ -27,10 +27,10 @@ class SearchConceptsQueryBuilderTest {
     assertThat(
         "generated SQL is correct",
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            "Condition", "cancer", s -> s, CloudPlatformWrapper.of(platform)),
+            "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace(
             "SELECT c.concept_name, c.concept_id FROM concept AS c "
-                + "WHERE (c.domain_id = 'Condition' "
+                + "WHERE (c.domain_id = 'condition' "
                 + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                 + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
                 + "LIMIT 100"));

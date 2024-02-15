@@ -38,37 +38,35 @@ public class SearchConceptsQueryBuilder {
       Query query =
           new Query(List.of(nameField, idField), List.of(conceptTableVariable), domainClause, 100);
       return query.renderSQL(platform);
-    } else {
-
-      // search concept name clause filters for the search text based on field concept_name
-      var searchNameClause =
-          createSearchConceptClause(
-              conceptTablePointer, conceptTableVariable, searchText, "concept_name");
-
-      // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause =
-          createSearchConceptClause(
-              conceptTablePointer, conceptTableVariable, searchText, "concept_code");
-
-      // SearchConceptNameClause OR searchCodeClause
-      List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
-      BooleanAndOrFilterVariable searchClause =
-          new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
-
-      // domainClause AND (searchNameClause OR searchCodeClause)
-      List<FilterVariable> allFilters = List.of(domainClause, searchClause);
-      BooleanAndOrFilterVariable whereClause =
-          new BooleanAndOrFilterVariable(
-              BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
-
-      // select nameField, idField from conceptTable WHERE
-      // domainClause AND (searchNameClause OR searchCodeClause)
-      // TODO: DC-845 Implement pagination, remove hardcoded limit
-      Query query =
-          new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
-
-      return query.renderSQL(platform);
     }
+
+    // search concept name clause filters for the search text based on field concept_name
+    var searchNameClause =
+        createSearchConceptClause(
+            conceptTablePointer, conceptTableVariable, searchText, "concept_name");
+
+    // search concept name clause filters for the search text based on field concept_code
+    var searchCodeClause =
+        createSearchConceptClause(
+            conceptTablePointer, conceptTableVariable, searchText, "concept_code");
+
+    // SearchConceptNameClause OR searchCodeClause
+    List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
+    BooleanAndOrFilterVariable searchClause =
+        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
+
+    // domainClause AND (searchNameClause OR searchCodeClause)
+    List<FilterVariable> allFilters = List.of(domainClause, searchClause);
+    BooleanAndOrFilterVariable whereClause =
+        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+
+    // select nameField, idField from conceptTable WHERE
+    // domainClause AND (searchNameClause OR searchCodeClause)
+    // TODO: DC-845 Implement pagination, remove hardcoded limit
+    Query query =
+        new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
+
+    return query.renderSQL(platform);
   }
 
   static FunctionFilterVariable createSearchConceptClause(

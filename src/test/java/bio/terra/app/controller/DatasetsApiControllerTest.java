@@ -441,36 +441,21 @@ class DatasetsApiControllerTest {
     verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
   }
 
-  @Test
-  void testSearchConcepts() throws Exception {
+  private static Stream<String> searchTextArguments() {
+    return Stream.of("cancer", "", null);
+  }
+
+  @ParameterizedTest
+  @MethodSource("searchTextArguments")
+  void testSearchConcepts(String searchText) throws Exception {
     SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
 
-    when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", "cancer", TEST_USER))
+    when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", searchText, TEST_USER))
         .thenReturn(expected);
     String actualJson =
         mvc.perform(
                 get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition")
-                    .queryParam("searchText", "cancer"))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    SnapshotBuilderGetConceptsResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
-    assertThat("Concept list and sql is returned", actual, equalTo(expected));
-
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  @Test
-  void testSearchConceptsEmptyString() throws Exception {
-    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
-
-    when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", "", TEST_USER))
-        .thenReturn(expected);
-    String actualJson =
-        mvc.perform(
-                get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition").queryParam("searchText", ""))
+                    .queryParam("searchText", searchText))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

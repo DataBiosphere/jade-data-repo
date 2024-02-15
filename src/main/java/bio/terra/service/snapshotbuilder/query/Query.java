@@ -5,6 +5,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariab
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.NotImplementedException;
 import org.stringtemplate.v4.ST;
 
 public record Query(
@@ -109,11 +110,17 @@ public record Query(
       sql += " " + having.renderSQL(platform);
     }
 
-    if (limit != null && platform != null) {
-      if (platform.isGcp()) {
-        sql += " LIMIT " + limit;
-      } else if (platform.isAzure()) {
-        sql = "TOP " + limit + " " + sql;
+    if (limit != null) {
+      if (platform != null) {
+        if (platform.isGcp()) {
+          sql += " LIMIT " + limit;
+        } else if (platform.isAzure()) {
+          sql = "TOP " + limit + " " + sql;
+        } else {
+          throw new NotImplementedException("Cloud Platform not implemented.");
+        }
+      } else {
+        throw new RuntimeException("SQL cannot be generated because the Cloud Platform is null.");
       }
     }
 

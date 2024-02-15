@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
@@ -70,18 +71,7 @@ public class QueryTest {
 
   @Test
   void renderSQLWithLimitNullWrapper() {
-    String actual = createQueryWithLimit().renderSQL(null);
-    String expected = "SELECT t.* FROM table AS t";
-    assertThat(actual, is(expected));
-  }
-
-  @Test
-  void renderSQLWithLimitNullPlatform() {
-    // default platform is GCP
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of((String) null);
-    String actual = createQueryWithLimit().renderSQL(cloudPlatformWrapper);
-    String expected = "SELECT t.* FROM table AS t LIMIT 25";
-    assertThat(actual, is(expected));
+    assertThrows(RuntimeException.class, () ->createQueryWithLimit().renderSQL(null));
   }
 
   @ParameterizedTest

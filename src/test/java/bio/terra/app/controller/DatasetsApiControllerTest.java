@@ -115,7 +115,7 @@ class DatasetsApiControllerTest {
   private static final String GET_COUNT_ENDPOINT =
       RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/count";
   private static final String SEARCH_CONCEPTS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{domainId}/{searchText}";
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{domainId}/search";
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final Integer CONCEPT_ID = 0;
@@ -448,7 +448,29 @@ class DatasetsApiControllerTest {
     when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", "cancer", TEST_USER))
         .thenReturn(expected);
     String actualJson =
-        mvc.perform(get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition", "cancer"))
+        mvc.perform(
+                get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition")
+                    .queryParam("searchText", "cancer"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotBuilderGetConceptsResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
+    assertThat("Concept list and sql is returned", actual, equalTo(expected));
+
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  @Test
+  void testSearchConceptsEmptyString() throws Exception {
+    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
+
+    when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", "", TEST_USER))
+        .thenReturn(expected);
+    String actualJson =
+        mvc.perform(
+                get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition").queryParam("searchText", ""))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

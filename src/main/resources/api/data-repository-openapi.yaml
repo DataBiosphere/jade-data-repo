@@ -4579,7 +4579,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{domainId}/{searchText}:
+  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{domainId}/search:
     get:
       tags:
         - datasets
@@ -4601,7 +4601,7 @@ paths:
           required: true
           schema:
             type: string
-        - in: path
+        - in: query
           description: User specified text to search concepts for.
           name: searchText
           required: true

@@ -121,7 +121,8 @@ public record Query(
           throw new NotImplementedException("Cloud Platform not implemented.");
         }
       } else {
-        throw new InvalidRenderSqlParameter("SQL cannot be generated because the Cloud Platform is null.");
+        throw new InvalidRenderSqlParameter(
+            "SQL cannot be generated because the Cloud Platform is null.");
       }
     }
 

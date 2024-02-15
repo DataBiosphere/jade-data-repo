@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import jakarta.validation.constraints.NotNull;
@@ -71,7 +72,7 @@ public class QueryTest {
 
   @Test
   void renderSQLWithLimitNullWrapper() {
-    assertThrows(RuntimeException.class, () -> createQueryWithLimit().renderSQL(null));
+    assertThrows(InvalidRenderSqlParameter.class, () -> createQueryWithLimit().renderSQL(null));
   }
 
   @ParameterizedTest

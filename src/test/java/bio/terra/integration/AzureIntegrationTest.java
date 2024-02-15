@@ -3,6 +3,7 @@ package bio.terra.integration;
 import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
@@ -381,12 +382,22 @@ public class AzureIntegrationTest extends UsersBase {
     var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
     List<String> getConceptNames =
         getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat("Correct number of concepts are returned", getConceptNames, hasSize(2));
     assertThat(
         "expected concepts are returned",
         getConceptNames,
         containsInAnyOrder("concept1", "concept3"));
+
+    // Test searchConcepts
+    var searchConceptResponse =
+        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");
+    List<String> searchConceptNames =
+        searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    assertThat(
+        "expected concepts are returned",
+        searchConceptNames,
+        contains("concept1"));
   }
+
 
   @Test
   public void datasetIngestFileHappyPath() throws Exception {

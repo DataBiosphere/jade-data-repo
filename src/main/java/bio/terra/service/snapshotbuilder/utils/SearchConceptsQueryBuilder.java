@@ -31,33 +31,43 @@ public class SearchConceptsQueryBuilder {
     // domain clause filters for the given domain id based on field domain_id
     var domainClause = createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
 
-    // search concept name clause filters for the search text based on field concept_name
-    var searchNameClause =
-        createSearchConceptClause(
-            conceptTablePointer, conceptTableVariable, searchText, "concept_name");
+    // if the search test is empty do not include the search clauses
+    // return all concepts in the specified domain
+    if (searchText.isEmpty()) {
+      Query query =
+          new Query(List.of(nameField, idField), List.of(conceptTableVariable), domainClause, 100);
+      return query.renderSQL(platform);
+    } else {
 
-    // search concept name clause filters for the search text based on field concept_code
-    var searchCodeClause =
-        createSearchConceptClause(
-            conceptTablePointer, conceptTableVariable, searchText, "concept_code");
+      // search concept name clause filters for the search text based on field concept_name
+      var searchNameClause =
+          createSearchConceptClause(
+              conceptTablePointer, conceptTableVariable, searchText, "concept_name");
 
-    // SearchConceptNameClause OR searchCodeClause
-    List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
-    BooleanAndOrFilterVariable searchClause =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
+      // search concept name clause filters for the search text based on field concept_code
+      var searchCodeClause =
+          createSearchConceptClause(
+              conceptTablePointer, conceptTableVariable, searchText, "concept_code");
 
-    // domainClause AND (searchNameClause OR searchCodeClause)
-    List<FilterVariable> allFilters = List.of(domainClause, searchClause);
-    BooleanAndOrFilterVariable whereClause =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+      // SearchConceptNameClause OR searchCodeClause
+      List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
+      BooleanAndOrFilterVariable searchClause =
+          new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
 
-    // select nameField, idField from conceptTable WHERE
-    // domainClause AND (searchNameClause OR searchCodeClause)
-    // TODO: DC-845 Implement pagination, remove hardcoded limit
-    Query query =
-        new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
+      // domainClause AND (searchNameClause OR searchCodeClause)
+      List<FilterVariable> allFilters = List.of(domainClause, searchClause);
+      BooleanAndOrFilterVariable whereClause =
+          new BooleanAndOrFilterVariable(
+              BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
-    return query.renderSQL(platform);
+      // select nameField, idField from conceptTable WHERE
+      // domainClause AND (searchNameClause OR searchCodeClause)
+      // TODO: DC-845 Implement pagination, remove hardcoded limit
+      Query query =
+          new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
+
+      return query.renderSQL(platform);
+    }
   }
 
   static FunctionFilterVariable createSearchConceptClause(

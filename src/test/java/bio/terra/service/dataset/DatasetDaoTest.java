@@ -523,22 +523,22 @@ public class DatasetDaoTest {
     assertThat(
         "single-column primary keys are set correctly",
         variants.getPrimaryKey(),
-        containsInAnyOrder(variants.getColumnByName("id").get()));
+        contains(variants.getColumnByName("id").orElseThrow()));
 
     assertThat(
         "dual-column primary keys are set correctly",
         metaAnalysis.getPrimaryKey(),
-        containsInAnyOrder(
-            metaAnalysis.getColumnByName("variant_id").get(),
-            metaAnalysis.getColumnByName("phenotype").get()));
+        contains(
+            metaAnalysis.getColumnByName("variant_id").orElseThrow(),
+            metaAnalysis.getColumnByName("phenotype").orElseThrow()));
 
     assertThat(
         "many-column primary keys are set correctly",
         freqAnalysis.getPrimaryKey(),
-        containsInAnyOrder(
-            freqAnalysis.getColumnByName("variant_id").get(),
-            freqAnalysis.getColumnByName("ancestry").get(),
-            freqAnalysis.getColumnByName("phenotype").get()));
+        contains(
+            freqAnalysis.getColumnByName("variant_id").orElseThrow(),
+            freqAnalysis.getColumnByName("ancestry").orElseThrow(),
+            freqAnalysis.getColumnByName("phenotype").orElseThrow()));
   }
 
   protected void assertTablesInRelationship(Dataset dataset) {

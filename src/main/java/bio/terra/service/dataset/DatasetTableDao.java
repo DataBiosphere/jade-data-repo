@@ -7,7 +7,6 @@ import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.Table;
-import bio.terra.model.TableDataType;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -15,18 +14,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.sql.DataSource;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -202,12 +202,26 @@ public class DatasetTableDao {
 
   public List<DatasetTable> retrieveTables(UUID parentId) {
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("dataset_id", parentId);
+    // A tree map is used here to preserve the order from the SQL query
     Map<UUID, DatasetTable> tableMap = new TreeMap<>();
+    // Order is not important here, so we use a HashMap
+    Map<UUID, List<String>> primaryKeyMap = new HashMap<>();
     jdbcTemplate.query(
         sqlSelectTable,
         params,
         (rs, rowNum) -> {
           UUID tableId = rs.getObject("table_id", UUID.class);
+          List<String> primaryKeyColumns =
+              primaryKeyMap.computeIfAbsent(
+                  tableId,
+                  (id) -> {
+                    try {
+                      return DaoUtils.getStringList(rs, "table_primary_key");
+                    } catch (SQLException e) {
+                      throw new IllegalArgumentException(
+                          "Failed to extract primary key information", e);
+                    }
+                  });
           DatasetTable table =
               tableMap.computeIfAbsent(
                   tableId,
@@ -221,7 +235,14 @@ public class DatasetTableDao {
                               .softDeleteTableName(rs.getString("table_soft_delete_table_name"))
                               .rowMetadataTableName(rs.getString("table_row_metadata_table_name"))
                               .columns(new ArrayList<>())
-                              .primaryKey(new ArrayList<>());
+                              .primaryKey(
+                                  // Null values will all be replaced.
+                                  // This is safe since validation is done on table creation
+                                  // and columns cannot be removed.
+                                  new ArrayList<>(
+                                      IntStream.range(0, primaryKeyColumns.size())
+                                          .mapToObj(i -> (Column) null)
+                                          .toList()));
 
                       // Extract BigQuery partition config
                       long bqPartitionVersion =
@@ -242,20 +263,18 @@ public class DatasetTableDao {
                       }
                       return t;
                     } catch (SQLException e) {
-                      throw new RuntimeException(e);
+                      throw new IllegalArgumentException("Failed to extract table information", e);
                     }
                   });
 
           // Add column to table
-          Column column = getColumnRowMapper(table).mapRow(rs, rowNum);
+          Column column = new DaoUtils.TableColumnMapper(table).mapRow(rs, rowNum);
           table.getColumns().add(column);
 
-          // Add primary key to table if appropriate
-          List<String> primaryKey = DaoUtils.getStringList(rs, "table_primary_key");
-          if (primaryKey.contains(column.getName())) {
-            table.getPrimaryKey().add(column);
+          int pkIndex = primaryKeyColumns.indexOf(column.getName());
+          if (pkIndex != -1) {
+            table.getPrimaryKey().set(pkIndex, column);
           }
-
           return table;
         });
 
@@ -275,17 +294,6 @@ public class DatasetTableDao {
     return jdbcTemplate.query(
         sqlSelectColumn,
         new MapSqlParameterSource().addValue("table_id", table.getId()),
-        getColumnRowMapper(table));
-  }
-
-  private RowMapper<Column> getColumnRowMapper(Table table) {
-    return (rs, rowNum) ->
-        new Column()
-            .id(rs.getObject("column_id", UUID.class))
-            .table(table)
-            .name(rs.getString("column_name"))
-            .type(TableDataType.fromValue(rs.getString("column_type")))
-            .arrayOf(rs.getBoolean("column_array_of"))
-            .required(rs.getBoolean("column_required"));
+        new DaoUtils.TableColumnMapper(table));
   }
 }

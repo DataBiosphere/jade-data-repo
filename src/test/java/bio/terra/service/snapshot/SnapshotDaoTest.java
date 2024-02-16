@@ -261,16 +261,14 @@ public class SnapshotDaoTest {
         source.getSnapshotMapTables().stream()
             .filter(t -> t.getFromTable().getName().equals("thetable"))
             .findFirst()
-            .orElseThrow(AssertionError::new);
+            .orElseThrow();
     Table datasetTable =
         dataset.getTables().stream()
             .filter(t -> t.getName().equals("thetable"))
             .findFirst()
-            .orElseThrow(AssertionError::new);
-    SnapshotTable snapshotTable1 =
-        fromDb.getTableByName("thetable").orElseThrow(AssertionError::new);
-    SnapshotTable snapshotTable2 =
-        fromDb.getTableByName("anothertable").orElseThrow(AssertionError::new);
+            .orElseThrow();
+    SnapshotTable snapshotTable1 = fromDb.getTableByName("thetable").orElseThrow();
+    SnapshotTable snapshotTable2 = fromDb.getTableByName("anothertable").orElseThrow();
 
     assertThat(
         "correct map table dataset table",

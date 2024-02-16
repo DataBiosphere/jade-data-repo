@@ -30,7 +30,7 @@ class SearchConceptsQueryBuilderTest {
             "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform));
     if (platformWrapper.isGcp()) {
       assertThat(
-          "generated SQL is correct",
+          "generated SQL for GCP is correct",
           actual,
           equalToCompressingWhiteSpace(
               "SELECT c.concept_name, c.concept_id FROM concept AS c "
@@ -41,7 +41,7 @@ class SearchConceptsQueryBuilderTest {
     }
     if (platformWrapper.isAzure()) {
       assertThat(
-          "generated SQL is correct",
+          "generated SQL for Azure is correct",
           actual,
           equalToCompressingWhiteSpace(
               "TOP 100 SELECT c.concept_name, c.concept_id FROM concept AS c "

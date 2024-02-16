@@ -13,10 +13,14 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariab
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import java.util.List;
+import org.apache.commons.lang3.NotImplementedException;
 
 public class SearchConceptsQueryBuilder {
 
   private SearchConceptsQueryBuilder() {}
+
+  public static final String CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE =
+      "Cloud platform not implemented";
 
   public static String buildSearchConceptsQuery(
       String domainId,
@@ -43,12 +47,12 @@ public class SearchConceptsQueryBuilder {
     // search concept name clause filters for the search text based on field concept_name
     var searchNameClause =
         createSearchConceptClause(
-            conceptTablePointer, conceptTableVariable, searchText, "concept_name");
+            conceptTablePointer, conceptTableVariable, searchText, "concept_name", platform);
 
     // search concept name clause filters for the search text based on field concept_code
     var searchCodeClause =
         createSearchConceptClause(
-            conceptTablePointer, conceptTableVariable, searchText, "concept_code");
+            conceptTablePointer, conceptTableVariable, searchText, "concept_code", platform);
 
     // SearchConceptNameClause OR searchCodeClause
     List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
@@ -73,11 +77,20 @@ public class SearchConceptsQueryBuilder {
       TablePointer conceptTablePointer,
       TableVariable conceptTableVariable,
       String searchText,
-      String columnName) {
-    return new FunctionFilterVariable(
-        FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-        new FieldVariable(new FieldPointer(conceptTablePointer, columnName), conceptTableVariable),
-        new Literal(searchText));
+      String columnName,
+      CloudPlatformWrapper platform) {
+    FieldVariable fieldVariable =
+        new FieldVariable(new FieldPointer(conceptTablePointer, columnName), conceptTableVariable);
+    Literal search = new Literal(searchText);
+    if (platform.isAzure()) {
+      return new FunctionFilterVariable(
+          FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH_AZURE, fieldVariable, search);
+    }
+    if (platform.isGcp()) {
+      return new FunctionFilterVariable(
+          FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH_GCP, fieldVariable, search);
+    }
+    throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
   }
 
   static BinaryFilterVariable createDomainClause(

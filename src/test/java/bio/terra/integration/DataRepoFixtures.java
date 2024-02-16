@@ -1866,12 +1866,11 @@ public class DataRepoFixtures {
     assertTrue("concept response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
+
   public SnapshotBuilderGetConceptsResponse searchConcepts(
       TestConfiguration.User user, UUID datasetId, String domainId, String searchText)
       throws Exception {
-    String queryParams =
-        "?searchText=%s"
-            .formatted(searchText);
+    String queryParams = "?searchText=%s".formatted(searchText);
 
     DataRepoResponse<SnapshotBuilderGetConceptsResponse> response =
         dataRepoClient.get(

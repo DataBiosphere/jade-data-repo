@@ -2,6 +2,7 @@ package bio.terra.common;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -149,6 +150,29 @@ public final class DaoUtils {
     @Override
     public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
       return rs.getObject(this.columnLabel, UUID.class);
+    }
+  }
+
+  /**
+   * Common RowMapper for mapping a column row. This assumes that all fields are prefixed with
+   * column_ in the result set (e.g. name should be selected as column_name).
+   */
+  public static class TableColumnMapper implements RowMapper<Column> {
+    private final Table table;
+
+    public TableColumnMapper(Table table) {
+      this.table = table;
+    }
+
+    @Override
+    public Column mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return new Column()
+          .id(rs.getObject("column_id", UUID.class))
+          .table(table)
+          .name(rs.getString("column_name"))
+          .type(TableDataType.fromValue(rs.getString("column_type")))
+          .arrayOf(rs.getBoolean("column_array_of"))
+          .required(rs.getBoolean("column_required"));
     }
   }
 }

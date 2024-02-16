@@ -83,10 +83,7 @@ class SearchConceptsQueryBuilderTest {
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     String actual =
         createSearchConceptClause(
-                conceptTablePointer,
-                conceptTableVariable,
-                "cancer",
-                "concept_name")
+                conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
             .renderSQL(CloudPlatformWrapper.of(platform));
     if (platformWrapper.isAzure()) {
       assertThat(

@@ -4,15 +4,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -57,9 +60,19 @@ public class QueryTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void renderSQLWithLimit(CloudPlatform platform) {
-    assertThat(
-        createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform)),
-        is("SELECT t.* FROM table AS t LIMIT 25"));
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
+    String actual = createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform));
+    String expected = "SELECT t.* FROM table AS t";
+    if (cloudPlatformWrapper.isAzure()) {
+      assertThat(actual, is("TOP 25 " + expected));
+    } else if (cloudPlatformWrapper.isGcp()) {
+      assertThat(actual, is(expected + " LIMIT 25"));
+    }
+  }
+
+  @Test
+  void renderSQLWithLimitNullWrapper() {
+    assertThrows(InvalidRenderSqlParameter.class, () -> createQueryWithLimit().renderSQL(null));
   }
 
   @ParameterizedTest

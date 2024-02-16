@@ -86,8 +86,7 @@ class SearchConceptsQueryBuilderTest {
                 conceptTablePointer,
                 conceptTableVariable,
                 "cancer",
-                "concept_name",
-                CloudPlatformWrapper.of(platform))
+                "concept_name")
             .renderSQL(CloudPlatformWrapper.of(platform));
     if (platformWrapper.isAzure()) {
       assertThat(

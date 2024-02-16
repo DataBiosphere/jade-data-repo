@@ -44,11 +44,10 @@ class SearchConceptsQueryBuilderTest {
           "generated SQL is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "SELECT c.concept_name, c.concept_id FROM concept AS c "
+              "TOP 100 SELECT c.concept_name, c.concept_id FROM concept AS c "
                   + "WHERE (c.domain_id = 'condition' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
-                  + "LIMIT 100"));
+                  + "OR CHARINDEX('cancer', c.concept_code) > 0))"));
     }
   }
 

@@ -1,10 +1,12 @@
 package bio.terra.service.snapshotbuilder.query;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
 import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.NotImplementedException;
 import org.stringtemplate.v4.ST;
 
 public record Query(
@@ -109,11 +111,19 @@ public record Query(
       sql += " " + having.renderSQL(platform);
     }
 
-    // TODO: DC-836 Implement LIMIT for Azure (TOP N + sql)
-    //  This means passing in the platform to renderSQL
-    //  and refactoring the current TableVariable and tableNameGenerator work
     if (limit != null) {
-      sql += " LIMIT " + limit;
+      if (platform != null) {
+        if (platform.isGcp()) {
+          sql += " LIMIT " + limit;
+        } else if (platform.isAzure()) {
+          sql = "TOP " + limit + " " + sql;
+        } else {
+          throw new NotImplementedException("Cloud Platform not implemented.");
+        }
+      } else {
+        throw new InvalidRenderSqlParameter(
+            "SQL cannot be generated because the Cloud Platform is null.");
+      }
     }
 
     return sql;

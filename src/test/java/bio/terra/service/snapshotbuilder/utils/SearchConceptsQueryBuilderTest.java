@@ -54,14 +54,25 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
-    assertThat(
-        "generated SQL for empty search string is correct",
+    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
+    String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            "Condition", "", s -> s, CloudPlatformWrapper.of(platform)),
-        equalToCompressingWhiteSpace(
-            "SELECT c.concept_name, c.concept_id FROM concept AS c "
-                + "WHERE c.domain_id = 'Condition' "
-                + "LIMIT 100"));
+            "Condition", "", s -> s, CloudPlatformWrapper.of(platform));
+    String expected =
+        "SELECT c.concept_name, c.concept_id FROM concept AS c "
+            + "WHERE c.domain_id = 'Condition' ";
+    if (platformWrapper.isAzure()) {
+      assertThat(
+          "generated SQL for Azure empty search string is correct",
+          actual,
+          equalToCompressingWhiteSpace("TOP 100 " + expected));
+    }
+    if (platformWrapper.isGcp()) {
+      assertThat(
+          "generated SQL for GCP empty search string is correct",
+          actual,
+          equalToCompressingWhiteSpace(expected + "LIMIT 100"));
+    }
   }
 
   @ParameterizedTest

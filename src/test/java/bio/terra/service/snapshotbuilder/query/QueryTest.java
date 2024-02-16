@@ -72,7 +72,8 @@ public class QueryTest {
 
   @Test
   void renderSQLWithLimitNullWrapper() {
-    assertThrows(InvalidRenderSqlParameter.class, () -> createQueryWithLimit().renderSQL(null));
+    Query query = createQueryWithLimit();
+    assertThrows(InvalidRenderSqlParameter.class, () -> query.renderSQL(null));
   }
 
   @ParameterizedTest

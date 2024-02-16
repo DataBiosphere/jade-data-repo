@@ -31,6 +31,15 @@ public class SearchConceptsQueryBuilder {
     // domain clause filters for the given domain id based on field domain_id
     var domainClause = createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
 
+    // if the search test is empty do not include the search clauses
+    // return all concepts in the specified domain
+    if (searchText == null || searchText.isEmpty()) {
+      // TODO: DC-845 Implement pagination, remove hardcoded limit
+      Query query =
+          new Query(List.of(nameField, idField), List.of(conceptTableVariable), domainClause, 100);
+      return query.renderSQL(platform);
+    }
+
     // search concept name clause filters for the search text based on field concept_name
     var searchNameClause =
         createSearchConceptClause(

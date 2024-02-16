@@ -38,6 +38,19 @@ class SearchConceptsQueryBuilderTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
+  void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
+    assertThat(
+        "generated SQL for empty search string is correct",
+        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
+            "Condition", "", s -> s, CloudPlatformWrapper.of(platform)),
+        equalToCompressingWhiteSpace(
+            "SELECT c.concept_name, c.concept_id FROM concept AS c "
+                + "WHERE c.domain_id = 'Condition' "
+                + "LIMIT 100"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
   void testCreateSearchConceptClause(CloudPlatform platform) {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", s -> s);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);

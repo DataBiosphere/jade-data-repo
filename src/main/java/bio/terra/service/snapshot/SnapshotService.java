@@ -268,6 +268,7 @@ public class SnapshotService {
     Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
     String description = "Export snapshot %s".formatted(snapshot.toLogString());
 
+    // Snapshot cloud platform will be set on snapshot create, so this is fine
     var cloudPlatformWrapper = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
     if (cloudPlatformWrapper.isAzure()) {
       if (validatePrimaryKeyUniqueness) {
@@ -283,6 +284,7 @@ public class SnapshotService {
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+        // Snapshot cloud platform will be set on snapshot create, so this is fine
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), snapshot.getCloudPlatform())
         .addParameter(ExportMapKeys.EXPORT_GSPATHS, exportGsPaths)
         .addParameter(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, validatePrimaryKeyUniqueness)
@@ -812,6 +814,7 @@ public class SnapshotService {
                       "No snapshot table column exists with the name: " + sort));
     }
 
+    // Snapshot cloud platform will be set on snapshot create, so this is fine
     var cloudPlatformWrapper = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
 
     if (cloudPlatformWrapper.isGcp()) {
@@ -1088,6 +1091,7 @@ public class SnapshotService {
             .description(snapshot.getDescription())
             .createdDate(snapshot.getCreatedDate().toString())
             .consentCode(snapshot.getConsentCode())
+            // Snapshot cloud platform will be set on snapshot create, so this is fine
             .cloudPlatform(snapshot.getCloudPlatform())
             .globalFileIds(snapshot.hasGlobalFileIds())
             .compactIdPrefix(snapshot.getCompactIdPrefix())

@@ -37,6 +37,7 @@ public class EnableSecureMonitoringFlight extends Flight {
     UUID datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class);
 
     Dataset dataset = datasetService.retrieve(datasetId);
+    // Instead of keying off the cloud platform, make all steps resilient to cloud resources not existing
     CloudPlatformWrapper platform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (platform.isGcp()) {

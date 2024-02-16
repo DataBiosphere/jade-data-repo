@@ -51,6 +51,7 @@ public class FileDeleteFlight extends Flight {
     //  ** Well, what we really should do is fix Stairway to throw the contained exception **
     Dataset dataset = datasetService.retrieve(datasetId);
 
+    // Hm, we won't know which platform a given file is on until we look it up
     var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
     RetryRule fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());

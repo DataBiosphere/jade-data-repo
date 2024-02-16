@@ -1000,6 +1000,8 @@ public class DrsService {
       this.datasetBillingProfileModel =
           snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile();
       this.snapshotBillingProfileId = snapshot.getProfileId();
+      // Snapshot cloud platform will be set on create based on the billing profile included in the response
+      // But, the associated file data could be from either platform
       this.cloudPlatform = snapshot.getCloudPlatform();
       var projectResource = snapshot.getProjectResource();
       if (projectResource != null) {

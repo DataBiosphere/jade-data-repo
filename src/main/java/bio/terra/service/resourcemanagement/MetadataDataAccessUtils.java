@@ -122,6 +122,7 @@ public final class MetadataDataAccessUtils {
   /** Generate an {@link AccessInfoModel} from a Dataset */
   public AccessInfoModel accessInfoFromDataset(
       final Dataset dataset, final AuthenticatedUserRequest userRequest) {
+    // Just return default dataset's access info?
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 

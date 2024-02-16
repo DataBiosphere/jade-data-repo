@@ -105,10 +105,13 @@ public class DatasetIngestFlight extends Flight {
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     Dataset dataset = datasetService.retrieve(datasetId);
-    CloudPlatformWrapper cloudPlatform =
-        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    // TODO - we'll also have to do some null checks here
+    // Default to dataset's cloud platform if billing profile is not specified
+    CloudPlatformWrapper cloudPlatform =
+        CloudPlatformWrapper.of(profileService.getProfileById(ingestRequestModel.getProfileId(), userReq).getCloudPlatform());
+
 
     AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
         new AzureStorageMonitoringStepProvider(monitoringService);

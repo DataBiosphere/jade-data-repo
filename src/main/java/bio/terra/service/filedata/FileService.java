@@ -179,6 +179,8 @@ public class FileService {
 
   public List<FileModel> listDatasetFiles(String datasetId, int offset, int limit) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    // TODO - Could we retrieve the files from either platform?
+    // We need to make each of these calls more resilient to the gcp or azure resources not existing
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
       try {
@@ -197,6 +199,8 @@ public class FileService {
   public List<FileModel> listSnapshotFiles(String snapshotId, int offset, int limit) {
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     Dataset dataset = snapshot.getSourceDataset();
+    // TODO - Could we retrieve the files from either platform?
+    // We need to make each of these calls more resilient to the gcp or azure resources not existing
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -244,6 +248,8 @@ public class FileService {
 
   public Optional<FileModel> lookupOptionalPath(String datasetId, String path, int depth) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    // If files could live in either cloud platform
+    // I think we'd have to check both platforms for the file
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     final Optional<FSItem> file;
@@ -262,6 +268,7 @@ public class FileService {
 
   FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    // Check both clouds, starting with dataset's default cloud platform
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -284,6 +291,7 @@ public class FileService {
 
   FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    // check both clouds?
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {

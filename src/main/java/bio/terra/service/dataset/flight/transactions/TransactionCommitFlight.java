@@ -37,6 +37,7 @@ public class TransactionCommitFlight extends Flight {
     UUID transactionId =
         UUID.fromString(inputParameters.get(JobMapKeys.TRANSACTION_ID.getKeyName(), String.class));
     Dataset dataset = datasetService.retrieve(datasetId);
+    // TODO - option in endpoint to specify cloud platform, otherwise default to dataset's platform
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =

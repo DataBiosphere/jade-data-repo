@@ -89,8 +89,6 @@ public class FileIngestBulkFlight extends Flight {
     UUID datasetUuid = UUID.fromString(datasetId);
     Dataset dataset = datasetService.retrieve(datasetUuid);
 
-    var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
-
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
     int loadHistoryWaitSeconds =
@@ -111,18 +109,21 @@ public class FileIngestBulkFlight extends Flight {
     UUID profileId;
     boolean isBulkMode;
 
+    CloudPlatformWrapper platform;
     if (isArray) {
       BulkLoadArrayRequestModel loadRequest =
           inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
       maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
       profileId = loadRequest.getProfileId();
       isBulkMode = loadRequest.isBulkMode();
+      platform = CloudPlatformWrapper.of(profileService.getProfileById(loadRequest.getProfileId(), userReq).getCloudPlatform());
     } else {
       BulkLoadRequestModel loadRequest =
           inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
       maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
       profileId = loadRequest.getProfileId();
       isBulkMode = loadRequest.isBulkMode();
+      platform = CloudPlatformWrapper.of(profileService.getProfileById(loadRequest.getProfileId(), userReq).getCloudPlatform());
     }
 
     RetryRule randomBackoffRetry =

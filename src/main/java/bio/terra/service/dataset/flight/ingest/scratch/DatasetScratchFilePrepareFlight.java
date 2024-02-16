@@ -51,6 +51,7 @@ public class DatasetScratchFilePrepareFlight extends Flight {
     UUID profileId =
         UUID.fromString(inputParameters.get(JobMapKeys.BILLING_ID.getKeyName(), String.class));
 
+    // TODO - pull the cloud platform from the ingest request's billing profile
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 

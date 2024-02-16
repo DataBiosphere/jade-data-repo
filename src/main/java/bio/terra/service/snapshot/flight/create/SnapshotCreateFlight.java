@@ -119,8 +119,10 @@ public class SnapshotCreateFlight extends Flight {
     UUID datasetId = sourceDataset.getId();
     String datasetName = sourceDataset.getName();
 
+    // This is the main change --Instead of pull the cloud platform from the dataset,
+    // We'll pull the cloud platform from the request's billing profile
     var platform =
-        CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
+        CloudPlatformWrapper.of(profileService.getProfileById(snapshotReq.getProfileId(), userReq).getCloudPlatform());
 
     // Take out a shared lock on the source dataset, to guard against it being deleted out from
     // under us (for example)

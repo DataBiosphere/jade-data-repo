@@ -344,6 +344,8 @@ public class GcsPdao implements CloudFileReader {
                 // data.
                 // Azure-backed datasets have no such bucket and their ingest mechanism does not
                 // require it.
+                // TODO - Instead map through the ingest request's billing profile's cloud platform
+                // ...but also, we're in gcspdao, why are we checking for azure?
                 if (CloudPlatformWrapper.of(dataset.getCloudPlatform()).isGcp()) {
                   addPetServiceAccountToDatasetProject(cloudEncapsulationId, tokeninfo.getEmail());
                 }

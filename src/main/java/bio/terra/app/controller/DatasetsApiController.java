@@ -66,6 +66,7 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
@@ -103,6 +104,8 @@ public class DatasetsApiController implements DatasetsApi {
   private final DataDeletionRequestValidator dataDeletionRequestValidator;
   private final DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
 
+  private final ProfileService profileService;
+
   @Autowired
   public DatasetsApiController(
       HttpServletRequest request,
@@ -116,7 +119,8 @@ public class DatasetsApiController implements DatasetsApi {
       AssetModelValidator assetModelValidator,
       IngestRequestValidator ingestRequestValidator,
       DataDeletionRequestValidator dataDeletionRequestValidator,
-      DatasetSchemaUpdateValidator datasetSchemaUpdateValidator) {
+      DatasetSchemaUpdateValidator datasetSchemaUpdateValidator,
+      ProfileService profileService) {
     this.request = request;
     this.jobService = jobService;
     this.datasetRequestValidator = datasetRequestValidator;
@@ -129,6 +133,7 @@ public class DatasetsApiController implements DatasetsApi {
     this.ingestRequestValidator = ingestRequestValidator;
     this.dataDeletionRequestValidator = dataDeletionRequestValidator;
     this.datasetSchemaUpdateValidator = datasetSchemaUpdateValidator;
+    this.profileService = profileService;
   }
 
   @InitBinder
@@ -335,7 +340,7 @@ public class DatasetsApiController implements DatasetsApi {
     if (ingest.getUpdateStrategy() == null) {
       ingest.updateStrategy(UpdateStrategyEnum.APPEND);
     }
-    validateIngestParams(ingest, id);
+    validateIngestParams(ingest, userReq);
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
@@ -589,10 +594,9 @@ public class DatasetsApiController implements DatasetsApi {
         snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
   }
 
-  private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
-    Dataset dataset = datasetService.retrieve(datasetId);
+  private void validateIngestParams(IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userRequest) {
     CloudPlatformWrapper platform =
-        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+        CloudPlatformWrapper.of(profileService.getProfileById(ingestRequestModel.getProfileId(), userRequest).getCloudPlatform());
 
     if (platform.isAzure()) {
       validateAzureIngestParams(ingestRequestModel);

@@ -27,6 +27,7 @@ public class IngestFileValidateCloudPlatformStep implements Step {
     var profileCloudPlatform = profileModel.getCloudPlatform();
     var profileWrapper = CloudPlatformWrapper.of(profileCloudPlatform);
 
+    // Instead pull from ingest file request
     CloudPlatform fileStorageCloudPlatform = dataset.getDatasetSummary().getStorageCloudPlatform();
     if (!profileWrapper.is(fileStorageCloudPlatform)) {
       logger.warn(

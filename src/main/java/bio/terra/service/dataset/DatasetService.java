@@ -480,6 +480,7 @@ public class DatasetService {
   public List<BulkLoadHistoryModel> getLoadHistory(
       UUID datasetId, String loadTag, int offset, int limit) {
     var dataset = retrieve(datasetId);
+    // TODO - combine the results so we have results from either cloud platform?
     var platformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (platformWrapper.isAzure()) {
@@ -539,6 +540,7 @@ public class DatasetService {
                       "No dataset table column exists with the name: " + sort));
     }
 
+    // We'll just return data from the default cloud platform for now
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 
     if (cloudPlatformWrapper.isGcp()) {
@@ -598,6 +600,7 @@ public class DatasetService {
 
     Column column = dataset.getColumn(tableName, columnName);
 
+    // We'll just return data from the default cloud platform for now
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 
     if (cloudPlatformWrapper.isGcp()) {

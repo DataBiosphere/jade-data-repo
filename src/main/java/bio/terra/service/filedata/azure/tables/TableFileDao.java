@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.tables;
 
 import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
 
+import bio.terra.common.FutureUtils;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.ApiFutureGenerator;
@@ -19,12 +20,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -37,12 +36,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class TableFileDao {
   private final Logger logger = LoggerFactory.getLogger(TableFileDao.class);
-  private final ExecutorService executor;
+  private final AsyncTaskExecutor azureTableThreadpool;
   private static final String PARTITION_KEY = "partitionKey";
 
-  @Autowired
-  TableFileDao(@Qualifier("performanceThreadpool") ExecutorService executor) {
-    this.executor = executor;
+  TableFileDao(@Qualifier("azureTableThreadpool") AsyncTaskExecutor azureTableThreadpool) {
+    this.azureTableThreadpool = azureTableThreadpool;
   }
 
   public void createFileMetadata(
@@ -92,16 +90,20 @@ public class TableFileDao {
       TableServiceClient tableServiceClient,
       String collectionId,
       List<FireStoreDirectoryEntry> directoryEntries) {
-    return directoryEntries.stream()
-        .map(
-            f ->
-                Optional.ofNullable(
-                        retrieveFileMetadata(tableServiceClient, collectionId, f.getFileId()))
-                    .orElseThrow(
+    return FutureUtils.waitFor(
+        directoryEntries.stream()
+            .map(
+                f ->
+                    azureTableThreadpool.submit(
                         () ->
-                            new FileSystemCorruptException(
-                                "Directory entry refers to non-existent file")))
-        .collect(Collectors.toList());
+                            Optional.ofNullable(
+                                    retrieveFileMetadata(
+                                        tableServiceClient, collectionId, f.getFileId()))
+                                .orElseThrow(
+                                    () ->
+                                        new FileSystemCorruptException(
+                                            "Directory entry refers to non-existent file"))))
+            .toList());
   }
 
   <V> void scanTableObjects(TableClient tableClient, ApiFutureGenerator<V, TableEntity> generator) {
@@ -134,7 +136,7 @@ public class TableFileDao {
           tableClient,
           entity -> {
             SettableApiFuture<Boolean> future = SettableApiFuture.create();
-            executor.execute(
+            azureTableThreadpool.execute(
                 () -> {
                   try {
                     FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);

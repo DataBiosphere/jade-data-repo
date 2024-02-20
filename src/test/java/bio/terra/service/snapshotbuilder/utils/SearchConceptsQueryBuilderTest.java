@@ -1,17 +1,22 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.query.QueryTest.createQueryWithLimit;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createDomainClause;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -49,14 +54,19 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
-    assertThat(
-        "generated SQL for empty search string is correct",
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            "Condition", "", s -> s, CloudPlatformWrapper.of(platform)),
-        equalToCompressingWhiteSpace(
-            "SELECT c.concept_name, c.concept_id FROM concept AS c "
-                + "WHERE c.domain_id = 'Condition' "
-                + "LIMIT 100"));
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
+    String actual = createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform));
+    String expected = "SELECT t.* FROM table AS t";
+    if (cloudPlatformWrapper.isAzure()) {
+      assertThat(actual, is("TOP 25 " + expected));
+    } else if (cloudPlatformWrapper.isGcp()) {
+      assertThat(actual, is(expected + " LIMIT 25"));
+    }
+  }
+
+  @Test
+  void renderSQLWithLimitNullWrapper() {
+    assertThrows(InvalidRenderSqlParameter.class, () -> createQueryWithLimit().renderSQL(null));
   }
 
   @ParameterizedTest

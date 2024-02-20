@@ -67,7 +67,7 @@ public class CreateSnapshotStorageTableDataStep implements Step {
         snapshotTableServiceClient,
         datasetId,
         datasetName,
-        snapshotId,
+        snapshot,
         refIds);
 
     return StepResult.getStepResultSuccess();

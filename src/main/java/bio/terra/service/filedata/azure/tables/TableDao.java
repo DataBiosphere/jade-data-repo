@@ -459,7 +459,7 @@ public class TableDao {
       TableServiceClient snapshotTableServiceClient,
       UUID datasetId,
       String datasetName,
-      UUID snapshotId,
+      Snapshot snapshot,
       List<String> refIds) {
 
     directoryDao.addEntriesToSnapshot(
@@ -467,8 +467,9 @@ public class TableDao {
         snapshotTableServiceClient,
         datasetId,
         datasetName,
-        snapshotId,
-        refIds);
+        snapshot.getId(),
+        refIds,
+        snapshot.hasGlobalFileIds());
   }
 
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory

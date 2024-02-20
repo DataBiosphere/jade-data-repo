@@ -362,10 +362,13 @@ public class TableDirectoryDao {
       UUID datasetId,
       String datasetDirName,
       UUID snapshotId,
-      List<String> fileIds) {
+      List<String> fileIds,
+      boolean usesGlobalFileIds) {
     int cacheSize = configurationService.getParameterValue(ConfigEnum.SNAPSHOT_CACHE_SIZE);
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
+    //    if (!usesGlobalFileIds) {
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
+    //    }
     List<Future<Void>> futures = new ArrayList<>();
     for (List<String> fileIdsBatch : ListUtils.partition(fileIds, MAX_FILTER_CLAUSES)) {
       futures.add(
@@ -404,13 +407,17 @@ public class TableDirectoryDao {
 
                 // Create snapshot file system entries
                 List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
-                for (FireStoreDirectoryEntry datasetEntry : directoryEntries) {
-                  snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+                if (usesGlobalFileIds) {
+                  snapshotEntries.addAll(directoryEntries);
+                  snapshotEntries.addAll(datasetDirectoryEntries);
+                } else {
+                  for (FireStoreDirectoryEntry datasetEntry : directoryEntries) {
+                    snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+                  }
+                  for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
+                    snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+                  }
                 }
-                for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
-                  snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
-                }
-
                 // Store the batch of entries. This will override existing entries,
                 // but that is not the typical case and it is lower cost just overwrite
                 // rather than retrieve to avoid the write.

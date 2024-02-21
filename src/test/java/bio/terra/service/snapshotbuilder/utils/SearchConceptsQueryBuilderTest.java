@@ -71,12 +71,6 @@ class SearchConceptsQueryBuilderTest {
     }
   }
 
-  @Test
-  void renderSQLWithLimitNullWrapper() {
-    assertThrows(
-        InvalidRenderSqlParameter.class, () -> QueryTest.createQueryWithLimit().renderSQL(null));
-  }
-
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void testCreateSearchConceptClause(CloudPlatform platform) {

@@ -3,18 +3,14 @@ package bio.terra.service.snapshotbuilder.utils;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
-import bio.terra.service.snapshotbuilder.query.QueryTest;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -61,8 +57,8 @@ class SearchConceptsQueryBuilderTest {
   }
 
   String formatSQLWithLimit(String sql, CloudPlatformWrapper cloudPlatformWrapper) {
-      int limit= 100;
-      if (cloudPlatformWrapper.isAzure()) {
+    int limit = 100;
+    if (cloudPlatformWrapper.isAzure()) {
       return String.format("TOP %d %s", limit, sql);
     } else if (cloudPlatformWrapper.isGcp()) {
       return String.format("%s LIMIT %d", sql, limit);

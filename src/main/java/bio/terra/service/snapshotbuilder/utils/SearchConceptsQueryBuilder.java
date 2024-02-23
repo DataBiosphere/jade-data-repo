@@ -24,6 +24,25 @@ public class SearchConceptsQueryBuilder {
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
+    var conditionOccurrencePointer =
+        TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
+
+    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
+    // concept.concept_id
+    TableVariable conditionOccurenceTableVariable =
+        TableVariable.forJoined(
+            conditionOccurrencePointer,
+            "condition_concept_id",
+            new FieldVariable(
+                new FieldPointer(conceptTablePointer, "concept_id"), conceptTableVariable));
+
+    var personIdField =
+        new FieldVariable(
+            new FieldPointer(conditionOccurrencePointer, "person_id", "COUNT"),
+            conditionOccurenceTableVariable,
+            null,
+            true);
+
     // domain clause filters for the given domain id based on field domain_id
     var domainClause = createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
 
@@ -47,11 +66,20 @@ public class SearchConceptsQueryBuilder {
     BooleanAndOrFilterVariable whereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
-    // select nameField, idField from conceptTable WHERE
-    // domainClause AND (searchNameClause OR searchCodeClause)
+    // SELECT nameField, idField
+    // FROM conceptTable
+    // WHERE domainClause AND (searchNameClause OR searchCodeClause)
     Query query =
-        new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
+        new Query(
+            List.of(nameField, idField, personIdField),
+            List.of(conceptTableVariable, conditionOccurenceTableVariable),
+            whereClause,
+            100);
 
+    // SELECT concept_id, concept_name, COUNT(DISTINCT person_id)
+    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
+    // concept.concept_id
+    // WHERE concept.name CONTAINS {{name}} GROUP BY condition_occurrence.concept_id
     return query.renderSQL();
   }
 

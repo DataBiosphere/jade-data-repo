@@ -64,7 +64,7 @@ public class QueryTest {
     String actual = createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform));
     String expected = "SELECT t.* FROM table AS t";
     if (cloudPlatformWrapper.isAzure()) {
-      assertThat(actual, is("TOP 25 " + expected));
+      assertThat(actual, is("SELECT TOP 25 t.* FROM table AS t"));
     } else if (cloudPlatformWrapper.isGcp()) {
       assertThat(actual, is(expected + " LIMIT 25"));
     }

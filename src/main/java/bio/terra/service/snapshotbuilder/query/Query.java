@@ -67,10 +67,27 @@ public record Query(
 
     // render the primary TableVariable
     String sql =
-        new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
+        new ST("<selectSQL> FROM <primaryTableFromSQL>")
             .add("selectSQL", selectSQL)
             .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
             .render();
+
+    if (limit != null) {
+      if (platform != null) {
+        if (platform.isGcp()) {
+          sql = new ST("SELECT " + sql + " LIMIT <limit>").add("limit", limit).render();
+        } else if (platform.isAzure()) {
+          sql = new ST("SELECT TOP <limit> " + sql).add("limit", limit).render();
+        } else {
+          throw new NotImplementedException("Cloud Platform not implemented.");
+        }
+      } else {
+        throw new InvalidRenderSqlParameter(
+            "SQL cannot be generated because the Cloud Platform is null.");
+      }
+    } else {
+      sql = "SELECT " + sql;
+    }
 
     // render the join TableVariables
     if (tables.size() > 1) {
@@ -109,21 +126,6 @@ public record Query(
 
     if (having != null) {
       sql += " " + having.renderSQL(platform);
-    }
-
-    if (limit != null) {
-      if (platform != null) {
-        if (platform.isGcp()) {
-          sql += " LIMIT " + limit;
-        } else if (platform.isAzure()) {
-          sql = "TOP " + limit + " " + sql;
-        } else {
-          throw new NotImplementedException("Cloud Platform not implemented.");
-        }
-      } else {
-        throw new InvalidRenderSqlParameter(
-            "SQL cannot be generated because the Cloud Platform is null.");
-      }
     }
 
     return sql;

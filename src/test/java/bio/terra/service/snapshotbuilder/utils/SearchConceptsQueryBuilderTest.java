@@ -57,8 +57,7 @@ class SearchConceptsQueryBuilderTest {
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             "Condition", "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
-        "c.concept_name, c.concept_id FROM concept AS c "
-            + "WHERE c.domain_id = 'Condition' ";
+        "c.concept_name, c.concept_id FROM concept AS c " + "WHERE c.domain_id = 'Condition' ";
     if (platformWrapper.isAzure()) {
       assertThat(
           "generated SQL for Azure empty search string is correct",

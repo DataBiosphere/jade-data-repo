@@ -11,6 +11,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
-
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQuery(CloudPlatform platform) {
@@ -109,7 +109,8 @@ class SearchConceptsQueryBuilderTest {
 
     assertThat(
         "generated sql is as expected",
-        createDomainClause(conceptTablePointer, conceptTableVariable, "cancer")
+        SearchConceptsQueryBuilder.createDomainClause(
+                conceptTablePointer, conceptTableVariable, "cancer")
             .renderSQL(CloudPlatformWrapper.of(platform)),
         // table name is added when the Query is created
         equalTo("null.domain_id = 'cancer'"));

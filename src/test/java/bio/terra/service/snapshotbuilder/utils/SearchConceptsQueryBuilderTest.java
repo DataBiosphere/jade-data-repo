@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createDomainClause;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -11,7 +10,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,7 +42,7 @@ class SearchConceptsQueryBuilderTest {
           "generated SQL for Azure is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "TOP 100 SELECT c.concept_name, c.concept_id FROM concept AS c "
+              "SELECT TOP 100 c.concept_name, c.concept_id FROM concept AS c "
                   + "WHERE (c.domain_id = 'condition' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
                   + "OR CHARINDEX('cancer', c.concept_code) > 0))"));
@@ -59,19 +57,19 @@ class SearchConceptsQueryBuilderTest {
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             "Condition", "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
-        "SELECT c.concept_name, c.concept_id FROM concept AS c "
+        "c.concept_name, c.concept_id FROM concept AS c "
             + "WHERE c.domain_id = 'Condition' ";
     if (platformWrapper.isAzure()) {
       assertThat(
           "generated SQL for Azure empty search string is correct",
           actual,
-          equalToCompressingWhiteSpace("TOP 100 " + expected));
+          equalToCompressingWhiteSpace("SELECT TOP 100 " + expected));
     }
     if (platformWrapper.isGcp()) {
       assertThat(
           "generated SQL for GCP empty search string is correct",
           actual,
-          equalToCompressingWhiteSpace(expected + "LIMIT 100"));
+          equalToCompressingWhiteSpace("SELECT " + expected + "LIMIT 100"));
     }
   }
 

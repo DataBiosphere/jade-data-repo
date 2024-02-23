@@ -44,6 +44,7 @@ import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirectionAscDefault;
@@ -587,6 +588,19 @@ public class DatasetsApiController implements DatasetsApi {
         IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS); // TODO: change once SQL is sanitized
     return ResponseEntity.ok(
         snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderGetConceptHierarchyResponse> getConceptHierarchy(
+      UUID id, Integer conceptId) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASET,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(
+        snapshotBuilderService.getConceptHierarchy(id, conceptId, userRequest));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

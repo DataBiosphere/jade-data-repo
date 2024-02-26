@@ -1,7 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
@@ -68,7 +67,7 @@ class SearchConceptsQueryBuilderTest {
       assertThat(
           "generated SQL for GCP empty search string is correct",
           actual,
-          equalToCompressingWhiteSpace("SELECT " + expected + "LIMIT 100"));
+          equalToCompressingWhiteSpace("SELECT " + expected + " LIMIT 100"));
     }
   }
 
@@ -87,14 +86,14 @@ class SearchConceptsQueryBuilderTest {
           "generated sql is as expected",
           actual,
           // table name is added when the Query is created
-          equalTo("CHARINDEX('cancer', null.concept_name) > 0"));
+          equalToCompressingWhiteSpace("CHARINDEX('cancer', null.concept_name) > 0"));
     }
     if (platformWrapper.isGcp()) {
       assertThat(
           "generated sql is as expected",
           actual,
           // table name is added when the Query is created
-          equalTo("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
+          equalToCompressingWhiteSpace("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
     }
   }
 
@@ -110,6 +109,6 @@ class SearchConceptsQueryBuilderTest {
                 conceptTablePointer, conceptTableVariable, "cancer")
             .renderSQL(CloudPlatformWrapper.of(platform)),
         // table name is added when the Query is created
-        equalTo("null.domain_id = 'cancer'"));
+        equalToCompressingWhiteSpace("null.domain_id = 'cancer'"));
   }
 }

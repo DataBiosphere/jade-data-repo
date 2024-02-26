@@ -19,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
-
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQuery(CloudPlatform platform) {

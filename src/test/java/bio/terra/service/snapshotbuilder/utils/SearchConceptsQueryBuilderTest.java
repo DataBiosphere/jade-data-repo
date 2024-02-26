@@ -22,13 +22,13 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQuery() {
     assertThat(
         "generated SQL is correct",
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery("condition", "cancer", s -> s),
+        SearchConceptsQueryBuilder.buildSearchConceptsQuery("Condition", "cancer", s -> s),
         equalToCompressingWhiteSpace(
             "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) "
                 + "FROM concept AS c  "
                 + "JOIN condition_occurrence AS c0 "
                 + "ON c0.condition_concept_id = c.concept_id "
-                + "WHERE (c.domain_id = 'condition' "
+                + "WHERE (c.domain_id = 'Condition' "
                 + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                 + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
                 + "LIMIT 100"));

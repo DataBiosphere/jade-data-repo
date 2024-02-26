@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.CloudPlatformWrapper;
 import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
@@ -52,8 +53,8 @@ public final class TableVariable implements SqlExpression {
   }
 
   @Override
-  public String renderSQL() {
-    String sql = tablePointer.renderSQL();
+  public String renderSQL(CloudPlatformWrapper platform) {
+    String sql = tablePointer.renderSQL(platform);
 
     if (alias != null) {
       sql = new ST("<sql> AS <tableAlias>").add("sql", sql).add("tableAlias", alias).render();
@@ -66,7 +67,7 @@ public final class TableVariable implements SqlExpression {
               .add("tableReference", sql)
               .add("tableAlias", alias)
               .add("joinField", joinField)
-              .add("joinFieldOnParent", joinFieldOnParent.renderSQL())
+              .add("joinFieldOnParent", joinFieldOnParent.renderSQL(platform))
               .render();
     }
     return sql;

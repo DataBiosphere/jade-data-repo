@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -18,7 +19,10 @@ public class SearchConceptsQueryBuilder {
   private SearchConceptsQueryBuilder() {}
 
   public static String buildSearchConceptsQuery(
-      String domainId, String searchText, TableNameGenerator tableNameGenerator) {
+      String domainId,
+      String searchText,
+      TableNameGenerator tableNameGenerator,
+      CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     var conditionOccurrencePointer = TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
@@ -38,6 +42,15 @@ public class SearchConceptsQueryBuilder {
 
     // domain clause filters for the given domain id based on field domain_id
     var domainClause = createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
+
+    // if the search test is empty do not include the search clauses
+    // return all concepts in the specified domain
+    if (searchText == null || searchText.isEmpty()) {
+      // TODO: DC-845 Implement pagination, remove hardcoded limit
+      Query query =
+          new Query(List.of(nameField, idField), List.of(conceptTableVariable), domainClause, 100);
+      return query.renderSQL(platform);
+    }
 
     // search concept name clause filters for the search text based on field concept_name
     var searchNameClause =
@@ -62,6 +75,7 @@ public class SearchConceptsQueryBuilder {
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id)
     // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id = concept.concept_id
     // WHERE concept.name CONTAINS {{name}} GROUP BY condition_occurrence.concept_id
+
     Query query =
         new Query(
             List.of(nameField, idField, personIdField),
@@ -69,7 +83,7 @@ public class SearchConceptsQueryBuilder {
             whereClause,
             100);
 
-    return query.renderSQL();
+    return query.renderSQL(platform);
   }
 
   static FunctionFilterVariable createSearchConceptClause(

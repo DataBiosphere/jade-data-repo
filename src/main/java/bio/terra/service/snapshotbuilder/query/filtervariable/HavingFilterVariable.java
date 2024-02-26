@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 
 /** Example: HAVING COUNT(*) > 1 */
@@ -13,7 +14,7 @@ public class HavingFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL() {
-    return String.format("HAVING COUNT(*) %s %s", operator.renderSQL(), value);
+  public String renderSQL(CloudPlatformWrapper platform) {
+    return String.format("HAVING COUNT(*) %s %s", operator.renderSQL(platform), value);
   }
 }

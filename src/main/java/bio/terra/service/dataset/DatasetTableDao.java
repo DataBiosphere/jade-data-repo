@@ -7,7 +7,6 @@ import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.Table;
-import bio.terra.model.TableDataType;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -15,12 +14,14 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.sql.DataSource;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
@@ -36,23 +37,48 @@ public class DatasetTableDao {
   private static final Logger logger = LoggerFactory.getLogger(DatasetTableDao.class);
 
   private static final String sqlInsertTable =
-      "INSERT INTO dataset_table "
-          + "(name, raw_table_name, soft_delete_table_name, row_metadata_table_name, dataset_id, primary_key, bigquery_partition_config) "
-          + "VALUES (:name, :raw_table_name, :soft_delete_table_name, :row_metadata_table_name, :dataset_id, :primary_key, "
-          + "cast(:bigquery_partition_config AS jsonb))";
+      """
+  INSERT INTO dataset_table
+  (name, raw_table_name, soft_delete_table_name, row_metadata_table_name, dataset_id, primary_key, bigquery_partition_config)
+  VALUES (:name, :raw_table_name, :soft_delete_table_name, :row_metadata_table_name, :dataset_id, :primary_key,
+  cast(:bigquery_partition_config AS jsonb))
+  """;
+
   private static final String sqlInsertColumn =
-      "INSERT INTO dataset_column "
-          + "(table_id, name, type, array_of, required, ordinal) "
-          + "VALUES (:table_id, :name, :type, :array_of, :required, :ordinal)";
+      """
+  INSERT INTO dataset_column
+  (table_id, name, type, array_of, required, ordinal)
+  VALUES (:table_id, :name, :type, :array_of, :required, :ordinal)
+  """;
+
   private static final String sqlSelectTable =
-      "SELECT id, name, raw_table_name, soft_delete_table_name, row_metadata_table_name, primary_key, bigquery_partition_config::text, "
-          + "(bigquery_partition_config->>'version')::bigint AS bigquery_partition_config_version "
-          + "FROM dataset_table WHERE dataset_id = :dataset_id";
+      """
+  SELECT t.id table_id,
+         t.name table_name,
+         t.raw_table_name table_raw_table_name,
+         t.soft_delete_table_name table_soft_delete_table_name,
+         t.row_metadata_table_name table_row_metadata_table_name,
+         t.primary_key table_primary_key,
+         t.bigquery_partition_config::text table_bigquery_partition_config,
+         (bigquery_partition_config->>'version')::bigint AS table_bigquery_partition_config_version,
+         c.id column_id,
+         c.name column_name,
+         c.type column_type,
+         c.array_of column_array_of,
+         c.required column_required
+  FROM dataset_table t
+    INNER JOIN dataset_column c ON t.id = c.table_id
+  WHERE dataset_id = :dataset_id
+  ORDER BY t.ctid, c.ordinal
+  """;
+
   private static final String sqlSelectColumn =
-      "SELECT id, name, type, array_of, required "
-          + "FROM dataset_column "
-          + "WHERE table_id = :table_id "
-          + "ORDER BY ordinal";
+      """
+  SELECT id column_id, name column_name, type column_type, array_of column_array_of, required column_required
+  FROM dataset_column
+  WHERE table_id = :table_id
+  ORDER BY ordinal
+  """;
 
   private static final String sqlDeleteTable =
       "DELETE FROM dataset_table WHERE id = :table_id AND dataset_id = :dataset_id";
@@ -176,45 +202,83 @@ public class DatasetTableDao {
 
   public List<DatasetTable> retrieveTables(UUID parentId) {
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("dataset_id", parentId);
-    return jdbcTemplate.query(
+    // A tree map is used here to preserve the order from the SQL query
+    Map<UUID, DatasetTable> tableMap = new TreeMap<>();
+    // Order is not important here, so we use a HashMap
+    Map<UUID, List<String>> primaryKeyMap = new HashMap<>();
+    jdbcTemplate.query(
         sqlSelectTable,
         params,
         (rs, rowNum) -> {
+          UUID tableId = rs.getObject("table_id", UUID.class);
+          List<String> primaryKeyColumns =
+              primaryKeyMap.computeIfAbsent(
+                  tableId,
+                  (id) -> {
+                    try {
+                      return DaoUtils.getStringList(rs, "table_primary_key");
+                    } catch (SQLException e) {
+                      throw new IllegalArgumentException(
+                          "Failed to extract primary key information", e);
+                    }
+                  });
           DatasetTable table =
-              new DatasetTable()
-                  .id(rs.getObject("id", UUID.class))
-                  .name(rs.getString("name"))
-                  .rawTableName(rs.getString("raw_table_name"))
-                  .softDeleteTableName(rs.getString("soft_delete_table_name"))
-                  .rowMetadataTableName(rs.getString("row_metadata_table_name"));
+              tableMap.computeIfAbsent(
+                  tableId,
+                  (id) -> {
+                    try {
+                      DatasetTable t =
+                          new DatasetTable()
+                              .id(id)
+                              .name(rs.getString("table_name"))
+                              .rawTableName(rs.getString("table_raw_table_name"))
+                              .softDeleteTableName(rs.getString("table_soft_delete_table_name"))
+                              .rowMetadataTableName(rs.getString("table_row_metadata_table_name"))
+                              .columns(new ArrayList<>())
+                              .primaryKey(
+                                  // Null values will all be replaced.
+                                  // This is safe since validation is done on table creation
+                                  // and columns cannot be removed.
+                                  new ArrayList<>(
+                                      IntStream.range(0, primaryKeyColumns.size())
+                                          .mapToObj(i -> (Column) null)
+                                          .toList()));
 
-          List<Column> columns = retrieveColumns(table);
-          table.columns(columns);
+                      // Extract BigQuery partition config
+                      long bqPartitionVersion =
+                          rs.getLong("table_bigquery_partition_config_version");
+                      String bqPartitionConfig = rs.getString("table_bigquery_partition_config");
+                      if (bqPartitionVersion == 1) {
+                        try {
+                          t.bigQueryPartitionConfig(
+                              objectMapper.readValue(
+                                  bqPartitionConfig, BigQueryPartitionConfigV1.class));
+                        } catch (Exception ex) {
+                          throw new CorruptMetadataException(
+                              "Malformed BigQuery partition config", ex);
+                        }
+                      } else {
+                        throw new CorruptMetadataException(
+                            "Unknown BigQuery partition config version: " + bqPartitionVersion);
+                      }
+                      return t;
+                    } catch (SQLException e) {
+                      throw new IllegalArgumentException("Failed to extract table information", e);
+                    }
+                  });
 
-          Map<String, Column> columnMap =
-              columns.stream().collect(Collectors.toMap(Column::getName, Function.identity()));
+          // Add column to table
+          Column column = new DaoUtils.TableColumnMapper(table).mapRow(rs, rowNum);
+          table.getColumns().add(column);
 
-          List<String> primaryKey = DaoUtils.getStringList(rs, "primary_key");
-          List<Column> naturalKeyColumns =
-              primaryKey.stream().map(columnMap::get).collect(Collectors.toList());
-          table.primaryKey(naturalKeyColumns);
-
-          long bqPartitionVersion = rs.getLong("bigquery_partition_config_version");
-          String bqPartitionConfig = rs.getString("bigquery_partition_config");
-          if (bqPartitionVersion == 1) {
-            try {
-              table.bigQueryPartitionConfig(
-                  objectMapper.readValue(bqPartitionConfig, BigQueryPartitionConfigV1.class));
-            } catch (Exception ex) {
-              throw new CorruptMetadataException("Malformed BigQuery partition config", ex);
-            }
-          } else {
-            throw new CorruptMetadataException(
-                "Unknown BigQuery partition config version: " + bqPartitionVersion);
+          int pkIndex = primaryKeyColumns.indexOf(column.getName());
+          if (pkIndex != -1) {
+            table.getPrimaryKey().set(pkIndex, column);
           }
-
           return table;
         });
+
+    return List.copyOf(tableMap.values());
   }
 
   List<String> retrieveColumnNames(Table table, boolean includeDataRepoRowId) {
@@ -230,13 +294,6 @@ public class DatasetTableDao {
     return jdbcTemplate.query(
         sqlSelectColumn,
         new MapSqlParameterSource().addValue("table_id", table.getId()),
-        (rs, rowNum) ->
-            new Column()
-                .id(rs.getObject("id", UUID.class))
-                .table(table)
-                .name(rs.getString("name"))
-                .type(TableDataType.fromValue(rs.getString("type")))
-                .arrayOf(rs.getBoolean("array_of"))
-                .required(rs.getBoolean("required")));
+        new DaoUtils.TableColumnMapper(table));
   }
 }

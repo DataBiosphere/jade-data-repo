@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.CloudPlatformWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -33,7 +34,7 @@ public class FieldVariable implements SqlExpression {
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatformWrapper platform) {
     return renderSQL(true, true);
   }
 

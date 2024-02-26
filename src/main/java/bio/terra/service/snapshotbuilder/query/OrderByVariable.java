@@ -1,5 +1,7 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.CloudPlatformWrapper;
+
 public class OrderByVariable {
   protected final FieldVariable fieldVariable;
   private final OrderByDirection direction;
@@ -24,11 +26,11 @@ public class OrderByVariable {
     return new OrderByVariable(null, null, true);
   }
 
-  public String renderSQL(boolean isIncludedInSelect) {
+  public String renderSQL(boolean isIncludedInSelect, CloudPlatformWrapper platform) {
     return isRandom
         ? "RAND()"
         : fieldVariable.renderSqlForOrderOrGroupBy(isIncludedInSelect)
             + " "
-            + direction.renderSQL();
+            + direction.renderSQL(platform);
   }
 }

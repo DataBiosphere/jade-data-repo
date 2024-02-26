@@ -53,10 +53,8 @@ import bio.terra.stairway.ShortUUID;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -524,23 +522,28 @@ public class DatasetDaoTest {
 
     assertThat(
         "single-column primary keys are set correctly",
-        variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-        equalTo(Collections.singletonList("id")));
+        variants.getPrimaryKey(),
+        contains(variants.getColumnByName("id").orElseThrow()));
 
     assertThat(
         "dual-column primary keys are set correctly",
-        metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-        equalTo(Arrays.asList("variant_id", "phenotype")));
+        metaAnalysis.getPrimaryKey(),
+        contains(
+            metaAnalysis.getColumnByName("variant_id").orElseThrow(),
+            metaAnalysis.getColumnByName("phenotype").orElseThrow()));
 
     assertThat(
         "many-column primary keys are set correctly",
-        freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-        equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
+        freqAnalysis.getPrimaryKey(),
+        contains(
+            freqAnalysis.getColumnByName("variant_id").orElseThrow(),
+            freqAnalysis.getColumnByName("ancestry").orElseThrow(),
+            freqAnalysis.getColumnByName("phenotype").orElseThrow()));
   }
 
   protected void assertTablesInRelationship(Dataset dataset) {
-    String sqlFrom = "SELECT from_table " + "FROM dataset_relationship WHERE id = :id";
-    String sqlTo = "SELECT to_table " + "FROM dataset_relationship WHERE id = :id";
+    String sqlFrom = "SELECT from_table FROM dataset_relationship WHERE id = :id";
+    String sqlTo = "SELECT to_table FROM dataset_relationship WHERE id = :id";
     dataset
         .getRelationships()
         .forEach(

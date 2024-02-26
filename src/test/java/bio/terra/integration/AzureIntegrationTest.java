@@ -378,12 +378,14 @@ public class AzureIntegrationTest extends UsersBase {
     populateOmopTable();
 
     // Test getConcepts
-    var conceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
-    List<String> conceptNames =
-        conceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat("Correct number of concepts are returned", conceptNames.size(), equalTo(2));
+    var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
+    List<String> getConceptNames =
+        getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    assertThat("Correct number of concepts are returned", getConceptNames, hasSize(2));
     assertThat(
-        "expected concepts are returned", conceptNames, containsInAnyOrder("concept1", "concept3"));
+        "expected concepts are returned",
+        getConceptNames,
+        containsInAnyOrder("concept1", "concept3"));
   }
 
   @Test

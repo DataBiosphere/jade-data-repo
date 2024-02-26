@@ -26,7 +26,7 @@ public class FunctionFilterVariable implements FilterVariable {
     }
     if (values.length != 1
         && (functionTemplate == FunctionTemplate.TEXT_EXACT_MATCH
-        || functionTemplate == FunctionTemplate.TEXT_FUZZY_MATCH)) {
+            || functionTemplate == FunctionTemplate.TEXT_FUZZY_MATCH)) {
       throw new IllegalArgumentException(
           "TEXT_EXACT_MATCH/TEXT_FUZZY_MATCH filter can only match one value");
     }
@@ -80,4 +80,3 @@ public class FunctionFilterVariable implements FilterVariable {
     }
   }
 }
-

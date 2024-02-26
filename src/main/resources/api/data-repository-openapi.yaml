@@ -4650,9 +4650,8 @@ paths:
         - datasets
         - repository
       description: >
-        Given a concept ID, return the hierarchy of concepts above it. For each set of concepts,
-        return all sibling concepts at that level. The first concept returned is the root of the
-        hierarchy.
+        Given a concept ID, return the root of the tree of concepts that contain this concept.
+        For each element in the path, all sibling concepts are returned.
       operationId: getConceptHierarchy
       parameters:
         - in: path

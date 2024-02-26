@@ -26,7 +26,7 @@ public class FunctionFilterVariable implements FilterVariable {
     }
     if (values.length != 1
         && (functionTemplate == FunctionTemplate.TEXT_EXACT_MATCH
-            || functionTemplate == FunctionTemplate.TEXT_FUZZY_MATCH)) {
+        || functionTemplate == FunctionTemplate.TEXT_FUZZY_MATCH)) {
       throw new IllegalArgumentException(
           "TEXT_EXACT_MATCH/TEXT_FUZZY_MATCH filter can only match one value");
     }
@@ -67,17 +67,17 @@ public class FunctionFilterVariable implements FilterVariable {
 
     @Override
     public String renderSQL(CloudPlatformWrapper platform) {
-      if (platform != null) {
-        if (platform.isAzure()) {
-          return azureTemplate;
-        }
-        if (platform.isGcp()) {
-          return gcpTemplate;
-        }
+      if (platform == null) {
+        throw new InvalidRenderSqlParameter(
+            "SQL cannot be generated because the Cloud Platform is null.");
+      } else if (platform.isAzure()) {
+        return azureTemplate;
+      } else if (platform.isGcp()) {
+        return gcpTemplate;
+      } else {
         throw new NotImplementedException("Cloud Platform not implemented.");
       }
-      throw new InvalidRenderSqlParameter(
-          "SQL cannot be generated because the Cloud Platform is null.");
     }
   }
 }
+

@@ -20,18 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
 
-  @Test
-  void buildSearchConceptsQuery() {
-    assertThat(
-        "generated SQL is correct",
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery("Condition", "cancer", s -> s),
-        equalToCompressingWhiteSpace(
-            "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) "
-                + "FROM concept AS c  "
-                + "JOIN condition_occurrence AS c0 "
-                + "ON c0.condition_concept_id = c.concept_id "
-                + "WHERE (c.domain_id = 'Condition' "
-
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQuery(CloudPlatform platform) {
@@ -41,7 +29,10 @@ class SearchConceptsQueryBuilderTest {
             "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
         formatSQLWithLimit(
-            "SELECT c.concept_name, c.concept_id FROM concept AS c "
+            "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) "
+                + "FROM concept AS c  "
+                + "JOIN condition_occurrence AS c0 "
+                + "ON c0.condition_concept_id = c.concept_id "
                 + "WHERE (c.domain_id = 'condition' "
                 + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                 + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))",

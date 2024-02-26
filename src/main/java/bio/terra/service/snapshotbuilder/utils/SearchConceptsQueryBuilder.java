@@ -26,15 +26,10 @@ public class SearchConceptsQueryBuilder {
 
     var conditionOccurrencePointer =
         TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
-
     // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
     // concept.concept_id
     TableVariable conditionOccurenceTableVariable =
-        TableVariable.forJoined(
-            conditionOccurrencePointer,
-            "condition_concept_id",
-            new FieldVariable(
-                new FieldPointer(conceptTablePointer, "concept_id"), conceptTableVariable));
+        TableVariable.forJoined(conditionOccurrencePointer, "condition_concept_id", idField);
 
     var personIdField =
         new FieldVariable(
@@ -66,9 +61,10 @@ public class SearchConceptsQueryBuilder {
     BooleanAndOrFilterVariable whereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
-    // SELECT nameField, idField
-    // FROM conceptTable
-    // WHERE domainClause AND (searchNameClause OR searchCodeClause)
+    // SELECT concept_name, concept_id, COUNT(DISTINCT person_id)
+    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
+    // concept.concept_id
+    // WHERE concept.name CONTAINS {{name}} GROUP BY condition_occurrence.concept_id
     Query query =
         new Query(
             List.of(nameField, idField, personIdField),
@@ -76,10 +72,6 @@ public class SearchConceptsQueryBuilder {
             whereClause,
             100);
 
-    // SELECT concept_id, concept_name, COUNT(DISTINCT person_id)
-    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
-    // concept.concept_id
-    // WHERE concept.name CONTAINS {{name}} GROUP BY condition_occurrence.concept_id
     return query.renderSQL();
   }
 

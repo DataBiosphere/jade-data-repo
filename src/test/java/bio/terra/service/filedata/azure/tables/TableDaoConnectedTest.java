@@ -27,7 +27,9 @@ import com.azure.data.tables.TableServiceClientBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -60,7 +62,7 @@ public class TableDaoConnectedTest {
   private Dataset dataset;
   private UUID snapshotId;
   private Snapshot snapshot;
-  private List<String> refIds;
+  private Set<String> refIds;
   private String loadTag;
   private int numFilesToLoad;
   private String targetBasePathFormat = "/%s/%s/file-%s.json";
@@ -84,7 +86,7 @@ public class TableDaoConnectedTest {
             .buildClient();
     datasetId = UUID.randomUUID();
     dataset = new Dataset().id(datasetId).name(Names.randomizeName("dataset"));
-    refIds = new ArrayList<>();
+    refIds = new HashSet<>();
     snapshotId = UUID.randomUUID();
     snapshot =
         new Snapshot()
@@ -249,7 +251,7 @@ public class TableDaoConnectedTest {
     }
 
     // Make the snapshot file system
-    List<String> fileIdList = new ArrayList<>();
+    Set<String> fileIdList = new HashSet<>();
     for (FireStoreDirectoryEntry fireStoreDirectoryEntry : snapObjects) {
       fileIdList.add(fireStoreDirectoryEntry.getFileId());
     }

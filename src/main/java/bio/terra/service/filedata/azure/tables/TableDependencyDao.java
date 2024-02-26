@@ -13,6 +13,7 @@ import com.azure.data.tables.models.TableTransactionAction;
 import com.azure.data.tables.models.TableTransactionActionType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
@@ -32,12 +34,13 @@ public class TableDependencyDao {
   private final AsyncTaskExecutor azureTableThreadpool;
 
   @Autowired
-  public TableDependencyDao(AsyncTaskExecutor azureTableThreadpool) {
+  public TableDependencyDao(
+      @Qualifier("azureTableThreadpool") AsyncTaskExecutor azureTableThreadpool) {
     this.azureTableThreadpool = azureTableThreadpool;
   }
 
   public void storeSnapshotFileDependencies(
-      TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId, List<String> refIds) {
+      TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId, Set<String> refIds) {
 
     // We construct the snapshot file system without using transactions. We can get away with that,
     // because no one can access this snapshot during its creation.
@@ -47,7 +50,8 @@ public class TableDependencyDao {
     // The partition size is one less than the MAX_FILTER_CLAUSES to account for the snapshotId
     // filter
     List<Future<Void>> futures = new ArrayList<>();
-    for (List<String> refIdChunk : ListUtils.partition(refIds, MAX_FILTER_CLAUSES - 1)) {
+    for (List<String> refIdChunk :
+        ListUtils.partition(List.copyOf(refIds), MAX_FILTER_CLAUSES - 1)) {
       futures.add(
           azureTableThreadpool.submit(
               () -> {
@@ -73,7 +77,6 @@ public class TableDependencyDao {
                 // Create any entities that do not already exist
                 List<TableTransactionAction> batchEntities =
                     refIdChunk.stream()
-                        .distinct()
                         .filter(id -> !existing.contains(id))
                         .map(
                             refId -> {
@@ -95,6 +98,7 @@ public class TableDependencyDao {
                   // operation"
                   tableClient.submitTransaction(batchEntities);
                 }
+                // Needed in order to return a Future<Void>
                 return null;
               }));
     }

@@ -91,24 +91,6 @@ public class TableDirectoryDao {
     return prefix + encodePathAsAzureRowKey(parentDir);
   }
 
-  public void createDirectoryEntries(
-      TableServiceClient tableServiceClient,
-      UUID collectionId,
-      String tableName,
-      List<FireStoreDirectoryEntry> createEntries) {
-    List<Future<String>> futures =
-        createEntries.stream()
-            .map(
-                e ->
-                    azureTableThreadpool.submit(
-                        () -> {
-                          createDirectoryEntry(tableServiceClient, collectionId, tableName, e);
-                          return e.getFileId();
-                        }))
-            .toList();
-    FutureUtils.waitFor(futures);
-  }
-
   // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
   // the entry. Existence checking is handled at upper layers.
   public void createDirectoryEntry(
@@ -264,6 +246,7 @@ public class TableDirectoryDao {
                 return refIdChunk.stream().filter(id -> !validRefIds.contains(id));
               }));
     }
+    // Flat map the results of the futures since each future returns a list of refIds
     return FutureUtils.waitFor(futures).stream().flatMap(s -> s).toList();
   }
 
@@ -299,9 +282,7 @@ public class TableDirectoryDao {
     ListEntitiesOptions options =
         new ListEntitiesOptions().setFilter(String.format("path eq '%s'", dirPath));
     // TODO - add check that there are entries
-    logger.warn("Listing entities for path {}", dirPath);
     PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-    logger.warn("Done listing entities for path {}", dirPath);
     return entities.stream()
         .map(FireStoreDirectoryEntry::fromTableEntity)
         .collect(Collectors.toList());
@@ -362,15 +343,14 @@ public class TableDirectoryDao {
       UUID datasetId,
       String datasetDirName,
       UUID snapshotId,
-      List<String> fileIds,
+      Set<String> fileIds,
       boolean usesGlobalFileIds) {
     int cacheSize = configurationService.getParameterValue(ConfigEnum.SNAPSHOT_CACHE_SIZE);
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
-    //    if (!usesGlobalFileIds) {
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
-    //    }
     List<Future<Void>> futures = new ArrayList<>();
-    for (List<String> fileIdsBatch : ListUtils.partition(fileIds, MAX_FILTER_CLAUSES)) {
+    for (List<String> fileIdsBatch :
+        ListUtils.partition(List.copyOf(fileIds), MAX_FILTER_CLAUSES)) {
       futures.add(
           azureTableThreadpool.submit(
               () -> {
@@ -452,7 +432,7 @@ public class TableDirectoryDao {
       return;
     }
 
-    // Top directory does not exists, so create it
+    // Top directory does not exist, so create it
     FireStoreDirectoryEntry topDir =
         new FireStoreDirectoryEntry()
             .fileId(UUID.randomUUID().toString())

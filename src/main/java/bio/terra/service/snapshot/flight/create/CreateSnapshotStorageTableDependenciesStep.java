@@ -14,7 +14,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.azure.data.tables.TableServiceClient;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class CreateSnapshotStorageTableDependenciesStep implements Step {
@@ -49,7 +49,7 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-    List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
+    Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     tableDependencyDao.storeSnapshotFileDependencies(
         datasetTableServiceClient, datasetId, snapshotId, refIds);
 

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -460,7 +461,7 @@ public class TableDao {
       UUID datasetId,
       String datasetName,
       Snapshot snapshot,
-      List<String> refIds) {
+      Set<String> refIds) {
 
     directoryDao.addEntriesToSnapshot(
         datasetTableServiceClient,

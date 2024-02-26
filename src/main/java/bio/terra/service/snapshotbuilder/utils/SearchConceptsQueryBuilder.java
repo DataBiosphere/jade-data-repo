@@ -24,12 +24,14 @@ public class SearchConceptsQueryBuilder {
       TableNameGenerator tableNameGenerator,
       CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
-    var conditionOccurrencePointer = TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
+    var conditionOccurrencePointer =
+        TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
-    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id = concept.concept_id
+    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
+    // concept.concept_id
     var conditionOccurenceTableVariable =
         TableVariable.forJoined(conditionOccurrencePointer, "condition_concept_id", idField);
 
@@ -74,7 +76,8 @@ public class SearchConceptsQueryBuilder {
 
     // TODO: DC-845 Implement pagination, remove hardcoded limit
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id)
-    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =  concept.concept_id
+    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
+    // concept.concept_id
     // WHERE concept.name CONTAINS {{name}} GROUP BY condition_occurrence.concept_id
 
     Query query =

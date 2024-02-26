@@ -72,6 +72,7 @@ public class SearchConceptsQueryBuilder {
     BooleanAndOrFilterVariable whereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
+    // TODO: DC-845 Implement pagination, remove hardcoded limit
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id)
     // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =  concept.concept_id
     // WHERE concept.name CONTAINS {{name}} GROUP BY condition_occurrence.concept_id

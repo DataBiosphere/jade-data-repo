@@ -20,15 +20,13 @@ public class SearchConceptsQueryBuilder {
   public static String buildSearchConceptsQuery(
       String domainId, String searchText, TableNameGenerator tableNameGenerator) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    var conditionOccurrencePointer = TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
-    var conditionOccurrencePointer =
-        TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
-    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
-    // concept.concept_id
-    TableVariable conditionOccurenceTableVariable =
+   // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id = concept.concept_id
+    var conditionOccurenceTableVariable =
         TableVariable.forJoined(conditionOccurrencePointer, "condition_concept_id", idField);
 
     var personIdField =

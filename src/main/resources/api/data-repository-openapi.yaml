@@ -7230,6 +7230,10 @@ components:
           type: integer
         hasChildren:
           type: boolean
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderGetConceptHierarchyResponse:
       type: object
@@ -7237,21 +7241,7 @@ components:
         ⚠️ The response object for the getConceptHierarchy endpoint
       properties:
         result:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderConceptAndChildren'
-
-    SnapshotBuilderConceptAndChildren:
-        type: object
-        description: >
-            ⚠️ An object describing a concept and its children in the Snapshot Builder
-        properties:
-          concept:
-            $ref: '#/components/schemas/SnapshotBuilderConcept'
-          children:
-            type: array
-            items:
-                $ref: '#/components/schemas/SnapshotBuilderConcept'
+          $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderProgramDataOption:
       type: object

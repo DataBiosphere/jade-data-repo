@@ -10,7 +10,6 @@ import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderConceptAndChildren;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
@@ -30,8 +29,6 @@ import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -193,56 +190,46 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderConcept().id(id).name(name).count(100).hasChildren(hasChildren);
   }
 
-  private static final List<SnapshotBuilderConcept> CONCEPTS =
-      List.of(
-          createConcept(100, "Condition", true),
-          createConcept(400, "Carcinoma of lung parenchyma", true),
-          createConcept(401, "Squamous cell carcinoma of lung", true),
-          createConcept(402, "Non-small cell lung cancer", true),
-          createConcept(403, "Epidermal growth factor receptor negative ...", false),
-          createConcept(404, "Non-small cell lung cancer with mutation in epidermal..", true),
-          createConcept(405, "Non-small cell cancer of lung biopsy..", false),
-          createConcept(406, "Non-small cell cancer of lung lymph node..", false),
-          createConcept(407, "Small cell lung cancer", true),
-          createConcept(408, "Lung Parenchcyma", false));
+  private static List<SnapshotBuilderConcept> loadConcepts() {
+    return List.of(
+        createConcept(100, "Condition", true),
+        createConcept(400, "Carcinoma of lung parenchyma", true),
+        createConcept(401, "Squamous cell carcinoma of lung", true),
+        createConcept(402, "Non-small cell lung cancer", true),
+        createConcept(403, "Epidermal growth factor receptor negative ...", false),
+        createConcept(404, "Non-small cell lung cancer with mutation in epidermal..", true),
+        createConcept(405, "Non-small cell cancer of lung biopsy..", false),
+        createConcept(406, "Non-small cell cancer of lung lymph node..", false),
+        createConcept(407, "Small cell lung cancer", true),
+        createConcept(408, "Lung Parenchcyma", false));
+  }
 
-  private static SnapshotBuilderConcept getConcept(int id) {
-    return CONCEPTS.stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null);
+  private static SnapshotBuilderConcept getConcept(List<SnapshotBuilderConcept> concepts, int id) {
+    return concepts.stream().filter(c -> c.getId().equals(id)).findFirst().orElseThrow();
   }
 
   // Map of concept id to parent concept id.
   private static final Map<Integer, Integer> HIERARCHY =
       Map.of(406, 404, 405, 404, 404, 401, 403, 401, 407, 402, 401, 400, 400, 100, 408, 100);
 
-  private static SnapshotBuilderConceptAndChildren getConceptAndChildren(int childId) {
-    var parentId = HIERARCHY.get(childId);
-    if (parentId == null) {
-      return null;
-    }
-    var parent = getConcept(parentId);
-    return new SnapshotBuilderConceptAndChildren()
-        .concept(parent)
-        .children(
-            HIERARCHY.entrySet().stream()
-                .filter(e -> e.getValue().equals(parent.getId()))
-                .map(Map.Entry::getKey)
-                .map(SnapshotBuilderService::getConcept)
-                .toList());
-  }
-
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
       UUID id, int conceptId, AuthenticatedUserRequest userRequest) {
-    List<SnapshotBuilderConceptAndChildren> items = new ArrayList<>();
+    var concepts = loadConcepts();
+    SnapshotBuilderConcept concept = getConcept(concepts, conceptId);
     while (true) {
-      // For a child conceptId, generate its parent concept and children until no parent exists.
-      var conceptAndChildren = getConceptAndChildren(conceptId);
-      if (conceptAndChildren == null) {
+      // For a child concept, generate its parent concept and siblings until we reach the root.
+      var parentId = HIERARCHY.get(concept.getId());
+      if (parentId == null) {
         break;
       }
-      items.add(conceptAndChildren);
-      conceptId = conceptAndChildren.getConcept().getId();
+      var parent = getConcept(concepts, parentId);
+      concept =
+          parent.children(
+              HIERARCHY.entrySet().stream()
+                  .filter(e -> e.getValue().equals(parentId))
+                  .map(entry -> getConcept(concepts, entry.getKey()))
+                  .toList());
     }
-    Collections.reverse(items);
-    return new SnapshotBuilderGetConceptHierarchyResponse().result(items);
+    return new SnapshotBuilderGetConceptHierarchyResponse().result(concept);
   }
 }

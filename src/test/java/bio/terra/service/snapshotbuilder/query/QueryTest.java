@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.query;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -64,15 +65,22 @@ public class QueryTest {
     String actual = createQueryWithLimit().renderSQL(CloudPlatformWrapper.of(platform));
     String expected = "SELECT t.* FROM table AS t";
     if (cloudPlatformWrapper.isAzure()) {
-      assertThat(actual, is("TOP 25 " + expected));
+      assertThat(
+          "Azure-specific sql generated",
+          actual,
+          equalToCompressingWhiteSpace("SELECT TOP 25 t.* FROM table AS t"));
     } else if (cloudPlatformWrapper.isGcp()) {
-      assertThat(actual, is(expected + " LIMIT 25"));
+      assertThat(
+          "GCP-specific sql generated",
+          actual,
+          equalToCompressingWhiteSpace(expected + " LIMIT 25"));
     }
   }
 
   @Test
   void renderSQLWithLimitNullWrapper() {
-    assertThrows(InvalidRenderSqlParameter.class, () -> createQueryWithLimit().renderSQL(null));
+    Query query = createQueryWithLimit();
+    assertThrows(InvalidRenderSqlParameter.class, () -> query.renderSQL(null));
   }
 
   @ParameterizedTest

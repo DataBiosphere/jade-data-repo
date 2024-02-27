@@ -1866,4 +1866,25 @@ public class DataRepoFixtures {
     assertTrue("concept response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
+
+  public SnapshotBuilderGetConceptsResponse searchConcepts(
+      TestConfiguration.User user, UUID datasetId, String domainId, String searchText)
+      throws Exception {
+    String queryParams = "?searchText=%s".formatted(searchText);
+
+    DataRepoResponse<SnapshotBuilderGetConceptsResponse> response =
+        dataRepoClient.get(
+            user,
+            "/api/repository/v1/datasets/"
+                + datasetId
+                + "/snapshotBuilder/concepts/"
+                + domainId
+                + "/search"
+                + queryParams,
+            new TypeReference<>() {});
+    assertThat(
+        "search concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("concept response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
 }

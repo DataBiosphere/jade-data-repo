@@ -5,8 +5,10 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.NotImplementedException;
 import org.stringtemplate.v4.ST;
 
 public class FunctionFilterVariable implements FilterVariable {
@@ -43,22 +45,38 @@ public class FunctionFilterVariable implements FilterVariable {
   }
 
   public enum FunctionTemplate implements SqlExpression {
-    TEXT_EXACT_MATCH("CONTAINS_SUBSTR(<fieldVariable>, <value>)"),
+    TEXT_EXACT_MATCH(
+        "CONTAINS_SUBSTR(<fieldVariable>, <value>)", "CHARINDEX(<value>, <fieldVariable>) > 0"),
     // BigQuery fuzzy match pattern is "bqutil.fn.levenshtein(UPPER(<fieldVariable>),
     // UPPER(<value>))<5"
     TEXT_FUZZY_MATCH("dbo.Levenshtein(UPPER(<fieldVariable>), UPPER(<value>), 5)"),
     IN("<fieldVariable> IN (<value>)"),
     NOT_IN("<fieldVariable> NOT IN (<value>)");
 
-    private final String template;
+    private final String gcpTemplate;
+    private final String azureTemplate;
 
     FunctionTemplate(String template) {
-      this.template = template;
+      this(template, template);
+    }
+
+    FunctionTemplate(String gcpTemplate, String azureTemplate) {
+      this.gcpTemplate = gcpTemplate;
+      this.azureTemplate = azureTemplate;
     }
 
     @Override
     public String renderSQL(CloudPlatformWrapper platform) {
-      return template;
+      if (platform == null) {
+        throw new InvalidRenderSqlParameter(
+            "SQL cannot be generated because the Cloud Platform is null.");
+      } else if (platform.isAzure()) {
+        return azureTemplate;
+      } else if (platform.isGcp()) {
+        return gcpTemplate;
+      } else {
+        throw new NotImplementedException("Cloud Platform not implemented.");
+      }
     }
   }
 }

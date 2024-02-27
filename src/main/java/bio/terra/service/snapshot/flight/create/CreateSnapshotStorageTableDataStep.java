@@ -15,7 +15,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.azure.data.tables.TableServiceClient;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class CreateSnapshotStorageTableDataStep implements Step {
@@ -60,14 +60,14 @@ public class CreateSnapshotStorageTableDataStep implements Step {
     TableServiceClient snapshotTableServiceClient =
         azureAuthService.getTableServiceClient(snapshotStorageAuthInfo);
 
-    List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
+    Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
 
     tableDao.addFilesToSnapshot(
         datasetTableServiceClient,
         snapshotTableServiceClient,
         datasetId,
         datasetName,
-        snapshotId,
+        snapshot,
         refIds);
 
     return StepResult.getStepResultSuccess();

@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.apache.commons.lang3.NotImplementedException;
@@ -19,20 +20,31 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
+
+  private SnapshotBuilderDomainOption createTestSnapshotBuilderDomainOption(
+      String category, int id) {
+    SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
+    domainOption.setCategory(category);
+    domainOption.setId(id);
+    return domainOption;
+  }
+
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQuery(CloudPlatform platform) {
     CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
+    SnapshotBuilderDomainOption domainOption =
+        createTestSnapshotBuilderDomainOption("observation", 27);
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform));
+            domainOption, "cancer", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
         formatSQLWithLimit(
-            "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) "
+            "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) "
                 + "FROM concept AS c  "
-                + "JOIN condition_occurrence AS c0 "
-                + "ON c0.condition_concept_id = c.concept_id "
-                + "WHERE (c.domain_id = 'condition' "
+                + "JOIN observation AS o "
+                + "ON o.observation_concept_id = c.concept_id "
+                + "WHERE (c.domain_id = 'observation' "
                 + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                 + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))",
             platformWrapper);
@@ -46,9 +58,11 @@ class SearchConceptsQueryBuilderTest {
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
+    SnapshotBuilderDomainOption domainOption =
+        createTestSnapshotBuilderDomainOption("Condition", 19);
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            "Condition", "", s -> s, CloudPlatformWrapper.of(platform));
+            domainOption, "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
         formatSQLWithLimit(
             "SELECT c.concept_name, c.concept_id FROM concept AS c WHERE c.domain_id = 'Condition'",

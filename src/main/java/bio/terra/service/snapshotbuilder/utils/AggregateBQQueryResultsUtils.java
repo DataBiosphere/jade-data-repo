@@ -15,7 +15,7 @@ public class AggregateBQQueryResultsUtils {
                     .id((int) (row.get("concept_id").getLongValue()))
                     .name(row.get("concept_name").getStringValue())
                     .hasChildren(true)
-                    .count(1))
+                    .count((int) (row.get("count").getLongValue())))
         .toList();
   }
 

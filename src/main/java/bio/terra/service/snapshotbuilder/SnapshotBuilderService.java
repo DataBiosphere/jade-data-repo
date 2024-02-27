@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
@@ -13,6 +14,7 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
@@ -29,6 +31,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import org.apache.commons.lang3.NotImplementedException;
@@ -129,9 +132,21 @@ public class SnapshotBuilderService {
       UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+
+    SnapshotBuilderDomainOption snapshotBuilderDomainOption =
+        snapshotBuilderSettings.getDomainOptions().stream()
+            .filter(domainOption -> Objects.equals(domainOption.getCategory(), domainId))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new BadRequestException(
+                        String.format("Invalid domain category is given: %s", domainId)));
+
     String cloudSpecificSql =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            domainId,
+            snapshotBuilderDomainOption,
             searchText,
             tableNameGenerator,
             CloudPlatformWrapper.of(dataset.getCloudPlatform()));

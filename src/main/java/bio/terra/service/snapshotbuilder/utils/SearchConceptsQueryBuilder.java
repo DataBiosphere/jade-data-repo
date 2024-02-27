@@ -1,6 +1,9 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder.getOccurrenceTableFromDomain;
+
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -16,24 +19,28 @@ import java.util.List;
 
 public class SearchConceptsQueryBuilder {
 
+  // look up domainID in domainOptions
+
   private SearchConceptsQueryBuilder() {}
 
   public static String buildSearchConceptsQuery(
-      String domainId,
+      SnapshotBuilderDomainOption domainOption,
       String searchText,
       TableNameGenerator tableNameGenerator,
       CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    var occurrenceTable = getOccurrenceTableFromDomain(domainOption.getId());
     var conditionOccurrencePointer =
-        TablePointer.fromTableName("condition_occurrence", tableNameGenerator);
+        TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
-    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
+    // FROM concept JOIN conditionOccurrencePointer ON conditionOccurrencePointer.concept_id =
     // concept.concept_id
     var conditionOccurenceTableVariable =
-        TableVariable.forJoined(conditionOccurrencePointer, "condition_concept_id", idField);
+        TableVariable.forJoined(
+            conditionOccurrencePointer, occurrenceTable.idColumnName(), idField);
 
     var personIdField =
         new FieldVariable(
@@ -43,7 +50,8 @@ public class SearchConceptsQueryBuilder {
             true);
 
     // domain clause filters for the given domain id based on field domain_id
-    var domainClause = createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
+    var domainClause =
+        createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getCategory());
 
     // if the search test is empty do not include the search clauses
     // return all concepts in the specified domain

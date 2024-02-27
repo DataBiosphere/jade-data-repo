@@ -13,7 +13,7 @@ public class AggregateSynapseQueryResultsUtils {
           .name(rs.getString("concept_name"))
           .id((int) rs.getLong("concept_id"))
           .hasChildren(true)
-          .count((int) rs.getLong("concept"));
+          .count((int) rs.getLong("count"));
     } catch (SQLException e) {
       throw new ProcessResultSetException(
           "Error processing result set into SnapshotBuilderConcept model", e);

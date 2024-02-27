@@ -67,7 +67,7 @@ public record Query(
 
     // render the primary TableVariable
     String sql =
-        new ST("SELECT <selectSQL> FROM <primaryTableFromSQL>")
+        new ST("<selectSQL> FROM <primaryTableFromSQL>")
             .add("selectSQL", selectSQL)
             .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
             .render();
@@ -126,7 +126,7 @@ public record Query(
       }
     }
 
-    return sql;
+    return "SELECT " + sql;
   }
 
   public List<FieldVariable> getSelect() {

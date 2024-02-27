@@ -38,6 +38,7 @@ import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteria;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
@@ -108,14 +109,16 @@ class DatasetsApiControllerTest {
 
   private static final String QUERY_COLUMN_STATISTICS_ENDPOINT =
       QUERY_DATA_ENDPOINT + "/statistics/{column}";
+
+  private static final String SNAPSHOT_BUILDER_ENDPOINT =
+      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/settings";
+      SNAPSHOT_BUILDER_ENDPOINT + "/settings";
   private static final String GET_CONCEPTS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{parentConcept}";
-  private static final String GET_COUNT_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/count";
+      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{parentConcept}";
+  private static final String GET_COUNT_ENDPOINT = SNAPSHOT_BUILDER_ENDPOINT + "/count";
   private static final String SEARCH_CONCEPTS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder/concepts/{domainId}/search";
+      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{domainId}/search";
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final Integer CONCEPT_ID = 0;
@@ -574,5 +577,30 @@ class DatasetsApiControllerTest {
     assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, unlockRequest);
+  }
+
+  @Test
+  void getConceptHierarchy() throws Exception {
+    var expected =
+        new SnapshotBuilderGetConceptHierarchyResponse()
+            .result(new SnapshotBuilderConcept().name("test"));
+    var conceptId = 1234;
+
+    when(snapshotBuilderService.getConceptHierarchy(DATASET_ID, conceptId, TEST_USER))
+        .thenReturn(expected);
+    String actualJson =
+        mvc.perform(
+                get(
+                    SNAPSHOT_BUILDER_ENDPOINT + "/conceptHierarchy/{conceptId}",
+                    DATASET_ID,
+                    conceptId))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    var actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptHierarchyResponse.class);
+    assertThat(actual, equalTo(expected));
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 }

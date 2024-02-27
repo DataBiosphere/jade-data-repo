@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
@@ -10,7 +10,6 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,6 +51,28 @@ class SearchConceptsQueryBuilderTest {
         "generated SQL for search concepts query is correct",
         actual,
         equalToCompressingWhiteSpace(expected));
+            "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform));
+    if (platformWrapper.isGcp()) {
+      assertThat(
+          "generated SQL for GCP is correct",
+          actual,
+          equalToCompressingWhiteSpace(
+              "SELECT c.concept_name, c.concept_id FROM concept AS c "
+                  + "WHERE (c.domain_id = 'condition' "
+                  + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
+                  + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
+                  + "LIMIT 100"));
+    }
+    if (platformWrapper.isAzure()) {
+      assertThat(
+          "generated SQL for Azure is correct",
+          actual,
+          equalToCompressingWhiteSpace(
+              "SELECT TOP 100 c.concept_name, c.concept_id FROM concept AS c "
+                  + "WHERE (c.domain_id = 'condition' "
+                  + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
+                  + "OR CHARINDEX('cancer', c.concept_code) > 0))"));
+    }
   }
 
   @ParameterizedTest
@@ -64,39 +85,45 @@ class SearchConceptsQueryBuilderTest {
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
-        formatSQLWithLimit(
-            "SELECT c.concept_name, c.concept_id FROM concept AS c WHERE c.domain_id = 'Condition'",
-            cloudPlatformWrapper);
-    assertThat(
-        "generated SQL for empty search concepts query is correct",
-        actual,
-        equalToCompressingWhiteSpace(expected));
-  }
-
-  String formatSQLWithLimit(String sql, CloudPlatformWrapper cloudPlatformWrapper) {
-    int limit = 100;
-    if (cloudPlatformWrapper.isAzure()) {
-      return String.format("TOP %d %s", limit, sql);
-    } else if (cloudPlatformWrapper.isGcp()) {
-      return String.format("%s LIMIT %d", sql, limit);
-    } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+        "c.concept_name, c.concept_id FROM concept AS c " + "WHERE c.domain_id = 'Condition' ";
+    if (platformWrapper.isAzure()) {
+      assertThat(
+          "generated SQL for Azure empty search string is correct",
+          actual,
+          equalToCompressingWhiteSpace("SELECT TOP 100 " + expected));
+    }
+    if (platformWrapper.isGcp()) {
+      assertThat(
+          "generated SQL for GCP empty search string is correct",
+          actual,
+          equalToCompressingWhiteSpace("SELECT " + expected + " LIMIT 100"));
     }
   }
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void testCreateSearchConceptClause(CloudPlatform platform) {
+    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", s -> s);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-
-    assertThat(
-        "generated sql is as expected",
-        SearchConceptsQueryBuilder.createSearchConceptClause(
+    String actual =
+        createSearchConceptClause(
                 conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
-            .renderSQL(CloudPlatformWrapper.of(platform)),
-        // table name is added when the Query is created
-        equalTo("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
+            .renderSQL(CloudPlatformWrapper.of(platform));
+    if (platformWrapper.isAzure()) {
+      assertThat(
+          "generated sql is as expected",
+          actual,
+          // table name is added when the Query is created
+          equalToCompressingWhiteSpace("CHARINDEX('cancer', null.concept_name) > 0"));
+    }
+    if (platformWrapper.isGcp()) {
+      assertThat(
+          "generated sql is as expected",
+          actual,
+          // table name is added when the Query is created
+          equalToCompressingWhiteSpace("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
+    }
   }
 
   @ParameterizedTest
@@ -111,6 +138,6 @@ class SearchConceptsQueryBuilderTest {
                 conceptTablePointer, conceptTableVariable, "cancer")
             .renderSQL(CloudPlatformWrapper.of(platform)),
         // table name is added when the Query is created
-        equalTo("null.domain_id = 'cancer'"));
+        equalToCompressingWhiteSpace("null.domain_id = 'cancer'"));
   }
 }

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.testcontainers.shaded.org.apache.commons.lang3.NotImplementedException;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
@@ -28,48 +29,48 @@ class SearchConceptsQueryBuilderTest {
     return domainOption;
   }
 
+  String formatSQLWithLimit(String sql, CloudPlatformWrapper cloudPlatformWrapper) {
+    int limit = 100;
+    if (cloudPlatformWrapper.isAzure()) {
+      return String.format("TOP %d %s", limit, sql);
+    } else if (cloudPlatformWrapper.isGcp()) {
+      return String.format("%s LIMIT %d", sql, limit);
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
+  }
+
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQuery(CloudPlatform platform) {
-    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
     SnapshotBuilderDomainOption domainOption =
         createTestSnapshotBuilderDomainOption("observation", 27);
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "cancer", s -> s, CloudPlatformWrapper.of(platform));
-    String expected =
-        formatSQLWithLimit(
-            "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) "
-                + "FROM concept AS c  "
-                + "JOIN observation AS o "
-                + "ON o.observation_concept_id = c.concept_id "
-                + "WHERE (c.domain_id = 'observation' "
-                + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
-                + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))",
-            platformWrapper);
-    assertThat(
-        "generated SQL for search concepts query is correct",
-        actual,
-        equalToCompressingWhiteSpace(expected));
-            "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform));
-    if (platformWrapper.isGcp()) {
+
+    if (cloudPlatformWrapper.isGcp()) {
       assertThat(
           "generated SQL for GCP is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "SELECT c.concept_name, c.concept_id FROM concept AS c "
-                  + "WHERE (c.domain_id = 'condition' "
+              "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) "
+                  + "FROM concept AS c "
+                  + "JOIN observation AS o ON o.observation_concept_id = c.concept_id "
+                  + "WHERE (c.domain_id = 'observation' "
                   + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                   + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
                   + "LIMIT 100"));
     }
-    if (platformWrapper.isAzure()) {
+    if (cloudPlatformWrapper.isAzure()) {
       assertThat(
           "generated SQL for Azure is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "SELECT TOP 100 c.concept_name, c.concept_id FROM concept AS c "
-                  + "WHERE (c.domain_id = 'condition' "
+              "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) "
+                  + "FROM concept AS c  JOIN observation AS o ON o.observation_concept_id = c.concept_id "
+                  + "WHERE (c.domain_id = 'observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
                   + "OR CHARINDEX('cancer', c.concept_code) > 0))"));
     }
@@ -86,13 +87,13 @@ class SearchConceptsQueryBuilderTest {
             domainOption, "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
         "c.concept_name, c.concept_id FROM concept AS c " + "WHERE c.domain_id = 'Condition' ";
-    if (platformWrapper.isAzure()) {
+    if (cloudPlatformWrapper.isAzure()) {
       assertThat(
           "generated SQL for Azure empty search string is correct",
           actual,
           equalToCompressingWhiteSpace("SELECT TOP 100 " + expected));
     }
-    if (platformWrapper.isGcp()) {
+    if (cloudPlatformWrapper.isGcp()) {
       assertThat(
           "generated SQL for GCP empty search string is correct",
           actual,

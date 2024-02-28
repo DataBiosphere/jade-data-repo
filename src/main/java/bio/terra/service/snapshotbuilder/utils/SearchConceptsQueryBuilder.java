@@ -36,15 +36,15 @@ public class SearchConceptsQueryBuilder {
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
-    // FROM concept JOIN conditionOccurrencePointer ON conditionOccurrencePointer.concept_id =
+    // FROM concept JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
     // concept.concept_id
-    var conditionOccurenceTableVariable =
+    var domainOccurenceTableVariable =
         TableVariable.forJoined(domainOccurrencePointer, occurrenceTable.idColumnName(), idField);
 
     var personIdField =
         new FieldVariable(
             new FieldPointer(domainOccurrencePointer, "person_id", "COUNT"),
-            conditionOccurenceTableVariable,
+            domainOccurenceTableVariable,
             null,
             true);
 
@@ -90,7 +90,7 @@ public class SearchConceptsQueryBuilder {
     Query query =
         new Query(
             List.of(nameField, idField, personIdField),
-            List.of(conceptTableVariable, conditionOccurenceTableVariable),
+            List.of(conceptTableVariable, domainOccurenceTableVariable),
             whereClause,
             100);
 

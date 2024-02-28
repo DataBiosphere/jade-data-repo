@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.testcontainers.shaded.org.apache.commons.lang3.NotImplementedException;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
@@ -27,17 +26,6 @@ class SearchConceptsQueryBuilderTest {
     domainOption.setCategory(category);
     domainOption.setId(id);
     return domainOption;
-  }
-
-  String formatSQLWithLimit(String sql, CloudPlatformWrapper cloudPlatformWrapper) {
-    int limit = 100;
-    if (cloudPlatformWrapper.isAzure()) {
-      return String.format("TOP %d %s", limit, sql);
-    } else if (cloudPlatformWrapper.isGcp()) {
-      return String.format("%s LIMIT %d", sql, limit);
-    } else {
-      throw new NotImplementedException("Cloud platform not implemented");
-    }
   }
 
   @ParameterizedTest

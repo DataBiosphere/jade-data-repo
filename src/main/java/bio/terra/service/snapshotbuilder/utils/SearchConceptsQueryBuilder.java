@@ -19,8 +19,6 @@ import java.util.List;
 
 public class SearchConceptsQueryBuilder {
 
-  // look up domainID in domainOptions
-
   private SearchConceptsQueryBuilder() {}
 
   public static String buildSearchConceptsQuery(

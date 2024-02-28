@@ -46,6 +46,8 @@ class SearchConceptsQueryBuilderTest {
                   + "WHERE (c.domain_id = 'observation' "
                   + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                   + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
+                  + "GROUP BY c.concept_name, c.concept_id "
+                  + "ORDER BY count DESC "
                   + "LIMIT 100"));
     }
     if (platformWrapper.isAzure()) {
@@ -57,7 +59,9 @@ class SearchConceptsQueryBuilderTest {
                   + "FROM concept AS c  JOIN observation AS o ON o.observation_concept_id = c.concept_id "
                   + "WHERE (c.domain_id = 'observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                  + "OR CHARINDEX('cancer', c.concept_code) > 0))"));
+                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
+                  + "GROUP BY c.concept_name, c.concept_id "
+                  + "ORDER BY count DESC"));
     }
   }
 

@@ -33,7 +33,7 @@ public class CriteriaQueryBuilder {
 
   public record OccurrenceTable(String tableName, String idColumnName) {}
 
-  public static final Map<Integer, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
+  private static final Map<Integer, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
       Map.of(
           19, new OccurrenceTable("condition_occurrence", "condition_concept_id"),
           10, new OccurrenceTable("procedure_occurrence", "procedure_concept_id"),

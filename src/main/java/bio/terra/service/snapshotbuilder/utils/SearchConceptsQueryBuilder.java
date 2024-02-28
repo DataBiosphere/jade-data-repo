@@ -6,6 +6,8 @@ import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.OrderByDirection;
+import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
@@ -41,7 +43,7 @@ public class SearchConceptsQueryBuilder {
         new FieldVariable(
             new FieldPointer(domainOccurrencePointer, "person_id", "COUNT"),
             domainOccurenceTableVariable,
-            null,
+            "count",
             true);
 
     // domain clause filters for the given domain id based on field domain_id
@@ -81,13 +83,20 @@ public class SearchConceptsQueryBuilder {
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id)
     // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
     // concept.concept_id
-    // WHERE concept.name CONTAINS {{name}} GROUP BY domain_occurence.concept_id
+    // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
+
+    List<OrderByVariable> orderBy =
+        List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));
+
+    List<FieldVariable> groupBy = List.of(nameField, idField);
 
     Query query =
         new Query(
             List.of(nameField, idField, personIdField),
             List.of(conceptTableVariable, domainOccurenceTableVariable),
             whereClause,
+            groupBy,
+            orderBy,
             100);
 
     return query.renderSQL(platform);

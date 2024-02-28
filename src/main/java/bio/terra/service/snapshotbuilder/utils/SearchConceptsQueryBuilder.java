@@ -30,7 +30,7 @@ public class SearchConceptsQueryBuilder {
       CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     var occurrenceTable = getOccurrenceTableFromDomain(domainOption.getId());
-    var conditionOccurrencePointer =
+    var domainOccurrencePointer =
         TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
@@ -39,12 +39,11 @@ public class SearchConceptsQueryBuilder {
     // FROM concept JOIN conditionOccurrencePointer ON conditionOccurrencePointer.concept_id =
     // concept.concept_id
     var conditionOccurenceTableVariable =
-        TableVariable.forJoined(
-            conditionOccurrencePointer, occurrenceTable.idColumnName(), idField);
+        TableVariable.forJoined(domainOccurrencePointer, occurrenceTable.idColumnName(), idField);
 
     var personIdField =
         new FieldVariable(
-            new FieldPointer(conditionOccurrencePointer, "person_id", "COUNT"),
+            new FieldPointer(domainOccurrencePointer, "person_id", "COUNT"),
             conditionOccurenceTableVariable,
             null,
             true);
@@ -84,9 +83,9 @@ public class SearchConceptsQueryBuilder {
 
     // TODO: DC-845 Implement pagination, remove hardcoded limit
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id)
-    // FROM concept JOIN condition_occurrence ON condition_occurrence.concept_id =
+    // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
     // concept.concept_id
-    // WHERE concept.name CONTAINS {{name}} GROUP BY condition_occurrence.concept_id
+    // WHERE concept.name CONTAINS {{name}} GROUP BY domain_occurence.concept_id
 
     Query query =
         new Query(

@@ -1,7 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder.getOccurrenceTableFromDomain;
-
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
@@ -27,7 +25,7 @@ public class SearchConceptsQueryBuilder {
       TableNameGenerator tableNameGenerator,
       CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
-    var occurrenceTable = getOccurrenceTableFromDomain(domainOption.getId());
+    var occurrenceTable = CriteriaQueryBuilder.getOccurrenceTableFromDomain(domainOption.getId());
     var domainOccurrencePointer =
         TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);

@@ -15,6 +15,7 @@ public record Query(
     FilterVariable where,
     List<FieldVariable> groupBy,
     HavingFilterVariable having,
+    List<OrderByVariable> orderBy,
     Integer limit)
     implements SqlExpression {
 
@@ -36,21 +37,31 @@ public record Query(
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables) {
-    this(select, tables, null, null, null, null);
+    this(select, tables, null, null, null, null, null);
   }
 
   public Query(
       List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, groupBy, null, null);
+    this(select, tables, null, groupBy, null, null, null);
   }
 
   public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null, null);
+    this(select, tables, where, null, null, null, null);
   }
 
   public Query(
       List<FieldVariable> select, List<TableVariable> tables, FilterVariable where, Integer limit) {
-    this(select, tables, where, null, null, limit);
+    this(select, tables, where, null, null, null, limit);
+  }
+
+  public Query(
+      List<FieldVariable> select,
+      List<TableVariable> tables,
+      FilterVariable where,
+      List<FieldVariable> groupBy,
+      List<OrderByVariable> orderBy,
+      Integer limit) {
+    this(select, tables, where, groupBy, null, orderBy, limit);
   }
 
   @Override
@@ -109,6 +120,18 @@ public record Query(
 
     if (having != null) {
       sql += " " + having.renderSQL(platform);
+    }
+
+    if (orderBy != null) {
+      sql =
+          new ST("<sql> ORDER BY <orderBySQL>")
+              .add("sql", sql)
+              .add(
+                  "orderBySQL",
+                  orderBy.stream()
+                      .map(fv -> fv.renderSQL(true, platform))
+                      .collect(Collectors.joining(", ")))
+              .render();
     }
 
     if (limit != null) {

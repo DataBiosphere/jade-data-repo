@@ -49,7 +49,8 @@ class FieldVariableTest {
         new FieldVariable(
             new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
     assertThat(
-        fieldVariableSqlFunctionWrapper.renderSQL(cloudPlatformWrapper), is("custom(t.field)"));
+        fieldVariableSqlFunctionWrapper.renderSQL(cloudPlatformWrapper),
+        is("custom(t.field) AS alias"));
   }
 
   @ParameterizedTest
@@ -74,7 +75,9 @@ class FieldVariableTest {
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(false), is("foo(t.field)"));
+    assertThat(
+        fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(false),
+        is("foo(t.field) AS alias"));
   }
 
   @Test
@@ -84,7 +87,8 @@ class FieldVariableTest {
     var tableVariable = TableVariable.forPrimary(table);
     TableVariable.generateAliases(List.of(tableVariable));
     assertThat(
-        new FieldVariable(fieldPointer, tableVariable, "bar").renderSqlForWhere(), is("t.field"));
+        new FieldVariable(fieldPointer, tableVariable, "bar").renderSqlForWhere(),
+        is("t.field AS bar"));
   }
 
   @Test

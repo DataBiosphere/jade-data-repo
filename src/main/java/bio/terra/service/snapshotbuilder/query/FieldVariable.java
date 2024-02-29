@@ -75,7 +75,7 @@ public class FieldVariable implements SqlExpression {
       if (sqlFunctionWrapper.contains(substitutionVar)) {
         return new ST(sqlFunctionWrapper).add("fieldSql", sql).render();
       }
-      return sqlFunctionWrapper + "(" + sql + ")";
+      sql = sqlFunctionWrapper + "(" + sql + ")";
     }
 
     if (alias != null && useAlias) {

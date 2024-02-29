@@ -42,13 +42,29 @@ class FieldVariableTest {
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSQL(cloudPlatformWrapper), is("foo(t.field)"));
+    assertThat(
+        fieldVariableFunctionWrapper.renderSQL(cloudPlatformWrapper), is("foo(t.field) AS alias"));
 
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
             new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
     assertThat(
         fieldVariableSqlFunctionWrapper.renderSQL(cloudPlatformWrapper), is("custom(t.field)"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void renderSQLForAliasAndDistinct(CloudPlatform platform) {
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
+    var table = QueryTestUtils.fromTableName("table");
+    var tableVariable = TableVariable.forPrimary(table);
+    TableVariable.generateAliases(List.of(tableVariable));
+
+    var fieldVariable =
+        new FieldVariable(new FieldPointer(table, "field", "COUNT"), tableVariable, "count", true);
+
+    assertThat(
+        fieldVariable.renderSQL(cloudPlatformWrapper), is("COUNT(DISTINCT t.field) AS count"));
   }
 
   @Test

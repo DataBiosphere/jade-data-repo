@@ -144,7 +144,7 @@ public class SnapshotBuilderService {
             .orElseThrow(
                 () ->
                     new BadRequestException(
-                        String.format("Invalid domain category is given: %s", domainId)));
+                        "Invalid domain category is given: %s".formatted(domainId)));
 
     String cloudSpecificSql =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(

@@ -1,8 +1,6 @@
 package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.TerraConfiguration;
-import bio.terra.app.model.rawls.WorkspaceDetails;
-import bio.terra.app.model.rawls.WorkspaceResponse;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.ErrorModel;
@@ -11,7 +9,6 @@ import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamResourceType;
-import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -78,13 +75,12 @@ public class RawlsService {
   /**
    * @return a link to the workspace in Terra UI
    */
-  @VisibleForTesting
-  String getWorkspaceLink(WorkspaceResponse workspaceResponse) {
-    WorkspaceDetails workspace = workspaceResponse.getWorkspace();
+  private String getWorkspaceLink(WorkspaceResponse workspaceResponse) {
+    WorkspaceDetails workspace = workspaceResponse.workspace();
     if (workspace == null) {
       return null;
     }
     return "%s/#workspaces/%s/%s"
-        .formatted(terraConfiguration.basePath(), workspace.getNamespace(), workspace.getName());
+        .formatted(terraConfiguration.basePath(), workspace.namespace(), workspace.name());
   }
 }

@@ -13,6 +13,7 @@ import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
@@ -35,17 +36,24 @@ class CriteriaQueryBuilderTest {
 
   private static final SnapshotBuilderSettings SNAPSHOT_BUILDER_SETTINGS =
       new SnapshotBuilderSettings()
-          .domainOptions(List.of(new SnapshotBuilderDomainOption().id(19)))
+          .domainOptions(
+              List.of(
+                  (SnapshotBuilderDomainOption)
+                      new SnapshotBuilderDomainOption()
+                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
+                          .id(19)))
           .programDataOptions(
               List.of(
-                  new SnapshotBuilderProgramDataOption()
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .columnName("list_column_name")
-                      .id(1),
-                  new SnapshotBuilderProgramDataOption()
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.RANGE)
-                      .columnName("range_column_name")
-                      .id(0)));
+                  (SnapshotBuilderProgramDataOption)
+                      new SnapshotBuilderProgramDataOption()
+                          .columnName("list_column_name")
+                          .kind(SnapshotBuilderOption.KindEnum.LIST)
+                          .id(1),
+                  (SnapshotBuilderProgramDataOption)
+                      new SnapshotBuilderProgramDataOption()
+                          .columnName("range_column_name")
+                          .kind(SnapshotBuilderOption.KindEnum.RANGE)
+                          .id(0)));
 
   @BeforeEach
   void setup() {

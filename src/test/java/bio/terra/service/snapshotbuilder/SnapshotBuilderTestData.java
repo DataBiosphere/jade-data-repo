@@ -14,9 +14,12 @@ import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TableDataType;
@@ -31,59 +34,74 @@ public class SnapshotBuilderTestData {
       new SnapshotBuilderSettings()
           .domainOptions(
               List.of(
-                  new SnapshotBuilderDomainOption()
-                      .id(10)
-                      .category("Condition")
-                      .root(
-                          new SnapshotBuilderConcept()
-                              .id(100)
-                              .name("Condition")
-                              .count(100)
-                              .hasChildren(true)),
-                  new SnapshotBuilderDomainOption()
-                      .id(11)
-                      .category("Procedure")
-                      .root(
-                          new SnapshotBuilderConcept()
-                              .id(200)
-                              .name("Procedure")
-                              .count(100)
-                              .hasChildren(true)),
-                  new SnapshotBuilderDomainOption()
-                      .id(12)
-                      .category("Observation")
-                      .root(
-                          new SnapshotBuilderConcept()
-                              .id(300)
-                              .name("Observation")
-                              .count(100)
-                              .hasChildren(true))))
+                  (SnapshotBuilderDomainOption)
+                      new SnapshotBuilderDomainOption()
+                          .root(
+                              new SnapshotBuilderConcept()
+                                  .id(100)
+                                  .name("Condition")
+                                  .count(100)
+                                  .hasChildren(true))
+                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
+                          .id(10)
+                          .name("Condition"),
+                  (SnapshotBuilderDomainOption)
+                      new SnapshotBuilderDomainOption()
+                          .root(
+                              new SnapshotBuilderConcept()
+                                  .id(200)
+                                  .name("Procedure")
+                                  .count(100)
+                                  .hasChildren(true))
+                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
+                          .id(11)
+                          .name("Procedure"),
+                  (SnapshotBuilderDomainOption)
+                      new SnapshotBuilderDomainOption()
+                          .root(
+                              new SnapshotBuilderConcept()
+                                  .id(300)
+                                  .name("Observation")
+                                  .count(100)
+                                  .hasChildren(true))
+                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
+                          .id(12)
+                          .name("Observation")))
           .programDataOptions(
               List.of(
-                  new SnapshotBuilderProgramDataOption()
-                      .id(1)
-                      .name("Year of birth")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.RANGE)
-                      .tableName("person")
-                      .columnName("year_of_birth"),
-                  new SnapshotBuilderProgramDataOption()
-                      .id(2)
-                      .name("Ethnicity")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .tableName("person")
-                      .columnName("ethnicity"),
-                  new SnapshotBuilderProgramDataOption()
-                      .id(3)
-                      .name("Gender identity")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .tableName("person")
-                      .columnName("gender_identity"),
-                  new SnapshotBuilderProgramDataOption()
-                      .id(4)
-                      .name("Race")
-                      .kind(SnapshotBuilderProgramDataOption.KindEnum.LIST)
-                      .tableName("person")
-                      .columnName("race")))
+                  (SnapshotBuilderProgramDataOption)
+                      new SnapshotBuilderProgramDataRangeOption()
+                          .min(0)
+                          .max(100)
+                          .tableName("person")
+                          .columnName("year_of_birth")
+                          .id(1)
+                          .name("Year of birth")
+                          .kind(SnapshotBuilderOption.KindEnum.RANGE),
+                  (SnapshotBuilderProgramDataOption)
+                      new SnapshotBuilderProgramDataListOption()
+                          .values(List.of(40))
+                          .tableName("person")
+                          .columnName("ethnicity")
+                          .id(2)
+                          .name("Ethnicity")
+                          .kind(SnapshotBuilderOption.KindEnum.LIST),
+                  (SnapshotBuilderProgramDataOption)
+                      new SnapshotBuilderProgramDataListOption()
+                          .values(List.of(41))
+                          .tableName("person")
+                          .columnName("gender_identity")
+                          .id(3)
+                          .name("Gender identity")
+                          .kind(SnapshotBuilderOption.KindEnum.LIST),
+                  (SnapshotBuilderProgramDataOption)
+                      new SnapshotBuilderProgramDataListOption()
+                          .values(List.of(42))
+                          .tableName("person")
+                          .columnName("race")
+                          .id(4)
+                          .name("Race")
+                          .kind(SnapshotBuilderOption.KindEnum.LIST)))
           .featureValueGroups(
               List.of(
                   new SnapshotBuilderFeatureValueGroup()

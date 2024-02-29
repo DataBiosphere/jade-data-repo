@@ -29,6 +29,9 @@ public record Query(
     if (groupBy == null) {
       groupBy = List.of();
     }
+    if (orderBy == null) {
+      orderBy = List.of();
+    }
     long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
     if (primaryTables != 1) {
       throw new IllegalArgumentException(
@@ -122,7 +125,7 @@ public record Query(
       sql += " " + having.renderSQL(platform);
     }
 
-    if (orderBy != null) {
+    if (!orderBy.isEmpty()) {
       sql =
           new ST("<sql> ORDER BY <orderBySQL>")
               .add("sql", sql)

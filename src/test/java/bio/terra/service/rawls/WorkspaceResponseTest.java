@@ -28,9 +28,9 @@ class WorkspaceResponseTest {
     WorkspaceDetails workspaceDetails =
         new WorkspaceDetails(WORKSPACE_ID.toString(), NAMESPACE, NAME);
     String content =
-        String.format(
-            "{\"workspace\": %s, \"unknown\": \"property\"}",
-            objectMapper.writeValueAsString(workspaceDetails));
+        """
+        {"workspace": %s, "unknown": "property"}"""
+            .formatted(objectMapper.writeValueAsString(workspaceDetails));
     assertThat(
         objectMapper.readValue(content, WorkspaceResponse.class),
         equalTo(new WorkspaceResponse(workspaceDetails)));

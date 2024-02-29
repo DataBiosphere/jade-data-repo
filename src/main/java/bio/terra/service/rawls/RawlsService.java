@@ -9,6 +9,7 @@ import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamResourceType;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +76,8 @@ public class RawlsService {
   /**
    * @return a link to the workspace in Terra UI
    */
-  private String getWorkspaceLink(WorkspaceResponse workspaceResponse) {
+  @VisibleForTesting
+  String getWorkspaceLink(WorkspaceResponse workspaceResponse) {
     WorkspaceDetails workspace = workspaceResponse.workspace();
     if (workspace == null) {
       return null;

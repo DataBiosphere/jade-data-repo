@@ -29,8 +29,6 @@ import org.springframework.web.client.RestTemplate;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class RawlsClientTest {
-
-  @Mock private RawlsConfiguration rawlsConfiguration;
   @Mock private RestTemplate restTemplate;
   private RawlsClient rawlsClient;
 
@@ -43,7 +41,7 @@ class RawlsClientTest {
 
   @BeforeEach
   void beforeEach() {
-    when(rawlsConfiguration.basePath()).thenReturn(BASE_PATH);
+    var rawlsConfiguration = new RawlsConfiguration(BASE_PATH);
     rawlsClient = new RawlsClient(rawlsConfiguration, restTemplate);
   }
 

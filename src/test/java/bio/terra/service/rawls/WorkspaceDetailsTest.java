@@ -20,9 +20,9 @@ class WorkspaceDetailsTest {
   void workspaceDetails() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     String content =
-        String.format(
-            "{\"workspaceId\": \"%s\", \"namespace\": \"%s\", \"name\": \"%s\", \"unknown\": \"property\"}",
-            WORKSPACE_ID, NAMESPACE, NAME);
+        """
+        {"workspaceId": "%s", "namespace": "%s", "name": "%s", "unknown": "property"}"""
+            .formatted(WORKSPACE_ID, NAMESPACE, NAME);
     assertThat(
         objectMapper.readValue(content, WorkspaceDetails.class),
         equalTo(new WorkspaceDetails(WORKSPACE_ID, NAMESPACE, NAME)));

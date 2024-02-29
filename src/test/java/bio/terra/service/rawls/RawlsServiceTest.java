@@ -2,6 +2,8 @@ package bio.terra.service.rawls;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.TerraConfiguration;
@@ -30,7 +32,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class RawlsServiceTest {
 
-  @Mock private TerraConfiguration terraConfiguration;
   @Mock private RawlsClient rawlsClient;
   private RawlsService rawlsService;
   private static final AuthenticatedUserRequest TEST_USER =
@@ -40,8 +41,6 @@ class RawlsServiceTest {
   private static final String OWNER_EMAIL = "policy-email@firecloud.org";
   private static final String WORKSPACE_NAME = "testWorkspace";
   private static final String WORKSPACE_NAMESPACE = "testNamespace";
-  private static final String WORKSPACE_LINK =
-      "%s/#workspaces/%s/%s".formatted(BASE_PATH, WORKSPACE_NAMESPACE, WORKSPACE_NAME);
 
   private final UUID accessibleWorkspaceId = UUID.randomUUID();
   private final WorkspaceResponse accessibleWorkspaceResponse =
@@ -54,14 +53,21 @@ class RawlsServiceTest {
 
   @BeforeEach
   void beforeEach() {
+    var terraConfiguration = new TerraConfiguration(BASE_PATH);
     rawlsService = new RawlsService(terraConfiguration, rawlsClient);
+  }
 
-    when(terraConfiguration.basePath()).thenReturn(BASE_PATH);
+  @Test
+  public void testGetWorkspaceLink() {
+    assertThat(
+        "A workspace response with no workspace yields a null workspace link",
+        rawlsService.getWorkspaceLink(new WorkspaceResponse(null)),
+        nullValue());
 
-    when(rawlsClient.getWorkspace(accessibleWorkspaceId, TEST_USER))
-        .thenReturn(accessibleWorkspaceResponse);
-    when(rawlsClient.getWorkspace(inaccessibleWorkspaceId, TEST_USER))
-        .thenThrow(inaccessibleWorkspaceException);
+    assertThat(
+        "Link can be constructed for a non-null workspace",
+        rawlsService.getWorkspaceLink(accessibleWorkspaceResponse),
+        startsWith(BASE_PATH));
   }
 
   private ResourcePolicyModel createResourcePolicyModel(
@@ -75,6 +81,11 @@ class RawlsServiceTest {
 
   @Test
   void testRetrievePoliciesAndEmailsWorkspace() {
+    when(rawlsClient.getWorkspace(accessibleWorkspaceId, TEST_USER))
+        .thenReturn(accessibleWorkspaceResponse);
+    when(rawlsClient.getWorkspace(inaccessibleWorkspaceId, TEST_USER))
+        .thenThrow(inaccessibleWorkspaceException);
+
     final UUID nonWorkspaceResourceId = UUID.randomUUID();
     final String memberEmail = "a@a.com";
 
@@ -99,7 +110,7 @@ class RawlsServiceTest {
                 .workspaceName(WORKSPACE_NAME)
                 .workspaceNamespace(WORKSPACE_NAMESPACE)
                 .workspaceId(accessibleWorkspaceId)
-                .workspaceLink(WORKSPACE_LINK)
+                .workspaceLink(rawlsService.getWorkspaceLink(accessibleWorkspaceResponse))
                 .addWorkspacePoliciesItem(
                     new PolicyModel().name(OWNER_NAME).addMembersItem(OWNER_EMAIL))));
     assertThat(

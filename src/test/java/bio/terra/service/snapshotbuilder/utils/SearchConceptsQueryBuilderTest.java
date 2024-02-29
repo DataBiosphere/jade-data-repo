@@ -40,7 +40,7 @@ class SearchConceptsQueryBuilderTest {
           "generated SQL for GCP is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) "
+              "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
                   + "FROM concept AS c "
                   + "JOIN observation AS o ON o.observation_concept_id = c.concept_id "
                   + "WHERE (c.domain_id = 'observation' "
@@ -55,7 +55,7 @@ class SearchConceptsQueryBuilderTest {
           "generated SQL for Azure is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) "
+              "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
                   + "FROM concept AS c  JOIN observation AS o ON o.observation_concept_id = c.concept_id "
                   + "WHERE (c.domain_id = 'observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "

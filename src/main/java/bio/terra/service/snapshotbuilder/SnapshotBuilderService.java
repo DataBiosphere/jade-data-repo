@@ -139,7 +139,7 @@ public class SnapshotBuilderService {
 
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
-            .filter(domainOption -> Objects.equals(domainOption.getCategory(), domainId))
+            .filter(domainOption -> domainOption.getCategory().equals(domainId))
             .findFirst()
             .orElseThrow(
                 () ->

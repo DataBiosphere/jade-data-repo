@@ -41,7 +41,7 @@ public class SearchConceptsQueryBuilder {
 
     var personIdField =
         new FieldVariable(
-            new FieldPointer(domainOccurrencePointer, "person_id", "COUNT"),
+            new FieldPointer(domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
             domainOccurenceTableVariable,
             "count",
             true);
@@ -79,7 +79,6 @@ public class SearchConceptsQueryBuilder {
     BooleanAndOrFilterVariable whereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
-    // TODO: DC-845 Implement pagination, remove hardcoded limit
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id) as count
     // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
     // concept.concept_id

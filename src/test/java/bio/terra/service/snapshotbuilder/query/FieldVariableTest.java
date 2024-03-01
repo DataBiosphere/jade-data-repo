@@ -81,17 +81,6 @@ class FieldVariableTest {
   }
 
   @Test
-  void renderSqlForWhere() {
-    TablePointer table = QueryTestUtils.fromTableName("table");
-    var fieldPointer = new FieldPointer(table, "field");
-    var tableVariable = TableVariable.forPrimary(table);
-    TableVariable.generateAliases(List.of(tableVariable));
-    assertThat(
-        new FieldVariable(fieldPointer, tableVariable, "bar").renderSqlForWhere(),
-        is("t.field AS bar"));
-  }
-
-  @Test
   void getAlias() {
     assertThat(new FieldVariable(null, null).getAlias(), is(""));
     assertThat(new FieldVariable(null, null, "bar").getAlias(), is("bar"));

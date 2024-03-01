@@ -25,7 +25,7 @@ public class SubQueryFilterVariable implements FilterVariable {
     return new ST(TEMPLATE)
         .add("operator", operator.renderSQL(platform))
         .add("subQuery", subQuery.renderSQL(platform))
-        .add("fieldVariable", fieldVariable.renderSqlForWhere())
+        .add("fieldVariable", fieldVariable.renderSQL(platform))
         .render();
   }
 

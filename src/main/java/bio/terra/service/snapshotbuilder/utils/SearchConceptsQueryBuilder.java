@@ -83,6 +83,7 @@ public class SearchConceptsQueryBuilder {
     // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
     // concept.concept_id
     // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
+    // ORDER BY count DESC
 
     List<OrderByVariable> orderBy =
         List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));

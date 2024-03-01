@@ -232,9 +232,18 @@ jobs:
           AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.70.0
+        uses: broadinstitute/retry@v3
         with:
-          actions_subcommand: 'k8_checknamespace_clean'
+          timeout_seconds: 15
+          max_attempts: 2
+          command: |
+            eval $(cat env_vars)
+            if [[ "${google_zone}" != "" ]] && [[ "${K8_CLUSTER}" != "" ]]; then
+              kubectl delete secret -n ${NAMESPACEINUSE} "${NAMESPACEINUSE}-inuse"
+            else
+              echo "vars for checknamespaceclean not defined"
+              exit 1
+            fi
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.70.0

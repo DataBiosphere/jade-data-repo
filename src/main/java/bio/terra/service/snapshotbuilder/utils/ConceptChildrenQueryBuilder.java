@@ -31,7 +31,7 @@ public class ConceptChildrenQueryBuilder {
 
     var personIdField =
         new FieldVariable(
-            new FieldPointer(conceptTablePointer, "person_id", "COUNT"),
+            new FieldPointer(conceptTablePointer, "concept_id", "COUNT"),
             conceptTableVariable,
             "count",
             true);

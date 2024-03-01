@@ -1,7 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -29,13 +28,6 @@ public class ConceptChildrenQueryBuilder {
     FieldVariable descendantFieldVariable =
         ancestorTableVariable.makeFieldVariable("descendant_concept_id");
 
-    var personIdField =
-        new FieldVariable(
-            new FieldPointer(conceptTablePointer, "concept_id", "COUNT"),
-            conceptTableVariable,
-            "count",
-            true);
-
     BinaryFilterVariable whereClause =
         new BinaryFilterVariable(
             ancestorTableVariable.makeFieldVariable("ancestor_concept_id"),
@@ -47,7 +39,7 @@ public class ConceptChildrenQueryBuilder {
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
     Query query =
         new Query(
-            List.of(nameFieldVariable, idFieldVariable, personIdField),
+            List.of(nameFieldVariable, idFieldVariable),
             List.of(conceptTableVariable),
             subQueryFilterVariable);
     return query.renderSQL(platform);

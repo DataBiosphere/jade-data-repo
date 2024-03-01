@@ -51,10 +51,6 @@ public class FieldVariable implements SqlExpression {
     return renderSQL();
   }
 
-  public String renderSqlForWhere() {
-    return renderSQL();
-  }
-
   private String renderSQL() {
 
     String sql =

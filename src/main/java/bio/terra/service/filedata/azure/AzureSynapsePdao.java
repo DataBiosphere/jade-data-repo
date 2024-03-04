@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -515,7 +516,7 @@ public class AzureSynapsePdao {
     return Optional.of(drsId.getFsObjectId());
   }
 
-  public List<String> getRefIdsForSnapshot(Snapshot snapshot) {
+  public Set<String> getRefIdsForSnapshot(Snapshot snapshot) {
     return snapshot.getTables().stream()
         .filter(table -> table.getRowCount() > 0)
         .flatMap(
@@ -529,7 +530,7 @@ public class AzureSynapsePdao {
                       column ->
                           getRefIds(tableName, column, snapshot.getCollectionType()).stream());
             })
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
   }
 
   public String getOrCreateExternalDataSourceForResource(

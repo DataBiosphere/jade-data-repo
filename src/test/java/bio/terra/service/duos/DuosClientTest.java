@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.DuosConfiguration;
+import bio.terra.common.HttpEntityUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -16,31 +17,26 @@ import bio.terra.service.auth.oauth2.GoogleCredentialsService;
 import bio.terra.service.duos.exception.DuosDatasetBadRequestException;
 import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
 import bio.terra.service.duos.exception.DuosInternalServerErrorException;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.apache.http.HttpHeaders;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class DuosClientTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class DuosClientTest {
 
   @Mock private DuosConfiguration duosConfiguration;
   @Mock private RestTemplate restTemplate;
@@ -55,23 +51,28 @@ public class DuosClientTest {
 
   private DuosClient duosClient;
 
-  @Before
-  public void setup() {
-    when(googleCredentialsService.getApplicationDefaultAccessToken(DuosClient.SCOPES))
-        .thenReturn(TDR_SA_TOKEN);
-
-    when(duosConfiguration.basePath()).thenReturn(BASE_PATH);
-
+  @BeforeEach
+  void setup() {
     duosClient = new DuosClient(duosConfiguration, restTemplate, googleCredentialsService);
   }
 
+  private void mockDuosConfigurationBasePath() {
+    when(duosConfiguration.basePath()).thenReturn(BASE_PATH);
+  }
+
+  private void mockGoogleCredentialsService() {
+    when(googleCredentialsService.getApplicationDefaultAccessToken(DuosClient.SCOPES))
+        .thenReturn(TDR_SA_TOKEN);
+  }
+
   @Test
-  public void testStatusSucceeds() {
+  void testStatusSucceeds() {
+    mockDuosConfigurationBasePath();
     var expectedBody = new SystemStatus(true, false, Map.of());
     when(restTemplate.exchange(
             eq(duosClient.getStatusUrl()),
             eq(HttpMethod.GET),
-            argThat(DuosClientTest::isUnauthenticated),
+            argThat(HttpEntityUtils::isUnauthenticated),
             eq(SystemStatus.class)))
         .thenReturn(ResponseEntity.ok(expectedBody));
 
@@ -79,12 +80,13 @@ public class DuosClientTest {
   }
 
   @Test
-  public void testStatusThrows() {
+  void testStatusThrows() {
+    mockDuosConfigurationBasePath();
     var expectedException = new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
     when(restTemplate.exchange(
             eq(duosClient.getStatusUrl()),
             eq(HttpMethod.GET),
-            argThat(DuosClientTest::isUnauthenticated),
+            argThat(HttpEntityUtils::isUnauthenticated),
             eq(SystemStatus.class)))
         .thenThrow(expectedException);
 
@@ -95,7 +97,8 @@ public class DuosClientTest {
   }
 
   @Test
-  public void testGetDatasetSucceeds() {
+  void testGetDatasetSucceeds() {
+    mockDuosConfigurationBasePath();
     var expectedBody = new DuosDataset(DUOS_DATASET_ID);
     when(restTemplate.exchange(
             eq(duosClient.getDatasetUrl(DUOS_ID)),
@@ -111,7 +114,8 @@ public class DuosClientTest {
   }
 
   @Test
-  public void testGetDatasetThrowsWhenNotFound() {
+  void testGetDatasetThrowsWhenNotFound() {
+    mockDuosConfigurationBasePath();
     var expectedEx = new HttpClientErrorException(HttpStatus.NOT_FOUND);
     when(restTemplate.exchange(
             eq(duosClient.getDatasetUrl(DUOS_ID)),
@@ -130,7 +134,8 @@ public class DuosClientTest {
   }
 
   @Test
-  public void testGetDatasetThrowsWhenIdMalformed() {
+  void testGetDatasetThrowsWhenIdMalformed() {
+    mockDuosConfigurationBasePath();
     var expectedEx = new HttpClientErrorException(HttpStatus.BAD_REQUEST);
     when(restTemplate.exchange(
             eq(duosClient.getDatasetUrl(DUOS_ID)),
@@ -149,7 +154,10 @@ public class DuosClientTest {
   }
 
   @Test
-  public void testGetApprovedUsers() {
+  void testGetApprovedUsers() {
+    mockDuosConfigurationBasePath();
+    mockGoogleCredentialsService();
+
     var expectedBody =
         new DuosDatasetApprovedUsers(
             Stream.of("a", "b", "c").map(DuosDatasetApprovedUser::new).toList());
@@ -167,7 +175,10 @@ public class DuosClientTest {
   }
 
   @Test
-  public void testGetApprovedUsersThrows() {
+  void testGetApprovedUsersThrows() {
+    mockDuosConfigurationBasePath();
+    mockGoogleCredentialsService();
+
     var expectedEx = new HttpClientErrorException(HttpStatus.NOT_FOUND);
     when(restTemplate.exchange(
             eq(duosClient.getApprovedUsersUrl(DUOS_ID)),
@@ -186,7 +197,7 @@ public class DuosClientTest {
   }
 
   @Test
-  public void testConvertDuosExToDataRepoEx() {
+  void testConvertDuosExToDataRepoEx() {
     var badRequestEx = new HttpClientErrorException(HttpStatus.BAD_REQUEST);
     assertThat(
         DuosClient.convertToDataRepoException(badRequestEx, DUOS_ID),
@@ -209,24 +220,11 @@ public class DuosClientTest {
   }
 
   // Utilities for examining HttpEntity parameters
-  private static <T> List<String> getAuthorizations(HttpEntity<T> httpEntity) {
-    return Optional.ofNullable(httpEntity.getHeaders().get(HttpHeaders.AUTHORIZATION))
-        .orElse(List.of());
-  }
-
-  private static <T> boolean isUnauthenticated(HttpEntity<T> httpEntity) {
-    return getAuthorizations(httpEntity).isEmpty();
-  }
-
   private static <T> boolean hasUserToken(HttpEntity<T> httpEntity) {
-    String bearerHeader = "Bearer %s".formatted(TEST_USER.getToken());
-    List<String> authorizations = getAuthorizations(httpEntity);
-    return authorizations.size() == 1 && authorizations.get(0).equals(bearerHeader);
+    return HttpEntityUtils.hasToken(httpEntity, TEST_USER.getToken());
   }
 
   private static <T> boolean hasTdrSaToken(HttpEntity<T> httpEntity) {
-    String bearerHeader = "Bearer %s".formatted(TDR_SA_TOKEN);
-    List<String> authorizations = getAuthorizations(httpEntity);
-    return authorizations.size() == 1 && authorizations.get(0).equals(bearerHeader);
+    return HttpEntityUtils.hasToken(httpEntity, TDR_SA_TOKEN);
   }
 }

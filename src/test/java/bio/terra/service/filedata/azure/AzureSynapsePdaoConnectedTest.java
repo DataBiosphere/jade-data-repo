@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -343,7 +344,7 @@ public class AzureSynapsePdaoConnectedTest {
     snapshotTable.rowCount(snapshotRowIds.size());
     snapshot.snapshotTables(List.of(snapshotTable));
 
-    List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
+    Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     assertThat("4 fileRefs Returned.", refIds.size(), equalTo(4));
 
     // Make sure all are valid UUIDs

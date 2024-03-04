@@ -14,7 +14,7 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,7 +44,7 @@ public class TableDependencyConnectedTest {
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final UUID SNAPSHOT_ID2 = UUID.randomUUID();
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private static final List<String> REF_IDS = List.of(FILE_ID);
+  private static final Set<String> REF_IDS = Set.of(FILE_ID);
 
   @Before
   public void setUp() {

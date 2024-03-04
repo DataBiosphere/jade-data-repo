@@ -41,7 +41,8 @@ public class SearchConceptsQueryBuilder {
 
     var personIdField =
         new FieldVariable(
-            new FieldPointer(domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
+            new FieldPointer(
+                domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
             domainOccurenceTableVariable,
             "count",
             true);

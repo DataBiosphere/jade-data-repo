@@ -10,8 +10,8 @@ public class AggregateSynapseQueryResultsUtils {
   public static SnapshotBuilderConcept aggregateConceptResult(ResultSet rs) {
     int count;
     try {
-      count = ((int) rs.getLong("count"));
-    } catch (SQLException e) {
+      count = (int) rs.getLong("count");
+    } catch (SQLException | IllegalArgumentException e) {
       count = 1;
     }
 

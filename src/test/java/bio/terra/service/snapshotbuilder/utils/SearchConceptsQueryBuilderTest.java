@@ -22,7 +22,7 @@ class SearchConceptsQueryBuilderTest {
 
   private SnapshotBuilderDomainOption createTestSnapshotBuilderDomainOption(
       String category, int id) {
-    return new SnapshotBuilderDomainOption().category(category).id(id);
+    return (SnapshotBuilderDomainOption) new SnapshotBuilderDomainOption().name(category).id(id);
   }
 
   @ParameterizedTest

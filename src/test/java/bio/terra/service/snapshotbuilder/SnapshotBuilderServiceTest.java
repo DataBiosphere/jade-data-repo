@@ -133,7 +133,10 @@ class SnapshotBuilderServiceTest {
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
     SnapshotBuilderSettings snapshotBuilderSettings =
         new SnapshotBuilderSettings()
-            .domainOptions(List.of(new SnapshotBuilderDomainOption().category("condition").id(19)));
+            .domainOptions(
+                List.of(
+                    (SnapshotBuilderDomainOption)
+                        new SnapshotBuilderDomainOption().name("condition").id(19)));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));

@@ -2,7 +2,6 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
 import com.google.cloud.bigquery.TableResult;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.StreamSupport;
 

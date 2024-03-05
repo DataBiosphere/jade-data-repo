@@ -10,12 +10,19 @@ public class AggregateBQQueryResultsUtils {
   public static List<SnapshotBuilderConcept> aggregateConceptResults(TableResult result) {
     return StreamSupport.stream(result.iterateAll().spliterator(), false)
         .map(
-            row ->
-                new SnapshotBuilderConcept()
-                    .id((int) (row.get("concept_id").getLongValue()))
-                    .name(row.get("concept_name").getStringValue())
-                    .hasChildren(true)
-                    .count(1))
+            row -> {
+              int count;
+              try {
+                count = (int) row.get("count").getLongValue(); // If exists, use its value
+              } catch (IllegalArgumentException e) {
+                count = 1;
+              }
+              return new SnapshotBuilderConcept()
+                  .id((int) (row.get("concept_id").getLongValue()))
+                  .name(row.get("concept_name").getStringValue())
+                  .hasChildren(true)
+                  .count(count);
+            })
         .toList();
   }
 

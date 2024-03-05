@@ -31,7 +31,7 @@ public class CriteriaQueryBuilder {
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
-  private record OccurrenceTable(String tableName, String idColumnName) {}
+  public record OccurrenceTable(String tableName, String idColumnName) {}
 
   private static final Map<Integer, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
       Map.of(
@@ -41,7 +41,7 @@ public class CriteriaQueryBuilder {
           17, new OccurrenceTable("device_exposure", "device_concept_id"),
           13, new OccurrenceTable("drug_exposure", "drug_concept_id"));
 
-  private static OccurrenceTable getOccurrenceTableFromDomain(int domainId) {
+  public static OccurrenceTable getOccurrenceTableFromDomain(int domainId) {
     OccurrenceTable occurrenceTable = DOMAIN_TO_OCCURRENCE_TABLE.get(domainId);
     if (occurrenceTable == null) {
       throw new BadRequestException(String.format("Domain %s is not found in dataset", domainId));

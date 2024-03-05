@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
@@ -18,22 +19,35 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
+
+  private SnapshotBuilderDomainOption createTestSnapshotBuilderDomainOption(
+      String category, int id) {
+    return new SnapshotBuilderDomainOption().category(category).id(id);
+  }
+
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQuery(CloudPlatform platform) {
     CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
+    SnapshotBuilderDomainOption domainOption =
+        createTestSnapshotBuilderDomainOption("observation", 27);
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            "condition", "cancer", s -> s, CloudPlatformWrapper.of(platform));
+            domainOption, "cancer", s -> s, CloudPlatformWrapper.of(platform));
+
     if (platformWrapper.isGcp()) {
       assertThat(
           "generated SQL for GCP is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "SELECT c.concept_name, c.concept_id FROM concept AS c "
-                  + "WHERE (c.domain_id = 'condition' "
+              "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
+                  + "FROM concept AS c "
+                  + "JOIN observation AS o ON o.observation_concept_id = c.concept_id "
+                  + "WHERE (c.domain_id = 'observation' "
                   + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                   + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
+                  + "GROUP BY c.concept_name, c.concept_id "
+                  + "ORDER BY count DESC "
                   + "LIMIT 100"));
     }
     if (platformWrapper.isAzure()) {
@@ -41,10 +55,13 @@ class SearchConceptsQueryBuilderTest {
           "generated SQL for Azure is correct",
           actual,
           equalToCompressingWhiteSpace(
-              "SELECT TOP 100 c.concept_name, c.concept_id FROM concept AS c "
-                  + "WHERE (c.domain_id = 'condition' "
+              "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
+                  + "FROM concept AS c  JOIN observation AS o ON o.observation_concept_id = c.concept_id "
+                  + "WHERE (c.domain_id = 'observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                  + "OR CHARINDEX('cancer', c.concept_code) > 0))"));
+                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
+                  + "GROUP BY c.concept_name, c.concept_id "
+                  + "ORDER BY count DESC"));
     }
   }
 
@@ -52,9 +69,11 @@ class SearchConceptsQueryBuilderTest {
   @EnumSource(CloudPlatform.class)
   void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
     CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
+    SnapshotBuilderDomainOption domainOption =
+        createTestSnapshotBuilderDomainOption("Condition", 19);
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            "Condition", "", s -> s, CloudPlatformWrapper.of(platform));
+            domainOption, "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
         "c.concept_name, c.concept_id FROM concept AS c " + "WHERE c.domain_id = 'Condition' ";
     if (platformWrapper.isAzure()) {

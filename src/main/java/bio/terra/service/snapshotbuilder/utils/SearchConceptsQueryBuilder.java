@@ -1,10 +1,13 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.OrderByDirection;
+import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
@@ -19,17 +22,34 @@ public class SearchConceptsQueryBuilder {
   private SearchConceptsQueryBuilder() {}
 
   public static String buildSearchConceptsQuery(
-      String domainId,
+      SnapshotBuilderDomainOption domainOption,
       String searchText,
       TableNameGenerator tableNameGenerator,
       CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    var occurrenceTable = CriteriaQueryBuilder.getOccurrenceTableFromDomain(domainOption.getId());
+    var domainOccurrencePointer =
+        TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
+    // FROM concept JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
+    // concept.concept_id
+    var domainOccurenceTableVariable =
+        TableVariable.forJoined(domainOccurrencePointer, occurrenceTable.idColumnName(), idField);
+
+    var personIdField =
+        new FieldVariable(
+            new FieldPointer(
+                domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
+            domainOccurenceTableVariable,
+            "count",
+            true);
+
     // domain clause filters for the given domain id based on field domain_id
-    var domainClause = createDomainClause(conceptTablePointer, conceptTableVariable, domainId);
+    var domainClause =
+        createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getCategory());
 
     // if the search test is empty do not include the search clauses
     // return all concepts in the specified domain
@@ -60,11 +80,25 @@ public class SearchConceptsQueryBuilder {
     BooleanAndOrFilterVariable whereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
-    // select nameField, idField from conceptTable WHERE
-    // domainClause AND (searchNameClause OR searchCodeClause)
-    // TODO: DC-845 Implement pagination, remove hardcoded limit
+    // SELECT concept_name, concept_id, COUNT(DISTINCT person_id) as count
+    // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
+    // concept.concept_id
+    // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
+    // ORDER BY count DESC
+
+    List<OrderByVariable> orderBy =
+        List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));
+
+    List<FieldVariable> groupBy = List.of(nameField, idField);
+
     Query query =
-        new Query(List.of(nameField, idField), List.of(conceptTableVariable), whereClause, 100);
+        new Query(
+            List.of(nameField, idField, personIdField),
+            List.of(conceptTableVariable, domainOccurenceTableVariable),
+            whereClause,
+            groupBy,
+            orderBy,
+            100);
 
     return query.renderSQL(platform);
   }

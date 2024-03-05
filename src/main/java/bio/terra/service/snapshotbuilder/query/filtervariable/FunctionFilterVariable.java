@@ -40,7 +40,7 @@ public class FunctionFilterVariable implements FilterVariable {
             values.stream()
                 .map(literal -> (literal.renderSQL(platform)))
                 .collect(Collectors.joining(",")))
-        .add("fieldVariable", fieldVariable.renderSqlForWhere())
+        .add("fieldVariable", fieldVariable.renderSQL(platform))
         .render();
   }
 

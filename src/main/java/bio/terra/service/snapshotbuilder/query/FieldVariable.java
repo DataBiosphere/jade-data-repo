@@ -35,27 +35,23 @@ public class FieldVariable implements SqlExpression {
 
   @Override
   public String renderSQL(CloudPlatformWrapper platform) {
-    return renderSQL(true, true);
+    return renderSQL();
   }
 
   public String renderSqlForOrderOrGroupBy(boolean includedInSelect) {
     if (includedInSelect) {
       if (alias == null) {
-        String sql = renderSQL(false, true);
+        String sql = renderSQL();
         LOGGER.warn(
             "ORDER or GROUP BY clause is also included in SELECT but has no alias: {}", sql);
         return sql;
       }
       return alias;
     }
-    return renderSQL(false, true);
+    return renderSQL();
   }
 
-  public String renderSqlForWhere() {
-    return renderSQL(false, true);
-  }
-
-  private String renderSQL(boolean useAlias, boolean useFunctionWrapper) {
+  private String renderSQL() {
 
     String sql =
         "%s%s.%s"
@@ -68,17 +64,18 @@ public class FieldVariable implements SqlExpression {
       throw new UnsupportedOperationException("TODO: implement embedded selects " + sql);
     }
 
-    if (fieldPointer.hasSqlFunctionWrapper() && useFunctionWrapper) {
+    if (fieldPointer.hasSqlFunctionWrapper()) {
       String sqlFunctionWrapper = fieldPointer.getSqlFunctionWrapper();
       LOGGER.debug("Found sql function wrapper: {}", sqlFunctionWrapper);
       final String substitutionVar = "<fieldSql>";
       if (sqlFunctionWrapper.contains(substitutionVar)) {
-        return new ST(sqlFunctionWrapper).add("fieldSql", sql).render();
+        sql = new ST(sqlFunctionWrapper).add("fieldSql", sql).render();
+      } else {
+        sql = sqlFunctionWrapper + "(" + sql + ")";
       }
-      return sqlFunctionWrapper + "(" + sql + ")";
     }
 
-    if (alias != null && useAlias) {
+    if (alias != null) {
       return "%s AS %s".formatted(sql, alias);
     }
 

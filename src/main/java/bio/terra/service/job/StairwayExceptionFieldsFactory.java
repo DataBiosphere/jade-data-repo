@@ -11,7 +11,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public class StairwayExceptionFieldsFactory {
 
-  private static final String CONTACT_TEAM_MESSAGE = "Please contact the TDR team for help.";
+  private static final String CONTACT_SUPPORT_MESSAGE =
+      "For further assistance, please contact Terra Support (https://support.terra.bio).";
 
   public static StairwayExceptionFields fromException(Exception ex) {
     String stepName = getStepNameFromStairwayException(ex);
@@ -66,7 +67,7 @@ public class StairwayExceptionFieldsFactory {
     if (errorReportCauses != null) {
       return errorReportCauses;
     }
-    return List.of("The job failed, but not while running a step", CONTACT_TEAM_MESSAGE);
+    return List.of("The job failed, but not while running a step", CONTACT_SUPPORT_MESSAGE);
   }
 
   private static String getStepExceptionMessage(String stepName, Exception exception) {
@@ -82,7 +83,7 @@ public class StairwayExceptionFieldsFactory {
     if (errorReportCauses != null) {
       return errorReportCauses;
     }
-    return List.of("The step failed for an unknown reason.", CONTACT_TEAM_MESSAGE);
+    return List.of("The step failed for an unknown reason.", CONTACT_SUPPORT_MESSAGE);
   }
 
   private static List<String> getErrorReportExceptionCauses(Exception exception) {

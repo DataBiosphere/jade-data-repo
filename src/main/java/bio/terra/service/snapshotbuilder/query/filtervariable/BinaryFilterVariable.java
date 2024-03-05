@@ -17,7 +17,7 @@ public record BinaryFilterVariable(
     return new ST(SUBSTITUTION_TEMPLATE)
         .add("operator", operator.renderSQL(platform))
         .add("value", value.renderSQL(platform))
-        .add("fieldVariable", fieldVariable.renderSqlForWhere())
+        .add("fieldVariable", fieldVariable.renderSQL(platform))
         .render();
   }
 

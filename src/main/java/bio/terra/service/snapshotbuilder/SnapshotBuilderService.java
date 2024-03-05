@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
@@ -13,6 +14,7 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
@@ -131,9 +133,21 @@ public class SnapshotBuilderService {
       UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+
+    SnapshotBuilderDomainOption snapshotBuilderDomainOption =
+        snapshotBuilderSettings.getDomainOptions().stream()
+            .filter(domainOption -> domainOption.getCategory().equals(domainId))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new BadRequestException(
+                        "Invalid domain category is given: %s".formatted(domainId)));
+
     String cloudSpecificSql =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            domainId,
+            snapshotBuilderDomainOption,
             searchText,
             tableNameGenerator,
             CloudPlatformWrapper.of(dataset.getCloudPlatform()));

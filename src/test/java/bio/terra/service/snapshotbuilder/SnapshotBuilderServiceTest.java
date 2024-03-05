@@ -19,6 +19,8 @@ import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -129,6 +131,11 @@ class SnapshotBuilderServiceTest {
   void searchConcepts(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        new SnapshotBuilderSettings()
+            .domainOptions(List.of(new SnapshotBuilderDomainOption().category("condition").id(19)));
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
+        .thenReturn(snapshotBuilderSettings);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
     mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
     var response =

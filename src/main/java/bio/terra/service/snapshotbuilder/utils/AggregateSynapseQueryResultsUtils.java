@@ -8,12 +8,19 @@ import java.sql.SQLException;
 public class AggregateSynapseQueryResultsUtils {
   // TODO - pull real values for hasChildren and count
   public static SnapshotBuilderConcept aggregateConceptResult(ResultSet rs) {
+    int count;
+    try {
+      count = (int) rs.getLong("count");
+    } catch (SQLException | IllegalArgumentException e) {
+      count = 1;
+    }
+
     try {
       return new SnapshotBuilderConcept()
           .name(rs.getString("concept_name"))
           .id((int) rs.getLong("concept_id"))
           .hasChildren(true)
-          .count(1);
+          .count(count);
     } catch (SQLException e) {
       throw new ProcessResultSetException(
           "Error processing result set into SnapshotBuilderConcept model", e);

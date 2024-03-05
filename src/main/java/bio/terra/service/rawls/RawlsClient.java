@@ -1,8 +1,8 @@
 package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.RawlsConfiguration;
-import bio.terra.app.model.rawls.WorkspaceResponse;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public class RawlsClient {
     try {
       ResponseEntity<WorkspaceResponse> workspaceCall =
           restTemplate.exchange(
-              String.format("%s/api/workspaces/id/%s", rawlsConfiguration.basePath(), workspaceId),
+              getWorkspaceEndpoint(workspaceId),
               HttpMethod.GET,
               new HttpEntity<>(headers),
               WorkspaceResponse.class);
@@ -49,8 +49,13 @@ public class RawlsClient {
       }
       return workspaceCall.getBody();
     } catch (Exception e) {
-      logger.warn("Error retrieving workspace {} by {}", workspaceId, userEmail);
+      logger.warn("Error retrieving workspace", e);
       throw e;
     }
+  }
+
+  @VisibleForTesting
+  String getWorkspaceEndpoint(UUID workspaceId) {
+    return String.format("%s/api/workspaces/id/%s", rawlsConfiguration.basePath(), workspaceId);
   }
 }

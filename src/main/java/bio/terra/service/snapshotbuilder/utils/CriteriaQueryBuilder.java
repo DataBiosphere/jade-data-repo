@@ -32,8 +32,6 @@ public class CriteriaQueryBuilder {
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
-  private record OccurrenceTable(String tableName, String idColumnName) {}
-
   protected CriteriaQueryBuilder(
       String rootTableName,
       TableNameGenerator tableNameGenerator,

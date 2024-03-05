@@ -7179,6 +7179,10 @@ components:
         id:
           description: the ID of either the domain or program data entry
           type: integer
+        tableName:
+          type: string
+        columnName:
+          type: string
       discriminator:
         propertyName: kind
         mapping:
@@ -7191,10 +7195,9 @@ components:
         - $ref: '#/components/schemas/SnapshotBuilderOption'
         - type: object
           properties:
-            tableName:
+            kind:
               type: string
-            columnName:
-              type: string
+              enum: [ list, range ]
       discriminator:
         propertyName: kind
         mapping:

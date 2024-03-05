@@ -17,7 +17,6 @@ import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataListOption;
-import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderRequest;
@@ -42,6 +41,8 @@ public class SnapshotBuilderTestData {
                                   .name("Condition")
                                   .count(100)
                                   .hasChildren(true))
+                          .tableName("condition_occurrence")
+                          .columnName("condition_concept_id")
                           .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
                           .id(10)
                           .name("Condition"),
@@ -69,7 +70,7 @@ public class SnapshotBuilderTestData {
                           .name("Observation")))
           .programDataOptions(
               List.of(
-                  (SnapshotBuilderProgramDataOption)
+                  (SnapshotBuilderProgramDataRangeOption)
                       new SnapshotBuilderProgramDataRangeOption()
                           .min(0)
                           .max(100)
@@ -78,7 +79,7 @@ public class SnapshotBuilderTestData {
                           .id(1)
                           .name("Year of birth")
                           .kind(SnapshotBuilderOption.KindEnum.RANGE),
-                  (SnapshotBuilderProgramDataOption)
+                  (SnapshotBuilderProgramDataListOption)
                       new SnapshotBuilderProgramDataListOption()
                           .values(List.of(40))
                           .tableName("person")
@@ -86,7 +87,7 @@ public class SnapshotBuilderTestData {
                           .id(2)
                           .name("Ethnicity")
                           .kind(SnapshotBuilderOption.KindEnum.LIST),
-                  (SnapshotBuilderProgramDataOption)
+                  (SnapshotBuilderProgramDataListOption)
                       new SnapshotBuilderProgramDataListOption()
                           .values(List.of(41))
                           .tableName("person")
@@ -94,7 +95,7 @@ public class SnapshotBuilderTestData {
                           .id(3)
                           .name("Gender identity")
                           .kind(SnapshotBuilderOption.KindEnum.LIST),
-                  (SnapshotBuilderProgramDataOption)
+                  (SnapshotBuilderProgramDataListOption)
                       new SnapshotBuilderProgramDataListOption()
                           .values(List.of(42))
                           .tableName("person")

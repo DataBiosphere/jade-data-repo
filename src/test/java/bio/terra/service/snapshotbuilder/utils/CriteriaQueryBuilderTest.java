@@ -15,8 +15,9 @@ import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
-import bio.terra.model.SnapshotBuilderProgramDataOption;
+import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -41,16 +42,24 @@ class CriteriaQueryBuilderTest {
                   (SnapshotBuilderDomainOption)
                       new SnapshotBuilderDomainOption()
                           .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
-                          .id(19)))
+                          .tableName("condition_occurrence")
+                          .columnName("condition_concept_id")
+                          .id(19),
+                  (SnapshotBuilderDomainOption)
+                      new SnapshotBuilderDomainOption()
+                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
+                          .tableName("drug_exposure")
+                          .columnName("drug_concept_id")
+                          .id(13)))
           .programDataOptions(
               List.of(
-                  (SnapshotBuilderProgramDataOption)
-                      new SnapshotBuilderProgramDataOption()
+                  (SnapshotBuilderProgramDataListOption)
+                      new SnapshotBuilderProgramDataListOption()
                           .columnName("list_column_name")
                           .kind(SnapshotBuilderOption.KindEnum.LIST)
                           .id(1),
-                  (SnapshotBuilderProgramDataOption)
-                      new SnapshotBuilderProgramDataOption()
+                  (SnapshotBuilderProgramDataRangeOption)
+                      new SnapshotBuilderProgramDataRangeOption()
                           .columnName("range_column_name")
                           .kind(SnapshotBuilderOption.KindEnum.RANGE)
                           .id(0)));

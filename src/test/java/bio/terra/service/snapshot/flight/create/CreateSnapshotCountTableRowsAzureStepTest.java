@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.PessimisticLockingFailureException;
 
 @ExtendWith(MockitoExtension.class)
 @Tag("bio.terra.common.category.Unit")
@@ -61,7 +61,7 @@ public class CreateSnapshotCountTableRowsAzureStepTest {
   @Test
   void testDoStepRetry() throws InterruptedException {
     step = new CreateSnapshotCountTableRowsAzureStep(snapshotDao, snapshotReq);
-    doThrow(CannotSerializeTransactionException.class)
+    doThrow(PessimisticLockingFailureException.class)
         .when(snapshotDao)
         .updateSnapshotTableRowCounts(SNAPSHOT, tableRowCounts);
 

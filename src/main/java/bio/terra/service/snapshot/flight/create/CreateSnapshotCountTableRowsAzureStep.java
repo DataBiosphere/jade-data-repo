@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.transaction.TransactionSystemException;
 
 public class CreateSnapshotCountTableRowsAzureStep implements Step {
@@ -40,7 +40,7 @@ public class CreateSnapshotCountTableRowsAzureStep implements Step {
         workingMap.get(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, HashMap.class);
     try {
       snapshotDao.updateSnapshotTableRowCounts(snapshot, tableRowCounts);
-    } catch (CannotSerializeTransactionException | TransactionSystemException ex) {
+    } catch (PessimisticLockingFailureException | TransactionSystemException ex) {
       logger.error("Could not serialize the transaction. Retrying.", ex);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }

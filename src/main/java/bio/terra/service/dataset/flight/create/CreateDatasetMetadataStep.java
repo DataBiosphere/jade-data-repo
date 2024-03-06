@@ -14,7 +14,7 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.PessimisticLockingFailureException;
 
 public class CreateDatasetMetadataStep implements Step {
 
@@ -46,7 +46,7 @@ public class CreateDatasetMetadataStep implements Step {
       return StepResult.getStepResultSuccess();
     } catch (InvalidDatasetException idEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, idEx);
-    } catch (CannotSerializeTransactionException ex) {
+    } catch (PessimisticLockingFailureException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     } catch (Exception ex) {
       return new StepResult(

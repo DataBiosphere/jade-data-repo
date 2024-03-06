@@ -51,7 +51,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpServerErrorException;
@@ -306,7 +306,7 @@ public class DuosServiceTest {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
-    var expectedEx = new CannotSerializeTransactionException("Conflict on update");
+    var expectedEx = new PessimisticLockingFailureException("Conflict on update");
     when(duosDao.updateFirecloudGroupLastSyncedDate(
             eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
         .thenThrow(expectedEx);

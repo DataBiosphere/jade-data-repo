@@ -125,7 +125,7 @@ public class SnapshotBuilderService {
         .result(new SnapshotBuilderCountResponseResult().total(fuzzyLowCount(rollupCount)));
   }
 
-  // if the rollup count is 0 OR >20, then we will return the actual value
+  // if the rollup count is 0 OR >=20, then we will return the actual value
   // if the rollup count is between 1 and 19, we will return 19 and in the UI we will display <20
   // This helps reduce the risk of re-identification
   int fuzzyLowCount(int rollupCount) {

@@ -136,7 +136,11 @@ class SnapshotBuilderServiceTest {
             .domainOptions(
                 List.of(
                     (SnapshotBuilderDomainOption)
-                        new SnapshotBuilderDomainOption().name("condition").id(19)));
+                        new SnapshotBuilderDomainOption()
+                            .name("condition")
+                            .id(19)
+                            .tableName("condition_occurrence")
+                            .columnName("condition_concept_id")));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));

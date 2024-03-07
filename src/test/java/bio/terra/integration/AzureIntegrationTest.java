@@ -173,13 +173,13 @@ public class AzureIntegrationTest extends UsersBase {
             null,
             null,
             null);
-    azureBlobIOTestUtility =
-        new AzureBlobIOTestUtility(
-            azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
-            testConfig.getSourceStorageAccountName(),
-            null,
-            retryOptions);
-    gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
+    //    azureBlobIOTestUtility =
+    //        new AzureBlobIOTestUtility(
+    //            azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
+    //            testConfig.getSourceStorageAccountName(),
+    //            null,
+    //            retryOptions);
+    //    gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
     snapshotIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
   }
@@ -396,6 +396,7 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "");
     List<String> searchConceptNames =
         searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    logger.info("searchConceptNames: " + searchConceptNames);
     assertThat(
         "all concepts are returned",
         searchConceptNames,

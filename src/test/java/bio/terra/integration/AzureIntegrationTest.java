@@ -372,6 +372,10 @@ public class AzureIntegrationTest extends UsersBase {
     // Ingest Tabular data
     ingestOmopTable("concept", "omop/concept-table-data.json", 3);
     ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+
+    // define snapshot builder settings
+    dataRepoFixtures.updateDatasetSnapshotBuilderSettings(
+        steward, datasetId, "omop/snapshot-builder-settings.json");
   }
 
   @Test

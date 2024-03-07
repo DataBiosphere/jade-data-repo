@@ -1,0 +1,139 @@
+{
+    "domainOptions": [
+      {
+        "id": 19,
+        "category": "Condition",
+        "conceptCount": null,
+        "participantCount": null,
+        "root": {
+          "id": 19,
+          "name": "Condition",
+          "count": 100,
+          "hasChildren": true,
+          "children": null
+        }
+      },
+      {
+        "id": 10,
+        "category": "Procedure",
+        "conceptCount": null,
+        "participantCount": null,
+        "root": {
+          "id": 10,
+          "name": "Procedure",
+          "count": 100,
+          "hasChildren": true,
+          "children": null
+        }
+      },
+      {
+        "id": 27,
+        "category": "Observation",
+        "conceptCount": null,
+        "participantCount": null,
+        "root": {
+          "id": 27,
+          "name": "Observation",
+          "count": 100,
+          "hasChildren": true,
+          "children": null
+        }
+      },
+      {
+        "id": 17,
+        "category": "Device",
+        "conceptCount": null,
+        "participantCount": null,
+        "root": {
+          "id": 17,
+          "name": "Device",
+          "count": 100,
+          "hasChildren": true,
+          "children": null
+        }
+      },
+      {
+        "id": 13,
+        "category": "Drug",
+        "conceptCount": null,
+        "participantCount": null,
+        "root": {
+          "id": 13,
+          "name": "Drug",
+          "count": 100,
+          "hasChildren": true,
+          "children": null
+        }
+      }
+    ],
+    "programDataOptions": [
+      {
+        "id": 1,
+        "name": "Year of birth",
+        "tableName": "person",
+        "columnName": "year_of_birth",
+        "kind": "range"
+      },
+      {
+        "id": 2,
+        "name": "Ethnicity",
+        "tableName": "person",
+        "columnName": "ethnicity",
+        "kind": "list"
+      },
+      {
+        "id": 3,
+        "name": "Gender Identity",
+        "tableName": "person",
+        "columnName": "gender_identity",
+        "kind": "list"
+      },
+      {
+        "id": 4,
+        "name": "Race",
+        "tableName": "person",
+        "columnName": "race",
+        "kind": "list"
+      }
+    ],
+    "featureValueGroups": [
+      {
+        "name": "Condition",
+        "values": [
+          "Condition Column 1",
+          "Condition Column 2"
+        ]
+      },
+      {
+        "name": "Observation",
+        "values": [
+          "Observation Column 1",
+          "Observation Column 2"
+        ]
+      },
+      {
+        "name": "Surveys",
+        "values": [
+          "Surveys Column 1",
+          "Surveys Column 2"
+        ]
+      },
+      {
+        "name": "Person",
+        "values": [
+          "Demographics Column 1",
+          "Demographics Column 2"
+        ]
+      }
+    ],
+    "datasetConceptSets": [
+      {
+        "name": "Demographics",
+        "featureValueGroupName": "Person"
+      },
+      {
+        "name": "All surveys",
+        "featureValueGroupName": "Surveys"
+      }
+    ]
+}

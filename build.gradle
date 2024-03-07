@@ -551,12 +551,12 @@ tasks.register('testIntegration', Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
 
-    retry {
-        if (isCiServer) {
-            maxRetries = 3
-            maxFailures = 15
-        }
-    }
+//    retry {
+//        if (isCiServer) {
+//            maxRetries = 3
+//            maxFailures = 15
+//        }
+//    }
     maxParallelForks = 8
     outputs.upToDateWhen { false }
 }

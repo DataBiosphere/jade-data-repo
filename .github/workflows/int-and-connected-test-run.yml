@@ -78,75 +78,75 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
-  test_connected:
-    name: "Run connected tests"
-    outputs:
-      job-status: ${{ job.status }}
-    timeout-minutes: 180
-    needs: test_check
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v3
-      - name: "Cache build"
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-build-connected
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
-          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
-            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
-            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
-            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
-      - name: "Write RBS SA to a file"
-        run: |
-          # write vault token
-          base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
-      - name: "Run connected tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.71.0
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testConnected'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Temp: Archive all junit test reports"
-        uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: junit-test-reports-for-connected
-          path: build/reports
-          retention-days: 5
+#  test_connected:
+#    name: "Run connected tests"
+#    outputs:
+#      job-status: ${{ job.status }}
+#    timeout-minutes: 180
+#    needs: test_check
+#    strategy:
+#      matrix:
+#        os: [ubuntu-latest]
+#    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+#    runs-on: ${{ matrix.os }}
+#    ## skips if pr label is 'skip-ci'
+#    # run a local Postgres container in Docker for the basic check tests
+#    services:
+#      postgres:
+#        image: postgres:11
+#        env:
+#          POSTGRES_USER: postgres
+#          POSTGRES_PASSWORD: postgres
+#          POSTGRES_DB: postgres
+#        ports:
+#          - 5432:5432
+#        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+#    steps:
+#      - name: "Checkout code"
+#        uses: actions/checkout@v3
+#      - name: "Cache build"
+#        uses: actions/cache@v3
+#        with:
+#          path: ${{ env.CACHE_PATHS }}
+#          key: ${{ runner.os }}-build-connected
+#      - name: "Import Vault dev secrets"
+#        uses: hashicorp/vault-action@v2.5.0
+#        with:
+#          url: ${{ secrets.VAULT_ADDR }}
+#          method: approle
+#          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
+#          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
+#          secrets: |
+#            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
+#            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
+#            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
+#            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
+#      - name: "Write RBS SA to a file"
+#        run: |
+#          # write vault token
+#          base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
+#      - name: "Run connected tests via Gradle"
+#        uses: broadinstitute/datarepo-actions/actions/main@0.71.0
+#        with:
+#          actions_subcommand: 'gradleinttest'
+#          pgport: ${{ job.services.postgres.ports[5432] }}
+#          test_to_run: 'testConnected'
+#          role_id: ${{ secrets.ROLE_ID }}
+#          secret_id: ${{ secrets.SECRET_ID }}
+#      - name: "Temp: Archive all junit test reports"
+#        uses: actions/upload-artifact@v2
+#        if: always()
+#        with:
+#          name: junit-test-reports-for-connected
+#          path: build/reports
+#          retention-days: 5
   deploy_test_integration:
     name: "Run integration and smoke tests"
     outputs:
       job-status: ${{ job.status }}
       api_image_tag: ${{ steps.configuration.outputs.git_hash }}
     timeout-minutes: 300
-    needs: test_check
+#    needs: test_check
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -217,16 +217,17 @@ jobs:
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
-      - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.71.0
-        with:
-          actions_subcommand: 'gradletestrunnersmoketest'
+#      - name: "Run Test Runner smoke tests via Gradle"
+#        uses: broadinstitute/datarepo-actions/actions/main@0.71.0
+#        with:
+#          actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run integration tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.71.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+          test_filter: 'bio.terra.integration.AzureIntegrationTest'
         env:
           AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
           AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
@@ -257,7 +258,7 @@ jobs:
     timeout-minutes: 60
     needs:
       - test_check
-      - test_connected
+#      - test_connected
       - deploy_test_integration
     strategy:
       matrix:

@@ -391,12 +391,15 @@ public class AzureIntegrationTest extends UsersBase {
         getConceptNames,
         containsInAnyOrder("concept1", "concept3"));
 
-    // Test searchConcepts
+    // Test searchConcepts with no search term
     var searchConceptResponse =
-        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");
+        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "");
     List<String> searchConceptNames =
         searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
+    assertThat(
+        "all concepts are returned",
+        searchConceptNames,
+        contains("concept1", "concept2", "concept3"));
   }
 
   @Test

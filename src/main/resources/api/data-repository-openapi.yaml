@@ -7212,8 +7212,20 @@ components:
             values:
               type: array
               items:
-                type: integer
+                $ref: '#/components/schemas/SnapshotBuilderProgramDataListItem'
       description: List format program data, part of a CriteriaGroup.
+
+    SnapshotBuilderProgramDataListItem:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+        id:
+          description: the ID of the list item in the specified table
+          type: integer
 
     SnapshotBuilderProgramDataRangeOption:
       allOf:

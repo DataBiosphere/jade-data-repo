@@ -16,6 +16,7 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataListItem;
 import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
@@ -81,7 +82,9 @@ public class SnapshotBuilderTestData {
                           .kind(SnapshotBuilderOption.KindEnum.RANGE),
                   (SnapshotBuilderProgramDataListOption)
                       new SnapshotBuilderProgramDataListOption()
-                          .values(List.of(40))
+                          .values(
+                              List.of(
+                                  new SnapshotBuilderProgramDataListItem().id(40).name("unused")))
                           .tableName("person")
                           .columnName("ethnicity")
                           .id(2)
@@ -89,7 +92,9 @@ public class SnapshotBuilderTestData {
                           .kind(SnapshotBuilderOption.KindEnum.LIST),
                   (SnapshotBuilderProgramDataListOption)
                       new SnapshotBuilderProgramDataListOption()
-                          .values(List.of(41))
+                          .values(
+                              List.of(
+                                  new SnapshotBuilderProgramDataListItem().id(41).name("unused 2")))
                           .tableName("person")
                           .columnName("gender_identity")
                           .id(3)
@@ -97,7 +102,9 @@ public class SnapshotBuilderTestData {
                           .kind(SnapshotBuilderOption.KindEnum.LIST),
                   (SnapshotBuilderProgramDataListOption)
                       new SnapshotBuilderProgramDataListOption()
-                          .values(List.of(42))
+                          .values(
+                              List.of(
+                                  new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))
                           .tableName("person")
                           .columnName("race")
                           .id(4)

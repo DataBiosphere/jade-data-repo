@@ -5,7 +5,6 @@ import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
@@ -74,7 +73,6 @@ public class CriteriaQueryBuilder {
 
   String getProgramDataOptionColumnName(int id) {
     return snapshotBuilderSettings.getProgramDataOptions().stream()
-        .map(programDataOption -> (SnapshotBuilderOption) programDataOption)
         .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
         .findFirst()
         .orElseThrow(

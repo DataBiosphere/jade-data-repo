@@ -22,12 +22,12 @@ class SearchConceptsQueryBuilderTest {
 
   private SnapshotBuilderDomainOption createDomainOption(
       String name, int id, String occurrenceTable, String columnName) {
-    return (SnapshotBuilderDomainOption)
-        new SnapshotBuilderDomainOption()
-            .name(name)
+    var option = new SnapshotBuilderDomainOption()
+        option.name(name)
             .id(id)
             .tableName(occurrenceTable)
             .columnName(columnName);
+    return option;
   }
 
   @ParameterizedTest

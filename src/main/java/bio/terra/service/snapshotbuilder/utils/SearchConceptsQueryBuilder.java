@@ -51,12 +51,26 @@ public class SearchConceptsQueryBuilder {
     var domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getCategory());
 
+    List<FieldVariable> select = List.of(nameField, idField, personIdField);
+
+    List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable)
+
+    List<OrderByVariable> orderBy =
+        List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));
+
+    List<FieldVariable> groupBy = List.of(nameField, idField);
+
     // if the search test is empty do not include the search clauses
     // return all concepts in the specified domain
     if (searchText == null || searchText.isEmpty()) {
-      // TODO: DC-845 Implement pagination, remove hardcoded limit
       Query query =
-          new Query(List.of(nameField, idField), List.of(conceptTableVariable), domainClause, 100);
+          new Query(
+              select,
+              tables,
+              domainClause,
+              groupBy,
+              orderBy,
+              100);
       return query.renderSQL(platform);
     }
 
@@ -77,7 +91,7 @@ public class SearchConceptsQueryBuilder {
 
     // domainClause AND (searchNameClause OR searchCodeClause)
     List<FilterVariable> allFilters = List.of(domainClause, searchClause);
-    BooleanAndOrFilterVariable whereClause =
+    BooleanAndOrFilterVariable where =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
 
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id) as count
@@ -86,16 +100,11 @@ public class SearchConceptsQueryBuilder {
     // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
     // ORDER BY count DESC
 
-    List<OrderByVariable> orderBy =
-        List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));
-
-    List<FieldVariable> groupBy = List.of(nameField, idField);
-
     Query query =
         new Query(
-            List.of(nameField, idField, personIdField),
-            List.of(conceptTableVariable, domainOccurenceTableVariable),
-            whereClause,
+            select,
+            tables,
+            where,
             groupBy,
             orderBy,
             100);

@@ -22,11 +22,8 @@ class SearchConceptsQueryBuilderTest {
 
   private SnapshotBuilderDomainOption createDomainOption(
       String name, int id, String occurrenceTable, String columnName) {
-    var option = new SnapshotBuilderDomainOption()
-        option.name(name)
-            .id(id)
-            .tableName(occurrenceTable)
-            .columnName(columnName);
+    var option = new SnapshotBuilderDomainOption();
+    option.name(name).id(id).tableName(occurrenceTable).columnName(columnName);
     return option;
   }
 
@@ -35,8 +32,7 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQuery(CloudPlatform platform) {
     CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
     SnapshotBuilderDomainOption domainOption =
-        createTestSnapshotBuilderDomainOption(
-            "Observation", 27, "observation", "observation_concept_id");
+        createDomainOption("Observation", 27, "observation", "observation_concept_id");
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "cancer", s -> s, CloudPlatformWrapper.of(platform));
@@ -76,8 +72,7 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
     CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
     SnapshotBuilderDomainOption domainOption =
-        createTestSnapshotBuilderDomainOption(
-            "Condition", 19, "condition_occurrence", "condition_concept_id");
+        createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "", s -> s, CloudPlatformWrapper.of(platform));

@@ -12,13 +12,9 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
-import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
-import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
-import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
-import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import java.util.List;
@@ -35,38 +31,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CriteriaQueryBuilderTest {
   CriteriaQueryBuilder criteriaQueryBuilder;
 
-  private static final SnapshotBuilderSettings SNAPSHOT_BUILDER_SETTINGS =
-      new SnapshotBuilderSettings()
-          .domainOptions(
-              List.of(
-                  (SnapshotBuilderDomainOption)
-                      new SnapshotBuilderDomainOption()
-                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
-                          .tableName("condition_occurrence")
-                          .columnName("condition_concept_id")
-                          .id(19),
-                  (SnapshotBuilderDomainOption)
-                      new SnapshotBuilderDomainOption()
-                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
-                          .tableName("drug_exposure")
-                          .columnName("drug_concept_id")
-                          .id(13)))
-          .programDataOptions(
-              List.of(
-                  (SnapshotBuilderProgramDataListOption)
-                      new SnapshotBuilderProgramDataListOption()
-                          .columnName("list_column_name")
-                          .kind(SnapshotBuilderOption.KindEnum.LIST)
-                          .id(1),
-                  (SnapshotBuilderProgramDataRangeOption)
-                      new SnapshotBuilderProgramDataRangeOption()
-                          .columnName("range_column_name")
-                          .kind(SnapshotBuilderOption.KindEnum.RANGE)
-                          .id(0)));
-
   @BeforeEach
   void setup() {
-    criteriaQueryBuilder = new CriteriaQueryBuilder("person", s -> s, SNAPSHOT_BUILDER_SETTINGS);
+    criteriaQueryBuilder =
+        new CriteriaQueryBuilder("person", s -> s, SnapshotBuilderTestData.SETTINGS);
   }
 
   @ParameterizedTest
@@ -79,8 +47,7 @@ class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
-        equalToCompressingWhiteSpace(
-            "(null.range_column_name >= 0 AND null.range_column_name <= 100)"));
+        equalToCompressingWhiteSpace("(null.year_of_birth >= 0 AND null.year_of_birth <= 100)"));
   }
 
   @ParameterizedTest
@@ -93,7 +60,7 @@ class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
-        equalToCompressingWhiteSpace("null.list_column_name IN (0,1,2)"));
+        equalToCompressingWhiteSpace("null.ethnicity IN (0,1,2)"));
   }
 
   @ParameterizedTest
@@ -143,7 +110,7 @@ class CriteriaQueryBuilderTest {
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
-        containsString("null.range_column_name >= 0"));
+        containsString("null.year_of_birth >= 0"));
   }
 
   @ParameterizedTest
@@ -174,7 +141,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace(
-            "(null.list_column_name IN (0,1,2) AND (null.range_column_name >= 0 AND null.range_column_name <= 100))"));
+            "(null.ethnicity IN (0,1,2) AND (null.year_of_birth >= 0 AND null.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
@@ -191,7 +158,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace(
-            "(null.list_column_name IN (0,1,2) OR (null.range_column_name >= 0 AND null.range_column_name <= 100))"));
+            "(null.ethnicity IN (0,1,2) OR (null.year_of_birth >= 0 AND null.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
@@ -210,7 +177,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace(
-            "(null.list_column_name IN (0,1,2) AND (null.range_column_name >= 0 AND null.range_column_name <= 100))"));
+            "(null.ethnicity IN (0,1,2) AND (null.year_of_birth >= 0 AND null.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
@@ -229,14 +196,14 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace(
-            "(NOT (null.list_column_name IN (0,1,2) AND (null.range_column_name >= 0 AND null.range_column_name <= 100)))"));
+            "(NOT (null.ethnicity IN (0,1,2) AND (null.year_of_birth >= 0 AND null.year_of_birth <= 100)))"));
   }
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void generateFilterForCriteriaGroups(CloudPlatform platform) {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null, SNAPSHOT_BUILDER_SETTINGS)
+        new CriteriaQueryBuilder("person", null, SnapshotBuilderTestData.SETTINGS)
             .generateFilterForCriteriaGroups(
                 List.of(
                     new SnapshotBuilderCriteriaGroup()
@@ -253,14 +220,14 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace(
-            "(((null.range_column_name >= 0 AND null.range_column_name <= 100)) AND (null.list_column_name IN (0,1,2)))"));
+            "(((null.year_of_birth >= 0 AND null.year_of_birth <= 100)) AND (null.ethnicity IN (0,1,2)))"));
   }
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void generateRollupCountsQueryForCriteriaGroupsList(CloudPlatform platform) {
     Query query =
-        new CriteriaQueryBuilder("person", s -> s, SNAPSHOT_BUILDER_SETTINGS)
+        new CriteriaQueryBuilder("person", s -> s, SnapshotBuilderTestData.SETTINGS)
             .generateRollupCountsQueryForCriteriaGroupsList(
                 List.of(
                     List.of(
@@ -270,21 +237,21 @@ class CriteriaQueryBuilderTest {
                                     generateDomainCriteria(),
                                     generateListCriteria(),
                                     generateRangeCriteria(),
-                                    generateDomainCriteria().id(13)))
+                                    generateDomainCriteria().id(11)))
                             .meetAll(true)
                             .mustMeet(true))));
     assertThat(
         "The sql generated is correct",
         query.renderSQL(CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace(
-            "SELECT COUNT(DISTINCT p.person_id) FROM person AS p WHERE (((p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND p.list_column_name IN (0,1,2) AND (p.range_column_name >= 0 AND p.range_column_name <= 100) AND p.person_id IN (SELECT d.person_id FROM drug_exposure AS d  JOIN concept_ancestor AS c ON c.ancestor_concept_id = d.drug_concept_id WHERE (d.drug_concept_id = 0 OR c.ancestor_concept_id = 0)))))"));
+            "SELECT COUNT(DISTINCT p.person_id) FROM person AS p WHERE (((p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100) AND p.person_id IN (SELECT p.person_id FROM procedure_occurrence AS p  JOIN concept_ancestor AS c ON c.ancestor_concept_id = p.procedure_concept_id WHERE (p.procedure_concept_id = 0 OR c.ancestor_concept_id = 0)))))"));
   }
 
   private static SnapshotBuilderDomainCriteria generateDomainCriteria() {
     return (SnapshotBuilderDomainCriteria)
         new SnapshotBuilderDomainCriteria()
             .conceptId(0)
-            .id(19)
+            .id(10)
             .name("domain_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN);
   }
@@ -294,7 +261,7 @@ class CriteriaQueryBuilderTest {
         new SnapshotBuilderProgramDataRangeCriteria()
             .low(0)
             .high(100)
-            .id(0)
+            .id(1)
             .name("range_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.RANGE);
   }
@@ -303,7 +270,7 @@ class CriteriaQueryBuilderTest {
     return (SnapshotBuilderProgramDataListCriteria)
         new SnapshotBuilderProgramDataListCriteria()
             .values(List.of(0, 1, 2))
-            .id(1)
+            .id(2)
             .name("list_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.LIST);
   }

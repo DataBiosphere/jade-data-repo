@@ -53,7 +53,7 @@ public class SearchConceptsQueryBuilder {
 
     List<FieldVariable> select = List.of(nameField, idField, personIdField);
 
-    List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable)
+    List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable);
 
     List<OrderByVariable> orderBy =
         List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));

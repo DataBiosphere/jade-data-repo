@@ -2,6 +2,7 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -36,12 +37,15 @@ import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -232,5 +236,25 @@ class SnapshotBuilderServiceTest {
             dataset.getId(), List.of(List.of()), TEST_USER);
     assertThat(
         "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void fuzzyLowCount(int rollupCount, int expectedFuzzyLowCount) {
+    assertThat(
+        "fuzzyLowCount should match rollup count unless rollup count is between 1 and 19, inclusive. Then, it should return 19.",
+        snapshotBuilderService.fuzzyLowCount(rollupCount),
+        equalTo(expectedFuzzyLowCount));
+  }
+
+  private static Stream<Arguments> fuzzyLowCount() {
+    return Stream.of(
+        arguments(0, 0),
+        arguments(1, 19),
+        arguments(3, 19),
+        arguments(18, 19),
+        arguments(19, 19),
+        arguments(20, 20),
+        arguments(21, 21));
   }
 }

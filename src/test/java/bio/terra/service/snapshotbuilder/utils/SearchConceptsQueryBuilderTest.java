@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
 
-  private SnapshotBuilderDomainOption createTestSnapshotBuilderDomainOption(
+  private SnapshotBuilderDomainOption createDomainOption(
       String name, int id, String occurrenceTable, String columnName) {
     return (SnapshotBuilderDomainOption)
         new SnapshotBuilderDomainOption()

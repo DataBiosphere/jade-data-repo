@@ -55,6 +55,8 @@ public class SnapshotBuilderTestData {
                                   .name("Procedure")
                                   .count(100)
                                   .hasChildren(true))
+                          .tableName("procedure_occurrence")
+                          .columnName("procedure_concept_id")
                           .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
                           .id(11)
                           .name("Procedure"),
@@ -66,6 +68,8 @@ public class SnapshotBuilderTestData {
                                   .name("Observation")
                                   .count(100)
                                   .hasChildren(true))
+                          .tableName("observation")
+                          .columnName("observation_concept_id")
                           .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
                           .id(12)
                           .name("Observation")))

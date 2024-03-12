@@ -39,7 +39,7 @@ public class SearchConceptsQueryBuilder {
     var domainOccurenceTableVariable =
         TableVariable.forJoined(domainOccurrencePointer, occurrenceTable.idColumnName(), idField);
 
-    var personIdField =
+    var countField =
         new FieldVariable(
             new FieldPointer(
                 domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
@@ -51,12 +51,12 @@ public class SearchConceptsQueryBuilder {
     var domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getCategory());
 
-    List<FieldVariable> select = List.of(nameField, idField, personIdField);
+    List<FieldVariable> select = List.of(nameField, idField, countField);
 
     List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable);
 
     List<OrderByVariable> orderBy =
-        List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));
+        List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));
 
     List<FieldVariable> groupBy = List.of(nameField, idField);
 
@@ -77,7 +77,7 @@ public class SearchConceptsQueryBuilder {
         createSearchConceptClause(
             conceptTablePointer, conceptTableVariable, searchText, "concept_code");
 
-    // SearchConceptNameClause OR searchCodeClause
+    // (searchNameClause OR searchCodeClause)
     List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
     BooleanAndOrFilterVariable searchClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);

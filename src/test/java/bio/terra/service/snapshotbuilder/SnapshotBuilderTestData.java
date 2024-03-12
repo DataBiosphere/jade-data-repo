@@ -50,8 +50,7 @@ public class SnapshotBuilderTestData {
       String columnName,
       String name,
       List<SnapshotBuilderProgramDataListItem> values) {
-    SnapshotBuilderProgramDataListOption listOption =
-        new SnapshotBuilderProgramDataListOption();
+    SnapshotBuilderProgramDataListOption listOption = new SnapshotBuilderProgramDataListOption();
     listOption
         .values(values)
         .id(id)

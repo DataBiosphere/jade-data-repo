@@ -30,90 +30,109 @@ import java.util.List;
 import java.util.UUID;
 
 public class SnapshotBuilderTestData {
+
+  private static SnapshotBuilderDomainOption generateSnapshotBuilderDomainOption(
+      int id, String tableName, String columnName, String name, SnapshotBuilderConcept root) {
+    SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
+    domainOption
+        .root(root)
+        .id(id)
+        .tableName(tableName)
+        .columnName(columnName)
+        .name(name)
+        .kind(SnapshotBuilderOption.KindEnum.DOMAIN);
+    return domainOption;
+  }
+
+  private static SnapshotBuilderProgramDataListOption generateSnapshotBuilderProgramDataListOption(
+      int id,
+      String tableName,
+      String columnName,
+      String name,
+      List<SnapshotBuilderProgramDataListItem> values) {
+    SnapshotBuilderProgramDataListOption listOption =
+        new SnapshotBuilderProgramDataListOption();
+    listOption
+        .values(values)
+        .id(id)
+        .tableName(tableName)
+        .columnName(columnName)
+        .name(name)
+        .kind(SnapshotBuilderOption.KindEnum.LIST);
+    return listOption;
+  }
+
+  private static SnapshotBuilderProgramDataRangeOption
+      generateSnapshotBuilderProgramDataRangeOption(
+          int id, String tableName, String columnName, String name, Integer min, Integer max) {
+    SnapshotBuilderProgramDataRangeOption rangeOption = new SnapshotBuilderProgramDataRangeOption();
+    rangeOption
+        .min(min)
+        .max(max)
+        .id(id)
+        .tableName(tableName)
+        .columnName(columnName)
+        .name(name)
+        .kind(SnapshotBuilderOption.KindEnum.RANGE);
+    return rangeOption;
+  }
+
   public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
           .domainOptions(
               List.of(
-                  (SnapshotBuilderDomainOption)
-                      new SnapshotBuilderDomainOption()
-                          .root(
-                              new SnapshotBuilderConcept()
-                                  .id(100)
-                                  .name("Condition")
-                                  .count(100)
-                                  .hasChildren(true))
-                          .tableName("condition_occurrence")
-                          .columnName("condition_concept_id")
-                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
-                          .id(10)
-                          .name("Condition"),
-                  (SnapshotBuilderDomainOption)
-                      new SnapshotBuilderDomainOption()
-                          .root(
-                              new SnapshotBuilderConcept()
-                                  .id(200)
-                                  .name("Procedure")
-                                  .count(100)
-                                  .hasChildren(true))
-                          .tableName("procedure_occurrence")
-                          .columnName("procedure_concept_id")
-                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
-                          .id(11)
-                          .name("Procedure"),
-                  (SnapshotBuilderDomainOption)
-                      new SnapshotBuilderDomainOption()
-                          .root(
-                              new SnapshotBuilderConcept()
-                                  .id(300)
-                                  .name("Observation")
-                                  .count(100)
-                                  .hasChildren(true))
-                          .tableName("observation")
-                          .columnName("observation_concept_id")
-                          .kind(SnapshotBuilderOption.KindEnum.DOMAIN)
-                          .id(12)
-                          .name("Observation")))
+                  generateSnapshotBuilderDomainOption(
+                      10,
+                      "condition_occurrence",
+                      "condition_concept_id",
+                      "Condition",
+                      new SnapshotBuilderConcept()
+                          .id(100)
+                          .name("Condition")
+                          .count(100)
+                          .hasChildren(true)),
+                  generateSnapshotBuilderDomainOption(
+                      11,
+                      "procedure_occurrence",
+                      "procedure_concept_id",
+                      "Procedure",
+                      new SnapshotBuilderConcept()
+                          .id(200)
+                          .name("Procedure")
+                          .count(100)
+                          .hasChildren(true)),
+                  generateSnapshotBuilderDomainOption(
+                      12,
+                      "observation",
+                      "observation_concept_id",
+                      "Observation",
+                      new SnapshotBuilderConcept()
+                          .id(300)
+                          .name("Observation")
+                          .count(100)
+                          .hasChildren(true))))
           .programDataOptions(
               List.of(
-                  (SnapshotBuilderProgramDataRangeOption)
-                      new SnapshotBuilderProgramDataRangeOption()
-                          .min(0)
-                          .max(100)
-                          .tableName("person")
-                          .columnName("year_of_birth")
-                          .id(1)
-                          .name("Year of birth")
-                          .kind(SnapshotBuilderOption.KindEnum.RANGE),
-                  (SnapshotBuilderProgramDataListOption)
-                      new SnapshotBuilderProgramDataListOption()
-                          .values(
-                              List.of(
-                                  new SnapshotBuilderProgramDataListItem().id(40).name("unused")))
-                          .tableName("person")
-                          .columnName("ethnicity")
-                          .id(2)
-                          .name("Ethnicity")
-                          .kind(SnapshotBuilderOption.KindEnum.LIST),
-                  (SnapshotBuilderProgramDataListOption)
-                      new SnapshotBuilderProgramDataListOption()
-                          .values(
-                              List.of(
-                                  new SnapshotBuilderProgramDataListItem().id(41).name("unused 2")))
-                          .tableName("person")
-                          .columnName("gender_identity")
-                          .id(3)
-                          .name("Gender identity")
-                          .kind(SnapshotBuilderOption.KindEnum.LIST),
-                  (SnapshotBuilderProgramDataListOption)
-                      new SnapshotBuilderProgramDataListOption()
-                          .values(
-                              List.of(
-                                  new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))
-                          .tableName("person")
-                          .columnName("race")
-                          .id(4)
-                          .name("Race")
-                          .kind(SnapshotBuilderOption.KindEnum.LIST)))
+                  generateSnapshotBuilderProgramDataRangeOption(
+                      1, "person", "year_of_birth", "Year of birth", 0, 100),
+                  generateSnapshotBuilderProgramDataListOption(
+                      2,
+                      "person",
+                      "ethnicity",
+                      "Ethnicity",
+                      List.of(new SnapshotBuilderProgramDataListItem().id(40).name("unused"))),
+                  generateSnapshotBuilderProgramDataListOption(
+                      3,
+                      "person",
+                      "gender_identity",
+                      "Gender Identity",
+                      List.of(new SnapshotBuilderProgramDataListItem().id(41).name("unused 2"))),
+                  generateSnapshotBuilderProgramDataListOption(
+                      4,
+                      "person",
+                      "race",
+                      "Race",
+                      List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
           .featureValueGroups(
               List.of(
                   new SnapshotBuilderFeatureValueGroup()

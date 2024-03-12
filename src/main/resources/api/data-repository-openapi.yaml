@@ -7170,6 +7170,9 @@ components:
       required:
         - kind
         - id
+        - name
+        - tableName
+        - columnName
       properties:
         kind:
           type: string

@@ -70,7 +70,7 @@ jobs:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-unit }}
       - name: "Run unit tests and sonar scan via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -126,7 +126,7 @@ jobs:
           # write vault token
           base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run connected tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -182,22 +182,22 @@ jobs:
           secrets: |
             secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradlebuild' # creates gcr build with git_hash tag
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
@@ -212,17 +212,17 @@ jobs:
           echo "git_hash=${git_hash}" >> $GITHUB_OUTPUT
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@sh/update
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.73.0
         timeout-minutes: 20
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run integration tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -232,12 +232,12 @@ jobs:
           AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@sh/update
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
   report-to-sherlock:

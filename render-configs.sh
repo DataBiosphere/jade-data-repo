@@ -5,8 +5,6 @@
 
 # If you want to run Azure Integration tests locally, you need to point to the "integration" environment
 AZURE_ENV=${1:-dev}
-LOCAL_TOKEN=$(cat ~/.vault-token)
-VAULT_TOKEN=${1:-$LOCAL_TOKEN}
 
 vault read -format=json secret/dsde/datarepo/dev/sa-key.json \
     | jq .data | tee /tmp/jade-dev-account.json \

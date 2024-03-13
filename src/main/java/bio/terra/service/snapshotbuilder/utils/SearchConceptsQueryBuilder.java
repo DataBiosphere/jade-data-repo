@@ -60,13 +60,6 @@ public class SearchConceptsQueryBuilder {
 
     List<FieldVariable> groupBy = List.of(nameField, idField);
 
-    // if the search test is empty do not include the search clauses
-    // return all concepts in the specified domain
-    if (searchText == null || searchText.isEmpty()) {
-      Query query = new Query(select, tables, domainClause, groupBy, orderBy, 100);
-      return query.renderSQL(platform);
-    }
-
     // search concept name clause filters for the search text based on field concept_name
     var searchNameClause =
         createSearchConceptClause(
@@ -93,7 +86,9 @@ public class SearchConceptsQueryBuilder {
     // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
     // ORDER BY count DESC
 
-    Query query = new Query(select, tables, where, groupBy, orderBy, 100);
+    Query query =
+        new Query(
+            select, tables, searchText.isEmpty() ? domainClause : where, groupBy, orderBy, 100);
 
     return query.renderSQL(platform);
   }

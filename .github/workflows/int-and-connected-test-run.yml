@@ -203,7 +203,7 @@ jobs:
           helm_create_secret_manager_secret_version: '0.0.6'
           helm_datarepo_api_chart_version: 0.0.624
           helm_datarepo_ui_chart_version: 0.0.319
-          helm_gcloud_sqlproxy_chart_version: 0.19.12
+          helm_gcloud_sqlproxy_chart_version: 0.19.13
           helm_oidc_proxy_chart_version: 0.0.44
       - name: "Fetch gitHash for deployed integration version"
         id: configuration

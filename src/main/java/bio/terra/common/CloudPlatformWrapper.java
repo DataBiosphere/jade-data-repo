@@ -12,6 +12,7 @@ import bio.terra.service.dataset.StorageResource;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.springframework.validation.Errors;
 
@@ -53,6 +54,10 @@ public abstract class CloudPlatformWrapper {
 
   public boolean isAzure() {
     return false;
+  }
+
+  public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
+    return gcp.get();
   }
 
   public abstract void ensureValidRegion(String region, Errors errors);
@@ -129,6 +134,11 @@ public abstract class CloudPlatformWrapper {
     @Override
     public boolean isAzure() {
       return true;
+    }
+
+    @Override
+    public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
+      return azure.get();
     }
 
     @Override

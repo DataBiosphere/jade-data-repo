@@ -184,7 +184,7 @@ public class DatasetsApiController implements DatasetsApi {
         userRequest,
         IamResourceType.DATASET,
         id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
     datasetService.updateDatasetSnapshotBuilderSettings(id, settings);
     return ResponseEntity.ok(
         datasetService.retrieveDatasetModel(

@@ -58,8 +58,10 @@ public abstract class CloudPlatformWrapper {
   }
 
   public <T> T choose(Map<CloudPlatform, Supplier<T>> cloudMap) {
-    return cloudMap.get(CloudPlatform.GCP).get();
+    return cloudMap.get(getCloudPlatform()).get();
   }
+
+  public abstract <T> T choose(Supplier<T> gcp, Supplier<T> azure);
 
   public abstract void ensureValidRegion(String region, Errors errors);
 
@@ -93,6 +95,11 @@ public abstract class CloudPlatformWrapper {
     @Override
     public boolean isGcp() {
       return true;
+    }
+
+    @Override
+    public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
+      return gcp.get();
     }
 
     @Override
@@ -138,8 +145,8 @@ public abstract class CloudPlatformWrapper {
     }
 
     @Override
-    public <T> T choose(Map<CloudPlatform, Supplier<T>> cloudMap) {
-      return cloudMap.get(CloudPlatform.AZURE).get();
+    public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
+      return azure.get();
     }
 
     @Override

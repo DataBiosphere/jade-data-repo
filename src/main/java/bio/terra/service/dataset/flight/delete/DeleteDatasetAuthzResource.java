@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.delete;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.dataset.flight.create.CreateDatasetAuthzBqJobUserStep;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -11,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DeleteDatasetAuthzResource implements Step {
-  private IamService sam;
-  private UUID datasetId;
-  private AuthenticatedUserRequest userReq;
+  private final IamService sam;
+  private final UUID datasetId;
+  private final AuthenticatedUserRequest userReq;
 
   public DeleteDatasetAuthzResource(
       IamService sam, UUID datasetId, AuthenticatedUserRequest userReq) {
@@ -22,7 +21,7 @@ public class DeleteDatasetAuthzResource implements Step {
     this.userReq = userReq;
   }
 
-  private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzBqJobUserStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeleteDatasetAuthzResource.class);
 
   @Override
   public StepResult doStep(FlightContext context) {
@@ -33,7 +32,7 @@ public class DeleteDatasetAuthzResource implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     // can't undo delete
-    logger.warn("Trying to undo delete resource for dataset " + datasetId.toString());
+    logger.warn("Trying to undo delete resource for dataset " + datasetId);
     return StepResult.getStepResultSuccess();
   }
 }

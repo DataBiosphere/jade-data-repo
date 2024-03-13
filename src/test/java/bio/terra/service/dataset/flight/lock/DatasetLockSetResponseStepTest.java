@@ -28,7 +28,7 @@ class DatasetLockSetResponseStepTest {
   @Mock private DatasetService datasetService;
 
   @Test
-  void doStep() {
+  void doStep() throws InterruptedException {
     // Setup
     step = new DatasetLockSetResponseStep(datasetService, DATASET_ID);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());

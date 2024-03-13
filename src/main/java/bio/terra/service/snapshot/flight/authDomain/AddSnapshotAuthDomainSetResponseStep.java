@@ -1,18 +1,15 @@
 package bio.terra.service.snapshot.flight.authDomain;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.job.DefaultUndoStep;
-import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
 
-public class AddSnapshotAuthDomainSetResponseStep extends DefaultUndoStep {
+public class AddSnapshotAuthDomainSetResponseStep extends BaseStep {
 
   private final IamService iamService;
   private final AuthenticatedUserRequest userRequest;
@@ -26,11 +23,10 @@ public class AddSnapshotAuthDomainSetResponseStep extends DefaultUndoStep {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  public StepResult perform() {
     List<String> authDomain =
         iamService.retrieveAuthDomain(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
-    AddAuthDomainResponseModel response = new AddAuthDomainResponseModel().authDomain(authDomain);
-    FlightUtils.setResponse(context, response, HttpStatus.OK);
+    setResponse(new AddAuthDomainResponseModel().authDomain(authDomain));
     return StepResult.getStepResultSuccess();
   }
 }

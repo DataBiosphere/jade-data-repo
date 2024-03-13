@@ -45,7 +45,7 @@ public class AddSnapshotAuthDomainSetResponseStepTest {
   void setup() {}
 
   @Test
-  public void testDoAndUndoStepSucceeds() {
+  public void testDoAndUndoStepSucceeds() throws InterruptedException {
     AddSnapshotAuthDomainSetResponseStep step =
         new AddSnapshotAuthDomainSetResponseStep(iamService, TEST_USER, SNAPSHOT_ID);
     when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
@@ -58,7 +58,7 @@ public class AddSnapshotAuthDomainSetResponseStepTest {
 
     FlightMap workingMap = flightContext.getWorkingMap();
     assertEquals(
-        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class), HttpStatus.OK);
+        HttpStatus.OK, workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class));
     assertTrue(
         workingMap
             .get(JobMapKeys.RESPONSE.getKeyName(), AddAuthDomainResponseModel.class)

@@ -50,6 +50,7 @@ import bio.terra.service.snapshot.flight.duos.CreateDuosFirecloudGroupStep;
 import bio.terra.service.snapshot.flight.duos.IfNoGroupRetrievedStep;
 import bio.terra.service.snapshot.flight.duos.RecordDuosFirecloudGroupStep;
 import bio.terra.service.snapshot.flight.duos.RetrieveDuosFirecloudGroupStep;
+import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SyncDuosFirecloudGroupStep;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
@@ -160,6 +161,9 @@ public class SnapshotCreateFlight extends Flight {
       addStep(new IfNoGroupRetrievedStep(new RecordDuosFirecloudGroupStep(duosDao)));
       addStep(new IfNoGroupRetrievedStep(new SyncDuosFirecloudGroupStep(duosService, duosId)));
       // the DUOS Firecloud group is added as a reader in SnapshotAuthzIamStep
+    } else {
+      inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, null);
+      inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, false);
     }
 
     // create the snapshot metadata object in postgres and lock it
@@ -223,7 +227,6 @@ public class SnapshotCreateFlight extends Flight {
                   snapshotDao,
                   snapshotReq,
                   userReq));
-          break;
         } else if (platform.isAzure()) {
           addStep(
               new CreateSnapshotByQueryParquetFilesAzureStep(
@@ -233,8 +236,8 @@ public class SnapshotCreateFlight extends Flight {
                   snapshotReq,
                   datasetService,
                   userReq));
-          break;
         }
+        break;
 
       case BYROWID:
         if (platform.isGcp()) {

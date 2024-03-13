@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -8,15 +8,13 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 
-public class CreateSnapshotValidateAssetStep implements Step {
+public class CreateSnapshotValidateAssetStep extends BaseStep {
 
   private DatasetService datasetService;
   private SnapshotService snapshotService;
@@ -32,7 +30,7 @@ public class CreateSnapshotValidateAssetStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  public StepResult perform() {
     /*
      * get dataset
      * get dataset asset list
@@ -55,16 +53,11 @@ public class CreateSnapshotValidateAssetStep implements Step {
                 "Mismatched asset name: '%s' is not an asset in the asset list for dataset '%s'."
                     + "Asset list is '%s'",
                 snapshotSourceAssetName, dataset.getName(), datasetAssetNames);
-        FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
+        setErrorResponse(message, HttpStatus.BAD_REQUEST);
         return new StepResult(
             StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
       }
     }
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

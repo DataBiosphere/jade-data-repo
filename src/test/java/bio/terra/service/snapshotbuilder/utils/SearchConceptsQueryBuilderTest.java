@@ -20,9 +20,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class SearchConceptsQueryBuilderTest {
 
-  private SnapshotBuilderDomainOption createTestSnapshotBuilderDomainOption(
-      String category, int id) {
-    return new SnapshotBuilderDomainOption().category(category).id(id);
+  private SnapshotBuilderDomainOption createDomainOption(
+      String name, int id, String occurrenceTable, String columnName) {
+    var option = new SnapshotBuilderDomainOption();
+    option.name(name).id(id).tableName(occurrenceTable).columnName(columnName);
+    return option;
   }
 
   @ParameterizedTest
@@ -30,7 +32,7 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQuery(CloudPlatform platform) {
     CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
     SnapshotBuilderDomainOption domainOption =
-        createTestSnapshotBuilderDomainOption("observation", 27);
+        createDomainOption("Observation", 27, "observation", "observation_concept_id");
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "cancer", s -> s, CloudPlatformWrapper.of(platform));
@@ -43,7 +45,7 @@ class SearchConceptsQueryBuilderTest {
               "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
                   + "FROM concept AS c "
                   + "JOIN observation AS o ON o.observation_concept_id = c.concept_id "
-                  + "WHERE (c.domain_id = 'observation' "
+                  + "WHERE (c.domain_id = 'Observation' "
                   + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                   + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
                   + "GROUP BY c.concept_name, c.concept_id "
@@ -57,7 +59,7 @@ class SearchConceptsQueryBuilderTest {
           equalToCompressingWhiteSpace(
               "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
                   + "FROM concept AS c  JOIN observation AS o ON o.observation_concept_id = c.concept_id "
-                  + "WHERE (c.domain_id = 'observation' "
+                  + "WHERE (c.domain_id = 'Observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
                   + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
                   + "GROUP BY c.concept_name, c.concept_id "
@@ -70,7 +72,7 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
     CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
     SnapshotBuilderDomainOption domainOption =
-        createTestSnapshotBuilderDomainOption("Condition", 19);
+        createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "", s -> s, CloudPlatformWrapper.of(platform));

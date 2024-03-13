@@ -4,6 +4,7 @@ import bio.terra.common.exception.BadRequestException;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
@@ -21,7 +22,6 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVari
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class CriteriaQueryBuilder {
@@ -30,24 +30,6 @@ public class CriteriaQueryBuilder {
   final TableVariable rootTable;
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
-
-  public record OccurrenceTable(String tableName, String idColumnName) {}
-
-  private static final Map<Integer, OccurrenceTable> DOMAIN_TO_OCCURRENCE_TABLE =
-      Map.of(
-          19, new OccurrenceTable("condition_occurrence", "condition_concept_id"),
-          10, new OccurrenceTable("procedure_occurrence", "procedure_concept_id"),
-          27, new OccurrenceTable("observation", "observation_concept_id"),
-          17, new OccurrenceTable("device_exposure", "device_concept_id"),
-          13, new OccurrenceTable("drug_exposure", "drug_concept_id"));
-
-  public static OccurrenceTable getOccurrenceTableFromDomain(int domainId) {
-    OccurrenceTable occurrenceTable = DOMAIN_TO_OCCURRENCE_TABLE.get(domainId);
-    if (occurrenceTable == null) {
-      throw new BadRequestException(String.format("Domain %s is not found in dataset", domainId));
-    }
-    return occurrenceTable;
-  }
 
   protected CriteriaQueryBuilder(
       String rootTableName,
@@ -99,10 +81,21 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {
-    OccurrenceTable occurrenceTable = getOccurrenceTableFromDomain(domainCriteria.getId());
+    SnapshotBuilderDomainOption domainOption =
+        snapshotBuilderSettings.getDomainOptions().stream()
+            .filter(
+                snapshotBuilderDomainOption ->
+                    Objects.equals(snapshotBuilderDomainOption.getId(), domainCriteria.getId()))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new BadRequestException(
+                        String.format(
+                            "Domain %d not configured for use in Snapshot Builder",
+                            domainCriteria.getId())));
 
     TablePointer occurrencePointer =
-        TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
+        TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
     TableVariable occurrenceVariable = TableVariable.forPrimary(occurrencePointer);
 
     TablePointer ancestorPointer =
@@ -112,7 +105,7 @@ public class CriteriaQueryBuilder {
             ancestorPointer,
             "ancestor_concept_id",
             new FieldVariable(
-                new FieldPointer(occurrencePointer, occurrenceTable.idColumnName()),
+                new FieldPointer(occurrencePointer, domainOption.getColumnName()),
                 occurrenceVariable));
 
     return new SubQueryFilterVariable(
@@ -128,7 +121,7 @@ public class CriteriaQueryBuilder {
                 List.of(
                     new BinaryFilterVariable(
                         new FieldVariable(
-                            new FieldPointer(occurrencePointer, occurrenceTable.idColumnName()),
+                            new FieldPointer(occurrencePointer, domainOption.getColumnName()),
                             occurrenceVariable),
                         BinaryFilterVariable.BinaryOperator.EQUALS,
                         new Literal(domainCriteria.getConceptId())),

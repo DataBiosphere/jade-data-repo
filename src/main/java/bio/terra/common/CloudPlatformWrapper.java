@@ -11,6 +11,7 @@ import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.dataset.StorageResource;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -56,8 +57,8 @@ public abstract class CloudPlatformWrapper {
     return false;
   }
 
-  public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
-    return gcp.get();
+  public <T> T choose(Map<CloudPlatform, Supplier<T>> cloudMap) {
+    return cloudMap.get(CloudPlatform.GCP).get();
   }
 
   public abstract void ensureValidRegion(String region, Errors errors);
@@ -137,8 +138,8 @@ public abstract class CloudPlatformWrapper {
     }
 
     @Override
-    public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
-      return azure.get();
+    public <T> T choose(Map<CloudPlatform, Supplier<T>> cloudMap) {
+      return cloudMap.get(CloudPlatform.AZURE).get();
     }
 
     @Override

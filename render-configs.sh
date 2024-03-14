@@ -1,5 +1,5 @@
 #!/bin/bash
-### How to call this script - we need to use the "source" command in order to export the environment variables to the current shell
+### How to call this script - we need to use the "source" command in order to export the environment variables
 # source ./render-configs.sh
 # source ./render-configs.sh integration
 
@@ -73,8 +73,29 @@ export GOOGLE_APPLICATION_CREDENTIALS
 # ========================
 # Resource Buffer Service
 # ========================
-BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
-BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH=/tmp/buffer-client-sa-account.json
+# Other option: dev - this will allow for projects to persist for longer than 1 day
+RBS_ENV=${2:-tools}
+if [[ "${RBS_ENV}" == "tools" ]]; then
+    BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
+    RBS_POOLID=datarepo_v1
+    RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org
+elif [[ "${AZURE_ENV}" == "dev" ]]; then
+    BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/dev/dev/buffer/client-sa
+    RBS_POOLID=datarepo_v3
+    RBS_INSTANCEURL=https://buffer.dsde-dev.broadinstitute.org
+else
+    echo "Invalid RBS environment: $RBS_ENV - only 'tools' and 'dev' are supported."
+    exit 1
+fi
+
+RBS_CLIENTCREDENTIALFILEPATH=/tmp/buffer-client-sa-account.json
+RBS_ENABLED=true
+RBS_CLIENTCREDENTIALFILEPATH=/tmp/buffer-client-sa-account.json
 
 vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
-    | base64 -d > "$BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH"
+    | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
+
+export RBS_ENABLED
+export RBS_POOLID
+export RBS_INSTANCEURL
+export RBS_CLIENTCREDENTIALFILEPATH

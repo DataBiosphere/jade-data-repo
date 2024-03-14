@@ -135,9 +135,14 @@ class SnapshotBuilderServiceTest {
   void searchConcepts(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
+    domainOption
+        .name("condition")
+        .id(19)
+        .tableName("condition_occurrence")
+        .columnName("condition_concept_id");
     SnapshotBuilderSettings snapshotBuilderSettings =
-        new SnapshotBuilderSettings()
-            .domainOptions(List.of(new SnapshotBuilderDomainOption().category("condition").id(19)));
+        new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));

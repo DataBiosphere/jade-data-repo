@@ -27,9 +27,8 @@ public class SearchConceptsQueryBuilder {
       TableNameGenerator tableNameGenerator,
       CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
-    var occurrenceTable = CriteriaQueryBuilder.getOccurrenceTableFromDomain(domainOption.getId());
     var domainOccurrencePointer =
-        TablePointer.fromTableName(occurrenceTable.tableName(), tableNameGenerator);
+        TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
@@ -37,7 +36,7 @@ public class SearchConceptsQueryBuilder {
     // FROM concept JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
     // concept.concept_id
     var domainOccurenceTableVariable =
-        TableVariable.forJoined(domainOccurrencePointer, occurrenceTable.idColumnName(), idField);
+        TableVariable.forJoined(domainOccurrencePointer, domainOption.getColumnName(), idField);
 
     var countField =
         new FieldVariable(
@@ -49,7 +48,7 @@ public class SearchConceptsQueryBuilder {
 
     // domain clause filters for the given domain id based on field domain_id
     var domainClause =
-        createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getCategory());
+        createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getName());
 
     List<FieldVariable> select = List.of(nameField, idField, countField);
 

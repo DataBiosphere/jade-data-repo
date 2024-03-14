@@ -7165,6 +7165,82 @@ components:
             $ref:
               '#/components/schemas/SnapshotBuilderDatasetConceptSet'
 
+    SnapshotBuilderOption:
+      type: object
+      required:
+        - kind
+        - id
+        - name
+        - tableName
+        - columnName
+      properties:
+        kind:
+          type: string
+          enum: [ list, range, domain ]
+        name:
+          type: string
+        id:
+          description: the ID of either the domain or program data entry
+          type: integer
+        tableName:
+          type: string
+        columnName:
+          type: string
+      discriminator:
+        propertyName: kind
+        mapping:
+          list: '#/components/schemas/SnapshotBuilderProgramDataOption'
+          range: '#/components/schemas/SnapshotBuilderProgramDataOption'
+          domain: '#/components/schemas/SnapshotBuilderDomainOption'
+
+    SnapshotBuilderProgramDataOption:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderOption'
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum: [ list, range ]
+      discriminator:
+        propertyName: kind
+        mapping:
+          list: 'SnapshotBuilderProgramDataListOption'
+          range: 'SnapshotBuilderProgramDataRangeOption'
+
+    SnapshotBuilderProgramDataListOption:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
+        - type: object
+          properties:
+            values:
+              type: array
+              items:
+                $ref: '#/components/schemas/SnapshotBuilderProgramDataListItem'
+      description: List format program data, part of a CriteriaGroup.
+
+    SnapshotBuilderProgramDataListItem:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+        id:
+          description: the ID of the list item in the specified table
+          type: integer
+
+    SnapshotBuilderProgramDataRangeOption:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
+        - type: object
+          properties:
+            min:
+              type: integer
+            max:
+              type: integer
+      description: List format program data, part of a CriteriaGroup.
+
     SnapshotBuilderDatasetConceptSet:
       type: object
       description: >
@@ -7179,24 +7255,20 @@ components:
           type: string
 
     SnapshotBuilderDomainOption:
-      type: object
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderOption'
+        - type: object
+          required:
+            - root
+          properties:
+            root:
+              $ref: '#/components/schemas/SnapshotBuilderConcept'
+            conceptCount:
+              type: integer
+            participantCount:
+              type: integer
       description: >
         ⚠️ An object describing high level information about a domain for use in the snapshot builder
-      required:
-        - id
-        - category
-        - root
-      properties:
-        id:
-          type: integer
-        category:
-          type: string
-        conceptCount:
-          type: integer
-        participantCount:
-          type: integer
-        root:
-          $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderGetConceptsResponse:
       type: object
@@ -7241,27 +7313,6 @@ components:
       properties:
         result:
           $ref: '#/components/schemas/SnapshotBuilderConcept'
-
-    SnapshotBuilderProgramDataOption:
-      type: object
-      description: >
-        ⚠️ An object describing high level information about program data for use in the snapshot builder
-      required:
-        - id
-        - name
-        - kind
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        tableName:
-          type: string
-        columnName:
-          type: string
-        kind:
-          type: string
-          enum: [ range, list ]
 
     SnapshotBuilderFeatureValueGroup:
       type: object

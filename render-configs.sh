@@ -15,7 +15,7 @@
 AZURE_ENV=${1:-dev}
 
 if [[ "${AZURE_ENV}" == "dev" ]]; then
-    AZURE_SYNAPSE_WORKSPACENAME=tdr-synapse-us-east-ondemand.sql.azuresynapse.net
+    AZURE_SYNAPSE_WORKSPACENAME=tdr-synapse-east-us-ondemand.sql.azuresynapse.net
 elif [[ "${AZURE_ENV}" == "integration" ]]; then
     AZURE_SYNAPSE_WORKSPACENAME=tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
 else

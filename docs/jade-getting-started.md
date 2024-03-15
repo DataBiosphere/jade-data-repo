@@ -145,14 +145,20 @@ helm repo update
 open -a docker
 
 # configure google-cloud-sdk
+# login with an account that has access to your project. This will save credentials locally.
 gcloud auth login
 gcloud auth application-default login
+
+#If you are using multiple accounts, you can switch to the correct one using this command:
+gcloud config set account <account email>
+
 gcloud auth configure-docker
 
 # setup kubectl plugin
 gcloud components install gke-gcloud-auth-plugin
 ```
 
+### 7. Configure
 
 ## 6. Create GitHub token
 
@@ -328,7 +334,9 @@ Follow the [Build and Run Locally](https://github.com/DataBiosphere/jade-data-re
 section in the [main readme](https://github.com/DataBiosphere/jade-data-repo#jade-data-repository---)
 to build `jade-data-repo`.
 
-* You will need to run `render-configs.sh` before running integration tests.
+* Start postgres
+*
+* Run `source render-configs.sh` to pull secrets from vault and set them in environment variables
 
 * **Set Environment Variables**: While not exhaustive,
   here's a list that notes the important environment variables to set when running `jade-data-repo` locally.
@@ -348,13 +356,13 @@ export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 
-# Clears database on startup, test run, etc. This is further explained in the oncall playbook.
+# [OPTIONAL] Clears database on startup, test run, etc. This is further explained in the oncall playbook.
 export DB_MIGRATE_DROPALLONSTART=true
 
 # Setting for testing environment (Further explaned in oncall playbook)
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 
-# Setting for credentials to test on Azure
+# Setting for credentials to test on Azure - these files are populated in the render-configs.sh script
 export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
 export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
 export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
@@ -428,6 +436,9 @@ against your local db.
 
 You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
 such as `AzureY1Demo.ipynb`
+
+## 14. Running locally with other locally running services
+1. Sam - set environment variable `SAM_BASEPATH` to `https://local.broadinstitute.org:50443`
 
 ## Common Issues
 

@@ -19,26 +19,6 @@ tabular and file data backed either by GCP or Azure. The project setup has been 
 
 Follow our getting [started guide](docs/jade-getting-started.md) to get set up.
 
-### Set up
-You must have authenticated with google for application-default credentials:
-
-    gcloud auth application-default login
-
-and login with an account that has access to your project. This will save credentials locally. If you are using
-multiple accounts, you can switch to the correct one using this command:
-
-    gcloud config set account <account email>
-
-Then you must specify a google project to use. Run this command:
-
-    gcloud config set project <project-name>
-
-To see what you currently have set, use: `gcloud config list`
-
-When running locally, we are not using the proxy. Therefore, the system doesn't know your user email. Edit the
-`src/main/resources/application.properties` file and set the userEmail field. If you are running sam locally, set
-`sam.basePath` to `https://local.broadinstitute.org:50443`.
-
 ### Run linters and unit tests
 
 If you are making code changes, run:

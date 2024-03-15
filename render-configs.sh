@@ -26,38 +26,38 @@ export AZURE_SYNAPSE_WORKSPACENAME
 
 
 vault read -field=tenant-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-$AZURE_ENV-tenant-id.key"
-AZURE_CREDENTIALS_HOMETENANTID=$(cat "/tmp/jade-$AZURE_ENV-tenant-id.key")
+    > "/tmp/tdr-azure-tenant-id.key"
+AZURE_CREDENTIALS_HOMETENANTID=$(cat "/tmp/tdr-azure-tenant-id.key")
 export AZURE_CREDENTIALS_HOMETENANTID
 
 
 vault read -field=client-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-${AZURE_ENV}-client-id.key"
-AZURE_CREDENTIALS_APPLICATIONID=$(cat "/tmp/jade-${AZURE_ENV}-client-id.key")
+    > "/tmp/tdr-azure-client-id.key"
+AZURE_CREDENTIALS_APPLICATIONID=$(cat "/tmp/tdr-azure-client-id.key")
 export AZURE_CREDENTIALS_APPLICATIONID
 
 
 vault read -field=client-secret secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-$AZURE_ENV-azure.key"
-AZURE_CREDENTIALS_SECRET=$(cat "/tmp/jade-$AZURE_ENV-azure.key")
+    > "/tmp/tdr-azure-client-secret.key"
+AZURE_CREDENTIALS_SECRET=$(cat "/tmp/tdr-azure-client-secret.key")
 export AZURE_CREDENTIALS_SECRET
 
 
 vault read -field=synapse-sql-admin-user secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-$AZURE_ENV-synapse-admin-user.key"
-AZURE_SYNAPSE_SQLADMINUSER=$(cat "/tmp/jade-$AZURE_ENV-synapse-admin-user.key")
+    > "/tmp/tdr-synapse-admin-user.key"
+AZURE_SYNAPSE_SQLADMINUSER=$(cat "/tmp/tdr-synapse-admin-user.key")
 export AZURE_SYNAPSE_SQLADMINUSER
 
 
 vault read -field=synapse-sql-admin-password secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-$AZURE_ENV-synapse-admin-password.key"
-AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat "/tmp/jade-$AZURE_ENV-synapse-admin-password.key")
+    > "/tmp/tdr-synapse-admin-password.key"
+AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat "/tmp/tdr-synapse-admin-password.key")
 export AZURE_SYNAPSE_SQLADMINPASSWORD
 
 
 vault read -field=synapse-encryption-key secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-$AZURE_ENV-synapse-encryption-key.key"
-AZURE_SYNAPSE_ENCRYPTIONKEY=$(cat "/tmp/jade-$AZURE_ENV-synapse-encryption-key.key")
+    > "/tmp/tdr-synapse-encryption-key.key"
+AZURE_SYNAPSE_ENCRYPTIONKEY=$(cat "/tmp/tdr-synapse-encryption-key.key")
 export AZURE_SYNAPSE_ENCRYPTIONKEY
 
 # ========================

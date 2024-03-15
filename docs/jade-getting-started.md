@@ -328,84 +328,27 @@ Both are performed by a teammate in the Azure portal: https://portal.azure.com
 
 ## 12. Repository Setup
 
-### 1. Build `jade-data-repo`
-
-Follow the [Build and Run Locally](https://github.com/DataBiosphere/jade-data-repo#build-and-run-locally)
-section in the [main readme](https://github.com/DataBiosphere/jade-data-repo#jade-data-repository---)
-to build `jade-data-repo`.
+### 1. Build, run and Unit Test `jade-data-repo`
 
 * Start postgres
-*
+* Ensure docker is running
 * Run `source render-configs.sh` to pull secrets from vault and set them in environment variables
-
-* **Set Environment Variables**: While not exhaustive,
-  here's a list that notes the important environment variables to set when running `jade-data-repo` locally.
-  Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
-  These variables override settings in jade-data-repo/application.properties.
-  You can convert any application.property to an environment variable by switching to upper case and every "." to "_".
+* Build the code and run the unit tests:
 
 ```
-# Point to your personal dev project/deployment
-export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
-export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
-
-# Integration test setting: change this to http://localhost:8080/ to run against a local instance
-export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
-
-# This file will be populated when you run ./render-configs.sh
-export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
-export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
-
-# [OPTIONAL] Clears database on startup, test run, etc. This is further explained in the oncall playbook.
-export DB_MIGRATE_DROPALLONSTART=true
-
-# Setting for testing environment (Further explaned in oncall playbook)
-export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
-
-# Setting for credentials to test on Azure - these files are populated in the render-configs.sh script
-export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
-export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
-export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
-export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
-export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
-export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
-export AZURE_SYNAPSE_INITIALIZE=false
-
-# Pact contract test settings
-export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
-export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
-
-# Azure B2C authentication settings
-export OIDC_ADDCLIENTIDTOSCOPE=true
-export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
-export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
-export OIDC_EXTRAAUTHPARAMS="prompt=login"
-export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
-```
-
-* **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
-  project.
-  1) File -> Project Structure -> Project -> SDKs -> add SDK -> Download JDK -> Version: 17, Vendor - AdoptOpenJDK 17 ( I used Termurin)
-     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/a1e7fe17-92ba-4e17-bf3b-523afe61e099)
-     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/d55f9883-0997-4b1f-979f-f011e78cec58)
-  2) You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
-     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
-
-* If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
-instead of `http://local.broadinstitute.org`:
-
-```
-export HOST=localhost
-```
-
-* Build the code and run the tests:
-
-```
+./gradlew build           # build jade-data-repo and run unit tests
 ./gradlew bootRun         # build jade-data-repo with Spring Boot features
 ./gradlew check           # linters and unit tests
-./gradlew testConnected   # connected tests
-./gradlew testIntegration # integration tests
 ```
+
+### 2. Run connected tests
+We don't recommend running the entire test connected test suite locally, as it takes over an hour to run.
+Instead, you can select a specific test to run in Intellij. First, make sure you have run through the following steps:
+* Start postgres
+* Ensure docker is running
+* Run `render-configs.sh` to pull secrets from vault
+* Set environment variables:
+*
 
 Running Pact tests can be achieved by rendering a small set of Pact-specific configurations first:
 ```
@@ -444,7 +387,71 @@ such as `AzureY1Demo.ipynb`
 
 Ensure that:
 
-1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started).
+1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started). (Note: This is not needed for most operations)
 2. Docker is running.
 3. Postgres database is started.
+4. Logged in with vault (see above instructions for more details:
+    ```
+    vault login -method=github token=$(cat ~/.gh_token)
+    ```
 4. Environment variables are set. See list of environment variables [above](#12-repository-setup).
+5.  **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
+     project.
+  * File -> Project Structure -> Project -> SDKs -> add SDK -> Download JDK -> Version: 17, Vendor - AdoptOpenJDK 17 ( I used Termurin)
+     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/a1e7fe17-92ba-4e17-bf3b-523afe61e099)
+     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/d55f9883-0997-4b1f-979f-f011e78cec58)
+  * You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
+   ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
+
+
+
+
+## Environment Variables
+
+While not exhaustive,
+here's a list that notes the important environment variables to set when running `jade-data-repo` locally.
+These variables override settings in jade-data-repo/application.properties. You can convert any
+application.property to an environment variable by switching to upper case and every "." to "_".
+
+See the above instructions when these variables are needed.
+
+* Instances of `ZZ` are only needed if you have a personal development environment setup. It is no longer
+recommended to set this up. But, if used, `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
+
+
+
+```
+# Point to your personal dev project/deployment
+export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
+export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
+
+# Integration test setting: change this to http://localhost:8080/ to run against a local instance
+export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
+
+# This file will be populated when you run ./render-configs.sh
+export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
+export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
+
+# [OPTIONAL] Clears database on startup, test run, etc. This is further explained in the oncall playbook.
+export DB_MIGRATE_DROPALLONSTART=true
+
+# Setting for testing environment (Further explaned in oncall playbook)
+export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
+
+# Setting for credentials to test on Azure - these files are populated in the render-configs.sh script
+export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
+export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
+export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
+export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
+export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
+export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
+export AZURE_SYNAPSE_INITIALIZE=false
+
+# Pact contract test settings
+export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
+export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
+
+# If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
+# instead of `http://local.broadinstitute.org`:
+export HOST=localhost
+```

@@ -23,12 +23,12 @@
 #1. If you need to set up a virtual python environment, you can run the following commands:
 #    * `python3 -m venv c:/path/to/myenv`
 #    * `source c:/path/to/myenv/bin/activate`
-#2. `cd jade-data-repo/tools/datasetSnapshotHelperScripts`
+#2. `cd jade-data-repo/tools/setupResourceScripts`
 #3. `pip3 install -r requirements.txt`
 #4. `gcloud auth login <user>`
 #5. `cd files/OMOPDataset'
 #6  `python3 populate_omop_data.py`
-#7  `cd ../..` (go back to the datasetSnapshotHelperScripts directory)
+#7  `cd ../..` (go back to the setupResourceScripts directory)
 #5. `python3 setup_tdr_resources.py --host <datarepo_url> --datasets datarepo_omop_datasets.json --profile_id <profile_id>`
 
 

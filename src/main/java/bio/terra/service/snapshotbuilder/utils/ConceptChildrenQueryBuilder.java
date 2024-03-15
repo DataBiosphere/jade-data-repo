@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -16,7 +17,10 @@ public class ConceptChildrenQueryBuilder {
   private ConceptChildrenQueryBuilder() {}
 
   public static String buildConceptChildrenQuery(
-      int conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
+      SnapshotBuilderDomainOption domainOption,
+      int conceptId,
+      TableNameGenerator tableNameGenerator,
+      CloudPlatformWrapper platform) {
     TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldVariable nameFieldVariable = conceptTableVariable.makeFieldVariable("concept_name");
@@ -42,6 +46,22 @@ public class ConceptChildrenQueryBuilder {
             List.of(nameFieldVariable, idFieldVariable),
             List.of(conceptTableVariable),
             subQueryFilterVariable);
+    return query.renderSQL(platform);
+  }
+
+  public static String retrieveDomainId(
+      Integer conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+    FieldVariable domainIdFieldVariable = conceptTableVariable.makeFieldVariable("domain_id");
+    BinaryFilterVariable whereClause =
+        new BinaryFilterVariable(
+            conceptTableVariable.makeFieldVariable("concept_id"),
+            BinaryFilterVariable.BinaryOperator.EQUALS,
+            new Literal(conceptId));
+
+    Query query =
+        new Query(List.of(domainIdFieldVariable), List.of(conceptTableVariable), whereClause);
     return query.renderSQL(platform);
   }
 }

@@ -89,10 +89,13 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
+    CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+    String domainId = queryForDomainId(conceptId, tableNameGenerator, cloudPlatform, dataset);
+    SnapshotBuilderDomainOption domainOption = getDomainOptionFromSettings(domainId, datasetId);
     String cloudSpecificSql =
         ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
-            conceptId, tableNameGenerator, CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+            domainOption, conceptId, tableNameGenerator, cloudPlatform);
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -140,17 +143,8 @@ public class SnapshotBuilderService {
       UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
-    SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
-
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
-        snapshotBuilderSettings.getDomainOptions().stream()
-            .filter(domainOption -> domainOption.getName().equals(domainId))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new BadRequestException(
-                        "Invalid domain category is given: %s".formatted(domainId)));
+        getDomainOptionFromSettings(domainId, datasetId);
 
     String cloudSpecificSql =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
@@ -188,6 +182,38 @@ public class SnapshotBuilderService {
             AggregateBQQueryResultsUtils::rollupCountsMapper,
             AggregateSynapseQueryResultsUtils::rollupCountsMapper)
         .get(0);
+  }
+
+  private SnapshotBuilderDomainOption getDomainOptionFromSettings(String domainId, UUID datasetId) {
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+
+    return snapshotBuilderSettings.getDomainOptions().stream()
+        .filter(domainOption -> domainOption.getName().equals(domainId))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new BadRequestException(
+                    "Invalid domain category is given: %s".formatted(domainId)));
+  }
+
+  private String queryForDomainId(
+      Integer conceptId,
+      TableNameGenerator tableNameGenerator,
+      CloudPlatformWrapper cloudPlatform,
+      Dataset dataset) {
+    List<String> domainIdResult =
+        runSnapshotBuilderQuery(
+            ConceptChildrenQueryBuilder.retrieveDomainId(
+                conceptId, tableNameGenerator, cloudPlatform),
+            dataset,
+            AggregateBQQueryResultsUtils::domainId,
+            AggregateSynapseQueryResultsUtils::domainId);
+    if (domainIdResult.size() == 1) {
+      return domainIdResult.get(0);
+    } else {
+      throw new IllegalStateException("There must be exactly one domain for a concept.");
+    }
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(

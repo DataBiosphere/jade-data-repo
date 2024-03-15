@@ -31,4 +31,10 @@ public class AggregateBQQueryResultsUtils {
         .map(row -> (int) row.get(0).getLongValue())
         .toList();
   }
+
+  public static List<String> domainId(TableResult result) {
+    return StreamSupport.stream(result.iterateAll().spliterator(), false)
+        .map(row -> row.get(0).getStringValue())
+        .toList();
+  }
 }

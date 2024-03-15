@@ -28,7 +28,7 @@
 #4. `gcloud auth login <user>`
 #5. `cd files/OMOPDataset'
 #6  `python3 populate_omop_data.py`
-#7  `cd ../..` (go back to the ui_integration directory)
+#7  `cd ../..` (go back to the datasetSnapshotHelperScripts directory)
 #5. `python3 setup_ui_integration.py --host <datarepo_url> --datasets datarepo_omop_datasets.json --profile_id <profile_id>`
 
 

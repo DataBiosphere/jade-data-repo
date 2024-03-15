@@ -77,7 +77,11 @@ class SearchConceptsQueryBuilderTest {
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
-        "c.concept_name, c.concept_id FROM concept AS c " + "WHERE c.domain_id = 'Condition' ";
+        "c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count "
+            + "FROM concept AS c  JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c.concept_id "
+            + "WHERE c.domain_id = 'Condition' "
+            + "GROUP BY c.concept_name, c.concept_id "
+            + "ORDER BY count DESC";
     if (platformWrapper.isAzure()) {
       assertThat(
           "generated SQL for Azure empty search string is correct",

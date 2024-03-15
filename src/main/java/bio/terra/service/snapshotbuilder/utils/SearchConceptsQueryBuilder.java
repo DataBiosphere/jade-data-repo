@@ -81,7 +81,9 @@ public class SearchConceptsQueryBuilder {
     if (searchText.isEmpty()) {
       where = domainClause;
     } else {
-      where = new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+      where =
+          new BooleanAndOrFilterVariable(
+              BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
     }
 
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id) as count

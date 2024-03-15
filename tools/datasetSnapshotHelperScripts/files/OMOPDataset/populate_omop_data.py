@@ -1,6 +1,6 @@
 ###
 # This script is used to generate JSON files with tabular OMOP data with a small test subset of OMOP data
-# It queries the BigQuery dataset and writes the results to json files to be used in the setup_ui_integration.py script
+# It queries the BigQuery dataset and writes the results to json files to be used in the setup_tdr_resources.py script
 # (1) We start with the person table and pull a small subset of person ids
 # (2) Then we retrieve entries the occurrence tables (procedure_occurrence, condition_occurrence, drug_exposure) that map to the selected person ids,
 #       noting the referenced concept_ids in these entries
@@ -10,7 +10,7 @@
 #       then the descendant_concept_id contains all the concepts form the concept table.
 #       This is the only table that we are fabricating.
 # (6) We write the results to json files
-# (7) We use the json files in the setup_ui_integration.py script to populate a test environment with the OMOP data
+# (7) We use the json files in the setup_tdr_resources.py script to populate a test environment with the OMOP data
 #
 # How to use this script
 # Note: this script overwrites the json files each time it is run
@@ -29,7 +29,7 @@
 #5. `cd files/OMOPDataset'
 #6  `python3 populate_omop_data.py`
 #7  `cd ../..` (go back to the datasetSnapshotHelperScripts directory)
-#5. `python3 setup_ui_integration.py --host <datarepo_url> --datasets datarepo_omop_datasets.json --profile_id <profile_id>`
+#5. `python3 setup_tdr_resources.py --host <datarepo_url> --datasets datarepo_omop_datasets.json --profile_id <profile_id>`
 
 
 

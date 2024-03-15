@@ -76,8 +76,13 @@ public class SearchConceptsQueryBuilder {
 
     // domainClause AND (searchNameClause OR searchCodeClause)
     List<FilterVariable> allFilters = List.of(domainClause, searchClause);
-    BooleanAndOrFilterVariable where =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+
+    FilterVariable where;
+    if (searchText.isEmpty()) {
+      where = domainClause;
+    } else {
+      where = new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+    }
 
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id) as count
     // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
@@ -85,9 +90,7 @@ public class SearchConceptsQueryBuilder {
     // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
     // ORDER BY count DESC
 
-    Query query =
-        new Query(
-            select, tables, searchText.isEmpty() ? domainClause : where, groupBy, orderBy, 100);
+    Query query = new Query(select, tables, where, groupBy, orderBy, 100);
 
     return query.renderSQL(platform);
   }

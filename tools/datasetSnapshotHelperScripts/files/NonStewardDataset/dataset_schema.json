@@ -1,0 +1,42 @@
+{
+  "name": "NonStewardDataset",
+  "description": "A dataset where the e2e test user is not a steward",
+  "schema": {
+    "tables": [
+      {
+        "name": "sample_vcf",
+        "columns": [
+          {
+            "name": "sample_name",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "data_type",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "vcf_file_ref",
+            "datatype": "fileref",
+            "array_of": false
+          },
+          {
+            "name": "vcf_index_file_ref",
+            "datatype": "fileref",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      }
+    ],
+    "relationships": [],
+    "assets": []
+  },
+  "region": "us-east4",
+  "cloudPlatform": "gcp"
+}

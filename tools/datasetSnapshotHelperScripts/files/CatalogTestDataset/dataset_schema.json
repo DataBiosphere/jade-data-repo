@@ -1,0 +1,62 @@
+{
+  "name": "CatalogTestDataset",
+  "description": "A dataset used to create test snapshots for the Data Catalog",
+  "schema": {
+    "tables": [
+      {
+        "name": "participant",
+        "columns": [
+          {
+            "name": "participant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "biological_sex",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "age",
+            "datatype": "integer",
+            "array_of": false
+          }
+        ]
+      },
+      {
+        "name": "sample",
+        "columns": [
+          {
+            "name": "sample_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "participant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "files",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "type",
+            "datatype": "string",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      }
+    ],
+    "relationships": [],
+    "assets": []
+  },
+  "region": "us-east4",
+  "cloudPlatform": "gcp"
+}

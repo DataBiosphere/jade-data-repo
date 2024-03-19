@@ -67,6 +67,15 @@ public record Query(
     this(select, tables, where, groupBy, null, orderBy, limit);
   }
 
+  public Query(
+      List<FieldVariable> select,
+      List<TableVariable> tables,
+      FilterVariable where,
+      List<FieldVariable> groupBy,
+      List<OrderByVariable> orderBy) {
+    this(select, tables, where, groupBy, null, orderBy, null);
+  }
+
   @Override
   public String renderSQL(CloudPlatformWrapper platform) {
     // generate a unique alias for each TableVariable

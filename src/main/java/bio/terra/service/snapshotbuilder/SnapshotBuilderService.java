@@ -91,8 +91,10 @@ public class SnapshotBuilderService {
     Dataset dataset = datasetService.retrieve(datasetId);
     CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+
     String domainId = queryForDomainId(conceptId, tableNameGenerator, cloudPlatform, dataset);
     SnapshotBuilderDomainOption domainOption = getDomainOptionFromSettings(domainId, datasetId);
+
     String cloudSpecificSql =
         ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
             domainOption, conceptId, tableNameGenerator, cloudPlatform);

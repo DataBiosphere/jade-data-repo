@@ -1,7 +1,22 @@
 #!/bin/bash
-### How to call this script - we need to use the "source" command in order to export the environment variables
-# source ./render-configs.sh
-# source ./render-configs.sh integration
+### How to call this script
+# To write secrets to tmp files:
+# ./render-configs.sh (defaults to dev azure, tools RBS)
+
+# If you want to export the related environment variables, use the "source" command:
+# source ./render-configs.sh (defaults to dev azure, tools RBS)
+
+# There are three optional arguments:
+# source ./render-configs.sh (Azure Synapse: dev|integration) (RBS: tools|dev) (Prompt for printing env variables: y|n)
+# e.g.: source ./render-configs.sh dev tools n
+
+# If you're running Azure Integration Tests you should use the following settings:
+# source ./render-configs.sh integration tools y
+# Add the printed environment variables to your bash profile or add them to the Intellij test profile.
+
+# If you want a set up locally, you can use the following settings:
+# source ./render-configs.sh dev dev
+# ./gradlew bootRun
 
 ### About this script
 # This script pulls the needed secrets from vault and sets the values as environment variables
@@ -73,6 +88,7 @@ export GOOGLE_APPLICATION_CREDENTIALS
 # ========================
 # Resource Buffer Service
 # ========================
+# By default, RBS will use the tools project. GCP projects will automatically be deleted after 1 day.
 # Other option: dev - this will allow for projects to persist for longer than 1 day
 RBS_ENV=${2:-tools}
 if [[ "${RBS_ENV}" == "tools" ]]; then
@@ -99,3 +115,31 @@ export RBS_ENABLED
 export RBS_POOLID
 export RBS_INSTANCEURL
 export RBS_CLIENTCREDENTIALFILEPATH
+
+
+echo "If you ran this script with 'source', the environment variables have been set in this context.
+If you want these values to show up in intellij test/run profiles, you will need to set
+these variables in your bash profile and restart intellij or set them manually in intellij profiles."
+
+ASK_ENV_VARS=${3:-y}
+if [[ "${ASK_ENV_VARS}" == "n" ]]; then
+  exit 0
+fi
+echo "Do you want to print the environment variables set in this script? (y/n)"
+
+read -r PRINT_ENV_VARS
+if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
+  echo "export AZURE_SYNAPSE_WORKSPACENAME=$AZURE_SYNAPSE_WORKSPACENAME
+  export AZURE_CREDENTIALS_HOMETENANTID=$AZURE_CREDENTIALS_HOMETENANTID
+  export AZURE_CREDENTIALS_APPLICATIONID=$AZURE_CREDENTIALS_APPLICATIONID
+  export AZURE_CREDENTIALS_SECRET=$AZURE_CREDENTIALS_SECRET
+  export AZURE_SYNAPSE_SQLADMINUSER=$AZURE_SYNAPSE_SQLADMINUSER
+  export AZURE_SYNAPSE_SQLADMINPASSWORD=$AZURE_SYNAPSE_SQLADMINPASSWORD
+  export AZURE_SYNAPSE_ENCRYPTIONKEY=$AZURE_SYNAPSE_ENCRYPTIONKEY
+  export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+  export RBS_ENABLED=$RBS_ENABLED
+  export RBS_POOLID=$RBS_POOLID
+  export RBS_INSTANCEURL=$RBS_INSTANCEURL
+  export RBS_CLIENTCREDENTIALFILEPATH=$RBS_CLIENTCREDENTIALFILEPATH"
+fi
+

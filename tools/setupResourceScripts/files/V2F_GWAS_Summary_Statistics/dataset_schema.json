@@ -1,0 +1,1461 @@
+{
+  "name": "V2F_GWAS_Summary_Statistics",
+  "description": "Summary statistics from V2F datasets",
+  "schema": {
+    "tables": [
+      {
+        "name": "ancestry_specific_meta_analysis",
+        "columns": [
+          {
+            "name": "variant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "phenotype",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "ancestry",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "p_value",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "beta",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "std_err",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "n",
+            "datatype": "integer",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "frequency_analysis",
+        "columns": [
+          {
+            "name": "variant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "eaf",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "maf",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "ancestry",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "phenotype",
+            "datatype": "string",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "trans_ethnic_meta_analysis",
+        "columns": [
+          {
+            "name": "variant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "phenotype",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "p_value",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "beta",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "std_err",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "n",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "top",
+            "datatype": "boolean",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "dataset_specific_analysis",
+        "columns": [
+          {
+            "name": "variant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "multi_allelic",
+            "datatype": "boolean",
+            "array_of": false
+          },
+          {
+            "name": "dataset",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "phenotype",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "ancestry",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "p_value",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "beta",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "odds_ratio",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "eaf",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "maf",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "std_err",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "z_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "n",
+            "datatype": "integer",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "transcript_consequence",
+        "columns": [
+          {
+            "name": "variant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "amino_acids",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "biotype",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "cadd_phred",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "cadd_raw",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "cadd_raw_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "canonical",
+            "datatype": "boolean",
+            "array_of": false
+          },
+          {
+            "name": "ccds",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "cdna_start",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "cdna_end",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "cds_start",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "cds_end",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "clinvar_clinsig",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "clinvar_golden_stars",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "clinvar_rs",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "clinvar_trait",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "codons",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "consequence_terms",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "dann_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "dann_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "distance",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "eigen_pc_raw",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "eigen_pc_raw_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "eigen_phred",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "eigen_raw",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "fathmm_converted_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "fathmm_pred",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "fathmm_score",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "fathmm_mkl_coding_group",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "fathmm_mkl_coding_pred",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "fathmm_mkl_coding_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "fathmm_mkl_coding_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "flags",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "gene_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "genocanyon_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "genocanyon_score_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "gerp_plus_plus_nr",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "gerp_plus_plus_rs",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "gerp_rs_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "gm_12878_confidence_value",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "gm_12878_fitcons_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "gm_12878_fitcons_score_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "gtex_v_6_p_gene",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "gtex_v_6_p_tissue",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "h_1_hesc_confidence_value",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "h_1_hesc_fitcons_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "h_1_hesc_fitcons_score_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "huvec_confidence_value",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "huvec_fitcons_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "huvec_fitcons_score_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "impact",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "integrated_confidence_value",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "integrated_fitcons_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "integrated_fitcons_score_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "interpro_domain",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "lof",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "lof_filter",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "lof_flags",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "lof_info",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "lof_converted_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "lrt_omega",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "lrt_pred",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "lrt_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "metalr_pred",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "metalr_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "metalr_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "metasvm_pred",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "metasvm_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "metasvm_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "mutationaccessor_pred",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "mutationaccessor_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "mutationaccessor_score_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "mutationaccessor_uniprot_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "mutationaccessor_variant",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "mutationtaster_aae",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "mutationtaster_converted_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "mutationtaster_model",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "mutationtaster_pred",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "mutationtaster_score",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "phastcons_100_way_vertebrate",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "phastcons_100_way_vertebrate_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "phastcons_20_way_mammalian",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "phastcons_20_way_mammalian_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "phylop_100_way_vertebrate",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "phylop_100_way_vertebrate_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "phylop_20_way_mammalian",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "phylop_20_way_mammalian_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "pick",
+            "datatype": "boolean",
+            "array_of": false
+          },
+          {
+            "name": "polyphen_2_hdiv_pred",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "polyphen_2_hdiv_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "polyphen_2_hdiv_score",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "polyphen_2_hvar_pred",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "polyphen_2_hvar_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "polyphen_2_hvar_score",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "polyphen_prediction",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "polyphen_score",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "protein_start",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "protein_end",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "provean_converted_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "provean_pred",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "provean_score",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "reliability_index",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "sift_converted_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "sift_pred",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "sift_prediction",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "sift_score",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "siphy_29_way_logodds",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "siphy_29_way_logodds_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "siphy_29_way_pi",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "strand",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "transcript_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "transcript_id_vest_3",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "transcript_var_vest_3",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "vest_3_rankscore",
+            "datatype": "float",
+            "array_of": false
+          },
+          {
+            "name": "vest_3_score",
+            "datatype": "float",
+            "array_of": true
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "variant",
+        "columns": [
+          {
+            "name": "id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "alt",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "chromosome",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "position",
+            "datatype": "integer",
+            "array_of": false
+          },
+          {
+            "name": "reference",
+            "datatype": "string",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "feature_consequence",
+        "columns": [
+          {
+            "name": "variant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "biotype",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "consequence_terms",
+            "datatype": "string",
+            "array_of": true
+          },
+          {
+            "name": "impact",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "pick",
+            "datatype": "boolean",
+            "array_of": false
+          },
+          {
+            "name": "regulatory_feature_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "variant_allele",
+            "datatype": "string",
+            "array_of": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "all_data_types",
+        "columns": [
+          {
+            "name": "variant_id",
+            "datatype": "string",
+            "array_of": false
+          },
+          {
+            "name": "bool_column",
+            "datatype": "boolean"
+          },
+          {
+            "name": "date_column",
+            "datatype": "date"
+          },
+          {
+            "name": "date_array_column",
+            "datatype": "date",
+            "array_of": true
+          },
+          {
+            "name": "date_time_column",
+            "datatype": "datetime"
+          },
+          {
+            "name": "date_time_array_column",
+            "datatype": "datetime",
+            "array_of": true
+          },
+          {
+            "name": "dir_ref_column",
+            "datatype": "dirref"
+          },
+          {
+            "name": "file_ref_column",
+            "datatype": "dirref"
+          },
+          {
+            "name": "float_column",
+            "datatype": "float"
+          },
+          {
+            "name": "float_array_column",
+            "datatype": "float",
+            "array_of": true
+          },
+          {
+            "name": "float64_column",
+            "datatype": "float64"
+          },
+          {
+            "name": "float64_array_column",
+            "datatype": "float64",
+            "array_of": true
+          },
+          {
+            "name": "int_column",
+            "datatype": "integer"
+          },
+          {
+            "name": "int_array_column",
+            "datatype": "integer",
+            "array_of": true
+          },
+          {
+            "name": "int64_column",
+            "datatype": "int64"
+          },
+          {
+            "name": "int64_array_column",
+            "datatype": "int64",
+            "array_of": true
+          },
+          {
+            "name": "numeric_column",
+            "datatype": "numeric"
+          },
+          {
+            "name": "numeric_array_column",
+            "datatype": "numeric",
+            "array_of": true
+          },
+          {
+            "name": "time_column",
+            "datatype": "time"
+          },
+          {
+            "name": "time_array_column",
+            "datatype": "time",
+            "array_of": true
+          },
+          {
+            "name": "timestamp_column",
+            "datatype": "timestamp"
+          },
+          {
+            "name": "timestamp_array_column",
+            "datatype": "timestamp",
+            "array_of": true
+          }
+        ],
+        "primaryKey": ["variant_id"],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      }
+    ],
+    "relationships": [
+      {
+        "name": "transcript_consequence_to_variant",
+        "from": {
+          "table": "transcript_consequence",
+          "column": "variant_id"
+        },
+        "to": {
+          "table": "variant",
+          "column": "id"
+        }
+      },
+      {
+        "name": "trans_ethnic_meta_analysis_to_variant",
+        "from": {
+          "table": "trans_ethnic_meta_analysis",
+          "column": "variant_id"
+        },
+        "to": {
+          "table": "variant",
+          "column": "id"
+        }
+      },
+      {
+        "name": "frequency_analysis_to_variant",
+        "from": {
+          "table": "frequency_analysis",
+          "column": "variant_id"
+        },
+        "to": {
+          "table": "variant",
+          "column": "id"
+        }
+      },
+      {
+        "name": "feature_consequence_to_variant",
+        "from": {
+          "table": "feature_consequence",
+          "column": "variant_id"
+        },
+        "to": {
+          "table": "variant",
+          "column": "id"
+        }
+      },
+      {
+        "name": "ancestry_specific_meta_analysis_to_variant",
+        "from": {
+          "table": "ancestry_specific_meta_analysis",
+          "column": "variant_id"
+        },
+        "to": {
+          "table": "variant",
+          "column": "id"
+        }
+      },
+      {
+        "name": "dataset_specific_analysis_to_variant",
+        "from": {
+          "table": "dataset_specific_analysis",
+          "column": "variant_id"
+        },
+        "to": {
+          "table": "variant",
+          "column": "id"
+        }
+      },
+      {
+        "name": "ancestry_specific_meta_analysis_to_frequency_analysis",
+        "from": {
+          "table": "ancestry_specific_meta_analysis",
+          "column": "phenotype"
+        },
+        "to": {
+          "table": "frequency_analysis",
+          "column": "phenotype"
+        }
+      },
+      {
+        "name": "frequency_analysis_to_trans_ethnic_meta_analysis",
+        "from": {
+          "table": "frequency_analysis",
+          "column": "phenotype"
+        },
+        "to": {
+          "table": "trans_ethnic_meta_analysis",
+          "column": "phenotype"
+        }
+      },
+      {
+        "name": "trans_ethnic_meta_analysis_to_transcript_consequence",
+        "from": {
+          "table": "trans_ethnic_meta_analysis",
+          "column": "variant_id"
+        },
+        "to": {
+          "table": "transcript_consequence",
+          "column": "variant_id"
+        }
+      },
+      {
+        "name": "variant_to_feature_consequence",
+        "from": {
+          "table": "variant",
+          "column": "id"
+        },
+        "to": {
+          "table": "feature_consequence",
+          "column": "variant_id"
+        }
+      }
+    ],
+    "assets": [
+      {
+        "name": "Variant",
+        "tables": [
+          {
+            "name": "variant",
+            "columns": ["reference", "chromosome", "alt", "id", "position"]
+          },
+          {
+            "name": "dataset_specific_analysis",
+            "columns": [
+              "phenotype",
+              "p_value",
+              "variant_id",
+              "ancestry",
+              "maf",
+              "std_err",
+              "odds_ratio",
+              "z_score",
+              "multi_allelic",
+              "eaf",
+              "dataset",
+              "beta",
+              "n"
+            ]
+          },
+          {
+            "name": "frequency_analysis",
+            "columns": ["phenotype", "variant_id", "maf", "ancestry", "eaf"]
+          },
+          {
+            "name": "ancestry_specific_meta_analysis",
+            "columns": ["phenotype", "p_value", "variant_id", "ancestry", "std_err", "beta", "n"]
+          },
+          {
+            "name": "feature_consequence",
+            "columns": [
+              "biotype",
+              "variant_allele",
+              "variant_id",
+              "regulatory_feature_id",
+              "pick",
+              "impact",
+              "consequence_terms"
+            ]
+          },
+          {
+            "name": "trans_ethnic_meta_analysis",
+            "columns": ["phenotype", "p_value", "variant_id", "std_err", "beta", "n"]
+          },
+          {
+            "name": "transcript_consequence",
+            "columns": [
+              "eigen_raw",
+              "gerp_rs_rankscore",
+              "lof_converted_rankscore",
+              "eigen_pc_raw",
+              "metasvm_pred",
+              "pick",
+              "transcript_var_vest_3",
+              "sift_converted_rankscore",
+              "amino_acids",
+              "gm_12878_fitcons_score",
+              "mutationaccessor_score_rankscore",
+              "gm_12878_fitcons_score_rankscore",
+              "impact",
+              "lof_filter",
+              "mutationaccessor_uniprot_id",
+              "vest_3_rankscore",
+              "genocanyon_score_rankscore",
+              "polyphen_prediction",
+              "dann_score",
+              "phylop_100_way_vertebrate",
+              "lof",
+              "mutationaccessor_variant",
+              "mutationtaster_converted_rankscore",
+              "fathmm_mkl_coding_group",
+              "h_1_hesc_fitcons_score_rankscore",
+              "flags",
+              "interpro_domain",
+              "provean_score",
+              "huvec_fitcons_score_rankscore",
+              "clinvar_rs",
+              "mutationaccessor_pred",
+              "variant_id",
+              "metalr_pred",
+              "gerp_plus_plus_nr",
+              "sift_prediction",
+              "metalr_rankscore",
+              "cds_end",
+              "cadd_raw",
+              "phylop_20_way_mammalian",
+              "eigen_pc_raw_rankscore",
+              "lof_info",
+              "phylop_100_way_vertebrate_rankscore",
+              "protein_start",
+              "phylop_20_way_mammalian_rankscore",
+              "mutationtaster_model",
+              "lrt_omega",
+              "polyphen_score",
+              "clinvar_trait",
+              "gtex_v_6_p_tissue",
+              "provean_pred",
+              "huvec_confidence_value",
+              "polyphen_2_hdiv_score",
+              "clinvar_clinsig",
+              "huvec_fitcons_score",
+              "polyphen_2_hvar_rankscore",
+              "sift_score",
+              "cds_start",
+              "polyphen_2_hdiv_rankscore",
+              "integrated_confidence_value",
+              "fathmm_mkl_coding_pred",
+              "metasvm_score",
+              "siphy_29_way_pi",
+              "reliability_index",
+              "lof_flags",
+              "metalr_score",
+              "fathmm_score",
+              "h_1_hesc_confidence_value",
+              "phastcons_100_way_vertebrate",
+              "integrated_fitcons_score",
+              "canonical",
+              "protein_end",
+              "fathmm_mkl_coding_score",
+              "mutationaccessor_score",
+              "genocanyon_score",
+              "phastcons_100_way_vertebrate_rankscore",
+              "polyphen_2_hvar_score",
+              "integrated_fitcons_score_rankscore",
+              "gene_id",
+              "gm_12878_confidence_value",
+              "h_1_hesc_fitcons_score",
+              "cadd_raw_rankscore",
+              "vest_3_score",
+              "gtex_v_6_p_gene",
+              "ccds",
+              "polyphen_2_hdiv_pred",
+              "clinvar_golden_stars",
+              "distance",
+              "phastcons_20_way_mammalian",
+              "codons",
+              "mutationtaster_score",
+              "cadd_phred",
+              "cdna_end",
+              "phastcons_20_way_mammalian_rankscore",
+              "dann_rankscore",
+              "transcript_id",
+              "transcript_id_vest_3",
+              "strand",
+              "mutationtaster_aae",
+              "lrt_score",
+              "eigen_phred",
+              "fathmm_mkl_coding_rankscore",
+              "mutationtaster_pred",
+              "gerp_plus_plus_rs",
+              "siphy_29_way_logodds",
+              "biotype",
+              "sift_pred",
+              "metasvm_rankscore",
+              "polyphen_2_hvar_pred",
+              "siphy_29_way_logodds_rankscore",
+              "cdna_start",
+              "lrt_pred",
+              "fathmm_pred",
+              "fathmm_converted_rankscore",
+              "provean_converted_rankscore",
+              "consequence_terms"
+            ]
+          }
+        ],
+        "rootTable": "variant",
+        "rootColumn": "id",
+        "follow": [
+          "transcript_consequence_to_variant",
+          "trans_ethnic_meta_analysis_to_variant",
+          "frequency_analysis_to_variant",
+          "feature_consequence_to_variant",
+          "ancestry_specific_meta_analysis_to_variant",
+          "dataset_specific_analysis_to_variant"
+        ]
+      },
+      {
+        "name": "AncestryWalkAllTables",
+        "tables": [
+          {
+            "name": "variant",
+            "columns": ["reference", "chromosome", "alt", "id", "position"]
+          },
+          {
+            "name": "frequency_analysis",
+            "columns": ["phenotype", "variant_id", "maf", "ancestry", "eaf"]
+          },
+          {
+            "name": "ancestry_specific_meta_analysis",
+            "columns": ["phenotype", "p_value", "variant_id", "ancestry", "std_err", "beta", "n"]
+          },
+          {
+            "name": "feature_consequence",
+            "columns": [
+              "biotype",
+              "variant_allele",
+              "variant_id",
+              "regulatory_feature_id",
+              "pick",
+              "impact",
+              "consequence_terms"
+            ]
+          },
+          {
+            "name": "trans_ethnic_meta_analysis",
+            "columns": ["phenotype", "p_value", "variant_id", "std_err", "beta", "n"]
+          },
+          {
+            "name": "transcript_consequence",
+            "columns": [
+              "eigen_raw",
+              "gerp_rs_rankscore",
+              "lof_converted_rankscore",
+              "eigen_pc_raw",
+              "metasvm_pred",
+              "pick",
+              "transcript_var_vest_3",
+              "sift_converted_rankscore",
+              "amino_acids",
+              "gm_12878_fitcons_score",
+              "mutationaccessor_score_rankscore",
+              "gm_12878_fitcons_score_rankscore",
+              "impact",
+              "lof_filter",
+              "mutationaccessor_uniprot_id",
+              "vest_3_rankscore",
+              "genocanyon_score_rankscore",
+              "polyphen_prediction",
+              "dann_score",
+              "phylop_100_way_vertebrate",
+              "lof",
+              "mutationaccessor_variant",
+              "mutationtaster_converted_rankscore",
+              "fathmm_mkl_coding_group",
+              "h_1_hesc_fitcons_score_rankscore",
+              "flags",
+              "interpro_domain",
+              "provean_score",
+              "huvec_fitcons_score_rankscore",
+              "clinvar_rs",
+              "mutationaccessor_pred",
+              "variant_id",
+              "metalr_pred",
+              "gerp_plus_plus_nr",
+              "sift_prediction",
+              "metalr_rankscore",
+              "cds_end",
+              "cadd_raw",
+              "phylop_20_way_mammalian",
+              "eigen_pc_raw_rankscore",
+              "lof_info",
+              "phylop_100_way_vertebrate_rankscore",
+              "protein_start",
+              "phylop_20_way_mammalian_rankscore",
+              "mutationtaster_model",
+              "lrt_omega",
+              "polyphen_score",
+              "clinvar_trait",
+              "gtex_v_6_p_tissue",
+              "provean_pred",
+              "huvec_confidence_value",
+              "polyphen_2_hdiv_score",
+              "clinvar_clinsig",
+              "huvec_fitcons_score",
+              "polyphen_2_hvar_rankscore",
+              "sift_score",
+              "cds_start",
+              "polyphen_2_hdiv_rankscore",
+              "integrated_confidence_value",
+              "fathmm_mkl_coding_pred",
+              "metasvm_score",
+              "siphy_29_way_pi",
+              "reliability_index",
+              "lof_flags",
+              "metalr_score",
+              "fathmm_score",
+              "h_1_hesc_confidence_value",
+              "phastcons_100_way_vertebrate",
+              "integrated_fitcons_score",
+              "canonical",
+              "protein_end",
+              "fathmm_mkl_coding_score",
+              "mutationaccessor_score",
+              "genocanyon_score",
+              "phastcons_100_way_vertebrate_rankscore",
+              "polyphen_2_hvar_score",
+              "integrated_fitcons_score_rankscore",
+              "gene_id",
+              "gm_12878_confidence_value",
+              "h_1_hesc_fitcons_score",
+              "cadd_raw_rankscore",
+              "vest_3_score",
+              "gtex_v_6_p_gene",
+              "ccds",
+              "polyphen_2_hdiv_pred",
+              "clinvar_golden_stars",
+              "distance",
+              "phastcons_20_way_mammalian",
+              "codons",
+              "mutationtaster_score",
+              "cadd_phred",
+              "cdna_end",
+              "phastcons_20_way_mammalian_rankscore",
+              "dann_rankscore",
+              "transcript_id",
+              "transcript_id_vest_3",
+              "strand",
+              "mutationtaster_aae",
+              "lrt_score",
+              "eigen_phred",
+              "fathmm_mkl_coding_rankscore",
+              "mutationtaster_pred",
+              "gerp_plus_plus_rs",
+              "siphy_29_way_logodds",
+              "biotype",
+              "sift_pred",
+              "metasvm_rankscore",
+              "polyphen_2_hvar_pred",
+              "siphy_29_way_logodds_rankscore",
+              "cdna_start",
+              "lrt_pred",
+              "fathmm_pred",
+              "fathmm_converted_rankscore",
+              "provean_converted_rankscore",
+              "consequence_terms"
+            ]
+          }
+        ],
+        "rootTable": "ancestry_specific_meta_analysis",
+        "rootColumn": "phenotype",
+        "follow": [
+          "ancestry_specific_meta_analysis_to_frequency_analysis",
+          "frequency_analysis_to_trans_ethnic_meta_analysis",
+          "trans_ethnic_meta_analysis_to_transcript_consequence",
+          "transcript_consequence_to_variant",
+          "variant_to_feature_consequence"
+        ]
+      },
+      {
+        "name": "AncestrySimple",
+        "tables": [
+          {
+            "name": "frequency_analysis",
+            "columns": ["phenotype", "variant_id", "maf", "ancestry", "eaf"]
+          },
+          {
+            "name": "ancestry_specific_meta_analysis",
+            "columns": ["phenotype", "p_value", "variant_id", "ancestry", "std_err", "beta", "n"]
+          },
+          {
+            "name": "trans_ethnic_meta_analysis",
+            "columns": ["phenotype", "p_value", "variant_id", "std_err", "beta", "n"]
+          }
+        ],
+        "rootTable": "ancestry_specific_meta_analysis",
+        "rootColumn": "phenotype",
+        "follow": [
+          "ancestry_specific_meta_analysis_to_frequency_analysis",
+          "frequency_analysis_to_trans_ethnic_meta_analysis"
+        ]
+      }
+    ]
+  }
+}

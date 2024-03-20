@@ -38,7 +38,7 @@ public class SearchConceptsQueryBuilder {
     var domainOccurenceTableVariable =
         TableVariable.forJoined(domainOccurrencePointer, domainOption.getColumnName(), idField);
 
-    var personIdField =
+    var countField =
         new FieldVariable(
             new FieldPointer(
                 domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
@@ -50,14 +50,14 @@ public class SearchConceptsQueryBuilder {
     var domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getName());
 
-    // if the search test is empty do not include the search clauses
-    // return all concepts in the specified domain
-    if (searchText == null || searchText.isEmpty()) {
-      // TODO: DC-845 Implement pagination, remove hardcoded limit
-      Query query =
-          new Query(List.of(nameField, idField), List.of(conceptTableVariable), domainClause, 100);
-      return query.renderSQL(platform);
-    }
+    List<FieldVariable> select = List.of(nameField, idField, countField);
+
+    List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable);
+
+    List<OrderByVariable> orderBy =
+        List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));
+
+    List<FieldVariable> groupBy = List.of(nameField, idField);
 
     // search concept name clause filters for the search text based on field concept_name
     var searchNameClause =
@@ -69,15 +69,22 @@ public class SearchConceptsQueryBuilder {
         createSearchConceptClause(
             conceptTablePointer, conceptTableVariable, searchText, "concept_code");
 
-    // SearchConceptNameClause OR searchCodeClause
+    // (searchNameClause OR searchCodeClause)
     List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
     BooleanAndOrFilterVariable searchClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
 
     // domainClause AND (searchNameClause OR searchCodeClause)
     List<FilterVariable> allFilters = List.of(domainClause, searchClause);
-    BooleanAndOrFilterVariable whereClause =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+
+    FilterVariable where;
+    if (searchText.isEmpty()) {
+      where = domainClause;
+    } else {
+      where =
+          new BooleanAndOrFilterVariable(
+              BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
+    }
 
     // SELECT concept_name, concept_id, COUNT(DISTINCT person_id) as count
     // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
@@ -85,19 +92,7 @@ public class SearchConceptsQueryBuilder {
     // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
     // ORDER BY count DESC
 
-    List<OrderByVariable> orderBy =
-        List.of(new OrderByVariable(personIdField, OrderByDirection.DESCENDING));
-
-    List<FieldVariable> groupBy = List.of(nameField, idField);
-
-    Query query =
-        new Query(
-            List.of(nameField, idField, personIdField),
-            List.of(conceptTableVariable, domainOccurenceTableVariable),
-            whereClause,
-            groupBy,
-            orderBy,
-            100);
+    Query query = new Query(select, tables, where, groupBy, orderBy, 100);
 
     return query.renderSQL(platform);
   }

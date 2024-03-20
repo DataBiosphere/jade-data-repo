@@ -99,7 +99,7 @@ public class ProfileApiController implements ProfilesApi {
   public ResponseEntity<JobModel> createProfile(
       @RequestBody BillingProfileRequestModel billingProfileRequest) {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-    String jobId = profileService.createProfile(billingProfileRequest, user);
+    String jobId = profileService.createProfile(billingProfileRequest, user, getIdpAccessToken());
     return jobToResponse(jobService.retrieveJob(jobId, user));
   }
 
@@ -109,8 +109,12 @@ public class ProfileApiController implements ProfilesApi {
     AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
     verifyProfileAuthorization(
         user, billingProfileRequest.getId().toString(), IamAction.UPDATE_BILLING_ACCOUNT);
-    String jobId = profileService.updateProfile(billingProfileRequest, user);
+    String jobId = profileService.updateProfile(billingProfileRequest, user, getIdpAccessToken());
     return jobToResponse(jobService.retrieveJob(jobId, user));
+  }
+
+  private Optional<String> getIdpAccessToken() {
+    return Optional.ofNullable(request.getHeader("OAUTH2_CLAIM_idp_access_token"));
   }
 
   @Override

@@ -8,6 +8,7 @@ import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import java.util.Optional;
 import org.springframework.context.ApplicationContext;
 
 public class ProfileCreateFlight extends Flight {
@@ -24,13 +25,16 @@ public class ProfileCreateFlight extends Flight {
 
     AuthenticatedUserRequest user =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    Optional<String> idpAccessToken =
+        Optional.ofNullable(
+            inputParameters.get(JobMapKeys.IDP_ACCESS_TOKEN.getKeyName(), String.class));
 
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(request.getCloudPlatform());
 
     addStep(new GetOrCreateProfileIdStep(request));
     addStep(new CreateProfileMetadataStep(profileService, request, user));
     if (platform.isGcp()) {
-      addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
+      addStep(new CreateProfileVerifyAccountStep(profileService, request, user, idpAccessToken));
     }
     if (platform.isAzure()) {
       addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));

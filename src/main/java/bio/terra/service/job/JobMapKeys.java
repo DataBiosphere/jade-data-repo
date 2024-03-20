@@ -22,7 +22,8 @@ public enum JobMapKeys {
   FILE_ID("fileId"),
   ASSET_ID("assetId"),
   TRANSACTION_ID("transactionId"),
-  DELETE_CLOUD_RESOURCES("deleteCloudResources");
+  DELETE_CLOUD_RESOURCES("deleteCloudResources"),
+  IDP_ACCESS_TOKEN("idpAccessToken");
 
   private String keyName;
 

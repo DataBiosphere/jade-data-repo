@@ -10,6 +10,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import java.util.Optional;
 import org.springframework.context.ApplicationContext;
 
 public class ProfileUpdateFlight extends Flight {
@@ -28,12 +29,15 @@ public class ProfileUpdateFlight extends Flight {
 
     AuthenticatedUserRequest user =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    Optional<String> idpAccessToken =
+        Optional.ofNullable(
+            inputParameters.get(JobMapKeys.IDP_ACCESS_TOKEN.getKeyName(), String.class));
 
     addStep(new UpdateProfileRetrieveExistingProfileStep(profileService, request, user));
     // update billing account id metadata
     addStep(new UpdateProfileMetadataStep(profileService, request, user));
     // Make sure valid account before changing in gcloud project
-    addStep(new UpdateProfileVerifyAccountStep(profileService, user));
+    addStep(new UpdateProfileVerifyAccountStep(profileService, user, idpAccessToken));
     // Update billing profile in gcloud project
     addStep(new UpdateProfileUpdateGCloudProject(googleProjectService));
     addStep(

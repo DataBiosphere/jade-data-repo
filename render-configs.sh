@@ -84,6 +84,8 @@ vault read -format=json secret/dsde/datarepo/dev/sa-key.json \
 
 GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_APPLICATION_CREDENTIALS
+GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
+export GOOGLE_SA_CERT
 
 # ========================
 # Resource Buffer Service
@@ -137,6 +139,7 @@ if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
   export AZURE_SYNAPSE_SQLADMINPASSWORD=$AZURE_SYNAPSE_SQLADMINPASSWORD
   export AZURE_SYNAPSE_ENCRYPTIONKEY=$AZURE_SYNAPSE_ENCRYPTIONKEY
   export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+  export GOOGLE_SA_CERT=$GOOGLE_SA_CERT
   export RBS_ENABLED=$RBS_ENABLED
   export RBS_POOLID=$RBS_POOLID
   export RBS_INSTANCEURL=$RBS_INSTANCEURL

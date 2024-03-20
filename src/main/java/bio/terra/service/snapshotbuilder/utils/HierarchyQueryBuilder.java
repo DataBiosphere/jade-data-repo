@@ -24,8 +24,7 @@ public class HierarchyQueryBuilder {
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
   protected HierarchyQueryBuilder(
-      TableNameGenerator tableNameGenerator,
-      SnapshotBuilderSettings snapshotBuilderSettings) {
+      TableNameGenerator tableNameGenerator, SnapshotBuilderSettings snapshotBuilderSettings) {
     this.tableNameGenerator = tableNameGenerator;
     this.snapshotBuilderSettings = snapshotBuilderSettings;
   }
@@ -43,7 +42,8 @@ public class HierarchyQueryBuilder {
     var parent =
         TableVariable.forJoined(
             TablePointer.fromTableName(CONCEPT, tableNameGenerator), CONCEPT_ID, conceptId1);
-    // SELECT cr.concept_id_1 AS parent_id, cr.concept_id_2 AS concept_id, child.concept_name, child.concept_code
+    // SELECT cr.concept_id_1 AS parent_id, cr.concept_id_2 AS concept_id, child.concept_name,
+    // child.concept_code
     // FROM concept_relationship AS cr, concept AS child, concept AS parent
     // WHERE cr.concept_id_1 IN (:all parents of conceptId:) AND cr.relationship_id = 'Subsumes'
     // AND parent.standard_concept = 'S' AND child.standard_concept = 'S'
@@ -61,17 +61,13 @@ public class HierarchyQueryBuilder {
             requireStandardConcept(child)));
   }
 
-  /**
-   * Generate a filter constraint on concept to only allow standard concepts.
-   */
+  /** Generate a filter constraint on concept to only allow standard concepts. */
   private static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
     return BinaryFilterVariable.equals(
         concept.makeFieldVariable("standard_concept"), new Literal("S"));
   }
 
-  /**
-   * Given a concept ID, select all of its parent concept IDs.
-   */
+  /** Given a concept ID, select all of its parent concept IDs. */
   private Query selectAllParents(int conceptId) {
     // SELECT ancestor_concept_id FROM concept_ancestor WHERE descendant_concept_id = :conceptId:
     var conceptAncestor =
@@ -80,6 +76,7 @@ public class HierarchyQueryBuilder {
     return new Query(
         List.of(conceptAncestor.makeFieldVariable("ancestor_concept_id")),
         List.of(conceptAncestor),
-        BinaryFilterVariable.equals(conceptAncestor.makeFieldVariable("descendant_concept_id"), new Literal(conceptId)));
+        BinaryFilterVariable.equals(
+            conceptAncestor.makeFieldVariable("descendant_concept_id"), new Literal(conceptId)));
   }
 }

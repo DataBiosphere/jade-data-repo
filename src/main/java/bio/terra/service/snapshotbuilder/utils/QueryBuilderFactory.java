@@ -14,8 +14,7 @@ public class QueryBuilderFactory {
   }
 
   public HierarchyQueryBuilder hierarchyQueryBuilder(
-      TableNameGenerator tableNameGenerator,
-      SnapshotBuilderSettings snapshotBuilderSettings) {
+      TableNameGenerator tableNameGenerator, SnapshotBuilderSettings snapshotBuilderSettings) {
     return new HierarchyQueryBuilder(tableNameGenerator, snapshotBuilderSettings);
   }
 }

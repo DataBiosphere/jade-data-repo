@@ -7,5 +7,5 @@
   "tenantId": "efc08443-0082-4d6c-8931-c5794c156abd",
   "subscriptionId": "71d52ec1-5886-480a-9d6e-ed98cbf1f69f",
   "resourceGroupName": "TDR_integration",
-  "applicationDeploymentName": "PUT_IN_YOUR_OWN"
+  "applicationDeploymentName": "integrationuiapp"
 }

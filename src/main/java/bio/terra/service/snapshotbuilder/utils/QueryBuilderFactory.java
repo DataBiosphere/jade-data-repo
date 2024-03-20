@@ -5,11 +5,17 @@ import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CriteriaQueryBuilderFactory {
-  public CriteriaQueryBuilder createCriteriaQueryBuilder(
+public class QueryBuilderFactory {
+  public CriteriaQueryBuilder criteriaQueryBuilder(
       String rootTableName,
       TableNameGenerator tableNameGenerator,
       SnapshotBuilderSettings snapshotBuilderSettings) {
     return new CriteriaQueryBuilder(rootTableName, tableNameGenerator, snapshotBuilderSettings);
+  }
+
+  public HierarchyQueryBuilder hierarchyQueryBuilder(
+      TableNameGenerator tableNameGenerator,
+      SnapshotBuilderSettings snapshotBuilderSettings) {
+    return new HierarchyQueryBuilder(tableNameGenerator, snapshotBuilderSettings);
   }
 }

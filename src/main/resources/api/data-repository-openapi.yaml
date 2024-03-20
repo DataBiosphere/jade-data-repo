@@ -7284,6 +7284,18 @@ components:
         sql:
           type: string
 
+    SnapshotBuilderParentConcept:
+      type: object
+      description: >
+        ⚠️ An object describing a parent concept in the Snapshot Builder
+      properties:
+        parentId:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderConcept'
+
     SnapshotBuilderConcept:
       type: object
       description: >
@@ -7312,7 +7324,9 @@ components:
         ⚠️ The response object for the getConceptHierarchy endpoint
       properties:
         result:
-          $ref: '#/components/schemas/SnapshotBuilderConcept'
+          type: array
+          items:
+             $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
     SnapshotBuilderFeatureValueGroup:
       type: object

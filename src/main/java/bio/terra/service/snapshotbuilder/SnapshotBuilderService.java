@@ -17,24 +17,32 @@ import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
-import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.TableResult;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
@@ -49,7 +57,7 @@ public class SnapshotBuilderService {
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
-  private final CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
+  private final QueryBuilderFactory queryBuilderFactory;
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
@@ -57,13 +65,13 @@ public class SnapshotBuilderService {
       DatasetService datasetService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       AzureSynapsePdao azureSynapsePdao,
-      CriteriaQueryBuilderFactory criteriaQueryBuilderFactory) {
+      QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.azureSynapsePdao = azureSynapsePdao;
-    this.criteriaQueryBuilderFactory = criteriaQueryBuilderFactory;
+    this.queryBuilderFactory = queryBuilderFactory;
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
@@ -177,8 +185,8 @@ public class SnapshotBuilderService {
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
 
     Query query =
-        criteriaQueryBuilderFactory
-            .createCriteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
+        queryBuilderFactory
+            .criteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
     String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
@@ -206,51 +214,77 @@ public class SnapshotBuilderService {
     return enumerateModel;
   }
 
-  // Hardcoded stubbed data, will remove once query is implemented.
-  private static SnapshotBuilderConcept createConcept(int id, String name, boolean hasChildren) {
-    return new SnapshotBuilderConcept().id(id).name(name).count(100).hasChildren(hasChildren);
-  }
+  record ParentQueryResult(int parentId, int childId, String childName) {
+    static List<ParentQueryResult> aggregateBigQuery(TableResult result) {
+      return StreamSupport.stream(result.iterateAll().spliterator(), false)
+          .map(
+              row ->
+                  new ParentQueryResult(
+                      (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
+                      (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
+                      row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue()))
+          .toList();
+    }
 
-  private static List<SnapshotBuilderConcept> loadConcepts() {
-    return List.of(
-        createConcept(100, "Condition", true),
-        createConcept(400, "Carcinoma of lung parenchyma", true),
-        createConcept(401, "Squamous cell carcinoma of lung", true),
-        createConcept(402, "Non-small cell lung cancer", true),
-        createConcept(403, "Epidermal growth factor receptor negative ...", false),
-        createConcept(404, "Non-small cell lung cancer with mutation in epidermal..", true),
-        createConcept(405, "Non-small cell cancer of lung biopsy..", false),
-        createConcept(406, "Non-small cell cancer of lung lymph node..", false),
-        createConcept(407, "Small cell lung cancer", true),
-        createConcept(408, "Lung Parenchcyma", false));
+    static ParentQueryResult aggregateAzure(ResultSet rs) {
+      try {
+        return new ParentQueryResult(
+            (int) rs.getLong(HierarchyQueryBuilder.PARENT_ID),
+            (int) rs.getLong(HierarchyQueryBuilder.CONCEPT_ID),
+            rs.getString(HierarchyQueryBuilder.CONCEPT_NAME));
+      } catch (SQLException e) {
+        throw new ProcessResultSetException(
+            "Error processing result set into SnapshotBuilderConcept model", e);
+      }
+    }
   }
-
-  private static SnapshotBuilderConcept getConcept(List<SnapshotBuilderConcept> concepts, int id) {
-    return concepts.stream().filter(c -> c.getId().equals(id)).findFirst().orElseThrow();
-  }
-
-  // Map of concept id to parent concept id.
-  private static final Map<Integer, Integer> HIERARCHY =
-      Map.of(406, 404, 405, 404, 404, 401, 403, 401, 407, 402, 401, 400, 400, 100, 408, 100);
 
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
-      UUID id, int conceptId, AuthenticatedUserRequest userRequest) {
-    var concepts = loadConcepts();
-    SnapshotBuilderConcept concept = getConcept(concepts, conceptId);
-    while (true) {
-      // For a child concept, generate its parent concept and siblings until we reach the root.
-      var parentId = HIERARCHY.get(concept.getId());
-      if (parentId == null) {
-        break;
-      }
-      var parent = getConcept(concepts, parentId);
-      concept =
-          parent.children(
-              HIERARCHY.entrySet().stream()
-                  .filter(e -> e.getValue().equals(parentId))
-                  .map(entry -> getConcept(concepts, entry.getKey()))
-                  .toList());
-    }
-    return new SnapshotBuilderGetConceptHierarchyResponse().result(concept);
+      UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    var query =
+        queryBuilderFactory
+            .hierarchyQueryBuilder(
+                getTableNameGenerator(dataset, userRequest),
+                snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId))
+            .generateQuery(conceptId);
+    var sql = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+
+    Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
+    runSnapshotBuilderQuery(
+            sql, dataset, ParentQueryResult::aggregateBigQuery, ParentQueryResult::aggregateAzure)
+        .forEach(
+            row -> {
+              SnapshotBuilderParentConcept parent =
+                  parents.computeIfAbsent(
+                      row.parentId,
+                      k ->
+                          new SnapshotBuilderParentConcept()
+                              .parentId(k)
+                              .children(new ArrayList<>()));
+              parent.addChildrenItem(
+                  new SnapshotBuilderConcept()
+                      .id(row.childId)
+                      .name(row.childName)
+                      .hasChildren(true)
+                      .count(1));
+            });
+
+    // Collect all children IDs
+    var childrenIds =
+        parents.values().stream()
+            .flatMap(p -> p.getChildren().stream().map(SnapshotBuilderConcept::getId))
+            .collect(Collectors.toSet());
+    // The root is the one ID that is not the child of any other parent.
+    var rootId =
+        parents.keySet().stream().filter(k -> !childrenIds.contains(k)).findFirst().orElseThrow();
+    var result = new ArrayList<SnapshotBuilderParentConcept>();
+    result.add(parents.get(rootId));
+    parents.entrySet().stream()
+        .filter(entry -> !entry.getKey().equals(rootId))
+        .map(Map.Entry::getValue)
+        .forEach(result::add);
+
+    return new SnapshotBuilderGetConceptHierarchyResponse().result(result);
   }
 }

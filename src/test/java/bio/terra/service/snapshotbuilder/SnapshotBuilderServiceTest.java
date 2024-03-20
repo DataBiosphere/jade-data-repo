@@ -33,7 +33,7 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
-import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import java.util.List;
 import java.util.UUID;
@@ -58,7 +58,7 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
-  @Mock private CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
+  @Mock private QueryBuilderFactory queryBuilderFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -72,7 +72,7 @@ class SnapshotBuilderServiceTest {
             datasetService,
             bigQueryDatasetPdao,
             azureSynapsePdao,
-            criteriaQueryBuilderFactory);
+            queryBuilderFactory);
   }
 
   @Test
@@ -222,7 +222,7 @@ class SnapshotBuilderServiceTest {
             List.of(tableVariable));
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    when(criteriaQueryBuilderFactory.createCriteriaQueryBuilder(any(), any(), any()))
+    when(queryBuilderFactory.criteriaQueryBuilder(any(), any(), any()))
         .thenReturn(criteriaQueryBuilderMock);
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
         .thenReturn(query);

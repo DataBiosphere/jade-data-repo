@@ -42,4 +42,8 @@ public record BinaryFilterVariable(
       return sql;
     }
   }
+
+  public static BinaryFilterVariable equals(FieldVariable fieldVariable, Literal value) {
+    return new BinaryFilterVariable(fieldVariable, BinaryOperator.EQUALS, value);
+  }
 }

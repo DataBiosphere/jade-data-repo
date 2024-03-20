@@ -2,9 +2,9 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
-import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.SelectExpression;
 
-public class SelectAlias implements SqlExpression {
+public class SelectAlias implements SelectExpression {
 
   private final FieldVariable fieldVariable;
   private final String alias;

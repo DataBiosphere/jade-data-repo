@@ -9,7 +9,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.stringtemplate.v4.ST;
 
 public record Query(
-    List<SqlExpression> select,
+    List<SelectExpression> select,
     List<TableVariable> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
@@ -38,26 +38,29 @@ public record Query(
     }
   }
 
-  public Query(List<SqlExpression> select, List<TableVariable> tables) {
+  public Query(List<SelectExpression> select, List<TableVariable> tables) {
     this(select, tables, null, null, null, null, null);
   }
 
   public Query(
-      List<SqlExpression> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
+      List<SelectExpression> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
     this(select, tables, null, groupBy, null, null, null);
   }
 
-  public Query(List<SqlExpression> select, List<TableVariable> tables, FilterVariable where) {
+  public Query(List<SelectExpression> select, List<TableVariable> tables, FilterVariable where) {
     this(select, tables, where, null, null, null, null);
   }
 
   public Query(
-      List<SqlExpression> select, List<TableVariable> tables, FilterVariable where, Integer limit) {
+      List<SelectExpression> select,
+      List<TableVariable> tables,
+      FilterVariable where,
+      Integer limit) {
     this(select, tables, where, null, null, null, limit);
   }
 
   public Query(
-      List<SqlExpression> select,
+      List<SelectExpression> select,
       List<TableVariable> tables,
       FilterVariable where,
       List<FieldVariable> groupBy,

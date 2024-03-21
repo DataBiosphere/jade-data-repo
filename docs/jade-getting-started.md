@@ -300,7 +300,7 @@ First, make sure you have run through the following steps:
 * Run `./gradlew :testConnected --tests '*testCSVIngestUpdates'` to run a specific connected test
 
 ** Run or Debug test in Intellij **
-* Run `./render-configs.sh` to pull secrets from vault and enter `y` to print environment variables
+* Run `./render-configs.sh -p` to pull secrets from vault and print environment variables
 * Set the environments printed out from the render configs script. You can do this either in
 your bash profile (you may need to then restart intellij) or in the intellij run configuration for the selected test.
 * Select test in intellij UI, select 'testConnected' and run or debug it
@@ -314,14 +314,14 @@ First, make sure you have run through the following steps:
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
 
 ** Run test in the Command Line **
-* Run `source ./render-configs.sh integration` to pull secrets from vault and set environment variables
+* Run `source ./render-configs.sh -a integration` to pull secrets from vault, set environment variables and point to Integration Synapse on Azure
 * Open a new command line window, while bootRun runs in the background
-* In the new window, run `source ./render-configs.sh` to pull secrets from vault and set environment variables in this context
+* In the new window, run `source ./render-configs.sh  -a integration` to pull secrets from vault and set environment variables in this context
 * Set this environment variable: `export IT_JADE_API_URL=http://localhost:8080`
 * Run `./gradlew :testIntegration --tests '*testSnapshotBuilder'` to run a specific integration test
 
 ** Run or Debug test in Intellij **
-* Run `./render-configs.sh` to pull secrets from vault and enter `y` to print environment variables
+* Run `./render-configs.sh  -a integration -p` to pull secrets from vault and print environment variables
 * Set the environments printed out from the render configs script. You can do this either in
   your bash profile (you may need to then restart intellij) or in the intellij run configuration for the selected test.
   * Additionally, set these environment variables:

@@ -7,15 +7,16 @@
 # source ./render-configs.sh (defaults to dev azure, tools RBS)
 
 # There are three optional arguments:
-# source ./render-configs.sh (Azure Synapse: dev|integration) (RBS: tools|dev) (Prompt for printing env variables: y|n)
-# e.g.: source ./render-configs.sh dev tools n
+# source ./render-configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev) (Print out env variables: -p)
+# e.g.: source ./render-configs.sh -a dev -r tools -p
+# This would set azure synapse to dev, RBS to tools, and print out the environment variables
 
 # If you're running Azure Integration Tests you should use the following settings:
-# source ./render-configs.sh integration tools y
+# source ./render-configs.sh -a integration -r tools -p
 # Add the printed environment variables to your bash profile or add them to the Intellij test profile.
 
 # If you want a set up locally, you can use the following settings:
-# source ./render-configs.sh dev dev
+# source ./render-configs.sh -a dev -r dev
 # ./gradlew bootRun
 
 ### About this script

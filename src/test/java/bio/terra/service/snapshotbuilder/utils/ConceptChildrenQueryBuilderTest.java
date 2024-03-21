@@ -31,18 +31,30 @@ class ConceptChildrenQueryBuilderTest {
             domainOption, 101, s -> s, CloudPlatformWrapper.of(platform));
     String expected =
         """
-       SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count
+       SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c1.person_id) AS count
        FROM concept AS c
-       JOIN condition_occurrence AS c0
-       ON c0.condition_concept_id = c.concept_id
+       JOIN concept_ancestor AS c0
+       ON c0.ancestor_concept_id = c.concept_id
+       JOIN condition_occurrence AS c1
+       ON c1.condition_concept_id = c0.descendant_concept_id
        WHERE c.concept_id IN
-       (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-       WHERE c.ancestor_concept_id = 101)
+       (SELECT c.descendant_concept_id FROM concept_ancestor AS c WHERE c.ancestor_concept_id = 101)
        GROUP BY c.concept_name, c.concept_id
        ORDER BY c.concept_name ASC
         """;
     assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
+  // SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count
+  // FROM `concept` AS cc
+  // JOIN `concept_ancestor` AS ca
+  // ON  cc.concept_id = ca.ancestor_concept_id
+  // JOIN `'domain'_occurrence` AS co
+  // ON co.'domain'_concept_id = ca.descendant_concept_id
+  // WHERE ca.ancestor_concept_id IN
+  // (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE c.ancestor_concept_id =
+  // conceptId)
+  // GROUP BY cc.concept_id, cc.concept_name
+  // ORDER BY cc.concept_name ASC
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)

@@ -31,13 +31,21 @@ public class ConceptChildrenQueryBuilder {
     var nameFieldVariable = conceptTableVariable.makeFieldVariable("concept_name");
     var idFieldVariable = conceptTableVariable.makeFieldVariable("concept_id");
 
-    // FROM concept JOIN domainOccurrenceTablePointer ON domainOccurrenceTablePointer.'concept_id' =
-    // concept.concept_id
+    // concept_ancestor joined on concept.concept_id = ancestor_concept_id
+    var conceptAncestorTablePointer =
+        TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
+    var conceptAncestorTableVariable =
+        TableVariable.forJoined(
+            conceptAncestorTablePointer, "ancestor_concept_id", idFieldVariable);
+    var descendantIdFieldVariable =
+        conceptAncestorTableVariable.makeFieldVariable("descendant_concept_id");
+
+    // domain specific occurrence table joined on  concept.concept_id = 'domain'_concept_id
     var domainOccurrenceTablePointer =
         TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
     var domainOccurenceTableVariable =
         TableVariable.forJoined(
-            domainOccurrenceTablePointer, domainOption.getColumnName(), idFieldVariable);
+            domainOccurrenceTablePointer, domainOption.getColumnName(), descendantIdFieldVariable);
 
     // COUNT(DISTINCT person_id)
     var countFieldVariable =
@@ -50,7 +58,8 @@ public class ConceptChildrenQueryBuilder {
 
     List<FieldVariable> select = List.of(nameFieldVariable, idFieldVariable, countFieldVariable);
 
-    List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable);
+    List<TableVariable> tables =
+        List.of(conceptTableVariable, conceptAncestorTableVariable, domainOccurenceTableVariable);
 
     List<FieldVariable> groupBy = List.of(nameFieldVariable, idFieldVariable);
 
@@ -62,7 +71,7 @@ public class ConceptChildrenQueryBuilder {
     var ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
     var descendantFieldVariable = ancestorTableVariable.makeFieldVariable("descendant_concept_id");
 
-    // WHERE c.ancestor_concept_id = conceptId)
+    // WHERE c.ancestor_concept_id = conceptId
     BinaryFilterVariable whereClause =
         new BinaryFilterVariable(
             ancestorTableVariable.makeFieldVariable("ancestor_concept_id"),
@@ -74,21 +83,21 @@ public class ConceptChildrenQueryBuilder {
     Query subQuery =
         new Query(List.of(descendantFieldVariable), List.of(ancestorTableVariable), whereClause);
 
-    // WHERE c.concept_id IN
-    //       (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-    //       WHERE c.ancestor_concept_id = conceptId)
+    // WHERE c.concept_id IN subQuery
     SubQueryFilterVariable subQueryFilterVariable =
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
 
-    // SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count
-    // FROM concept AS c
-    // JOIN condition_occurrence AS c0
-    // ON c0.condition_concept_id = c.concept_id
-    // WHERE c.concept_id IN
-    //    (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-    //     WHERE c.ancestor_concept_id = 101)
-    // GROUP BY c.concept_name, c.concept_id
-    // ORDER BY c.concept_name ASC
+    // SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count
+    // FROM `concept` AS cc
+    // JOIN `concept_ancestor` AS ca
+    // ON  cc.concept_id = ca.ancestor_concept_id
+    // JOIN `'domain'_occurrence` AS co
+    // ON co.'domain'_concept_id = ca.descendant_concept_id
+    // WHERE ca.ancestor_concept_id IN
+    // (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE c.ancestor_concept_id =
+    // conceptId)
+    // GROUP BY cc.concept_id, cc.concept_name
+    // ORDER BY cc.concept_name ASC
     Query query = new Query(select, tables, subQueryFilterVariable, groupBy, orderBy);
     return query.renderSQL(platform);
   }

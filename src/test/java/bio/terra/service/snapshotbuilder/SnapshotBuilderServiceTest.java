@@ -123,7 +123,7 @@ class SnapshotBuilderServiceTest {
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
 
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
-    domainOption.name("domainId").tableName("domainTable");
+    domainOption.name("domainId").tableName("domainTable").columnName("domain_concept_id");
     SnapshotBuilderSettings settings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))

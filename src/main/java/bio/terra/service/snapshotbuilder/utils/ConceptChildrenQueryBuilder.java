@@ -40,7 +40,8 @@ public class ConceptChildrenQueryBuilder {
     var descendantIdFieldVariable =
         conceptAncestorTableVariable.makeFieldVariable("descendant_concept_id");
 
-    // domain specific occurrence table joined on  concept.concept_id = 'domain'_concept_id
+    // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
+    // 'domain'_concept_id
     var domainOccurrenceTablePointer =
         TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
     var domainOccurenceTableVariable =

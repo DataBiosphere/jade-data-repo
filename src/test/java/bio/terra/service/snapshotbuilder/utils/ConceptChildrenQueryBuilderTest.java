@@ -44,17 +44,6 @@ class ConceptChildrenQueryBuilderTest {
         """;
     assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
-  // SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count
-  // FROM `concept` AS cc
-  // JOIN `concept_ancestor` AS ca
-  // ON  cc.concept_id = ca.ancestor_concept_id
-  // JOIN `'domain'_occurrence` AS co
-  // ON co.'domain'_concept_id = ca.descendant_concept_id
-  // WHERE ca.ancestor_concept_id IN
-  // (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE c.ancestor_concept_id =
-  // conceptId)
-  // GROUP BY cc.concept_id, cc.concept_name
-  // ORDER BY cc.concept_name ASC
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)

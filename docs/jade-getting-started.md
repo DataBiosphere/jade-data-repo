@@ -278,7 +278,7 @@ you must log in as in order to create a TDR billing profile***. It should be a g
 * Start postgres
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
-* Run `source render-configs.sh` to pull secrets from vault and set them in environment variables
+* Run `source ./render-configs.sh` to pull secrets from vault and set them in environment variables
 * Build the code and run the unit tests:
 
 ```

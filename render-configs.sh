@@ -22,12 +22,33 @@
 # This script pulls the needed secrets from vault and sets the values as environment variables
 # If you want these values to show up in intellij test/run profiles, you need to restart intellij after running this script
 
+AZURE_ENV=dev
+RBS_ENV=tools
+PRINT_ENV_VARS=n
+
+while getopts ":a:r:p" option; do
+  case $option in
+    a)
+      AZURE_ENV=$OPTARG
+      ;;
+    r)
+      RBS_ENV=$OPTARG
+      ;;
+    p)
+      PRINT_ENV_VARS=y
+      ;;
+    *)
+      echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-p]"
+      exit 1
+      ;;
+  esac
+done
+
 # ========================
 # Azure Credentials
 # ========================
 # If you want to run Azure Integration tests locally, you need to point to the "integration" environment
 # Options: 'dev', 'integration'
-AZURE_ENV=${1:-dev}
 
 if [[ "${AZURE_ENV}" == "dev" ]]; then
     AZURE_SYNAPSE_WORKSPACENAME=tdr-synapse-east-us-ondemand.sql.azuresynapse.net
@@ -92,12 +113,11 @@ export GOOGLE_SA_CERT
 # ========================
 # By default, RBS will use the tools project. GCP projects will automatically be deleted after 1 day.
 # Other option: dev - this will allow for projects to persist for longer than 1 day
-RBS_ENV=${2:-tools}
 if [[ "${RBS_ENV}" == "tools" ]]; then
     BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
     RBS_POOLID=datarepo_v1
     RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org
-elif [[ "${AZURE_ENV}" == "dev" ]]; then
+elif [[ "${RBS_ENV}" == "dev" ]]; then
     BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/dev/dev/buffer/client-sa
     RBS_POOLID=datarepo_v3
     RBS_INSTANCEURL=https://buffer.dsde-dev.broadinstitute.org
@@ -121,17 +141,13 @@ export RBS_CLIENTCREDENTIALFILEPATH
 
 echo "If you ran this script with 'source', the environment variables have been set in this context.
 If you want these values to show up in intellij test/run profiles, you will need to set
-these variables in your bash profile and restart intellij or set them manually in intellij profiles."
+these variables in your bash profile or set them manually in intellij profiles."
 
-ASK_ENV_VARS=${3:-y}
-if [[ "${ASK_ENV_VARS}" == "n" ]]; then
-  exit 0
-fi
-echo "Do you want to print the environment variables set in this script? (y/n)"
 
-read -r PRINT_ENV_VARS
 if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
-  echo "export AZURE_SYNAPSE_WORKSPACENAME=$AZURE_SYNAPSE_WORKSPACENAME
+  echo "
+
+  export AZURE_SYNAPSE_WORKSPACENAME=$AZURE_SYNAPSE_WORKSPACENAME
   export AZURE_CREDENTIALS_HOMETENANTID=$AZURE_CREDENTIALS_HOMETENANTID
   export AZURE_CREDENTIALS_APPLICATIONID=$AZURE_CREDENTIALS_APPLICATIONID
   export AZURE_CREDENTIALS_SECRET=$AZURE_CREDENTIALS_SECRET

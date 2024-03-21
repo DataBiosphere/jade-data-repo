@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,7 +29,6 @@ import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -84,8 +82,7 @@ class ProfileServiceUnitTest {
             anyString(), eq(ProfileCreateFlight.class), eq(billingProfileRequestModel), eq(user)))
         .thenReturn(jobBuilder);
 
-    String result =
-        profileService.createProfile(billingProfileRequestModel, user, Optional.empty());
+    String result = profileService.createProfile(billingProfileRequestModel, user);
     verify(jobBuilder, times(1)).submit();
     assertEquals(result, jobId);
   }
@@ -113,7 +110,7 @@ class ProfileServiceUnitTest {
             anyString(), eq(ProfileUpdateFlight.class), eq(billingProfileUpdateModel), eq(user)))
         .thenReturn(jobBuilder);
 
-    String result = profileService.updateProfile(billingProfileUpdateModel, user, Optional.empty());
+    String result = profileService.updateProfile(billingProfileUpdateModel, user);
 
     verify(jobBuilder, times(1)).submit();
     assertEquals(result, jobId);
@@ -159,28 +156,17 @@ class ProfileServiceUnitTest {
 
     when(googleBillingService.canAccess(eq(user), eq(id))).thenReturn(true);
 
-    profileService.verifyGoogleBillingAccount(id, user, Optional.empty());
-  }
-
-  @Test
-  void testVerifyAccountHasAccessWithNativeToken() {
-    String id = "id";
-    String token = UUID.randomUUID().toString();
-
-    when(googleBillingService.canAccess(eq(user.toBuilder().setToken(token).build()), eq(id)))
-        .thenReturn(true);
-
-    profileService.verifyGoogleBillingAccount(id, user, Optional.of(token));
+    profileService.verifyGoogleBillingAccount(id, user);
   }
 
   @Test
   void testVerifyAccountNoAccess() {
     String id = "id";
 
-    when(googleBillingService.canAccess(any(), eq(id))).thenReturn(false);
+    when(googleBillingService.canAccess(eq(user), eq(id))).thenReturn(false);
 
     assertThrows(
         InaccessibleBillingAccountException.class,
-        () -> profileService.verifyGoogleBillingAccount(id, user, Optional.empty()));
+        () -> profileService.verifyGoogleBillingAccount(id, user));
   }
 }

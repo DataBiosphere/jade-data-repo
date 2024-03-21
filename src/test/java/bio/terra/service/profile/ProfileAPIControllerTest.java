@@ -36,7 +36,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,14 +95,10 @@ class ProfileAPIControllerTest {
 
   @Test
   void testCreateProfile() {
-    var idpAccessToken = UUID.randomUUID().toString();
     when(authenticatedUserRequestFactory.from(request)).thenReturn(user);
-    when(request.getHeader("OAUTH2_CLAIM_idp_access_token")).thenReturn(idpAccessToken);
     var billingProfileRequestModel = new BillingProfileRequestModel();
     String jobId = "jobId";
-    when(profileService.createProfile(
-            billingProfileRequestModel, user, Optional.of(idpAccessToken)))
-        .thenReturn("jobId");
+    when(profileService.createProfile(billingProfileRequestModel, user)).thenReturn("jobId");
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
@@ -115,13 +110,10 @@ class ProfileAPIControllerTest {
 
   @Test
   void testUpdateProfile() {
-    var idpAccessToken = UUID.randomUUID().toString();
     when(authenticatedUserRequestFactory.from(request)).thenReturn(user);
-    when(request.getHeader("OAUTH2_CLAIM_idp_access_token")).thenReturn(idpAccessToken);
     var billingProfileUpdateModel = new BillingProfileUpdateModel().id(UUID.randomUUID());
     String jobId = "jobId";
-    when(profileService.updateProfile(billingProfileUpdateModel, user, Optional.of(idpAccessToken)))
-        .thenReturn(jobId);
+    when(profileService.updateProfile(billingProfileUpdateModel, user)).thenReturn(jobId);
 
     var jobModel = new JobModel();
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
@@ -140,7 +132,7 @@ class ProfileAPIControllerTest {
         ProfileNotFoundException.class,
         () -> apiController.updateProfile(billingProfileUpdateModel));
     verifyNoInteractions(iamService);
-    verify(profileService, never()).updateProfile(any(), any(), any());
+    verify(profileService, never()).updateProfile(billingProfileUpdateModel, user);
   }
 
   @Test
@@ -153,7 +145,7 @@ class ProfileAPIControllerTest {
     var billingProfileUpdateModel = new BillingProfileUpdateModel().id(profileId);
     assertThrows(
         IamForbiddenException.class, () -> apiController.updateProfile(billingProfileUpdateModel));
-    verify(profileService, never()).updateProfile(any(), any(), any());
+    verify(profileService, never()).updateProfile(billingProfileUpdateModel, user);
   }
 
   @ParameterizedTest

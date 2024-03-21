@@ -28,7 +28,6 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleApplicationDeploymentException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -78,16 +77,12 @@ public class ProfileService {
    * @return jobId of the submitted stairway job
    */
   public String createProfile(
-      BillingProfileRequestModel billingProfileRequest,
-      AuthenticatedUserRequest user,
-      Optional<String> idpAccessToken) {
+      BillingProfileRequestModel billingProfileRequest, AuthenticatedUserRequest user) {
     String description =
         String.format("Create billing profile '%s'", billingProfileRequest.getProfileName());
-    var jobBuilder =
-        jobService.newJob(description, ProfileCreateFlight.class, billingProfileRequest, user);
-    idpAccessToken.ifPresent(
-        token -> jobBuilder.addParameter(JobMapKeys.IDP_ACCESS_TOKEN.getKeyName(), token));
-    return jobBuilder.submit();
+    return jobService
+        .newJob(description, ProfileCreateFlight.class, billingProfileRequest, user)
+        .submit();
   }
 
   /**
@@ -105,21 +100,16 @@ public class ProfileService {
    * @return jobId of the submitted stairway job
    */
   public String updateProfile(
-      BillingProfileUpdateModel billingProfileRequest,
-      AuthenticatedUserRequest user,
-      Optional<String> idpAccessToken) {
+      BillingProfileUpdateModel billingProfileRequest, AuthenticatedUserRequest user) {
     String description =
         String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
-    var jobBuilder =
-        jobService
-            .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
-            .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
-            .addParameter(
-                JobMapKeys.IAM_RESOURCE_ID.getKeyName(), billingProfileRequest.getId().toString())
-            .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.UPDATE_BILLING_ACCOUNT);
-    idpAccessToken.ifPresent(
-        token -> jobBuilder.addParameter(JobMapKeys.IDP_ACCESS_TOKEN.getKeyName(), token));
-    return jobBuilder.submit();
+    return jobService
+        .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(
+            JobMapKeys.IAM_RESOURCE_ID.getKeyName(), billingProfileRequest.getId().toString())
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.UPDATE_BILLING_ACCOUNT)
+        .submit();
   }
 
   /**
@@ -285,13 +275,8 @@ public class ProfileService {
   }
 
   // Verify user access to the billing account during billing profile creation
-  public void verifyGoogleBillingAccount(
-      String billingAccountId, AuthenticatedUserRequest user, Optional<String> idpAccessToken) {
-    // this is a call directly to google so requires a google native token
-    // but if we don't have one, try the user's token
-    var userMaybeWithNativeToken =
-        user.toBuilder().setToken(idpAccessToken.orElse(user.getToken())).build();
-    if (!googleBillingService.canAccess(userMaybeWithNativeToken, billingAccountId)) {
+  public void verifyGoogleBillingAccount(String billingAccountId, AuthenticatedUserRequest user) {
+    if (!googleBillingService.canAccess(user, billingAccountId)) {
       throw new InaccessibleBillingAccountException(
           "The user '"
               + user.getEmail()

@@ -277,6 +277,7 @@ you must log in as in order to create a TDR billing profile***. It should be a g
 
 * Start postgres
 * Ensure docker is running
+* You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
 * Run `source render-configs.sh` to pull secrets from vault and set them in environment variables
 * Build the code and run the unit tests:
 
@@ -288,28 +289,49 @@ you must log in as in order to create a TDR billing profile***. It should be a g
 
 ### 2. Run connected tests
 We don't recommend running the entire connected test suite locally, as it takes over an hour to run.
-Instead, you can select a specific test to run in Intellij. First, make sure you have run through the following steps:
+Instead, you can select a specific test to run either in Intellij or the command line.
+First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
-* Run `render-configs.sh` to pull secrets from vault and enter `y` to print environment variables
+* You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
+
+** Run test in the Command Line **
+* Run `source ./render-configs.sh` to pull secrets from vault and set environment variables
+* Run `./gradlew :testConnected --tests '*testCSVIngestUpdates'` to run a specific connected test
+
+** Run or Debug test in Intellij **
+* Run `./render-configs.sh` to pull secrets from vault and enter `y` to print environment variables
 * Set the environments printed out from the render configs script. You can do this either in
 your bash profile (you may need to then restart intellij) or in the intellij run configuration for the selected test.
+* Select test in intellij UI, select 'testConnected' and run or debug it
 
 ### 3. Run Integration tests
 We don't recommend running the entire integrated test suite locally, as it takes over two hours to run.
-Instead, you can select a specific test to run in Intellij. First, make sure you have run through the following steps:
+Instead, you can select a specific test to run either in Intellij or the command line.
+First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
-* Run `source ./render-configs.sh integration` to pull secrets from vault and enter `y` to print environment variables
+* You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
+
+** Run test in the Command Line **
+* Run `source ./render-configs.sh integration` to pull secrets from vault and set environment variables
+* Open a new command line window, while bootRun runs in the background
+* In the new window, run `source ./render-configs.sh` to pull secrets from vault and set environment variables in this context
+* Set this environment variable: `export IT_JADE_API_URL=http://localhost:8080`
+* Run `./gradlew :testIntegration --tests '*testSnapshotBuilder'` to run a specific integration test
+
+** Run or Debug test in Intellij **
+* Run `./render-configs.sh` to pull secrets from vault and enter `y` to print environment variables
 * Set the environments printed out from the render configs script. You can do this either in
   your bash profile (you may need to then restart intellij) or in the intellij run configuration for the selected test.
-* Set additional env variables for running environment variables:
-  `export IT_JADE_API_URL=http://localhost:8080` (You can change this to instead point at a personal deployment or a BEE)
-* Run `./gradlew bootRun` to start the application
-* Select test in intellij UI and run it
+  * Additionally, set these environment variables:
+  * `export IT_JADE_API_URL=http://localhost:8080`
+* Start application by running `./gradlew bootRun`
+* Select test in intellij UI, select 'testIntegration' and run or debug it
 
-### 3. Running Pact tests
-This ccan be achieved by rendering a small set of Pact-specific configurations first:
+
+### 4. Running Pact tests
+This can be achieved by rendering a small set of Pact-specific configurations first:
 ```
 ./src/test/render-pact-configs.sh
 # Reload your environment variables, e.g. src ~/.zshrc
@@ -324,20 +346,31 @@ To run a subset of tests, you can specify `--tests <pattern>` when running
 the above test commands.  More specific examples are available in
 [Gradle documentation](https://docs.gradle.org/current/userguide/java_testing.html#test_filtering).
 
-### 2. Build `jade-data-repo-ui`
+### 5. Build `jade-data-repo-ui`
 
-Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui)
-to build the `jade-data-repo-ui` repository.
+Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) to build the `jade-data-repo-ui` repository.
 
-## 13. Developing Locally
+By setting the `PROXY_URL` environment variable, you can point the UI to your local data repo instance.
+```
+export PROXY_URL=http://localhost:8080
+```
+You need to have data repo running with `./gradlew bootRun` and the UI running with `npm start`.
+
+## 12. Set up TDR resources
 
 After running bootRun, you may want to create some datasets locally for use in testing.
-To do this, you can run this python
-[script](https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/tools/ui_integration/setup_ui_integration.py)
-against your local db.
+To do this, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py)
+to your locally running data repo instance by setting the --host flag to http://localhost:8080.
+See the [README](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/README.md) for more information.
 
 You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
 such as `AzureY1Demo.ipynb`
+
+## 13. Set up TDR on BEEs
+
+You can follow [these instructions](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit?usp=sharing) to get a BEE setup to work with TDR.
+
+Additionally, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py) to your BEE by setting the --host flag to the BEE url.
 
 ## 14. Running locally with other locally running services
 1. Sam - set environment variable `SAM_BASEPATH` to `https://local.broadinstitute.org:50443`

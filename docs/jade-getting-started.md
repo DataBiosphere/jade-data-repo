@@ -248,12 +248,27 @@ psql --list
 ```
 
 ## 10. Configure Azure
+
+### 1. Get Azure Account
 You will need to have an Azure account created (see https://docs.google.com/spreadsheets/d/1Q6CldqVPrATkWCAXljKrwlLz8oFsCQwcfOz_io-gcrA)
 and granted access to the TDR application in Azure and added to the jadedev group.
 
 The Azure user should look like <your email id>@azure.dev.envs-terra.bio
 
 Both are performed by a teammate in the Azure portal: https://portal.azure.com
+
+### 2. Create your own managed application in Azure
+You must have your own managed application in order to create a TDR azure billing profile.
+Create a "tdr-dev" managed application:
+* Azure portal -> Marketplace -> "My Marketplace" -> "Private plans" -> There you should see the "tdr-dev" plan.
+* Create a new tdr-dev plan with the following setup:
+  * Subscription: 8201558_TDR_testuser1 (if you don't have access, ask for help from team)
+  * Resource group: TDR
+  * Application Name: <your name>
+  * Hit "next"
+* On the next screen, ***pay attention to the email you set in this field. It will be the email
+you must log in as in order to create a TDR billing profile***. It should be a gmail account.
+* Hit create!
 
 
 ## 11. Repository Setup

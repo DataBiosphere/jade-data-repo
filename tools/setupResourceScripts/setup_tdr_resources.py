@@ -84,13 +84,11 @@ def create_billing_profile(clients, add_jade_stewards, cloud_platform, billing_p
       billing_profile_file_name = "azure_billing_profile.json"
   with open(os.path.join("files", billing_profile_file_name)) as billing_profile_json:
     billing_profile_request = json.load(billing_profile_json)
-    billing_profile_id = billing_profile_request['id']
-    billing_profile_request['profileName'] = billing_profile_request[
-                                               'profileName'] + f'_{billing_profile_id}'
     profile_id = str(uuid.uuid4())
     billing_profile_request['id'] = profile_id
     billing_profile_request['profileName'] = billing_profile_request[
                                                'profileName'] + f'_{profile_id}'
+
     if azure_managed_app_name:
       billing_profile_request['applicationDeploymentName'] = azure_managed_app_name
       print(f"Checking if billing profile with managed app name {azure_managed_app_name} already exists")
@@ -102,11 +100,11 @@ def create_billing_profile(clients, add_jade_stewards, cloud_platform, billing_p
         print(f"Found profile {profiles_with_managed_app_name[0].id}, reusing")
         return profiles_with_managed_app_name[0].id
 
-    print(f"Creating billing profile with id: {billing_profile_id}")
+    print(f"Creating billing profile with id: {profile_id}")
     profile = wait_for_job(clients, clients.profiles_api.create_profile(
       billing_profile_request=billing_profile_request))
     if add_jade_stewards:
-      add_billing_profile_members(clients, billing_profile_id)
+      add_billing_profile_members(clients, profile_id)
     return profile['id']
 
 

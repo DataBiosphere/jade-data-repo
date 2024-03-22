@@ -1,3 +1,5 @@
+import uuid
+
 from data_repo_client import Configuration, ApiClient, ProfilesApi, DatasetsApi, SnapshotsApi, \
   JobsApi, ApiException
 import argparse
@@ -67,6 +69,13 @@ def dataset_ingest_array(clients, dataset_id, dataset_to_upload):
         print(f"Skipping ingest of {dataset_to_upload['name']}/{table} because it is empty")
 
 
+def find_billing_profile_by_application_deployment_name(managed_app_name):
+  def find_profile(profile):
+    return profile.applicationDeploymentName==managed_app_name
+
+  return find_profile
+
+
 def create_billing_profile(clients, add_jade_stewards, cloud_platform, billing_profile_file_name,
                            azure_managed_app_name):
   if not billing_profile_file_name:
@@ -78,15 +87,21 @@ def create_billing_profile(clients, add_jade_stewards, cloud_platform, billing_p
     billing_profile_id = billing_profile_request['id']
     billing_profile_request['profileName'] = billing_profile_request[
                                                'profileName'] + f'_{billing_profile_id}'
+    profile_id = str(uuid.uuid4())
+    billing_profile_request['id'] = profile_id
+    billing_profile_request['profileName'] = billing_profile_request[
+                                               'profileName'] + f'_{profile_id}'
     if azure_managed_app_name:
       billing_profile_request['applicationDeploymentName'] = azure_managed_app_name
-    print(f"Checking if billing profile with id {billing_profile_id} already exists")
-    try:
-      profile = clients.profiles_api.retrieve_profile(billing_profile_id)
-      print(f"Found profile {billing_profile_id}, reusing")
-      return profile.id
-    except ApiException:
-      print(f"Profile {billing_profile_id} not found")
+      print(f"Checking if billing profile with managed app name {azure_managed_app_name} already exists")
+      profiles = clients.profiles_api.enumerateProfiles(0, 1000)
+      profiles_with_managed_app_name = list(filter(
+        find_billing_profile_by_application_deployment_name(azure_managed_app_name),
+        profiles.items))
+      if len(profiles_with_managed_app_name) > 0:
+        print(f"Found profile {profiles_with_managed_app_name[0].id}, reusing")
+        return profiles_with_managed_app_name[0].id
+
     print(f"Creating billing profile with id: {billing_profile_id}")
     profile = wait_for_job(clients, clients.profiles_api.create_profile(
       billing_profile_request=billing_profile_request))

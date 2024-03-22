@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -155,18 +154,19 @@ class ProfileServiceUnitTest {
   void testVerifyAccountHasAccess() {
     String id = "id";
 
-    when(googleBillingService.canAccess(any(), eq(id))).thenReturn(true);
+    when(googleBillingService.canAccess(eq(user), eq(id))).thenReturn(true);
 
-    profileService.verifyAccount(id, user);
+    profileService.verifyGoogleBillingAccount(id, user);
   }
 
   @Test
   void testVerifyAccountNoAccess() {
     String id = "id";
 
-    when(googleBillingService.canAccess(any(), eq(id))).thenReturn(false);
+    when(googleBillingService.canAccess(eq(user), eq(id))).thenReturn(false);
 
     assertThrows(
-        InaccessibleBillingAccountException.class, () -> profileService.verifyAccount(id, user));
+        InaccessibleBillingAccountException.class,
+        () -> profileService.verifyGoogleBillingAccount(id, user));
   }
 }

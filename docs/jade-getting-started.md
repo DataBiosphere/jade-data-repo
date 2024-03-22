@@ -315,6 +315,7 @@ First, make sure you have run through the following steps:
 
 ** Run test in the Command Line **
 * Run `source ./render-configs.sh -a integration` to pull secrets from vault, set environment variables and point to Integration Synapse on Azure
+* Start the app locally with `./gradlew bootRun`
 * Open a new command line window, while bootRun runs in the background
 * In the new window, run `source ./render-configs.sh  -a integration` to pull secrets from vault and set environment variables in this context
 * Set this environment variable: `export IT_JADE_API_URL=http://localhost:8080`

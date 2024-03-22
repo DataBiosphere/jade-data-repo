@@ -226,12 +226,15 @@ def delete_dataset_if_exists(name, clients):
     print(f"Deleted dataset {filtered_datasets[0].id}")
 
 
-def add_snapshot_builder_settings(clients, id, directory, snapshot_builder_settings_file):
+def add_snapshot_builder_settings(clients, dataset_id, directory, snapshot_builder_settings_file):
   with open(
     os.path.join("files", directory, snapshot_builder_settings_file)) as dataset_schema_json:
     # In order to use the client API, we need to publish the updated python client library
-    dataset = requests.post(f"{clients.api_client.configuration.host}/api/repository/v1/datasets/{id}/snapshotBuilder/settings", json=json.load(dataset_schema_json), headers={"Authorization": f"Bearer {clients.api_client.configuration.access_token}"})
-  return dataset
+    response = requests.post(f"{clients.api_client.configuration.host}/api/repository/v1/datasets/{dataset_id}/snapshotBuilder/settings", json=json.load(dataset_schema_json), headers={"Authorization": f"Bearer {clients.api_client.configuration.access_token}"})
+    if response.status_code != 200:
+      print(f"Failed to update snapshot builder settings. {response.json}")
+      print(response.json())
+  return response.json()
 
 
 def main():
@@ -289,7 +292,7 @@ def main():
     if dataset_to_upload.get('snapshotBuilderSettings'):
       print("Adding snapshot builder settings")
       add_snapshot_builder_settings(clients,
-        dataset_to_upload.get('id'), dataset_to_upload.get('schema'),
+        created_dataset['id'], dataset_to_upload.get('schema'),
         dataset_to_upload.get('snapshotBuilderSettings'))
       print("Added snapshot builder settings")
 

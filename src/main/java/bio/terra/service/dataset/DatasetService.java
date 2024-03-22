@@ -9,7 +9,6 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SqlSortDirection;
-import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
@@ -482,13 +481,12 @@ public class DatasetService {
     var dataset = retrieve(datasetId);
     var platformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
-    if (platformWrapper.isAzure()) {
-      return storageTableService.getLoadHistory(dataset, loadTag, offset, limit);
-    } else if (platformWrapper.isGcp()) {
-      return bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit);
-    } else {
-      throw new InvalidCloudPlatformException();
-    }
+    return platformWrapper.choose(
+        Map.of(
+            CloudPlatform.GCP,
+            () -> bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit),
+            CloudPlatform.AZURE,
+            () -> storageTableService.getLoadHistory(dataset, loadTag, offset, limit)));
   }
 
   /**

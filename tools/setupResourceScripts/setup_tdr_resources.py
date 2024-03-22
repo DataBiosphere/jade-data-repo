@@ -224,15 +224,26 @@ def add_snapshot_builder_settings(clients, id, directory, snapshot_builder_setti
 
 def main():
   parser = argparse.ArgumentParser()
-  parser.add_argument('--host', default='https://jade-4.datarepo-integration.broadinstitute.org')
-  parser.add_argument('--datasets', default='./suites/datarepo_datasets.json')
-  parser.add_argument('--gcp_profile_id')
-  parser.add_argument('--azure_profile_id')
-  parser.add_argument('--azure_managed_app_name')
-  parser.add_argument('--billing_profile_file_name')
+  parser.add_argument('--host', default='https://jade-4.datarepo-integration.broadinstitute.org',
+    help='The data repo root URL to point to. Defaults to '
+         'https://jade-4.datarepo-integration.broadinstitute.org')
+  parser.add_argument('--datasets', default='./suites/datarepo_datasets.json',
+    help='A file pointer to the datarepo datasets to create. Defaults to '
+         './suites/datarepo_datasets.json')
+  parser.add_argument('--gcp_profile_id',
+    help='The id of an existing gcp billing profile to use. Provide either this or a billing '
+         'profile file name.')
+  parser.add_argument('--azure_profile_id',
+    help='The id of an existing azure billing profile to use. Provide either this or a billing '
+         'profile file name.')
+  parser.add_argument('--azure_managed_app_name',
+    help='The name of your azure managed app. This should be provided if you are creating a new '
+         'billing project.')
+  parser.add_argument('--billing_profile_file_name',
+    help='A pointer to a file containing the billing profile to create or reuse (e.g., '
+         './files/billing_profile.json). Provide either this or an existing profile ID.')
   args = parser.parse_args()
   clients = Clients(args.host)
-  print(clients.api_client.configuration.access_token)
 
   add_jade_stewards = 'dev' in args.host or 'integration' in args.host
   gcp_profile_id = args.gcp_profile_id
@@ -268,6 +279,7 @@ def main():
       add_snapshot_builder_settings(clients,
         dataset_to_upload.get('id'), dataset_to_upload.get('schema'),
         dataset_to_upload.get('snapshotBuilderSettings'))
+      print("Added snapshot builder settings")
 
   output_filename = f"{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
   with open(output_filename, 'w') as f:

@@ -15,6 +15,7 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
+import io.opentelemetry.api.internal.StringUtils;
 import java.util.List;
 
 public class SearchConceptsQueryBuilder {
@@ -78,7 +79,7 @@ public class SearchConceptsQueryBuilder {
     List<FilterVariable> allFilters = List.of(domainClause, searchClause);
 
     FilterVariable where;
-    if (searchText == null || searchText.isEmpty()) {
+    if (StringUtils.isNullOrEmpty(searchText)) {
       where = domainClause;
     } else {
       where =

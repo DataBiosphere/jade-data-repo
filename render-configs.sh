@@ -22,7 +22,6 @@
 ### About this script
 # This script pulls the needed secrets from vault and sets the values as environment variables
 # If you want these values to show up in intellij test/run profiles, you need to restart intellij after running this script
-
 AZURE_ENV=dev
 RBS_ENV=tools
 PRINT_ENV_VARS=n
@@ -157,3 +156,6 @@ if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
   export RBS_INSTANCEURL=$RBS_INSTANCEURL"
 fi
 
+unset AZURE_ENV
+unset PRINT_ENV_VARS
+unset RBS_ENV

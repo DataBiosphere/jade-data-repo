@@ -431,6 +431,7 @@ export DB_MIGRATE_DROPALLONSTART=true
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 
 # Setting for credentials to test on Azure - these files are populated in the render-configs.sh script
+export AZURE_SYNAPSE_WORKSPACENAME=tdr-synapse-east-us-ondemand.sql.azuresynapse.net
 export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
 export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
 export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
@@ -438,6 +439,10 @@ export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
 export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
 export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
 export AZURE_SYNAPSE_INITIALIZE=false
+
+# RBS - defaults to RBS tools; you can easily switch to dev by running "source ./render-configs.sh -r dev"
+RBS_POOLID=datarepo_v1
+RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org
 
 # Pact contract test settings
 export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)

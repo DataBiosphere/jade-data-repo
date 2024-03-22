@@ -63,38 +63,38 @@ export AZURE_SYNAPSE_WORKSPACENAME
 
 
 vault read -field=tenant-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/tdr-azure-tenant-id.key"
-AZURE_CREDENTIALS_HOMETENANTID=$(cat "/tmp/tdr-azure-tenant-id.key")
+    > "/tmp/jade-dev-tenant-id.key"
+AZURE_CREDENTIALS_HOMETENANTID=$(cat "/tmp/jade-dev-tenant-id.key")
 export AZURE_CREDENTIALS_HOMETENANTID
 
 
 vault read -field=client-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/tdr-azure-client-id.key"
-AZURE_CREDENTIALS_APPLICATIONID=$(cat "/tmp/tdr-azure-client-id.key")
+    > "/tmp/jade-dev-client-id.key"
+AZURE_CREDENTIALS_APPLICATIONID=$(cat "/tmp/jade-dev-client-id.key")
 export AZURE_CREDENTIALS_APPLICATIONID
 
 
 vault read -field=client-secret secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/tdr-azure-client-secret.key"
-AZURE_CREDENTIALS_SECRET=$(cat "/tmp/tdr-azure-client-secret.key")
+    > "/tmp/jade-dev-azure.key"
+AZURE_CREDENTIALS_SECRET=$(cat "/tmp/jade-dev-azure.key")
 export AZURE_CREDENTIALS_SECRET
 
 
 vault read -field=synapse-sql-admin-user secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/tdr-synapse-admin-user.key"
-AZURE_SYNAPSE_SQLADMINUSER=$(cat "/tmp/tdr-synapse-admin-user.key")
+    > "/tmp/jade-dev-synapse-admin-user.key"
+AZURE_SYNAPSE_SQLADMINUSER=$(cat "/tmp/jade-dev-synapse-admin-user.key")
 export AZURE_SYNAPSE_SQLADMINUSER
 
 
 vault read -field=synapse-sql-admin-password secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/tdr-synapse-admin-password.key"
-AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat "/tmp/tdr-synapse-admin-password.key")
+    > "/tmp/jade-dev-synapse-admin-password.key"
+AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat "/tmp/jade-dev-synapse-admin-password.key")
 export AZURE_SYNAPSE_SQLADMINPASSWORD
 
 
 vault read -field=synapse-encryption-key secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/tdr-synapse-encryption-key.key"
-AZURE_SYNAPSE_ENCRYPTIONKEY=$(cat "/tmp/tdr-synapse-encryption-key.key")
+    > "/tmp/jade-dev-synapse-encryption-key.key"
+AZURE_SYNAPSE_ENCRYPTIONKEY=$(cat "/tmp/jade-dev-synapse-encryption-key.key")
 export AZURE_SYNAPSE_ENCRYPTIONKEY
 
 # ========================
@@ -128,16 +128,12 @@ else
 fi
 
 RBS_CLIENTCREDENTIALFILEPATH=/tmp/buffer-client-sa-account.json
-RBS_ENABLED=true
-RBS_CLIENTCREDENTIALFILEPATH=/tmp/buffer-client-sa-account.json
 
 vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
     | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
 
-export RBS_ENABLED
 export RBS_POOLID
 export RBS_INSTANCEURL
-export RBS_CLIENTCREDENTIALFILEPATH
 
 
 echo "If you ran this script with 'source', the environment variables have been set in this context.
@@ -157,9 +153,7 @@ if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
   export AZURE_SYNAPSE_ENCRYPTIONKEY=$AZURE_SYNAPSE_ENCRYPTIONKEY
   export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
   export GOOGLE_SA_CERT=$GOOGLE_SA_CERT
-  export RBS_ENABLED=$RBS_ENABLED
   export RBS_POOLID=$RBS_POOLID
   export RBS_INSTANCEURL=$RBS_INSTANCEURL
-  export RBS_CLIENTCREDENTIALFILEPATH=$RBS_CLIENTCREDENTIALFILEPATH"
 fi
 

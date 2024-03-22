@@ -238,7 +238,7 @@ def main():
          'profile file name.')
   parser.add_argument('--azure_managed_app_name',
     help='The name of your azure managed app. This should be provided if you are creating a new '
-         'billing project.')
+         'azure billing project.')
   parser.add_argument('--billing_profile_file_name',
     help='A pointer to a file containing the billing profile to create or reuse (e.g., '
          './files/billing_profile.json). Provide either this or an existing profile ID.')

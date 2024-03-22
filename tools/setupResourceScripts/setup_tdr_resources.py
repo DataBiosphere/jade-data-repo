@@ -71,7 +71,7 @@ def dataset_ingest_array(clients, dataset_id, dataset_to_upload):
 
 def find_billing_profile_by_application_deployment_name(managed_app_name):
   def find_profile(profile):
-    return profile.applicationDeploymentName==managed_app_name
+    return profile.application_deployment_name==managed_app_name
 
   return find_profile
 
@@ -92,7 +92,7 @@ def create_billing_profile(clients, add_jade_stewards, cloud_platform, billing_p
     if azure_managed_app_name:
       billing_profile_request['applicationDeploymentName'] = azure_managed_app_name
       print(f"Checking if billing profile with managed app name {azure_managed_app_name} already exists")
-      profiles = clients.profiles_api.enumerateProfiles(0, 1000)
+      profiles = clients.profiles_api.enumerate_profiles()
       profiles_with_managed_app_name = list(filter(
         find_billing_profile_by_application_deployment_name(azure_managed_app_name),
         profiles.items))
@@ -230,8 +230,7 @@ def add_snapshot_builder_settings(clients, id, directory, snapshot_builder_setti
   with open(
     os.path.join("files", directory, snapshot_builder_settings_file)) as dataset_schema_json:
     # In order to use the client API, we need to publish the updated python client library
-    dataset = requests.post(f"{clients.api_client.configuration.host}/api/repository/v1/datasets/{id}/snapshotBuilder/settings", json=json.load(dataset_schema_json), auth=(
-      'bearer', clients.api_client.configuration.access_token))
+    dataset = requests.post(f"{clients.api_client.configuration.host}/api/repository/v1/datasets/{id}/snapshotBuilder/settings", json=json.load(dataset_schema_json), headers={"Authorization": f"Bearer {clients.api_client.configuration.access_token}"})
   return dataset
 
 
@@ -254,7 +253,7 @@ def main():
          'azure billing project.')
   parser.add_argument('--billing_profile_file_name',
     help='A pointer to a file containing the billing profile to create or reuse (e.g., '
-         './files/billing_profile.json). Provide either this or an existing profile ID.')
+         'billing_profile.json). Provide either this or an existing profile ID.')
   args = parser.parse_args()
   clients = Clients(args.host)
 

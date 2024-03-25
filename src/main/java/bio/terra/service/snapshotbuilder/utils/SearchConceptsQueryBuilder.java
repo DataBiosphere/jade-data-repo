@@ -79,7 +79,6 @@ public class SearchConceptsQueryBuilder {
     List<FilterVariable> allFilters = List.of(domainClause, searchClause);
 
     FilterVariable where;
-
     if (StringUtils.isEmpty(searchText)) {
       where = domainClause;
     } else {

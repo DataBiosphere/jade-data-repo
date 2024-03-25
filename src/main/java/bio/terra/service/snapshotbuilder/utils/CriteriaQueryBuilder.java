@@ -6,6 +6,8 @@ import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataListItem;
+import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
@@ -23,6 +25,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class CriteriaQueryBuilder {
   public static final String PERSON_ID_FIELD_NAME = "person_id";
@@ -65,10 +68,22 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
+    Literal[] values;
+
+    if (listCriteria.getValues().isEmpty()) {
+      var listItemValues = getProgramDataListItemValues(listCriteria.getId());
+      values =
+          getProgramDataListItemValuesIds(listItemValues).stream()
+              .map(Literal::new)
+              .toArray(Literal[]::new);
+    } else {
+      values = listCriteria.getValues().stream().map(Literal::new).toArray(Literal[]::new);
+    }
+
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
         getFieldVariableForRootTable(getProgramDataOptionColumnName(listCriteria.getId())),
-        listCriteria.getValues().stream().map(Literal::new).toArray(Literal[]::new));
+        values);
   }
 
   String getProgramDataOptionColumnName(int id) {
@@ -78,6 +93,25 @@ public class CriteriaQueryBuilder {
         .orElseThrow(
             () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)))
         .getColumnName();
+  }
+
+  List<SnapshotBuilderProgramDataListItem> getProgramDataListItemValues(int id) {
+    return ((SnapshotBuilderProgramDataListOption)
+            snapshotBuilderSettings.getProgramDataOptions().stream()
+                .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
+                .findFirst()
+                .orElseThrow(
+                    () ->
+                        new BadRequestException(
+                            String.format("Invalid program data ID given: %d", id))))
+        .getValues();
+  }
+
+  public List<Integer> getProgramDataListItemValuesIds(
+      List<SnapshotBuilderProgramDataListItem> programDataListItemValues) {
+    return programDataListItemValues.stream()
+        .map(SnapshotBuilderProgramDataListItem::getId)
+        .collect(Collectors.toList());
   }
 
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {

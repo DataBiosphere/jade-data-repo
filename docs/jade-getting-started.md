@@ -158,8 +158,6 @@ gcloud auth configure-docker
 gcloud components install gke-gcloud-auth-plugin
 ```
 
-### 7. Configure
-
 ## 6. Create GitHub token
 
 The GitHub token verifies team permissions. This token is necessary for the next
@@ -177,7 +175,7 @@ GH_VAULT_TOKEN=<<GITHUB TOKEN VALUE>>
 echo $GH_VAULT_TOKEN > ~/.gh_token
 ```
 
-## 6. Login to Vault
+## 7. Login to Vault
 
 Vault access tokens can be obtained using the GitHub token from earlier as
 follows:
@@ -186,7 +184,7 @@ follows:
 vault login -method=github token=$(cat ~/.gh_token)
 ```
 
-## 7. Code Checkout
+## 8. Code Checkout
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
@@ -205,7 +203,7 @@ git clone git@github.com:broadinstitute/terraform-ap-deployments.git
 git clone git@github.com:broadinstitute/terraform-jade.git
 ```
 
-## 8. Google Cloud Platform setup
+## 9. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com).
    In the top-left corner, select the **BROADINSTITUTE.ORG** organization.
@@ -223,7 +221,7 @@ git clone git@github.com:broadinstitute/terraform-jade.git
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-## 9. Install Postgres 11
+## 10. Install Postgres 11
 
 [Postgres](https://www.postgresql.org/) is an advanced open-source database.
 **Postgres.app** is used to manage a local installation of Postgres.
@@ -247,7 +245,7 @@ psql -f db/create-data-repo-db
 psql --list
 ```
 
-## 10. Configure Azure
+## 11. Configure Azure
 
 ### 1. Get Azure Account
 You will need to have an Azure account created (see https://docs.google.com/spreadsheets/d/1Q6CldqVPrATkWCAXljKrwlLz8oFsCQwcfOz_io-gcrA)
@@ -271,7 +269,7 @@ you must log in as in order to create a TDR billing profile***. It should be a g
 * Hit create!
 
 
-## 11. Repository Setup
+## 12. Repository Setup
 
 ### 1. Build, run and Unit Test `jade-data-repo`
 
@@ -357,7 +355,7 @@ export PROXY_URL=http://localhost:8080
 ```
 You need to have data repo running with `./gradlew bootRun` and the UI running with `npm start`.
 
-## 12. Set up TDR resources
+## 13. Set up TDR resources
 
 After running bootRun, you may want to create some datasets locally for use in testing.
 To do this, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py)
@@ -367,13 +365,13 @@ See the [README](https://github.com/DataBiosphere/jade-data-repo/blob/develop/to
 You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
 such as `AzureY1Demo.ipynb`
 
-## 13. Set up TDR on BEEs
+## 14. Set up TDR on BEEs
 
 You can follow [these instructions](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit?usp=sharing) to get a BEE setup to work with TDR.
 
 Additionally, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py) to your BEE by setting the --host flag to the BEE url.
 
-## 14. Running locally with other locally running services
+## 15. Running locally with other locally running services
 1. Sam - set environment variable `SAM_BASEPATH` to `https://local.broadinstitute.org:50443`
 
 ## Common Issues

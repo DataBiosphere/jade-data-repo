@@ -29,7 +29,7 @@
 #5. `cd files/OMOPDataset'
 #6  `python3 populate_omop_data.py`
 #7  `cd ../..` (go back to the setupResourceScripts directory)
-#5. `python3 setup_tdr_resources.py --host <datarepo_url> --datasets datarepo_omop_datasets.json --profile_id <profile_id>`
+#5. `python3 setup_tdr_resources.py --host <datarepo_url> --datasets datarepo_azure_omop_datasets.json --profile_id <profile_id>`
 
 
 

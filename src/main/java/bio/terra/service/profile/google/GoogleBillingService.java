@@ -14,11 +14,15 @@ import com.google.cloud.billing.v1.BillingAccountName;
 import com.google.cloud.billing.v1.CloudBillingClient;
 import com.google.cloud.billing.v1.CloudBillingSettings;
 import com.google.cloud.billing.v1.ProjectBillingInfo;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.iam.v1.TestIamPermissionsResponse;
+import com.nimbusds.jwt.JWTParser;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -28,37 +32,38 @@ import org.springframework.stereotype.Service;
 @Profile("google")
 public class GoogleBillingService {
 
+  public static final String IDP_ACCESS_TOKEN_CLAIM = "idp_access_token";
   private static Logger logger = LoggerFactory.getLogger(GoogleBillingService.class);
 
   private static CloudBillingClient accessClient(AuthenticatedUserRequest user) {
     try {
-      // Authentication is provided by the 'gcloud' tool when running locally
-      // and by built-in service accounts when running on GAE, GCE, or GKE.
-      GoogleCredentials serviceAccountCredentials =
-          ServiceAccountCredentials.getApplicationDefault();
-
-      // The createScopedRequired method returns true when running on GAE or a local developer
-      // machine. In that case, the desired scopes must be passed in manually. When the code is
-      // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
-      // See https://developers.google.com/identity/protocols/application-default-credentials
-      // for more information.
-      if (serviceAccountCredentials.createScopedRequired()) {
-        List<String> scopes = List.of("https://www.googleapis.com/auth/cloud-billing");
-        serviceAccountCredentials = serviceAccountCredentials.createScoped(scopes);
-      }
-
       //  If no user, use system credentials, otherwise use user credentials instead
       final String credentialName;
       final GoogleCredentials credentials;
       if (user == null || user.getToken().isEmpty()) {
+        // Authentication is provided by the 'gcloud' tool when running locally
+        // and by built-in service accounts when running on GAE, GCE, or GKE.
+        GoogleCredentials serviceAccountCredentials =
+            ServiceAccountCredentials.getApplicationDefault();
+
+        // The createScopedRequired method returns true when running on GAE or a local developer
+        // machine. In that case, the desired scopes must be passed in manually. When the code is
+        // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
+        // See https://developers.google.com/identity/protocols/application-default-credentials
+        // for more information.
+        if (serviceAccountCredentials.createScopedRequired()) {
+          List<String> scopes = List.of("https://www.googleapis.com/auth/cloud-billing");
+          serviceAccountCredentials = serviceAccountCredentials.createScoped(scopes);
+        }
         credentialName = "service account";
         credentials = serviceAccountCredentials;
       } else {
         credentialName = user.getEmail();
+        // If user.getToken() is a JWT and contains an idp_access_token claim, use that.
+        // Otherwise use user.getToken() as is.
+        String token = getIdpAccessTokenFromJwt(user).orElse(user.getToken());
         credentials =
-            GoogleCredentials.newBuilder()
-                .setAccessToken(new AccessToken(user.getToken(), null))
-                .build();
+            GoogleCredentials.newBuilder().setAccessToken(new AccessToken(token, null)).build();
       }
       CloudBillingSettings cloudBillingSettings =
           CloudBillingSettings.newBuilder()
@@ -71,6 +76,19 @@ public class GoogleBillingService {
       String message =
           String.format("Could not build Cloud Billing client instance: %s", e.getMessage());
       throw new BillingServiceException(message, e);
+    }
+  }
+
+  @VisibleForTesting
+  public static Optional<String> getIdpAccessTokenFromJwt(AuthenticatedUserRequest user) {
+    try {
+      // note that the token should already be verified by the time it gets here.
+      // this does not verify the token, it just parses it.
+      return Optional.ofNullable(
+          (String)
+              JWTParser.parse(user.getToken()).getJWTClaimsSet().getClaim(IDP_ACCESS_TOKEN_CLAIM));
+    } catch (ParseException e) {
+      return Optional.empty();
     }
   }
 

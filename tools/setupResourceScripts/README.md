@@ -7,7 +7,7 @@ The `setup_tdr_resources.py` script can be used to easily create datasets and sn
 2. `cd jade-data-repo/tools/setupResourceScripts`
 3. `pip3 install -r requirements.txt`
 4. `gcloud auth login <user>`
-5. `python3 setup_tdr_resources.py --host <datarepo_url> --datasets <datasets_to_create_json_file> --profile_id <profile_id>`
+5. `python3 setup_tdr_resources.py --help to see all flags used.`
 
 The script outputs are written to a JSON file in the format:
 ```

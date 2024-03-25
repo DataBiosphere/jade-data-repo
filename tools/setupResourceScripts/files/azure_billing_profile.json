@@ -1,5 +1,4 @@
 {
-  "id": "22e8dcde-bb8b-40be-a8b4-b657da4d6cd8",
   "profileName": "ui_integration_data_azure",
   "biller": "direct",
   "description": "Azure billing profile for UI integration test data",

@@ -30,10 +30,6 @@ info:
 servers:
   - url: /
 security:
-  - googleoauth:
-      - openid
-      - email
-      - profile
   - oidc:
       - openid
       - email
@@ -8004,16 +8000,6 @@ components:
         type: string
         format: uuid
   securitySchemes:
-    googleoauth:
-      type: oauth2
-      flows:
-        implicit:
-          authorizationUrl: https://accounts.google.com/o/oauth2/auth
-          scopes:
-            openid: open id authorization
-            email: email authorization
-            profile: profile authorization
-            https://www.googleapis.com/auth/cloud-billing.readonly: cloud billing authorization
     oidc:
       type: oauth2
       flows:

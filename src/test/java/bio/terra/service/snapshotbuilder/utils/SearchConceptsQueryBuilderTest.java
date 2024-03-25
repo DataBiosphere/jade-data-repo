@@ -44,7 +44,7 @@ class SearchConceptsQueryBuilderTest {
           equalToCompressingWhiteSpace(
               "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
                   + "FROM concept AS c "
-                  + "JOIN observation AS o ON o.observation_concept_id = c.concept_id "
+                  + "LEFT JOIN observation AS o ON o.observation_concept_id = c.concept_id "
                   + "WHERE (c.domain_id = 'Observation' "
                   + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
                   + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
@@ -58,7 +58,7 @@ class SearchConceptsQueryBuilderTest {
           actual,
           equalToCompressingWhiteSpace(
               "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                  + "FROM concept AS c  JOIN observation AS o ON o.observation_concept_id = c.concept_id "
+                  + "FROM concept AS c LEFT JOIN observation AS o ON o.observation_concept_id = c.concept_id "
                   + "WHERE (c.domain_id = 'Observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
                   + "OR CHARINDEX('cancer', c.concept_code) > 0)) "

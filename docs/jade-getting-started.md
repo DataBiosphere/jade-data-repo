@@ -441,6 +441,13 @@ export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password
 export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
 export AZURE_SYNAPSE_INITIALIZE=false
 
+# Azure B2C authentication settings
+export OIDC_ADDCLIENTIDTOSCOPE=true
+export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
+export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
+export OIDC_EXTRAAUTHPARAMS="prompt=login"
+export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
+
 # RBS - defaults to RBS tools; you can easily switch to dev by running "source ./render-configs.sh -r dev"
 RBS_POOLID=datarepo_v1
 RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org

@@ -44,6 +44,10 @@ while getopts ":a:r:p" option; do
   esac
 done
 
+echo "Azure Environment: $AZURE_ENV"
+echo "RBS Environment: $RBS_ENV"
+echo "Print Environment Variables: $PRINT_ENV_VARS"
+
 # ========================
 # Azure Credentials
 # ========================
@@ -135,11 +139,16 @@ export RBS_POOLID
 export RBS_INSTANCEURL
 
 # Azure B2C authentication settings
-export OIDC_ADDCLIENTIDTOSCOPE=true
-export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
-export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
-export OIDC_EXTRAAUTHPARAMS="prompt=login"
-export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
+OIDC_ADDCLIENTIDTOSCOPE=true
+OIDC_AUTHORITYENDPOINT=https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c
+OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
+OIDC_EXTRAAUTHPARAMS='prompt=login'
+OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
+export OIDC_ADDCLIENTIDTOSCOPE
+export OIDC_AUTHORITYENDPOINT
+export OIDC_CLIENTID
+export OIDC_EXTRAAUTHPARAMS
+export OIDC_PROFILEPARAM
 
 
 echo "If you ran this script with 'source', the environment variables have been set in this context.
@@ -161,11 +170,11 @@ if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
   export GOOGLE_SA_CERT=$GOOGLE_SA_CERT
   export RBS_POOLID=$RBS_POOLID
   export RBS_INSTANCEURL=$RBS_INSTANCEURL
-  export OIDC_ADDCLIENTIDTOSCOPE=true
-  export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
-  export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
-  export OIDC_EXTRAAUTHPARAMS="prompt=login"
-  export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev"
+  export OIDC_ADDCLIENTIDTOSCOPE=$OIDC_ADDCLIENTIDTOSCOPE
+  export OIDC_AUTHORITYENDPOINT=$OIDC_AUTHORITYENDPOINT
+  export OIDC_CLIENTID=$OIDC_CLIENTID
+  export OIDC_EXTRAAUTHPARAMS=$OIDC_EXTRAAUTHPARAMS
+  export OIDC_PROFILEPARAM=$OIDC_PROFILEPARAM"
 fi
 
 unset AZURE_ENV

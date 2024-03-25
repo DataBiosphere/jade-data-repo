@@ -82,7 +82,8 @@ public class SnapshotBuilderService {
       BigQueryDatasetPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
     return CloudPlatformWrapper.of(dataset.getCloudPlatform())
-        .choose(() -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
+        .choose(
+            () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
             () -> azureSynapsePdao.runQuery(sql, synapseConverter));
   }
 
@@ -183,10 +184,10 @@ public class SnapshotBuilderService {
     String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     return runSnapshotBuilderQuery(
-        cloudSpecificSQL,
-        dataset,
-        AggregateBQQueryResultsUtils::toCount,
-        AggregateSynapseQueryResultsUtils::toCount)
+            cloudSpecificSQL,
+            dataset,
+            AggregateBQQueryResultsUtils::toCount,
+            AggregateSynapseQueryResultsUtils::toCount)
         .get(0);
   }
 
@@ -255,9 +256,7 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptHierarchyResponse().result(moveRootToFirst(parents));
   }
 
-  /**
-   * Given a list of hierarchy parents, find the root and move it to the first entry.
-   */
+  /** Given a list of hierarchy parents, find the root and move it to the first entry. */
   private static List<SnapshotBuilderParentConcept> moveRootToFirst(
       Map<Integer, SnapshotBuilderParentConcept> parents) {
     // Collect all children IDs

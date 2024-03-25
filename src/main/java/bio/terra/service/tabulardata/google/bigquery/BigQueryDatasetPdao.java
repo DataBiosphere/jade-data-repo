@@ -1132,9 +1132,7 @@ public class BigQueryDatasetPdao {
             .add("transactionTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN)
             .add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE)
             .add("columns", PDAO_ROW_ID_COLUMN)
-            .add(
-                "columns",
-                table.getColumns().stream().map(Column::getName).toList())
+            .add("columns", table.getColumns().stream().map(Column::getName).toList())
             .add(
                 "partitionByDate",
                 table.getBigQueryPartitionConfig() != null
@@ -1239,8 +1237,7 @@ public class BigQueryDatasetPdao {
       boolean addTransactionIdColumn,
       boolean enforceRequiredCols) {
     List<Field> fieldList = new ArrayList<>();
-    List<String> primaryKeys =
-        table.getPrimaryKey().stream().map(Column::getName).toList();
+    List<String> primaryKeys = table.getPrimaryKey().stream().map(Column::getName).toList();
 
     if (addRowIdColumn) {
       fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));

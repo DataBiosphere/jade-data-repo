@@ -60,28 +60,28 @@ public class SearchConceptsQueryBuilder {
 
     List<FieldVariable> groupBy = List.of(nameField, idField);
 
-    // search concept name clause filters for the search text based on field concept_name
-    var searchNameClause =
-        createSearchConceptClause(
-            conceptTablePointer, conceptTableVariable, searchText, "concept_name");
-
-    // search concept name clause filters for the search text based on field concept_code
-    var searchCodeClause =
-        createSearchConceptClause(
-            conceptTablePointer, conceptTableVariable, searchText, "concept_code");
-
-    // (searchNameClause OR searchCodeClause)
-    List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
-    BooleanAndOrFilterVariable searchClause =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
-
-    // domainClause AND (searchNameClause OR searchCodeClause)
-    List<FilterVariable> allFilters = List.of(domainClause, searchClause);
-
     FilterVariable where;
     if (StringUtils.isEmpty(searchText)) {
       where = domainClause;
     } else {
+      // search concept name clause filters for the search text based on field concept_name
+      var searchNameClause =
+          createSearchConceptClause(
+              conceptTablePointer, conceptTableVariable, searchText, "concept_name");
+
+      // search concept name clause filters for the search text based on field concept_code
+      var searchCodeClause =
+          createSearchConceptClause(
+              conceptTablePointer, conceptTableVariable, searchText, "concept_code");
+
+      // (searchNameClause OR searchCodeClause)
+      List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
+      BooleanAndOrFilterVariable searchClause =
+          new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
+
+      // domainClause AND (searchNameClause OR searchCodeClause)
+      List<FilterVariable> allFilters = List.of(domainClause, searchClause);
+
       where =
           new BooleanAndOrFilterVariable(
               BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);

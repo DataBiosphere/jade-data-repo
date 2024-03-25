@@ -317,7 +317,7 @@ First, make sure you have run through the following steps:
 * Open a new command line window, while bootRun runs in the background
 * In the new window, run `source ./render-configs.sh  -a integration` to pull secrets from vault and set environment variables in this context
 * Set this environment variable: `export IT_JADE_API_URL=http://localhost:8080`
-* Run `./gradlew :testIntegration --tests '*testSnapshotBuilder'` to run a specific integration test
+* Run `./gradlew :testIntegration --tests '*<test name>'` to run a specific integration test (e.g `./gradlew :testIntegration --tests '*testSnapshotBuilder'`)
 
 ** Run or Debug test in Intellij **
 * Run `./render-configs.sh  -a integration -p` to pull secrets from vault and print environment variables

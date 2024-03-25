@@ -20,6 +20,8 @@ The script outputs are written to a JSON file in the format:
 ...]
 ```
 
+### Set up data repo UI test datasets:
+
 Note: When run with the default values, this script will create datasets for the Data Repo UI tests
 in the "integration 4" environment using a new billing profile.
 

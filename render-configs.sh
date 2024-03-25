@@ -134,6 +134,13 @@ vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
 export RBS_POOLID
 export RBS_INSTANCEURL
 
+# Azure B2C authentication settings
+export OIDC_ADDCLIENTIDTOSCOPE=true
+export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
+export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
+export OIDC_EXTRAAUTHPARAMS="prompt=login"
+export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
+
 
 echo "If you ran this script with 'source', the environment variables have been set in this context.
 If you want these values to show up in intellij test/run profiles, you will need to set
@@ -153,7 +160,12 @@ if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
   export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
   export GOOGLE_SA_CERT=$GOOGLE_SA_CERT
   export RBS_POOLID=$RBS_POOLID
-  export RBS_INSTANCEURL=$RBS_INSTANCEURL"
+  export RBS_INSTANCEURL=$RBS_INSTANCEURL
+  export OIDC_ADDCLIENTIDTOSCOPE=true
+  export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
+  export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
+  export OIDC_EXTRAAUTHPARAMS="prompt=login"
+  export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev"
 fi
 
 unset AZURE_ENV

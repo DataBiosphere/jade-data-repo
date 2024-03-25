@@ -64,7 +64,7 @@ public class CriteriaQueryBuilder {
                 new Literal(rangeCriteria.getHigh()))));
   }
 
-   FilterVariable selectAllValuesOfListCriteria() {
+  FilterVariable selectAllValuesOfListCriteria() {
     return platform -> "1=1";
   }
 
@@ -72,7 +72,7 @@ public class CriteriaQueryBuilder {
 
     var listCriteriaValueIsEmpty = listCriteria.getValues().isEmpty();
     if (listCriteriaValueIsEmpty) {
-        return selectAllValuesOfListCriteria();
+      return selectAllValuesOfListCriteria();
     }
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
@@ -88,7 +88,6 @@ public class CriteriaQueryBuilder {
             () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)))
         .getColumnName();
   }
-
 
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {
     SnapshotBuilderDomainOption domainOption =

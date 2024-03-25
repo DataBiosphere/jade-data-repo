@@ -22,7 +22,6 @@ import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
@@ -32,7 +31,7 @@ import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
-import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.FieldValueList;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -40,9 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
@@ -80,18 +77,13 @@ public class SnapshotBuilderService {
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
-      String cloudSpecificSql,
+      String sql,
       Dataset dataset,
-      Function<TableResult, List<T>> gcpFormatQueryFunction,
-      Function<ResultSet, T> synapseFormatQueryFunction) {
-    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    if (cloudPlatformWrapper.isGcp()) {
-      return bigQueryDatasetPdao.runQuery(cloudSpecificSql, dataset, gcpFormatQueryFunction);
-    } else if (cloudPlatformWrapper.isAzure()) {
-      return azureSynapsePdao.runQuery(cloudSpecificSql, synapseFormatQueryFunction);
-    } else {
-      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
-    }
+      BigQueryDatasetPdao.Converter<T> bqConverter,
+      AzureSynapsePdao.Converter<T> synapseConverter) {
+    return CloudPlatformWrapper.of(dataset.getCloudPlatform())
+        .choose(() -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
+            () -> azureSynapsePdao.runQuery(sql, synapseConverter));
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
@@ -105,8 +97,8 @@ public class SnapshotBuilderService {
         runSnapshotBuilderQuery(
             cloudSpecificSql,
             dataset,
-            AggregateBQQueryResultsUtils::aggregateConceptResults,
-            AggregateSynapseQueryResultsUtils::aggregateConceptResult);
+            AggregateBQQueryResultsUtils::toConcept,
+            AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
@@ -170,8 +162,8 @@ public class SnapshotBuilderService {
         runSnapshotBuilderQuery(
             cloudSpecificSql,
             dataset,
-            AggregateBQQueryResultsUtils::aggregateConceptResults,
-            AggregateSynapseQueryResultsUtils::aggregateConceptResult);
+            AggregateBQQueryResultsUtils::toConcept,
+            AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
@@ -191,10 +183,10 @@ public class SnapshotBuilderService {
     String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     return runSnapshotBuilderQuery(
-            cloudSpecificSQL,
-            dataset,
-            AggregateBQQueryResultsUtils::rollupCountsMapper,
-            AggregateSynapseQueryResultsUtils::rollupCountsMapper)
+        cloudSpecificSQL,
+        dataset,
+        AggregateBQQueryResultsUtils::toCount,
+        AggregateSynapseQueryResultsUtils::toCount)
         .get(0);
   }
 
@@ -215,27 +207,18 @@ public class SnapshotBuilderService {
   }
 
   record ParentQueryResult(int parentId, int childId, String childName) {
-    static List<ParentQueryResult> aggregateBigQuery(TableResult result) {
-      return StreamSupport.stream(result.iterateAll().spliterator(), false)
-          .map(
-              row ->
-                  new ParentQueryResult(
-                      (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
-                      (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
-                      row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue()))
-          .toList();
+    static ParentQueryResult fromSynapse(ResultSet rs) throws SQLException {
+      return new ParentQueryResult(
+          rs.getInt(HierarchyQueryBuilder.PARENT_ID),
+          rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
+          rs.getString(HierarchyQueryBuilder.CONCEPT_NAME));
     }
 
-    static ParentQueryResult aggregateAzure(ResultSet rs) {
-      try {
-        return new ParentQueryResult(
-            (int) rs.getLong(HierarchyQueryBuilder.PARENT_ID),
-            (int) rs.getLong(HierarchyQueryBuilder.CONCEPT_ID),
-            rs.getString(HierarchyQueryBuilder.CONCEPT_NAME));
-      } catch (SQLException e) {
-        throw new ProcessResultSetException(
-            "Error processing result set into SnapshotBuilderConcept model", e);
-      }
+    static ParentQueryResult fromBq(FieldValueList row) {
+      return new ParentQueryResult(
+          (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
+          (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
+          row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue());
     }
   }
 
@@ -251,8 +234,7 @@ public class SnapshotBuilderService {
     var sql = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
-    runSnapshotBuilderQuery(
-            sql, dataset, ParentQueryResult::aggregateBigQuery, ParentQueryResult::aggregateAzure)
+    runSnapshotBuilderQuery(sql, dataset, ParentQueryResult::fromBq, ParentQueryResult::fromSynapse)
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =
@@ -270,21 +252,29 @@ public class SnapshotBuilderService {
                       .count(1));
             });
 
+    return new SnapshotBuilderGetConceptHierarchyResponse().result(moveRootToFirst(parents));
+  }
+
+  /**
+   * Given a list of hierarchy parents, find the root and move it to the first entry.
+   */
+  private static List<SnapshotBuilderParentConcept> moveRootToFirst(
+      Map<Integer, SnapshotBuilderParentConcept> parents) {
     // Collect all children IDs
     var childrenIds =
         parents.values().stream()
             .flatMap(p -> p.getChildren().stream().map(SnapshotBuilderConcept::getId))
             .collect(Collectors.toSet());
-    // The root is the one ID that is not the child of any other parent.
+    // The root ID is the one parent that is not the child of any other parent.
     var rootId =
         parents.keySet().stream().filter(k -> !childrenIds.contains(k)).findFirst().orElseThrow();
+    // Put the root first in the list of parents.
     var result = new ArrayList<SnapshotBuilderParentConcept>();
     result.add(parents.get(rootId));
     parents.entrySet().stream()
         .filter(entry -> !entry.getKey().equals(rootId))
         .map(Map.Entry::getValue)
         .forEach(result::add);
-
-    return new SnapshotBuilderGetConceptHierarchyResponse().result(result);
+    return result;
   }
 }

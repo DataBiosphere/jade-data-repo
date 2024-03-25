@@ -4,6 +4,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 
+/** Wrap a field variable with an alias for use in a SELECT. */
 public class SelectAlias implements SelectExpression {
 
   private final FieldVariable fieldVariable;

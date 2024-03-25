@@ -182,13 +182,6 @@ public class SnapshotBuilderService {
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
     String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
-    System.out.println("\n");
-    System.out.println("\n");
-    System.out.println(cloudSpecificSQL);
-    System.out.println("\n");
-    System.out.println("\n");
-
-
     return runSnapshotBuilderQuery(
             cloudSpecificSQL,
             dataset,

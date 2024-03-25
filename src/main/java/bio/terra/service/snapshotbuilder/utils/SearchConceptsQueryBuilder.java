@@ -37,7 +37,7 @@ public class SearchConceptsQueryBuilder {
     // FROM concept JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
     // concept.concept_id
     var domainOccurenceTableVariable =
-        TableVariable.forJoined(domainOccurrencePointer, domainOption.getColumnName(), idField);
+        TableVariable.forLeftJoined(domainOccurrencePointer, domainOption.getColumnName(), idField);
 
     var countField =
         new FieldVariable(

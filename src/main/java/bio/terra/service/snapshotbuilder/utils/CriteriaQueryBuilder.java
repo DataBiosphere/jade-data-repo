@@ -166,6 +166,13 @@ public class CriteriaQueryBuilder {
   public Query generateRollupCountsQueryForCriteriaGroupsList(
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
 
+    System.out.println("criteriaGroupsList");
+    for (List<SnapshotBuilderCriteriaGroup> innerList : criteriaGroupsList) {
+      for (SnapshotBuilderCriteriaGroup group : innerList) {
+        System.out.println(group.toString());
+      }
+    }
+
     FieldVariable personId =
         new FieldVariable(
             new FieldPointer(getRootTablePointer(), PERSON_ID_FIELD_NAME, "COUNT"),

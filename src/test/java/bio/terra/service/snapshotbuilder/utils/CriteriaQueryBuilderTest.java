@@ -53,7 +53,7 @@ class CriteriaQueryBuilderTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void generateFilterForListCriteria(CloudPlatform platform) {
-    SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria();
+    SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
@@ -61,6 +61,19 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
         equalToCompressingWhiteSpace("null.ethnicity IN (0,1,2)"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void generateFilterForListCriteriaWithEmptyValues(CloudPlatform platform) {
+    SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of());
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
+
+    // Table name is null because there is no alias generated until it is rendered as a full
+    assertThat(
+        "The sql generated is correct",
+        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        equalToCompressingWhiteSpace("1=1"));
   }
 
   @ParameterizedTest
@@ -116,7 +129,7 @@ class CriteriaQueryBuilderTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void generateFilterIdentifiesListCriteria(CloudPlatform platform) {
-    SnapshotBuilderCriteria criteria = generateListCriteria();
+    SnapshotBuilderCriteria criteria = generateListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     // Table name is null because there is no alias generated until it is rendered as a full query
@@ -131,7 +144,7 @@ class CriteriaQueryBuilderTest {
   void generateAndOrFilterForCriteriaGroupHandlesMeetAllTrue(CloudPlatform platform) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
+            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
             .meetAll(true);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
@@ -149,7 +162,7 @@ class CriteriaQueryBuilderTest {
   void generateAndOrFilterForCriteriaGroupHandlesMeetAllFalse(CloudPlatform platform) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
+            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
             .meetAll(false);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
@@ -166,7 +179,7 @@ class CriteriaQueryBuilderTest {
   void generateFilterForCriteriaGroupHandlesMustMeetTrue(CloudPlatform platform) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
+            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
             .meetAll(true)
             .mustMeet(true);
     FilterVariable filterVariable =
@@ -185,7 +198,7 @@ class CriteriaQueryBuilderTest {
   void generateFilterForCriteriaGroupHandlesMustMeetFalse(CloudPlatform platform) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(), generateRangeCriteria()))
+            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
             .meetAll(true)
             .mustMeet(false);
     FilterVariable filterVariable =
@@ -211,7 +224,7 @@ class CriteriaQueryBuilderTest {
                         .meetAll(true)
                         .mustMeet(true),
                     new SnapshotBuilderCriteriaGroup()
-                        .criteria(List.of(generateListCriteria()))
+                        .criteria(List.of(generateListCriteria(List.of(0, 1, 2))))
                         .meetAll(true)
                         .mustMeet(true)));
 
@@ -235,7 +248,7 @@ class CriteriaQueryBuilderTest {
                             .criteria(
                                 List.of(
                                     generateDomainCriteria(),
-                                    generateListCriteria(),
+                                    generateListCriteria(List.of(0, 1, 2)),
                                     generateRangeCriteria(),
                                     generateDomainCriteria().id(11)))
                             .meetAll(true)
@@ -266,10 +279,10 @@ class CriteriaQueryBuilderTest {
             .kind(SnapshotBuilderCriteria.KindEnum.RANGE);
   }
 
-  private static SnapshotBuilderProgramDataListCriteria generateListCriteria() {
+  private static SnapshotBuilderProgramDataListCriteria generateListCriteria(List<Integer> values) {
     return (SnapshotBuilderProgramDataListCriteria)
         new SnapshotBuilderProgramDataListCriteria()
-            .values(List.of(0, 1, 2))
+            .values(values)
             .id(2)
             .name("list_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.LIST);

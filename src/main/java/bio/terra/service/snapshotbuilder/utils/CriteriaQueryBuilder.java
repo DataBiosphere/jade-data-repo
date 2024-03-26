@@ -70,8 +70,7 @@ public class CriteriaQueryBuilder {
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
 
-    var isListCriteriaValuesEmpty = listCriteria.getValues().isEmpty();
-    if (isListCriteriaValuesEmpty) {
+    if (listCriteria.getValues().isEmpty()) {
       return selectAllValuesOfListCriteria();
     }
     return new FunctionFilterVariable(

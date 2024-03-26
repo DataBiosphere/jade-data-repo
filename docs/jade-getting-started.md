@@ -356,6 +356,7 @@ First, make sure you have run through the following steps:
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
 * Run `./render-configs.sh` to pull secrets from vault
 * Refresh your Z-shell configuration by running `source ~/.zshrc`
+* Note: `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false fo connected tests to pass
 
 ** Run test in the Command Line **
 * Run `./gradlew :testConnected --tests '*<test name>'` to run a specific connected test

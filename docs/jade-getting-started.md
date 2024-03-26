@@ -318,14 +318,6 @@ export AZURE_SYNAPSE_INITIALIZE=false
 export RBS_POOLID=$(cat /tmp/rbs-pool-id.txt)
 export RBS_INSTANCEURL=$(cat /tmp/rbs-instance-url.txt)
 
-# Azure B2C authentication settings
-export OIDC_ADDCLIENTIDTOSCOPE=true
-export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
-export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
-export OIDC_EXTRAAUTHPARAMS="prompt=login"
-export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
-
-
 # Pact contract test settings
 export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
 export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)

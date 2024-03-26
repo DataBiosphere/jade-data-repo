@@ -6,7 +6,7 @@
 # There are three optional arguments:
 # ./render-configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i)
 # e.g.: ./render-configs.sh -a dev -r tools -i
-# This would set azure synapse to dev, RBS to tools, print out the environment variables and put the variables in your clipboard
+# This would set azure synapse to dev, RBS to tools, and put the variables in your clipboard
 
 # If you're running Azure Integration Tests you should use the following settings:
 # ./render-configs.sh -a integration -r tools
@@ -55,7 +55,7 @@ else
     echo "Invalid Azure environment: $AZURE_ENV"
     exit 1
 fi
-# writing this values to a tmp file so the value can match the set RBS environment
+# writing this values to a tmp file so the value can match the set azure environment
 echo $AZURE_SYNAPSE_WORKSPACENAME > "/tmp/azure-synapse-workspacename.txt"
 
 

@@ -274,7 +274,7 @@ configuration to keep your system environment variables. If you don't already ha
 can create one by running `touch ~/.zshrc`.
 Below you'll find a list of environment variables needed to run TDR and tests locally. When you run
 `./render-configs.sh`, it populates key and txt files with secrets from vault and environment-specific
-values. On daily setup, you'll always need to run the following two commands in order:
+values. On daily setup, you'll need to run the following two commands *in order*:
 ```
 ./render-configs.sh
 source ~/.zhsrc

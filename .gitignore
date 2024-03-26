@@ -64,4 +64,4 @@ jade-dev-account.pem
 gha-creds-*.json
 
 #tools output
-tools/setupResourceScripts/outputs/
+tools/setupResourceScripts/*_outputs.json

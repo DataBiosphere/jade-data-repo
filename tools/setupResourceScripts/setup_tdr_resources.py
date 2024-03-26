@@ -293,7 +293,7 @@ def main():
         dataset_to_upload.get('snapshotBuilderSettings'))
       print("Added snapshot builder settings")
 
-  output_filename = f"outputs/{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
+  output_filename = f"{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
   with open(output_filename, 'w') as f:
     json.dump(outputs, f)
 

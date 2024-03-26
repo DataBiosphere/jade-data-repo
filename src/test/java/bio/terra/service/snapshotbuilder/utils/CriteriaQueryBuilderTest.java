@@ -78,6 +78,19 @@ class CriteriaQueryBuilderTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
+  void generateFilterForListCriteriaWithNullValues(CloudPlatform platform) {
+    SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(null);
+    FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
+
+    // Table name is null because there is no alias generated until it is rendered as a full
+    assertThat(
+        "The sql generated is correct",
+        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        equalToCompressingWhiteSpace("1=1"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
   void generateFilterForDomainCriteria(CloudPlatform platform) {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);

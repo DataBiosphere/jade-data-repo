@@ -69,7 +69,6 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of());
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
@@ -82,7 +81,6 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(null);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),

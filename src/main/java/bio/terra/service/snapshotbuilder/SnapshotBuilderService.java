@@ -213,8 +213,10 @@ public class SnapshotBuilderService {
             AggregateSynapseQueryResultsUtils::domainId);
     if (domainIdResult.size() == 1) {
       return domainIdResult.get(0);
+    } else if (domainIdResult.isEmpty()) {
+      throw new IllegalStateException("No domain Id found for concept: " + conceptId);
     } else {
-      throw new IllegalStateException("There must be exactly one domain for a concept.");
+      throw new IllegalStateException("Multiple domains found for concept: " + conceptId);
     }
   }
 

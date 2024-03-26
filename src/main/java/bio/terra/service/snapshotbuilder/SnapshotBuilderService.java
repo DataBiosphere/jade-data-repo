@@ -208,15 +208,15 @@ public class SnapshotBuilderService {
   }
 
   record ParentQueryResult(int parentId, int childId, String childName) {
-    static ParentQueryResult fromSynapse(ResultSet rs) throws SQLException {
-      return new ParentQueryResult(
+    ParentQueryResult(ResultSet rs) throws SQLException {
+      this(
           rs.getInt(HierarchyQueryBuilder.PARENT_ID),
           rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
           rs.getString(HierarchyQueryBuilder.CONCEPT_NAME));
     }
 
-    static ParentQueryResult fromBq(FieldValueList row) {
-      return new ParentQueryResult(
+    ParentQueryResult(FieldValueList row) {
+      this(
           (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
           (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
           row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue());
@@ -233,7 +233,7 @@ public class SnapshotBuilderService {
     var sql = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
-    runSnapshotBuilderQuery(sql, dataset, ParentQueryResult::fromBq, ParentQueryResult::fromSynapse)
+    runSnapshotBuilderQuery(sql, dataset, ParentQueryResult::new, ParentQueryResult::new)
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =

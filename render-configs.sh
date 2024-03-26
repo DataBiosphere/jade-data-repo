@@ -91,8 +91,8 @@ AZURE_SYNAPSE_ENCRYPTIONKEY=$(cat "/tmp/jade-dev-synapse-encryption-key.key")
 # ========================
 # Google Credentials
 # ========================
-vault read -format=json secret/dsde/datarepo/dev/sa-key.json \
-    | jq .data | tee /tmp/jade-dev-account.json \
+vault read -field=data -format=json secret/dsde/datarepo/dev/sa-key.json \
+    | tee /tmp/jade-dev-account.json \
     | jq -r .private_key > /tmp/jade-dev-account.pem
 
 GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json

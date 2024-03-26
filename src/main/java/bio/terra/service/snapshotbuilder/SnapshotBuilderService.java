@@ -228,9 +228,7 @@ public class SnapshotBuilderService {
     Dataset dataset = datasetService.retrieve(datasetId);
     var query =
         queryBuilderFactory
-            .hierarchyQueryBuilder(
-                getTableNameGenerator(dataset, userRequest),
-                snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId))
+            .hierarchyQueryBuilder(getTableNameGenerator(dataset, userRequest))
             .generateQuery(conceptId);
     var sql = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
@@ -252,6 +250,9 @@ public class SnapshotBuilderService {
                       .hasChildren(true)
                       .count(1));
             });
+    if (parents.isEmpty()) {
+      throw new BadRequestException("No parents found for concept %s".formatted(conceptId));
+    }
 
     return new SnapshotBuilderGetConceptHierarchyResponse().result(moveRootToFirst(parents));
   }

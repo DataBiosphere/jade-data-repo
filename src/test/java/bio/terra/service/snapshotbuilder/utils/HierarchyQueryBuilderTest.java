@@ -12,7 +12,7 @@ class HierarchyQueryBuilderTest {
 
   @Test
   void generateQuery() {
-    var query = new HierarchyQueryBuilder(x -> x, null).generateQuery(1);
+    var query = new HierarchyQueryBuilder(x -> x).generateQuery(1);
     var expected =
         """
             SELECT
@@ -21,8 +21,9 @@ class HierarchyQueryBuilderTest {
               JOIN concept AS c0 ON c0.concept_id = c.concept_id_2
               JOIN concept AS c1 ON c1.concept_id = c.concept_id_1
             WHERE
-              (c.concept_id_1 IN (SELECT c.ancestor_concept_id FROM concept_ancestor AS c WHERE c.descendant_concept_id = 1)
-              AND c.relationship_id = 'Subsumes' AND c1.standard_concept = 'S' AND c0.standard_concept = 'S')""";
+              (c.concept_id_1 IN (SELECT c.ancestor_concept_id FROM concept_ancestor AS c
+                                  WHERE (c.descendant_concept_id = 1 AND c.ancestor_concept_id != 1))
+              AND c.relationship_id = 'Subsumes' AND c1.standard_concept IS NOT NULL AND c0.standard_concept IS NOT NULL)""";
     assertThat(query.renderSQL(null), equalToCompressingWhiteSpace(expected));
   }
 }

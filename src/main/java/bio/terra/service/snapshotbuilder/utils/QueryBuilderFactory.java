@@ -13,8 +13,7 @@ public class QueryBuilderFactory {
     return new CriteriaQueryBuilder(rootTableName, tableNameGenerator, snapshotBuilderSettings);
   }
 
-  public HierarchyQueryBuilder hierarchyQueryBuilder(
-      TableNameGenerator tableNameGenerator, SnapshotBuilderSettings snapshotBuilderSettings) {
-    return new HierarchyQueryBuilder(tableNameGenerator, snapshotBuilderSettings);
+  public HierarchyQueryBuilder hierarchyQueryBuilder(TableNameGenerator tableNameGenerator) {
+    return new HierarchyQueryBuilder(tableNameGenerator);
   }
 }

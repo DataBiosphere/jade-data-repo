@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -21,14 +20,23 @@ public class HierarchyQueryBuilder {
   public static final String CONCEPT_CODE = "concept_code";
   public static final String PARENT_ID = "parent_id";
   private final TableNameGenerator tableNameGenerator;
-  final SnapshotBuilderSettings snapshotBuilderSettings;
 
-  protected HierarchyQueryBuilder(
-      TableNameGenerator tableNameGenerator, SnapshotBuilderSettings snapshotBuilderSettings) {
+  HierarchyQueryBuilder(TableNameGenerator tableNameGenerator) {
     this.tableNameGenerator = tableNameGenerator;
-    this.snapshotBuilderSettings = snapshotBuilderSettings;
   }
 
+  /**
+   * Generate a query to find all parent concepts of a given concept, and for each parent to find
+   * all its children.
+   *
+   * <pre>{@code
+   * SELECT cr.concept_id_1 AS parent_id, cr.concept_id_2 AS concept_id, child.concept_name, child.concept_code
+   *   FROM concept_relationship cr, concept AS child, concept AS parent
+   *   WHERE cr.concept_id_1 IN (:all parents of conceptId:) AND cr.relationship_id = 'Subsumes'
+   *   AND parent.concept_id = cr.concept_id_1 AND child.concept_id = cr.concept_id_2
+   *   AND parent.standard_concept = 'S' AND child.standard_concept = 'S'
+   * }</pre>
+   */
   public Query generateQuery(int conceptId) {
     var conceptRelationship =
         TableVariable.forPrimary(
@@ -42,11 +50,6 @@ public class HierarchyQueryBuilder {
     var parent =
         TableVariable.forJoined(
             TablePointer.fromTableName(CONCEPT, tableNameGenerator), CONCEPT_ID, conceptId1);
-    // SELECT cr.concept_id_1 AS parent_id, cr.concept_id_2 AS concept_id, child.concept_name,
-    // child.concept_code
-    // FROM concept_relationship AS cr, concept AS child, concept AS parent
-    // WHERE cr.concept_id_1 IN (:all parents of conceptId:) AND cr.relationship_id = 'Subsumes'
-    // AND parent.standard_concept = 'S' AND child.standard_concept = 'S'
     return new Query(
         List.of(
             new SelectAlias(conceptId1, PARENT_ID),
@@ -61,22 +64,37 @@ public class HierarchyQueryBuilder {
             requireStandardConcept(child)));
   }
 
-  /** Generate a filter constraint on concept to only allow standard concepts. */
+  /**
+   * Filter concept to only allow standard or classification concepts. See <a
+   * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,
+   * Classification, and Source Concepts</a>
+   */
   private static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
-    return BinaryFilterVariable.equals(
-        concept.makeFieldVariable("standard_concept"), new Literal("S"));
+    return BinaryFilterVariable.notNull(concept.makeFieldVariable("standard_concept"));
   }
 
-  /** Given a concept ID, select all of its parent concept IDs. */
+  /**
+   * Given a concept ID, select all of its parent concept IDs. Note that a concept may be its own
+   * ancestor so that case must be excluded.
+   *
+   * <pre>
+   * {@code SELECT ancestor_concept_id FROM concept_ancestor
+   * WHERE descendant_concept_id = :conceptId: AND ancestor_concept_id != :conceptId:;}
+   * </pre>
+   */
   private Query selectAllParents(int conceptId) {
-    // SELECT ancestor_concept_id FROM concept_ancestor WHERE descendant_concept_id = :conceptId:
+    //
     var conceptAncestor =
         TableVariable.forPrimary(
             TablePointer.fromTableName("concept_ancestor", tableNameGenerator));
+    var conceptIdLiteral = new Literal(conceptId);
     return new Query(
         List.of(conceptAncestor.makeFieldVariable("ancestor_concept_id")),
         List.of(conceptAncestor),
-        BinaryFilterVariable.equals(
-            conceptAncestor.makeFieldVariable("descendant_concept_id"), new Literal(conceptId)));
+        BooleanAndOrFilterVariable.and(
+            BinaryFilterVariable.equals(
+                conceptAncestor.makeFieldVariable("descendant_concept_id"), conceptIdLiteral),
+            BinaryFilterVariable.notEquals(
+                conceptAncestor.makeFieldVariable("ancestor_concept_id"), conceptIdLiteral)));
   }
 }

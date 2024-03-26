@@ -7313,10 +7313,6 @@ components:
           type: integer
         hasChildren:
           type: boolean
-        children:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderGetConceptHierarchyResponse:
       type: object

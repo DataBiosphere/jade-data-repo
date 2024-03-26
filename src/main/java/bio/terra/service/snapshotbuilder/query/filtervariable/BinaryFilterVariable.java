@@ -46,4 +46,12 @@ public record BinaryFilterVariable(
   public static BinaryFilterVariable equals(FieldVariable fieldVariable, Literal value) {
     return new BinaryFilterVariable(fieldVariable, BinaryOperator.EQUALS, value);
   }
+
+  public static BinaryFilterVariable notEquals(FieldVariable fieldVariable, Literal value) {
+    return new BinaryFilterVariable(fieldVariable, BinaryOperator.NOT_EQUALS, value);
+  }
+
+  public static BinaryFilterVariable notNull(FieldVariable fieldVariable) {
+    return new BinaryFilterVariable(fieldVariable, BinaryOperator.IS_NOT, new Literal());
+  }
 }

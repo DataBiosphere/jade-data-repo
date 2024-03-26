@@ -271,7 +271,7 @@ you must log in as in order to create a TDR billing profile***. It should be a g
 ## 12. Setup Environment Variable
 There are several ways to go about this, but here is one way that works. You can set up a Z-shell
 configuration to keep your system environment variables. If you don't already have one created, you
-can create one by running `touch ~/.zshrc`.
+can create one by running `touch ~/.zshrc`. Then, you can open the file in a text editor with `open ~/.zshrc`.
 Below you'll find a list of environment variables needed to run TDR and tests locally. When you run
 `./render-configs.sh`, it populates key and txt files with secrets from vault and environment-specific
 values. On daily setup, you'll need to run the following two commands *in order*:
@@ -338,7 +338,7 @@ export HOST=localhost
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
 * Run `./render-configs.sh` to pull secrets from vault
-* Refresh your Z-shell configuration by running `source ~./zshrc`
+* Refresh your Z-shell configuration by running `source ~/.zshrc`
 * Build the code and run the unit tests:
 
 ```
@@ -355,7 +355,7 @@ First, make sure you have run through the following steps:
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
 * Run `./render-configs.sh` to pull secrets from vault
-* Refresh your Z-shell configuration by running `source ~./zshrc`
+* Refresh your Z-shell configuration by running `source ~/.zshrc`
 
 ** Run test in the Command Line **
 * Run `./gradlew :testConnected --tests '*<test name>'` to run a specific connected test
@@ -378,7 +378,7 @@ First, make sure you have run through the following steps:
 we must point to the integration environment.
 * Make sure you have this environment variable set in the context of the test run:
 `export IT_JADE_API_URL=http://localhost:8080`
-* Refresh your Z-shell configuration by running `source ~./zshrc`
+* Refresh your Z-shell configuration by running `source ~/.zshrc`
 
 ** Run test in the Command Line **
 * Start the app locally with `./gradlew bootRun`

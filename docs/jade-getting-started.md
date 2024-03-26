@@ -268,15 +268,85 @@ Create a "tdr-dev" managed application:
 you must log in as in order to create a TDR billing profile***. It should be a gmail account.
 * Hit create!
 
+## 12. Setup Environment Variable
+There are several ways to go about this, but here is one way that works. You can set up a Z-shell
+configuration to keep your system environment variables. If you don't already have one created, you
+can create one by running `touch ~/.zshrc`.
+Below you'll find a list of environment variables needed to run TDR and tests locally. When you run
+`./render-configs.sh`, it populates key and txt files with secrets from vault and environment-specific
+values. On daily setup, you'll always need to run the following two commands in order:
+```
+./render-configs.sh
+source ~/.zhsrc
+```
+An alternate is to run `./render-configs.sh -i` which will put the variables into your clipboard. You
+can then paste these values into an intellij bootRun or test run profile.
 
-## 12. Repository Setup
+### Environment Variables
+
+While not exhaustive, here's a list that notes the important environment variables to set when running
+`jade-data-repo` locally. These variables override settings in jade-data-repo/application.properties.
+You can convert any application.property to an environment variable by switching to upper case and
+every "." to "_".
+
+* Instances of `ZZ` are only needed if you have a personal development environment setup. It is no longer
+  recommended to set this up. But, if used, `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
+
+```
+export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
+
+# Integration test setting
+export IT_JADE_API_URL=http://localhost:8080
+
+# This file will be populated when you run ./render-configs.sh
+export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
+export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
+
+# Setting for credentials to test on Azure - these files are populated in the render-configs.sh script
+# Defaults to dev; You can switch to integration by running `./render-config.sh -a integration`
+export AZURE_SYNAPSE_WORKSPACENAME=$(cat /tmp/azure-synapse-workspacename.txt)
+export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
+export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
+export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
+export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
+export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
+export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
+export AZURE_SYNAPSE_INITIALIZE=false
+
+# RBS
+# Defaults to RBS tools; you can switch to dev by running `./render-configs.sh -r dev`
+export RBS_POOLID=$(cat /tmp/rbs-pool-id.txt)
+export RBS_INSTANCEURL=$(cat /tmp/rbs-instance-url.txt)
+
+# Azure B2C authentication settings
+export OIDC_ADDCLIENTIDTOSCOPE=true
+export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
+export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
+export OIDC_EXTRAAUTHPARAMS="prompt=login"
+export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
+
+
+# Pact contract test settings
+export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
+export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
+
+# Setting for testing environment (Further explained in oncall playbook)
+export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
+
+# If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
+# instead of `http://local.broadinstitute.org`:
+export HOST=localhost
+```
+
+## 13. Repository Setup
 
 ### 1. Build, run and Unit Test `jade-data-repo`
 
 * Start postgres
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
-* Run `source ./render-configs.sh` to pull secrets from vault and set them in environment variables
+* Run `./render-configs.sh` to pull secrets from vault
+* Refresh your Z-shell configuration by running `source ~./zshrc`
 * Build the code and run the unit tests:
 
 ```
@@ -292,15 +362,17 @@ First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
+* Run `./render-configs.sh` to pull secrets from vault
+* Refresh your Z-shell configuration by running `source ~./zshrc`
 
 ** Run test in the Command Line **
-* Run `source ./render-configs.sh` to pull secrets from vault and set environment variables
-* Run `./gradlew :testConnected --tests '*testCSVIngestUpdates'` to run a specific connected test
+* Run `./gradlew :testConnected --tests '*<test name>'` to run a specific connected test
 
 ** Run or Debug test in Intellij **
-* Run `./render-configs.sh -p` to pull secrets from vault and print environment variables
-* Set the environments printed out from the render configs script. You can do this either in
-your bash profile (you may need to then restart intellij) or in the intellij run configuration for the selected test.
+* If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
+environment variables to populate the Intellij run configurations. Alternatively, you can run
+`./render-configs.sh -i` which will put all the environment variables into your clipboard and then you
+can paste them into the Intellij test setup.
 * Select test in intellij UI, select 'testConnected' and run or debug it
 
 ### 3. Run Integration tests
@@ -310,21 +382,22 @@ First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
+* Run `./render-configs.sh -a integration` to pull secrets from vault. For Azure Integration tests,
+we must point to the integration environment.
+* Make sure you have this environment variable set in the context of the test run:
+`export IT_JADE_API_URL=http://localhost:8080`
+* Refresh your Z-shell configuration by running `source ~./zshrc`
 
 ** Run test in the Command Line **
-* Run `source ./render-configs.sh -a integration` to pull secrets from vault, set environment variables and point to Integration Synapse on Azure
 * Start the app locally with `./gradlew bootRun`
 * Open a new command line window, while bootRun runs in the background
-* In the new window, run `source ./render-configs.sh  -a integration` to pull secrets from vault and set environment variables in this context
-* Set this environment variable: `export IT_JADE_API_URL=http://localhost:8080`
 * Run `./gradlew :testIntegration --tests '*<test name>'` to run a specific integration test (e.g `./gradlew :testIntegration --tests '*testSnapshotBuilder'`)
 
 ** Run or Debug test in Intellij **
-* Run `./render-configs.sh  -a integration -p` to pull secrets from vault and print environment variables
-* Set the environments printed out from the render configs script. You can do this either in
-  your bash profile (you may need to then restart intellij) or in the intellij run configuration for the selected test.
-  * Additionally, set these environment variables:
-  * `export IT_JADE_API_URL=http://localhost:8080`
+* If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
+  environment variables to populate the Intellij run configurations. Alternatively, you can run
+  `./render-configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
+  can paste them into the Intellij test setup.
 * Start application by running `./gradlew bootRun`
 * Select test in intellij UI, select 'testIntegration' and run or debug it
 
@@ -393,71 +466,6 @@ Ensure that:
      ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/d55f9883-0997-4b1f-979f-f011e78cec58)
   * You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
    ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
-
-
-
-
-## Environment Variables
-
-While not exhaustive,
-here's a list that notes the important environment variables to set when running `jade-data-repo` locally.
-These variables override settings in jade-data-repo/application.properties. You can convert any
-application.property to an environment variable by switching to upper case and every "." to "_".
-
-See the above instructions when these variables are needed.
-
-* Instances of `ZZ` are only needed if you have a personal development environment setup. It is no longer
-recommended to set this up. But, if used, `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
-
-
-
-```
-# Point to your personal dev project/deployment
-export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
-export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
-
-# Integration test setting: change this to http://localhost:8080/ to run against a local instance
-export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
-
-# This file will be populated when you run ./render-configs.sh
-export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
-export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
-
-# [OPTIONAL] Clears database on startup, test run, etc. This is further explained in the oncall playbook.
-export DB_MIGRATE_DROPALLONSTART=true
-
-# Setting for testing environment (Further explaned in oncall playbook)
-export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
-
-# Setting for credentials to test on Azure - these files are populated in the render-configs.sh script
-export AZURE_SYNAPSE_WORKSPACENAME=tdr-synapse-east-us-ondemand.sql.azuresynapse.net
-export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
-export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
-export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
-export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
-export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
-export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
-export AZURE_SYNAPSE_INITIALIZE=false
-
-# Azure B2C authentication settings
-export OIDC_ADDCLIENTIDTOSCOPE=true
-export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
-export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
-export OIDC_EXTRAAUTHPARAMS="prompt=login"
-export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
-
-# RBS - defaults to RBS tools; you can easily switch to dev by running "source ./render-configs.sh -r dev"
-RBS_POOLID=datarepo_v1
-RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org
-
-# Pact contract test settings
-export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
-export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
-
-# If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
-# instead of `http://local.broadinstitute.org`:
-export HOST=localhost
-```
 
 ## Appendix
 

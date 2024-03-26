@@ -3,30 +3,27 @@
 # To write secrets to tmp files:
 # ./render-configs.sh (defaults to dev azure, tools RBS)
 
-# If you want to export the related environment variables, use the "source" command:
-# source ./render-configs.sh (defaults to dev azure, tools RBS)
-
 # There are three optional arguments:
-# source ./render-configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev) (Print out env variables: -p)
-# e.g.: source ./render-configs.sh -a dev -r tools -p
-# This would set azure synapse to dev, RBS to tools, and print out the environment variables
+# ./render-configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i)
+# e.g.: ./render-configs.sh -a dev -r tools -i
+# This would set azure synapse to dev, RBS to tools, print out the environment variables and put the variables in your clipboard
 
 # If you're running Azure Integration Tests you should use the following settings:
-# source ./render-configs.sh -a integration -r tools -p
-# Add the printed environment variables to your bash profile or add them to the Intellij test profile.
+# ./render-configs.sh -a integration -r tools
+# Then, refresh your z-shell configuration (`source ~./zshrc`) (follow getting started doc to set env variables)
+# Alternatively, if you use the -i flag, it copies the environment variables to your clipboard and you can paste them into your Intellij test profile.
+# ./render-configs.sh -a integration -r tools -i
 
 # If you want a set up locally, you can use the following settings:
-# source ./render-configs.sh -a dev -r dev
+# ./render-configs.sh -a dev -r dev
+# Then, refresh your z-shell configuration (`source ~./zshrc`)
 # ./gradlew bootRun
 
-### About this script
-# This script pulls the needed secrets from vault and sets the values as environment variables
-# If you want these values to show up in intellij test/run profiles, you need to restart intellij after running this script
 AZURE_ENV=dev
 RBS_ENV=tools
-PRINT_ENV_VARS=n
+COPY_INTELLIJ_ENV_VARS=n
 
-while getopts ":a:r:p" option; do
+while getopts ":a:r:i" option; do
   case $option in
     a)
       AZURE_ENV=$OPTARG
@@ -34,19 +31,15 @@ while getopts ":a:r:p" option; do
     r)
       RBS_ENV=$OPTARG
       ;;
-    p)
-      PRINT_ENV_VARS=y
+    i)
+      COPY_INTELLIJ_ENV_VARS=y
       ;;
     *)
-      echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-p]"
+      echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-i]"
       exit 1
       ;;
   esac
 done
-
-echo "Azure Environment: $AZURE_ENV"
-echo "RBS Environment: $RBS_ENV"
-echo "Print Environment Variables: $PRINT_ENV_VARS"
 
 # ========================
 # Azure Credentials
@@ -62,43 +55,38 @@ else
     echo "Invalid Azure environment: $AZURE_ENV"
     exit 1
 fi
-export AZURE_SYNAPSE_WORKSPACENAME
+# writing this values to a tmp file so the value can match the set RBS environment
+echo $AZURE_SYNAPSE_WORKSPACENAME > "/tmp/azure-synapse-workspacename.txt"
 
 
 vault read -field=tenant-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
     > "/tmp/jade-dev-tenant-id.key"
 AZURE_CREDENTIALS_HOMETENANTID=$(cat "/tmp/jade-dev-tenant-id.key")
-export AZURE_CREDENTIALS_HOMETENANTID
 
 
 vault read -field=client-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
     > "/tmp/jade-dev-client-id.key"
 AZURE_CREDENTIALS_APPLICATIONID=$(cat "/tmp/jade-dev-client-id.key")
-export AZURE_CREDENTIALS_APPLICATIONID
 
 
 vault read -field=client-secret secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
     > "/tmp/jade-dev-azure.key"
 AZURE_CREDENTIALS_SECRET=$(cat "/tmp/jade-dev-azure.key")
-export AZURE_CREDENTIALS_SECRET
 
 
 vault read -field=synapse-sql-admin-user secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
     > "/tmp/jade-dev-synapse-admin-user.key"
 AZURE_SYNAPSE_SQLADMINUSER=$(cat "/tmp/jade-dev-synapse-admin-user.key")
-export AZURE_SYNAPSE_SQLADMINUSER
 
 
 vault read -field=synapse-sql-admin-password secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
     > "/tmp/jade-dev-synapse-admin-password.key"
 AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat "/tmp/jade-dev-synapse-admin-password.key")
-export AZURE_SYNAPSE_SQLADMINPASSWORD
 
 
 vault read -field=synapse-encryption-key secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
     > "/tmp/jade-dev-synapse-encryption-key.key"
 AZURE_SYNAPSE_ENCRYPTIONKEY=$(cat "/tmp/jade-dev-synapse-encryption-key.key")
-export AZURE_SYNAPSE_ENCRYPTIONKEY
 
 # ========================
 # Google Credentials
@@ -108,9 +96,7 @@ vault read -format=json secret/dsde/datarepo/dev/sa-key.json \
     | jq -r .private_key > /tmp/jade-dev-account.pem
 
 GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
-export GOOGLE_APPLICATION_CREDENTIALS
 GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
-export GOOGLE_SA_CERT
 
 # ========================
 # Resource Buffer Service
@@ -129,54 +115,30 @@ else
     echo "Invalid RBS environment: $RBS_ENV - only 'tools' and 'dev' are supported."
     exit 1
 fi
+# writing these values to tmp files so the value can match the set RBS environment
+echo $RBS_POOLID > "/tmp/rbs-pool-id.txt"
+echo $RBS_INSTANCEURL > "/tmp/rbs-instance-url.txt"
 
 RBS_CLIENTCREDENTIALFILEPATH=/tmp/buffer-client-sa-account.json
 
 vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
     | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
 
-export RBS_POOLID
-export RBS_INSTANCEURL
-
 # Azure B2C authentication settings
+# Setting these variables so that can be put into clipboard for intellij profile setup
 OIDC_ADDCLIENTIDTOSCOPE=true
 OIDC_AUTHORITYENDPOINT=https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c
 OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
 OIDC_EXTRAAUTHPARAMS='prompt=login'
 OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
-export OIDC_ADDCLIENTIDTOSCOPE
-export OIDC_AUTHORITYENDPOINT
-export OIDC_CLIENTID
-export OIDC_EXTRAAUTHPARAMS
-export OIDC_PROFILEPARAM
 
 
-echo "If you ran this script with 'source', the environment variables have been set in this context.
-If you want these values to show up in intellij test/run profiles, you will need to set
-these variables in your bash profile or set them manually in intellij profiles."
-
-
-if [[ "${PRINT_ENV_VARS}" == "y" ]]; then
-  echo "
-
-  export AZURE_SYNAPSE_WORKSPACENAME=$AZURE_SYNAPSE_WORKSPACENAME
-  export AZURE_CREDENTIALS_HOMETENANTID=$AZURE_CREDENTIALS_HOMETENANTID
-  export AZURE_CREDENTIALS_APPLICATIONID=$AZURE_CREDENTIALS_APPLICATIONID
-  export AZURE_CREDENTIALS_SECRET=$AZURE_CREDENTIALS_SECRET
-  export AZURE_SYNAPSE_SQLADMINUSER=$AZURE_SYNAPSE_SQLADMINUSER
-  export AZURE_SYNAPSE_SQLADMINPASSWORD=$AZURE_SYNAPSE_SQLADMINPASSWORD
-  export AZURE_SYNAPSE_ENCRYPTIONKEY=$AZURE_SYNAPSE_ENCRYPTIONKEY
-  export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
-  export GOOGLE_SA_CERT=$GOOGLE_SA_CERT
-  export RBS_POOLID=$RBS_POOLID
-  export RBS_INSTANCEURL=$RBS_INSTANCEURL
-  export OIDC_ADDCLIENTIDTOSCOPE=$OIDC_ADDCLIENTIDTOSCOPE
-  export OIDC_AUTHORITYENDPOINT=$OIDC_AUTHORITYENDPOINT
-  export OIDC_CLIENTID=$OIDC_CLIENTID
-  export OIDC_EXTRAAUTHPARAMS=$OIDC_EXTRAAUTHPARAMS
-  export OIDC_PROFILEPARAM=$OIDC_PROFILEPARAM"
+if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
+  echo "AZURE_SYNAPSE_WORKSPACENAME=$AZURE_SYNAPSE_WORKSPACENAME;AZURE_CREDENTIALS_HOMETENANTID=$AZURE_CREDENTIALS_HOMETENANTID;AZURE_CREDENTIALS_APPLICATIONID=$AZURE_CREDENTIALS_APPLICATIONID;AZURE_CREDENTIALS_SECRET=$AZURE_CREDENTIALS_SECRET;AZURE_SYNAPSE_SQLADMINUSER=$AZURE_SYNAPSE_SQLADMINUSER;AZURE_SYNAPSE_SQLADMINPASSWORD='$AZURE_SYNAPSE_SQLADMINPASSWORD';AZURE_SYNAPSE_ENCRYPTIONKEY=$AZURE_SYNAPSE_ENCRYPTIONKEY;GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS;GOOGLE_SA_CERT=$GOOGLE_SA_CERT;RBS_POOLID=$RBS_POOLID;RBS_INSTANCEURL=$RBS_INSTANCEURL;OIDC_AUTHORITYENDPOINT=$OIDC_AUTHORITYENDPOINT;OIDC_CLIENTID=$OIDC_CLIENTID;OIDC_EXTRAAUTHPARAMS=$OIDC_EXTRAAUTHPARAMS;OIDC_PROFILEPARAM=$OIDC_PROFILEPARAM"  | pbcopy
+  echo "Environment variables copied to clipboard"
 fi
 
 unset AZURE_ENV
-unset PRINT_ENV_VARS
 unset RBS_ENV
+unset COPY_INTELLIJ_ENV_VARS
+

@@ -3,10 +3,10 @@
 {"ancestor_concept_id": 4326177, "descendant_concept_id": 4187458, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
 {"ancestor_concept_id": 4326177, "descendant_concept_id": 4163872, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
 {"ancestor_concept_id": 4163872, "descendant_concept_id": 4196006, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
-{"ancestor_concept_id": 4187458, "descendant_concept_id": 4187458, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
-{"ancestor_concept_id": 4326177, "descendant_concept_id": 4326177, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
-{"ancestor_concept_id": 4163872, "descendant_concept_id": 4163872, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
-{"ancestor_concept_id": 4196006, "descendant_concept_id": 4196006, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
+{"ancestor_concept_id": 4187458, "descendant_concept_id": 4187458, "min_levels_of_separation": 0, "max_levels_of_separation": 0}
+{"ancestor_concept_id": 4326177, "descendant_concept_id": 4326177, "min_levels_of_separation": 0, "max_levels_of_separation": 0}
+{"ancestor_concept_id": 4163872, "descendant_concept_id": 4163872, "min_levels_of_separation": 0, "max_levels_of_separation": 0}
+{"ancestor_concept_id": 4196006, "descendant_concept_id": 4196006, "min_levels_of_separation": 0, "max_levels_of_separation": 0}
 {"ancestor_concept_id": 49, "descendant_concept_id": 4187458, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
 {"ancestor_concept_id": 49, "descendant_concept_id": 4163872, "min_levels_of_separation": 1, "max_levels_of_separation": 1}
 {"ancestor_concept_id": 49, "descendant_concept_id": 4196006, "min_levels_of_separation": 1, "max_levels_of_separation": 1}

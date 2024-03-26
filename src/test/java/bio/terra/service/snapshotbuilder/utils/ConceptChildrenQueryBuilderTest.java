@@ -38,7 +38,7 @@ class ConceptChildrenQueryBuilderTest {
        JOIN condition_occurrence AS c1
        ON c1.condition_concept_id = c0.descendant_concept_id
        WHERE c.concept_id IN
-       (SELECT c.descendant_concept_id FROM concept_ancestor AS c WHERE c.ancestor_concept_id = 101)
+       (SELECT c.descendant_concept_id FROM concept_ancestor AS c WHERE (c.ancestor_concept_id = 101 AND c.descendant_concept_id != 101))
        GROUP BY c.concept_name, c.concept_id
        ORDER BY c.concept_name ASC
         """;

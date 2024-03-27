@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import com.google.cloud.bigquery.TableResult;
 import java.util.List;
 import java.util.stream.StreamSupport;
@@ -13,9 +14,11 @@ public class AggregateBQQueryResultsUtils {
             row -> {
               int count;
               try {
-                count = (int) row.get("count").getLongValue(); // If exists, use its value
+                count =
+                    SnapshotBuilderService.fuzzyLowCount(
+                        (int) row.get("count").getLongValue()); // If exists, use its value
               } catch (IllegalArgumentException e) {
-                count = 1;
+                count = SnapshotBuilderService.fuzzyLowCount(1);
               }
               return new SnapshotBuilderConcept()
                   .id((int) (row.get("concept_id").getLongValue()))

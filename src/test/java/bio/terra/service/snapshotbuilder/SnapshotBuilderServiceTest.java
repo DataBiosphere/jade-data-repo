@@ -40,6 +40,11 @@ import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.StandardSQLTypeName;
+import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -281,6 +286,33 @@ class SnapshotBuilderServiceTest {
                         any(),
                         argThat((ArgumentMatcher<AzureSynapsePdao.Converter<T>>) Objects::nonNull)))
                     .thenReturn(results));
+  }
+
+  private static void assertParentQueryResult(SnapshotBuilderService.ParentQueryResult result) {
+    assertThat(result.parentId(), is(1));
+    assertThat(result.childId(), is(2));
+    assertThat(result.childName(), is("name"));
+  }
+
+  @Test
+  void testParentQueryResult() throws Exception {
+    var resultSet = mock(ResultSet.class);
+    when(resultSet.getInt(HierarchyQueryBuilder.PARENT_ID)).thenReturn(1);
+    when(resultSet.getInt(HierarchyQueryBuilder.CONCEPT_ID)).thenReturn(2);
+    when(resultSet.getString(HierarchyQueryBuilder.CONCEPT_NAME)).thenReturn("name");
+    assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(resultSet));
+
+    var fieldValueList =
+        FieldValueList.of(
+            List.of(
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "1"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "name")),
+            Field.of(HierarchyQueryBuilder.PARENT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(HierarchyQueryBuilder.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(HierarchyQueryBuilder.CONCEPT_NAME, StandardSQLTypeName.STRING));
+
+    assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
   }
 
   static SnapshotBuilderConcept concept(String name, int id) {

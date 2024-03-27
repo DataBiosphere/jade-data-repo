@@ -64,7 +64,15 @@ public class CriteriaQueryBuilder {
                 new Literal(rangeCriteria.getHigh()))));
   }
 
+  FilterVariable selectAllValuesOfListCriteria() {
+    return platform -> "1=1";
+  }
+
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
+
+    if (listCriteria.getValues() == null || listCriteria.getValues().isEmpty()) {
+      return selectAllValuesOfListCriteria();
+    }
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
         getFieldVariableForRootTable(getProgramDataOptionColumnName(listCriteria.getId())),
@@ -142,12 +150,15 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateAndOrFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
-    return new BooleanAndOrFilterVariable(
-        Objects.requireNonNullElse(criteriaGroup.isMeetAll(), false)
-            ? BooleanAndOrFilterVariable.LogicalOperator.AND
-            : BooleanAndOrFilterVariable.LogicalOperator.OR,
-        criteriaGroup.getCriteria().stream().map(this::generateFilterForCriteria).toList());
-  }
+    if (criteriaGroup.getCriteria() == null) {
+      throw new NullPointerException("Unable to generate filter when criteriaGroup's criteria is null");
+    }
+      return new BooleanAndOrFilterVariable(
+          Objects.requireNonNullElse(criteriaGroup.isMeetAll(), false)
+              ? BooleanAndOrFilterVariable.LogicalOperator.AND
+              : BooleanAndOrFilterVariable.LogicalOperator.OR,
+          criteriaGroup.getCriteria().stream().map(this::generateFilterForCriteria).toList());
+    };
 
   FilterVariable generateFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
     FilterVariable andOrFilterVariable = generateAndOrFilterForCriteriaGroup(criteriaGroup);

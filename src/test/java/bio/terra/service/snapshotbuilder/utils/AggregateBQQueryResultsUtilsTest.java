@@ -23,16 +23,29 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AggregateBQQueryResultsUtilsTest {
   @Test
   void rollupCountsReturnsListOfInt() {
-    Schema schema = Schema.of(Field.of("count_name", StandardSQLTypeName.INT64));
-    Page<FieldValueList> page =
-        BigQueryPdaoUnitTest.mockPage(
-            List.of(
-                FieldValueList.of(List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "5")))));
-
-    TableResult table = new TableResult(schema, 1, page);
+    TableResult table = makeTableResult("count_name", "5");
     assertThat(
         "rollupCountsMapper converts table result to list of ints",
         AggregateBQQueryResultsUtils.rollupCountsMapper(table),
         equalTo(List.of(5)));
+  }
+
+  @Test
+  void domainIdReturnsListOfString() {
+    TableResult table = makeTableResult("domain_id", "domain");
+    assertThat(
+        "domainId converts table result to list of String",
+        AggregateBQQueryResultsUtils.domainId(table),
+        equalTo(List.of("domain")));
+  }
+
+  private TableResult makeTableResult(String columnName, String value) {
+    Schema schema = Schema.of(Field.of(columnName, StandardSQLTypeName.STRING));
+    Page<FieldValueList> page =
+        BigQueryPdaoUnitTest.mockPage(
+            List.of(
+                FieldValueList.of(List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, value)))));
+
+    return new TableResult(schema, 1, page);
   }
 }

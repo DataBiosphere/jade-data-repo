@@ -1,0 +1,230 @@
+{
+  "domainOptions": [
+    {
+      "kind": "domain",
+      "name": "Drug",
+      "id": 13,
+      "tableName": "drug_exposure",
+      "columnName": "drug_concept_id",
+      "root": {
+        "id": 13,
+        "name": "Drug",
+        "count": 300,
+        "hasChildren": true
+      },
+      "conceptCount": 157,
+      "participantCount": 300
+    },
+    {
+      "kind": "domain",
+      "name": "Measurement",
+      "id": 21,
+      "tableName": "measurement",
+      "columnName": "measurement_concept_id",
+      "root": {
+        "id": 21,
+        "name": "Measurement",
+        "count": 0,
+        "hasChildren": true
+      },
+      "conceptCount": 175,
+      "participantCount": 300
+    },
+    {
+      "kind": "domain",
+      "name": "Visit",
+      "id": 8,
+      "tableName": "visit_occurrence",
+      "columnName": "visit_concept_id",
+      "root": {
+        "id": 8,
+        "name": "Visit",
+        "count": 300,
+        "hasChildren": true
+      },
+      "conceptCount": 3,
+      "participantCount": 300
+    },{
+      "kind": "domain",
+      "name": "Device",
+      "id": 17,
+      "tableName": "device_exposure",
+      "columnName": "device_concept_id",
+      "root": {
+        "id": 17,
+        "name": "Device",
+        "count": 29,
+        "hasChildren": true
+      },
+      "conceptCount": 7,
+      "participantCount": 29
+    },{
+      "kind": "domain",
+      "name": "Condition",
+      "id": 19,
+      "tableName": "condition_occurrence",
+      "columnName": "condition_concept_id",
+      "root": {
+        "id": 19,
+        "name": "Condition",
+        "count": 299,
+        "hasChildren": true
+      },
+      "conceptCount": 151,
+      "participantCount": 299
+    },{
+      "kind": "domain",
+      "name": "Procedure",
+      "id": 10,
+      "tableName": "procedure_occurrence",
+      "columnName": "procedure_concept_id",
+      "root": {
+        "id": 10,
+        "name": "Procedure",
+        "count": 299,
+        "hasChildren": true
+      },
+      "conceptCount": 105,
+      "participantCount": 299
+    },{
+      "kind": "domain",
+      "name": "Observation",
+      "id": 27,
+      "tableName": "observation",
+      "columnName": "observation_concept_id",
+      "root": {
+        "id": 27,
+        "name": "Observation",
+        "count": 300,
+        "hasChildren": true
+      },
+      "conceptCount": 30,
+      "participantCount": 300
+    }
+  ],
+  "programDataOptions": [
+    {
+      "kind": "range",
+      "name": "Year of Birth",
+      "id": 0,
+      "tableName": "person",
+      "columnName": "year_of_birth",
+      "min": 1911,
+      "max": 2021
+    },{
+      "kind": "list",
+      "name": "Gender",
+      "id": 1,
+      "tableName": "person",
+      "columnName": "gender_concept_id",
+      "values": [
+        {
+          "name": "Male",
+          "id": 8507
+        },{
+          "name": "Female",
+          "id": 8532
+        },{
+          "name": "Transgender, Non-binary, Prefer not to Answer, or other uncaptured Gender Identity",
+          "id": 0
+        }
+      ]
+    },{
+      "kind": "list",
+      "name": "Ethnicity",
+      "id": 2,
+      "tableName": "person",
+      "columnName": "ethnicity_concept_id",
+      "values": [
+        {
+          "name": "Hispanic or Latino",
+          "id": 38003563
+        },{
+          "name": "Not Hispanic or Latino",
+          "id": 38003564
+        },{
+          "name": "Prefer not to Answer, or other uncaptured ethnicity",
+          "id": 0
+        }
+      ]
+    },{
+      "kind": "list",
+      "name": "Race",
+      "id": 3,
+      "tableName": "person",
+      "columnName": "race_concept_id",
+      "values": [
+        {
+          "name": "Asian",
+          "id": 8515
+        },{
+          "name": "Black or African American",
+          "id": 8516
+        },{
+          "name": "White",
+          "id": 8527
+        },{
+          "name": "Prefer not to Answer, or other uncaptured race",
+          "id": 0
+        }
+      ]
+    }
+  ],
+  "featureValueGroups": [
+    {
+      "name": "Drug",
+      "values": [
+        "Drug Column 1","Drug Column 2"
+      ]
+    },{
+      "name": "Measurement",
+      "values": [
+        "Measurement Column 1","Measurement Column 2"
+      ]
+    },{
+      "name": "Visit",
+      "values": [
+        "Visit Column 1","Visit Column 2"
+      ]
+    },{
+      "name": "Device",
+      "values": [
+        "Device Column 1","Device Column 2"
+      ]
+    },{
+      "name": "Procedure",
+      "values": [
+        "Procedure Column 1","Procedure Column 2"
+      ]
+    },{
+      "name": "Condition",
+      "values": [
+        "Condition Column 1","Condition Column 2"
+      ]
+    },{
+      "name": "Observation",
+      "values": [
+        "Observation Column 1","Observation Column 2"
+      ]
+    },{
+      "name": "Person",
+      "values": [
+        "Person Column 1","Person Column 2"
+      ]
+    },{
+      "name": "Genomics",
+      "values": [
+        "Genomics Column 1","Genomics Column 2"
+      ]
+    }
+  ],
+  "datasetConceptSets": [
+    {
+      "name": "Demographics",
+      "featureValueGroupName": "Person"
+    },{
+      "name": "Genomics",
+      "featureValueGroupName": "Genomics"
+    }
+  ]
+}

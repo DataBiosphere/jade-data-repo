@@ -151,14 +151,15 @@ public class CriteriaQueryBuilder {
 
   FilterVariable generateAndOrFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
     if (criteriaGroup.getCriteria() == null) {
-      throw new NullPointerException("Unable to generate filter when criteriaGroup's criteria is null");
+      throw new NullPointerException(
+          "Unable to generate filter when criteriaGroup's criteria is null");
     }
-      return new BooleanAndOrFilterVariable(
-          Objects.requireNonNullElse(criteriaGroup.isMeetAll(), false)
-              ? BooleanAndOrFilterVariable.LogicalOperator.AND
-              : BooleanAndOrFilterVariable.LogicalOperator.OR,
-          criteriaGroup.getCriteria().stream().map(this::generateFilterForCriteria).toList());
-    };
+    return new BooleanAndOrFilterVariable(
+        Objects.requireNonNullElse(criteriaGroup.isMeetAll(), false)
+            ? BooleanAndOrFilterVariable.LogicalOperator.AND
+            : BooleanAndOrFilterVariable.LogicalOperator.OR,
+        criteriaGroup.getCriteria().stream().map(this::generateFilterForCriteria).toList());
+  }
 
   FilterVariable generateFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
     FilterVariable andOrFilterVariable = generateAndOrFilterForCriteriaGroup(criteriaGroup);

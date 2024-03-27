@@ -2,8 +2,10 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -21,6 +23,8 @@ import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -33,9 +37,13 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +54,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -254,5 +263,73 @@ class SnapshotBuilderServiceTest {
         arguments(19, 19),
         arguments(20, 20),
         arguments(21, 21));
+  }
+
+  private <T> void mockRunQueryForHierarchy(
+      CloudPlatform cloudPlatform, List<T> results, Dataset dataset) {
+    CloudPlatformWrapper.of(cloudPlatform)
+        .choose(
+            () ->
+                when(bigQueryDatasetPdao.runQuery(
+                        any(),
+                        any(),
+                        argThat(
+                            (ArgumentMatcher<BigQueryDatasetPdao.Converter<T>>) Objects::nonNull)))
+                    .thenReturn(results),
+            () ->
+                when(azureSynapsePdao.runQuery(
+                        any(),
+                        argThat((ArgumentMatcher<AzureSynapsePdao.Converter<T>>) Objects::nonNull)))
+                    .thenReturn(results));
+  }
+
+  static SnapshotBuilderConcept concept(String name, int id) {
+    return new SnapshotBuilderConcept().name(name).id(id).count(1).hasChildren(true);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void getConceptHierarchy(CloudPlatform platform) {
+    Dataset dataset = makeDataset(platform);
+    var conceptId = 1;
+    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    var queryBuilder = mock(HierarchyQueryBuilder.class);
+    when(queryBuilderFactory.hierarchyQueryBuilder(any())).thenReturn(queryBuilder);
+    when(queryBuilder.generateQuery(conceptId)).thenReturn(mock(Query.class));
+    var concept1 = concept("concept1", 1);
+    var concept2 = concept("concept2", 2);
+    var concept3 = concept("concept3", 3);
+    var results =
+        List.of(
+            new SnapshotBuilderService.ParentQueryResult(0, concept1.getId(), concept1.getName()),
+            new SnapshotBuilderService.ParentQueryResult(0, concept2.getId(), concept2.getName()),
+            new SnapshotBuilderService.ParentQueryResult(
+                concept1.getId(), concept3.getId(), concept3.getName()));
+    mockRunQueryForHierarchy(platform, results, dataset);
+    assertThat(
+        snapshotBuilderService.getConceptHierarchy(dataset.getId(), conceptId, TEST_USER),
+        equalTo(
+            new SnapshotBuilderGetConceptHierarchyResponse()
+                .result(
+                    List.of(
+                        new SnapshotBuilderParentConcept()
+                            .parentId(0)
+                            .children(List.of(concept1, concept2)),
+                        new SnapshotBuilderParentConcept()
+                            .parentId(concept1.getId())
+                            .children(List.of(concept3))))));
+  }
+
+  @Test
+  void moveRootToFirst() {
+    // Use a TreeMap to ensure that the root concept is last. With HashMap, the order is not fixed.
+    Map<Integer, SnapshotBuilderParentConcept> parents = new TreeMap<>();
+    parents.put(2, new SnapshotBuilderParentConcept().parentId(2).children(List.of()));
+    parents.put(
+        1, new SnapshotBuilderParentConcept().parentId(1).children(List.of(concept("child", 2))));
+
+    var result = SnapshotBuilderService.moveRootToFirst(parents);
+
+    assertThat(result.get(0).getParentId(), is(1));
   }
 }

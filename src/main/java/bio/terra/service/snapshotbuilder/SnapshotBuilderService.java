@@ -32,6 +32,7 @@ import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -258,7 +259,8 @@ public class SnapshotBuilderService {
   }
 
   /** Given a list of hierarchy parents, find the root and move it to the first entry. */
-  private static List<SnapshotBuilderParentConcept> moveRootToFirst(
+  @VisibleForTesting
+  static List<SnapshotBuilderParentConcept> moveRootToFirst(
       Map<Integer, SnapshotBuilderParentConcept> parents) {
     // Collect all children IDs
     var childrenIds =

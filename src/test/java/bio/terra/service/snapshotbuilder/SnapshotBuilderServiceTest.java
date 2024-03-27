@@ -270,24 +270,6 @@ class SnapshotBuilderServiceTest {
         arguments(21, 21));
   }
 
-  private <T> void mockRunQueryForHierarchy(
-      CloudPlatform cloudPlatform, List<T> results, Dataset dataset) {
-    CloudPlatformWrapper.of(cloudPlatform)
-        .choose(
-            () ->
-                when(bigQueryDatasetPdao.runQuery(
-                        any(),
-                        any(),
-                        argThat(
-                            (ArgumentMatcher<BigQueryDatasetPdao.Converter<T>>) Objects::nonNull)))
-                    .thenReturn(results),
-            () ->
-                when(azureSynapsePdao.runQuery(
-                        any(),
-                        argThat((ArgumentMatcher<AzureSynapsePdao.Converter<T>>) Objects::nonNull)))
-                    .thenReturn(results));
-  }
-
   private static void assertParentQueryResult(SnapshotBuilderService.ParentQueryResult result) {
     assertThat(result.parentId(), is(1));
     assertThat(result.childId(), is(2));
@@ -319,6 +301,25 @@ class SnapshotBuilderServiceTest {
     return new SnapshotBuilderConcept().name(name).id(id).count(1).hasChildren(true);
   }
 
+  private <T> void mockRunQueryForHierarchy(CloudPlatform cloudPlatform, List<T> results) {
+    CloudPlatformWrapper.of(cloudPlatform)
+        .choose(
+            () ->
+                when(
+                    bigQueryDatasetPdao.runQuery(
+                        any(),
+                        any(),
+                        argThat(
+                            (ArgumentMatcher<BigQueryDatasetPdao.Converter<T>>) Objects::nonNull))),
+            () ->
+                when(
+                    azureSynapsePdao.runQuery(
+                        any(),
+                        argThat(
+                            (ArgumentMatcher<AzureSynapsePdao.Converter<T>>) Objects::nonNull))))
+        .thenReturn(results);
+  }
+
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void getConceptHierarchy(CloudPlatform platform) {
@@ -337,7 +338,7 @@ class SnapshotBuilderServiceTest {
             new SnapshotBuilderService.ParentQueryResult(0, concept2.getId(), concept2.getName()),
             new SnapshotBuilderService.ParentQueryResult(
                 concept1.getId(), concept3.getId(), concept3.getName()));
-    mockRunQueryForHierarchy(platform, results, dataset);
+    mockRunQueryForHierarchy(platform, results);
     assertThat(
         snapshotBuilderService.getConceptHierarchy(dataset.getId(), conceptId, TEST_USER),
         equalTo(

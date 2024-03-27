@@ -65,12 +65,13 @@ public class HierarchyQueryBuilder {
   }
 
   /**
-   * Filter concept to only allow standard or classification concepts. See <a
+   * Filter concept to only allow standard concepts. See <a
    * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,
    * Classification, and Source Concepts</a>
    */
   private static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
-    return BinaryFilterVariable.notNull(concept.makeFieldVariable("standard_concept"));
+    return BinaryFilterVariable.equals(
+        concept.makeFieldVariable("standard_concept"), new Literal("S"));
   }
 
   /**

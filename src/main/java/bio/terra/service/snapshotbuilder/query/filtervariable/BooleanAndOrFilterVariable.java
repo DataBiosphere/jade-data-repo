@@ -28,4 +28,8 @@ public record BooleanAndOrFilterVariable(
       return name();
     }
   }
+
+  public static BooleanAndOrFilterVariable and(FilterVariable... subFilters) {
+    return new BooleanAndOrFilterVariable(LogicalOperator.AND, List.of(subFilters));
+  }
 }

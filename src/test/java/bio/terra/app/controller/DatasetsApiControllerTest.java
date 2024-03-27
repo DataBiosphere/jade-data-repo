@@ -40,6 +40,7 @@ import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SqlSortDirectionAscDefault;
@@ -583,7 +584,11 @@ class DatasetsApiControllerTest {
   void getConceptHierarchy() throws Exception {
     var expected =
         new SnapshotBuilderGetConceptHierarchyResponse()
-            .result(new SnapshotBuilderConcept().name("test"));
+            .result(
+                List.of(
+                    new SnapshotBuilderParentConcept()
+                        .parentId(1234)
+                        .addChildrenItem(new SnapshotBuilderConcept().name("test"))));
     var conceptId = 1234;
 
     when(snapshotBuilderService.getConceptHierarchy(DATASET_ID, conceptId, TEST_USER))

@@ -81,8 +81,8 @@ def create_billing_profile(clients, add_jade_stewards, cloud_platform, billing_p
   if not billing_profile_file_name:
     billing_profile_file_name = "billing_profile.json"
     if cloud_platform=="azure":
-      billing_profile_file_name = "azure_billing_profile.json"
-  with open(os.path.join("files", billing_profile_file_name)) as billing_profile_json:
+      billing_profile_file_name = "azure_billing_profile_int.json"
+  with open(os.path.join("profiles", billing_profile_file_name)) as billing_profile_json:
     billing_profile_request = json.load(billing_profile_json)
     profile_id = str(uuid.uuid4())
     billing_profile_request['id'] = profile_id
@@ -169,7 +169,7 @@ def create_dataset(clients, dataset_to_upload, profile_id):
 
 
 def get_datasets_to_upload(filename):
-  with open(filename) as f:
+  with open(os.path.join("suites", filename)) as f:
     return json.load(f)
 
 
@@ -239,12 +239,10 @@ def add_snapshot_builder_settings(clients, dataset_id, directory, snapshot_build
 
 def main():
   parser = argparse.ArgumentParser()
-  parser.add_argument('--host', default='https://jade-4.datarepo-integration.broadinstitute.org',
-    help='The data repo root URL to point to. Defaults to '
-         'https://jade-4.datarepo-integration.broadinstitute.org')
-  parser.add_argument('--datasets', default='./suites/datarepo_datasets.json',
-    help='A file pointer to the datarepo datasets to create. Defaults to '
-         './suites/datarepo_datasets.json')
+  parser.add_argument('--host', required=True,
+    help='The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade-4.datarepo-integration.broadinstitute.org`')
+  parser.add_argument('--datasets', required=True,
+    help="A file pointer to the datarepo datasets to create. This is required flag. Available Options: " + ", ".join(os.listdir('./suites/')))
   parser.add_argument('--gcp_profile_id',
     help='The id of an existing gcp billing profile to use. Provide either this or a billing '
          'profile file name.')
@@ -255,8 +253,7 @@ def main():
     help='The name of your azure managed app. This should be provided if you are creating a new '
          'azure billing project.')
   parser.add_argument('--billing_profile_file_name',
-    help='A pointer to a file containing the billing profile to create or reuse (e.g., '
-         'billing_profile.json). Provide either this or an existing profile ID.')
+    help='A pointer to a file containing the billing profile to create or reuse. Provide either this or an existing profile ID.  Available Options: ' + ', '.join(os.listdir('./profiles/')))
   args = parser.parse_args()
   clients = Clients(args.host)
 

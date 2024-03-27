@@ -145,14 +145,18 @@ helm repo update
 open -a docker
 
 # configure google-cloud-sdk
+# login with an account that has access to your project. This will save credentials locally.
 gcloud auth login
 gcloud auth application-default login
+
+#If you are using multiple accounts, you can switch to the correct one using this command:
+gcloud config set account <account email>
+
 gcloud auth configure-docker
 
 # setup kubectl plugin
 gcloud components install gke-gcloud-auth-plugin
 ```
-
 
 ## 6. Create GitHub token
 
@@ -171,7 +175,7 @@ GH_VAULT_TOKEN=<<GITHUB TOKEN VALUE>>
 echo $GH_VAULT_TOKEN > ~/.gh_token
 ```
 
-## 6. Login to Vault
+## 7. Login to Vault
 
 Vault access tokens can be obtained using the GitHub token from earlier as
 follows:
@@ -180,7 +184,7 @@ follows:
 vault login -method=github token=$(cat ~/.gh_token)
 ```
 
-## 7. Code Checkout
+## 8. Code Checkout
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
@@ -199,35 +203,7 @@ git clone git@github.com:broadinstitute/terraform-ap-deployments.git
 git clone git@github.com:broadinstitute/terraform-jade.git
 ```
 
-## 8. Set up your Development Environment
-
-The goal of this step is set up some of the basic components of your development
-environment.  You'll actually spin up this instance on broad-jade-dev in the next step.
-
-> There is a video of us walking through
-these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing).
-
-1. Follow the
-   [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
-   to add your initials to the terraform templates and generate the static resources needed
-   to deploy your personal development environment.
-   Apply the changes and create a pull request to merge your additions to `terraform-jade`.
-
-2. Create your datarepo helm definition:
-  -  In `datarepo-helm-definitions/dev` directory,
-     copy an existing developer definition and change all initials to your own.
-     Double-check with the team if you're not sure what to use, but the most recently added
-     is probably the best choice.
-  -  By default, leave release chart versions unspecified in your `helmfile.yaml` so that
-     latest versions are automatically picked up when running helmfile commands.
-     Otherwise, verify that specified versions match the
-     [latest dependency versions](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo/Chart.lock).
-  -  Create a pull request with these changes in
-     [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions).
-
 ## 9. Google Cloud Platform setup
-
-Throughout these instructions, replace all instances of `ZZ` with your initials.
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com).
    In the top-left corner, select the **BROADINSTITUTE.ORG** organization.
@@ -244,48 +220,6 @@ Throughout these instructions, replace all instances of `ZZ` with your initials.
 ```
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
-
-4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
-   bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
-
-Note: Make sure you are on the VPN, otherwise the helmfile apply will fail.
-
-```
-cd datarepo-helm-definitions/dev/ZZ
-helmfile apply
-
-# check that the deployments were created
-helm list --namespace ZZ
-```
-
-5. Update the following authorized domains within the
-   [Jade Data Repository OAuth2 Client configuration](https://console.cloud.google.com/apis/credentials/oauthclient/970791974390-1581mjhtp2b3jmg4avhor1vabs13b7ur.apps.googleusercontent.com?authuser=0&project=broad-jade-dev):
-
- - Under Authorized JavaScript origins, add `https://jade-ZZ.datarepo-dev.broadinstitute.org`
- - Under Authorized redirect URIs, add `https://jade-ZZ.datarepo-dev.broadinstitute.org/login/google` and
-   `https://jade-ZZ.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
-
-6. Connect to your new dev postgres database instance:
-   Note that this is a different instance than the local one you will configure in [step 10](#10-install-postgres-11).
-   The following command connects to the database via a proxy.
-
-```
-cd jade-data-repo/ops
-DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
-```
-
-7. Now that you're connected to your dev database, run the following command
-   (Once [DR-1156](https://broadworkbench.atlassian.net/browse/DR-1156) is done, this will no longer be needed):
-
-```
-create extension pgcrypto;
-```
-
-8. Create a pull request to `terraform-ap-deployments` to add
-  `https://jade-ZZ.datarepo-dev.broadinstitute.org` under the
-  ['personal deployments'](https://github.com/broadinstitute/terraform-ap-deployments/blob/e9ecc7a637fe4a7743011b568f76a296a4e85ed2/azure/b2c/tfvars/dev.tfvars#L20)
-  section of `dev.tfvars/b2c_tdr_hosts`.  This allows B2C as a means of authentication, which is
-  the default across environments.
 
 ## 10. Install Postgres 11
 
@@ -312,6 +246,8 @@ psql --list
 ```
 
 ## 11. Configure Azure
+
+### 1. Get Azure Account
 You will need to have an Azure account created (see https://docs.google.com/spreadsheets/d/1Q6CldqVPrATkWCAXljKrwlLz8oFsCQwcfOz_io-gcrA)
 and granted access to the TDR application in Azure and added to the jadedev group.
 
@@ -319,42 +255,56 @@ The Azure user should look like <your email id>@azure.dev.envs-terra.bio
 
 Both are performed by a teammate in the Azure portal: https://portal.azure.com
 
+### 2. Create your own managed application in Azure
+You must have your own managed application in order to create a TDR azure billing profile.
+Create a "tdr-dev" managed application:
+* Azure portal -> Marketplace -> "My Marketplace" -> "Private plans" -> There you should see the "tdr-dev" plan.
+* Create a new tdr-dev plan with the following setup:
+  * Subscription: 8201558_TDR_testuser1 (if you don't have access, ask for help from team)
+  * Resource group: TDR
+  * Application Name: <your name>
+  * Hit "next"
+* On the next screen, ***pay attention to the email you set in this field. It will be the email
+you must log in as in order to create a TDR billing profile***. It should be a gmail account.
+* Hit create!
 
-## 12. Repository Setup
+## 12. Setup Environment Variable
+There are several ways to go about this, but here is one way that works. You can set up a Z-shell
+configuration to keep your system environment variables. If you don't already have one created, you
+can create one by running `touch ~/.zshrc`. Then, you can open the file in a text editor with `open ~/.zshrc`.
+Below you'll find a list of environment variables needed to run TDR and tests locally. When you run
+`./render-configs.sh`, it populates key and txt files with secrets from vault and environment-specific
+values. On daily setup, you'll need to run the following two commands *in order*:
+```
+./render-configs.sh
+source ~/.zhsrc
+```
+An alternate is to run `./render-configs.sh -i` which will put the variables into your clipboard. You
+can then paste these values into an intellij bootRun or test run profile.
 
-### 1. Build `jade-data-repo`
+### Environment Variables
 
-Follow the [Build and Run Locally](https://github.com/DataBiosphere/jade-data-repo#build-and-run-locally)
-section in the [main readme](https://github.com/DataBiosphere/jade-data-repo#jade-data-repository---)
-to build `jade-data-repo`.
+While not exhaustive, here's a list that notes the important environment variables to set when running
+`jade-data-repo` locally. These variables override settings in jade-data-repo/application.properties.
+You can convert any application.property to an environment variable by switching to upper case and
+every "." to "_".
 
-* You will need to run `render-configs.sh` before running integration tests.
-
-* **Set Environment Variables**: While not exhaustive,
-  here's a list that notes the important environment variables to set when running `jade-data-repo` locally.
-  Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
-  These variables override settings in jade-data-repo/application.properties.
-  You can convert any application.property to an environment variable by switching to upper case and every "." to "_".
+* Instances of `ZZ` are only needed if you have a personal development environment setup. It is no longer
+  recommended to set this up. But, if used, `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
 
 ```
-# Point to your personal dev project/deployment
-export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
 export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
 
-# Integration test setting: change this to http://localhost:8080/ to run against a local instance
-export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
+# Integration test setting
+export IT_JADE_API_URL=http://localhost:8080
 
 # This file will be populated when you run ./render-configs.sh
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 
-# Clears database on startup, test run, etc. This is further explained in the oncall playbook.
-export DB_MIGRATE_DROPALLONSTART=true
-
-# Setting for testing environment (Further explaned in oncall playbook)
-export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
-
-# Setting for credentials to test on Azure
+# Setting for credentials to test on Azure - these files are populated in the render-configs.sh script
+# Defaults to dev; You can switch to integration by running `./render-config.sh -a integration`
+export AZURE_SYNAPSE_WORKSPACENAME=$(cat /tmp/azure-synapse-workspacename.txt)
 export AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
 export AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
 export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
@@ -363,43 +313,90 @@ export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password
 export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
 export AZURE_SYNAPSE_INITIALIZE=false
 
+# RBS
+# Defaults to RBS tools; you can switch to dev by running `./render-configs.sh -r dev`
+export RBS_POOLID=$(cat /tmp/rbs-pool-id.txt)
+export RBS_INSTANCEURL=$(cat /tmp/rbs-instance-url.txt)
+
 # Pact contract test settings
 export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
 export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
 
-# Azure B2C authentication settings
-export OIDC_ADDCLIENTIDTOSCOPE=true
-export OIDC_AUTHORITYENDPOINT="https://oauth-proxy.dsp-eng-tools.broadinstitute.org/b2c"
-export OIDC_CLIENTID=bbd07d43-01cb-4b69-8fd0-5746d9a5c9fe
-export OIDC_EXTRAAUTHPARAMS="prompt=login"
-export OIDC_PROFILEPARAM=b2c_1a_signup_signin_tdr_dev
-```
+# Setting for testing environment (Further explained in oncall playbook)
+export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 
-* **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
-  project.
-  1) File -> Project Structure -> Project -> SDKs -> add SDK -> Download JDK -> Version: 17, Vendor - AdoptOpenJDK 17 ( I used Termurin)
-     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/a1e7fe17-92ba-4e17-bf3b-523afe61e099)
-     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/d55f9883-0997-4b1f-979f-f011e78cec58)
-  2) You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
-     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
-
-* If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
-instead of `http://local.broadinstitute.org`:
-
-```
+# If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
+# instead of `http://local.broadinstitute.org`:
 export HOST=localhost
 ```
 
-* Build the code and run the tests:
+## 13. Repository Setup
+
+### 1. Build, run and Unit Test `jade-data-repo`
+
+* Start postgres
+* Ensure docker is running
+* You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
+* Run `./render-configs.sh` to pull secrets from vault
+* Refresh your Z-shell configuration by running `source ~/.zshrc`
+* Build the code and run the unit tests:
 
 ```
+./gradlew build           # build jade-data-repo and run unit tests
 ./gradlew bootRun         # build jade-data-repo with Spring Boot features
 ./gradlew check           # linters and unit tests
-./gradlew testConnected   # connected tests
-./gradlew testIntegration # integration tests
 ```
 
-Running Pact tests can be achieved by rendering a small set of Pact-specific configurations first:
+### 2. Run connected tests
+We don't recommend running the entire connected test suite locally, as it takes over an hour to run.
+Instead, you can select a specific test to run either in Intellij or the command line.
+First, make sure you have run through the following steps:
+* Start postgres
+* Ensure docker is running
+* You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
+* Run `./render-configs.sh` to pull secrets from vault
+* Refresh your Z-shell configuration by running `source ~/.zshrc`
+* Note: `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false fo connected tests to pass
+
+** Run test in the Command Line **
+* Run `./gradlew :testConnected --tests '*<test name>'` to run a specific connected test
+
+** Run or Debug test in Intellij **
+* If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
+environment variables to populate the Intellij run configurations. Alternatively, you can run
+`./render-configs.sh -i` which will put all the environment variables into your clipboard and then you
+can paste them into the Intellij test setup.
+* Select test in intellij UI, select 'testConnected' and run or debug it
+
+### 3. Run Integration tests
+We don't recommend running the entire integrated test suite locally, as it takes over two hours to run.
+Instead, you can select a specific test to run either in Intellij or the command line.
+First, make sure you have run through the following steps:
+* Start postgres
+* Ensure docker is running
+* You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
+* Run `./render-configs.sh -a integration` to pull secrets from vault. For Azure Integration tests,
+we must point to the integration environment.
+* Make sure you have this environment variable set in the context of the test run:
+`export IT_JADE_API_URL=http://localhost:8080`
+* Refresh your Z-shell configuration by running `source ~/.zshrc`
+
+** Run test in the Command Line **
+* Start the app locally with `./gradlew bootRun`
+* Open a new command line window, while bootRun runs in the background
+* Run `./gradlew :testIntegration --tests '*<test name>'` to run a specific integration test (e.g `./gradlew :testIntegration --tests '*testSnapshotBuilder'`)
+
+** Run or Debug test in Intellij **
+* If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
+  environment variables to populate the Intellij run configurations. Alternatively, you can run
+  `./render-configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
+  can paste them into the Intellij test setup.
+* Start application by running `./gradlew bootRun`
+* Select test in intellij UI, select 'testIntegration' and run or debug it
+
+
+### 4. Running Pact tests
+This can be achieved by rendering a small set of Pact-specific configurations first:
 ```
 ./src/test/render-pact-configs.sh
 # Reload your environment variables, e.g. src ~/.zshrc
@@ -414,26 +411,140 @@ To run a subset of tests, you can specify `--tests <pattern>` when running
 the above test commands.  More specific examples are available in
 [Gradle documentation](https://docs.gradle.org/current/userguide/java_testing.html#test_filtering).
 
-### 2. Build `jade-data-repo-ui`
+### 5. Build `jade-data-repo-ui`
 
-Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui)
-to build the `jade-data-repo-ui` repository.
+Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) to build the `jade-data-repo-ui` repository.
 
-## 13. Developing Locally
+By setting the `PROXY_URL` environment variable, you can point the UI to your local data repo instance.
+```
+export PROXY_URL=http://localhost:8080
+```
+You need to have data repo running with `./gradlew bootRun` and the UI running with `npm start`.
+
+## 13. Set up TDR resources
 
 After running bootRun, you may want to create some datasets locally for use in testing.
-To do this, you can run this python
-[script](https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/tools/ui_integration/setup_ui_integration.py)
-against your local db.
+To do this, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py)
+to your locally running data repo instance by setting the --host flag to http://localhost:8080.
+See the [README](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/README.md) for more information.
 
 You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
 such as `AzureY1Demo.ipynb`
+
+## 14. Set up TDR on BEEs
+
+You can follow [these instructions](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit?usp=sharing) to get a BEE setup to work with TDR.
+
+Additionally, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py) to your BEE by setting the --host flag to the BEE url.
+
+## 15. Running locally with other locally running services
+1. Sam - set environment variable `SAM_BASEPATH` to `https://local.broadinstitute.org:50443`
 
 ## Common Issues
 
 Ensure that:
 
-1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started).
+1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started). (Note: This is not needed for most operations)
 2. Docker is running.
 3. Postgres database is started.
+4. Logged in with vault (see above instructions for more details:
+    ```
+    vault login -method=github token=$(cat ~/.gh_token)
+    ```
 4. Environment variables are set. See list of environment variables [above](#12-repository-setup).
+5.  **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
+     project.
+  * File -> Project Structure -> Project -> SDKs -> add SDK -> Download JDK -> Version: 17, Vendor - AdoptOpenJDK 17 ( I used Termurin)
+     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/a1e7fe17-92ba-4e17-bf3b-523afe61e099)
+     ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/d55f9883-0997-4b1f-979f-f011e78cec58)
+  * You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
+   ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
+
+## Appendix
+
+### Personal Dev Environment Setup
+We're moving away from setting up personal dev environments for every developer. Instead, we are moving
+towards using BEEs ([BEE url](https://beehive.dsp-devops.broadinstitute.org/environments/new), [TDR on BEEs](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit#heading=h.5gsyp5q4qds5))
+However, there are still some use cases for personal dev environments.
+
+Throughout these instructions, replace all instances of `ZZ` with your initials.
+
+> There is a video of us walking through
+these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing).
+
+1. Follow the
+   [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
+   to add your initials to the terraform templates and generate the static resources needed
+   to deploy your personal development environment.
+   Apply the changes and create a pull request to merge your additions to `terraform-jade`.
+
+2. Create your datarepo helm definition:
+-  In `datarepo-helm-definitions/dev` directory,
+   copy an existing developer definition and change all initials to your own.
+   Double-check with the team if you're not sure what to use, but the most recently added
+   is probably the best choice.
+-  By default, leave release chart versions unspecified in your `helmfile.yaml` so that
+   latest versions are automatically picked up when running helmfile commands.
+   Otherwise, verify that specified versions match the
+   [latest dependency versions](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo/Chart.lock).
+-  Create a pull request with these changes in
+   [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions).
+
+
+3. Log in to [Google Cloud Platform](https://console.cloud.google.com).
+   In the top-left corner, select the **BROADINSTITUTE.ORG** organization.
+   Select **broad-jade-dev** from the list of projects.
+
+4. From the left hand sidebar, select **Kubernetes Engine -> Clusters** under
+   **COMPUTE**.
+
+5. Click **Connect** on the **dev-master** cluster.
+   (You can also navigate here via
+   [direct link](https://console.cloud.google.com/kubernetes/clusters/details/us-central1/dev-master/details?project=broad-jade-dev).)
+   This gives you a `kubectl` command to copy and paste into the terminal:
+
+```
+gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
+```
+
+6. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
+   bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
+
+Note: Make sure you are on the VPN, otherwise the helmfile apply will fail.
+
+```
+cd datarepo-helm-definitions/dev/ZZ
+helmfile apply
+
+# check that the deployments were created
+helm list --namespace ZZ
+```
+
+7. Update the following authorized domains within the
+   [Jade Data Repository OAuth2 Client configuration](https://console.cloud.google.com/apis/credentials/oauthclient/970791974390-1581mjhtp2b3jmg4avhor1vabs13b7ur.apps.googleusercontent.com?authuser=0&project=broad-jade-dev):
+
+- Under Authorized JavaScript origins, add `https://jade-ZZ.datarepo-dev.broadinstitute.org`
+- Under Authorized redirect URIs, add `https://jade-ZZ.datarepo-dev.broadinstitute.org/login/google` and
+  `https://jade-ZZ.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
+
+8. Connect to your new dev postgres database instance:
+   Note that this is a different instance than the local one you will configure in [step 10](#10-install-postgres-11).
+   The following command connects to the database via a proxy.
+
+```
+cd jade-data-repo/ops
+DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
+```
+
+9. Now that you're connected to your dev database, run the following command
+   (Once [DR-1156](https://broadworkbench.atlassian.net/browse/DR-1156) is done, this will no longer be needed):
+
+```
+create extension pgcrypto;
+```
+
+10. Create a pull request to `terraform-ap-deployments` to add
+   `https://jade-ZZ.datarepo-dev.broadinstitute.org` under the
+   ['personal deployments'](https://github.com/broadinstitute/terraform-ap-deployments/blob/e9ecc7a637fe4a7743011b568f76a296a4e85ed2/azure/b2c/tfvars/dev.tfvars#L20)
+   section of `dev.tfvars/b2c_tdr_hosts`.  This allows B2C as a means of authentication, which is
+   the default across environments.

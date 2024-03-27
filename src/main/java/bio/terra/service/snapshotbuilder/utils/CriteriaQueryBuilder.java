@@ -160,7 +160,6 @@ public class CriteriaQueryBuilder {
           criteriaGroup.getCriteria().stream().map(this::generateFilterForCriteria).toList());
     };
 
-
   FilterVariable generateFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
     FilterVariable andOrFilterVariable = generateAndOrFilterForCriteriaGroup(criteriaGroup);
     return Objects.requireNonNullElse(criteriaGroup.isMustMeet(), true)

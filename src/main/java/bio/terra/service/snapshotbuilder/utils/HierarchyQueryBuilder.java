@@ -83,7 +83,6 @@ public class HierarchyQueryBuilder {
    * </pre>
    */
   private Query selectAllParents(int conceptId) {
-    //
     var conceptAncestor =
         TableVariable.forPrimary(
             TablePointer.fromTableName("concept_ancestor", tableNameGenerator));

@@ -18,7 +18,7 @@ public class AggregateBQQueryResultsUtils {
                     SnapshotBuilderService.fuzzyLowCount(
                         (int) row.get("count").getLongValue()); // If exists, use its value
               } catch (IllegalArgumentException e) {
-                count = SnapshotBuilderService.fuzzyLowCount(1);
+                count = 1;
               }
               return new SnapshotBuilderConcept()
                   .id((int) (row.get("concept_id").getLongValue()))

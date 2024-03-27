@@ -13,7 +13,7 @@ public class AggregateSynapseQueryResultsUtils {
     try {
       count = SnapshotBuilderService.fuzzyLowCount((int) rs.getLong("count"));
     } catch (SQLException | IllegalArgumentException e) {
-      count = SnapshotBuilderService.fuzzyLowCount(1);
+      count = 1;
     }
 
     try {

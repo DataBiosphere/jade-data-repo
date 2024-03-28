@@ -32,7 +32,6 @@ import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
-import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -40,7 +39,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
@@ -255,28 +253,6 @@ public class SnapshotBuilderService {
       throw new BadRequestException("No parents found for concept %s".formatted(conceptId));
     }
 
-    return new SnapshotBuilderGetConceptHierarchyResponse().result(moveRootToFirst(parents));
-  }
-
-  /** Given a list of hierarchy parents, find the root and move it to the first entry. */
-  @VisibleForTesting
-  static List<SnapshotBuilderParentConcept> moveRootToFirst(
-      Map<Integer, SnapshotBuilderParentConcept> parents) {
-    // Collect all children IDs
-    var childrenIds =
-        parents.values().stream()
-            .flatMap(p -> p.getChildren().stream().map(SnapshotBuilderConcept::getId))
-            .collect(Collectors.toSet());
-    // The root ID is the one parent that is not the child of any other parent.
-    var rootId =
-        parents.keySet().stream().filter(k -> !childrenIds.contains(k)).findFirst().orElseThrow();
-    // Put the root first in the list of parents.
-    var result = new ArrayList<SnapshotBuilderParentConcept>();
-    result.add(parents.get(rootId));
-    parents.entrySet().stream()
-        .filter(entry -> !entry.getKey().equals(rootId))
-        .map(Map.Entry::getValue)
-        .forEach(result::add);
-    return result;
+    return new SnapshotBuilderGetConceptHierarchyResponse().result(List.copyOf(parents.values()));
   }
 }

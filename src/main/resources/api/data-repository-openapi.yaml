@@ -4650,8 +4650,8 @@ paths:
         - datasets
         - repository
       description: >
-        Given a concept ID, return the root of the tree of concepts that contain this concept.
-        For each element in the path, all sibling concepts are returned.
+        Given a concept ID, return the tree of concepts that contain this concept. A tree
+        is represented as a list of parent IDs and their children, which are concepts.
       operationId: getConceptHierarchy
       parameters:
         - in: path

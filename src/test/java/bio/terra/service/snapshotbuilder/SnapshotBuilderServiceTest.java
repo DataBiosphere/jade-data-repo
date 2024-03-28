@@ -352,17 +352,4 @@ class SnapshotBuilderServiceTest {
                             .parentId(concept1.getId())
                             .children(List.of(concept3))))));
   }
-
-  @Test
-  void moveRootToFirst() {
-    // Use a TreeMap to ensure that the root concept is last. With HashMap, the order is not fixed.
-    Map<Integer, SnapshotBuilderParentConcept> parents = new TreeMap<>();
-    parents.put(2, new SnapshotBuilderParentConcept().parentId(2).children(List.of()));
-    parents.put(
-        1, new SnapshotBuilderParentConcept().parentId(1).children(List.of(concept("child", 2))));
-
-    var result = SnapshotBuilderService.moveRootToFirst(parents);
-
-    assertThat(result.get(0).getParentId(), is(1));
-  }
 }

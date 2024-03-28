@@ -21,6 +21,16 @@ public class ConceptChildrenQueryBuilder {
 
   private ConceptChildrenQueryBuilder() {}
 
+  /**
+   * Generate a query that retrieves the children of the given concept and their roll-up counts.
+   *
+   * <p>SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count FROM `concept`
+   * AS cc JOIN `concept_ancestor` AS ca ON cc.concept_id = ca.ancestor_concept_id JOIN
+   * `'domain'_occurrence` AS co ON co.'domain'_concept_id = ca.descendant_concept_id WHERE
+   * (c.concept_id IN (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE
+   * c.ancestor_concept_id = conceptId) AND c.concept_id != conceptId) GROUP BY cc.concept_id,
+   * cc.concept_name ORDER BY cc.concept_name ASC
+   */
   public static String buildConceptChildrenQuery(
       SnapshotBuilderDomainOption domainOption,
       int conceptId,
@@ -90,30 +100,20 @@ public class ConceptChildrenQueryBuilder {
 
     // WHERE c.ancestor_concept_id = conceptId AND d.descendant_concept_id != conceptId
     List<FilterVariable> clauses = List.of(ancestorClause, notSelfClause);
-    BooleanAndOrFilterVariable whereClause =
+    BooleanAndOrFilterVariable subqueryWhereClause =
         new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, clauses);
 
     // (SELECT c.descendant_concept_id FROM concept_ancestor AS c
     // WHERE c.ancestor_concept_id = conceptId)
     Query subQuery =
-        new Query(List.of(descendantFieldVariable), List.of(ancestorTableVariable), whereClause);
+        new Query(
+            List.of(descendantFieldVariable), List.of(ancestorTableVariable), subqueryWhereClause);
 
     // WHERE c.concept_id IN subQuery
-    SubQueryFilterVariable subQueryFilterVariable =
+    SubQueryFilterVariable mainWhereClause =
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
 
-    // SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count
-    // FROM `concept` AS cc
-    // JOIN `concept_ancestor` AS ca
-    // ON  cc.concept_id = ca.ancestor_concept_id
-    // JOIN `'domain'_occurrence` AS co
-    // ON co.'domain'_concept_id = ca.descendant_concept_id
-    // WHERE ca.ancestor_concept_id IN
-    // (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE c.ancestor_concept_id =
-    // conceptId)
-    // GROUP BY cc.concept_id, cc.concept_name
-    // ORDER BY cc.concept_name ASC
-    Query query = new Query(select, tables, subQueryFilterVariable, groupBy, orderBy);
+    Query query = new Query(select, tables, mainWhereClause, groupBy, orderBy);
     return query.renderSQL(platform);
   }
 

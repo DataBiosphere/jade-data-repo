@@ -92,6 +92,8 @@ public class SnapshotBuilderService {
     CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
 
+    // domain is needed to join with the domain specific occurrence table
+    // this does not work for the metadata domain
     String domainId = queryForDomainId(conceptId, tableNameGenerator, cloudPlatform, dataset);
     SnapshotBuilderDomainOption domainOption = getDomainOptionFromSettings(domainId, datasetId);
 

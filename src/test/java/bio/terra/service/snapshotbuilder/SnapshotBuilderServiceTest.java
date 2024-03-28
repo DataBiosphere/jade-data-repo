@@ -129,7 +129,7 @@ class SnapshotBuilderServiceTest {
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(settings);
 
-    var concept = new SnapshotBuilderConcept().name("concept1").id(1);
+    var concept = new SnapshotBuilderConcept().name("childConcept").id(2);
     mockRunQueryForGetConcepts(cloudPlatform, concept, dataset, "domainId");
 
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);

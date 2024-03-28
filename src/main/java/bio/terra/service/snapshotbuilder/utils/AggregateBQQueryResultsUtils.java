@@ -9,7 +9,9 @@ public class AggregateBQQueryResultsUtils {
   public static SnapshotBuilderConcept toConcept(FieldValueList row) {
     int count;
     try {
-      count = SnapshotBuilderService.fuzzyLowCount((int) row.get("count").getLongValue()); // If exists, use its value
+      count =
+          SnapshotBuilderService.fuzzyLowCount(
+              (int) row.get("count").getLongValue()); // If exists, use its value
     } catch (IllegalArgumentException e) {
       count = 1;
     }

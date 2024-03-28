@@ -7498,6 +7498,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - values
           properties:
             values:
               type: array
@@ -7509,6 +7511,9 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - low
+            - high
           properties:
             low:
               type: integer
@@ -7520,6 +7525,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            -conceptId
           properties:
             conceptId:
               type: integer

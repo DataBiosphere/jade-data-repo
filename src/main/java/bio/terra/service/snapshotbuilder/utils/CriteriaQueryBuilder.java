@@ -64,14 +64,11 @@ public class CriteriaQueryBuilder {
                 new Literal(rangeCriteria.getHigh()))));
   }
 
-  FilterVariable selectAllValuesOfListCriteria() {
-    return platform -> "1=1";
-  }
-
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
 
     if (listCriteria.getValues().isEmpty()) {
-      return selectAllValuesOfListCriteria();
+      // select all values of list criteria
+      return FilterVariable.alwaysTrueFilter();
     }
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,

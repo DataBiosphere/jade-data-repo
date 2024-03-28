@@ -70,7 +70,7 @@ public class CriteriaQueryBuilder {
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
 
-    if (listCriteria.getValues() == null || listCriteria.getValues().isEmpty()) {
+    if (listCriteria.getValues().isEmpty()) {
       return selectAllValuesOfListCriteria();
     }
     return new FunctionFilterVariable(
@@ -150,10 +150,6 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateAndOrFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
-    if (criteriaGroup.getCriteria() == null) {
-      throw new NullPointerException(
-          "Unable to generate filter when criteriaGroup's criteria is null");
-    }
     return new BooleanAndOrFilterVariable(
         Objects.requireNonNullElse(criteriaGroup.isMeetAll(), false)
             ? BooleanAndOrFilterVariable.LogicalOperator.AND

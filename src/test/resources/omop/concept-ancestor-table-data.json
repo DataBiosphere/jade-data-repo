@@ -3,3 +3,5 @@
 {"descendant_concept_id": 2, "ancestor_concept_id": 2}
 {"descendant_concept_id": 1, "ancestor_concept_id": 1}
 {"descendant_concept_id": 3, "ancestor_concept_id": 3}
+{"descendant_concept_id": 4, "ancestor_concept_id": 3}
+{"descendant_concept_id": 4, "ancestor_concept_id": 4}

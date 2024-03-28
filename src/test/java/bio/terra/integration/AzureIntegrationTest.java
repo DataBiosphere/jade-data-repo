@@ -369,9 +369,9 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestOmopTable("concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 5);
-    ingestOmopTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 6);
+    ingestOmopTable("concept", "omop/concept-table-data.json", 4);
+    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
+    ingestOmopTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 7);
   }
 
   @Test

@@ -308,10 +308,10 @@ public class BigQueryPdaoTest {
     settingsDao.upsertSnapshotBuilderSettingsByDataset(dataset.getId(), settings);
 
     // Stage tabular data for ingest.
-    ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 5);
+    ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 4);
+    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
     ingestOmopTable(
-        dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 6);
+        dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 7);
 
     return dataset;
   }

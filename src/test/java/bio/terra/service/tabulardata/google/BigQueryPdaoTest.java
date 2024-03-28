@@ -27,7 +27,6 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -326,9 +325,14 @@ public class BigQueryPdaoTest {
     var dataset = stageOmopDataset();
     var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
     var concepts = conceptResponse.getResult();
+    assertThat(concepts.size(), is(equalTo(2)));
+    var concept1 = concepts.get(0);
+    var concept3 = concepts.get(1);
 
-    assertThat(
-        concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
+    assertThat(concept1.getId(), is(equalTo(1)));
+    assertThat(concept1.getCount(), is(equalTo(1)));
+    assertThat(concept3.getId(), is(equalTo(3)));
+    assertThat(concept3.getCount(), is(equalTo(3)));
   }
 
   @Test

@@ -55,7 +55,6 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
@@ -107,6 +106,7 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -370,7 +370,8 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Ingest Tabular data
     ingestOmopTable("concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 5);
+    ingestOmopTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 6);
   }
 
   @Test
@@ -379,12 +380,15 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Test getConcepts
     var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
-    List<String> getConceptNames =
-        getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat(
-        "expected concepts are returned",
-        getConceptNames,
-        containsInAnyOrder("concept1", "concept3"));
+    var concepts = getConceptResponse.getResult();
+
+    var concept1 = concepts.get(0);
+    var concept3 = concepts.get(1);
+
+    assertThat(concept1.getId(), CoreMatchers.is(equalTo(1)));
+    assertThat(concept1.getCount(), CoreMatchers.is(equalTo(1)));
+    assertThat(concept3.getId(), CoreMatchers.is(equalTo(3)));
+    assertThat(concept3.getCount(), CoreMatchers.is(equalTo(3)));
 
     // TODO - re-enable this test
     // Test searchConcepts

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import com.google.cloud.bigquery.FieldValueList;
 
 public class AggregateBQQueryResultsUtils {
@@ -8,7 +9,7 @@ public class AggregateBQQueryResultsUtils {
   public static SnapshotBuilderConcept toConcept(FieldValueList row) {
     int count;
     try {
-      count = (int) row.get("count").getLongValue(); // If exists, use its value
+      count = SnapshotBuilderService.fuzzyLowCount((int) row.get("count").getLongValue()); // If exists, use its value
     } catch (IllegalArgumentException e) {
       count = 1;
     }

@@ -2,6 +2,7 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -10,7 +11,7 @@ public class AggregateSynapseQueryResultsUtils {
   public static SnapshotBuilderConcept aggregateConceptResult(ResultSet rs) {
     int count;
     try {
-      count = (int) rs.getLong("count");
+      count = SnapshotBuilderService.fuzzyLowCount((int) rs.getLong("count"));
     } catch (SQLException | IllegalArgumentException e) {
       count = 1;
     }

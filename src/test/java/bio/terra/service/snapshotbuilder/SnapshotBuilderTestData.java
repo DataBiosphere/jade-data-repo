@@ -173,7 +173,6 @@ public class SnapshotBuilderTestData {
 
   public static SnapshotBuilderCohort createCohort() {
 
-
     return new SnapshotBuilderCohort()
         .name("cohort")
         .addCriteriaGroupsItem(
@@ -191,8 +190,7 @@ public class SnapshotBuilderTestData {
                         .low(1950)
                         .high(2000)
                         .id(1)
-                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
-                ));
+                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
   }
 
   public static SnapshotBuilderRequest createSnapshotBuilderRequest() {

@@ -22,9 +22,9 @@ class ConceptChildrenQueryBuilderTest {
         """
         SELECT c.concept_name, c.concept_id
         FROM concept AS c
-        WHERE c.concept_id IN
-          (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-          WHERE c.ancestor_concept_id = 101)""";
+        WHERE (c.concept_id IN
+          (SELECT c.concept_id_2 FROM concept_relationship AS c
+          WHERE (c.concept_id_1 = 101 AND c.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')""";
     assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
   }
 }

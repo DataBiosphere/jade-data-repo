@@ -310,7 +310,7 @@ public class BigQueryPdaoTest {
 
     // Stage tabular data for ingest.
     ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 3);
+    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 5);
     ingestOmopTable(
         dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 6);
 

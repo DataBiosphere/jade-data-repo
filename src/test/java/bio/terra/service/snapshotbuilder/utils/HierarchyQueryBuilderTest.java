@@ -23,7 +23,7 @@ class HierarchyQueryBuilderTest {
             WHERE
               (c.concept_id_1 IN (SELECT c.ancestor_concept_id FROM concept_ancestor AS c
                                   WHERE (c.descendant_concept_id = 1 AND c.ancestor_concept_id != 1))
-              AND c.relationship_id = 'Subsumes' AND c1.standard_concept IS NOT NULL AND c0.standard_concept IS NOT NULL)""";
+              AND c.relationship_id = 'Subsumes' AND c1.standard_concept = 'S' AND c0.standard_concept = 'S')""";
     assertThat(query.renderSQL(null), equalToCompressingWhiteSpace(expected));
   }
 }

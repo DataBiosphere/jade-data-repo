@@ -172,6 +172,8 @@ public class SnapshotBuilderTestData {
                               new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
 
   public static SnapshotBuilderCohort createCohort() {
+
+
     return new SnapshotBuilderCohort()
         .name("cohort")
         .addCriteriaGroupsItem(
@@ -186,8 +188,11 @@ public class SnapshotBuilderTestData {
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataRangeCriteria()
+                        .low(1950)
+                        .high(2000)
                         .id(1)
-                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
+                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                ));
   }
 
   public static SnapshotBuilderRequest createSnapshotBuilderRequest() {

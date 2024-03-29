@@ -371,7 +371,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Ingest Tabular data
     ingestOmopTable("concept", "omop/concept-table-data.json", 4);
     ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
-    ingestOmopTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 7);
+    ingestOmopTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
   }
 
   @Test
@@ -386,9 +386,9 @@ public class AzureIntegrationTest extends UsersBase {
     var concept3 = concepts.get(1);
 
     assertThat(concept1.getId(), CoreMatchers.is(equalTo(1)));
-    assertThat(concept1.getCount(), CoreMatchers.is(equalTo(1)));
+    assertThat(concept1.getCount(), CoreMatchers.is(equalTo(22)));
     assertThat(concept3.getId(), CoreMatchers.is(equalTo(3)));
-    assertThat(concept3.getCount(), CoreMatchers.is(equalTo(3)));
+    assertThat(concept3.getCount(), CoreMatchers.is(equalTo(24)));
 
     // TODO - re-enable this test
     // Test searchConcepts

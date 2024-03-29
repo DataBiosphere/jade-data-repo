@@ -311,7 +311,7 @@ public class BigQueryPdaoTest {
     ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 4);
     ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
     ingestOmopTable(
-        dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 7);
+        dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
 
     return dataset;
   }
@@ -330,9 +330,9 @@ public class BigQueryPdaoTest {
     var concept3 = concepts.get(1);
 
     assertThat(concept1.getId(), is(equalTo(1)));
-    assertThat(concept1.getCount(), is(equalTo(1)));
+    assertThat(concept1.getCount(), is(equalTo(22)));
     assertThat(concept3.getId(), is(equalTo(3)));
-    assertThat(concept3.getCount(), is(equalTo(3)));
+    assertThat(concept3.getCount(), is(equalTo(24)));
   }
 
   @Test

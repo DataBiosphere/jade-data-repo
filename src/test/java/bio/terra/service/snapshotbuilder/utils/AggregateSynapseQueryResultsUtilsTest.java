@@ -25,7 +25,7 @@ class AggregateSynapseQueryResultsUtilsTest {
 
     assertThat(
         "rollupCountsMapper converts table result to list of ints",
-        AggregateSynapseQueryResultsUtils.rollupCountsMapper(rs),
+        AggregateSynapseQueryResultsUtils.toCount(rs),
         equalTo(5));
   }
 
@@ -36,7 +36,7 @@ class AggregateSynapseQueryResultsUtilsTest {
 
     assertThrows(
         ProcessResultSetException.class,
-        () -> AggregateSynapseQueryResultsUtils.rollupCountsMapper(rs),
+        () -> AggregateSynapseQueryResultsUtils.toCount(rs),
         "Error processing result set into SnapshotBuilderConcept model");
   }
 

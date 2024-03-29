@@ -44,4 +44,8 @@ public class SubQueryFilterVariable implements FilterVariable {
       return sql;
     }
   }
+
+  public static SubQueryFilterVariable in(FieldVariable fieldVariable, Query subQuery) {
+    return new SubQueryFilterVariable(fieldVariable, Operator.IN, subQuery);
+  }
 }

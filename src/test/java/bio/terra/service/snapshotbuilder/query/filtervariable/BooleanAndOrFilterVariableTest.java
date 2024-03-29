@@ -6,8 +6,6 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
-import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
@@ -26,17 +24,15 @@ class BooleanAndOrFilterVariableTest {
     TableVariable table2 = TableVariable.forPrimary(QueryTestUtils.fromTableName("table2"));
     TableVariable.generateAliases(List.of(table1, table2));
     variable =
-        new BooleanAndOrFilterVariable(
-            BooleanAndOrFilterVariable.LogicalOperator.AND,
-            List.of(
-                new BinaryFilterVariable(
-                    new FieldVariable(new FieldPointer(null, "field1"), table1),
-                    BinaryFilterVariable.BinaryOperator.EQUALS,
-                    new Literal("value1")),
-                new BinaryFilterVariable(
-                    new FieldVariable(new FieldPointer(null, "field2"), table2),
-                    BinaryFilterVariable.BinaryOperator.EQUALS,
-                    new Literal("value2"))));
+        BooleanAndOrFilterVariable.and(
+            new BinaryFilterVariable(
+                table1.makeFieldVariable("field1"),
+                BinaryFilterVariable.BinaryOperator.EQUALS,
+                new Literal("value1")),
+            new BinaryFilterVariable(
+                table2.makeFieldVariable("field2"),
+                BinaryFilterVariable.BinaryOperator.EQUALS,
+                new Literal("value2")));
   }
 
   @ParameterizedTest
@@ -49,10 +45,8 @@ class BooleanAndOrFilterVariableTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
-  void renderSQLWorksWithNoSubqueries(CloudPlatform platform) {
+  void renderSQLWorksWithNoSubQueries(CloudPlatform platform) {
     assertThat(
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, List.of())
-            .renderSQL(CloudPlatformWrapper.of(platform)),
-        is("1=1"));
+        BooleanAndOrFilterVariable.and().renderSQL(CloudPlatformWrapper.of(platform)), is("1=1"));
   }
 }

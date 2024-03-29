@@ -3,14 +3,13 @@ package bio.terra.service.snapshotbuilder.query;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
 import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.stringtemplate.v4.ST;
 
 public record Query(
-    List<FieldVariable> select,
+    List<SelectExpression> select,
     List<TableVariable> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
@@ -39,26 +38,29 @@ public record Query(
     }
   }
 
-  public Query(List<FieldVariable> select, List<TableVariable> tables) {
+  public Query(List<SelectExpression> select, List<TableVariable> tables) {
     this(select, tables, null, null, null, null, null);
   }
 
   public Query(
-      List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
+      List<SelectExpression> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
     this(select, tables, null, groupBy, null, null, null);
   }
 
-  public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
+  public Query(List<SelectExpression> select, List<TableVariable> tables, FilterVariable where) {
     this(select, tables, where, null, null, null, null);
   }
 
   public Query(
-      List<FieldVariable> select, List<TableVariable> tables, FilterVariable where, Integer limit) {
+      List<SelectExpression> select,
+      List<TableVariable> tables,
+      FilterVariable where,
+      Integer limit) {
     this(select, tables, where, null, null, null, limit);
   }
 
   public Query(
-      List<FieldVariable> select,
+      List<SelectExpression> select,
       List<TableVariable> tables,
       FilterVariable where,
       List<FieldVariable> groupBy,
@@ -84,7 +86,6 @@ public record Query(
     // render each SELECT FieldVariable and join them into a single string
     String selectSQL =
         select.stream()
-            .sorted(Comparator.comparing(FieldVariable::getAlias))
             .map(fieldVar -> fieldVar.renderSQL(platform))
             .collect(Collectors.joining(", "));
 
@@ -162,10 +163,6 @@ public record Query(
     }
 
     return "SELECT " + sql;
-  }
-
-  public List<FieldVariable> getSelect() {
-    return List.copyOf(select);
   }
 
   public TableVariable getPrimaryTable() {

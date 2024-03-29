@@ -59,6 +59,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -1886,5 +1887,28 @@ public class DataRepoFixtures {
         "search concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
+  }
+
+  public void updateDatasetSnapshotBuilderSettings(
+      TestConfiguration.User user, UUID datasetId, String snapshotBuilderFileName)
+      throws Exception {
+    // Confirm settings are correctly formatted by loading the json file into the settings class
+    SnapshotBuilderSettings settings =
+        jsonLoader.loadObject(snapshotBuilderFileName, SnapshotBuilderSettings.class);
+
+    DataRepoResponse<DatasetModel> response =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/settings",
+            TestUtils.mapToJson(settings),
+            new TypeReference<>() {});
+    assertThat(
+        "updateDatasetSnapshotBuilderSettings job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue(
+        "updateDatasetSnapshotBuilderSettings response is present",
+        response.getResponseObject().isPresent());
+    response.getResponseObject().get();
   }
 }

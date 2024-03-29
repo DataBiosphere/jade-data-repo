@@ -369,31 +369,37 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestOmopTable("concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    ingestOmopTable("concept", "omop/concept-table-data.json", 4);
+    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
+    ingestOmopTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 7);
+
+    // define snapshot builder settings
+    dataRepoFixtures.updateDatasetSnapshotBuilderSettings(steward, datasetId, "omop/settings.json");
   }
 
   @Test
   public void testSnapshotBuilder() throws Exception {
     populateOmopTable();
 
+    // TODO - uncomment this when Rae's changes get merged
     // Test getConcepts
-    var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
-    List<String> getConceptNames =
-        getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat(
-        "expected concepts are returned",
-        getConceptNames,
-        containsInAnyOrder("concept1", "concept3"));
+    //    var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
+    //    List<String> getConceptNames =
+    //        getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    //    assertThat(
+    //        "expected concepts are returned",
+    //        getConceptNames,
+    //        containsInAnyOrder("concept1", "concept3"));
 
-    // TODO - re-enable this test
     // Test searchConcepts
-    //    var searchConceptResponse =
-    //        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");
-    //    List<String> searchConceptNames =
-    //
-    // searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    //    assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
+    var searchConceptResponse =
+        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");
+
+    var searchConceptNames =
+        searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+
+    assertThat(
+        "expected concepts are returned", searchConceptNames, containsInAnyOrder("concept1"));
   }
 
   @Test

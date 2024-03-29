@@ -21,6 +21,15 @@ public class ConceptChildrenQueryBuilder {
 
   private ConceptChildrenQueryBuilder() {}
 
+  private static final String CONCEPT = "concept";
+  private static final String CONCEPT_ANCESTOR = "concept_ancestor";
+  private static final String PERSON_ID = "person_id";
+  private static final String DOMAIN_ID = "domain_id";
+  private static final String CONCEPT_ID = "concept_id";
+  private static final String CONCEPT_NAME = "concept_name";
+  private static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
+  private static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
+
   /**
    * Generate a query that retrieves the children of the given concept and their roll-up counts.
    *
@@ -38,19 +47,18 @@ public class ConceptChildrenQueryBuilder {
       CloudPlatformWrapper platform) {
 
     // concept table and its fields concept_name and concept_id
-    var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    var conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    var nameFieldVariable = conceptTableVariable.makeFieldVariable("concept_name");
-    var idFieldVariable = conceptTableVariable.makeFieldVariable("concept_id");
+    var nameFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_NAME);
+    var idFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_ID);
 
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id
     var conceptAncestorTablePointer =
-        TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
+        TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
     var conceptAncestorTableVariable =
-        TableVariable.forJoined(
-            conceptAncestorTablePointer, "ancestor_concept_id", idFieldVariable);
+        TableVariable.forJoined(conceptAncestorTablePointer, ANCESTOR_CONCEPT_ID, idFieldVariable);
     var descendantIdFieldVariable =
-        conceptAncestorTableVariable.makeFieldVariable("descendant_concept_id");
+        conceptAncestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
@@ -63,8 +71,7 @@ public class ConceptChildrenQueryBuilder {
     // COUNT(DISTINCT person_id)
     var countFieldVariable =
         new FieldVariable(
-            new FieldPointer(
-                domainOccurrenceTablePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
+            new FieldPointer(domainOccurrenceTablePointer, PERSON_ID, "COUNT"),
             domainOccurenceTableVariable,
             "count",
             true);
@@ -80,21 +87,21 @@ public class ConceptChildrenQueryBuilder {
         List.of(new OrderByVariable(nameFieldVariable, OrderByDirection.ASCENDING));
 
     // ancestorTable is primary table for the subquery
-    var ancestorTablePointer = TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
+    var ancestorTablePointer = TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
     var ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
-    var descendantFieldVariable = ancestorTableVariable.makeFieldVariable("descendant_concept_id");
+    var descendantFieldVariable = ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // WHERE c.ancestor_concept_id = conceptId
     BinaryFilterVariable ancestorClause =
         new BinaryFilterVariable(
-            ancestorTableVariable.makeFieldVariable("ancestor_concept_id"),
+            ancestorTableVariable.makeFieldVariable(ANCESTOR_CONCEPT_ID),
             BinaryFilterVariable.BinaryOperator.EQUALS,
             new Literal(conceptId));
 
     // WHERE d.descendant_concept_id != conceptId
     BinaryFilterVariable notSelfClause =
         new BinaryFilterVariable(
-            ancestorTableVariable.makeFieldVariable("descendant_concept_id"),
+            ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID),
             BinaryFilterVariable.BinaryOperator.NOT_EQUALS,
             new Literal(conceptId));
 
@@ -119,12 +126,12 @@ public class ConceptChildrenQueryBuilder {
 
   public static String retrieveDomainId(
       Integer conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    TablePointer conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldVariable domainIdFieldVariable = conceptTableVariable.makeFieldVariable("domain_id");
+    FieldVariable domainIdFieldVariable = conceptTableVariable.makeFieldVariable(DOMAIN_ID);
     BinaryFilterVariable whereClause =
         new BinaryFilterVariable(
-            conceptTableVariable.makeFieldVariable("concept_id"),
+            conceptTableVariable.makeFieldVariable(CONCEPT_ID),
             BinaryFilterVariable.BinaryOperator.EQUALS,
             new Literal(conceptId));
 

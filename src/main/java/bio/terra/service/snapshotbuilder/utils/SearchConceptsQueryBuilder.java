@@ -28,16 +28,24 @@ public class SearchConceptsQueryBuilder {
       TableNameGenerator tableNameGenerator,
       CloudPlatformWrapper platform) {
     var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
+    var conceptAncestorPointer = TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
     var domainOccurrencePointer =
         TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     var nameField = conceptTableVariable.makeFieldVariable("concept_name");
     var idField = conceptTableVariable.makeFieldVariable("concept_id");
 
-    // FROM concept JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
-    // concept.concept_id
+    // FROM concept JOIN concept_ancestor ON ancestor_concept_id = concept.concept_id
+    var conceptAncestorTableVariable =
+        TableVariable.forJoined(conceptAncestorPointer, "ancestor_concept_id", idField);
+    var descendantIdFieldVariable =
+        conceptAncestorTableVariable.makeFieldVariable("descendant_concept_id");
+
+    // LEFT JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
+    // concept_ancestor.descendant_concept_id
     var domainOccurenceTableVariable =
-        TableVariable.forLeftJoined(domainOccurrencePointer, domainOption.getColumnName(), idField);
+        TableVariable.forLeftJoined(
+            domainOccurrencePointer, domainOption.getColumnName(), descendantIdFieldVariable);
 
     var countField =
         new FieldVariable(
@@ -53,7 +61,8 @@ public class SearchConceptsQueryBuilder {
 
     List<FieldVariable> select = List.of(nameField, idField, countField);
 
-    List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable);
+    List<TableVariable> tables =
+        List.of(conceptTableVariable, conceptAncestorTableVariable, domainOccurenceTableVariable);
 
     List<OrderByVariable> orderBy =
         List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));

@@ -270,7 +270,7 @@ class SnapshotBuilderServiceTest {
   void fuzzyLowCount(int rollupCount, int expectedFuzzyLowCount) {
     assertThat(
         "fuzzyLowCount should match rollup count unless rollup count is between 1 and 19, inclusive. Then, it should return 19.",
-        snapshotBuilderService.fuzzyLowCount(rollupCount),
+        SnapshotBuilderService.fuzzyLowCount(rollupCount),
         equalTo(expectedFuzzyLowCount));
   }
 

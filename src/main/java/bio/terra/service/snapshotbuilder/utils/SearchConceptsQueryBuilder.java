@@ -9,6 +9,7 @@ import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
@@ -51,7 +52,7 @@ public class SearchConceptsQueryBuilder {
     var domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getName());
 
-    List<FieldVariable> select = List.of(nameField, idField, countField);
+    List<SelectExpression> select = List.of(nameField, idField, countField);
 
     List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable);
 

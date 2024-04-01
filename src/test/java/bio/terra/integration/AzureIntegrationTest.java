@@ -106,7 +106,6 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -385,12 +384,11 @@ public class AzureIntegrationTest extends UsersBase {
     var concept1 = concepts.get(0);
     var concept3 = concepts.get(1);
 
-    assertThat(concept1.getId(), CoreMatchers.is(equalTo(1)));
-    assertThat(concept1.getCount(), CoreMatchers.is(equalTo(22)));
-    assertThat(concept3.getId(), CoreMatchers.is(equalTo(3)));
-    assertThat(concept3.getCount(), CoreMatchers.is(equalTo(24)));
+    assertThat(concept1.getId(), is(1));
+    assertThat(concept1.getCount(), is(22));
+    assertThat(concept3.getId(), is(3));
+    assertThat(concept3.getCount(), is(24));
 
-    // TODO - re-enable this test
     // Test searchConcepts
     //    var searchConceptResponse =
     //        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");

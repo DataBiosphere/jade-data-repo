@@ -130,7 +130,7 @@ class SnapshotBuilderServiceTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
-  public void getConceptChildren(CloudPlatform cloudPlatform) {
+  void getConceptChildren(CloudPlatform cloudPlatform) {
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
 
@@ -188,15 +188,20 @@ class SnapshotBuilderServiceTest {
   private void mockRunQueryForSearchConcepts(
       CloudPlatform cloudPlatform, List<SnapshotBuilderConcept> concepts, Dataset dataset) {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
-    if (cloudPlatformWrapper.isGcp()) {
-      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
-      when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
-          .thenReturn(concepts);
-    } else {
-      when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
-          .thenReturn("dataSource");
-      when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
-    }
+    cloudPlatformWrapper.choose(
+        () -> {
+          when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
+          when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
+              .thenReturn(concepts);
+          return null;
+        },
+        () -> {
+          when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+              .thenReturn("dataSource");
+          when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any()))
+              .thenReturn(concepts);
+          return null;
+        });
   }
 
   private void mockRunQueryForGetConcepts(
@@ -205,18 +210,22 @@ class SnapshotBuilderServiceTest {
       Dataset dataset,
       String domainId) {
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
-    if (cloudPlatformWrapper.isGcp()) {
-      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
-      when(bigQueryDatasetPdao.runQuery(any(), any(), any()))
-          .thenReturn(List.of(domainId))
-          .thenReturn(List.of(concept));
-    } else {
-      when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
-          .thenReturn("dataSource");
-      when(azureSynapsePdao.runQuery(any(), any()))
-          .thenReturn(List.of(domainId))
-          .thenReturn(List.of(concept));
-    }
+    cloudPlatformWrapper.choose(
+        () -> {
+          when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
+          when(bigQueryDatasetPdao.runQuery(any(), any(), any()))
+              .thenReturn(List.of(domainId))
+              .thenReturn(List.of(concept));
+          return null;
+        },
+        () -> {
+          when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+              .thenReturn("dataSource");
+          when(azureSynapsePdao.runQuery(any(), any()))
+              .thenReturn(List.of(domainId))
+              .thenReturn(List.of(concept));
+          return null;
+        });
   }
 
   @Test

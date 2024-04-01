@@ -88,9 +88,11 @@ public class ConceptChildrenQueryBuilder {
         List.of(new OrderByVariable(nameFieldVariable, OrderByDirection.ASCENDING));
 
     // ancestorTable is primary table for the subquery
-    TablePointer ancestorTablePointer = TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
+    TablePointer ancestorTablePointer =
+        TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
     TableVariable ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
-    FieldVariable descendantFieldVariable = ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+    FieldVariable descendantFieldVariable =
+        ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // WHERE c.ancestor_concept_id = conceptId
     BinaryFilterVariable ancestorClause =

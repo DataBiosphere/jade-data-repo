@@ -285,7 +285,7 @@ public class BigQueryPdaoTest {
     }
   }
 
-  private void ingestOmopTable(
+  private void ingestTable(
       Dataset dataset, String tableName, String ingestFile, int expectedRowCount) throws Exception {
     List<Map<String, Object>> data =
         jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
@@ -308,9 +308,9 @@ public class BigQueryPdaoTest {
     settingsDao.upsertSnapshotBuilderSettingsByDataset(dataset.getId(), settings);
 
     // Stage tabular data for ingest.
-    ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 4);
-    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
-    ingestOmopTable(
+    ingestTable(dataset, "concept", "omop/concept-table-data.json", 4);
+    ingestTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
+    ingestTable(
         dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
 
     return dataset;

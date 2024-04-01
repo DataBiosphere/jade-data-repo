@@ -118,26 +118,34 @@ public class ConceptChildrenQueryBuilder {
             List.of(descendantFieldVariable), List.of(ancestorTableVariable), subqueryWhereClause);
 
     // WHERE c.concept_id IN subQuery
-    SubQueryFilterVariable mainWhereClause =
+    SubQueryFilterVariable where =
         new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
 
-    Query query = new Query(select, tables, mainWhereClause, groupBy, orderBy);
+    Query query = new Query(select, tables, where, groupBy, orderBy);
     return query.renderSQL(platform);
   }
 
+  /**
+   * Generate a query that retrieves the domain id of the concept specified by the given conceptId.
+   *
+   * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
+   */
   public static String retrieveDomainId(
       Integer conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
     TablePointer conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     FieldVariable domainIdFieldVariable = conceptTableVariable.makeFieldVariable(DOMAIN_ID);
-    BinaryFilterVariable whereClause =
+
+    BinaryFilterVariable where =
         new BinaryFilterVariable(
             conceptTableVariable.makeFieldVariable(CONCEPT_ID),
             BinaryFilterVariable.BinaryOperator.EQUALS,
             new Literal(conceptId));
 
-    Query query =
-        new Query(List.of(domainIdFieldVariable), List.of(conceptTableVariable), whereClause);
+    List<SelectExpression> select = List.of(domainIdFieldVariable);
+    List<TableVariable> table = List.of(conceptTableVariable);
+
+    Query query = new Query(select, table, where);
     return query.renderSQL(platform);
   }
 }

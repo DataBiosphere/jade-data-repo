@@ -27,6 +27,6 @@ public class AggregateBQQueryResultsUtils {
   }
 
   public static String toDomainId(FieldValueList row) {
-    return row.get(0).getStringValue();
+    return row.get("domain_id").getStringValue();
   }
 }

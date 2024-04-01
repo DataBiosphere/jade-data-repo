@@ -344,7 +344,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
-  private void ingestOmopTable(String tableName, String ingestFile, long expectedRowCount)
+  private void ingestTable(String tableName, String ingestFile, long expectedRowCount)
       throws Exception {
     List<Map<String, Object>> data;
     try {
@@ -369,9 +369,9 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestOmopTable("concept", "omop/concept-table-data.json", 4);
-    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
-    ingestOmopTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
+    ingestTable("concept", "omop/concept-table-data.json", 4);
+    ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
+    ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
   }
 
   @Test

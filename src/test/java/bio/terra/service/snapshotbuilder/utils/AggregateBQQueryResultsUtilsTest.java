@@ -4,8 +4,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -23,11 +26,13 @@ class AggregateBQQueryResultsUtilsTest {
   }
 
   @Test
-  void domainIdReturnsListOfString() {
+  void domainIdReturnsString() {
     FieldValueList row =
-        FieldValueList.of(List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "domain_id")));
+        FieldValueList.of(
+            List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "domain_id")),
+            FieldList.of(Field.of("domain_id", LegacySQLTypeName.STRING)));
     assertThat(
-        "domainId converts table result to list of String",
+        "toDomainId retrieves String from table result",
         AggregateBQQueryResultsUtils.toDomainId(row),
         equalTo("domain_id"));
   }

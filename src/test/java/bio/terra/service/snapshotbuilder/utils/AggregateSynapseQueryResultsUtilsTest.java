@@ -41,20 +41,20 @@ class AggregateSynapseQueryResultsUtilsTest {
   }
 
   @Test
-  void domainIdReturnsListOfString() throws SQLException {
+  void toDomainIdReturnsString() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString(1)).thenReturn("domain");
+    when(rs.getString("domain_id")).thenReturn("domain_id");
 
     assertThat(
         "domainId converts table result to list of string",
         AggregateSynapseQueryResultsUtils.toDomainId(rs),
-        equalTo("domain"));
+        equalTo("domain_id"));
   }
 
   @Test
-  void domainIdHandlesSQLException() throws SQLException {
+  void toDomainIdHandlesSQLException() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString(1)).thenThrow(new SQLException());
+    when(rs.getString("domain_id")).thenThrow(new SQLException());
 
     assertThrows(
         ProcessResultSetException.class,

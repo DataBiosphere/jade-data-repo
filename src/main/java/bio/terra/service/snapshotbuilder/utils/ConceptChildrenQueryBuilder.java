@@ -48,29 +48,29 @@ public class ConceptChildrenQueryBuilder {
       CloudPlatformWrapper platform) {
 
     // concept table and its fields concept_name and concept_id
-    var conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
-    var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    var nameFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_NAME);
-    var idFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_ID);
+    TablePointer conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
+    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
+    FieldVariable nameFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_NAME);
+    FieldVariable idFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_ID);
 
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id
-    var conceptAncestorTablePointer =
+    TablePointer conceptAncestorTablePointer =
         TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
-    var conceptAncestorTableVariable =
+    TableVariable conceptAncestorTableVariable =
         TableVariable.forJoined(conceptAncestorTablePointer, ANCESTOR_CONCEPT_ID, idFieldVariable);
-    var descendantIdFieldVariable =
+    FieldVariable descendantIdFieldVariable =
         conceptAncestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
-    var domainOccurrenceTablePointer =
+    TablePointer domainOccurrenceTablePointer =
         TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
-    var domainOccurenceTableVariable =
+    TableVariable domainOccurenceTableVariable =
         TableVariable.forJoined(
             domainOccurrenceTablePointer, domainOption.getColumnName(), descendantIdFieldVariable);
 
     // COUNT(DISTINCT person_id)
-    var countFieldVariable =
+    FieldVariable countFieldVariable =
         new FieldVariable(
             new FieldPointer(domainOccurrenceTablePointer, PERSON_ID, "COUNT"),
             domainOccurenceTableVariable,
@@ -88,9 +88,9 @@ public class ConceptChildrenQueryBuilder {
         List.of(new OrderByVariable(nameFieldVariable, OrderByDirection.ASCENDING));
 
     // ancestorTable is primary table for the subquery
-    var ancestorTablePointer = TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
-    var ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
-    var descendantFieldVariable = ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+    TablePointer ancestorTablePointer = TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
+    TableVariable ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
+    FieldVariable descendantFieldVariable = ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // WHERE c.ancestor_concept_id = conceptId
     BinaryFilterVariable ancestorClause =

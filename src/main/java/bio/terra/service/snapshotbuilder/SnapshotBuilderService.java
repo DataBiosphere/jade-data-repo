@@ -94,8 +94,9 @@ public class SnapshotBuilderService {
 
     // domain is needed to join with the domain specific occurrence table
     // this does not work for the metadata domain
-    String domainId = getDomainId(conceptId, tableNameGenerator, cloudPlatform, dataset);
-    SnapshotBuilderDomainOption domainOption = getDomainOptionFromSettings(domainId, datasetId);
+    String domainId = getDomainId(conceptId, tableNameGenerator, dataset);
+    SnapshotBuilderDomainOption domainOption =
+        getDomainOptionFromSettingsByName(domainId, datasetId);
 
     String cloudSpecificSql =
         ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
@@ -148,7 +149,7 @@ public class SnapshotBuilderService {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
-        getDomainOptionFromSettings(domainId, datasetId);
+        getDomainOptionFromSettingsByName(domainId, datasetId);
 
     String cloudSpecificSql =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
@@ -188,7 +189,8 @@ public class SnapshotBuilderService {
         .get(0);
   }
 
-  private SnapshotBuilderDomainOption getDomainOptionFromSettings(String domainId, UUID datasetId) {
+  private SnapshotBuilderDomainOption getDomainOptionFromSettingsByName(
+      String domainId, UUID datasetId) {
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
 
@@ -202,10 +204,8 @@ public class SnapshotBuilderService {
   }
 
   private String getDomainId(
-      Integer conceptId,
-      TableNameGenerator tableNameGenerator,
-      CloudPlatformWrapper cloudPlatform,
-      Dataset dataset) {
+      Integer conceptId, TableNameGenerator tableNameGenerator, Dataset dataset) {
+    CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     List<String> domainIdResult =
         runSnapshotBuilderQuery(
             ConceptChildrenQueryBuilder.retrieveDomainId(

@@ -94,7 +94,7 @@ public class SnapshotBuilderService {
 
     // domain is needed to join with the domain specific occurrence table
     // this does not work for the metadata domain
-    String domainId = queryForDomainId(conceptId, tableNameGenerator, cloudPlatform, dataset);
+    String domainId = getDomainId(conceptId, tableNameGenerator, cloudPlatform, dataset);
     SnapshotBuilderDomainOption domainOption = getDomainOptionFromSettings(domainId, datasetId);
 
     String cloudSpecificSql =
@@ -201,7 +201,7 @@ public class SnapshotBuilderService {
                     "Invalid domain category is given: %s".formatted(domainId)));
   }
 
-  private String queryForDomainId(
+  private String getDomainId(
       Integer conceptId,
       TableNameGenerator tableNameGenerator,
       CloudPlatformWrapper cloudPlatform,
@@ -211,8 +211,8 @@ public class SnapshotBuilderService {
             ConceptChildrenQueryBuilder.retrieveDomainId(
                 conceptId, tableNameGenerator, cloudPlatform),
             dataset,
-            AggregateBQQueryResultsUtils::domainId,
-            AggregateSynapseQueryResultsUtils::domainId);
+            AggregateBQQueryResultsUtils::toDomainId,
+            AggregateSynapseQueryResultsUtils::toDomainId);
     if (domainIdResult.size() == 1) {
       return domainIdResult.get(0);
     } else if (domainIdResult.isEmpty()) {

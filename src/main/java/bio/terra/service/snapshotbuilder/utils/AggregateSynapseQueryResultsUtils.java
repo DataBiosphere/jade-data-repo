@@ -39,7 +39,7 @@ public class AggregateSynapseQueryResultsUtils {
     }
   }
 
-  public static String domainId(ResultSet rs) {
+  public static String toDomainId(ResultSet rs) {
     try {
       // Azure ResultSet is 1 indexed
       // https://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html

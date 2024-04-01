@@ -70,7 +70,7 @@ public record Query(
   }
 
   public Query(
-      List<FieldVariable> select,
+      List<SelectExpression> select,
       List<TableVariable> tables,
       FilterVariable where,
       List<FieldVariable> groupBy,

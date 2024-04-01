@@ -47,7 +47,7 @@ class AggregateSynapseQueryResultsUtilsTest {
 
     assertThat(
         "domainId converts table result to list of string",
-        AggregateSynapseQueryResultsUtils.domainId(rs),
+        AggregateSynapseQueryResultsUtils.toDomainId(rs),
         equalTo("domain"));
   }
 
@@ -58,7 +58,7 @@ class AggregateSynapseQueryResultsUtilsTest {
 
     assertThrows(
         ProcessResultSetException.class,
-        () -> AggregateSynapseQueryResultsUtils.domainId(rs),
+        () -> AggregateSynapseQueryResultsUtils.toDomainId(rs),
         "Error processing result set into String domain ID");
   }
 }

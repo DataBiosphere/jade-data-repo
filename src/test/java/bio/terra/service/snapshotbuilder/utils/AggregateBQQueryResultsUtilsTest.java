@@ -24,20 +24,11 @@ class AggregateBQQueryResultsUtilsTest {
 
   @Test
   void domainIdReturnsListOfString() {
-    TableResult table = makeTableResult("domain_id", "domain");
+    FieldValueList row =
+        FieldValueList.of(List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "domain_id")));
     assertThat(
         "domainId converts table result to list of String",
-        AggregateBQQueryResultsUtils.domainId(table),
-        equalTo(List.of("domain")));
-  }
-
-  private TableResult makeTableResult(String columnName, String value) {
-    Schema schema = Schema.of(Field.of(columnName, StandardSQLTypeName.STRING));
-    Page<FieldValueList> page =
-        BigQueryPdaoUnitTest.mockPage(
-            List.of(
-                FieldValueList.of(List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, value)))));
-
-    return new TableResult(schema, 1, page);
+        AggregateBQQueryResultsUtils.toDomainId(row),
+        equalTo("domain_id"));
   }
 }

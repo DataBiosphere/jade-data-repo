@@ -277,6 +277,7 @@ dependencies {
     implementation 'com.azure:azure-storage-common:12.24.1'
     implementation 'com.azure:azure-storage-file-datalake:12.18.1'
     implementation 'com.azure:azure-data-tables:12.3.18'
+    implementation 'com.azure:azure-analytics-synapse-spark:1.0.0-beta.4'
 
     implementation platform('io.sentry:sentry-bom:6.25.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter')

@@ -55,6 +55,13 @@ public class ConceptChildrenQueryBuilder {
                     conceptTableVariable.makeFieldVariable("standard_concept"),
                     BinaryFilterVariable.BinaryOperator.EQUALS,
                     new Literal("S"))));
+    /* Generates SQL like:
+      SELECT c.concept_name, c.concept_id
+          FROM concept AS c
+          WHERE (c.concept_id IN
+            (SELECT c.concept_id_2 FROM concept_relationship AS c
+            WHERE (c.concept_id_1 = 101 AND c.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')
+    */
     Query query =
         new Query(
             List.of(nameFieldVariable, idFieldVariable),

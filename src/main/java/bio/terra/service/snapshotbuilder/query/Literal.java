@@ -55,6 +55,11 @@ public class Literal implements SqlExpression {
     this(DataType.DOUBLE, null, 0, false, null, doubleVal);
   }
 
+  /** Make a literal for NULL. */
+  public Literal() {
+    this(DataType.STRING, null, 0, false, null, 0.0);
+  }
+
   // TODO: use named parameters for literals to protect against SQL injection
   // FIXME: for now, "escape" sql strings by mapping single quote to curly quote.
   private static String sqlEscape(String s) {

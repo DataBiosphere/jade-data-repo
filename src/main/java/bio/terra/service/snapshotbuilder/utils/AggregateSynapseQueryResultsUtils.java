@@ -8,7 +8,7 @@ import java.sql.SQLException;
 
 public class AggregateSynapseQueryResultsUtils {
   // TODO - pull real values for hasChildren and count
-  public static SnapshotBuilderConcept aggregateConceptResult(ResultSet rs) {
+  public static SnapshotBuilderConcept toConcept(ResultSet rs) {
     int count;
     try {
       count = SnapshotBuilderService.fuzzyLowCount((int) rs.getLong("count"));
@@ -28,10 +28,10 @@ public class AggregateSynapseQueryResultsUtils {
     }
   }
 
-  public static int rollupCountsMapper(ResultSet rs) {
+  public static int toCount(ResultSet rs) {
     try {
-      // Azure ResultSet is 1 indexed
-      // https://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html
+      // Java ResultSet is 1 indexed
+      // https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/ResultSet.html#getInt(int)
       return rs.getInt(1);
     } catch (SQLException e) {
       throw new ProcessResultSetException(

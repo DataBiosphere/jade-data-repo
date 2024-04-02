@@ -8,6 +8,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import java.sql.Date;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -53,5 +54,10 @@ class LiteralTest {
   void renderDouble(CloudPlatform platform) {
     var literal = new Literal(1.234);
     assertThat(literal.renderSQL(CloudPlatformWrapper.of(platform)), is("FLOAT('1.234')"));
+  }
+
+  @Test
+  void renderNull() {
+    assertThat(new Literal().renderSQL(null), is("NULL"));
   }
 }

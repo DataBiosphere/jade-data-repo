@@ -32,13 +32,13 @@ public class ConceptChildrenQueryBuilder {
   private static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
 
   /**
-   * Generate a query that retrieves the children of the given concept and their roll-up counts.
+   * Generate a query that retrieves the descendants of the given concept and their roll-up counts.
    *
    * <p>SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count FROM `concept`
    * AS cc JOIN `concept_ancestor` AS ca ON cc.concept_id = ca.ancestor_concept_id JOIN
    * `'domain'_occurrence` AS co ON co.'domain'_concept_id = ca.descendant_concept_id WHERE
    * (c.concept_id IN (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE
-   * c.ancestor_concept_id = conceptId) AND c.concept_id != conceptId) GROUP BY cc.concept_id,
+   * c.ancestor_concept_id = conceptId AND c.descendant_concept_id != conceptId) GROUP BY cc.concept_id,
    * cc.concept_name ORDER BY cc.concept_name ASC
    */
   public Query buildConceptChildrenQuery(SnapshotBuilderDomainOption domainOption, int conceptId) {
@@ -80,12 +80,21 @@ public class ConceptChildrenQueryBuilder {
 
     Query subQuery = createSubQuery(conceptId, tableNameGenerator);
 
-    // WHERE c.concept_id IN subQuery
+    // WHERE c.concept_id IN (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE
+    // c.ancestor_concept_id = conceptId AND c.descendant_concept_id != conceptId)
     SubQueryFilterVariable where = SubQueryFilterVariable.in(idField, subQuery);
 
     return new Query(select, tables, where, groupBy, orderBy);
   }
 
+
+  /**
+   * Generate a query that retrieves the descendants of the given concept.
+   * Since concepts are listed as their own descendants it excludes that case.
+   *
+   * <p>SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE
+   * c.ancestor_concept_id = conceptId AND c.descendant_concept_id != conceptId
+   */
   Query createSubQuery(int conceptId, TableNameGenerator tableNameGenerator) {
     // ancestorTable is primary table for the subquery
     TableVariable ancestorTable =

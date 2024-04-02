@@ -139,7 +139,7 @@ class SnapshotBuilderServiceTest {
     var queryBuilder = mock(ConceptChildrenQueryBuilder.class);
     when(queryBuilderFactory.conceptChildrenQueryBuilder(any())).thenReturn(queryBuilder);
 
-    when(queryBuilder.retrieveDomainId(eq(1))).thenReturn(mock(Query.class));
+    when(queryBuilder.retrieveDomainId(1)).thenReturn(mock(Query.class));
     when(queryBuilder.buildConceptChildrenQuery(any(), eq(1))).thenReturn(mock(Query.class));
 
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();

@@ -151,7 +151,7 @@ class SnapshotBuilderServiceTest {
 
     var concept =
         new SnapshotBuilderConcept().name("childConcept").id(2).count(1).hasChildren(true);
-    mockRunQueryForGetConcepts(cloudPlatform, concept("childConcept", 2), dataset, "domainId");
+    mockRunQueryForGetConcepts(concept("childConcept", 2), dataset, "domainId");
 
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(
@@ -175,12 +175,14 @@ class SnapshotBuilderServiceTest {
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
-    var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
-    mockRunQueryForSearchConcepts(cloudPlatform, concepts, dataset);
+    var concept = new SnapshotBuilderConcept().name("concept1").id(1);
+    mockRunQueryForSearchConcepts(concept, dataset);
     var response =
         snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", TEST_USER);
     assertThat(
-        "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
+        "searchConcepts returns the expected response",
+        response.getResult(),
+        equalTo(List.of(concept)));
   }
 
   private DatasetModel makeDatasetModel() {
@@ -194,47 +196,27 @@ class SnapshotBuilderServiceTest {
         .id(UUID.randomUUID());
   }
 
-  private void mockRunQueryForSearchConcepts(
-      CloudPlatform cloudPlatform, List<SnapshotBuilderConcept> concepts, Dataset dataset) {
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
-    cloudPlatformWrapper.choose(
-        () -> {
-          when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
-          when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
-              .thenReturn(concepts);
-          return null;
-        },
-        () -> {
-          when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
-              .thenReturn("dataSource");
-          when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any()))
-              .thenReturn(concepts);
-          return null;
-        });
+  private void mockRunQueryForSearchConcepts(SnapshotBuilderConcept concept, Dataset dataset) {
+    mockRunQuery(dataset).thenReturn(List.of(concept));
   }
 
   private void mockRunQueryForGetConcepts(
-      CloudPlatform cloudPlatform,
-      SnapshotBuilderConcept concept,
-      Dataset dataset,
-      String domainId) {
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
-    cloudPlatformWrapper.choose(
-        () -> {
-          when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
-          when(bigQueryDatasetPdao.runQuery(any(), any(), any()))
-              .thenReturn(List.of(domainId))
-              .thenReturn(List.of(concept));
-          return null;
-        },
-        () -> {
-          when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
-              .thenReturn("dataSource");
-          when(azureSynapsePdao.runQuery(any(), any()))
-              .thenReturn(List.of(domainId))
-              .thenReturn(List.of(concept));
-          return null;
-        });
+      SnapshotBuilderConcept concept, Dataset dataset, String domainId) {
+    mockRunQuery(dataset).thenReturn(List.of(domainId)).thenReturn(List.of(concept));
+  }
+
+  private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Dataset dataset) {
+    return CloudPlatformWrapper.of(dataset.getCloudPlatform())
+        .choose(
+            () -> {
+              when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
+              return when(bigQueryDatasetPdao.runQuery(any(), any(), any()));
+            },
+            () -> {
+              when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+                  .thenReturn("dataSource");
+              return when(azureSynapsePdao.runQuery(any(), any()));
+            });
   }
 
   @Test

@@ -579,7 +579,7 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<SnapshotBuilderGetConceptsResponse> searchConcepts(
-      UUID id, String domainId, String searchText) {
+      UUID id, Integer domainId, String searchText) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,

@@ -147,11 +147,20 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
-      UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
+      UUID datasetId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
-        getDomainOptionFromSettingsByName(domainId, datasetId);
+        snapshotBuilderSettings.getDomainOptions().stream()
+            .filter(domainOption -> domainOption.getId() == domainId)
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new BadRequestException(
+                        "Invalid domain category is given: %s".formatted(domainId)));
 
     String cloudSpecificSql =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(

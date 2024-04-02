@@ -65,6 +65,11 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
+
+    if (listCriteria.getValues().isEmpty()) {
+      // select all values of list criteria
+      return FilterVariable.alwaysTrueFilter();
+    }
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
         getFieldVariableForRootTable(getProgramDataOptionColumnName(listCriteria.getId())),

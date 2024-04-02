@@ -28,7 +28,7 @@ public class ConceptChildrenQueryBuilder {
             TablePointer.fromTableName("concept_relationship", tableNameGenerator));
     FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable("concept_id_2");
 
-    Query subQuery =
+    Query selectAllDescendants =
         new Query(
             List.of(descendantConceptId),
             List.of(conceptRelationship),
@@ -51,7 +51,7 @@ public class ConceptChildrenQueryBuilder {
             List.of(conceptName, conceptId),
             List.of(concept),
             BooleanAndOrFilterVariable.and(
-                SubQueryFilterVariable.in(conceptId, subQuery),
+                SubQueryFilterVariable.in(conceptId, selectAllDescendants),
                 BinaryFilterVariable.equals(
                     concept.makeFieldVariable("standard_concept"), new Literal("S"))));
     return query.renderSQL(platform);

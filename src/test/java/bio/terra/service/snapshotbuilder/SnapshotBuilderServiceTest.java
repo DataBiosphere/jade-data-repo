@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -164,6 +166,20 @@ class SnapshotBuilderServiceTest {
             dataset.getId(), domainOption.getId(), "cancer", TEST_USER);
     assertThat(
         "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
+  }
+
+  @Test
+  void searchConceptsUnknownDomain() {
+    Dataset dataset = makeDataset(CloudPlatform.GCP);
+    UUID datasetId = dataset.getId();
+    when(datasetService.retrieve(datasetId)).thenReturn(dataset);
+    var domainOption = new SnapshotBuilderDomainOption();
+    domainOption.setId(19);
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId))
+        .thenReturn(new SnapshotBuilderSettings().domainOptions(List.of(domainOption)));
+    assertThrows(
+        BadRequestException.class,
+        () -> snapshotBuilderService.searchConcepts(datasetId, 20, "cancer", TEST_USER));
   }
 
   private DatasetModel makeDatasetModel() {

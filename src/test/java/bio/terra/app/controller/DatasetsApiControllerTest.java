@@ -454,11 +454,13 @@ class DatasetsApiControllerTest {
   void testSearchConcepts(String searchText) throws Exception {
     SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
 
-    when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", searchText, TEST_USER))
+    var domainId = 1234;
+
+    when(snapshotBuilderService.searchConcepts(DATASET_ID, domainId, searchText, TEST_USER))
         .thenReturn(expected);
     String actualJson =
         mvc.perform(
-                get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition")
+                get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, domainId)
                     .queryParam("searchText", searchText))
             .andExpect(status().isOk())
             .andReturn()

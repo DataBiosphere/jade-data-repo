@@ -37,7 +37,7 @@ on our slack channel.
 1. Prepare resources for creating a new azure billing profile (alternatively pass in an existing billing profile id with the --azure_profile_id flag)
    * If you do not already have a managed application created, follow instructions in jade-getting-started.md
    * Make note of the email account that set during managed app setup, you'll need to authenticate with this user
-   * Make note of the "Application name" set during managed app setup. You'll pass this in with the --azure_application_name flag
+   * Make note of the "Application name" set during managed app setup. You'll pass this in with the --azure_managed_app_name flag
    * Set the --billing_profile_file_name flag to the dev azure file: `--billing_profile_file_name='azure_billing_profile_dev.json'`
 2. Determine TDR instance you want to populate (i.e.local, BEE, etc.)
    * If running locally, set the --host flag to `http://localhost:8080`. Get TDR instance running locally by following instructions in jade-getting-started.md.
@@ -51,7 +51,7 @@ on our slack channel.
    * `cd jade-data-repo/tools/setupResourceScripts`
    * `pip3 install -r requirements.txt`
    * Run the set up script including all of the arguments, plus pointing to the azure OMOP dataset file:
-   * `python3 setup_tdr_resources.py --host=<datarepo_url> --datasets='datarepo_azure_omop_datasets.json' --azure_application_name=<azure_application_name> --billing_profile_file_name='azure_billing_profile_dev.json'`
+   * `python3 setup_tdr_resources.py --host=<datarepo_url> --datasets='datarepo_azure_omop_datasets.json' --azure_managed_app_name=<azure_managed_app_name> --billing_profile_file_name='azure_billing_profile_dev.json'`
    * If you have a billing account already created, you can use the `--azure_profile_id` flag to pass in the billing profile id, then you no longer need to pass in some of the other flags:
    * `python3 setup_tdr_resources.py --host=<datarepo_url> --datasets='datarepo_azure_omop_datasets.json' --azure_profile_id=<profile_id>`
 

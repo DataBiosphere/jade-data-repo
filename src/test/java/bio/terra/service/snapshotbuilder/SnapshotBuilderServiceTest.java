@@ -2,8 +2,10 @@ package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -21,6 +23,8 @@ import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -33,9 +37,16 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
-import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.StandardSQLTypeName;
+import java.sql.ResultSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +57,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -58,7 +70,7 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
-  @Mock private CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
+  @Mock private QueryBuilderFactory queryBuilderFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -72,7 +84,7 @@ class SnapshotBuilderServiceTest {
             datasetService,
             bigQueryDatasetPdao,
             azureSynapsePdao,
-            criteriaQueryBuilderFactory);
+            queryBuilderFactory);
   }
 
   @Test
@@ -222,7 +234,7 @@ class SnapshotBuilderServiceTest {
             List.of(tableVariable));
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    when(criteriaQueryBuilderFactory.createCriteriaQueryBuilder(any(), any(), any()))
+    when(queryBuilderFactory.criteriaQueryBuilder(any(), any(), any()))
         .thenReturn(criteriaQueryBuilderMock);
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
         .thenReturn(query);
@@ -254,5 +266,88 @@ class SnapshotBuilderServiceTest {
         arguments(19, 19),
         arguments(20, 20),
         arguments(21, 21));
+  }
+
+  private static void assertParentQueryResult(SnapshotBuilderService.ParentQueryResult result) {
+    assertThat(result.parentId(), is(1));
+    assertThat(result.childId(), is(2));
+    assertThat(result.childName(), is("name"));
+  }
+
+  @Test
+  void testParentQueryResult() throws Exception {
+    var resultSet = mock(ResultSet.class);
+    when(resultSet.getInt(HierarchyQueryBuilder.PARENT_ID)).thenReturn(1);
+    when(resultSet.getInt(HierarchyQueryBuilder.CONCEPT_ID)).thenReturn(2);
+    when(resultSet.getString(HierarchyQueryBuilder.CONCEPT_NAME)).thenReturn("name");
+    assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(resultSet));
+
+    var fieldValueList =
+        FieldValueList.of(
+            List.of(
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "1"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "name")),
+            Field.of(HierarchyQueryBuilder.PARENT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(HierarchyQueryBuilder.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(HierarchyQueryBuilder.CONCEPT_NAME, StandardSQLTypeName.STRING));
+
+    assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
+  }
+
+  static SnapshotBuilderConcept concept(String name, int id) {
+    return new SnapshotBuilderConcept().name(name).id(id).count(1).hasChildren(true);
+  }
+
+  private <T> void mockRunQueryForHierarchy(CloudPlatform cloudPlatform, List<T> results) {
+    CloudPlatformWrapper.of(cloudPlatform)
+        .choose(
+            () ->
+                when(
+                    bigQueryDatasetPdao.runQuery(
+                        any(),
+                        any(),
+                        argThat(
+                            (ArgumentMatcher<BigQueryDatasetPdao.Converter<T>>) Objects::nonNull))),
+            () ->
+                when(
+                    azureSynapsePdao.runQuery(
+                        any(),
+                        argThat(
+                            (ArgumentMatcher<AzureSynapsePdao.Converter<T>>) Objects::nonNull))))
+        .thenReturn(results);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void getConceptHierarchy(CloudPlatform platform) {
+    Dataset dataset = makeDataset(platform);
+    var conceptId = 1;
+    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    var queryBuilder = mock(HierarchyQueryBuilder.class);
+    when(queryBuilderFactory.hierarchyQueryBuilder(any())).thenReturn(queryBuilder);
+    when(queryBuilder.generateQuery(conceptId)).thenReturn(mock(Query.class));
+    var concept1 = concept("concept1", 1);
+    var concept2 = concept("concept2", 2);
+    var concept3 = concept("concept3", 3);
+    var results =
+        List.of(
+            new SnapshotBuilderService.ParentQueryResult(0, concept1.getId(), concept1.getName()),
+            new SnapshotBuilderService.ParentQueryResult(0, concept2.getId(), concept2.getName()),
+            new SnapshotBuilderService.ParentQueryResult(
+                concept1.getId(), concept3.getId(), concept3.getName()));
+    mockRunQueryForHierarchy(platform, results);
+    assertThat(
+        snapshotBuilderService.getConceptHierarchy(dataset.getId(), conceptId, TEST_USER),
+        equalTo(
+            new SnapshotBuilderGetConceptHierarchyResponse()
+                .result(
+                    List.of(
+                        new SnapshotBuilderParentConcept()
+                            .parentId(0)
+                            .children(List.of(concept1, concept2)),
+                        new SnapshotBuilderParentConcept()
+                            .parentId(concept1.getId())
+                            .children(List.of(concept3))))));
   }
 }

@@ -4646,8 +4646,8 @@ paths:
         - datasets
         - repository
       description: >
-        Given a concept ID, return the root of the tree of concepts that contain this concept.
-        For each element in the path, all sibling concepts are returned.
+        Given a concept ID, return the tree of concepts that contain this concept. A tree
+        is represented as a list of parent IDs and their children, which are concepts.
       operationId: getConceptHierarchy
       parameters:
         - in: path
@@ -7280,6 +7280,18 @@ components:
         sql:
           type: string
 
+    SnapshotBuilderParentConcept:
+      type: object
+      description: >
+        ⚠️ An object describing a parent concept in the Snapshot Builder
+      properties:
+        parentId:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderConcept'
+
     SnapshotBuilderConcept:
       type: object
       description: >
@@ -7297,10 +7309,6 @@ components:
           type: integer
         hasChildren:
           type: boolean
-        children:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderGetConceptHierarchyResponse:
       type: object
@@ -7308,7 +7316,9 @@ components:
         ⚠️ The response object for the getConceptHierarchy endpoint
       properties:
         result:
-          $ref: '#/components/schemas/SnapshotBuilderConcept'
+          type: array
+          items:
+             $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
     SnapshotBuilderFeatureValueGroup:
       type: object
@@ -7494,6 +7504,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - values
           properties:
             values:
               type: array
@@ -7505,6 +7517,9 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - low
+            - high
           properties:
             low:
               type: integer
@@ -7516,6 +7531,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            -conceptId
           properties:
             conceptId:
               type: integer

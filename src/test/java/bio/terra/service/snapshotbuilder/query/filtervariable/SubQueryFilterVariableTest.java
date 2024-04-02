@@ -28,8 +28,7 @@ class SubQueryFilterVariableTest {
     var tableVariable = TableVariable.forPrimary(QueryTestUtils.fromTableName("x"));
     TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariable = new FieldVariable(fieldPointer, tableVariable);
-    var filter =
-        new SubQueryFilterVariable(fieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
+    var filter = SubQueryFilterVariable.in(fieldVariable, subQuery);
     assertThat(
         filter.renderSQL(CloudPlatformWrapper.of(platform)),
         is("x.field IN (SELECT t.* FROM table AS t)"));

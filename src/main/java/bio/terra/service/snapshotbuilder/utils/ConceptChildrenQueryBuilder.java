@@ -2,7 +2,6 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
-import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
@@ -18,43 +17,28 @@ public class ConceptChildrenQueryBuilder {
   private ConceptChildrenQueryBuilder() {}
 
   public static String buildConceptChildrenQuery(
-      int conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
-    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldVariable nameFieldVariable = conceptTableVariable.makeFieldVariable("concept_name");
-    FieldVariable idFieldVariable = conceptTableVariable.makeFieldVariable("concept_id");
+      int parentConceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
+    TableVariable concept =
+        TableVariable.forPrimary(TablePointer.fromTableName("concept", tableNameGenerator));
+    FieldVariable conceptName = concept.makeFieldVariable("concept_name");
+    FieldVariable conceptId = concept.makeFieldVariable("concept_id");
 
-    TablePointer relationshipTablePointer =
-        TablePointer.fromTableName("concept_relationship", tableNameGenerator);
-    TableVariable relationshipTableVariable = TableVariable.forPrimary(relationshipTablePointer);
-    FieldVariable descendantFieldVariable =
-        relationshipTableVariable.makeFieldVariable("concept_id_2");
+    TableVariable conceptRelationship =
+        TableVariable.forPrimary(
+            TablePointer.fromTableName("concept_relationship", tableNameGenerator));
+    FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable("concept_id_2");
 
-    BooleanAndOrFilterVariable whereClause =
-        new BooleanAndOrFilterVariable(
-            BooleanAndOrFilterVariable.LogicalOperator.AND,
-            List.of(
-                new BinaryFilterVariable(
-                    relationshipTableVariable.makeFieldVariable("concept_id_1"),
-                    BinaryFilterVariable.BinaryOperator.EQUALS,
-                    new Literal(conceptId)),
-                new BinaryFilterVariable(
-                    relationshipTableVariable.makeFieldVariable("relationship_id"),
-                    BinaryFilterVariable.BinaryOperator.EQUALS,
-                    new Literal("Subsumes"))));
     Query subQuery =
         new Query(
-            List.of(descendantFieldVariable), List.of(relationshipTableVariable), whereClause);
-    FilterVariable filterVariable =
-        new BooleanAndOrFilterVariable(
-            BooleanAndOrFilterVariable.LogicalOperator.AND,
-            List.of(
-                new SubQueryFilterVariable(
-                    idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery),
-                new BinaryFilterVariable(
-                    conceptTableVariable.makeFieldVariable("standard_concept"),
-                    BinaryFilterVariable.BinaryOperator.EQUALS,
-                    new Literal("S"))));
+            List.of(descendantConceptId),
+            List.of(conceptRelationship),
+            BooleanAndOrFilterVariable.and(
+                BinaryFilterVariable.equals(
+                    conceptRelationship.makeFieldVariable("concept_id_1"),
+                    new Literal(parentConceptId)),
+                BinaryFilterVariable.equals(
+                    conceptRelationship.makeFieldVariable("relationship_id"),
+                    new Literal("Subsumes"))));
     /* Generates SQL like:
       SELECT c.concept_name, c.concept_id
           FROM concept AS c
@@ -64,9 +48,12 @@ public class ConceptChildrenQueryBuilder {
     */
     Query query =
         new Query(
-            List.of(nameFieldVariable, idFieldVariable),
-            List.of(conceptTableVariable),
-            filterVariable);
+            List.of(conceptName, conceptId),
+            List.of(concept),
+            BooleanAndOrFilterVariable.and(
+                SubQueryFilterVariable.in(conceptId, subQuery),
+                BinaryFilterVariable.equals(
+                    concept.makeFieldVariable("standard_concept"), new Literal("S"))));
     return query.renderSQL(platform);
   }
 }

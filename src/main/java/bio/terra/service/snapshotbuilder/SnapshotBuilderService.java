@@ -137,7 +137,7 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
-      UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
+      UUID datasetId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
     SnapshotBuilderSettings snapshotBuilderSettings =
@@ -145,7 +145,7 @@ public class SnapshotBuilderService {
 
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
-            .filter(domainOption -> domainOption.getName().equals(domainId))
+            .filter(domainOption -> domainOption.getId() == domainId)
             .findFirst()
             .orElseThrow(
                 () ->

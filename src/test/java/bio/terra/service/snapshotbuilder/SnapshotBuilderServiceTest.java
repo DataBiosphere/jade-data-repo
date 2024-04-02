@@ -160,7 +160,8 @@ class SnapshotBuilderServiceTest {
     var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
     mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
     var response =
-        snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", TEST_USER);
+        snapshotBuilderService.searchConcepts(
+            dataset.getId(), domainOption.getId(), "cancer", TEST_USER);
     assertThat(
         "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
   }

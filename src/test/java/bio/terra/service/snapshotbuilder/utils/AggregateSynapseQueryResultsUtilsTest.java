@@ -46,7 +46,7 @@ class AggregateSynapseQueryResultsUtilsTest {
     when(rs.getString("domain_id")).thenReturn("domain_id");
 
     assertThat(
-        "domainId converts table result to list of string",
+        "domainId converts table result to a string",
         AggregateSynapseQueryResultsUtils.toDomainId(rs),
         equalTo("domain_id"));
   }

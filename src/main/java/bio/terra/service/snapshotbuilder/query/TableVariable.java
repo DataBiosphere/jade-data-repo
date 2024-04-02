@@ -52,6 +52,12 @@ public final class TableVariable implements SqlExpression {
     return new FieldVariable(fieldPointer, this);
   }
 
+  public FieldVariable makeFieldVariable(
+      String fieldName, String SQLFunctionWrapper, String alias, boolean isDistinct) {
+    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName, SQLFunctionWrapper);
+    return new FieldVariable(fieldPointer, this, alias, isDistinct);
+  }
+
   @Override
   public String renderSQL(CloudPlatformWrapper platform) {
     String sql = tablePointer.renderSQL(platform);

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
@@ -42,7 +43,7 @@ class ConceptChildrenQueryBuilderTest {
        GROUP BY c.concept_name, c.concept_id
        ORDER BY c.concept_name ASC
         """;
-    assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
+    assertThat(sql, equalToCompressingWhiteSpace(expected));
   }
 
   @ParameterizedTest

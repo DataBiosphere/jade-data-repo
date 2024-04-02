@@ -32,7 +32,7 @@ class AggregateBQQueryResultsUtilsTest {
             List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "domain_id")),
             FieldList.of(Field.of("domain_id", LegacySQLTypeName.STRING)));
     assertThat(
-        "toDomainId retrieves String from table result",
+        "toDomainId converts table result to a string",
         AggregateBQQueryResultsUtils.toDomainId(row),
         equalTo("domain_id"));
   }

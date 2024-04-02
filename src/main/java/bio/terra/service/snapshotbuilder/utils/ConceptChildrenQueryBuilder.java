@@ -2,9 +2,7 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
-import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
@@ -48,83 +46,72 @@ public class ConceptChildrenQueryBuilder {
       CloudPlatformWrapper platform) {
 
     // concept table and its fields concept_name and concept_id
-    TablePointer conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
-    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldVariable nameFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_NAME);
-    FieldVariable idFieldVariable = conceptTableVariable.makeFieldVariable(CONCEPT_ID);
+    TableVariable conceptTable =
+        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT, tableNameGenerator));
+    FieldVariable nameField = conceptTable.makeFieldVariable(CONCEPT_NAME);
+    FieldVariable idField = conceptTable.makeFieldVariable(CONCEPT_ID);
 
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id
-    TablePointer conceptAncestorTablePointer =
-        TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
-    TableVariable conceptAncestorTableVariable =
-        TableVariable.forJoined(conceptAncestorTablePointer, ANCESTOR_CONCEPT_ID, idFieldVariable);
-    FieldVariable descendantIdFieldVariable =
-        conceptAncestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+    TableVariable conceptAncestorTable =
+        TableVariable.forJoined(
+            TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator),
+            ANCESTOR_CONCEPT_ID,
+            idField);
+    FieldVariable descendantIdField = conceptAncestorTable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
     TablePointer domainOccurrenceTablePointer =
         TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
-    TableVariable domainOccurenceTableVariable =
+    TableVariable domainOccurrenceTable =
         TableVariable.forJoined(
-            domainOccurrenceTablePointer, domainOption.getColumnName(), descendantIdFieldVariable);
+            domainOccurrenceTablePointer, domainOption.getColumnName(), descendantIdField);
 
     // COUNT(DISTINCT person_id)
     FieldVariable countFieldVariable =
-        new FieldVariable(
-            new FieldPointer(domainOccurrenceTablePointer, PERSON_ID, "COUNT"),
-            domainOccurenceTableVariable,
-            "count",
-            true);
+        domainOccurrenceTable.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
 
-    List<SelectExpression> select = List.of(nameFieldVariable, idFieldVariable, countFieldVariable);
+    List<SelectExpression> select = List.of(nameField, idField, countFieldVariable);
 
-    List<TableVariable> tables =
-        List.of(conceptTableVariable, conceptAncestorTableVariable, domainOccurenceTableVariable);
+    List<TableVariable> tables = List.of(conceptTable, conceptAncestorTable, domainOccurrenceTable);
 
-    List<FieldVariable> groupBy = List.of(nameFieldVariable, idFieldVariable);
+    List<FieldVariable> groupBy = List.of(nameField, idField);
 
     List<OrderByVariable> orderBy =
-        List.of(new OrderByVariable(nameFieldVariable, OrderByDirection.ASCENDING));
+        List.of(new OrderByVariable(nameField, OrderByDirection.ASCENDING));
 
-    // ancestorTable is primary table for the subquery
-    TablePointer ancestorTablePointer =
-        TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
-    TableVariable ancestorTableVariable = TableVariable.forPrimary(ancestorTablePointer);
-    FieldVariable descendantFieldVariable =
-        ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
-
-    // WHERE c.ancestor_concept_id = conceptId
-    BinaryFilterVariable ancestorClause =
-        new BinaryFilterVariable(
-            ancestorTableVariable.makeFieldVariable(ANCESTOR_CONCEPT_ID),
-            BinaryFilterVariable.BinaryOperator.EQUALS,
-            new Literal(conceptId));
-
-    // WHERE d.descendant_concept_id != conceptId
-    BinaryFilterVariable notSelfClause =
-        new BinaryFilterVariable(
-            ancestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID),
-            BinaryFilterVariable.BinaryOperator.NOT_EQUALS,
-            new Literal(conceptId));
-
-    // WHERE c.ancestor_concept_id = conceptId AND d.descendant_concept_id != conceptId
-    List<FilterVariable> clauses = List.of(ancestorClause, notSelfClause);
-    BooleanAndOrFilterVariable subqueryWhereClause =
-        new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.AND, clauses);
-
-    // (SELECT c.descendant_concept_id FROM concept_ancestor AS c
-    // WHERE c.ancestor_concept_id = conceptId)
-    Query subQuery =
-        new Query(
-            List.of(descendantFieldVariable), List.of(ancestorTableVariable), subqueryWhereClause);
+    Query subQuery = createSubQuery(conceptId, tableNameGenerator);
 
     // WHERE c.concept_id IN subQuery
-    SubQueryFilterVariable where =
-        new SubQueryFilterVariable(idFieldVariable, SubQueryFilterVariable.Operator.IN, subQuery);
+    SubQueryFilterVariable where = SubQueryFilterVariable.in(idField, subQuery);
 
     Query query = new Query(select, tables, where, groupBy, orderBy);
     return query.renderSQL(platform);
+  }
+
+  static Query createSubQuery(int conceptId, TableNameGenerator tableNameGenerator) {
+    // ancestorTable is primary table for the subquery
+    TableVariable ancestorTable =
+        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator));
+    FieldVariable descendantField = ancestorTable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+
+    // WHERE c.ancestor_concept_id = conceptId
+    BinaryFilterVariable ancestorClause =
+        BinaryFilterVariable.equals(
+            ancestorTable.makeFieldVariable(ANCESTOR_CONCEPT_ID), new Literal(conceptId));
+
+    // WHERE d.descendant_concept_id != conceptId
+    BinaryFilterVariable notSelfClause =
+        BinaryFilterVariable.notEquals(
+            ancestorTable.makeFieldVariable(DESCENDANT_CONCEPT_ID), new Literal(conceptId));
+
+    // WHERE c.ancestor_concept_id = conceptId AND d.descendant_concept_id != conceptId
+    BooleanAndOrFilterVariable subqueryWhere =
+        BooleanAndOrFilterVariable.and(ancestorClause, notSelfClause);
+
+    // (SELECT c.descendant_concept_id FROM concept_ancestor AS c
+    // WHERE c.ancestor_concept_id = conceptId)
+    return new Query(List.of(descendantField), List.of(ancestorTable), subqueryWhere);
   }
 
   /**
@@ -133,19 +120,19 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
    */
   public static String retrieveDomainId(
-      Integer conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
-    TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    FieldVariable domainIdFieldVariable = conceptTableVariable.makeFieldVariable(DOMAIN_ID);
+      int conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
+    TableVariable concept =
+        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT, tableNameGenerator));
+    FieldVariable domainIdField = concept.makeFieldVariable(DOMAIN_ID);
 
     BinaryFilterVariable where =
         new BinaryFilterVariable(
-            conceptTableVariable.makeFieldVariable(CONCEPT_ID),
+            concept.makeFieldVariable(CONCEPT_ID),
             BinaryFilterVariable.BinaryOperator.EQUALS,
             new Literal(conceptId));
 
-    List<SelectExpression> select = List.of(domainIdFieldVariable);
-    List<TableVariable> table = List.of(conceptTableVariable);
+    List<SelectExpression> select = List.of(domainIdField);
+    List<TableVariable> table = List.of(concept);
 
     Query query = new Query(select, table, where);
     return query.renderSQL(platform);

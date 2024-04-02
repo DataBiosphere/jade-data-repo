@@ -17,7 +17,7 @@ import java.text.SimpleDateFormat
 
 buildscript {
     ext {
-        springBootVersion = '3.2.2'
+        springBootVersion = '3.2.4'
     }
     repositories {
         mavenCentral()
@@ -34,7 +34,7 @@ plugins {
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.1'
     id 'org.hidetake.swagger.generator' version '2.19.2'
-    id 'org.springframework.boot' version '3.2.2'
+    id 'org.springframework.boot' version '3.2.4'
     id 'idea'
     id 'java'
     id 'io.spring.dependency-management' version '1.1.4'
@@ -162,7 +162,12 @@ jacocoTestCoverageVerification {
 check.dependsOn jacocoTestCoverageVerification
 check.dependsOn jacocoTestReport
 
+// If true, search local repository (~/.m2/repository/) first for dependencies.
+def useMavenLocal = false
 repositories {
+    if (useMavenLocal) {
+        mavenLocal() // must be listed first to take effect
+    }
     mavenCentral()
     maven {
         url 'https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/'
@@ -184,6 +189,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-appengine:v1-rev20230206-2.0.0'
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
+
     implementation platform('com.google.cloud:libraries-bom:26.30.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
@@ -193,21 +199,19 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-pubsub'
     implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:4.9.0'
     implementation 'com.google.http-client:google-http-client'
-    implementation 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
-    implementation 'org.apache.commons:commons-lang3:3.11'
-    implementation 'org.apache.commons:commons-collections4:4.4'
+
+    implementation 'org.apache.commons:commons-dbcp2' // For database connection support
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'org.apache.commons:commons-collections4'
     implementation 'org.apache.directory.studio:org.apache.commons.io:2.4'
+    implementation 'org.apache.httpcomponents.client5:httpclient5'
+
     implementation 'org.liquibase:liquibase-core'
-    implementation 'org.postgresql:postgresql'          // Postgres jdbc driver
-    implementation 'ch.qos.logback:logback-core'
-    implementation 'ch.qos.logback:logback-classic'  // logback-classic natively implements slf4j api
 
     implementation 'org.codehaus.janino:janino'           // Provides if/else xml parsing for logback config
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'jakarta.validation:jakarta.validation-api'
     implementation 'jakarta.annotation:jakarta.annotation-api'
-
-    implementation 'org.apache.httpcomponents.client5:httpclient5'
 
     implementation 'io.swagger.core.v3:swagger-annotations'
     swaggerCodegen 'io.swagger.codegen.v3:swagger-codegen-cli'
@@ -233,27 +237,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.2.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.2.0'
 
-    // This allows you to build with a local Stairway JAR file, instead of the one from the repository
-    // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
-    // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar
-    if (project.hasProperty("stairwayjar")) {
-        implementation files(project.ext.get("stairwayjar"))
-        implementation 'org.apache.commons:commons-collections4:4.4'
-        implementation 'org.openapitools:jackson-databind-nullable:0.2.2'
-    } else {
-        // Pulls version from terra-common-lib
-        implementation 'bio.terra:stairway'
-    }
-
-    // Similar development mode for pointing to terra common library
-    if (project.hasProperty("commonlibjar")) {
-        implementation files(project.ext.get("commonlibjar"))
-        implementation 'org.apache.commons:commons-collections4:4.4'
-        implementation 'org.openapitools:jackson-databind-nullable:0.2.2'
-    } else {
-        implementation 'bio.terra:terra-common-lib:0.1.10-SNAPSHOT'
-    }
-
+    implementation 'bio.terra:terra-common-lib:0.1.10-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-a91acd0'
     implementation 'bio.terra:terra-policy-client:1.0.11-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
@@ -336,7 +320,7 @@ dependencies {
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
-    liquibaseRuntime 'org.liquibase:liquibase-core:4.25.1'
+    liquibaseRuntime 'org.liquibase:liquibase-core'
     liquibaseRuntime 'org.postgresql:postgresql'
     liquibaseRuntime 'info.picocli:picocli:4.7.5'
 
@@ -346,8 +330,6 @@ dependencies {
     testImplementation 'io.zonky.test:embedded-database-spring-test:2.5.0'
     testImplementation 'io.zonky.test:embedded-postgres:2.0.6'
     implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:12.8.0')
-
-    testImplementation 'org.awaitility:awaitility'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for jakarta.validation.Valid references, @Valid tags

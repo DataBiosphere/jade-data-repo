@@ -371,6 +371,9 @@ public class AzureIntegrationTest extends UsersBase {
     ingestTable("concept", "omop/concept-table-data.json", 4);
     ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
     ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
+
+    // Add settings to dataset
+    dataRepoFixtures.updateSettings(steward, datasetId, "omop/settings.json");
   }
 
   @Test

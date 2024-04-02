@@ -28,8 +28,10 @@ class ConceptChildrenQueryBuilderTest {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String sql =
-        ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
-            domainOption, 101, s -> s, CloudPlatformWrapper.of(platform));
+        new QueryBuilderFactory()
+            .conceptChildrenQueryBuilder(s -> s)
+            .buildConceptChildrenQuery(domainOption, 101)
+            .renderSQL(CloudPlatformWrapper.of(platform));
     String expected =
         """
        SELECT c.concept_name, c.concept_id, COUNT(DISTINCT c1.person_id) AS count
@@ -50,8 +52,10 @@ class ConceptChildrenQueryBuilderTest {
   @EnumSource(CloudPlatform.class)
   void buildGetDomainIdQuery(CloudPlatform platform) {
     String sql =
-        ConceptChildrenQueryBuilder.retrieveDomainId(
-            101, s -> s, CloudPlatformWrapper.of(platform));
+        new QueryBuilderFactory()
+            .conceptChildrenQueryBuilder(s -> s)
+            .retrieveDomainId(101)
+            .renderSQL(CloudPlatformWrapper.of(platform));
     String expected =
         """
         SELECT c.domain_id

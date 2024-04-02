@@ -26,7 +26,6 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
@@ -99,8 +98,11 @@ public class SnapshotBuilderService {
         getDomainOptionFromSettingsByName(domainId, datasetId);
 
     String cloudSpecificSql =
-        ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
-            domainOption, conceptId, tableNameGenerator, cloudPlatform);
+        queryBuilderFactory
+            .conceptChildrenQueryBuilder(tableNameGenerator)
+            .buildConceptChildrenQuery(domainOption, conceptId)
+            .renderSQL(cloudPlatform);
+
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -208,8 +210,10 @@ public class SnapshotBuilderService {
     CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     List<String> domainIdResult =
         runSnapshotBuilderQuery(
-            ConceptChildrenQueryBuilder.retrieveDomainId(
-                conceptId, tableNameGenerator, cloudPlatform),
+            queryBuilderFactory
+                .conceptChildrenQueryBuilder(tableNameGenerator)
+                .retrieveDomainId(conceptId)
+                .renderSQL(cloudPlatform),
             dataset,
             AggregateBQQueryResultsUtils::toDomainId,
             AggregateSynapseQueryResultsUtils::toDomainId);

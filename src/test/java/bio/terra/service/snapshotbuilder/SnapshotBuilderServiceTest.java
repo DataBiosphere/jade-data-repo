@@ -36,6 +36,7 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
@@ -131,18 +132,26 @@ class SnapshotBuilderServiceTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void getConceptChildren(CloudPlatform cloudPlatform) {
+
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+
+    var queryBuilder = mock(ConceptChildrenQueryBuilder.class);
+    when(queryBuilderFactory.conceptChildrenQueryBuilder(any())).thenReturn(queryBuilder);
+
+    when(queryBuilder.retrieveDomainId(eq(1))).thenReturn(mock(Query.class));
+    when(queryBuilder.buildConceptChildrenQuery(any(), eq(1))).thenReturn(mock(Query.class));
 
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
     domainOption.name("domainId").tableName("domainTable").columnName("domain_concept_id");
     SnapshotBuilderSettings settings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(any()))
         .thenReturn(settings);
 
-    var concept = new SnapshotBuilderConcept().name("childConcept").id(2);
-    mockRunQueryForGetConcepts(cloudPlatform, concept, dataset, "domainId");
+    var concept =
+        new SnapshotBuilderConcept().name("childConcept").id(2).count(1).hasChildren(true);
+    mockRunQueryForGetConcepts(cloudPlatform, concept("childConcept", 2), dataset, "domainId");
 
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(

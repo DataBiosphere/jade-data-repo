@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -18,8 +17,11 @@ import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
 
-  private ConceptChildrenQueryBuilder() {}
+  ConceptChildrenQueryBuilder(TableNameGenerator tableNameGenerator) {
+    this.tableNameGenerator = tableNameGenerator;
+  }
 
+  private final TableNameGenerator tableNameGenerator;
   private static final String CONCEPT = "concept";
   private static final String CONCEPT_ANCESTOR = "concept_ancestor";
   private static final String PERSON_ID = "person_id";
@@ -39,11 +41,7 @@ public class ConceptChildrenQueryBuilder {
    * c.ancestor_concept_id = conceptId) AND c.concept_id != conceptId) GROUP BY cc.concept_id,
    * cc.concept_name ORDER BY cc.concept_name ASC
    */
-  public static String buildConceptChildrenQuery(
-      SnapshotBuilderDomainOption domainOption,
-      int conceptId,
-      TableNameGenerator tableNameGenerator,
-      CloudPlatformWrapper platform) {
+  public Query buildConceptChildrenQuery(SnapshotBuilderDomainOption domainOption, int conceptId) {
 
     // concept table and its fields concept_name and concept_id
     TableVariable conceptTable =
@@ -85,11 +83,10 @@ public class ConceptChildrenQueryBuilder {
     // WHERE c.concept_id IN subQuery
     SubQueryFilterVariable where = SubQueryFilterVariable.in(idField, subQuery);
 
-    Query query = new Query(select, tables, where, groupBy, orderBy);
-    return query.renderSQL(platform);
+    return new Query(select, tables, where, groupBy, orderBy);
   }
 
-  static Query createSubQuery(int conceptId, TableNameGenerator tableNameGenerator) {
+  Query createSubQuery(int conceptId, TableNameGenerator tableNameGenerator) {
     // ancestorTable is primary table for the subquery
     TableVariable ancestorTable =
         TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator));
@@ -119,8 +116,7 @@ public class ConceptChildrenQueryBuilder {
    *
    * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
    */
-  public static String retrieveDomainId(
-      int conceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
+  public Query retrieveDomainId(int conceptId) {
     TableVariable concept =
         TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT, tableNameGenerator));
     FieldVariable domainIdField = concept.makeFieldVariable(DOMAIN_ID);
@@ -134,7 +130,6 @@ public class ConceptChildrenQueryBuilder {
     List<SelectExpression> select = List.of(domainIdField);
     List<TableVariable> table = List.of(concept);
 
-    Query query = new Query(select, table, where);
-    return query.renderSQL(platform);
+    return new Query(select, table, where);
   }
 }

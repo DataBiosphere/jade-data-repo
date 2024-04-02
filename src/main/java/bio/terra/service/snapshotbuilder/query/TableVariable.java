@@ -53,8 +53,8 @@ public final class TableVariable implements SqlExpression {
   }
 
   public FieldVariable makeFieldVariable(
-      String fieldName, String SQLFunctionWrapper, String alias, boolean isDistinct) {
-    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName, SQLFunctionWrapper);
+      String fieldName, String sqlFunctionWrapper, String alias, boolean isDistinct) {
+    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName, sqlFunctionWrapper);
     return new FieldVariable(fieldPointer, this, alias, isDistinct);
   }
 

@@ -1,6 +1,4 @@
 {"condition_concept_id": 1, "person_id": 100}
-<<<<<<< HEAD
-=======
 {"condition_concept_id": 1, "person_id": 101}
 {"condition_concept_id": 1, "person_id": 102}
 {"condition_concept_id": 1, "person_id": 103}
@@ -23,15 +21,12 @@
 {"condition_concept_id": 1, "person_id": 120}
 {"condition_concept_id": 1, "person_id": 121}
 {"condition_concept_id": 2, "person_id": 100}
->>>>>>> develop
 {"condition_concept_id": 2, "person_id": 101}
 {"condition_concept_id": 2, "person_id": 102}
 {"condition_concept_id": 3, "person_id": 103}
 {"condition_concept_id": 3, "person_id": 104}
 {"condition_concept_id": 4, "person_id": 105}
-<<<<<<< HEAD
 {"condition_concept_id": 4, "person_id": 103}
-=======
 {"condition_concept_id": 3, "person_id": 106}
 {"condition_concept_id": 3, "person_id": 107}
 {"condition_concept_id": 3, "person_id": 108}
@@ -57,4 +52,3 @@
 {"condition_concept_id": 4, "person_id": 105}
 {"condition_concept_id": 4, "person_id": 106}
 
->>>>>>> develop

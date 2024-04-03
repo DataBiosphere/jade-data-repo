@@ -43,8 +43,8 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count FROM `concept`
    * AS cc JOIN `concept_ancestor` AS ca ON cc.concept_id = ca.ancestor_concept_id JOIN
    * `'domain'_occurrence` AS co ON co.'domain'_concept_id = ca.descendant_concept_id WHERE
-   * (c.concept_id IN (SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE
-   * c.ancestor_concept_id = conceptId AND c.descendant_concept_id != conceptId) GROUP BY
+   * (c.concept_id IN (SELECT c.concept_id_2 FROM concept_relationship AS c WHERE (c.concept_id_1 =
+   * 101 AND * c.relationship_id = 'Subsumes')) AND c.standard_concept = 'S') GROUP BY
    * cc.concept_id, cc.concept_name ORDER BY cc.concept_name ASC
    */
   public Query buildConceptChildrenQuery(

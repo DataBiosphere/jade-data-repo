@@ -56,7 +56,9 @@ public class ConceptChildrenQueryBuilder {
     FieldVariable conceptName = concept.makeFieldVariable(CONCEPT_NAME);
     FieldVariable conceptId = concept.makeFieldVariable(CONCEPT_ID);
 
-    // concept_ancestor joined on concept.concept_id = ancestor_concept_id
+    // concept_ancestor joined on concept.concept_id = ancestor_concept_id.
+    // We use concept_ancestor for the rollup count because we want to include counts
+    // from all descendants, not just direct descendants.
     TableVariable conceptAncestor =
         TableVariable.forJoined(
             TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator),
@@ -96,11 +98,11 @@ public class ConceptChildrenQueryBuilder {
   }
 
   /**
-   * Generate a query that retrieves the descendants of the given concept. Since concepts are listed
-   * as their own descendants it excludes that case.
+   * Generate a query that retrieves the descendants of the given concept. We use concept
+   * relationship here because it includes only the direct descendants.
    *
-   * <p>SELECT c.descendant_concept_id FROM `concept_ancestor` AS c WHERE c.ancestor_concept_id =
-   * conceptId AND c.descendant_concept_id != conceptId
+   * <p>SELECT c.concept_id_2 FROM concept_relationship AS c WHERE (c.concept_id_1 = 101 AND
+   * c.relationship_id = 'Subsumes'))
    */
   Query createSubQuery(int conceptId, TableNameGenerator tableNameGenerator) {
     // concept_relationship is primary table for the subquery
@@ -109,8 +111,6 @@ public class ConceptChildrenQueryBuilder {
             TablePointer.fromTableName(CONCEPT_RELATIONSHIP, tableNameGenerator));
     FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);
 
-    //    SELECT c.concept_id_2 FROM concept_relationship AS c
-    //            WHERE (c.concept_id_1 = 101 AND c.relationship_id = 'Subsumes'))
     return new Query(
         List.of(descendantConceptId),
         List.of(conceptRelationship),

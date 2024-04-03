@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -36,6 +38,7 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
@@ -130,16 +133,33 @@ class SnapshotBuilderServiceTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
-  public void getConceptChildren(CloudPlatform cloudPlatform) {
+  void getConceptChildren(CloudPlatform cloudPlatform) {
+
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
-    mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
+
+    var queryBuilder = mock(ConceptChildrenQueryBuilder.class);
+    when(queryBuilderFactory.conceptChildrenQueryBuilder(any())).thenReturn(queryBuilder);
+
+    when(queryBuilder.retrieveDomainId(1)).thenReturn(mock(Query.class));
+    when(queryBuilder.buildConceptChildrenQuery(any(), eq(1))).thenReturn(mock(Query.class));
+
+    SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
+    domainOption.name("domainId").tableName("domainTable").columnName("domain_concept_id");
+    SnapshotBuilderSettings settings =
+        new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(any()))
+        .thenReturn(settings);
+
+    var concept =
+        new SnapshotBuilderConcept().name("childConcept").id(2).count(1).hasChildren(true);
+    mockRunQueryForGetConcepts(concept("childConcept", 2), dataset, "domainId");
+
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(
         "getConceptChildren returns the expected response",
         response.getResult(),
-        equalTo(concepts));
+        equalTo(List.of(concept)));
   }
 
   @ParameterizedTest
@@ -157,12 +177,29 @@ class SnapshotBuilderServiceTest {
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
-    var concepts = List.of(new SnapshotBuilderConcept().name("concept1").id(1));
-    mockRunQueryForConcepts(cloudPlatform, concepts, dataset);
+    var concept = new SnapshotBuilderConcept().name("concept1").id(1);
+    mockRunQueryForSearchConcepts(concept, dataset);
     var response =
-        snapshotBuilderService.searchConcepts(dataset.getId(), "condition", "cancer", TEST_USER);
+        snapshotBuilderService.searchConcepts(
+            dataset.getId(), domainOption.getId(), "cancer", TEST_USER);
     assertThat(
-        "searchConcepts returns the expected response", response.getResult(), equalTo(concepts));
+        "searchConcepts returns the expected response",
+        response.getResult(),
+        equalTo(List.of(concept)));
+  }
+
+  @Test
+  void searchConceptsUnknownDomain() {
+    Dataset dataset = makeDataset(CloudPlatform.GCP);
+    UUID datasetId = dataset.getId();
+    when(datasetService.retrieve(datasetId)).thenReturn(dataset);
+    var domainOption = new SnapshotBuilderDomainOption();
+    domainOption.setId(19);
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId))
+        .thenReturn(new SnapshotBuilderSettings().domainOptions(List.of(domainOption)));
+    assertThrows(
+        BadRequestException.class,
+        () -> snapshotBuilderService.searchConcepts(datasetId, 20, "cancer", TEST_USER));
   }
 
   private DatasetModel makeDatasetModel() {
@@ -176,18 +213,27 @@ class SnapshotBuilderServiceTest {
         .id(UUID.randomUUID());
   }
 
-  private void mockRunQueryForConcepts(
-      CloudPlatform cloudPlatform, List<SnapshotBuilderConcept> concepts, Dataset dataset) {
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(cloudPlatform);
-    if (cloudPlatformWrapper.isGcp()) {
-      when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
-      when(bigQueryDatasetPdao.<SnapshotBuilderConcept>runQuery(any(), any(), any()))
-          .thenReturn(concepts);
-    } else {
-      when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
-          .thenReturn("dataSource");
-      when(azureSynapsePdao.<SnapshotBuilderConcept>runQuery(any(), any())).thenReturn(concepts);
-    }
+  private void mockRunQueryForSearchConcepts(SnapshotBuilderConcept concept, Dataset dataset) {
+    mockRunQuery(dataset).thenReturn(List.of(concept));
+  }
+
+  private void mockRunQueryForGetConcepts(
+      SnapshotBuilderConcept concept, Dataset dataset, String domainId) {
+    mockRunQuery(dataset).thenReturn(List.of(domainId)).thenReturn(List.of(concept));
+  }
+
+  private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Dataset dataset) {
+    return CloudPlatformWrapper.of(dataset.getCloudPlatform())
+        .choose(
+            () -> {
+              when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
+              return when(bigQueryDatasetPdao.runQuery(any(), any(), any()));
+            },
+            () -> {
+              when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+                  .thenReturn("dataSource");
+              return when(azureSynapsePdao.runQuery(any(), any()));
+            });
   }
 
   @Test

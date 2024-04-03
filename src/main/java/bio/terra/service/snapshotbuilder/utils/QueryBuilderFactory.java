@@ -16,4 +16,9 @@ public class QueryBuilderFactory {
   public HierarchyQueryBuilder hierarchyQueryBuilder(TableNameGenerator tableNameGenerator) {
     return new HierarchyQueryBuilder(tableNameGenerator);
   }
+
+  public ConceptChildrenQueryBuilder conceptChildrenQueryBuilder(
+      TableNameGenerator tableNameGenerator) {
+    return new ConceptChildrenQueryBuilder(tableNameGenerator);
+  }
 }

@@ -48,7 +48,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.27.0-SNAPSHOT'
+    version '2.31.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -130,6 +130,12 @@ spotbugsTest {
             destination = file("$buildDir/reports/spotbugs/test.html")
             excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
+    }
+}
+
+idea {
+    module {
+        downloadJavadoc = true
     }
 }
 

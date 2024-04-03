@@ -4592,11 +4592,11 @@ paths:
             type: string
             format: uuid
         - in: path
-          description: A domain id.
+          description: The concept ID of the domain
           name: domainId
           required: true
           schema:
-            type: string
+            type: integer
         - in: query
           description: User specified text to search concepts for.
           name: searchText
@@ -7504,6 +7504,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - values
           properties:
             values:
               type: array
@@ -7515,6 +7517,9 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - low
+            - high
           properties:
             low:
               type: integer
@@ -7526,6 +7531,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            -conceptId
           properties:
             conceptId:
               type: integer

@@ -8,7 +8,6 @@ import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicat
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
-import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
@@ -78,7 +77,6 @@ public class JobService {
   private final AtomicBoolean isRunning;
   private final Migrate migrate;
   private final ObjectMapper objectMapper;
-  private final PerformanceLogger performanceLogger;
   private final ApplicationContext applicationContext;
   private final OpenTelemetry openTelemetry;
   private Stairway stairway;
@@ -93,7 +91,6 @@ public class JobService {
       ApplicationContext applicationContext,
       Migrate migrate,
       ObjectMapper objectMapper,
-      PerformanceLogger performanceLogger,
       OpenTelemetry openTelemetry)
       throws StairwayExecutionException {
     this.samService = samService;
@@ -104,7 +101,6 @@ public class JobService {
     this.migrate = migrate;
     this.applicationContext = applicationContext;
     this.objectMapper = objectMapper;
-    this.performanceLogger = performanceLogger;
     this.kubeService = kubeService;
     this.openTelemetry = openTelemetry;
   }

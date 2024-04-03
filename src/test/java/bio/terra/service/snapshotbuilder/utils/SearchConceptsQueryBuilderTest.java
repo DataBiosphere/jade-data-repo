@@ -62,9 +62,11 @@ class SearchConceptsQueryBuilderTest {
                   + "FROM concept AS c "
                   + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
                   + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
+                  + "WHERE c.concept_id IN"
+                  + " (SELECT c.descendant_concept_id FROM concept_ancestor AS c WHERE (c.ancestor_concept_id = 101 AND c.descendant_concept_id != 101)) "
                   + "WHERE (c.domain_id = 'Observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
+                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) IN"
                   + "GROUP BY c.concept_name, c.concept_id "
                   + "ORDER BY count DESC"));
     }
@@ -80,8 +82,10 @@ class SearchConceptsQueryBuilderTest {
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
             domainOption, "", s -> s, CloudPlatformWrapper.of(platform));
     String expected =
-        "c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count "
-            + "FROM concept AS c  JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c.concept_id "
+        "c.concept_name, c.concept_id, COUNT(DISTINCT c1.person_id) AS count "
+            + "FROM concept AS c  "
+            + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
+            + "LEFT JOIN condition_occurrence AS c1 ON c1.condition_concept_id = c0.descendant_concept_id "
             + "WHERE c.domain_id = 'Condition' "
             + "GROUP BY c.concept_name, c.concept_id "
             + "ORDER BY count DESC";

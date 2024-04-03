@@ -36,6 +36,13 @@ on:
   workflow_dispatch: {}
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
+
+concurrency:
+  # Don't run this workflow concurrently on the same branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # For PRs, don't wait for completion of existing runs, cancel them instead
+  cancel-in-progress: ${{ github.event_name == "pull_request" }}
+
 jobs:
   test_check:
     name: "Checkout, verify and run unit tests"

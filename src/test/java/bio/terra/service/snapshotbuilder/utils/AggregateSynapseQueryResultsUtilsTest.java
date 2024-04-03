@@ -39,4 +39,26 @@ class AggregateSynapseQueryResultsUtilsTest {
         () -> AggregateSynapseQueryResultsUtils.toCount(rs),
         "Error processing result set into SnapshotBuilderConcept model");
   }
+
+  @Test
+  void toDomainIdReturnsString() throws SQLException {
+    ResultSet rs = mock(ResultSet.class);
+    when(rs.getString("domain_id")).thenReturn("domain_id");
+
+    assertThat(
+        "domainId converts table result to a string",
+        AggregateSynapseQueryResultsUtils.toDomainId(rs),
+        equalTo("domain_id"));
+  }
+
+  @Test
+  void toDomainIdHandlesSQLException() throws SQLException {
+    ResultSet rs = mock(ResultSet.class);
+    when(rs.getString("domain_id")).thenThrow(new SQLException());
+
+    assertThrows(
+        ProcessResultSetException.class,
+        () -> AggregateSynapseQueryResultsUtils.toDomainId(rs),
+        "Error processing result set into String domain ID");
+  }
 }

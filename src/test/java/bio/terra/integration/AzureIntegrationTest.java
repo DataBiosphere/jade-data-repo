@@ -55,7 +55,6 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
@@ -344,7 +343,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
-  private void ingestOmopTable(String tableName, String ingestFile, long expectedRowCount)
+  private void ingestTable(String tableName, String ingestFile, long expectedRowCount)
       throws Exception {
     List<Map<String, Object>> data;
     try {
@@ -369,8 +368,12 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestOmopTable("concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    ingestTable("concept", "omop/concept-table-data.json", 4);
+    ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
+    ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
+
+    // Add settings to dataset
+    dataRepoFixtures.updateSettings(steward, datasetId, "omop/settings.json");
   }
 
   @Test
@@ -379,14 +382,16 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Test getConcepts
     var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
-    List<String> getConceptNames =
-        getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat(
-        "expected concepts are returned",
-        getConceptNames,
-        containsInAnyOrder("concept1", "concept3"));
+    var concepts = getConceptResponse.getResult();
 
-    // TODO - re-enable this test
+    var concept1 = concepts.get(0);
+    var concept3 = concepts.get(1);
+
+    assertThat(concept1.getId(), is(1));
+    assertThat(concept1.getCount(), is(22));
+    assertThat(concept3.getId(), is(3));
+    assertThat(concept3.getCount(), is(24));
+
     // Test searchConcepts
     //    var searchConceptResponse =
     //        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");

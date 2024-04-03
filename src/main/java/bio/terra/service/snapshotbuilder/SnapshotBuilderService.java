@@ -26,7 +26,6 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
@@ -89,10 +88,21 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
+    CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+
+    // domain is needed to join with the domain specific occurrence table
+    // this does not work for the metadata domain
+    String domainId = getDomainId(conceptId, tableNameGenerator, dataset);
+    SnapshotBuilderDomainOption domainOption =
+        getDomainOptionFromSettingsByName(domainId, datasetId);
+
     String cloudSpecificSql =
-        ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
-            conceptId, tableNameGenerator, CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+        queryBuilderFactory
+            .conceptChildrenQueryBuilder(tableNameGenerator)
+            .buildConceptChildrenQuery(domainOption, conceptId)
+            .renderSQL(cloudPlatform);
+
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -188,6 +198,41 @@ public class SnapshotBuilderService {
             AggregateBQQueryResultsUtils::toCount,
             AggregateSynapseQueryResultsUtils::toCount)
         .get(0);
+  }
+
+  private SnapshotBuilderDomainOption getDomainOptionFromSettingsByName(
+      String domainId, UUID datasetId) {
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+
+    return snapshotBuilderSettings.getDomainOptions().stream()
+        .filter(domainOption -> domainOption.getName().equals(domainId))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new BadRequestException(
+                    "Invalid domain category is given: %s".formatted(domainId)));
+  }
+
+  private String getDomainId(
+      Integer conceptId, TableNameGenerator tableNameGenerator, Dataset dataset) {
+    CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    List<String> domainIdResult =
+        runSnapshotBuilderQuery(
+            queryBuilderFactory
+                .conceptChildrenQueryBuilder(tableNameGenerator)
+                .retrieveDomainId(conceptId)
+                .renderSQL(cloudPlatform),
+            dataset,
+            AggregateBQQueryResultsUtils::toDomainId,
+            AggregateSynapseQueryResultsUtils::toDomainId);
+    if (domainIdResult.size() == 1) {
+      return domainIdResult.get(0);
+    } else if (domainIdResult.isEmpty()) {
+      throw new IllegalStateException("No domain Id found for concept: " + conceptId);
+    } else {
+      throw new IllegalStateException("Multiple domains found for concept: " + conceptId);
+    }
   }
 
   private EnumerateSnapshotAccessRequest convertToEnumerateModel(

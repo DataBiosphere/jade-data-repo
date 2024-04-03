@@ -22,56 +22,20 @@ public class ConceptChildrenQueryBuilder {
     this.tableNameGenerator = tableNameGenerator;
   }
 
-  //  public static String buildConceptChildrenQuery(
-  //      int parentConceptId, TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform)
-  // {
-  //    TableVariable concept =
-  //        TableVariable.forPrimary(TablePointer.fromTableName("concept", tableNameGenerator));
-  //    FieldVariable conceptName = concept.makeFieldVariable("concept_name");
-  //    FieldVariable conceptId = concept.makeFieldVariable("concept_id");
-  //
-  //    TableVariable conceptRelationship =
-  //        TableVariable.forPrimary(
-  //            TablePointer.fromTableName("concept_relationship", tableNameGenerator));
-  //    FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable("concept_id_2");
-  //
-  //    Query selectAllDescendants =
-  //        new Query(
-  //            List.of(descendantConceptId),
-  //            List.of(conceptRelationship),
-  //            BooleanAndOrFilterVariable.and(
-  //                BinaryFilterVariable.equals(
-  //                    conceptRelationship.makeFieldVariable("concept_id_1"),
-  //                    new Literal(parentConceptId)),
-  //                BinaryFilterVariable.equals(
-  //                    conceptRelationship.makeFieldVariable("relationship_id"),
-  //                    new Literal("Subsumes"))));
-  //    /* Generates SQL like:
-  //      SELECT c.concept_name, c.concept_id
-  //          FROM concept AS c
-  //          WHERE (c.concept_id IN
-  //            (SELECT c.concept_id_2 FROM concept_relationship AS c
-  //            WHERE (c.concept_id_1 = 101 AND c.relationship_id = 'Subsumes')) AND
-  // c.standard_concept = 'S')
-  //    */
-  //    Query query =
-  //        new Query(
-  //            List.of(conceptName, conceptId),
-  //            List.of(concept),
-  //            BooleanAndOrFilterVariable.and(
-  //                SubQueryFilterVariable.in(conceptId, selectAllDescendants),
-  //                BinaryFilterVariable.equals(
-  //                    concept.makeFieldVariable("standard_concept"), new Literal("S"))));
-  //    return query.renderSQL(platform);
   private final TableNameGenerator tableNameGenerator;
   private static final String CONCEPT = "concept";
   private static final String CONCEPT_ANCESTOR = "concept_ancestor";
+  private static final String CONCEPT_RELATIONSHIP = "concept_relationship";
   private static final String PERSON_ID = "person_id";
   private static final String DOMAIN_ID = "domain_id";
   private static final String CONCEPT_ID = "concept_id";
   private static final String CONCEPT_NAME = "concept_name";
+  private static final String STANDARD_CONCEPT = "standard_concept";
   private static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
   private static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
+  private static final String CONCEPT_ID_1 = "concept_id_1";
+  private static final String CONCEPT_ID_2 = "concept_id_2";
+  private static final String RELATIONSHIP_ID = "relationship_id";
 
   /**
    * Generate a query that retrieves the descendants of the given concept and their roll-up counts.
@@ -126,7 +90,7 @@ public class ConceptChildrenQueryBuilder {
             SubQueryFilterVariable.in(
                 conceptId, createSubQuery(parentConceptId, tableNameGenerator)),
             BinaryFilterVariable.equals(
-                concept.makeFieldVariable("standard_concept"), new Literal("S")));
+                concept.makeFieldVariable(STANDARD_CONCEPT), new Literal("S")));
 
     return new Query(select, tables, where, groupBy, orderBy);
   }
@@ -142,8 +106,8 @@ public class ConceptChildrenQueryBuilder {
     // concept_relationship is primary table for the subquery
     TableVariable conceptRelationship =
         TableVariable.forPrimary(
-            TablePointer.fromTableName("concept_relationship", tableNameGenerator));
-    FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable("concept_id_2");
+            TablePointer.fromTableName(CONCEPT_RELATIONSHIP, tableNameGenerator));
+    FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);
 
     //    SELECT c.concept_id_2 FROM concept_relationship AS c
     //            WHERE (c.concept_id_1 = 101 AND c.relationship_id = 'Subsumes'))
@@ -152,10 +116,9 @@ public class ConceptChildrenQueryBuilder {
         List.of(conceptRelationship),
         BooleanAndOrFilterVariable.and(
             BinaryFilterVariable.equals(
-                conceptRelationship.makeFieldVariable("concept_id_1"), new Literal(conceptId)),
+                conceptRelationship.makeFieldVariable(CONCEPT_ID_1), new Literal(conceptId)),
             BinaryFilterVariable.equals(
-                conceptRelationship.makeFieldVariable("relationship_id"),
-                new Literal("Subsumes"))));
+                conceptRelationship.makeFieldVariable(RELATIONSHIP_ID), new Literal("Subsumes"))));
   }
 
   /**

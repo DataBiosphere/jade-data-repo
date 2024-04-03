@@ -32,7 +32,6 @@ plugins {
     id 'org.liquibase.gradle' version '2.2.1'
     id 'org.gradle.test-retry' version '1.5.8'
     id 'antlr'
-    id 'com.github.spotbugs' version '4.7.1'
     id 'org.hidetake.swagger.generator' version '2.19.2'
     id 'org.springframework.boot' version '3.2.4'
     id 'idea'
@@ -105,31 +104,6 @@ if (hasProperty('buildScan')) {
         buildFinished { ->
             def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
             link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=${project}&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22${project}%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22${cluster}%22${nschunk}"
-        }
-    }
-}
-
-spotbugs {
-    effort = 'max'
-    // This makes the "html" reports come out in plain text so you can just open the file in IntelliJ
-    // and look at your bugs instead of having to switch to a browser.
-    extraArgs = ['-emacs']
-}
-spotbugsMain {
-    reports {
-        html {
-            enabled = true
-            destination = file("$buildDir/reports/spotbugs/main.html")
-            excludeFilter = file("config/spotbugs/excludeFilter.xml")
-        }
-    }
-}
-spotbugsTest {
-    reports {
-        html {
-            enabled = true
-            destination = file("$buildDir/reports/spotbugs/test.html")
-            excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
 }
@@ -291,7 +265,6 @@ dependencies {
     testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
 
     antlr 'org.antlr:antlr4:4.8'
-    spotbugs 'com.github.spotbugs:spotbugs:4.2.3'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.

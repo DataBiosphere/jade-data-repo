@@ -19,7 +19,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.storage.StorageException;
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
@@ -59,11 +58,6 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
       "does not have serviceusage.services.use access to the Google Cloud project.";
 
   @Override
-  @SuppressFBWarnings(
-      value = "BC",
-      justification =
-          "The check is wrong. The exception when calling validateUserCanRead can in "
-              + "fact be a GoogleJsonResponseException")
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap inputParameters = context.getInputParameters();
     List<String> sourcePaths;

@@ -77,7 +77,6 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -112,10 +111,6 @@ import org.springframework.test.context.ActiveProfiles;
 @Tag("bio.terra.common.category.Unit")
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
-@SuppressFBWarnings(
-    value = "DMI",
-    justification =
-        "This fails with not allowing absolute paths but they're not file paths in our case")
 public class DrsServiceTest {
 
   private static final AuthenticatedUserRequest TEST_USER =
@@ -1148,9 +1143,6 @@ public class DrsServiceTest {
     assertThat(googleDrsObject.getName(), is(googleFsFile.getPath()));
   }
 
-  @SuppressFBWarnings(
-      value = "NP",
-      justification = "It's incorrectly complaining about potential NPEs")
   private DRSObject createFileDrsObject(
       String id,
       String path,

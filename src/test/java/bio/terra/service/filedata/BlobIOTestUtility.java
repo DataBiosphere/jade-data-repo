@@ -1,6 +1,5 @@
 package bio.terra.service.filedata;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Random;
@@ -63,9 +62,6 @@ public interface BlobIOTestUtility {
       private final Random rand = new Random();
 
       @Override
-      @SuppressFBWarnings(
-          value = "DMI_RANDOM_USED_ONLY_ONCE",
-          justification = "this is misfire for spotbugs.  Random gets used repeatedly")
       public int read() {
         if (dataProduced == length) {
           return -1;

@@ -133,6 +133,12 @@ spotbugsTest {
     }
 }
 
+idea {
+    module {
+        downloadJavadoc = true
+    }
+}
+
 jacocoTestReport {
     reports {
         // sonarqube requires XML coverage output to upload coverage data

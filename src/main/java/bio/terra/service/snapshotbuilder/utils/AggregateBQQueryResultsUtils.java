@@ -25,4 +25,8 @@ public class AggregateBQQueryResultsUtils {
   public static int toCount(FieldValueList row) {
     return (int) row.get(0).getLongValue();
   }
+
+  public static String toDomainId(FieldValueList row) {
+    return row.get("domain_id").getStringValue();
+  }
 }

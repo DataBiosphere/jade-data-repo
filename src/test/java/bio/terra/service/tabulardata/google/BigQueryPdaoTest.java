@@ -27,7 +27,7 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableDataType;
@@ -46,6 +46,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -103,6 +104,7 @@ public class BigQueryPdaoTest {
   @Autowired private BigQueryTransactionPdao bigQueryTransactionPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
+  @Autowired private SnapshotBuilderSettingsDao settingsDao;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
   @Autowired private GoogleResourceManagerService resourceManagerService;
@@ -283,7 +285,7 @@ public class BigQueryPdaoTest {
     }
   }
 
-  private void ingestOmopTable(
+  private void ingestTable(
       Dataset dataset, String tableName, String ingestFile, int expectedRowCount) throws Exception {
     List<Map<String, Object>> data =
         jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
@@ -300,13 +302,21 @@ public class BigQueryPdaoTest {
 
   private Dataset stageOmopDataset() throws Exception {
     Dataset dataset = readDataset("omop/it-dataset-omop.json");
+    SnapshotBuilderSettings settings = readSettings("omop/settings.json");
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
+    settingsDao.upsertSnapshotBuilderSettingsByDataset(dataset.getId(), settings);
 
     // Stage tabular data for ingest.
-    ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    ingestTable(dataset, "concept", "omop/concept-table-data.json", 4);
+    ingestTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
+    ingestTable(dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
+
     return dataset;
+  }
+
+  private SnapshotBuilderSettings readSettings(String file) throws IOException {
+    return jsonLoader.loadObject(file, SnapshotBuilderSettings.class);
   }
 
   @Test
@@ -314,9 +324,14 @@ public class BigQueryPdaoTest {
     var dataset = stageOmopDataset();
     var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
     var concepts = conceptResponse.getResult();
+    assertThat(concepts.size(), is(equalTo(2)));
+    var concept1 = concepts.get(0);
+    var concept3 = concepts.get(1);
 
-    assertThat(
-        concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
+    assertThat(concept1.getId(), is(equalTo(1)));
+    assertThat(concept1.getCount(), is(equalTo(22)));
+    assertThat(concept3.getId(), is(equalTo(3)));
+    assertThat(concept3.getCount(), is(equalTo(24)));
   }
 
   @Test

@@ -160,6 +160,8 @@ configurations {
 // Spring Boot 3.2.4 pulls in opentelemetry-bom 1.31.0.
 // It must have version >= 1.34.1 for compatibility with terra-common-lib 1.1.10:
 ext['opentelemetry.version'] = '1.36.0'
+// Spring Boot 3.2.4 pulls in io.netty:netty-bom 4.1.107.Final which is impacted by CVE-2024-29025.
+ext['netty.version'] = '4.1.108.Final'
 
 dependencies {
     implementation 'com.google.apis:google-api-services-serviceusage:v1-rev20230215-2.0.0'

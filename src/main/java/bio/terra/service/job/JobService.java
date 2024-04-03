@@ -14,6 +14,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
 import bio.terra.common.stairway.MonitoringHook;
 import bio.terra.common.stairway.StairwayComponent;
+import bio.terra.common.stairway.StairwayLoggingHook;
 import bio.terra.model.JobModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -124,7 +125,7 @@ public class JobService {
             .newStairwayOptionsBuilder()
             .dataSource(stairwayJdbcConfiguration.getDataSource())
             .context(applicationContext)
-            .addHook(new StairwayLoggingHooks(performanceLogger))
+            .addHook(new StairwayLoggingHook())
             .addHook(new MonitoringHook(openTelemetry))
             .exceptionSerializer(serializer));
     stairway = stairwayComponent.get();

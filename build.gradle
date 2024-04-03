@@ -16,9 +16,6 @@ import java.text.SimpleDateFormat
  */
 
 buildscript {
-    ext {
-        springBootVersion = '3.2.4'
-    }
     repositories {
         mavenCentral()
     }
@@ -278,16 +275,12 @@ dependencies {
     // but the groovy config is... well... groovy.
     runtimeOnly 'org.codehaus.groovy:groovy:3.0.7'
 
-    // Findbugs annotations, so we can selectively suppress findbugs findings
-    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
-
     liquibaseRuntime 'org.liquibase:liquibase-core'
     liquibaseRuntime 'org.postgresql:postgresql'
     liquibaseRuntime 'info.picocli:picocli:4.7.5'
 
     testImplementation 'org.junit.vintage:junit-vintage-engine'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'com.google.code.findbugs:annotations:3.0.1'
     testImplementation 'io.zonky.test:embedded-database-spring-test:2.5.0'
     testImplementation 'io.zonky.test:embedded-postgres:2.0.6'
     implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:12.8.0')

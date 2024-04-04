@@ -3,6 +3,8 @@ package bio.terra.service.snapshotbuilder.utils;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
@@ -94,18 +96,21 @@ class SearchConceptsQueryBuilderTest {
             + "WHERE c.domain_id = 'Condition' "
             + "GROUP BY c.concept_name, c.concept_id "
             + "ORDER BY count DESC";
-    if (platformWrapper.isAzure()) {
-      assertThat(
-          "generated SQL for Azure empty search string is correct",
-          actual,
-          equalToCompressingWhiteSpace("SELECT TOP 100 " + expected));
-    }
-    if (platformWrapper.isGcp()) {
-      assertThat(
-          "generated SQL for GCP empty search string is correct",
-          actual,
-          equalToCompressingWhiteSpace("SELECT " + expected + " LIMIT 100"));
-    }
+    platformWrapper.choose(
+        () -> {
+          assertThat(
+              "generated SQL for GCP empty search string is correct",
+              actual,
+              equalToCompressingWhiteSpace("SELECT " + expected + " LIMIT 100"));
+          return null;
+        },
+        () -> {
+          assertThat(
+              "generated SQL for Azure empty search string is correct",
+              actual,
+              equalToCompressingWhiteSpace("SELECT TOP 100 " + expected));
+          return null;
+        });
   }
 
   @ParameterizedTest
@@ -118,20 +123,24 @@ class SearchConceptsQueryBuilderTest {
         createSearchConceptClause(
                 conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
             .renderSQL(CloudPlatformWrapper.of(platform));
-    if (platformWrapper.isAzure()) {
-      assertThat(
-          "generated sql is as expected",
-          actual,
-          // table name is added when the Query is created
-          equalToCompressingWhiteSpace("CHARINDEX('cancer', null.concept_name) > 0"));
-    }
-    if (platformWrapper.isGcp()) {
-      assertThat(
-          "generated sql is as expected",
-          actual,
-          // table name is added when the Query is created
-          equalToCompressingWhiteSpace("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
-    }
+
+    platformWrapper.choose(
+        () -> {
+          assertThat(
+              "generated sql is as expected",
+              actual,
+              // table name is added when the Query is created
+              equalToCompressingWhiteSpace("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
+          return null;
+        },
+        () -> {
+          assertThat(
+              "generated sql is as expected",
+              actual,
+              // table name is added when the Query is created
+              equalToCompressingWhiteSpace("CHARINDEX('cancer', null.concept_name) > 0"));
+          return null;
+        });
   }
 
   @ParameterizedTest

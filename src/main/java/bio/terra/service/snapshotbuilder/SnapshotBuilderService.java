@@ -22,7 +22,6 @@ import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
@@ -163,9 +162,10 @@ public class SnapshotBuilderService {
 
     String cloudSpecificSql =
         queryBuilderFactory
-            .searchConceptsQueryBuilder(x -> x)
+            .searchConceptsQueryBuilder(tableNameGenerator)
             .buildSearchConceptsQuery(snapshotBuilderDomainOption, searchText)
             .renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,
@@ -184,11 +184,11 @@ public class SnapshotBuilderService {
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
     TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
 
-    Query query =
+    String cloudSpecificSQL =
         queryBuilderFactory
             .criteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
-            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
-    String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups)
+            .renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     return runSnapshotBuilderQuery(
             cloudSpecificSQL,
@@ -268,14 +268,15 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    var query =
+    String cloudSpecificSql =
         queryBuilderFactory
             .hierarchyQueryBuilder(getTableNameGenerator(dataset, userRequest))
-            .generateQuery(conceptId);
-    var sql = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+            .generateQuery(conceptId)
+            .renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
-    runSnapshotBuilderQuery(sql, dataset, ParentQueryResult::new, ParentQueryResult::new)
+    runSnapshotBuilderQuery(
+            cloudSpecificSql, dataset, ParentQueryResult::new, ParentQueryResult::new)
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =

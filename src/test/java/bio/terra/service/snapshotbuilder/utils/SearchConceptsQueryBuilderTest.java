@@ -59,14 +59,12 @@ class SearchConceptsQueryBuilderTest {
           actual,
           equalToCompressingWhiteSpace(
               "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                  + "FROM concept AS c "
+                  + "FROM concept AS c  "
                   + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
                   + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
-                  + "WHERE c.concept_id IN"
-                  + " (SELECT c.descendant_concept_id FROM concept_ancestor AS c WHERE (c.ancestor_concept_id = 101 AND c.descendant_concept_id != 101)) "
                   + "WHERE (c.domain_id = 'Observation' "
                   + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) IN"
+                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
                   + "GROUP BY c.concept_name, c.concept_id "
                   + "ORDER BY count DESC"));
     }

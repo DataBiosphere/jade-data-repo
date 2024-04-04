@@ -28,7 +28,6 @@ import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
-import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import java.sql.ResultSet;
@@ -163,11 +162,10 @@ public class SnapshotBuilderService {
                         "Invalid domain category is given: %s".formatted(domainId)));
 
     String cloudSpecificSql =
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            snapshotBuilderDomainOption,
-            searchText,
-            tableNameGenerator,
-            CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+        queryBuilderFactory
+            .searchConceptsQueryBuilder(x -> x)
+            .buildSearchConceptsQuery(snapshotBuilderDomainOption, searchText)
+            .renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             cloudSpecificSql,

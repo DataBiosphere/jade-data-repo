@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -21,26 +20,37 @@ import org.apache.commons.lang3.StringUtils;
 
 public class SearchConceptsQueryBuilder {
 
-  private SearchConceptsQueryBuilder() {}
+  public static final String CONCEPT_ID = "concept_id";
+  public static final String CONCEPT = "concept";
+  public static final String CONCEPT_ANCESTOR = "concept_ancestor";
+  public static final String CONCEPT_NAME = "concept_name";
+  public static final String CONCEPT_CODE = "concept_code";
+  public final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
+  public final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
+  public final TableNameGenerator tableNameGenerator;
 
-  public static String buildSearchConceptsQuery(
-      SnapshotBuilderDomainOption domainOption,
-      String searchText,
-      TableNameGenerator tableNameGenerator,
-      CloudPlatformWrapper platform) {
-    var conceptTablePointer = TablePointer.fromTableName("concept", tableNameGenerator);
-    var conceptAncestorPointer = TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
+  SearchConceptsQueryBuilder(TableNameGenerator tableNameGenerator) {
+    this.tableNameGenerator = tableNameGenerator;
+  }
+  /**
+   * Generate a query that retrieves all the concepts from the given searched text. If a search text
+   * is not provided, a search will be made on the domain.
+   */
+  public Query buildSearchConceptsQuery(
+      SnapshotBuilderDomainOption domainOption, String searchText) {
+    var conceptTablePointer = TablePointer.fromTableName(CONCEPT, tableNameGenerator);
+    var conceptAncestorPointer = TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator);
     var domainOccurrencePointer =
         TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
     var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    var nameField = conceptTableVariable.makeFieldVariable("concept_name");
-    var idField = conceptTableVariable.makeFieldVariable("concept_id");
+    var nameField = conceptTableVariable.makeFieldVariable(CONCEPT_NAME);
+    var idField = conceptTableVariable.makeFieldVariable(CONCEPT_ID);
 
     // FROM concept JOIN concept_ancestor ON ancestor_concept_id = concept.concept_id
     var conceptAncestorTableVariable =
-        TableVariable.forJoined(conceptAncestorPointer, "ancestor_concept_id", idField);
+        TableVariable.forJoined(conceptAncestorPointer, ANCESTOR_CONCEPT_ID, idField);
     var descendantIdFieldVariable =
-        conceptAncestorTableVariable.makeFieldVariable("descendant_concept_id");
+        conceptAncestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // LEFT JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
     // concept_ancestor.descendant_concept_id
@@ -77,12 +87,12 @@ public class SearchConceptsQueryBuilder {
       // search concept name clause filters for the search text based on field concept_name
       var searchNameClause =
           createSearchConceptClause(
-              conceptTablePointer, conceptTableVariable, searchText, "concept_name");
+              conceptTablePointer, conceptTableVariable, searchText, CONCEPT_NAME);
 
       // search concept name clause filters for the search text based on field concept_code
       var searchCodeClause =
           createSearchConceptClause(
-              conceptTablePointer, conceptTableVariable, searchText, "concept_code");
+              conceptTablePointer, conceptTableVariable, searchText, CONCEPT_CODE);
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
@@ -103,9 +113,7 @@ public class SearchConceptsQueryBuilder {
     // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
     // ORDER BY count DESC
 
-    Query query = new Query(select, tables, where, groupBy, orderBy, 100);
-
-    return query.renderSQL(platform);
+    return new Query(select, tables, where, groupBy, orderBy, 100);
   }
 
   static FunctionFilterVariable createSearchConceptClause(

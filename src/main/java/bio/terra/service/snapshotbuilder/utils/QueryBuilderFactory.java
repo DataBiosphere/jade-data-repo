@@ -21,4 +21,9 @@ public class QueryBuilderFactory {
       TableNameGenerator tableNameGenerator) {
     return new ConceptChildrenQueryBuilder(tableNameGenerator);
   }
+
+  public SearchConceptsQueryBuilder searchConceptsQueryBuilder(
+      TableNameGenerator tableNameGenerator) {
+    return new SearchConceptsQueryBuilder(tableNameGenerator);
+  }
 }

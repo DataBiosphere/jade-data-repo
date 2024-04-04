@@ -38,38 +38,41 @@ class SearchConceptsQueryBuilderTest {
             .searchConceptsQueryBuilder(x -> x)
             .buildSearchConceptsQuery(domainOption, "cancer")
             .renderSQL(platformWrapper);
-    //
-    if (platformWrapper.isGcp()) {
-      assertThat(
-          "generated SQL for GCP is correct",
-          actual,
-          equalToCompressingWhiteSpace(
-              "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                  + "FROM concept AS c "
-                  + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
-                  + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
-                  + "WHERE (c.domain_id = 'Observation' "
-                  + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
-                  + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
-                  + "GROUP BY c.concept_name, c.concept_id "
-                  + "ORDER BY count DESC "
-                  + "LIMIT 100"));
-    }
-    if (platformWrapper.isAzure()) {
-      assertThat(
-          "generated SQL for Azure is correct",
-          actual,
-          equalToCompressingWhiteSpace(
-              "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                  + "FROM concept AS c  "
-                  + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
-                  + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
-                  + "WHERE (c.domain_id = 'Observation' "
-                  + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
-                  + "GROUP BY c.concept_name, c.concept_id "
-                  + "ORDER BY count DESC"));
-    }
+
+    platformWrapper.choose(
+        () -> {
+          assertThat(
+              "generated SQL for GCP is correct",
+              actual,
+              equalToCompressingWhiteSpace(
+                  "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
+                      + "FROM concept AS c "
+                      + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
+                      + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
+                      + "WHERE (c.domain_id = 'Observation' "
+                      + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
+                      + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
+                      + "GROUP BY c.concept_name, c.concept_id "
+                      + "ORDER BY count DESC "
+                      + "LIMIT 100"));
+          return null;
+        },
+        () -> {
+          assertThat(
+              "generated SQL for Azure is correct",
+              actual,
+              equalToCompressingWhiteSpace(
+                  "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
+                      + "FROM concept AS c  "
+                      + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
+                      + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
+                      + "WHERE (c.domain_id = 'Observation' "
+                      + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
+                      + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
+                      + "GROUP BY c.concept_name, c.concept_id "
+                      + "ORDER BY count DESC"));
+          return null;
+        });
   }
 
   @ParameterizedTest

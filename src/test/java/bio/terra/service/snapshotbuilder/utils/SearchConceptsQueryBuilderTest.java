@@ -34,9 +34,11 @@ class SearchConceptsQueryBuilderTest {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Observation", 27, "observation", "observation_concept_id");
     String actual =
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            domainOption, "cancer", s -> s, CloudPlatformWrapper.of(platform));
-
+        new QueryBuilderFactory()
+            .searchConceptsQueryBuilder(x -> x)
+            .buildSearchConceptsQuery(domainOption, "cancer")
+            .renderSQL(platformWrapper);
+    //
     if (platformWrapper.isGcp()) {
       assertThat(
           "generated SQL for GCP is correct",
@@ -77,8 +79,10 @@ class SearchConceptsQueryBuilderTest {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            domainOption, "", s -> s, CloudPlatformWrapper.of(platform));
+        new QueryBuilderFactory()
+            .searchConceptsQueryBuilder(x -> x)
+            .buildSearchConceptsQuery(domainOption, "")
+            .renderSQL(platformWrapper);
     String expected =
         "c.concept_name, c.concept_id, COUNT(DISTINCT c1.person_id) AS count "
             + "FROM concept AS c  "
@@ -109,7 +113,7 @@ class SearchConceptsQueryBuilderTest {
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     String actual =
         createSearchConceptClause(
-            conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
+                conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
             .renderSQL(CloudPlatformWrapper.of(platform));
     if (platformWrapper.isAzure()) {
       assertThat(

@@ -2,7 +2,6 @@ package bio.terra.service.profile;
 
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
@@ -35,8 +34,6 @@ public class ProfileRequestValidator implements Validator {
     return Pattern.matches(VALID_BILLING_ACCOUNT_ID_REGEX, billingAccountId);
   }
 
-  // Spotbugs thinks this is useless. Its not.
-  @SuppressFBWarnings
   public static void isValidCloudPlatform(
       BillingProfileRequestModel billingProfileRequestModel, Errors errors) {
     String billingAccountId = billingProfileRequestModel.getBillingAccountId();

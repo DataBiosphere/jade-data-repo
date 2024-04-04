@@ -22,7 +22,6 @@ import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,7 +62,6 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests createFileRef, deleteDirectoryEntry, retrieveById, retrieveByPath
   public void createDeleteTest() throws Exception {
     FireStoreDirectoryEntry fileA = makeFileObject("/adir/A");
@@ -111,7 +109,6 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests validateRefIds, enumerateDirectory, deleteDirectoryEntriesFromCollection, retrieveById,
   // retrieveByPath
   public void directoryOperationsTest() throws Exception {
@@ -181,7 +178,6 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests that bulk filesystem ingest works  initially and when there are collisions with the same
   // load tag and failures when there are collisions with different load tags
   public void bulkDirectoryEntryOperationsTest() throws Exception {
@@ -229,7 +225,6 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests that bulk directory ingest works  initially and when there are collisions with the same
   // load tag and failures when there are collisions with different load tags
   public void bulkDirectoryOperationsFSObjectsTest() throws Exception {
@@ -274,7 +269,6 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void testEnumerateFileRefEntries() throws InterruptedException {
     List<FireStoreDirectoryEntry> noFiles =
         directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 10);

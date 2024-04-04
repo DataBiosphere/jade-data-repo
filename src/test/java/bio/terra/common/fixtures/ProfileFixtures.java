@@ -3,15 +3,11 @@ package bio.terra.common.fixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-@SuppressFBWarnings(
-    value = "DMI_RANDOM_USED_ONLY_ONCE",
-    justification = "False positive introduced in 4.2.3, fixed in 4.4.2")
 public final class ProfileFixtures {
   private ProfileFixtures() {}
 

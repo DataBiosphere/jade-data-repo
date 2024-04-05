@@ -1,14 +1,12 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
@@ -17,13 +15,15 @@ import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,60 +33,56 @@ class CriteriaQueryBuilderTest {
 
   @BeforeEach
   void setup() {
-    criteriaQueryBuilder =
-        new CriteriaQueryBuilder("person", s -> s, SnapshotBuilderTestData.SETTINGS);
+    criteriaQueryBuilder = new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS);
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterForRangeCriteria(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterForRangeCriteria(SqlRenderContext context) {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(rangeCriteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
-        equalToCompressingWhiteSpace("(null.year_of_birth >= 0 AND null.year_of_birth <= 100)"));
+        filterVariable.renderSQL(context),
+        equalToCompressingWhiteSpace("(p.year_of_birth >= 0 AND p.year_of_birth <= 100)"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterForListCriteria(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterForListCriteria(SqlRenderContext context) {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
-        equalToCompressingWhiteSpace("null.ethnicity IN (0,1,2)"));
+        filterVariable.renderSQL(context),
+        equalToCompressingWhiteSpace("p.ethnicity IN (0,1,2)"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterForListCriteriaWithEmptyValues(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterForListCriteriaWithEmptyValues(SqlRenderContext context) {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of());
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace("1=1"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterForDomainCriteria(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterForDomainCriteria(SqlRenderContext context) {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "null.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
+            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
   }
 
   @Test
@@ -100,47 +96,46 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterIdentifiesDomainCriteria(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterIdentifiesDomainCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria = generateDomainCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
-    String sql = filterVariable.renderSQL(CloudPlatformWrapper.of(platform));
+    String sql = filterVariable.renderSQL(context);
     assertThat(
-        "It is aliasing for condition occurrence", sql, containsString("SELECT c.person_id FROM"));
-    assertThat("Condition occurrence is loaded in", sql, containsString("condition_occurrence"));
+        "The sql generated is correct",
+        sql,
+        equalToCompressingWhiteSpace(
+            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterIdentifiesRangeCriteria(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterIdentifiesRangeCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria = generateRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
-        containsString("null.year_of_birth >= 0"));
+        filterVariable.renderSQL(context),
+        is("(p.year_of_birth >= 0 AND p.year_of_birth <= 100)"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterIdentifiesListCriteria(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterIdentifiesListCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria = generateListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
-        containsString("IN (0,1,2)"));
+        filterVariable.renderSQL(context),
+        is("p.ethnicity IN (0,1,2)"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateAndOrFilterForCriteriaGroupHandlesMeetAllTrue(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateAndOrFilterForCriteriaGroupHandlesMeetAllTrue(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
             .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
@@ -148,34 +143,32 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(null.ethnicity IN (0,1,2) AND (null.year_of_birth >= 0 AND null.year_of_birth <= 100))"));
+            "(p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateAndOrFilterForCriteriaGroupHandlesMeetAllFalse(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateAndOrFilterForCriteriaGroupHandlesMeetAllFalse(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
             .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
             .meetAll(false);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(null.ethnicity IN (0,1,2) OR (null.year_of_birth >= 0 AND null.year_of_birth <= 100))"));
+            "(p.ethnicity IN (0,1,2) OR (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterForCriteriaGroupHandlesMustMeetTrue(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterForCriteriaGroupHandlesMustMeetTrue(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
             .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
@@ -184,17 +177,16 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(null.ethnicity IN (0,1,2) AND (null.year_of_birth >= 0 AND null.year_of_birth <= 100))"));
+            "(p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterForCriteriaGroupHandlesMustMeetFalse(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterForCriteriaGroupHandlesMustMeetFalse(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
             .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
@@ -203,19 +195,18 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(NOT (null.ethnicity IN (0,1,2) AND (null.year_of_birth >= 0 AND null.year_of_birth <= 100)))"));
+            "(NOT (p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)))"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateFilterForCriteriaGroups(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateFilterForCriteriaGroups(SqlRenderContext context) {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", null, SnapshotBuilderTestData.SETTINGS)
+        new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS)
             .generateFilterForCriteriaGroups(
                 List.of(
                     new SnapshotBuilderCriteriaGroup()
@@ -227,19 +218,18 @@ class CriteriaQueryBuilderTest {
                         .meetAll(true)
                         .mustMeet(true)));
 
-    // Table name is null because there is no alias generated until it is rendered as a full query
     assertThat(
         "The sql generated is correct",
-        filterVariable.renderSQL(CloudPlatformWrapper.of(platform)),
+        filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(((null.year_of_birth >= 0 AND null.year_of_birth <= 100)) AND (null.ethnicity IN (0,1,2)))"));
+            "(((p.year_of_birth >= 0 AND p.year_of_birth <= 100)) AND (p.ethnicity IN (0,1,2)))"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void generateRollupCountsQueryForCriteriaGroupsList(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateRollupCountsQueryForCriteriaGroupsList(SqlRenderContext context) {
     Query query =
-        new CriteriaQueryBuilder("person", s -> s, SnapshotBuilderTestData.SETTINGS)
+        new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS)
             .generateRollupCountsQueryForCriteriaGroupsList(
                 List.of(
                     List.of(
@@ -252,11 +242,25 @@ class CriteriaQueryBuilderTest {
                                     generateDomainCriteria().id(11)))
                             .meetAll(true)
                             .mustMeet(true))));
+    // FIXME: is query correct? It doesn't contain the concept IDs 11 and 10.
     assertThat(
         "The sql generated is correct",
-        query.renderSQL(CloudPlatformWrapper.of(platform)),
+        query.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "SELECT COUNT(DISTINCT p.person_id) FROM person AS p WHERE (((p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100) AND p.person_id IN (SELECT p.person_id FROM procedure_occurrence AS p  JOIN concept_ancestor AS c ON c.ancestor_concept_id = p.procedure_concept_id WHERE (p.procedure_concept_id = 0 OR c.ancestor_concept_id = 0)))))"));
+            """
+                SELECT COUNT(DISTINCT p.person_id)
+                  FROM person AS p
+                  WHERE (((p.person_id IN (SELECT c.person_id
+                    FROM condition_occurrence AS c
+                    JOIN concept_ancestor AS c0
+                      ON c0.ancestor_concept_id = c.condition_concept_id
+                    WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND
+                         p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100) AND
+                         p.person_id IN (SELECT p0.person_id
+                    FROM procedure_occurrence AS p0
+                     JOIN concept_ancestor AS c1
+                     ON c1.ancestor_concept_id = p0.procedure_concept_id
+                    WHERE (p0.procedure_concept_id = 0 OR c1.ancestor_concept_id = 0)))))"""));
   }
 
   private static SnapshotBuilderDomainCriteria generateDomainCriteria() {

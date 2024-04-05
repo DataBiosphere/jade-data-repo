@@ -1,10 +1,10 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import org.stringtemplate.v4.ST;
 
 public class SubQueryFilterVariable implements FilterVariable {
@@ -21,11 +21,11 @@ public class SubQueryFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
+  public String renderSQL(SqlRenderContext context) {
     return new ST(TEMPLATE)
-        .add("operator", operator.renderSQL(platform))
-        .add("subQuery", subQuery.renderSQL(platform))
-        .add("fieldVariable", fieldVariable.renderSQL(platform))
+        .add("operator", operator.renderSQL(context))
+        .add("subQuery", subQuery.renderSQL(context))
+        .add("fieldVariable", fieldVariable.renderSQL(context))
         .render();
   }
 
@@ -40,7 +40,7 @@ public class SubQueryFilterVariable implements FilterVariable {
     }
 
     @Override
-    public String renderSQL(CloudPlatformWrapper platform) {
+    public String renderSQL(SqlRenderContext context) {
       return sql;
     }
   }

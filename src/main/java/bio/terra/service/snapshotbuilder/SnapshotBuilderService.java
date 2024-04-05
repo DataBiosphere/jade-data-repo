@@ -23,6 +23,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
@@ -31,6 +32,7 @@ import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -38,7 +40,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -75,10 +76,12 @@ public class SnapshotBuilderService {
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
-      String sql,
+      Query query,
       Dataset dataset,
+      AuthenticatedUserRequest userRequest,
       BigQueryDatasetPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
+    String sql = query.renderSQL(createContext(dataset, userRequest));
     return CloudPlatformWrapper.of(dataset.getCloudPlatform())
         .choose(
             () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
@@ -86,42 +89,28 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
-      UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
+      UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
 
     // domain is needed to join with the domain specific occurrence table
     // this does not work for the metadata domain
-    String domainId = getDomainId(conceptId, tableNameGenerator, dataset);
+    String domainId = getDomainId(conceptId, dataset, userRequest);
     SnapshotBuilderDomainOption domainOption =
         getDomainOptionFromSettingsByName(domainId, datasetId);
 
-    String cloudSpecificSql =
+    Query query =
         queryBuilderFactory
-            .conceptChildrenQueryBuilder(tableNameGenerator)
-            .buildConceptChildrenQuery(domainOption, conceptId)
-            .renderSQL(cloudPlatform);
+            .conceptChildrenQueryBuilder()
+            .buildConceptChildrenQuery(domainOption, conceptId);
 
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            cloudSpecificSql,
+            query,
             dataset,
+            userRequest,
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
-  }
-
-  TableNameGenerator getTableNameGenerator(Dataset dataset, AuthenticatedUserRequest userRequest) {
-    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    if (platform.isGcp()) {
-      return BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest));
-    } else if (platform.isAzure()) {
-      return SynapseVisitor.azureTableName(
-          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
-    } else {
-      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
-    }
   }
 
   public SnapshotBuilderCountResponse getCountResponse(
@@ -146,10 +135,23 @@ public class SnapshotBuilderService {
     return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
   }
 
+  @VisibleForTesting
+  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    TableNameGenerator tableNameGenerator =
+        CloudPlatformWrapper.of(dataset.getCloudPlatform())
+            .choose(
+                () ->
+                    BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest)),
+                () ->
+                    SynapseVisitor.azureTableName(
+                        datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
+    return new SqlRenderContext(tableNameGenerator, platform);
+  }
+
   public SnapshotBuilderGetConceptsResponse searchConcepts(
       UUID datasetId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
 
@@ -162,16 +164,14 @@ public class SnapshotBuilderService {
                     new BadRequestException(
                         "Invalid domain category is given: %s".formatted(domainId)));
 
-    String cloudSpecificSql =
+    Query query =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            snapshotBuilderDomainOption,
-            searchText,
-            tableNameGenerator,
-            CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+            snapshotBuilderDomainOption, searchText);
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            cloudSpecificSql,
+            query,
             dataset,
+            userRequest,
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
@@ -184,17 +184,16 @@ public class SnapshotBuilderService {
     Dataset dataset = datasetService.retrieve(datasetId);
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
-    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
 
     Query query =
         queryBuilderFactory
-            .criteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
+            .criteriaQueryBuilder("person", snapshotBuilderSettings)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
-    String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
     return runSnapshotBuilderQuery(
-            cloudSpecificSQL,
+            query,
             dataset,
+            userRequest,
             AggregateBQQueryResultsUtils::toCount,
             AggregateSynapseQueryResultsUtils::toCount)
         .get(0);
@@ -214,16 +213,12 @@ public class SnapshotBuilderService {
                     "Invalid domain category is given: %s".formatted(domainId)));
   }
 
-  private String getDomainId(
-      Integer conceptId, TableNameGenerator tableNameGenerator, Dataset dataset) {
-    CloudPlatformWrapper cloudPlatform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+  private String getDomainId(int conceptId, Dataset dataset, AuthenticatedUserRequest userRequest) {
     List<String> domainIdResult =
         runSnapshotBuilderQuery(
-            queryBuilderFactory
-                .conceptChildrenQueryBuilder(tableNameGenerator)
-                .retrieveDomainId(conceptId)
-                .renderSQL(cloudPlatform),
+            queryBuilderFactory.conceptChildrenQueryBuilder().retrieveDomainId(conceptId),
             dataset,
+            userRequest,
             AggregateBQQueryResultsUtils::toDomainId,
             AggregateSynapseQueryResultsUtils::toDomainId);
     if (domainIdResult.size() == 1) {
@@ -270,14 +265,11 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    var query =
-        queryBuilderFactory
-            .hierarchyQueryBuilder(getTableNameGenerator(dataset, userRequest))
-            .generateQuery(conceptId);
-    var sql = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+    var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(conceptId);
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
-    runSnapshotBuilderQuery(sql, dataset, ParentQueryResult::new, ParentQueryResult::new)
+    runSnapshotBuilderQuery(
+            query, dataset, userRequest, ParentQueryResult::new, ParentQueryResult::new)
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =

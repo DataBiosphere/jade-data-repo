@@ -17,11 +17,11 @@ class SynapseVisitorTest {
     String fullTableName = SynapseVisitor.azureTableName(datasetSource).generate(tableName);
     String expected =
         """
-          (SELECT * FROM
+          SELECT * FROM
           OPENROWSET(
             BULK 'metadata/parquet/table/*/*.parquet',
             DATA_SOURCE = 'source_dataset_data_source_0',
-            FORMAT = 'parquet') AS inner_alias110115821)
+            FORMAT = 'parquet')
           """;
     assertThat(
         "the expected table name and alias have been generated.",
@@ -36,11 +36,11 @@ class SynapseVisitorTest {
     String fullTableName = SynapseVisitor.azureTableName(datasetSource).generate(tableName);
     String expected =
         """
-          (SELECT * FROM
+          SELECT * FROM
           OPENROWSET(
             BULK 'metadata/parquet/null/*/*.parquet',
             DATA_SOURCE = 'null',
-            FORMAT = 'parquet') AS inner_alias31)
+            FORMAT = 'parquet')
           """;
     assertThat(
         "the expected table name and alias have been generated.",

@@ -19,8 +19,6 @@ import org.apache.commons.lang3.StringUtils;
 
 public class SearchConceptsQueryBuilder {
 
-  public static final String HAS_CHILDREN = "has_children";
-
   private SearchConceptsQueryBuilder() {}
 
   public static Query buildSearchConceptsQuery(

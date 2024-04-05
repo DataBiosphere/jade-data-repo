@@ -69,7 +69,12 @@ public class ConceptChildrenQueryBuilder {
     FieldVariable countFieldVariable =
         domainOccurrenceTable.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
 
-    List<SelectExpression> select = List.of(nameField, idField, countFieldVariable);
+    List<SelectExpression> select =
+        List.of(
+            nameField,
+            idField,
+            countFieldVariable,
+            SearchConceptsQueryBuilder.hasChildrenExpression(conceptTable));
 
     List<TableVariable> tables = List.of(conceptTable, conceptAncestorTable, domainOccurrenceTable);
 

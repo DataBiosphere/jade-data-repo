@@ -52,7 +52,8 @@ public class SearchConceptsQueryBuilder {
     var domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getName());
 
-    List<SelectExpression> select = List.of(nameField, idField, countField);
+    List<SelectExpression> select =
+        List.of(nameField, idField, countField, hasChildrenExpression(conceptTableVariable));
 
     List<TableVariable> tables = List.of(conceptTableVariable, domainOccurenceTableVariable);
 
@@ -108,6 +109,43 @@ public class SearchConceptsQueryBuilder {
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
         new FieldVariable(new FieldPointer(conceptTablePointer, columnName), conceptTableVariable),
         new Literal(searchText));
+  }
+
+  /**
+   * Generate a subquery that returns true if the outerConcept has any children.
+   *
+   * <pre>{@code
+   * EXISTS(SELECT
+   *     1
+   *   FROM
+   *     concept_ancestor ca
+   *   JOIN
+   *     concept c2
+   *   ON
+   *     c2.concept_id = ca.descendant_concept_id
+   *     AND ca.ancestor_concept_id = c.concept_id
+   *     AND ca.descendant_concept_id != c.concept_id
+   *     AND c2.standard_concept = 'S') AS has_children
+   *     </pre>
+   */
+  static SelectExpression hasChildrenExpression(TableVariable outerConcept) {
+    var conceptId = outerConcept.makeFieldVariable("concept_id");
+    var conceptAncestor = TableVariable.forPrimary(TablePointer.fromTableName("concept_ancestor"));
+    var descendantConceptId = conceptAncestor.makeFieldVariable("descendant_concept_id");
+    var innerConcept =
+        TableVariable.forJoined(
+            TablePointer.fromTableName("concept"), "concept_id", descendantConceptId);
+    return new ExistsExpression(
+        new Query(
+            List.of(new Literal(1)),
+            List.of(outerConcept, conceptAncestor, innerConcept),
+            BooleanAndOrFilterVariable.and(
+                BinaryFilterVariable.equals(
+                    conceptAncestor.makeFieldVariable("ancestor_concept_id"), conceptId),
+                BinaryFilterVariable.notEquals(descendantConceptId, conceptId),
+                BinaryFilterVariable.equals(
+                    innerConcept.makeFieldVariable("standard_concept"), new Literal("S")))),
+        HAS_CHILDREN);
   }
 
   static BinaryFilterVariable createDomainClause(

@@ -40,7 +40,7 @@ concurrency:
   # Don't run this workflow concurrently on the same branch
   group: ${{ github.workflow }}-${{ github.ref }}
   # For PRs, don't wait for completion of existing runs, cancel them instead
-  cancel-in-progress: ${{ github.event_name == "pull_request" }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test_check:
     name: "Checkout, verify and run unit tests"
@@ -206,7 +206,7 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.7'
-          helm_datarepo_api_chart_version: 0.0.638
+          helm_datarepo_api_chart_version: 0.0.639
           helm_datarepo_ui_chart_version: 0.0.323
           helm_gcloud_sqlproxy_chart_version: 0.19.13
           helm_oidc_proxy_chart_version: 0.0.44

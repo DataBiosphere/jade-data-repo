@@ -3,8 +3,6 @@ package bio.terra.service.snapshotbuilder.utils;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
@@ -41,41 +39,34 @@ class SearchConceptsQueryBuilderTest {
             .buildSearchConceptsQuery(domainOption, "cancer")
             .renderSQL(platformWrapper);
 
-    platformWrapper.choose(
-        () -> {
-          assertThat(
-              "generated SQL for GCP is correct",
-              actual,
-              equalToCompressingWhiteSpace(
-                  "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                      + "FROM concept AS c "
-                      + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
-                      + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
-                      + "WHERE (c.domain_id = 'Observation' "
-                      + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
-                      + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
-                      + "GROUP BY c.concept_name, c.concept_id "
-                      + "ORDER BY count DESC "
-                      + "LIMIT 100"));
-          return null;
-        },
-        () -> {
-          assertThat(
-              "generated SQL for Azure is correct",
-              actual,
-              equalToCompressingWhiteSpace(
-                  "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                      + "FROM concept AS c  "
-                      + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
-                      + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
-                      + "WHERE (c.domain_id = 'Observation' "
-                      + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                      + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
-                      + "GROUP BY c.concept_name, c.concept_id "
-                      + "ORDER BY count DESC"));
-          return null;
-        });
+    assertThat(
+        "generated SQL for GCP is correct",
+        actual,
+        equalToCompressingWhiteSpace(
+            platformWrapper.choose(
+                () ->
+                    "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
+                        + "FROM concept AS c "
+                        + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
+                        + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
+                        + "WHERE (c.domain_id = 'Observation' "
+                        + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
+                        + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
+                        + "GROUP BY c.concept_name, c.concept_id "
+                        + "ORDER BY count DESC "
+                        + "LIMIT 100",
+                () ->
+                    "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
+                        + "FROM concept AS c  "
+                        + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
+                        + "LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id "
+                        + "WHERE (c.domain_id = 'Observation' "
+                        + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
+                        + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
+                        + "GROUP BY c.concept_name, c.concept_id "
+                        + "ORDER BY count DESC")));
   }
+  ;
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
@@ -96,21 +87,14 @@ class SearchConceptsQueryBuilderTest {
             + "WHERE c.domain_id = 'Condition' "
             + "GROUP BY c.concept_name, c.concept_id "
             + "ORDER BY count DESC";
-    platformWrapper.choose(
-        () -> {
-          assertThat(
-              "generated SQL for GCP empty search string is correct",
-              actual,
-              equalToCompressingWhiteSpace("SELECT " + expected + " LIMIT 100"));
-          return null;
-        },
-        () -> {
-          assertThat(
-              "generated SQL for Azure empty search string is correct",
-              actual,
-              equalToCompressingWhiteSpace("SELECT TOP 100 " + expected));
-          return null;
-        });
+
+    assertThat(
+        "generated SQL for GCP and Azure empty search string is correct",
+        actual,
+        // table name is added when the Query is created
+        equalToCompressingWhiteSpace(
+            platformWrapper.choose(
+                () -> "SELECT " + expected + " LIMIT 100", () -> "SELECT TOP 100 " + expected)));
   }
 
   @ParameterizedTest
@@ -124,23 +108,14 @@ class SearchConceptsQueryBuilderTest {
                 conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
             .renderSQL(CloudPlatformWrapper.of(platform));
 
-    platformWrapper.choose(
-        () -> {
-          assertThat(
-              "generated sql is as expected",
-              actual,
-              // table name is added when the Query is created
-              equalToCompressingWhiteSpace("CONTAINS_SUBSTR(null.concept_name, 'cancer')"));
-          return null;
-        },
-        () -> {
-          assertThat(
-              "generated sql is as expected",
-              actual,
-              // table name is added when the Query is created
-              equalToCompressingWhiteSpace("CHARINDEX('cancer', null.concept_name) > 0"));
-          return null;
-        });
+    assertThat(
+        "generated sql is as expected",
+        actual,
+        // table name is added when the Query is created
+        equalToCompressingWhiteSpace(
+            platformWrapper.choose(
+                () -> "CONTAINS_SUBSTR(null.concept_name, 'cancer')",
+                () -> "CHARINDEX('cancer', null.concept_name) > 0")));
   }
 
   @ParameterizedTest

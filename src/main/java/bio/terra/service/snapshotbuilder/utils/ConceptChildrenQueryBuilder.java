@@ -80,8 +80,7 @@ public class ConceptChildrenQueryBuilder {
     // WHERE c.concept_id IN ({createSubQuery()}) AND c.standard_concept = 'S'
     FilterVariable where =
         BooleanAndOrFilterVariable.and(
-            SubQueryFilterVariable.in(
-                conceptId, createSubQuery(parentConceptId)),
+            SubQueryFilterVariable.in(conceptId, createSubQuery(parentConceptId)),
             BinaryFilterVariable.equals(
                 concept.makeFieldVariable(STANDARD_CONCEPT), new Literal("S")));
 
@@ -98,8 +97,7 @@ public class ConceptChildrenQueryBuilder {
   Query createSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
     TableVariable conceptRelationship =
-        TableVariable.forPrimary(
-            TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
+        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
     FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);
 
     return new Query(

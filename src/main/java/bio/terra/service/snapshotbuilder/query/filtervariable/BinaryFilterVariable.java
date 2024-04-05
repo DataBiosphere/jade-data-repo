@@ -1,23 +1,23 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import org.stringtemplate.v4.ST;
 
 public record BinaryFilterVariable(
-    FieldVariable fieldVariable, BinaryFilterVariable.BinaryOperator operator, Literal value)
+    FieldVariable fieldVariable, BinaryFilterVariable.BinaryOperator operator, SqlExpression value)
     implements FilterVariable {
   private static final String SUBSTITUTION_TEMPLATE = "<fieldVariable> <operator> <value>";
 
   @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
+  public String renderSQL(SqlRenderContext context) {
     return new ST(SUBSTITUTION_TEMPLATE)
-        .add("operator", operator.renderSQL(platform))
-        .add("value", value.renderSQL(platform))
-        .add("fieldVariable", fieldVariable.renderSQL(platform))
+        .add("operator", operator.renderSQL(context))
+        .add("value", value.renderSQL(context))
+        .add("fieldVariable", fieldVariable.renderSQL(context))
         .render();
   }
 
@@ -38,16 +38,16 @@ public record BinaryFilterVariable(
     }
 
     @Override
-    public String renderSQL(CloudPlatformWrapper platform) {
+    public String renderSQL(SqlRenderContext context) {
       return sql;
     }
   }
 
-  public static BinaryFilterVariable equals(FieldVariable fieldVariable, Literal value) {
+  public static BinaryFilterVariable equals(FieldVariable fieldVariable, SqlExpression value) {
     return new BinaryFilterVariable(fieldVariable, BinaryOperator.EQUALS, value);
   }
 
-  public static BinaryFilterVariable notEquals(FieldVariable fieldVariable, Literal value) {
+  public static BinaryFilterVariable notEquals(FieldVariable fieldVariable, SqlExpression value) {
     return new BinaryFilterVariable(fieldVariable, BinaryOperator.NOT_EQUALS, value);
   }
 

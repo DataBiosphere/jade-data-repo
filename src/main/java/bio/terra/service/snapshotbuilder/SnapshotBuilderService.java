@@ -113,6 +113,20 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
+  @VisibleForTesting
+  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    TableNameGenerator tableNameGenerator =
+        CloudPlatformWrapper.of(dataset.getCloudPlatform())
+            .choose(
+                () ->
+                    BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest)),
+                () ->
+                    SynapseVisitor.azureTableName(
+                        datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
+    return new SqlRenderContext(tableNameGenerator, platform);
+  }
+
   public SnapshotBuilderCountResponse getCountResponse(
       UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
     int rollupCount =
@@ -133,20 +147,6 @@ public class SnapshotBuilderService {
 
   public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
     return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
-  }
-
-  @VisibleForTesting
-  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
-    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    TableNameGenerator tableNameGenerator =
-        CloudPlatformWrapper.of(dataset.getCloudPlatform())
-            .choose(
-                () ->
-                    BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest)),
-                () ->
-                    SynapseVisitor.azureTableName(
-                        datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
-    return new SqlRenderContext(tableNameGenerator, platform);
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(

@@ -38,10 +38,10 @@ class ConceptChildrenQueryBuilderTest {
               FROM concept AS c
                 JOIN concept_ancestor AS c1 ON c1.ancestor_concept_id = c.concept_id
                 JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c1.descendant_concept_id
-              WHERE c.concept_id IN
-                (SELECT c2.descendant_concept_id
-                  FROM concept_ancestor AS c2
-                  WHERE (c2.ancestor_concept_id = 101 AND c2.descendant_concept_id != 101))
+              WHERE (c.concept_id IN
+                (SELECT c2.concept_id_2
+                  FROM concept_relationship AS c2
+                  WHERE (c2.concept_id_1 = 101 AND c2.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')
               GROUP BY c.concept_name, c.concept_id
               ORDER BY c.concept_name ASC""";
     assertThat(sql, equalToCompressingWhiteSpace(expected));

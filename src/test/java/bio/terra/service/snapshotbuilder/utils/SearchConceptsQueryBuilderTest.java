@@ -65,7 +65,8 @@ class SearchConceptsQueryBuilderTest {
                         + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
                         + "GROUP BY c.concept_name, c.concept_id "
                         + "ORDER BY count DESC")));
-  };
+  }
+  ;
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)

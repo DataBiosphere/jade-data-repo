@@ -49,7 +49,6 @@ import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Storage;
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -260,7 +259,6 @@ public class AzureBlobStorePdao implements CloudFileReader {
    * @param tenantId tenantId as String for interface compatibility
    * @return A Stream of String lines.
    */
-  @SuppressFBWarnings("OS_OPEN_STREAM")
   @Override
   public Stream<String> getBlobsLinesStream(
       String blobUrl, String tenantId, AuthenticatedUserRequest userRequest) {

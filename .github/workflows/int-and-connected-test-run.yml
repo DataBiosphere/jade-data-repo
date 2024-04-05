@@ -36,6 +36,11 @@ on:
   workflow_dispatch: {}
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
+concurrency:
+  # Don't run this workflow concurrently on the same branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # For PRs, don't wait for completion of existing runs, cancel them instead
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test_check:
     name: "Checkout, verify and run unit tests"
@@ -201,10 +206,11 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.637
+          helm_datarepo_api_chart_version: 0.0.639
           helm_datarepo_ui_chart_version: 0.0.323
           helm_gcloud_sqlproxy_chart_version: 0.19.13
           helm_oidc_proxy_chart_version: 0.0.44
+          helm_create_secret_manager_secret_chart_version: 0.0.7
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |

@@ -4,13 +4,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
 class BooleanAndOrFilterVariableTest {
@@ -33,18 +33,14 @@ class BooleanAndOrFilterVariableTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQL(CloudPlatform platform) {
-    assertThat(
-        variable.renderSQL(QueryTestUtils.createContext(platform)),
-        is("(t.field1 = 'value1' AND t0.field2 = 'value2')"));
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void renderSQL(SqlRenderContext context) {
+    assertThat(variable.renderSQL(context), is("(t.field1 = 'value1' AND t0.field2 = 'value2')"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLWorksWithNoSubQueries(CloudPlatform platform) {
-    assertThat(
-        BooleanAndOrFilterVariable.and().renderSQL(QueryTestUtils.createContext(platform)),
-        is("1=1"));
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void renderSQLWorksWithNoSubQueries(SqlRenderContext renderContext) {
+    assertThat(BooleanAndOrFilterVariable.and().renderSQL(renderContext), is("1=1"));
   }
 }

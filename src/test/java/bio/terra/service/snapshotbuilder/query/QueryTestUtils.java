@@ -17,6 +17,7 @@ public class QueryTestUtils {
     return new SqlRenderContext(x -> x, CloudPlatformWrapper.of(cloudPlatform)) {
       @Override
       public String toString() {
+        // Overridden to improve the display of a context in the test run output.
         return cloudPlatform.toString();
       }
     };

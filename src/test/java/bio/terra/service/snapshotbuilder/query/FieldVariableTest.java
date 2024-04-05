@@ -4,62 +4,54 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
 class FieldVariableTest {
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQL(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void renderSQL(SqlRenderContext context) {
     var table = QueryTestUtils.fromTableName("table");
 
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
-    var cloudPlatformWrapper = CloudPlatformWrapper.of(platform);
-    SqlRenderContext renderContext = QueryTestUtils.createContext(platform);
-    assertThat(
-        new FieldVariable(fieldPointer, tableVariable).renderSQL(renderContext), is("t.field"));
+    assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(context), is("t.field"));
 
     assertThat(
-        new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(renderContext),
+        new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(context),
         is("t.field AS bar"));
 
     var fieldPointerForeignKey = FieldPointer.foreignColumn(TablePointer.fromRawSql(null), null);
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
     assertThrows(
-        UnsupportedOperationException.class,
-        () -> fieldVariableForeignKey.renderSQL(renderContext));
+        UnsupportedOperationException.class, () -> fieldVariableForeignKey.renderSQL(context));
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSQL(renderContext), is("foo(t.field) AS alias"));
+    assertThat(fieldVariableFunctionWrapper.renderSQL(context), is("foo(t.field) AS alias"));
 
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
             new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
-    assertThat(
-        fieldVariableSqlFunctionWrapper.renderSQL(renderContext), is("custom(t.field) AS alias"));
+    assertThat(fieldVariableSqlFunctionWrapper.renderSQL(context), is("custom(t.field) AS alias"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLForAliasAndDistinct(CloudPlatform platform) {
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void renderSQLForAliasAndDistinct(SqlRenderContext context) {
     var table = QueryTestUtils.fromTableName("table");
     var tableVariable = TableVariable.forPrimary(table);
 
     var fieldVariable =
         new FieldVariable(new FieldPointer(table, "field", "COUNT"), tableVariable, "count", true);
 
-    assertThat(
-        fieldVariable.renderSQL(QueryTestUtils.createContext(platform)),
-        is("COUNT(DISTINCT t.field) AS count"));
+    assertThat(fieldVariable.renderSQL(context), is("COUNT(DISTINCT t.field) AS count"));
   }
 
   @Test

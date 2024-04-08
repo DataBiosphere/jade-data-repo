@@ -1,24 +1,20 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderSettings;
-import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import org.springframework.stereotype.Component;
 
 @Component
 public class QueryBuilderFactory {
   public CriteriaQueryBuilder criteriaQueryBuilder(
-      String rootTableName,
-      TableNameGenerator tableNameGenerator,
-      SnapshotBuilderSettings snapshotBuilderSettings) {
-    return new CriteriaQueryBuilder(rootTableName, tableNameGenerator, snapshotBuilderSettings);
+      String rootTableName, SnapshotBuilderSettings snapshotBuilderSettings) {
+    return new CriteriaQueryBuilder(rootTableName, snapshotBuilderSettings);
   }
 
-  public HierarchyQueryBuilder hierarchyQueryBuilder(TableNameGenerator tableNameGenerator) {
-    return new HierarchyQueryBuilder(tableNameGenerator);
+  public HierarchyQueryBuilder hierarchyQueryBuilder() {
+    return new HierarchyQueryBuilder();
   }
 
-  public ConceptChildrenQueryBuilder conceptChildrenQueryBuilder(
-      TableNameGenerator tableNameGenerator) {
-    return new ConceptChildrenQueryBuilder(tableNameGenerator);
+  public ConceptChildrenQueryBuilder conceptChildrenQueryBuilder() {
+    return new ConceptChildrenQueryBuilder();
   }
 }

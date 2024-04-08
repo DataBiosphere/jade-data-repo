@@ -4,7 +4,6 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -27,9 +26,6 @@ public class IngestRequestValidator implements Validator {
   }
 
   @Override
-  @SuppressFBWarnings(
-      value = "UC_USELESS_VOID_METHOD",
-      justification = "FB mistake - this clearly validates and returns data in errors")
   public void validate(@NotNull Object target, Errors errors) {
     if (target instanceof IngestRequestModel ingestRequest) {
       validateTableName(ingestRequest.getTable(), errors);

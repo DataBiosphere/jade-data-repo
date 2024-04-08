@@ -1,4 +1,7 @@
-{"concept_id": 1, "domain_id": "Condition", "concept_name": "concept1", "concept_code": 11}
-{"concept_id": 2, "domain_id": "Condition",  "concept_name": "concept2", "concept_code": 12}
-{"concept_id": 3, "domain_id": "Condition",  "concept_name": "concept3", "concept_code": 13}
-{"concept_id": 4, "domain_id": "Condition",  "concept_name": "concept4", "concept_code": 14}
+{"concept_id": 1, "domain_id": "Condition", "concept_name": "concept1", "concept_code": 11, "standard_concept": "S"}
+{"concept_id": 2, "domain_id": "Condition",  "concept_name": "concept2", "concept_code": 12, "standard_concept": "S"}
+{"concept_id": 3, "domain_id": "Condition",  "concept_name": "concept3", "concept_code": 13, "standard_concept": "S"}
+{"concept_id": 4, "domain_id": "Condition",  "concept_name": "concept4", "concept_code": 14, "standard_concept": "S"}
+{"concept_id": 5, "domain_id": "Condition",  "concept_name": "concept5", "concept_code": 15}
+{"concept_id": 44818723, "domain_id": "Metadata", "concept_name": "Subsumes"}
+{"concept_id": 44818821, "domain_id": "Metadata", "concept_name": "Is a"}

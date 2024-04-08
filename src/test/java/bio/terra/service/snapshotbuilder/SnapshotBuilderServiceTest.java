@@ -36,6 +36,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
@@ -139,7 +140,7 @@ class SnapshotBuilderServiceTest {
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
 
     var queryBuilder = mock(ConceptChildrenQueryBuilder.class);
-    when(queryBuilderFactory.conceptChildrenQueryBuilder(any())).thenReturn(queryBuilder);
+    when(queryBuilderFactory.conceptChildrenQueryBuilder()).thenReturn(queryBuilder);
 
     when(queryBuilder.retrieveDomainId(1)).thenReturn(mock(Query.class));
     when(queryBuilder.buildConceptChildrenQuery(any(), eq(1))).thenReturn(mock(Query.class));
@@ -241,10 +242,10 @@ class SnapshotBuilderServiceTest {
     Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.GCP));
     when(datasetService.retrieveModel(dataset, TEST_USER))
         .thenReturn(new DatasetModel().name("name").dataProject("data-project"));
-    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER);
+    var renderContext = snapshotBuilderService.createContext(dataset, TEST_USER);
     assertThat(
         "The generated name is the same as the BQVisitor generated name",
-        tableNameGenerator.generate("table"),
+        renderContext.getTableName("table"),
         equalTo(
             BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, TEST_USER))
                 .generate("table")));
@@ -257,10 +258,10 @@ class SnapshotBuilderServiceTest {
     Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE));
     when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
         .thenReturn(dataSourceName);
-    var tableNameGenerator = snapshotBuilderService.getTableNameGenerator(dataset, TEST_USER);
+    var renderContext = snapshotBuilderService.createContext(dataset, TEST_USER);
     assertThat(
         "The generated name is the same as the SynapseVisitor generated name",
-        tableNameGenerator.generate(tableName),
+        renderContext.getTableName(tableName),
         equalTo(SynapseVisitor.azureTableName(dataSourceName).generate(tableName)));
   }
 
@@ -280,12 +281,12 @@ class SnapshotBuilderServiceTest {
             List.of(tableVariable));
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    when(queryBuilderFactory.criteriaQueryBuilder(any(), any(), any()))
+    when(queryBuilderFactory.criteriaQueryBuilder(any(), any()))
         .thenReturn(criteriaQueryBuilderMock);
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
         .thenReturn(query);
     when(azureSynapsePdao.runQuery(
-            eq(query.renderSQL(CloudPlatformWrapper.of(CloudPlatform.AZURE))), any()))
+            eq(query.renderSQL(QueryTestUtils.createContext(CloudPlatform.AZURE))), any()))
         .thenReturn(List.of(5));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(
@@ -371,7 +372,7 @@ class SnapshotBuilderServiceTest {
     var conceptId = 1;
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
     var queryBuilder = mock(HierarchyQueryBuilder.class);
-    when(queryBuilderFactory.hierarchyQueryBuilder(any())).thenReturn(queryBuilder);
+    when(queryBuilderFactory.hierarchyQueryBuilder()).thenReturn(queryBuilder);
     when(queryBuilder.generateQuery(conceptId)).thenReturn(mock(Query.class));
     var concept1 = concept("concept1", 1);
     var concept2 = concept("concept2", 2);

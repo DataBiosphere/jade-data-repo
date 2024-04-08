@@ -32,7 +32,6 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -124,7 +123,6 @@ public class FileOperationTest {
   private static String testPdfFile = "File Design Notes.pdf";
 
   @Test
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void fileOperationsTest() throws Exception {
     FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
@@ -133,8 +131,6 @@ public class FileOperationTest {
     assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
     // Change the data location selector, verify that we can still delete the file
-    // NOTE: the suppressed SpotBugs complaint is from the doReturn. It decides that no one
-    // uses the bucketForFile call.
     String newBucketName = UUID.randomUUID().toString();
     doReturn(newBucketName).when(googleProjectService).bucketForFile(any());
     connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());

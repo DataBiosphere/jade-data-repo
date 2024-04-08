@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.common.CloudPlatformWrapper;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -12,9 +11,9 @@ public record UnionQuery(List<Query> subQueries) implements SqlExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
+  public String renderSQL(SqlRenderContext context) {
     return subQueries.stream()
-        .map((query -> query.renderSQL(platform)))
+        .map((query -> query.renderSQL(context)))
         .collect(Collectors.joining(" UNION "));
   }
 }

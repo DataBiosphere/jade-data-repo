@@ -34,37 +34,30 @@ public class SearchConceptsQueryBuilder {
    * <p>GCP: SELECT c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count FROM
    * `concept` AS c JOIN `concept_ancestor` AS c0 ON c0.ancestor_concept_id = c.concept_id LEFT JOIN
    * `'domain'_occurrence` AS co ON co.'domain'_concept_id = c0.descendant_concept_id WHERE
-   * (c.domain_id = 'domain' AND (CONTAINS_SUBSTR(c.concept_name, 'search_text') OR
-   * CONTAINS_SUBSTR(c.concept_code, 'search_text'))) GROUP BY c.concept_name, c.concept_id ORDER BY
-   * count DESC LIMIT 100
-   *
-   * <p>AZURE: SELECT c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count FROM
-   * `concept` AS c JOIN `concept_ancestor` AS c0 ON c0.ancestor_concept_id = c.concept_id LEFT JOIN
-   * `'domain'_occurrence` AS co ON co.'domain'_concept_id = c0.descendant_concept_id WHERE
-   * (c.domain_id = 'domain' AND (CHARINDEX('search_text', c.concept_name) > 0 OR
-   * CHARINDEX('search_text', c.concept_code) > 0)) GROUP BY c.concept_name, c.concept_id ORDER BY
-   * count DESC LIMIT 100
+   * (c.domain_id = 'domain' AND searchClause) GROUP BY c.concept_name, c.concept_id ORDER BY count
+   * DESC GCP: searchClause = (CONTAINS_SUBSTR(c.concept_name, 'search_text') OR
+   * CONTAINS_SUBSTR(c.concept_code, 'search_text')) Azure: searchClause = AND
+   * (CHARINDEX('search_text', c.concept_name) > 0 OR CHARINDEX('search_text', c.concept_code) > 0))
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
     var conceptTablePointer = TablePointer.fromTableName(CONCEPT);
-    var conceptAncestorPointer = TablePointer.fromTableName(CONCEPT_ANCESTOR);
     var domainOccurrencePointer = TablePointer.fromTableName(domainOption.getTableName());
-    var conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
-    var nameField = conceptTableVariable.makeFieldVariable(CONCEPT_NAME);
-    var idField = conceptTableVariable.makeFieldVariable(CONCEPT_ID);
+    var concept = TableVariable.forPrimary(conceptTablePointer);
+    var nameField = concept.makeFieldVariable(CONCEPT_NAME);
+    var idField = concept.makeFieldVariable(CONCEPT_ID);
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
-    var conceptAncestorTableVariable =
-        TableVariable.forJoined(conceptAncestorPointer, ANCESTOR_CONCEPT_ID, idField);
+    var conceptAncestor =
+        TableVariable.forJoined(
+            TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, idField);
 
-    var descendantIdFieldVariable =
-        conceptAncestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+    var descendantIdFieldVariable = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
-    var domainOccurenceTableVariable =
+    var domainOccurrence =
         TableVariable.forLeftJoined(
             domainOccurrencePointer, domainOption.getColumnName(), descendantIdFieldVariable);
 
@@ -73,20 +66,16 @@ public class SearchConceptsQueryBuilder {
         new FieldVariable(
             new FieldPointer(
                 domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
-            domainOccurenceTableVariable,
+            domainOccurrence,
             "count",
             true);
 
-    // domain clause filters for the given domain id based on field domain_id
-    // c.domain_id = 'domain'
-    var domainClause =
-        createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getName());
+    var domainClause = createDomainClause(conceptTablePointer, concept, domainOption.getName());
 
     // c.concept_name, c.concept_id, COUNT(DISTINCT co.person_id) AS count
     List<SelectExpression> select = List.of(nameField, idField, countField);
 
-    List<TableVariable> tables =
-        List.of(conceptTableVariable, conceptAncestorTableVariable, domainOccurenceTableVariable);
+    List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
     // ORDER BY count DESC
     List<OrderByVariable> orderBy =
@@ -101,13 +90,11 @@ public class SearchConceptsQueryBuilder {
     } else {
       // search concept name clause filters for the search text based on field concept_name
       var searchNameClause =
-          createSearchConceptClause(
-              conceptTablePointer, conceptTableVariable, searchText, CONCEPT_NAME);
+          createSearchConceptClause(conceptTablePointer, concept, searchText, CONCEPT_NAME);
 
       // search concept name clause filters for the search text based on field concept_code
       var searchCodeClause =
-          createSearchConceptClause(
-              conceptTablePointer, conceptTableVariable, searchText, CONCEPT_CODE);
+          createSearchConceptClause(conceptTablePointer, concept, searchText, CONCEPT_CODE);
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);

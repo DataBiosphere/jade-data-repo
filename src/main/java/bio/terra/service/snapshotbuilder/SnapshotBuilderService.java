@@ -266,7 +266,6 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-
     var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(conceptId);
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();

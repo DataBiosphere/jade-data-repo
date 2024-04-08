@@ -29,18 +29,25 @@ public class SearchConceptsQueryBuilder {
 
   /**
    * Generate a query that retrieves all the concepts from the given searched text. If a search text
-   * is not provided, a search will be made only on the domain. <Query code> GCP: SELECT
-   * c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count FROM `concept` AS c JOIN
+   * is not provided, a search will be made only on the domain.
+   * <Query code>
+   *
+   * GCP:
+   * SELECT c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count FROM `concept` AS c JOIN
    * `concept_ancestor` AS c0 ON c0.ancestor_concept_id = c.concept_id LEFT JOIN
    * `'domain'_occurrence` AS co ON co.'domain'_concept_id = c0.descendant_concept_id WHERE
    * (c.domain_id = 'domain' AND (CONTAINS_SUBSTR(c.concept_name, 'search_text') OR
    * CONTAINS_SUBSTR(c.concept_code, 'search_text'))) GROUP BY c.concept_name, c.concept_id ORDER BY
-   * count DESC LIMIT 100 AZURE: SELECT c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id)
+   * count DESC LIMIT 100
+   *
+   * AZURE:
+   * SELECT c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id)
    * AS count FROM `concept` AS c JOIN `concept_ancestor` AS c0 ON c0.ancestor_concept_id =
    * c.concept_id LEFT JOIN `'domain'_occurrence` AS co ON co.'domain'_concept_id =
    * c0.descendant_concept_id WHERE (c.domain_id = 'domain' AND (CHARINDEX('search_text',
    * c.concept_name) > 0 OR CHARINDEX('search_text', c.concept_code) > 0)) GROUP BY c.concept_name,
-   * c.concept_id ORDER BY count DESC LIMIT 100 </Query code>
+   * c.concept_id ORDER BY count DESC LIMIT 100
+   * </Query code>
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {

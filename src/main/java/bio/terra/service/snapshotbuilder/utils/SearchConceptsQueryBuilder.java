@@ -34,7 +34,31 @@ public class SearchConceptsQueryBuilder {
   }
   /**
    * Generate a query that retrieves all the concepts from the given searched text. If a search text
-   * is not provided, a search will be made on the domain.
+   * is not provided, a search will be made only on the domain.
+   *
+   * <Query code>
+   *   GCP:
+   *   SELECT c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count FROM `concept` AS c
+   *   JOIN `concept_ancestor` AS c0 ON c0.ancestor_concept_id = c.concept_id
+   *   LEFT JOIN `'domain'_occurrence` AS co ON co.'domain'_concept_id = c0.descendant_concept_id
+   *   WHERE (c.domain_id = 'domain'
+   *   AND (CONTAINS_SUBSTR(c.concept_name, 'search_text')
+   *   OR CONTAINS_SUBSTR(c.concept_code, 'search_text')))
+   *   GROUP BY c.concept_name, c.concept_id
+   *   ORDER BY count DESC
+   *   LIMIT 100
+   *
+   *   AZURE:
+   *   SELECT c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count FROM `concept` AS c
+   *   JOIN `concept_ancestor` AS c0 ON c0.ancestor_concept_id = c.concept_id
+   *   LEFT JOIN `'domain'_occurrence` AS co ON co.'domain'_concept_id = c0.descendant_concept_id
+   *   WHERE (c.domain_id = 'domain'
+   *   AND (CHARINDEX('search_text', c.concept_name) > 0
+   *   OR CHARINDEX('search_text', c.concept_code) > 0))
+   *   GROUP BY c.concept_name, c.concept_id
+   *   ORDER BY count DESC
+   *   LIMIT 100
+   * </Query code>
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
@@ -46,18 +70,21 @@ public class SearchConceptsQueryBuilder {
     var nameField = conceptTableVariable.makeFieldVariable(CONCEPT_NAME);
     var idField = conceptTableVariable.makeFieldVariable(CONCEPT_ID);
 
-    // FROM concept JOIN concept_ancestor ON ancestor_concept_id = concept.concept_id
+    // FROM 'concept' as c
+    // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     var conceptAncestorTableVariable =
         TableVariable.forJoined(conceptAncestorPointer, ANCESTOR_CONCEPT_ID, idField);
+
     var descendantIdFieldVariable =
         conceptAncestorTableVariable.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
-    // LEFT JOIN domainOccurrencePointer ON domainOccurrencePointer.concept_id =
+    // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
     var domainOccurenceTableVariable =
         TableVariable.forLeftJoined(
             domainOccurrencePointer, domainOption.getColumnName(), descendantIdFieldVariable);
 
+    // COUNT(DISTINCT co.person_id) AS count
     var countField =
         new FieldVariable(
             new FieldPointer(
@@ -67,17 +94,21 @@ public class SearchConceptsQueryBuilder {
             true);
 
     // domain clause filters for the given domain id based on field domain_id
+    // c.domain_id = 'domain'
     var domainClause =
         createDomainClause(conceptTablePointer, conceptTableVariable, domainOption.getName());
 
+    // c.concept_name, c.concept_id, COUNT(DISTINCT co.person_id) AS count
     List<SelectExpression> select = List.of(nameField, idField, countField);
 
     List<TableVariable> tables =
         List.of(conceptTableVariable, conceptAncestorTableVariable, domainOccurenceTableVariable);
 
+    // ORDER BY count DESC
     List<OrderByVariable> orderBy =
         List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));
 
+    // GROUP BY c.concept_name, c.concept_id
     List<FieldVariable> groupBy = List.of(nameField, idField);
 
     FilterVariable where;
@@ -106,12 +137,6 @@ public class SearchConceptsQueryBuilder {
           new BooleanAndOrFilterVariable(
               BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
     }
-
-    // SELECT concept_name, concept_id, COUNT(DISTINCT person_id) as count
-    // FROM concept JOIN domain_occurrence ON domain_occurrence.concept_id =
-    // concept.concept_id
-    // WHERE concept.name CONTAINS {{name}} GROUP BY c.name, c.concept_id
-    // ORDER BY count DESC
 
     return new Query(select, tables, where, groupBy, orderBy, 100);
   }

@@ -8,7 +8,6 @@ import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
-import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
@@ -17,7 +16,11 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVari
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
+<<<<<<< HEAD
   private final TableNameGenerator tableNameGenerator;
+=======
+
+>>>>>>> develop
   private static final String CONCEPT = "concept";
   private static final String CONCEPT_ANCESTOR = "concept_ancestor";
   private static final String CONCEPT_RELATIONSHIP = "concept_relationship";
@@ -50,8 +53,7 @@ public class ConceptChildrenQueryBuilder {
       SnapshotBuilderDomainOption domainOption, int parentConceptId) {
 
     // concept table and its fields concept_name and concept_id
-    TableVariable concept =
-        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT, tableNameGenerator));
+    TableVariable concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
     FieldVariable conceptName = concept.makeFieldVariable(CONCEPT_NAME);
     FieldVariable conceptId = concept.makeFieldVariable(CONCEPT_ID);
 
@@ -60,16 +62,14 @@ public class ConceptChildrenQueryBuilder {
     // from all descendants, not just direct descendants.
     TableVariable conceptAncestor =
         TableVariable.forJoined(
-            TablePointer.fromTableName(CONCEPT_ANCESTOR, tableNameGenerator),
-            ANCESTOR_CONCEPT_ID,
-            conceptId);
+            TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, conceptId);
     FieldVariable descendantConceptId = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
     TableVariable domainOccurrence =
         TableVariable.forJoined(
-            TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator),
+            TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
             descendantConceptId);
 
@@ -88,8 +88,7 @@ public class ConceptChildrenQueryBuilder {
     // WHERE c.concept_id IN ({createSubQuery()}) AND c.standard_concept = 'S'
     FilterVariable where =
         BooleanAndOrFilterVariable.and(
-            SubQueryFilterVariable.in(
-                conceptId, createSubQuery(parentConceptId, tableNameGenerator)),
+            SubQueryFilterVariable.in(conceptId, createSubQuery(parentConceptId)),
             BinaryFilterVariable.equals(
                 concept.makeFieldVariable(STANDARD_CONCEPT), new Literal("S")));
 
@@ -103,11 +102,10 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.concept_id_2 FROM concept_relationship AS c WHERE (c.concept_id_1 = 101 AND
    * c.relationship_id = 'Subsumes'))
    */
-  Query createSubQuery(int conceptId, TableNameGenerator tableNameGenerator) {
+  Query createSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
     TableVariable conceptRelationship =
-        TableVariable.forPrimary(
-            TablePointer.fromTableName(CONCEPT_RELATIONSHIP, tableNameGenerator));
+        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
     FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);
 
     return new Query(
@@ -126,8 +124,7 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
    */
   public Query retrieveDomainId(int conceptId) {
-    TableVariable concept =
-        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT, tableNameGenerator));
+    TableVariable concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
     FieldVariable domainIdField = concept.makeFieldVariable(DOMAIN_ID);
 
     BinaryFilterVariable where =

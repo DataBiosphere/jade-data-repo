@@ -1,14 +1,12 @@
 package bio.terra.service.snapshotbuilder.query.filtervariable;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
-import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.NotImplementedException;
 import org.stringtemplate.v4.ST;
 
 public class FunctionFilterVariable implements FilterVariable {
@@ -33,14 +31,14 @@ public class FunctionFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
-    return new ST(functionTemplate.renderSQL(platform))
+  public String renderSQL(SqlRenderContext context) {
+    return new ST(functionTemplate.renderSQL(context))
         .add(
             "value",
             values.stream()
-                .map(literal -> (literal.renderSQL(platform)))
+                .map(literal -> (literal.renderSQL(context)))
                 .collect(Collectors.joining(",")))
-        .add("fieldVariable", fieldVariable.renderSQL(platform))
+        .add("fieldVariable", fieldVariable.renderSQL(context))
         .render();
   }
 
@@ -66,17 +64,8 @@ public class FunctionFilterVariable implements FilterVariable {
     }
 
     @Override
-    public String renderSQL(CloudPlatformWrapper platform) {
-      if (platform == null) {
-        throw new InvalidRenderSqlParameter(
-            "SQL cannot be generated because the Cloud Platform is null.");
-      } else if (platform.isAzure()) {
-        return azureTemplate;
-      } else if (platform.isGcp()) {
-        return gcpTemplate;
-      } else {
-        throw new NotImplementedException("Cloud Platform not implemented.");
-      }
+    public String renderSQL(SqlRenderContext context) {
+      return context.getPlatform().choose(() -> gcpTemplate, () -> azureTemplate);
     }
   }
 }

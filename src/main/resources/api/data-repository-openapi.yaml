@@ -7249,6 +7249,8 @@ components:
           type: string
         featureValueGroupName:
           type: string
+        concept:
+          $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderDomainOption:
       allOf:

@@ -3,17 +3,19 @@ package bio.terra.service.snapshotbuilder.utils;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
+import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,9 +30,9 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void buildSearchConceptsQuery(CloudPlatform platform) {
-    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void buildSearchConceptsQuery(SqlRenderContext context) {
+    CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Observation", 27, "observation", "observation_concept_id");
     String actual =
@@ -69,9 +71,9 @@ class SearchConceptsQueryBuilderTest {
   ;
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void buildSearchConceptsQueryEmpty(CloudPlatform platform) {
-    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
+    CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
@@ -98,10 +100,10 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void testCreateSearchConceptClause(CloudPlatform platform) {
-    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(platform);
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", s -> s);
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void testCreateSearchConceptClause(SqlRenderContext context) {
+    CloudPlatformWrapper platformWrapper = context.getPlatform();
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
     String actual =
         createSearchConceptClause(
@@ -116,20 +118,20 @@ class SearchConceptsQueryBuilderTest {
             platformWrapper.choose(
                 () -> "CONTAINS_SUBSTR(null.concept_name, 'cancer')",
                 () -> "CHARINDEX('cancer', null.concept_name) > 0")));
+
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void testCreateDomainClause(CloudPlatform platform) {
-    TablePointer conceptTablePointer = TablePointer.fromTableName("concept", s -> s);
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void testCreateDomainClause(SqlRenderContext context) {
+    TablePointer conceptTablePointer = TablePointer.fromTableName("concept");
     TableVariable conceptTableVariable = TableVariable.forPrimary(conceptTablePointer);
 
     assertThat(
         "generated sql is as expected",
         SearchConceptsQueryBuilder.createDomainClause(
                 conceptTablePointer, conceptTableVariable, "cancer")
-            .renderSQL(CloudPlatformWrapper.of(platform)),
-        // table name is added when the Query is created
-        equalToCompressingWhiteSpace("null.domain_id = 'cancer'"));
+            .renderSQL(context),
+        is("c.domain_id = 'cancer'"));
   }
 }

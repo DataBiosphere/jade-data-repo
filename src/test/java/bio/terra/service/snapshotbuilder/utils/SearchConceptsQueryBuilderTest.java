@@ -36,15 +36,10 @@ class SearchConceptsQueryBuilderTest {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Observation", 27, "observation", "observation_concept_id");
     String actual =
-<<<<<<< HEAD
         new QueryBuilderFactory()
-            .searchConceptsQueryBuilder(x -> x)
+            .searchConceptsQueryBuilder()
             .buildSearchConceptsQuery(domainOption, "cancer")
-            .renderSQL(platformWrapper);
-=======
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(domainOption, "cancer")
             .renderSQL(context);
->>>>>>> develop
 
     assertThat(
         "generated SQL for GCP is correct",
@@ -73,7 +68,6 @@ class SearchConceptsQueryBuilderTest {
                         + "GROUP BY c.concept_name, c.concept_id "
                         + "ORDER BY count DESC")));
   }
-  ;
 
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
@@ -82,14 +76,10 @@ class SearchConceptsQueryBuilderTest {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
-<<<<<<< HEAD
         new QueryBuilderFactory()
-            .searchConceptsQueryBuilder(x -> x)
+            .searchConceptsQueryBuilder()
             .buildSearchConceptsQuery(domainOption, "")
-            .renderSQL(platformWrapper);
-=======
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(domainOption, "").renderSQL(context);
->>>>>>> develop
+            .renderSQL(context);
     String expected =
         "c.concept_name, c.concept_id, COUNT(DISTINCT c1.person_id) AS count "
             + "FROM concept AS c  "
@@ -117,8 +107,7 @@ class SearchConceptsQueryBuilderTest {
     String actual =
         createSearchConceptClause(
                 conceptTablePointer, conceptTableVariable, "cancer", "concept_name")
-<<<<<<< HEAD
-            .renderSQL(CloudPlatformWrapper.of(platform));
+            .renderSQL(context);
 
     assertThat(
         "generated sql is as expected",
@@ -128,17 +117,6 @@ class SearchConceptsQueryBuilderTest {
             platformWrapper.choose(
                 () -> "CONTAINS_SUBSTR(null.concept_name, 'cancer')",
                 () -> "CHARINDEX('cancer', null.concept_name) > 0")));
-=======
-            .renderSQL(context);
-    if (platformWrapper.isAzure()) {
-      assertThat(
-          "generated sql is as expected", actual, is("CHARINDEX('cancer', c.concept_name) > 0"));
-    }
-    if (platformWrapper.isGcp()) {
-      assertThat(
-          "generated sql is as expected", actual, is("CONTAINS_SUBSTR(c.concept_name, 'cancer')"));
-    }
->>>>>>> develop
   }
 
   @ParameterizedTest

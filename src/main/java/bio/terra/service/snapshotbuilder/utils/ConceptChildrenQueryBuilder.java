@@ -16,11 +16,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVari
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
-<<<<<<< HEAD
-  private final TableNameGenerator tableNameGenerator;
-=======
 
->>>>>>> develop
   private static final String CONCEPT = "concept";
   private static final String CONCEPT_ANCESTOR = "concept_ancestor";
   private static final String CONCEPT_RELATIONSHIP = "concept_relationship";
@@ -34,10 +30,6 @@ public class ConceptChildrenQueryBuilder {
   private static final String CONCEPT_ID_1 = "concept_id_1";
   private static final String CONCEPT_ID_2 = "concept_id_2";
   private static final String RELATIONSHIP_ID = "relationship_id";
-
-  ConceptChildrenQueryBuilder(TableNameGenerator tableNameGenerator) {
-    this.tableNameGenerator = tableNameGenerator;
-  }
 
   /**
    * Generate a query that retrieves the descendants of the given concept and their roll-up counts.

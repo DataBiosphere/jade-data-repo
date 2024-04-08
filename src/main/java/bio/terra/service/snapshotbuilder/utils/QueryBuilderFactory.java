@@ -18,8 +18,7 @@ public class QueryBuilderFactory {
     return new ConceptChildrenQueryBuilder();
   }
 
-  public SearchConceptsQueryBuilder searchConceptsQueryBuilder(
-      TableNameGenerator tableNameGenerator) {
-    return new SearchConceptsQueryBuilder(tableNameGenerator);
+  public SearchConceptsQueryBuilder searchConceptsQueryBuilder() {
+    return new SearchConceptsQueryBuilder();
   }
 }

@@ -22,11 +22,8 @@ import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-<<<<<<< HEAD
-=======
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
->>>>>>> develop
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
@@ -166,18 +163,11 @@ public class SnapshotBuilderService {
                     new BadRequestException(
                         "Invalid domain category is given: %s".formatted(domainId)));
 
-<<<<<<< HEAD
-    String cloudSpecificSql =
-        queryBuilderFactory
-            .searchConceptsQueryBuilder(tableNameGenerator)
-            .buildSearchConceptsQuery(snapshotBuilderDomainOption, searchText)
-            .renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
-
-=======
     Query query =
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            snapshotBuilderDomainOption, searchText);
->>>>>>> develop
+        queryBuilderFactory
+            .searchConceptsQueryBuilder()
+            .buildSearchConceptsQuery(snapshotBuilderDomainOption, searchText);
+
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             query,
@@ -196,16 +186,10 @@ public class SnapshotBuilderService {
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
 
-    String cloudSpecificSQL =
+    Query query =
         queryBuilderFactory
-<<<<<<< HEAD
-            .criteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
-            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups)
-            .renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
-=======
             .criteriaQueryBuilder("person", snapshotBuilderSettings)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
->>>>>>> develop
 
     return runSnapshotBuilderQuery(
             query,
@@ -282,23 +266,12 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-<<<<<<< HEAD
-    String cloudSpecificSql =
-        queryBuilderFactory
-            .hierarchyQueryBuilder(getTableNameGenerator(dataset, userRequest))
-            .generateQuery(conceptId)
-            .renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
 
-    Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
-    runSnapshotBuilderQuery(
-            cloudSpecificSql, dataset, ParentQueryResult::new, ParentQueryResult::new)
-=======
     var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(conceptId);
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
     runSnapshotBuilderQuery(
             query, dataset, userRequest, ParentQueryResult::new, ParentQueryResult::new)
->>>>>>> develop
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =

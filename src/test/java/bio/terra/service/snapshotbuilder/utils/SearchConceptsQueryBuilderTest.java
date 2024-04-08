@@ -81,10 +81,10 @@ class SearchConceptsQueryBuilderTest {
             .buildSearchConceptsQuery(domainOption, "")
             .renderSQL(context);
     String expected =
-        "c.concept_name, c.concept_id, COUNT(DISTINCT c1.person_id) AS count "
+        "c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count "
             + "FROM concept AS c  "
-            + "JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id "
-            + "LEFT JOIN condition_occurrence AS c1 ON c1.condition_concept_id = c0.descendant_concept_id "
+            + "JOIN concept_ancestor AS c1 ON c1.ancestor_concept_id = c.concept_id "
+            + "LEFT JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c1.descendant_concept_id "
             + "WHERE c.domain_id = 'Condition' "
             + "GROUP BY c.concept_name, c.concept_id "
             + "ORDER BY count DESC";
@@ -115,8 +115,8 @@ class SearchConceptsQueryBuilderTest {
         // table name is added when the Query is created
         equalToCompressingWhiteSpace(
             platformWrapper.choose(
-                () -> "CONTAINS_SUBSTR(null.concept_name, 'cancer')",
-                () -> "CHARINDEX('cancer', null.concept_name) > 0")));
+                () -> "CONTAINS_SUBSTR(c.concept_name, 'cancer')",
+                () -> "CHARINDEX('cancer', c.concept_name) > 0")));
   }
 
   @ParameterizedTest

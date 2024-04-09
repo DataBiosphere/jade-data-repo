@@ -1,3 +1,9 @@
+## On each release, publish a corresponding version of Python client to
+## https://pypi.org/project/data-repo-client/
+##
+## To manage the data-repo-client project in PyPi, you must have a PyPi account
+## and be added as an owner to the project by a current owner.
+
 name: Publish Python 🐍 distributions 📦 to PyPI
 
 on:
@@ -16,7 +22,7 @@ jobs:
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment: release
     permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
+      # IMPORTANT: this permission is mandatory for trusted publishing (OIDC)
       # https://docs.pypi.org/trusted-publishers/using-a-publisher/
       id-token: write
     steps:

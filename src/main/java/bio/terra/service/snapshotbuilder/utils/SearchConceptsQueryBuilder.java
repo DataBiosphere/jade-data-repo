@@ -31,8 +31,7 @@ public class SearchConceptsQueryBuilder {
    * Generate a query that retrieves all the concepts from the given searched text. If a search text
    * is not provided, a search will be made only on the domain.
    *
-   * <pre>
-   *  {@code
+   * <pre>{@code
    *  GCP: searchClause = (CONTAINS_SUBSTR(c.concept_name, 'search_text') OR CONTAINS_SUBSTR(c.concept_code, 'search_text'))
    *  Azure: searchClause = CHARINDEX('search_text', c.concept_name) > 0 OR CHARINDEX('search_text', c.concept_code) > 0))
    *

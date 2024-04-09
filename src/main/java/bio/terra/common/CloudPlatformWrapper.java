@@ -84,9 +84,8 @@ public abstract class CloudPlatformWrapper {
 
   public abstract CloudPlatform getCloudPlatform();
 
-  public abstract <T extends CloudResource, U extends CloudRegion>
-      List<? extends StorageResource<T, U>> createStorageResourceValues(
-          DatasetRequestModel datasetRequest);
+  public abstract List<? extends StorageResource<?, ?>> createStorageResourceValues(
+      DatasetRequestModel datasetRequest);
 
   static class GcpPlatform extends CloudPlatformWrapper {
     static final GcpPlatform INSTANCE = new GcpPlatform();

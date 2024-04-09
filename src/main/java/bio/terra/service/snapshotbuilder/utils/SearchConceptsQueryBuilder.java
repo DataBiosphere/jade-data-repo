@@ -23,8 +23,8 @@ public class SearchConceptsQueryBuilder {
   public static final String CONCEPT_ANCESTOR = "concept_ancestor";
   public static final String CONCEPT_NAME = "concept_name";
   public static final String CONCEPT_CODE = "concept_code";
-  public final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
-  public final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
+  public static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
+  public static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
 
   /**
    * Generate a query that retrieves all the concepts from the given searched text. If a search text
@@ -61,10 +61,14 @@ public class SearchConceptsQueryBuilder {
     // concept_ancestor.descendant_concept_id
     var domainOccurrence =
         TableVariable.forLeftJoined(
-            TablePointer.fromTableName(domainOption.getTableName()), domainOption.getColumnName(), descendantIdFieldVariable);
+            TablePointer.fromTableName(domainOption.getTableName()),
+            domainOption.getColumnName(),
+            descendantIdFieldVariable);
 
     // COUNT(DISTINCT co.person_id) AS count
-    var countField = domainOccurrence.makeFieldVariable(CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT", "count", true);
+    var countField =
+        domainOccurrence.makeFieldVariable(
+            CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT", "count", true);
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
@@ -85,12 +89,10 @@ public class SearchConceptsQueryBuilder {
       where = domainClause;
     } else {
       // search concept name clause filters for the search text based on field concept_name
-      var searchNameClause =
-          createSearchConceptClause(concept, searchText, CONCEPT_NAME);
+      var searchNameClause = createSearchConceptClause(concept, searchText, CONCEPT_NAME);
 
       // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause =
-          createSearchConceptClause(concept, searchText, CONCEPT_CODE);
+      var searchCodeClause = createSearchConceptClause(concept, searchText, CONCEPT_CODE);
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
@@ -109,16 +111,15 @@ public class SearchConceptsQueryBuilder {
   }
 
   static FunctionFilterVariable createSearchConceptClause(
-      TableVariable conceptTableVariable,
-      String searchText,
-      String columnName) {
+      TableVariable conceptTableVariable, String searchText, String columnName) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
         conceptTableVariable.makeFieldVariable(columnName),
         new Literal(searchText));
   }
 
-  static BinaryFilterVariable createDomainClause(TableVariable conceptTableVariable, String domainId) {
+  static BinaryFilterVariable createDomainClause(
+      TableVariable conceptTableVariable, String domainId) {
     return new BinaryFilterVariable(
         conceptTableVariable.makeFieldVariable("domain_id"),
         BinaryFilterVariable.BinaryOperator.EQUALS,

@@ -110,10 +110,10 @@ class SearchConceptsQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
-    TableVariable conceptTableVariable = TableVariable.forPrimary(TablePointer.fromTableName("concept"));
+    TableVariable conceptTableVariable =
+        TableVariable.forPrimary(TablePointer.fromTableName("concept"));
     String actual =
-        createSearchConceptClause(
-                conceptTableVariable, "cancer", "concept_name")
+        createSearchConceptClause(conceptTableVariable, "cancer", "concept_name")
             .renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
@@ -130,12 +130,12 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    TableVariable conceptTableVariable = TableVariable.forPrimary(TablePointer.fromTableName("concept"));
+    TableVariable conceptTableVariable =
+        TableVariable.forPrimary(TablePointer.fromTableName("concept"));
 
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(
-                conceptTableVariable, "cancer")
+        SearchConceptsQueryBuilder.createDomainClause(conceptTableVariable, "cancer")
             .renderSQL(context),
         is("c.domain_id = 'cancer'"));
   }

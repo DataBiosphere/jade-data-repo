@@ -75,4 +75,4 @@ jobs:
           channel: "#jade-spam"
           username: "Data Repo publish"
           text: "Publish Python client to PyPi"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          fields: repo,message,commit,author,action,eventName,ref,workflow

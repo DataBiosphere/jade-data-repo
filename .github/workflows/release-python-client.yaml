@@ -1,3 +1,9 @@
+## On each release, publish a corresponding version of Python client to
+## https://pypi.org/project/data-repo-client/
+##
+## To manage the data-repo-client project in PyPi, you must have a PyPi account
+## and be added as an owner to the project by a current owner.
+
 name: Publish Python 🐍 distributions 📦 to PyPI
 
 on:
@@ -6,10 +12,19 @@ on:
     branches:
       - develop
 
+env:
+  NODE_VERSION: 20
+
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
+    # Specifying a GitHub environment is optional, but strongly encouraged
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing (OIDC)
+      # https://docs.pypi.org/trusted-publishers/using-a-publisher/
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.7
@@ -20,10 +35,10 @@ jobs:
         run: |
           CURRENT_SEMVER=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "CURRENT_SEMVER=${CURRENT_SEMVER}" >> "$GITHUB_ENV"
-      - name: Use Node.js ${{matrix.node-version }}
+      - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install openapi-generator-cli
         run: npm install @openapitools/openapi-generator-cli -g
       - name: set version to 4.3.1
@@ -45,8 +60,19 @@ jobs:
         run: >-
           python -m build --sdist --wheel --outdir dist/ .
       - name: Publish distribution 📦 to PyPI
-        uses: broadinstitute/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
           packages_dir: ./data-repo-client/dist
           skip_existing: true
+      - name: Notify Jade Slack
+        if: always()
+        uses: broadinstitute/action-slack@v3.15.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#jade-spam"
+          username: "Data Repo publish"
+          text: "Publish Python client to PyPi"
+          fields: repo,message,commit,author,action,eventName,ref,workflow

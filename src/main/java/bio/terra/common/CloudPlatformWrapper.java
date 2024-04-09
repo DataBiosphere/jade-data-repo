@@ -2,8 +2,6 @@ package bio.terra.common;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.CloudRegion;
-import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.CloudPlatform;

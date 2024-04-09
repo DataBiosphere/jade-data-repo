@@ -43,6 +43,7 @@ import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -178,6 +179,11 @@ class SnapshotBuilderServiceTest {
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
+
+    var queryBuilder = mock(SearchConceptsQueryBuilder.class);
+    when(queryBuilderFactory.searchConceptsQueryBuilder()).thenReturn(queryBuilder);
+    when(queryBuilder.buildSearchConceptsQuery(any(), any())).thenReturn(mock(Query.class));
+
     var concept = new SnapshotBuilderConcept().name("concept1").id(1);
     mockRunQueryForSearchConcepts(concept, dataset);
     var response =

@@ -216,9 +216,12 @@ public class SamIam implements IamProviderInterface {
 
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(datasetId.toString());
 
-    req.putPoliciesItem(
-        IamRole.ADMIN.toString(),
-        createAccessPolicyOne(IamRole.ADMIN, samConfig.adminsGroupEmail()));
+    Optional.of(samConfig.adminsGroupEmail())
+        .map(
+            adminsGroupEmail ->
+                req.putPoliciesItem(
+                    IamRole.ADMIN.toString(),
+                    createAccessPolicyOne(IamRole.ADMIN, adminsGroupEmail)));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
@@ -283,9 +286,12 @@ public class SamIam implements IamProviderInterface {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
 
-    req.putPoliciesItem(
-        IamRole.ADMIN.toString(),
-        createAccessPolicyOne(IamRole.ADMIN, samConfig.adminsGroupEmail()));
+    Optional.of(samConfig.adminsGroupEmail())
+        .map(
+            adminsGroupEmail ->
+                req.putPoliciesItem(
+                    IamRole.ADMIN.toString(),
+                    createAccessPolicyOne(IamRole.ADMIN, adminsGroupEmail)));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
@@ -342,9 +348,12 @@ public class SamIam implements IamProviderInterface {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2();
     req.setResourceId(profileId);
-    req.putPoliciesItem(
-        IamRole.ADMIN.toString(),
-        createAccessPolicyOne(IamRole.ADMIN, samConfig.adminsGroupEmail()));
+    Optional.of(samConfig.adminsGroupEmail())
+        .map(
+            adminsGroupEmail ->
+                req.putPoliciesItem(
+                    IamRole.ADMIN.toString(),
+                    createAccessPolicyOne(IamRole.ADMIN, adminsGroupEmail)));
     req.putPoliciesItem(
         IamRole.OWNER.toString(),
         createAccessPolicyOne(IamRole.OWNER, userStatusInfo.getUserEmail()));

@@ -58,3 +58,15 @@ jobs:
         with:
           packages_dir: ./data-repo-client/dist
           skip_existing: true
+      - name: Notify Jade Slack
+        if: always()
+        uses: broadinstitute/action-slack@v3.15.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#jade-spam"
+          username: "Data Repo publish"
+          text: "Publish Python client to PyPi"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

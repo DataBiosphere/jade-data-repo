@@ -13,6 +13,12 @@ jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
+    # Specifying a GitHub environment is optional, but strongly encouraged
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      # https://docs.pypi.org/trusted-publishers/using-a-publisher/
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.7
@@ -48,8 +54,7 @@ jobs:
         run: >-
           python -m build --sdist --wheel --outdir dist/ .
       - name: Publish distribution 📦 to PyPI
-        uses: broadinstitute/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
           packages_dir: ./data-repo-client/dist
           skip_existing: true

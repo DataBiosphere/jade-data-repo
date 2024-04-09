@@ -17,4 +17,8 @@ public class QueryBuilderFactory {
   public ConceptChildrenQueryBuilder conceptChildrenQueryBuilder() {
     return new ConceptChildrenQueryBuilder();
   }
+
+  public SearchConceptsQueryBuilder searchConceptsQueryBuilder() {
+    return new SearchConceptsQueryBuilder();
+  }
 }

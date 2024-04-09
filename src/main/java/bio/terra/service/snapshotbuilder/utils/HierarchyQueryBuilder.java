@@ -103,7 +103,7 @@ public class HierarchyQueryBuilder {
    * Generate a subquery that returns true if the outerConcept has any children.
    *
    * <pre>{@code
-   * EXISTS(SELECT
+   * EXISTS (SELECT
    *     1
    *   FROM
    *     concept_ancestor ca
@@ -114,7 +114,7 @@ public class HierarchyQueryBuilder {
    *     AND ca.ancestor_concept_id = c.concept_id
    *     AND ca.descendant_concept_id != c.concept_id
    *     AND c2.standard_concept = 'S') AS has_children
-   *     </pre>
+   * }</pre>
    */
   static SelectExpression hasChildrenExpression(TableVariable outerConcept) {
     var conceptId = outerConcept.makeFieldVariable(CONCEPT_ID);

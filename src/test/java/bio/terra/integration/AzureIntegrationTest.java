@@ -368,9 +368,11 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestTable("concept", "omop/concept-table-data.json", 4);
-    ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 7);
-    ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 52);
+    ingestTable("concept", "omop/concept-table-data.json", 7);
+    ingestTable("relationship", "omop/relationship.json", 2);
+    ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 10);
+    ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.json", 53);
+    ingestTable("concept_relationship", "omop/concept-relationship-table-data.json", 4);
 
     // Add settings to dataset
     dataRepoFixtures.updateSettings(steward, datasetId, "omop/settings.json");
@@ -391,6 +393,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(concept1.getCount(), is(22));
     assertThat(concept3.getId(), is(3));
     assertThat(concept3.getCount(), is(24));
+    assertThat(concepts.size(), is(2));
 
     // Test searchConcepts
     //    var searchConceptResponse =

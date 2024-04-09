@@ -1,8 +1,8 @@
 package bio.terra.service.snapshotbuilder;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 
 /** Wrap a field variable with an alias for use in a SELECT. */
 public class SelectAlias implements SelectExpression {
@@ -16,7 +16,7 @@ public class SelectAlias implements SelectExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
-    return "%s AS %s".formatted(fieldVariable.renderSQL(platform), alias);
+  public String renderSQL(SqlRenderContext context) {
+    return "%s AS %s".formatted(fieldVariable.renderSQL(context), alias);
   }
 }

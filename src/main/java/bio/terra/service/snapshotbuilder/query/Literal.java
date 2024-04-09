@@ -1,9 +1,8 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.common.CloudPlatformWrapper;
 import java.sql.Date;
 
-public class Literal implements SqlExpression {
+public class Literal implements SelectExpression {
   private final DataType dataType;
   private final String stringVal;
   private final long int64Val;
@@ -67,7 +66,7 @@ public class Literal implements SqlExpression {
   }
 
   @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
+  public String renderSQL(SqlRenderContext context) {
     return switch (dataType) {
       case STRING -> stringVal == null ? "NULL" : "'" + sqlEscape(stringVal) + "'";
       case INT64 -> String.valueOf(int64Val);

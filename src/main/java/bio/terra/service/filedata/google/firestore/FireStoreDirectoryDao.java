@@ -191,8 +191,7 @@ public class FireStoreDirectoryDao {
         .filter(Objects::nonNull)
         .collect(Collectors.toMap(IdConflict::attemptedId, IdConflict::existingId));
   }
-  // Need to declare the record class out here and not inline in the method sine that makes spotbugs
-  // mad and I can't disable the check
+
   record IdConflict(UUID attemptedId, UUID existingId) {}
 
   // true - directory entry existed and was deleted; false - directory entry did not exist

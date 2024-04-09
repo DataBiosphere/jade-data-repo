@@ -3,7 +3,6 @@ package bio.terra.service.snapshotbuilder.utils;
 import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
@@ -19,11 +18,6 @@ public class HierarchyQueryBuilder {
   public static final String CONCEPT_NAME = "concept_name";
   public static final String CONCEPT_CODE = "concept_code";
   public static final String PARENT_ID = "parent_id";
-  private final TableNameGenerator tableNameGenerator;
-
-  HierarchyQueryBuilder(TableNameGenerator tableNameGenerator) {
-    this.tableNameGenerator = tableNameGenerator;
-  }
 
   /**
    * Generate a query to find all parent concepts of a given concept, and for each parent to find
@@ -39,17 +33,14 @@ public class HierarchyQueryBuilder {
    */
   public Query generateQuery(int conceptId) {
     var conceptRelationship =
-        TableVariable.forPrimary(
-            TablePointer.fromTableName("concept_relationship", tableNameGenerator));
+        TableVariable.forPrimary(TablePointer.fromTableName("concept_relationship"));
     var relationshipId = conceptRelationship.makeFieldVariable("relationship_id");
     var conceptId1 = conceptRelationship.makeFieldVariable("concept_id_1");
     var conceptId2 = conceptRelationship.makeFieldVariable("concept_id_2");
     var child =
-        TableVariable.forJoined(
-            TablePointer.fromTableName(CONCEPT, tableNameGenerator), CONCEPT_ID, conceptId2);
+        TableVariable.forJoined(TablePointer.fromTableName(CONCEPT), CONCEPT_ID, conceptId2);
     var parent =
-        TableVariable.forJoined(
-            TablePointer.fromTableName(CONCEPT, tableNameGenerator), CONCEPT_ID, conceptId1);
+        TableVariable.forJoined(TablePointer.fromTableName(CONCEPT), CONCEPT_ID, conceptId1);
     return new Query(
         List.of(
             new SelectAlias(conceptId1, PARENT_ID),
@@ -84,9 +75,7 @@ public class HierarchyQueryBuilder {
    * </pre>
    */
   private Query selectAllParents(int conceptId) {
-    var conceptAncestor =
-        TableVariable.forPrimary(
-            TablePointer.fromTableName("concept_ancestor", tableNameGenerator));
+    var conceptAncestor = TableVariable.forPrimary(TablePointer.fromTableName("concept_ancestor"));
     var conceptIdLiteral = new Literal(conceptId);
     return new Query(
         List.of(conceptAncestor.makeFieldVariable("ancestor_concept_id")),

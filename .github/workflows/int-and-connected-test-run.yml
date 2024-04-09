@@ -12,6 +12,9 @@ env:
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
   RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+  AZURE_CREDENTIALS_SECRET: ${{ secrets.AZURE_CREDENTIALS_SECRET }}
+  AZURE_SYNAPSE_SQLADMINUSER: ${{ secrets.AZURE_SYNAPSE_SQLADMINUSER }}
+  AZURE_SYNAPSE_SQLADMINPASSWORD: ${{ secrets.AZURE_SYNAPSE_SQLADMINPASSWORD }}
   AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
   CACHE_PATHS: |
     build/jacoco
@@ -36,13 +39,11 @@ on:
   workflow_dispatch: {}
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
-
 concurrency:
   # Don't run this workflow concurrently on the same branch
   group: ${{ github.workflow }}-${{ github.ref }}
   # For PRs, don't wait for completion of existing runs, cancel them instead
-  cancel-in-progress: ${{ github.event_name == "pull_request" }}
-
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test_check:
     name: "Checkout, verify and run unit tests"
@@ -116,22 +117,10 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-connected
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
-          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
-            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
-            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
-            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
       - name: "Write RBS SA to a file"
         run: |
           # write vault token
-          base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
+          base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run connected tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
@@ -179,15 +168,6 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-integration
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
-          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
@@ -207,8 +187,8 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'helmdeploy'
-          helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.637
+          helm_create_secret_manager_secret_version: 0.0.7
+          helm_datarepo_api_chart_version: 0.0.641
           helm_datarepo_ui_chart_version: 0.0.323
           helm_gcloud_sqlproxy_chart_version: 0.19.13
           helm_oidc_proxy_chart_version: 0.0.44

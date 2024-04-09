@@ -13,7 +13,6 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
@@ -26,18 +25,14 @@ import java.util.Objects;
 
 public class CriteriaQueryBuilder {
   public static final String PERSON_ID_FIELD_NAME = "person_id";
-  private final TableNameGenerator tableNameGenerator;
   final TableVariable rootTable;
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
   protected CriteriaQueryBuilder(
-      String rootTableName,
-      TableNameGenerator tableNameGenerator,
-      SnapshotBuilderSettings snapshotBuilderSettings) {
-    this.tableNameGenerator = tableNameGenerator;
+      String rootTableName, SnapshotBuilderSettings snapshotBuilderSettings) {
     this.snapshotBuilderSettings = snapshotBuilderSettings;
-    TablePointer tablePointer = TablePointer.fromTableName(rootTableName, tableNameGenerator);
+    TablePointer tablePointer = TablePointer.fromTableName(rootTableName);
     rootTable = TableVariable.forPrimary(tablePointer);
   }
 
@@ -99,12 +94,10 @@ public class CriteriaQueryBuilder {
                             "Domain %d not configured for use in Snapshot Builder",
                             domainCriteria.getId())));
 
-    TablePointer occurrencePointer =
-        TablePointer.fromTableName(domainOption.getTableName(), tableNameGenerator);
+    TablePointer occurrencePointer = TablePointer.fromTableName(domainOption.getTableName());
     TableVariable occurrenceVariable = TableVariable.forPrimary(occurrencePointer);
 
-    TablePointer ancestorPointer =
-        TablePointer.fromTableName("concept_ancestor", tableNameGenerator);
+    TablePointer ancestorPointer = TablePointer.fromTableName("concept_ancestor");
     TableVariable ancestorVariable =
         TableVariable.forJoined(
             ancestorPointer,

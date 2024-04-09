@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.common.CloudPlatformWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -33,31 +32,27 @@ public class FieldVariable implements SelectExpression {
     return tableVariable;
   }
 
-  @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
-    return renderSQL();
-  }
-
-  public String renderSqlForOrderOrGroupBy(boolean includedInSelect) {
+  public String renderSqlForOrderOrGroupBy(boolean includedInSelect, SqlRenderContext context) {
     if (includedInSelect) {
       if (alias == null) {
-        String sql = renderSQL();
+        String sql = renderSQL(context);
         LOGGER.warn(
             "ORDER or GROUP BY clause is also included in SELECT but has no alias: {}", sql);
         return sql;
       }
       return alias;
     }
-    return renderSQL();
+    return renderSQL(context);
   }
 
-  private String renderSQL() {
+  @Override
+  public String renderSQL(SqlRenderContext context) {
 
     String sql =
         "%s%s.%s"
             .formatted(
                 isDistinct ? "DISTINCT " : "",
-                tableVariable.getAlias(),
+                context.getAlias(tableVariable),
                 fieldPointer.getColumnName());
 
     if (fieldPointer.isForeignKey()) {

@@ -19,7 +19,6 @@ import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,10 +32,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-@SuppressFBWarnings(
-    value = "DMI",
-    justification =
-        "This fails with not allowing absolute paths but they're not file paths in our case")
 public class FileMetadataUtilsTest {
 
   @Test

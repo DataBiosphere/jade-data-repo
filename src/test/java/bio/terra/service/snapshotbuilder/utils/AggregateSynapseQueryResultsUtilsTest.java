@@ -7,15 +7,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class AggregateSynapseQueryResultsUtilsTest {
   @Test
@@ -60,5 +58,22 @@ class AggregateSynapseQueryResultsUtilsTest {
         ProcessResultSetException.class,
         () -> AggregateSynapseQueryResultsUtils.toDomainId(rs),
         "Error processing result set into String domain ID");
+  }
+
+  @Test
+  void toConcept() throws Exception {
+    var expected =
+        new SnapshotBuilderConcept().name("concept_name").id(1).hasChildren(true).count(100);
+
+    ResultSet rs = mock(ResultSet.class);
+    when(rs.getLong("count")).thenReturn((long) expected.getCount());
+    when(rs.getString("concept_name")).thenReturn(expected.getName());
+    when(rs.getLong("concept_id")).thenReturn((long) expected.getId());
+    when(rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
+
+    assertThat(
+        "toConcept converts table result to SnapshotBuilderConcept",
+        AggregateSynapseQueryResultsUtils.toConcept(rs),
+        equalTo(expected));
   }
 }

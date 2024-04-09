@@ -55,9 +55,7 @@ public class QueryTest {
   void renderSQLWithLimit(SqlRenderContext context) {
     String query = "t.* FROM table AS t";
     String expected =
-        context
-            .getPlatform()
-            .choose(() -> "SELECT " + query + " LIMIT 25", () -> "SELECT TOP 25 " + query);
+        context.getPlatform().choose("SELECT " + query + " LIMIT 25", "SELECT TOP 25 " + query);
     assertThat(createQueryWithLimit().renderSQL(context), is(expected));
   }
 

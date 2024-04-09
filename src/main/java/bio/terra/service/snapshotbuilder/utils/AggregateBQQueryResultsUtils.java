@@ -5,7 +5,6 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import com.google.cloud.bigquery.FieldValueList;
 
 public class AggregateBQQueryResultsUtils {
-  // TODO - pull real values for hasChildren and count
   public static SnapshotBuilderConcept toConcept(FieldValueList row) {
     int count;
     try {
@@ -18,7 +17,7 @@ public class AggregateBQQueryResultsUtils {
     return new SnapshotBuilderConcept()
         .id((int) (row.get("concept_id").getLongValue()))
         .name(row.get("concept_name").getStringValue())
-        .hasChildren(true)
+        .hasChildren(row.get(HierarchyQueryBuilder.HAS_CHILDREN).getBooleanValue())
         .count(count);
   }
 

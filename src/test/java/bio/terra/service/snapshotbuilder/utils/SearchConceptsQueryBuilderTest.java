@@ -29,6 +29,27 @@ class SearchConceptsQueryBuilderTest {
     return option;
   }
 
+  private static final String GCP_QUERY =
+      """
+      SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count, 1 AS has_children
+      FROM concept AS c
+               JOIN observation AS o ON o.observation_concept_id = c.concept_id
+      WHERE (c.domain_id = 'Observation' AND
+             (CONTAINS_SUBSTR(c.concept_name, 'cancer') OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))
+      GROUP BY c.concept_name, c.concept_id
+      ORDER BY count DESC
+      LIMIT 100""";
+
+  private static final String AZURE_QUERY =
+      """
+      SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count, 1 AS has_children
+      FROM concept AS c
+               JOIN observation AS o ON o.observation_concept_id = c.concept_id
+      WHERE (c.domain_id = 'Observation' AND
+             (CHARINDEX('cancer', c.concept_name) > 0 OR CHARINDEX('cancer', c.concept_code) > 0))
+      GROUP BY c.concept_name, c.concept_id
+      ORDER BY count DESC""";
+
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void buildSearchConceptsQuery(SqlRenderContext context) {
@@ -39,34 +60,8 @@ class SearchConceptsQueryBuilderTest {
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(domainOption, "cancer")
             .renderSQL(context);
 
-    if (platformWrapper.isGcp()) {
-      assertThat(
-          "generated SQL for GCP is correct",
-          actual,
-          equalToCompressingWhiteSpace(
-              "SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                  + "FROM concept AS c "
-                  + "JOIN observation AS o ON o.observation_concept_id = c.concept_id "
-                  + "WHERE (c.domain_id = 'Observation' "
-                  + "AND (CONTAINS_SUBSTR(c.concept_name, 'cancer') "
-                  + "OR CONTAINS_SUBSTR(c.concept_code, 'cancer'))) "
-                  + "GROUP BY c.concept_name, c.concept_id "
-                  + "ORDER BY count DESC "
-                  + "LIMIT 100"));
-    }
-    if (platformWrapper.isAzure()) {
-      assertThat(
-          "generated SQL for Azure is correct",
-          actual,
-          equalToCompressingWhiteSpace(
-              "SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count "
-                  + "FROM concept AS c  JOIN observation AS o ON o.observation_concept_id = c.concept_id "
-                  + "WHERE (c.domain_id = 'Observation' "
-                  + "AND (CHARINDEX('cancer', c.concept_name) > 0 "
-                  + "OR CHARINDEX('cancer', c.concept_code) > 0)) "
-                  + "GROUP BY c.concept_name, c.concept_id "
-                  + "ORDER BY count DESC"));
-    }
+    assertThat(
+        actual, equalToCompressingWhiteSpace(context.getPlatform().choose(GCP_QUERY, AZURE_QUERY)));
   }
 
   @ParameterizedTest
@@ -78,11 +73,13 @@ class SearchConceptsQueryBuilderTest {
     String actual =
         SearchConceptsQueryBuilder.buildSearchConceptsQuery(domainOption, "").renderSQL(context);
     String expected =
-        "c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count "
-            + "FROM concept AS c  JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c.concept_id "
-            + "WHERE c.domain_id = 'Condition' "
-            + "GROUP BY c.concept_name, c.concept_id "
-            + "ORDER BY count DESC";
+        """
+              c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count, 1 AS has_children
+            FROM concept AS c
+              JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c.concept_id
+            WHERE c.domain_id = 'Condition'
+              GROUP BY c.concept_name, c.concept_id
+              ORDER BY count DESC""";
     if (platformWrapper.isAzure()) {
       assertThat(
           "generated SQL for Azure empty search string is correct",

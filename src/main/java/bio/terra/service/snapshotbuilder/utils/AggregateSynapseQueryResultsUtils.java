@@ -20,7 +20,6 @@ public class AggregateSynapseQueryResultsUtils {
     }
   }
 
-  // TODO - pull real values for hasChildren and count
   public static SnapshotBuilderConcept toConcept(ResultSet rs) {
     int count;
     try {
@@ -32,7 +31,7 @@ public class AggregateSynapseQueryResultsUtils {
     return new SnapshotBuilderConcept()
         .name(getField(rs::getString, "concept_name"))
         .id(getField(rs::getLong, "concept_id").intValue())
-        .hasChildren(true)
+        .hasChildren(getField(rs::getBoolean, HierarchyQueryBuilder.HAS_CHILDREN))
         .count(count);
   }
 

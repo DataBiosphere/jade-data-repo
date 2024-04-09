@@ -31,8 +31,14 @@ class CloudPlatformWrapperTest {
 
   @ParameterizedTest
   @MethodSource("platformSource")
-  void choose(CloudPlatform cloudPlatform, String expected) {
+  void chooseFunction(CloudPlatform cloudPlatform, String expected) {
     assertEquals(
         expected, CloudPlatformWrapper.of(cloudPlatform).choose(() -> "GCP", () -> "Azure"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("platformSource")
+  void chooseValue(CloudPlatform cloudPlatform, String expected) {
+    assertEquals(expected, CloudPlatformWrapper.of(cloudPlatform).choose("GCP", "Azure"));
   }
 }

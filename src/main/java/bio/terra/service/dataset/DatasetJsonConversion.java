@@ -75,8 +75,7 @@ public final class DatasetJsonConversion {
 
     var cloudPlatform = CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
 
-    final List<? extends StorageResource<?, ?>> storageResources =
-        cloudPlatform.createStorageResourceValues(datasetRequest);
+    var storageResources = cloudPlatform.createStorageResourceValues(datasetRequest);
 
     boolean enableSecureMonitoring =
         Objects.requireNonNullElse(datasetRequest.isEnableSecureMonitoring(), false);

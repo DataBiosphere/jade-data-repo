@@ -70,10 +70,7 @@ public class ConceptChildrenQueryBuilder {
 
     List<SelectExpression> select =
         List.of(
-            conceptName,
-            conceptId,
-            count,
-            SearchConceptsQueryBuilder.hasChildrenExpression(concept));
+            conceptName, conceptId, count, HierarchyQueryBuilder.hasChildrenExpression(concept));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 

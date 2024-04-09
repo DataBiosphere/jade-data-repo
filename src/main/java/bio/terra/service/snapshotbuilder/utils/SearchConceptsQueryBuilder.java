@@ -1,7 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -46,9 +45,7 @@ public class SearchConceptsQueryBuilder {
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
-    var conceptTablePointer = TablePointer.fromTableName(CONCEPT);
-    var domainOccurrencePointer = TablePointer.fromTableName(domainOption.getTableName());
-    var concept = TableVariable.forPrimary(conceptTablePointer);
+    var concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
     var nameField = concept.makeFieldVariable(CONCEPT_NAME);
     var idField = concept.makeFieldVariable(CONCEPT_ID);
 
@@ -64,18 +61,12 @@ public class SearchConceptsQueryBuilder {
     // concept_ancestor.descendant_concept_id
     var domainOccurrence =
         TableVariable.forLeftJoined(
-            domainOccurrencePointer, domainOption.getColumnName(), descendantIdFieldVariable);
+            TablePointer.fromTableName(domainOption.getTableName()), domainOption.getColumnName(), descendantIdFieldVariable);
 
     // COUNT(DISTINCT co.person_id) AS count
-    var countField =
-        new FieldVariable(
-            new FieldPointer(
-                domainOccurrencePointer, CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT"),
-            domainOccurrence,
-            "count",
-            true);
+    var countField = domainOccurrence.makeFieldVariable(CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT", "count", true);
 
-    var domainClause = createDomainClause(conceptTablePointer, concept, domainOption.getName());
+    var domainClause = createDomainClause(concept, domainOption.getName());
 
     // c.concept_name, c.concept_id, COUNT(DISTINCT co.person_id) AS count
     List<SelectExpression> select = List.of(nameField, idField, countField);
@@ -95,11 +86,11 @@ public class SearchConceptsQueryBuilder {
     } else {
       // search concept name clause filters for the search text based on field concept_name
       var searchNameClause =
-          createSearchConceptClause(conceptTablePointer, concept, searchText, CONCEPT_NAME);
+          createSearchConceptClause(concept, searchText, CONCEPT_NAME);
 
       // search concept name clause filters for the search text based on field concept_code
       var searchCodeClause =
-          createSearchConceptClause(conceptTablePointer, concept, searchText, CONCEPT_CODE);
+          createSearchConceptClause(concept, searchText, CONCEPT_CODE);
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
@@ -118,20 +109,18 @@ public class SearchConceptsQueryBuilder {
   }
 
   static FunctionFilterVariable createSearchConceptClause(
-      TablePointer conceptTablePointer,
       TableVariable conceptTableVariable,
       String searchText,
       String columnName) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-        new FieldVariable(new FieldPointer(conceptTablePointer, columnName), conceptTableVariable),
+        conceptTableVariable.makeFieldVariable(columnName),
         new Literal(searchText));
   }
 
-  static BinaryFilterVariable createDomainClause(
-      TablePointer conceptTablePointer, TableVariable conceptTableVariable, String domainId) {
+  static BinaryFilterVariable createDomainClause(TableVariable conceptTableVariable, String domainId) {
     return new BinaryFilterVariable(
-        new FieldVariable(new FieldPointer(conceptTablePointer, "domain_id"), conceptTableVariable),
+        conceptTableVariable.makeFieldVariable("domain_id"),
         BinaryFilterVariable.BinaryOperator.EQUALS,
         new Literal(domainId));
   }

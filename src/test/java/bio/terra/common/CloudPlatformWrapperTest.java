@@ -25,7 +25,7 @@ class CloudPlatformWrapperTest {
 
   @ParameterizedTest
   @MethodSource("platformSource")
-  void choose_Map(CloudPlatform cloudPlatform, String expected) {
+  void chooseMap(CloudPlatform cloudPlatform, String expected) {
     assertEquals(expected, CloudPlatformWrapper.of(cloudPlatform).choose(CLOUD_MAP));
   }
 

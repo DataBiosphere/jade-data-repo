@@ -4,8 +4,9 @@ import org.stringtemplate.v4.ST;
 
 public class ExistsExpression implements SelectExpression {
 
-  static final String GCP_TEMPLATE = "EXISTS (<subQuery>) AS <alias>";
-  static final String AZURE_TEMPLATE = "CASE WHEN EXISTS (<subQuery>) THEN 1 ELSE 0 END AS <alias>";
+  private static final String GCP_TEMPLATE = "EXISTS (<subQuery>) AS <alias>";
+  private static final String AZURE_TEMPLATE =
+      "CASE WHEN EXISTS (<subQuery>) THEN 1 ELSE 0 END AS <alias>";
 
   private final String alias;
   private final Query subQuery;

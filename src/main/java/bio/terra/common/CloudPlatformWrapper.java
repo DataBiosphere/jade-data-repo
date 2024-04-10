@@ -39,13 +39,10 @@ public abstract class CloudPlatformWrapper {
     if (cloudPlatform == null) {
       cloudPlatform = DEFAULT;
     }
-    switch (cloudPlatform) {
-      case AZURE:
-        return AzurePlatform.INSTANCE;
-      case GCP:
-      default:
-        return GcpPlatform.INSTANCE;
-    }
+    return switch (cloudPlatform) {
+      case AZURE -> AzurePlatform.INSTANCE;
+      case GCP -> GcpPlatform.INSTANCE;
+    };
   }
 
   public boolean isGcp() {

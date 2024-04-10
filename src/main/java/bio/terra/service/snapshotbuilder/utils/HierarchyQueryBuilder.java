@@ -16,6 +16,7 @@ import java.util.List;
 public class HierarchyQueryBuilder {
 
   public static final String HAS_CHILDREN = "has_children";
+  public static final String COUNT = "count";
   // Fields in CONCEPT
   private static final String CONCEPT = "concept";
   public static final String CONCEPT_ID = "concept_id";

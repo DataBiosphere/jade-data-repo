@@ -73,7 +73,7 @@ public class SearchConceptsQueryBuilder {
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
-    // c.concept_name, c.concept_id, COUNT(DISTINCT co.person_id) AS count
+    // SELECT concept_name, concept_id, count, has_children
     List<SelectExpression> select =
         List.of(
             nameField,

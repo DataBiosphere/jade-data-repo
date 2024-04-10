@@ -65,7 +65,7 @@ public class FunctionFilterVariable implements FilterVariable {
 
     @Override
     public String renderSQL(SqlRenderContext context) {
-      return context.getPlatform().choose(() -> gcpTemplate, () -> azureTemplate);
+      return context.getPlatform().choose(gcpTemplate, azureTemplate);
     }
   }
 }

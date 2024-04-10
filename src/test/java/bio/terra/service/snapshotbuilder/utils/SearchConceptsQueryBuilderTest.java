@@ -38,7 +38,7 @@ class SearchConceptsQueryBuilderTest {
 
     String expectedGCPQuery =
         """
-            SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count
+            SELECT c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count, 1 AS has_children
             FROM concept AS c
             JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id
             LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id
@@ -52,7 +52,7 @@ class SearchConceptsQueryBuilderTest {
 
     String expectedAzureQuery =
         """
-            SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count
+            SELECT TOP 100 c.concept_name, c.concept_id, COUNT(DISTINCT o.person_id) AS count, 1 AS has_children
             FROM concept AS c
             JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id
             LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id
@@ -71,8 +71,7 @@ class SearchConceptsQueryBuilderTest {
     assertThat(
         "generated SQL for GCP is correct",
         actual,
-        equalToCompressingWhiteSpace(
-            platformWrapper.choose(() -> expectedGCPQuery, () -> expectedAzureQuery)));
+        equalToCompressingWhiteSpace(platformWrapper.choose(expectedGCPQuery, expectedAzureQuery)));
   }
 
   @ParameterizedTest
@@ -88,7 +87,7 @@ class SearchConceptsQueryBuilderTest {
             .renderSQL(context);
     String expected =
         """
-            c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count
+            c.concept_name, c.concept_id, COUNT(DISTINCT c0.person_id) AS count, 1 AS has_children
             FROM concept AS c
             JOIN concept_ancestor AS c1 ON c1.ancestor_concept_id = c.concept_id
             LEFT JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c1.descendant_concept_id

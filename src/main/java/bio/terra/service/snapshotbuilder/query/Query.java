@@ -145,9 +145,7 @@ public record Query(
     if (limit != null) {
       var prevSql = sql;
       sql =
-          context
-              .getPlatform()
-              .choose(() -> prevSql + " LIMIT " + limit, () -> "TOP " + limit + " " + prevSql);
+          context.getPlatform().choose(prevSql + " LIMIT " + limit, "TOP " + limit + " " + prevSql);
     }
 
     return "SELECT " + sql;

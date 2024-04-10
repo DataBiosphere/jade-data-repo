@@ -34,18 +34,22 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
 
-  public static final String CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE =
-      "Cloud platform not implemented";
+  private static final Logger logger = LoggerFactory.getLogger(SnapshotBuilderService.class);
+
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final DatasetService datasetService;
@@ -81,10 +85,15 @@ public class SnapshotBuilderService {
       BigQueryDatasetPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
     String sql = query.renderSQL(createContext(dataset, userRequest));
-    return CloudPlatformWrapper.of(dataset.getCloudPlatform())
-        .choose(
-            () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
-            () -> azureSynapsePdao.runQuery(sql, synapseConverter));
+    Instant start = Instant.now();
+    List<T> result =
+        CloudPlatformWrapper.of(dataset.getCloudPlatform())
+            .choose(
+                () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
+                () -> azureSynapsePdao.runQuery(sql, synapseConverter));
+    logger.info(
+        "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
+    return result;
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
@@ -247,19 +256,29 @@ public class SnapshotBuilderService {
     return enumerateModel;
   }
 
-  record ParentQueryResult(int parentId, int childId, String childName) {
+  record ParentQueryResult(int parentId, int childId, String childName, boolean hasChildren) {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
           rs.getInt(HierarchyQueryBuilder.PARENT_ID),
           rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
-          rs.getString(HierarchyQueryBuilder.CONCEPT_NAME));
+          rs.getString(HierarchyQueryBuilder.CONCEPT_NAME),
+          rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN));
     }
 
     ParentQueryResult(FieldValueList row) {
       this(
           (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
           (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
-          row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue());
+          row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue(),
+          row.get(HierarchyQueryBuilder.HAS_CHILDREN).getBooleanValue());
+    }
+
+    SnapshotBuilderConcept toConcept() {
+      return new SnapshotBuilderConcept()
+          .id(childId)
+          .name(childName)
+          .hasChildren(hasChildren)
+          .count(1);
     }
   }
 
@@ -280,12 +299,7 @@ public class SnapshotBuilderService {
                           new SnapshotBuilderParentConcept()
                               .parentId(k)
                               .children(new ArrayList<>()));
-              parent.addChildrenItem(
-                  new SnapshotBuilderConcept()
-                      .id(row.childId)
-                      .name(row.childName)
-                      .hasChildren(true)
-                      .count(1));
+              parent.addChildrenItem(row.toConcept());
             });
     if (parents.isEmpty()) {
       throw new BadRequestException("No parents found for concept %s".formatted(conceptId));

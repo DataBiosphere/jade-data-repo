@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -34,7 +35,7 @@ public class SearchConceptsQueryBuilder {
    *  GCP: searchClause = (CONTAINS_SUBSTR(c.concept_name, 'search_text') OR CONTAINS_SUBSTR(c.concept_code, 'search_text'))
    *  Azure: searchClause = CHARINDEX('search_text', c.concept_name) > 0 OR CHARINDEX('search_text', c.concept_code) > 0))
    *
-   *  sql_code = c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count FROM
+   *  sql_code = c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count, 1 AS has_children FROM
    * `concept` AS c JOIN `concept_ancestor` AS c0 ON c0.ancestor_concept_id = c.concept_id LEFT JOIN
    * `'domain'_occurrence` AS co ON co.'domain'_concept_id = c0.descendant_concept_id WHERE
    * (c.domain_id = 'domain' AND searchClause) GROUP BY c.concept_name, c.concept_id ORDER BY count DESC}
@@ -72,8 +73,13 @@ public class SearchConceptsQueryBuilder {
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
-    // c.concept_name, c.concept_id, COUNT(DISTINCT co.person_id) AS count
-    List<SelectExpression> select = List.of(nameField, idField, countField);
+    // SELECT concept_name, concept_id, count, has_children
+    List<SelectExpression> select =
+        List.of(
+            nameField,
+            idField,
+            countField,
+            new SelectAlias(new Literal(1), HierarchyQueryBuilder.HAS_CHILDREN));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 

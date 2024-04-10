@@ -216,8 +216,8 @@ public class SamIam implements IamProviderInterface {
 
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(datasetId.toString());
 
-    Optional.of(samConfig.adminsGroupEmail())
-        .map(
+    Optional.ofNullable(samConfig.adminsGroupEmail())
+        .ifPresent(
             adminsGroupEmail ->
                 req.putPoliciesItem(
                     IamRole.ADMIN.toString(),
@@ -286,8 +286,8 @@ public class SamIam implements IamProviderInterface {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
 
-    Optional.of(samConfig.adminsGroupEmail())
-        .map(
+    Optional.ofNullable(samConfig.adminsGroupEmail())
+        .ifPresent(
             adminsGroupEmail ->
                 req.putPoliciesItem(
                     IamRole.ADMIN.toString(),
@@ -348,8 +348,8 @@ public class SamIam implements IamProviderInterface {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2();
     req.setResourceId(profileId);
-    Optional.of(samConfig.adminsGroupEmail())
-        .map(
+    Optional.ofNullable(samConfig.adminsGroupEmail())
+        .ifPresent(
             adminsGroupEmail ->
                 req.putPoliciesItem(
                     IamRole.ADMIN.toString(),

@@ -547,13 +547,13 @@ public class SamIamTest {
 
       CreateResourceRequestV2 req = new CreateResourceRequestV2();
       req.setResourceId(profileId.toString());
-      Optional.of(samConfig.adminsGroupEmail())
-          .map(
+      Optional.ofNullable(samConfig.adminsGroupEmail())
+          .ifPresent(
               adminsGroupEmail ->
                   req.putPoliciesItem(
                       IamRole.ADMIN.toString(),
                       new AccessPolicyMembershipRequest()
-                          .memberEmails(List.of(samConfig.adminsGroupEmail()))
+                          .memberEmails(List.of(adminsGroupEmail))
                           .roles(List.of(IamRole.ADMIN.toString()))));
       req.putPoliciesItem(
           IamRole.OWNER.toString(),

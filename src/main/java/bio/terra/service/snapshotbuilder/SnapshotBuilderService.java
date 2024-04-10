@@ -34,13 +34,13 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -92,10 +92,7 @@ public class SnapshotBuilderService {
                 () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
                 () -> azureSynapsePdao.runQuery(sql, synapseConverter));
     logger.info(
-        "{} seconds to run query \"{}\"",
-        TimeUnit.SECONDS.convert(
-            Instant.now().toEpochMilli() - start.toEpochMilli(), TimeUnit.MILLISECONDS),
-        sql);
+        "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
     return result;
   }
 

@@ -5,11 +5,8 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetPatchRequestModel;
-import bio.terra.datarepo.model.PolicyMemberRequest;
-import bio.terra.datarepo.model.PolicyResponse;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
@@ -51,7 +48,9 @@ public class RetrieveDataset extends SimpleDataset {
               try {
                 assertThat(
                     "Description has been updated for dataset",
-                    repositoryApi.patchDataset(datasetSummaryModel.getId(), request).getDescription(),
+                    repositoryApi
+                        .patchDataset(datasetSummaryModel.getId(), request)
+                        .getDescription(),
                     equalTo(newDescription));
               } catch (Exception ex) {
                 return false;

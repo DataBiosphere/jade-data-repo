@@ -72,7 +72,7 @@ public class HierarchyQueryBuilder {
    * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,
    * Classification, and Source Concepts</a>
    */
-  static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
+  private static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
     return BinaryFilterVariable.equals(
         concept.makeFieldVariable(STANDARD_CONCEPT), new Literal("S"));
   }

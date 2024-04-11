@@ -187,7 +187,7 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'helmdeploy'
-          helm_create_secret_manager_secret_version: 0.0.7
+          helm_create_secret_manager_secret_version: 0.0.8
           helm_datarepo_api_chart_version: 0.0.644
           helm_datarepo_ui_chart_version: 0.0.324
           helm_gcloud_sqlproxy_chart_version: 0.19.13

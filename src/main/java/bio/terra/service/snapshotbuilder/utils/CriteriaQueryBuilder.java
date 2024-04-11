@@ -26,6 +26,8 @@ import java.util.Objects;
 public class CriteriaQueryBuilder {
   public static final String PERSON_ID_FIELD_NAME = "person_id";
   final TableVariable rootTable;
+  public static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
+  public static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
@@ -101,7 +103,7 @@ public class CriteriaQueryBuilder {
     TableVariable ancestorVariable =
         TableVariable.forJoined(
             ancestorPointer,
-            "ancestor_concept_id",
+            DESCENDANT_CONCEPT_ID,
             new FieldVariable(
                 new FieldPointer(occurrencePointer, domainOption.getColumnName()),
                 occurrenceVariable));
@@ -119,13 +121,7 @@ public class CriteriaQueryBuilder {
                 List.of(
                     new BinaryFilterVariable(
                         new FieldVariable(
-                            new FieldPointer(occurrencePointer, domainOption.getColumnName()),
-                            occurrenceVariable),
-                        BinaryFilterVariable.BinaryOperator.EQUALS,
-                        new Literal(domainCriteria.getConceptId())),
-                    new BinaryFilterVariable(
-                        new FieldVariable(
-                            new FieldPointer(ancestorPointer, "ancestor_concept_id"),
+                            new FieldPointer(ancestorPointer, ANCESTOR_CONCEPT_ID),
                             ancestorVariable),
                         BinaryFilterVariable.BinaryOperator.EQUALS,
                         new Literal(domainCriteria.getConceptId()))))));

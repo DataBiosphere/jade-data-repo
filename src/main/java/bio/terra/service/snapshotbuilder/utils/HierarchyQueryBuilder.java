@@ -1,5 +1,16 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.STANDARD_CONCEPT;
+
 import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.ExistsExpression;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -12,17 +23,6 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariab
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
-
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.STANDARD_CONCEPT;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 
 public class HierarchyQueryBuilder {
 

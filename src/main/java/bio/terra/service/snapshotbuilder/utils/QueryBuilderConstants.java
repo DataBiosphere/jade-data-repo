@@ -2,7 +2,7 @@ package bio.terra.service.snapshotbuilder.utils;
 
 public final class QueryBuilderConstants {
 
-  private QueryBuilderConstants() { }
+  private QueryBuilderConstants() {}
 
   public static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
   public static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
@@ -22,5 +22,4 @@ public final class QueryBuilderConstants {
 
   public static final String COUNT = "count";
   public static final String PARENT_ID = "parent_id";
-
 }

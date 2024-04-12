@@ -1,5 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.*;
+
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
@@ -22,8 +24,6 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
 import java.util.Objects;
-
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.*;
 
 public class CriteriaQueryBuilder {
   final TableVariable rootTable;
@@ -161,10 +161,7 @@ public class CriteriaQueryBuilder {
 
     FieldVariable personId =
         new FieldVariable(
-            new FieldPointer(getRootTablePointer(), PERSON_ID, "COUNT"),
-            rootTable,
-            null,
-            true);
+            new FieldPointer(getRootTablePointer(), PERSON_ID, "COUNT"), rootTable, null, true);
 
     FilterVariable filterVariable =
         new BooleanAndOrFilterVariable(

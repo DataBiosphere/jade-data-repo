@@ -1,5 +1,15 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
+
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -16,16 +26,6 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
-
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
 
 public class SearchConceptsQueryBuilder {
 
@@ -69,19 +69,13 @@ public class SearchConceptsQueryBuilder {
             descendantIdFieldVariable);
 
     // COUNT(DISTINCT co.person_id) AS count
-    var countField =
-        domainOccurrence.makeFieldVariable(
-            PERSON_ID, "COUNT", "count", true);
+    var countField = domainOccurrence.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
     // SELECT concept_name, concept_id, count, has_children
     List<SelectExpression> select =
-        List.of(
-            nameField,
-            idField,
-            countField,
-            new SelectAlias(new Literal(1), HAS_CHILDREN));
+        List.of(nameField, idField, countField, new SelectAlias(new Literal(1), HAS_CHILDREN));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 

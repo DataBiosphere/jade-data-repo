@@ -1,5 +1,19 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_1;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_2;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_RELATIONSHIP;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DOMAIN_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.RELATIONSHIP_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.STANDARD_CONCEPT;
+
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -15,22 +29,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.STANDARD_CONCEPT;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_1;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_2;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DOMAIN_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.RELATIONSHIP_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_RELATIONSHIP;
-
 public class ConceptChildrenQueryBuilder {
-
 
   /**
    * Generate a query that retrieves the descendants of the given concept and their roll-up counts.

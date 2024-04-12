@@ -1,12 +1,12 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
+
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 
 public class AggregateSynapseQueryResultsUtils {
 

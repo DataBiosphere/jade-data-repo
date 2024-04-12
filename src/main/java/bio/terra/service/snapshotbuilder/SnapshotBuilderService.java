@@ -1,5 +1,10 @@
 package bio.terra.service.snapshotbuilder;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
+
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -43,11 +48,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 
 @Component
 public class SnapshotBuilderService {

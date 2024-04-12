@@ -1,14 +1,13 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.COUNT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
+
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import com.google.cloud.bigquery.FieldValueList;
-
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.COUNT;
-
 
 public class AggregateBQQueryResultsUtils {
   public static SnapshotBuilderConcept toConcept(FieldValueList row) {
@@ -16,8 +15,7 @@ public class AggregateBQQueryResultsUtils {
     try {
       count =
           SnapshotBuilderService.fuzzyLowCount(
-              (int)
-                  row.get(COUNT).getLongValue()); // If exists, use its value
+              (int) row.get(COUNT).getLongValue()); // If exists, use its value
     } catch (IllegalArgumentException e) {
       count = 1;
     }

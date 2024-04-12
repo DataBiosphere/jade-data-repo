@@ -265,36 +265,6 @@ class CriteriaQueryBuilderTest {
         equalToCompressingWhiteSpace(expectedSql));
   }
 
-  @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
-  void generateRollupCountsQueryForCriteriaGroupsList2(SqlRenderContext context) {
-    Query query =
-        new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS)
-            .generateRollupCountsQueryForCriteriaGroupsList(
-                List.of(
-                    List.of(
-                        new SnapshotBuilderCriteriaGroup()
-                            .criteria(
-                                List.of(
-                                    generateDomainCriteria()
-                                        .conceptId(4103331)
-                                        .id(10)
-                                        .name("Condition")))
-                            .meetAll(false)
-                            .mustMeet(true)
-                            .name("b"))));
-
-    String expectedQuery =
-        "SELECT COUNT(DISTINCT p.person_id) FROM person AS p "
-            + "WHERE (((p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  "
-            + "JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id "
-            + "WHERE (c0.ancestor_concept_id = 4103331)))))";
-    assertThat(
-        "The sql generated is correct",
-        query.renderSQL(context),
-        equalToCompressingWhiteSpace(expectedQuery));
-  }
-
   private static SnapshotBuilderDomainCriteria generateDomainCriteria() {
     return (SnapshotBuilderDomainCriteria)
         new SnapshotBuilderDomainCriteria()

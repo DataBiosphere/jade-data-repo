@@ -82,7 +82,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
+            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE (c0.ancestor_concept_id = 0))"));
   }
 
   @Test
@@ -106,7 +106,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         sql,
         equalToCompressingWhiteSpace(
-            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
+            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE (c0.ancestor_concept_id = 0))"));
   }
 
   @ParameterizedTest

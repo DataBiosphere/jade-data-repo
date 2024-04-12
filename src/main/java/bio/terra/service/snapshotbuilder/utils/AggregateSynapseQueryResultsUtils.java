@@ -1,5 +1,9 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.COUNT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DOMAIN_ID;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 
 import bio.terra.model.SnapshotBuilderConcept;
@@ -25,14 +29,14 @@ public class AggregateSynapseQueryResultsUtils {
   public static SnapshotBuilderConcept toConcept(ResultSet rs) {
     int count;
     try {
-      count = SnapshotBuilderService.fuzzyLowCount((int) rs.getLong("count"));
+      count = SnapshotBuilderService.fuzzyLowCount((int) rs.getLong(COUNT));
     } catch (SQLException | IllegalArgumentException e) {
       count = 1;
     }
 
     return new SnapshotBuilderConcept()
-        .name(getField(rs::getString, "concept_name"))
-        .id(getField(rs::getLong, "concept_id").intValue())
+        .name(getField(rs::getString, CONCEPT_NAME))
+        .id(getField(rs::getLong, CONCEPT_ID).intValue())
         .hasChildren(getField(rs::getBoolean, HAS_CHILDREN))
         .count(count);
   }
@@ -49,6 +53,6 @@ public class AggregateSynapseQueryResultsUtils {
   }
 
   public static String toDomainId(ResultSet rs) {
-    return getField(rs::getString, "domain_id");
+    return getField(rs::getString, DOMAIN_ID);
   }
 }

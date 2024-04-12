@@ -7,6 +7,7 @@ import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONC
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DOMAIN_ID;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
 
@@ -123,7 +124,7 @@ public class SearchConceptsQueryBuilder {
   static BinaryFilterVariable createDomainClause(
       TableVariable conceptTableVariable, String domainId) {
     return new BinaryFilterVariable(
-        conceptTableVariable.makeFieldVariable("domain_id"),
+        conceptTableVariable.makeFieldVariable(DOMAIN_ID),
         BinaryFilterVariable.BinaryOperator.EQUALS,
         new Literal(domainId));
   }

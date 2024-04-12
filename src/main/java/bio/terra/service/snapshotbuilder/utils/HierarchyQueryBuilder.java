@@ -5,10 +5,14 @@ import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONC
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_1;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_2;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_RELATIONSHIP;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.RELATIONSHIP_ID;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.STANDARD_CONCEPT;
 
 import bio.terra.service.snapshotbuilder.SelectAlias;
@@ -40,10 +44,10 @@ public class HierarchyQueryBuilder {
    */
   public Query generateQuery(int conceptId) {
     var conceptRelationship =
-        TableVariable.forPrimary(TablePointer.fromTableName("concept_relationship"));
-    var relationshipId = conceptRelationship.makeFieldVariable("relationship_id");
-    var conceptId1 = conceptRelationship.makeFieldVariable("concept_id_1");
-    var conceptId2 = conceptRelationship.makeFieldVariable("concept_id_2");
+        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
+    var relationshipId = conceptRelationship.makeFieldVariable(RELATIONSHIP_ID);
+    var conceptId1 = conceptRelationship.makeFieldVariable(CONCEPT_ID_1);
+    var conceptId2 = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);
     var child =
         TableVariable.forJoined(TablePointer.fromTableName(CONCEPT), CONCEPT_ID, conceptId2);
     var parent =

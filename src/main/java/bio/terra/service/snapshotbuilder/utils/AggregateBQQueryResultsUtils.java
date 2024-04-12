@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.utils;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.COUNT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DOMAIN_ID;
 import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 
 import bio.terra.model.SnapshotBuilderConcept;
@@ -31,6 +32,6 @@ public class AggregateBQQueryResultsUtils {
   }
 
   public static String toDomainId(FieldValueList row) {
-    return row.get("domain_id").getStringValue();
+    return row.get(DOMAIN_ID).getStringValue();
   }
 }

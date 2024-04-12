@@ -6,6 +6,8 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
+
 public class AggregateSynapseQueryResultsUtils {
 
   public interface CountGetter<T> {
@@ -31,7 +33,7 @@ public class AggregateSynapseQueryResultsUtils {
     return new SnapshotBuilderConcept()
         .name(getField(rs::getString, "concept_name"))
         .id(getField(rs::getLong, "concept_id").intValue())
-        .hasChildren(getField(rs::getBoolean, HierarchyQueryBuilder.HAS_CHILDREN))
+        .hasChildren(getField(rs::getBoolean, HAS_CHILDREN))
         .count(count);
   }
 

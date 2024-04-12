@@ -17,15 +17,17 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVari
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
-public class SearchConceptsQueryBuilder {
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
 
-  public static final String CONCEPT_ID = "concept_id";
-  public static final String CONCEPT = "concept";
-  public static final String CONCEPT_ANCESTOR = "concept_ancestor";
-  public static final String CONCEPT_NAME = "concept_name";
-  public static final String CONCEPT_CODE = "concept_code";
-  public static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
-  public static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
+public class SearchConceptsQueryBuilder {
 
   /**
    * Generate a query that retrieves all the concepts from the given searched text. If a search text
@@ -69,7 +71,7 @@ public class SearchConceptsQueryBuilder {
     // COUNT(DISTINCT co.person_id) AS count
     var countField =
         domainOccurrence.makeFieldVariable(
-            CriteriaQueryBuilder.PERSON_ID_FIELD_NAME, "COUNT", "count", true);
+            PERSON_ID, "COUNT", "count", true);
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
@@ -79,7 +81,7 @@ public class SearchConceptsQueryBuilder {
             nameField,
             idField,
             countField,
-            new SelectAlias(new Literal(1), HierarchyQueryBuilder.HAS_CHILDREN));
+            new SelectAlias(new Literal(1), HAS_CHILDREN));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 

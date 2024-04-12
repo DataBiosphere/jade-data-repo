@@ -27,7 +27,6 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
@@ -44,6 +43,11 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
 
 @Component
 public class SnapshotBuilderService {
@@ -259,18 +263,18 @@ public class SnapshotBuilderService {
   record ParentQueryResult(int parentId, int childId, String childName, boolean hasChildren) {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
-          rs.getInt(HierarchyQueryBuilder.PARENT_ID),
-          rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
-          rs.getString(HierarchyQueryBuilder.CONCEPT_NAME),
-          rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN));
+          rs.getInt(PARENT_ID),
+          rs.getInt(CONCEPT_ID),
+          rs.getString(CONCEPT_NAME),
+          rs.getBoolean(HAS_CHILDREN));
     }
 
     ParentQueryResult(FieldValueList row) {
       this(
-          (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
-          (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
-          row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue(),
-          row.get(HierarchyQueryBuilder.HAS_CHILDREN).getBooleanValue());
+          (int) row.get(PARENT_ID).getLongValue(),
+          (int) row.get(CONCEPT_ID).getLongValue(),
+          row.get(CONCEPT_NAME).getStringValue(),
+          row.get(HAS_CHILDREN).getBooleanValue());
     }
 
     SnapshotBuilderConcept toConcept() {

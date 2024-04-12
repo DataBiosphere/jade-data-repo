@@ -23,11 +23,10 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVari
 import java.util.List;
 import java.util.Objects;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.*;
+
 public class CriteriaQueryBuilder {
-  public static final String PERSON_ID_FIELD_NAME = "person_id";
   final TableVariable rootTable;
-  public static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
-  public static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
@@ -109,12 +108,12 @@ public class CriteriaQueryBuilder {
                 occurrenceVariable));
 
     return new SubQueryFilterVariable(
-        getFieldVariableForRootTable(PERSON_ID_FIELD_NAME),
+        getFieldVariableForRootTable(PERSON_ID),
         SubQueryFilterVariable.Operator.IN,
         new Query(
             List.of(
                 new FieldVariable(
-                    new FieldPointer(occurrencePointer, PERSON_ID_FIELD_NAME), occurrenceVariable)),
+                    new FieldPointer(occurrencePointer, PERSON_ID), occurrenceVariable)),
             List.of(occurrenceVariable, ancestorVariable),
             new BooleanAndOrFilterVariable(
                 BooleanAndOrFilterVariable.LogicalOperator.OR,
@@ -162,7 +161,7 @@ public class CriteriaQueryBuilder {
 
     FieldVariable personId =
         new FieldVariable(
-            new FieldPointer(getRootTablePointer(), PERSON_ID_FIELD_NAME, "COUNT"),
+            new FieldPointer(getRootTablePointer(), PERSON_ID, "COUNT"),
             rootTable,
             null,
             true);

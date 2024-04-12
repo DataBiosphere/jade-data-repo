@@ -15,21 +15,22 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import java.util.List;
 
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.STANDARD_CONCEPT;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_1;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_2;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DOMAIN_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.RELATIONSHIP_ID;
+import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_RELATIONSHIP;
+
 public class ConceptChildrenQueryBuilder {
 
-  private static final String CONCEPT = "concept";
-  private static final String CONCEPT_ANCESTOR = "concept_ancestor";
-  private static final String CONCEPT_RELATIONSHIP = "concept_relationship";
-  private static final String PERSON_ID = "person_id";
-  private static final String DOMAIN_ID = "domain_id";
-  private static final String CONCEPT_ID = "concept_id";
-  private static final String CONCEPT_NAME = "concept_name";
-  private static final String STANDARD_CONCEPT = "standard_concept";
-  private static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
-  private static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
-  private static final String CONCEPT_ID_1 = "concept_id_1";
-  private static final String CONCEPT_ID_2 = "concept_id_2";
-  private static final String RELATIONSHIP_ID = "relationship_id";
 
   /**
    * Generate a query that retrieves the descendants of the given concept and their roll-up counts.

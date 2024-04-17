@@ -44,6 +44,7 @@ public class CriteriaQueryBuilder {
   private FieldVariable getFieldVariableForRootTable(String columnName) {
     return new FieldVariable(new FieldPointer(getRootTablePointer(), columnName), rootTable);
   }
+
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
     String columnName = getProgramDataOptionColumnName(rangeCriteria.getId());
     return new BooleanAndOrFilterVariable(

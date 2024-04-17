@@ -1,7 +1,9 @@
 package bio.terra.service.snapshotbuilder.utils.constants;
 
 public final class ConceptConstants {
-  private ConceptConstants() { };
+  private ConceptConstants() {}
+  ;
+
   public static final String CONCEPT = "concept";
   public static final String DOMAIN_ID = "domain_id";
   public static final String CONCEPT_NAME = "concept_name";

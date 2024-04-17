@@ -44,12 +44,6 @@ public class CriteriaQueryBuilder {
   private FieldVariable getFieldVariableForRootTable(String columnName) {
     return new FieldVariable(new FieldPointer(getRootTablePointer(), columnName), rootTable);
   }
-  /**
-   * Generate a filter for a SnapshotBuilderProgramDataRangeCriteria
-   * <pre>{@code
-   * p.year_of_birth >= low_value AND p.year_of_birth <= high_value
-   * </pre>
-   */
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
     String columnName = getProgramDataOptionColumnName(rangeCriteria.getId());
     return new BooleanAndOrFilterVariable(
@@ -65,15 +59,6 @@ public class CriteriaQueryBuilder {
                 new Literal(rangeCriteria.getHigh()))));
   }
 
-  /**
-   * Generate filter for a SnapshotBuilderProgramDataListCriteria
-   * <pre>{@code
-   * if listCriteria has no values:
-   *  sql = "1=1"
-   *  else:
-   *  "p.kind_of_list_criteria in ('values')
-   * </pre>
-   */
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
 
     if (listCriteria.getValues().isEmpty()) {
@@ -95,12 +80,6 @@ public class CriteriaQueryBuilder {
         .getColumnName();
   }
 
-  /**
-   * Generate filter for a SnapshotBuilderDomainCriteria
-   * <pre>{@code
-   *  p.person_id IN (SELECT c.person_id FROM 'domain'_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.'domain'_concept_id WHERE (c0.ancestor_concept_id = 'domainCriteria'.concept_id))"));
-   * </pre>
-   */
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {
     SnapshotBuilderDomainOption domainOption =
         snapshotBuilderSettings.getDomainOptions().stream()

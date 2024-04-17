@@ -1,9 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -43,7 +39,9 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.utils.ConceptAncestorConstants;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.ConceptConstants;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
@@ -334,10 +332,10 @@ class SnapshotBuilderServiceTest {
   @Test
   void testParentQueryResult() throws Exception {
     var resultSet = mock(ResultSet.class);
-    when(resultSet.getInt(PARENT_ID)).thenReturn(1);
-    when(resultSet.getInt(CONCEPT_ID)).thenReturn(2);
-    when(resultSet.getString(CONCEPT_NAME)).thenReturn("name");
-    when(resultSet.getBoolean(HAS_CHILDREN)).thenReturn(true);
+    when(resultSet.getInt(QueryBuilderFactory.PARENT_ID)).thenReturn(1);
+    when(resultSet.getInt(ConceptConstants.CONCEPT_ID)).thenReturn(2);
+    when(resultSet.getString(ConceptConstants.CONCEPT_NAME)).thenReturn("name");
+    when(resultSet.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(true);
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(resultSet));
 
     var fieldValueList =
@@ -347,10 +345,10 @@ class SnapshotBuilderServiceTest {
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2"),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "name"),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "true")),
-            Field.of(PARENT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(CONCEPT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(CONCEPT_NAME, StandardSQLTypeName.STRING),
-            Field.of(HAS_CHILDREN, StandardSQLTypeName.BOOL));
+            Field.of(QueryBuilderFactory.PARENT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(ConceptConstants.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(ConceptConstants.CONCEPT_NAME, StandardSQLTypeName.STRING),
+            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL));
 
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
   }

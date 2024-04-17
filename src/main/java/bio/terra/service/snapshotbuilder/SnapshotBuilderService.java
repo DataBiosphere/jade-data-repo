@@ -1,9 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.BadRequestException;
@@ -32,6 +28,7 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
+import bio.terra.service.snapshotbuilder.utils.ConceptConstants;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
@@ -263,18 +260,18 @@ public class SnapshotBuilderService {
   record ParentQueryResult(int parentId, int childId, String childName, boolean hasChildren) {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
-          rs.getInt(PARENT_ID),
-          rs.getInt(CONCEPT_ID),
-          rs.getString(CONCEPT_NAME),
-          rs.getBoolean(HAS_CHILDREN));
+          rs.getInt(QueryBuilderFactory.PARENT_ID),
+          rs.getInt(ConceptConstants.CONCEPT_ID),
+          rs.getString(ConceptConstants.CONCEPT_NAME),
+          rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN));
     }
 
     ParentQueryResult(FieldValueList row) {
       this(
-          (int) row.get(PARENT_ID).getLongValue(),
-          (int) row.get(CONCEPT_ID).getLongValue(),
-          row.get(CONCEPT_NAME).getStringValue(),
-          row.get(HAS_CHILDREN).getBooleanValue());
+          (int) row.get(QueryBuilderFactory.PARENT_ID).getLongValue(),
+          (int) row.get(ConceptConstants.CONCEPT_ID).getLongValue(),
+          row.get(ConceptConstants.CONCEPT_NAME).getStringValue(),
+          row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue());
     }
 
     SnapshotBuilderConcept toConcept() {

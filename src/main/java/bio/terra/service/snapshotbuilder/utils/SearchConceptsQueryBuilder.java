@@ -1,16 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DOMAIN_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
-
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -49,17 +38,17 @@ public class SearchConceptsQueryBuilder {
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
-    var concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
-    var nameField = concept.makeFieldVariable(CONCEPT_NAME);
-    var idField = concept.makeFieldVariable(CONCEPT_ID);
+    var concept = TableVariable.forPrimary(TablePointer.fromTableName(ConceptConstants.CONCEPT));
+    var nameField = concept.makeFieldVariable(ConceptConstants.CONCEPT_NAME);
+    var idField = concept.makeFieldVariable(ConceptConstants.CONCEPT_ID);
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     var conceptAncestor =
         TableVariable.forJoined(
-            TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, idField);
+            TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR), ConceptAncestorConstants.ANCESTOR_CONCEPT_ID, idField);
 
-    var descendantIdFieldVariable = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+    var descendantIdFieldVariable = conceptAncestor.makeFieldVariable(ConceptAncestorConstants.DESCENDANT_CONCEPT_ID);
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
@@ -70,13 +59,13 @@ public class SearchConceptsQueryBuilder {
             descendantIdFieldVariable);
 
     // COUNT(DISTINCT co.person_id) AS count
-    var countField = domainOccurrence.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
+    var countField = domainOccurrence.makeFieldVariable(ConditionOccurrenceConstants.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
     // SELECT concept_name, concept_id, count, has_children
     List<SelectExpression> select =
-        List.of(nameField, idField, countField, new SelectAlias(new Literal(1), HAS_CHILDREN));
+        List.of(nameField, idField, countField, new SelectAlias(new Literal(1), QueryBuilderFactory.HAS_CHILDREN));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
@@ -92,10 +81,10 @@ public class SearchConceptsQueryBuilder {
       where = domainClause;
     } else {
       // search concept name clause filters for the search text based on field concept_name
-      var searchNameClause = createSearchConceptClause(concept, searchText, CONCEPT_NAME);
+      var searchNameClause = createSearchConceptClause(concept, searchText, ConceptConstants.CONCEPT_NAME);
 
       // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause = createSearchConceptClause(concept, searchText, CONCEPT_CODE);
+      var searchCodeClause = createSearchConceptClause(concept, searchText, ConceptConstants.CONCEPT_CODE);
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
@@ -124,7 +113,7 @@ public class SearchConceptsQueryBuilder {
   static BinaryFilterVariable createDomainClause(
       TableVariable conceptTableVariable, String domainId) {
     return new BinaryFilterVariable(
-        conceptTableVariable.makeFieldVariable(DOMAIN_ID),
+        conceptTableVariable.makeFieldVariable(ConceptConstants.DOMAIN_ID),
         BinaryFilterVariable.BinaryOperator.EQUALS,
         new Literal(domainId));
   }

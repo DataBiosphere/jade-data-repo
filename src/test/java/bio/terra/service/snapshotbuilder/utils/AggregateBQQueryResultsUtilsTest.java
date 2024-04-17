@@ -30,18 +30,18 @@ class AggregateBQQueryResultsUtilsTest {
   void toDomainId() {
     FieldValueList row =
         FieldValueList.of(
-            List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, "domain_id")),
-            Field.of("domain_id", StandardSQLTypeName.STRING));
+            List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, ConceptConstants.DOMAIN_ID)),
+            Field.of(ConceptConstants.DOMAIN_ID, StandardSQLTypeName.STRING));
     assertThat(
         "toDomainId converts table result to a string",
         AggregateBQQueryResultsUtils.toDomainId(row),
-        equalTo("domain_id"));
+        equalTo(ConceptConstants.DOMAIN_ID));
   }
 
   @Test
   void toConcept() {
     var expected =
-        new SnapshotBuilderConcept().name("concept_name").id(1).hasChildren(true).count(100);
+        new SnapshotBuilderConcept().name(ConceptConstants.CONCEPT_NAME).id(1).hasChildren(true).count(100);
     FieldValueList row =
         FieldValueList.of(
             List.of(
@@ -50,10 +50,10 @@ class AggregateBQQueryResultsUtilsTest {
                 FieldValue.of(
                     FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.isHasChildren())),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.getCount()))),
-            Field.of("concept_id", StandardSQLTypeName.NUMERIC),
-            Field.of("concept_name", StandardSQLTypeName.STRING),
-            Field.of("has_children", StandardSQLTypeName.BOOL),
-            Field.of("count", StandardSQLTypeName.NUMERIC));
+            Field.of(ConceptConstants.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(ConceptConstants.CONCEPT_NAME, StandardSQLTypeName.STRING),
+            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL),
+            Field.of(QueryBuilderFactory.COUNT, StandardSQLTypeName.NUMERIC));
     assertThat(AggregateBQQueryResultsUtils.toConcept(row), is(expected));
   }
 }

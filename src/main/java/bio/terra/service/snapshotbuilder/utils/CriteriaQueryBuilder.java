@@ -1,9 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PERSON_ID;
-
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
@@ -121,29 +117,29 @@ public class CriteriaQueryBuilder {
     TablePointer occurrencePointer = TablePointer.fromTableName(domainOption.getTableName());
     TableVariable occurrenceVariable = TableVariable.forPrimary(occurrencePointer);
 
-    TablePointer ancestorPointer = TablePointer.fromTableName("concept_ancestor");
+    TablePointer ancestorPointer = TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR);
     TableVariable ancestorVariable =
         TableVariable.forJoined(
             ancestorPointer,
-            DESCENDANT_CONCEPT_ID,
+            ConceptAncestorConstants.DESCENDANT_CONCEPT_ID,
             new FieldVariable(
                 new FieldPointer(occurrencePointer, domainOption.getColumnName()),
                 occurrenceVariable));
 
     return new SubQueryFilterVariable(
-        getFieldVariableForRootTable(PERSON_ID),
+        getFieldVariableForRootTable(ConditionOccurrenceConstants.PERSON_ID),
         SubQueryFilterVariable.Operator.IN,
         new Query(
             List.of(
                 new FieldVariable(
-                    new FieldPointer(occurrencePointer, PERSON_ID), occurrenceVariable)),
+                    new FieldPointer(occurrencePointer, ConditionOccurrenceConstants.PERSON_ID), occurrenceVariable)),
             List.of(occurrenceVariable, ancestorVariable),
             new BooleanAndOrFilterVariable(
                 BooleanAndOrFilterVariable.LogicalOperator.OR,
                 List.of(
                     new BinaryFilterVariable(
                         new FieldVariable(
-                            new FieldPointer(ancestorPointer, ANCESTOR_CONCEPT_ID),
+                            new FieldPointer(ancestorPointer, ConceptAncestorConstants.ANCESTOR_CONCEPT_ID),
                             ancestorVariable),
                         BinaryFilterVariable.BinaryOperator.EQUALS,
                         new Literal(domainCriteria.getConceptId()))))));
@@ -184,7 +180,7 @@ public class CriteriaQueryBuilder {
 
     FieldVariable personId =
         new FieldVariable(
-            new FieldPointer(getRootTablePointer(), PERSON_ID, "COUNT"), rootTable, null, true);
+            new FieldPointer(getRootTablePointer(), ConditionOccurrenceConstants.PERSON_ID, "COUNT"), rootTable, null, true);
 
     FilterVariable filterVariable =
         new BooleanAndOrFilterVariable(

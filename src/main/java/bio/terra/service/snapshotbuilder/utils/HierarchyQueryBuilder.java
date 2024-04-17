@@ -1,20 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.ANCESTOR_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ANCESTOR;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_CODE;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_1;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_ID_2;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_NAME;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.CONCEPT_RELATIONSHIP;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.DESCENDANT_CONCEPT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.HAS_CHILDREN;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.PARENT_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.RELATIONSHIP_ID;
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderConstants.STANDARD_CONCEPT;
-
 import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.ExistsExpression;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -30,6 +15,7 @@ import java.util.List;
 
 public class HierarchyQueryBuilder {
 
+
   /**
    * Generate a query to find all parent concepts of a given concept, and for each parent to find
    * all its children.
@@ -44,20 +30,20 @@ public class HierarchyQueryBuilder {
    */
   public Query generateQuery(int conceptId) {
     var conceptRelationship =
-        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
-    var relationshipId = conceptRelationship.makeFieldVariable(RELATIONSHIP_ID);
-    var conceptId1 = conceptRelationship.makeFieldVariable(CONCEPT_ID_1);
-    var conceptId2 = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);
+        TableVariable.forPrimary(TablePointer.fromTableName(ConceptRelationshipConstants.CONCEPT_RELATIONSHIP));
+    var relationshipId = conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.RELATIONSHIP_ID);
+    var conceptId1 = conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.CONCEPT_ID_1);
+    var conceptId2 = conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.CONCEPT_ID_2);
     var child =
-        TableVariable.forJoined(TablePointer.fromTableName(CONCEPT), CONCEPT_ID, conceptId2);
+        TableVariable.forJoined(TablePointer.fromTableName(ConceptConstants.CONCEPT), ConceptConstants.CONCEPT_ID, conceptId2);
     var parent =
-        TableVariable.forJoined(TablePointer.fromTableName(CONCEPT), CONCEPT_ID, conceptId1);
+        TableVariable.forJoined(TablePointer.fromTableName(ConceptConstants.CONCEPT), ConceptConstants.CONCEPT_ID, conceptId1);
     return new Query(
         List.of(
-            new SelectAlias(conceptId1, PARENT_ID),
-            new SelectAlias(conceptId2, CONCEPT_ID),
-            child.makeFieldVariable(CONCEPT_NAME),
-            child.makeFieldVariable(CONCEPT_CODE),
+            new SelectAlias(conceptId1, QueryBuilderFactory.PARENT_ID),
+            new SelectAlias(conceptId2, ConceptConstants.CONCEPT_ID),
+            child.makeFieldVariable(ConceptConstants.CONCEPT_NAME),
+            child.makeFieldVariable(ConceptConstants.CONCEPT_CODE),
             hasChildrenExpression(child)),
         List.of(conceptRelationship, child, parent),
         BooleanAndOrFilterVariable.and(
@@ -74,7 +60,7 @@ public class HierarchyQueryBuilder {
    */
   private static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
     return BinaryFilterVariable.equals(
-        concept.makeFieldVariable(STANDARD_CONCEPT), new Literal("S"));
+        concept.makeFieldVariable(ConceptConstants.STANDARD_CONCEPT), new Literal("S"));
   }
 
   /**
@@ -87,15 +73,15 @@ public class HierarchyQueryBuilder {
    * </pre>
    */
   private Query selectAllParents(int conceptId) {
-    var conceptAncestor = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_ANCESTOR));
+    var conceptAncestor = TableVariable.forPrimary(TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR));
     var conceptIdLiteral = new Literal(conceptId);
-    FieldVariable ancestorConceptId = conceptAncestor.makeFieldVariable(ANCESTOR_CONCEPT_ID);
+    FieldVariable ancestorConceptId = conceptAncestor.makeFieldVariable(ConceptAncestorConstants.ANCESTOR_CONCEPT_ID);
     return new Query(
         List.of(ancestorConceptId),
         List.of(conceptAncestor),
         BooleanAndOrFilterVariable.and(
             BinaryFilterVariable.equals(
-                conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID), conceptIdLiteral),
+                conceptAncestor.makeFieldVariable(ConceptAncestorConstants.DESCENDANT_CONCEPT_ID), conceptIdLiteral),
             BinaryFilterVariable.notEquals(ancestorConceptId, conceptIdLiteral)));
   }
 
@@ -117,21 +103,21 @@ public class HierarchyQueryBuilder {
    * }</pre>
    */
   static SelectExpression hasChildrenExpression(TableVariable outerConcept) {
-    var conceptId = outerConcept.makeFieldVariable(CONCEPT_ID);
-    var conceptAncestor = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_ANCESTOR));
-    var descendantConceptId = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+    var conceptId = outerConcept.makeFieldVariable(ConceptConstants.CONCEPT_ID);
+    var conceptAncestor = TableVariable.forPrimary(TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR));
+    var descendantConceptId = conceptAncestor.makeFieldVariable(ConceptAncestorConstants.DESCENDANT_CONCEPT_ID);
     var innerConcept =
         TableVariable.forJoined(
-            TablePointer.fromTableName(CONCEPT), CONCEPT_ID, descendantConceptId);
+            TablePointer.fromTableName(ConceptConstants.CONCEPT), ConceptConstants.CONCEPT_ID, descendantConceptId);
     return new ExistsExpression(
         new Query(
             List.of(new Literal(1)),
             List.of(conceptAncestor, innerConcept),
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(
-                    conceptAncestor.makeFieldVariable(ANCESTOR_CONCEPT_ID), conceptId),
+                    conceptAncestor.makeFieldVariable(ConceptAncestorConstants.ANCESTOR_CONCEPT_ID), conceptId),
                 BinaryFilterVariable.notEquals(descendantConceptId, conceptId),
                 requireStandardConcept(innerConcept))),
-        HAS_CHILDREN);
+        QueryBuilderFactory.HAS_CHILDREN);
   }
 }

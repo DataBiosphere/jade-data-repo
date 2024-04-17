@@ -123,19 +123,19 @@ public class SnapshotBuilderTestData {
                       100),
                   generateSnapshotBuilderProgramDataListOption(
                       2,
-                      "person",
+                      PersonConstants.PERSON,
                       "ethnicity",
                       "Ethnicity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(40).name("unused"))),
                   generateSnapshotBuilderProgramDataListOption(
                       3,
-                      "person",
+                      PersonConstants.PERSON,
                       "gender_identity",
                       "Gender Identity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(41).name("unused 2"))),
                   generateSnapshotBuilderProgramDataListOption(
                       4,
-                      "person",
+                      PersonConstants.PERSON,
                       "race",
                       "Race",
                       List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
@@ -170,13 +170,13 @@ public class SnapshotBuilderTestData {
           .tables(
               List.of(
                   new DatasetTable()
-                      .name("person")
+                      PersonConstants.PERSON,
                       .columns(
                           List.of(
                               new Column().name("race").type(TableDataType.INTEGER),
                               new Column().name("gender_identity").type(TableDataType.INTEGER),
                               new Column().name("ethnicity").type(TableDataType.INTEGER),
-                              new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
+                              new Column().name(PersonConstants.YEAR_OF_BIRTH).type(TableDataType.INTEGER)))));
 
   public static SnapshotBuilderCohort createCohort() {
 

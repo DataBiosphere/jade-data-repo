@@ -49,6 +49,7 @@ public class SearchConceptsQueryBuilder {
     var concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
     var nameField = concept.makeFieldVariable(CONCEPT_NAME);
     var idField = concept.makeFieldVariable(CONCEPT_ID);
+    var conceptCode = concept.makeFieldVariable(CONCEPT_CODE);
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
@@ -78,6 +79,7 @@ public class SearchConceptsQueryBuilder {
         List.of(
             nameField,
             idField,
+            conceptCode,
             countField,
             new SelectAlias(new Literal(1), HierarchyQueryBuilder.HAS_CHILDREN));
 
@@ -88,7 +90,7 @@ public class SearchConceptsQueryBuilder {
         List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));
 
     // GROUP BY c.concept_name, c.concept_id
-    List<FieldVariable> groupBy = List.of(nameField, idField);
+    List<FieldVariable> groupBy = List.of(nameField, idField, conceptCode);
 
     FilterVariable where;
     if (StringUtils.isEmpty(searchText)) {
@@ -124,11 +126,11 @@ public class SearchConceptsQueryBuilder {
         new Literal(searchText));
   }
 
-  static BinaryFilterVariable createDomainClause(
-      TableVariable conceptTableVariable, String domainId) {
-    return new BinaryFilterVariable(
-        conceptTableVariable.makeFieldVariable("domain_id"),
-        BinaryFilterVariable.BinaryOperator.EQUALS,
-        new Literal(domainId));
+  static FilterVariable createDomainClause(TableVariable conceptTableVariable, String domainId) {
+    return BooleanAndOrFilterVariable.and(
+        BinaryFilterVariable.equals(
+            conceptTableVariable.makeFieldVariable("domain_id"), new Literal(domainId)),
+        BinaryFilterVariable.equals(
+            conceptTableVariable.makeFieldVariable("standard_concept"), new Literal("S")));
   }
 }

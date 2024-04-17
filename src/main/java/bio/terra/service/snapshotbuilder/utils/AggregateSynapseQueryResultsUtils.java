@@ -21,18 +21,12 @@ public class AggregateSynapseQueryResultsUtils {
   }
 
   public static SnapshotBuilderConcept toConcept(ResultSet rs) {
-    int count;
-    try {
-      count = SnapshotBuilderService.fuzzyLowCount((int) rs.getLong("count"));
-    } catch (SQLException | IllegalArgumentException e) {
-      count = 1;
-    }
-
     return new SnapshotBuilderConcept()
         .name(getField(rs::getString, "concept_name"))
         .id(getField(rs::getLong, "concept_id").intValue())
         .hasChildren(getField(rs::getBoolean, HierarchyQueryBuilder.HAS_CHILDREN))
-        .count(count);
+        .code(getField(rs::getLong, HierarchyQueryBuilder.CONCEPT_CODE))
+        .count(SnapshotBuilderService.fuzzyLowCount(getField(rs::getLong, "count").intValue()));
   }
 
   public static int toCount(ResultSet rs) {

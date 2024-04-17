@@ -26,8 +26,11 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.Condition;
 
 public class SnapshotBuilderTestData {
 
@@ -82,8 +85,8 @@ public class SnapshotBuilderTestData {
               List.of(
                   generateSnapshotBuilderDomainOption(
                       10,
-                      "condition_occurrence",
-                      "condition_concept_id",
+                      ConditionOccurrenceConstants.CONDITION_OCCURRENCE,
+                      ConditionOccurrenceConstants.CONDITION_CONCEPT_ID,
                       "Condition",
                       new SnapshotBuilderConcept()
                           .id(100)
@@ -113,7 +116,7 @@ public class SnapshotBuilderTestData {
           .programDataOptions(
               List.of(
                   generateSnapshotBuilderProgramDataRangeOption(
-                      1, "person", "year_of_birth", "Year of birth", 0, 100),
+                      1, PersonConstants.PERSON, PersonConstants.YEAR_OF_BIRTH, "Year of birth", 0, 100),
                   generateSnapshotBuilderProgramDataListOption(
                       2,
                       "person",

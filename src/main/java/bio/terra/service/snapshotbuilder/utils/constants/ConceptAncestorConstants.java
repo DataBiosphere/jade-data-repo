@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils.constants;
 
-public class ConceptAncestorConstants {
+public final class ConceptAncestorConstants {
 
   public static final String CONCEPT_ANCESTOR = "concept_ancestor";
   public static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";

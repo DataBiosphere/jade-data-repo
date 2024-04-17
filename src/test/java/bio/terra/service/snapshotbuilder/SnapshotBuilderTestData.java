@@ -30,7 +30,6 @@ import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceCons
 import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.locks.Condition;
 
 public class SnapshotBuilderTestData {
 
@@ -116,7 +115,12 @@ public class SnapshotBuilderTestData {
           .programDataOptions(
               List.of(
                   generateSnapshotBuilderProgramDataRangeOption(
-                      1, PersonConstants.PERSON, PersonConstants.YEAR_OF_BIRTH, "Year of birth", 0, 100),
+                      1,
+                      PersonConstants.PERSON,
+                      PersonConstants.YEAR_OF_BIRTH,
+                      "Year of birth",
+                      0,
+                      100),
                   generateSnapshotBuilderProgramDataListOption(
                       2,
                       "person",

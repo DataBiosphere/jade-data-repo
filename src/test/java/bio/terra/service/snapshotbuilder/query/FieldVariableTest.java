@@ -50,7 +50,11 @@ class FieldVariableTest {
     var tableVariable = TableVariable.forPrimary(table);
 
     var fieldVariable =
-        new FieldVariable(new FieldPointer(table, "field", "COUNT"), tableVariable, QueryBuilderFactory.COUNT, true);
+        new FieldVariable(
+            new FieldPointer(table, "field", "COUNT"),
+            tableVariable,
+            QueryBuilderFactory.COUNT,
+            true);
 
     assertThat(fieldVariable.renderSQL(context), is("COUNT(DISTINCT t.field) AS count"));
   }

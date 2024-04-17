@@ -170,7 +170,7 @@ public class SnapshotBuilderTestData {
           .tables(
               List.of(
                   new DatasetTable()
-                      PersonConstants.PERSON,
+                      .name(PersonConstants.PERSON)
                       .columns(
                           List.of(
                               new Column().name("race").type(TableDataType.INTEGER),

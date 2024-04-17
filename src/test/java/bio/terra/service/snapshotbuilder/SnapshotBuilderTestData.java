@@ -176,7 +176,9 @@ public class SnapshotBuilderTestData {
                               new Column().name("race").type(TableDataType.INTEGER),
                               new Column().name("gender_identity").type(TableDataType.INTEGER),
                               new Column().name("ethnicity").type(TableDataType.INTEGER),
-                              new Column().name(PersonConstants.YEAR_OF_BIRTH).type(TableDataType.INTEGER)))));
+                              new Column()
+                                  .name(PersonConstants.YEAR_OF_BIRTH)
+                                  .type(TableDataType.INTEGER)))));
 
   public static SnapshotBuilderCohort createCohort() {
 

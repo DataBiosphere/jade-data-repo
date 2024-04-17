@@ -18,6 +18,7 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import java.util.List;
+import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ class CriteriaQueryBuilderTest {
 
   @BeforeEach
   void setup() {
-    criteriaQueryBuilder = new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS);
+    criteriaQueryBuilder = new CriteriaQueryBuilder(PersonConstants.PERSON, SnapshotBuilderTestData.SETTINGS);
   }
 
   @ParameterizedTest
@@ -206,7 +207,7 @@ class CriteriaQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForCriteriaGroups(SqlRenderContext context) {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS)
+        new CriteriaQueryBuilder(PersonConstants.PERSON, SnapshotBuilderTestData.SETTINGS)
             .generateFilterForCriteriaGroups(
                 List.of(
                     new SnapshotBuilderCriteriaGroup()
@@ -229,7 +230,7 @@ class CriteriaQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateRollupCountsQueryForCriteriaGroupsList(SqlRenderContext context) {
     Query query =
-        new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS)
+        new CriteriaQueryBuilder(PersonConstants.PERSON, SnapshotBuilderTestData.SETTINGS)
             .generateRollupCountsQueryForCriteriaGroupsList(
                 List.of(
                     List.of(

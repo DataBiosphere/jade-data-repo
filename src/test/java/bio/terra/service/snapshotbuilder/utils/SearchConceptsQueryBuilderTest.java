@@ -12,6 +12,8 @@ import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -79,7 +81,7 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
-        createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
+        createDomainOption("Condition", 19, ConditionOccurrenceConstants.CONDITION_OCCURRENCE, ConditionOccurrenceConstants.CONDITION_CONCEPT_ID);
     String actual =
         new QueryBuilderFactory()
             .searchConceptsQueryBuilder()
@@ -110,9 +112,9 @@ class SearchConceptsQueryBuilderTest {
   void testCreateSearchConceptClause(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName("concept"));
+        TableVariable.forPrimary(TablePointer.fromTableName(ConceptConstants.CONCEPT));
     String actual =
-        createSearchConceptClause(conceptTableVariable, "cancer", "concept_name")
+        createSearchConceptClause(conceptTableVariable, "cancer", ConceptConstants.CONCEPT_NAME)
             .renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
@@ -130,7 +132,7 @@ class SearchConceptsQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void testCreateDomainClause(SqlRenderContext context) {
     TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName("concept"));
+        TableVariable.forPrimary(TablePointer.fromTableName(ConceptConstants.CONCEPT));
 
     assertThat(
         "generated sql is as expected",

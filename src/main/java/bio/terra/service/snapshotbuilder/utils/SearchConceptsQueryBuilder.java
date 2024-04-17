@@ -14,10 +14,11 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
-import java.util.List;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import java.util.List;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
 import org.apache.commons.lang3.StringUtils;
 
 public class SearchConceptsQueryBuilder {
@@ -49,9 +50,12 @@ public class SearchConceptsQueryBuilder {
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     var conceptAncestor =
         TableVariable.forJoined(
-            TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR), ConceptAncestorConstants.ANCESTOR_CONCEPT_ID, idField);
+            TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR),
+            ConceptAncestorConstants.ANCESTOR_CONCEPT_ID,
+            idField);
 
-    var descendantIdFieldVariable = conceptAncestor.makeFieldVariable(ConceptAncestorConstants.DESCENDANT_CONCEPT_ID);
+    var descendantIdFieldVariable =
+        conceptAncestor.makeFieldVariable(ConceptAncestorConstants.DESCENDANT_CONCEPT_ID);
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
@@ -62,13 +66,19 @@ public class SearchConceptsQueryBuilder {
             descendantIdFieldVariable);
 
     // COUNT(DISTINCT co.person_id) AS count
-    var countField = domainOccurrence.makeFieldVariable(ConditionOccurrenceConstants.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
+    var countField =
+        domainOccurrence.makeFieldVariable(
+            PersonConstants.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
     // SELECT concept_name, concept_id, count, has_children
     List<SelectExpression> select =
-        List.of(nameField, idField, countField, new SelectAlias(new Literal(1), QueryBuilderFactory.HAS_CHILDREN));
+        List.of(
+            nameField,
+            idField,
+            countField,
+            new SelectAlias(new Literal(1), QueryBuilderFactory.HAS_CHILDREN));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
@@ -84,10 +94,12 @@ public class SearchConceptsQueryBuilder {
       where = domainClause;
     } else {
       // search concept name clause filters for the search text based on field concept_name
-      var searchNameClause = createSearchConceptClause(concept, searchText, ConceptConstants.CONCEPT_NAME);
+      var searchNameClause =
+          createSearchConceptClause(concept, searchText, ConceptConstants.CONCEPT_NAME);
 
       // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause = createSearchConceptClause(concept, searchText, ConceptConstants.CONCEPT_CODE);
+      var searchCodeClause =
+          createSearchConceptClause(concept, searchText, ConceptConstants.CONCEPT_CODE);
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);

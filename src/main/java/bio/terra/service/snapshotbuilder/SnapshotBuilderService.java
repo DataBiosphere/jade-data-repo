@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -28,8 +27,8 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;

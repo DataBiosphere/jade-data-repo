@@ -7,6 +7,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,7 +65,11 @@ class ConceptChildrenQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void buildConceptChildrenQuery(SqlRenderContext context) {
     SnapshotBuilderDomainOption domainOption =
-        createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
+        createDomainOption(
+            "Condition",
+            19,
+            ConditionOccurrenceConstants.CONDITION_OCCURRENCE,
+            ConditionOccurrenceConstants.CONDITION_CONCEPT_ID);
     String sql =
         new QueryBuilderFactory()
             .conceptChildrenQueryBuilder()

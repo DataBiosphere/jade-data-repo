@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -18,6 +17,7 @@ import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstant
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationshipConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
@@ -36,7 +36,8 @@ public class ConceptChildrenQueryBuilder {
       SnapshotBuilderDomainOption domainOption, int parentConceptId) {
 
     // concept table and its fields concept_name and concept_id
-    TableVariable concept = TableVariable.forPrimary(TablePointer.fromTableName(ConceptConstants.CONCEPT));
+    TableVariable concept =
+        TableVariable.forPrimary(TablePointer.fromTableName(ConceptConstants.CONCEPT));
     FieldVariable conceptName = concept.makeFieldVariable(ConceptConstants.CONCEPT_NAME);
     FieldVariable conceptId = concept.makeFieldVariable(ConceptConstants.CONCEPT_ID);
 
@@ -45,8 +46,11 @@ public class ConceptChildrenQueryBuilder {
     // from all descendants, not just direct descendants.
     TableVariable conceptAncestor =
         TableVariable.forJoined(
-            TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR), ConceptAncestorConstants.ANCESTOR_CONCEPT_ID, conceptId);
-    FieldVariable descendantConceptId = conceptAncestor.makeFieldVariable(ConceptAncestorConstants.DESCENDANT_CONCEPT_ID);
+            TablePointer.fromTableName(ConceptAncestorConstants.CONCEPT_ANCESTOR),
+            ConceptAncestorConstants.ANCESTOR_CONCEPT_ID,
+            conceptId);
+    FieldVariable descendantConceptId =
+        conceptAncestor.makeFieldVariable(ConceptAncestorConstants.DESCENDANT_CONCEPT_ID);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
@@ -57,7 +61,9 @@ public class ConceptChildrenQueryBuilder {
             descendantConceptId);
 
     // COUNT(DISTINCT person_id)
-    FieldVariable count = domainOccurrence.makeFieldVariable(ConditionOccurrenceConstants.PERSON_ID, "COUNT", "count", true);
+    FieldVariable count =
+        domainOccurrence.makeFieldVariable(
+            PersonConstants.PERSON_ID, "COUNT", "count", true);
 
     List<SelectExpression> select =
         List.of(
@@ -90,17 +96,21 @@ public class ConceptChildrenQueryBuilder {
   Query createSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
     TableVariable conceptRelationship =
-        TableVariable.forPrimary(TablePointer.fromTableName(ConceptRelationshipConstants.CONCEPT_RELATIONSHIP));
-    FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.CONCEPT_ID_2);
+        TableVariable.forPrimary(
+            TablePointer.fromTableName(ConceptRelationshipConstants.CONCEPT_RELATIONSHIP));
+    FieldVariable descendantConceptId =
+        conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.CONCEPT_ID_2);
 
     return new Query(
         List.of(descendantConceptId),
         List.of(conceptRelationship),
         BooleanAndOrFilterVariable.and(
             BinaryFilterVariable.equals(
-                conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.CONCEPT_ID_1), new Literal(conceptId)),
+                conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.CONCEPT_ID_1),
+                new Literal(conceptId)),
             BinaryFilterVariable.equals(
-                conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.RELATIONSHIP_ID), new Literal("Subsumes"))));
+                conceptRelationship.makeFieldVariable(ConceptRelationshipConstants.RELATIONSHIP_ID),
+                new Literal("Subsumes"))));
   }
 
   /**
@@ -109,7 +119,8 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
    */
   public Query retrieveDomainId(int conceptId) {
-    TableVariable concept = TableVariable.forPrimary(TablePointer.fromTableName(ConceptConstants.CONCEPT));
+    TableVariable concept =
+        TableVariable.forPrimary(TablePointer.fromTableName(ConceptConstants.CONCEPT));
     FieldVariable domainIdField = concept.makeFieldVariable(ConceptConstants.DOMAIN_ID);
 
     BinaryFilterVariable where =

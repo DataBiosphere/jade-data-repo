@@ -42,7 +42,11 @@ class AggregateBQQueryResultsUtilsTest {
   @Test
   void toConcept() {
     var expected =
-        new SnapshotBuilderConcept().name(ConceptConstants.CONCEPT_NAME).id(1).hasChildren(true).count(100);
+        new SnapshotBuilderConcept()
+            .name(ConceptConstants.CONCEPT_NAME)
+            .id(1)
+            .hasChildren(true)
+            .count(100);
     FieldValueList row =
         FieldValueList.of(
             List.of(

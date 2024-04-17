@@ -40,11 +40,12 @@ import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -174,8 +175,8 @@ class SnapshotBuilderServiceTest {
     domainOption
         .name("condition")
         .id(19)
-        .tableName("condition_occurrence")
-        .columnName("condition_concept_id");
+        .tableName(ConditionOccurrenceConstants.CONDITION_OCCURRENCE)
+        .columnName(ConditionOccurrenceConstants.CONDITION_CONCEPT_ID);
     SnapshotBuilderSettings snapshotBuilderSettings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))

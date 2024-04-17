@@ -9,9 +9,9 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +64,11 @@ class AggregateSynapseQueryResultsUtilsTest {
   @Test
   void toConcept() throws Exception {
     var expected =
-        new SnapshotBuilderConcept().name(ConceptConstants.CONCEPT_NAME).id(1).hasChildren(true).count(100);
+        new SnapshotBuilderConcept()
+            .name(ConceptConstants.CONCEPT_NAME)
+            .id(1)
+            .hasChildren(true)
+            .count(100);
 
     ResultSet rs = mock(ResultSet.class);
     when(rs.getLong(QueryBuilderFactory.COUNT)).thenReturn((long) expected.getCount());

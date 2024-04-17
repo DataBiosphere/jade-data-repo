@@ -60,10 +60,10 @@ public class ConceptChildrenQueryBuilder {
             domainOption.getColumnName(),
             descendantConceptId);
 
-    // COUNT(DISTINCT person_id)
+    // COUNT(DISTINCT person_id) as count
     FieldVariable count =
         domainOccurrence.makeFieldVariable(
-            PersonConstants.PERSON_ID, "COUNT", "count", true);
+            PersonConstants.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
 
     List<SelectExpression> select =
         List.of(

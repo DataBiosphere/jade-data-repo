@@ -1,4 +1,4 @@
-package bio.terra.service.snapshotbuilder.utils;
+package bio.terra.service.snapshotbuilder.utils.constants;
 
 public class ConditionOccurrenceConstants {
   public static final String CONDITION_OCCURRENCE = "condition_occurrence";

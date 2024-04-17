@@ -14,6 +14,10 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationshipConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {

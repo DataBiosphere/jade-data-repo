@@ -20,6 +20,8 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import java.util.List;
 import java.util.Objects;
 

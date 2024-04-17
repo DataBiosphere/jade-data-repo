@@ -11,6 +11,7 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

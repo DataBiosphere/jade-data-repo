@@ -16,7 +16,6 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVari
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationshipConstants;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
 import java.util.List;
 

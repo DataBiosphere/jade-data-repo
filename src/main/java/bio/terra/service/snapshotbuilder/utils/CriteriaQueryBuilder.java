@@ -21,7 +21,6 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVari
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstants;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
 import java.util.List;
 import java.util.Objects;
@@ -186,8 +185,7 @@ public class CriteriaQueryBuilder {
 
     FieldVariable personId =
         new FieldVariable(
-            new FieldPointer(
-                getRootTablePointer(), PersonConstants.PERSON_ID, "COUNT"),
+            new FieldPointer(getRootTablePointer(), PersonConstants.PERSON_ID, "COUNT"),
             rootTable,
             null,
             true);

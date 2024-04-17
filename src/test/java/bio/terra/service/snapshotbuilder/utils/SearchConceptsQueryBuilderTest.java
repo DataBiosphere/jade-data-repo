@@ -81,7 +81,11 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
-        createDomainOption("Condition", 19, ConditionOccurrenceConstants.CONDITION_OCCURRENCE, ConditionOccurrenceConstants.CONDITION_CONCEPT_ID);
+        createDomainOption(
+            "Condition",
+            19,
+            ConditionOccurrenceConstants.CONDITION_OCCURRENCE,
+            ConditionOccurrenceConstants.CONDITION_CONCEPT_ID);
     String actual =
         new QueryBuilderFactory()
             .searchConceptsQueryBuilder()

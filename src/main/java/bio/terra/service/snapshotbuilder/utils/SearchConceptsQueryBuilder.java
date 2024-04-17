@@ -16,9 +16,8 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
-import java.util.List;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
 import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
 public class SearchConceptsQueryBuilder {

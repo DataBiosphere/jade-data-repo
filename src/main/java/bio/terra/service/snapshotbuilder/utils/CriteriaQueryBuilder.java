@@ -102,7 +102,6 @@ public class CriteriaQueryBuilder {
    * </pre>
    */
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {
-    System.out.println(snapshotBuilderSettings.getDomainOptions());
     SnapshotBuilderDomainOption domainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
             .filter(

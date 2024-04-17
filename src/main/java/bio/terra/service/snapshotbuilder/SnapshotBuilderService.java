@@ -100,8 +100,6 @@ public class SnapshotBuilderService {
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
 
-    // domain is needed to join with the domain specific occurrence table
-    // this does not work for the metadata domain
     SnapshotBuilderDomainOption domainOption = getDomainOption(conceptId, dataset, userRequest);
 
     Query query =

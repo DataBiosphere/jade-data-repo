@@ -10,9 +10,13 @@ public enum IamAction {
   // common
   CREATE,
   DELETE,
+  GET,
+  UPDATE,
+  APPROVE,
   READ_POLICY,
   READ_POLICIES,
   SHARE_POLICY_READER("share_policy::reader"),
+  SHARE_POLICY_AGGREGATE_DATA_READER("share_policy::aggregate_data_reader"),
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
   UPDATE_AUTH_DOMAIN,
@@ -36,6 +40,8 @@ public enum IamAction {
   // snapshots
   UPDATE_SNAPSHOT,
   READ_DATA,
+  READ_AGGREGATE_DATA,
+  CREATE_SNAPSHOT_REQUEST,
   DISCOVER_DATA,
   EXPORT_SNAPSHOT,
   // billing profiles

@@ -249,18 +249,19 @@ class CriteriaQueryBuilderTest {
     String expectedSql =
         """
       SELECT COUNT(DISTINCT p.person_id)
-      FROM person AS p
-      WHERE (((p.person_id IN (SELECT c.person_id
-      FROM condition_occurrence AS c
-      JOIN concept_ancestor AS c0
-      ON c0.descendant_concept_id = c.condition_concept_id
-      WHERE c0.ancestor_concept_id = 0) AND
-      p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100) AND
-      p.person_id IN (SELECT p0.person_id
-      FROM procedure_occurrence AS p0
-      JOIN concept_ancestor AS c1
-      ON c1.descendant_concept_id = p0.procedure_concept_id
-      WHERE c1.ancestor_concept_id = 0))))
+          FROM person AS p
+          WHERE (((p.person_id IN (SELECT c.person_id
+            FROM condition_occurrence AS c
+            JOIN concept_ancestor AS c0
+              ON c0.descendant_concept_id = c.condition_concept_id
+            WHERE c0.ancestor_concept_id = 0) AND
+              p.ethnicity_concept_id IN (0,1,2)
+              AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)
+              AND p.person_id IN (SELECT p0.person_id
+            FROM procedure_occurrence AS p0
+              JOIN concept_ancestor AS c1
+              ON c1.descendant_concept_id = p0.procedure_concept_id
+            WHERE c1.ancestor_concept_id = 0))))
     """;
     assertThat(
         "The sql generated is correct",

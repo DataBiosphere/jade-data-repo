@@ -4,10 +4,6 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
   # This must be defined for the bash redirection
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
-  # Skip entire workflow if commit is authored by broadbot
-  # broadbot is only used for automated commits, like version bumps
-  # We don't want to trigger a version bump/deploy to dev for those
-  SHOULD_RUN_WORKFLOW: ${{ !contains( github.event.sender.login, 'broadbot') }}
 
 on:
   workflow_dispatch: {}
@@ -30,7 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api_image_tag: ${{ steps.bumperstep.outputs.tag }}
-    if: ${{ env.SHOULD_RUN_WORKFLOW }}
+    # Skip entire workflow if commit is authored by broadbot
+    # broadbot is only used for automated commits, like version bumps
+    # We don't want to trigger a version bump/deploy to dev for those
+    if: ${{ !contains( github.event.sender.login, 'broadbot') }}
     steps:
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v3
@@ -168,13 +167,3 @@ jobs:
       - set-app-version-in-dev
     uses: ./.github/workflows/helmtagbumper.yaml
     secrets: inherit
-
-  report-workflow:
-    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
-    if: ${{ env.SHOULD_RUN_WORKFLOW }}
-    with:
-      relates-to-chart-releases: 'datarepo-dev'
-      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-    permissions:
-      id-token: write

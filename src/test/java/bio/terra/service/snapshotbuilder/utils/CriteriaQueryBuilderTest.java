@@ -80,11 +80,12 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
 
+    String expectedSql =
+        "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE (c0.ancestor_concept_id = 0))";
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE (c0.ancestor_concept_id = 0))"));
+        equalToCompressingWhiteSpace(expectedSql));
   }
 
   @Test

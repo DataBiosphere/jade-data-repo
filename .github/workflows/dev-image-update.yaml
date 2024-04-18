@@ -4,7 +4,6 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
   # This must be defined for the bash redirection
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
-
 on:
   workflow_dispatch: {}
   push:

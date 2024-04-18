@@ -253,13 +253,13 @@ public class SnapshotBuilderService {
   }
 
   record ParentQueryResult(
-      int parentId, int childId, String childName, long code, int count, boolean hasChildren) {
+      int parentId, int childId, String childName, String code, int count, boolean hasChildren) {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
           rs.getInt(HierarchyQueryBuilder.PARENT_ID),
           rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
           rs.getString(HierarchyQueryBuilder.CONCEPT_NAME),
-          rs.getLong(HierarchyQueryBuilder.CONCEPT_CODE),
+          rs.getString(HierarchyQueryBuilder.CONCEPT_CODE),
           rs.getInt(HierarchyQueryBuilder.COUNT),
           rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN));
     }
@@ -269,7 +269,7 @@ public class SnapshotBuilderService {
           (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
           (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
           row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue(),
-          row.get(HierarchyQueryBuilder.CONCEPT_CODE).getLongValue(),
+          row.get(HierarchyQueryBuilder.CONCEPT_CODE).getStringValue(),
           (int) row.get(HierarchyQueryBuilder.COUNT).getLongValue(),
           row.get(HierarchyQueryBuilder.HAS_CHILDREN).getBooleanValue());
     }

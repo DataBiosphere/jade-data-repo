@@ -68,13 +68,13 @@ class AggregateSynapseQueryResultsUtilsTest {
             .id(1)
             .hasChildren(true)
             .count(100)
-            .code(99L);
+            .code("99");
 
     ResultSet rs = mock(ResultSet.class);
     when(rs.getLong("count")).thenReturn((long) expected.getCount());
     when(rs.getString("concept_name")).thenReturn(expected.getName());
     when(rs.getLong("concept_id")).thenReturn((long) expected.getId());
-    when(rs.getLong("concept_code")).thenReturn(expected.getCode());
+    when(rs.getString("concept_code")).thenReturn(expected.getCode());
     when(rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
 
     assertThat(

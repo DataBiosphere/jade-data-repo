@@ -157,7 +157,7 @@ class SnapshotBuilderServiceTest {
             .id(2)
             .count(1)
             .hasChildren(true)
-            .code(100L)
+            .code("100")
             .count(99);
     mockRunQueryForGetConcepts(concept("childConcept", 2, true), dataset, "domainId");
 
@@ -370,7 +370,7 @@ class SnapshotBuilderServiceTest {
         .id(id)
         .count(99)
         .hasChildren(hasChildren)
-        .code(100L);
+        .code("100");
   }
 
   @ParameterizedTest

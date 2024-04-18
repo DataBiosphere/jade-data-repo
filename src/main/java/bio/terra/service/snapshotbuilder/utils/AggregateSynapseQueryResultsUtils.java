@@ -25,7 +25,7 @@ public class AggregateSynapseQueryResultsUtils {
         .name(getField(rs::getString, "concept_name"))
         .id(getField(rs::getLong, "concept_id").intValue())
         .hasChildren(getField(rs::getBoolean, HierarchyQueryBuilder.HAS_CHILDREN))
-        .code(getField(rs::getLong, HierarchyQueryBuilder.CONCEPT_CODE))
+        .code(getField(rs::getString, HierarchyQueryBuilder.CONCEPT_CODE))
         .count(SnapshotBuilderService.fuzzyLowCount(getField(rs::getLong, "count").intValue()));
   }
 

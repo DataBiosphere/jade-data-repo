@@ -7306,8 +7306,7 @@ components:
         id:
           type: integer
         code:
-          type: integer
-          format: int64
+          type: string
         name:
           type: string
         count:

@@ -9,7 +9,7 @@ public class AggregateBQQueryResultsUtils {
     return new SnapshotBuilderConcept()
         .id((int) (row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue()))
         .name(row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue())
-        .code(row.get(HierarchyQueryBuilder.CONCEPT_CODE).getLongValue())
+        .code(row.get(HierarchyQueryBuilder.CONCEPT_CODE).getStringValue())
         .hasChildren(row.get(HierarchyQueryBuilder.HAS_CHILDREN).getBooleanValue())
         .count(
             SnapshotBuilderService.fuzzyLowCount(

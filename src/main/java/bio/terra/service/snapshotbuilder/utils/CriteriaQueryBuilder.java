@@ -108,20 +108,18 @@ public class CriteriaQueryBuilder {
                 new FieldPointer(occurrencePointer, domainOption.getColumnName()),
                 occurrenceVariable));
 
-    return new SubQueryFilterVariable(
+    return SubQueryFilterVariable.in(
         getFieldVariableForRootTable(Person.PERSON_ID),
-        SubQueryFilterVariable.Operator.IN,
         new Query(
             List.of(
                 new FieldVariable(
                     new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
                     occurrenceVariable)),
             List.of(occurrenceVariable, ancestorVariable),
-            new BinaryFilterVariable(
+            BinaryFilterVariable.equals(
                 new FieldVariable(
                     new FieldPointer(ancestorPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID),
                     ancestorVariable),
-                BinaryFilterVariable.BinaryOperator.EQUALS,
                 new Literal(domainCriteria.getConceptId()))));
   }
 

@@ -4,6 +4,11 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
   # This must be defined for the bash redirection
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  # Skip entire workflow if commit is authored by broadbot
+  # broadbot is only used for automated commits, like version bumps
+  # We don't want to trigger a version bump/deploy to dev for those
+  SHOULD_RUN_WORKFLOW: ${{ !contains( github.event.sender.login, 'broadbot') }}
+
 on:
   workflow_dispatch: {}
   push:
@@ -25,10 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api_image_tag: ${{ steps.bumperstep.outputs.tag }}
-    # Skip entire workflow if commit is authored by broadbot
-    # broadbot is only used for automated commits, like version bumps
-    # We don't want to trigger a version bump/deploy to dev for those
-    if: ${{ !contains( github.event.sender.login, 'broadbot') }}
+    if: ${{ env.SHOULD_RUN_WORKFLOW }}
     steps:
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v3
@@ -167,25 +169,12 @@ jobs:
     uses: ./.github/workflows/helmtagbumper.yaml
     secrets: inherit
 
-  action_notify:
-    runs-on: ubuntu-latest
-    if: ${{ always() && !contains( github.event.sender.login, 'broadbot') }}
-    needs:
-      - bump_version
-      - build_client_and_publish
-      - build_container_and_publish
-      - report-to-sherlock
-      - set-app-version-in-dev
-      - cherry_pick_image_to_production_gcr
-      - helm_tag_bumper
-    steps:
-      - name: Slack job status
-        uses: broadinstitute/action-slack@v3.15.0
-        with:
-          status: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job
-          username: "Data Repo tests"
-          text: "Dev Image Update"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  report-workflow:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    if: ${{ env.SHOULD_RUN_WORKFLOW }}
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

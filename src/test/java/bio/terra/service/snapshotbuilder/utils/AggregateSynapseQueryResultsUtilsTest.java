@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Tag;
@@ -42,18 +41,18 @@ class AggregateSynapseQueryResultsUtilsTest {
   @Test
   void toDomainIdReturnsString() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString(Concept.DOMAIN_ID)).thenReturn(Concept.DOMAIN_ID);
+    when(rs.getString("domain_id")).thenReturn("domain_id");
 
     assertThat(
         "domainId converts table result to a string",
         AggregateSynapseQueryResultsUtils.toDomainId(rs),
-        equalTo(Concept.DOMAIN_ID));
+        equalTo("domain_id"));
   }
 
   @Test
   void toDomainIdHandlesSQLException() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString(Concept.DOMAIN_ID)).thenThrow(new SQLException());
+    when(rs.getString("domain_id")).thenThrow(new SQLException());
 
     assertThrows(
         ProcessResultSetException.class,
@@ -64,13 +63,19 @@ class AggregateSynapseQueryResultsUtilsTest {
   @Test
   void toConcept() throws Exception {
     var expected =
-        new SnapshotBuilderConcept().name(Concept.CONCEPT_NAME).id(1).hasChildren(true).count(100);
+        new SnapshotBuilderConcept()
+            .name("concept_name")
+            .id(1)
+            .hasChildren(true)
+            .count(100)
+            .code("99");
 
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getLong(QueryBuilderFactory.COUNT)).thenReturn((long) expected.getCount());
-    when(rs.getString(Concept.CONCEPT_NAME)).thenReturn(expected.getName());
-    when(rs.getLong(Concept.CONCEPT_ID)).thenReturn((long) expected.getId());
-    when(rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
+    when(rs.getLong("count")).thenReturn((long) expected.getCount());
+    when(rs.getString("concept_name")).thenReturn(expected.getName());
+    when(rs.getLong("concept_id")).thenReturn((long) expected.getId());
+    when(rs.getString("concept_code")).thenReturn(expected.getCode());
+    when(rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
 
     assertThat(
         "toConcept converts table result to SnapshotBuilderConcept",

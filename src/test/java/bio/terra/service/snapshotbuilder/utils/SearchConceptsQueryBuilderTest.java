@@ -13,7 +13,6 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,6 +42,7 @@ class SearchConceptsQueryBuilderTest {
             SELECT
               c.concept_name,
               c.concept_id,
+              c.concept_code,
               COUNT(DISTINCT o.person_id) AS count,
               1 AS has_children
             FROM
@@ -56,23 +56,26 @@ class SearchConceptsQueryBuilderTest {
             ON
               o.observation_concept_id = c0.descendant_concept_id
             WHERE
-              (c.domain_id = 'Observation'
+              ((c.domain_id = 'Observation'
+                  AND c.standard_concept = 'S')
                 AND (CONTAINS_SUBSTR(c.concept_name, 'cancer')
                   OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))
             GROUP BY
               c.concept_name,
-              c.concept_id
+              c.concept_id,
+              c.concept_code
             ORDER BY
               count DESC
             LIMIT
               100
-       """;
+        """;
 
     String expectedAzureQuery =
         """
             SELECT
               TOP 100 c.concept_name,
               c.concept_id,
+              c.concept_code,
               COUNT(DISTINCT o.person_id) AS count,
               1 AS has_children
             FROM
@@ -86,14 +89,16 @@ class SearchConceptsQueryBuilderTest {
             ON
               o.observation_concept_id = c0.descendant_concept_id
             WHERE
-              (c.domain_id = 'Observation'
+              ((c.domain_id = 'Observation'
+                  AND c.standard_concept = 'S')
                 AND (CHARINDEX('cancer',
                     c.concept_name) > 0
                   OR CHARINDEX('cancer',
                     c.concept_code) > 0))
             GROUP BY
               c.concept_name,
-              c.concept_id
+              c.concept_id,
+              c.concept_code
             ORDER BY
               count DESC
         """;
@@ -105,7 +110,7 @@ class SearchConceptsQueryBuilderTest {
             .renderSQL(context);
 
     assertThat(
-        "generated SQL for GCP is correct",
+        "generated SQL is correct",
         actual,
         equalToCompressingWhiteSpace(platformWrapper.choose(expectedGCPQuery, expectedAzureQuery)));
   }
@@ -115,11 +120,7 @@ class SearchConceptsQueryBuilderTest {
   void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
-        createDomainOption(
-            "Condition",
-            19,
-            ConditionOccurrence.TABLE_NAME,
-            ConditionOccurrence.CONDITION_CONCEPT_ID);
+        createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
         new QueryBuilderFactory()
             .searchConceptsQueryBuilder()
@@ -127,27 +128,30 @@ class SearchConceptsQueryBuilderTest {
             .renderSQL(context);
     String expected =
         """
-              c.concept_name,
-                  c.concept_id,
-                  COUNT(DISTINCT c0.person_id) AS count,
-                  1 AS has_children
-                FROM
-                  concept AS c
-                JOIN
-                  concept_ancestor AS c1
-                ON
-                  c1.ancestor_concept_id = c.concept_id
-                LEFT JOIN
-                  condition_occurrence AS c0
-                ON
-                  c0.condition_concept_id = c1.descendant_concept_id
-                WHERE
-                  c.domain_id = 'Condition'
-                GROUP BY
-                  c.concept_name,
-                  c.concept_id
-                ORDER BY
-                  count DESC
+            c.concept_name,
+            c.concept_id,
+            c.concept_code,
+            COUNT(DISTINCT c0.person_id) AS count,
+            1 AS has_children
+          FROM
+            concept AS c
+          JOIN
+            concept_ancestor AS c1
+          ON
+            c1.ancestor_concept_id = c.concept_id
+          LEFT JOIN
+            condition_occurrence AS c0
+          ON
+            c0.condition_concept_id = c1.descendant_concept_id
+          WHERE
+            (c.domain_id = 'Condition'
+              AND c.standard_concept = 'S')
+          GROUP BY
+            c.concept_name,
+            c.concept_id,
+            c.concept_code
+          ORDER BY
+            count DESC
         """;
 
     assertThat(
@@ -188,8 +192,8 @@ class SearchConceptsQueryBuilderTest {
 
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(conceptTableVariable, "cancer")
+        SearchConceptsQueryBuilder.createDomainClause(conceptTableVariable, "domain")
             .renderSQL(context),
-        is("c.domain_id = 'cancer'"));
+        is("(c.domain_id = 'domain' AND c.standard_concept = 'S')"));
   }
 }

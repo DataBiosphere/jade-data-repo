@@ -28,7 +28,7 @@ import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
@@ -260,16 +260,16 @@ public class SnapshotBuilderService {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
           rs.getInt(QueryBuilderFactory.PARENT_ID),
-          rs.getInt(ConceptConstants.CONCEPT_ID),
-          rs.getString(ConceptConstants.CONCEPT_NAME),
+          rs.getInt(Concept.CONCEPT_ID),
+          rs.getString(Concept.CONCEPT_NAME),
           rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN));
     }
 
     ParentQueryResult(FieldValueList row) {
       this(
           (int) row.get(QueryBuilderFactory.PARENT_ID).getLongValue(),
-          (int) row.get(ConceptConstants.CONCEPT_ID).getLongValue(),
-          row.get(ConceptConstants.CONCEPT_NAME).getStringValue(),
+          (int) row.get(Concept.CONCEPT_ID).getLongValue(),
+          row.get(Concept.CONCEPT_NAME).getStringValue(),
           row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue());
     }
 

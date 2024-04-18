@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -31,22 +31,18 @@ class AggregateBQQueryResultsUtilsTest {
   void toDomainId() {
     FieldValueList row =
         FieldValueList.of(
-            List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, ConceptConstants.DOMAIN_ID)),
-            Field.of(ConceptConstants.DOMAIN_ID, StandardSQLTypeName.STRING));
+            List.of(FieldValue.of(FieldValue.Attribute.PRIMITIVE, Concept.DOMAIN_ID)),
+            Field.of(Concept.DOMAIN_ID, StandardSQLTypeName.STRING));
     assertThat(
         "toDomainId converts table result to a string",
         AggregateBQQueryResultsUtils.toDomainId(row),
-        equalTo(ConceptConstants.DOMAIN_ID));
+        equalTo(Concept.DOMAIN_ID));
   }
 
   @Test
   void toConcept() {
     var expected =
-        new SnapshotBuilderConcept()
-            .name(ConceptConstants.CONCEPT_NAME)
-            .id(1)
-            .hasChildren(true)
-            .count(100);
+        new SnapshotBuilderConcept().name(Concept.CONCEPT_NAME).id(1).hasChildren(true).count(100);
     FieldValueList row =
         FieldValueList.of(
             List.of(
@@ -55,8 +51,8 @@ class AggregateBQQueryResultsUtilsTest {
                 FieldValue.of(
                     FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.isHasChildren())),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.getCount()))),
-            Field.of(ConceptConstants.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(ConceptConstants.CONCEPT_NAME, StandardSQLTypeName.STRING),
+            Field.of(Concept.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(Concept.CONCEPT_NAME, StandardSQLTypeName.STRING),
             Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL),
             Field.of(QueryBuilderFactory.COUNT, StandardSQLTypeName.NUMERIC));
     assertThat(AggregateBQQueryResultsUtils.toConcept(row), is(expected));

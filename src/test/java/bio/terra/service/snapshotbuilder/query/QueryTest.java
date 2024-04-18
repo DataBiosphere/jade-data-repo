@@ -8,9 +8,9 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestorConstants;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
-import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -76,33 +76,32 @@ public class QueryTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void renderComplexSQL(SqlRenderContext context) {
-    TablePointer tablePointer = QueryTestUtils.fromTableName(PersonConstants.PERSON);
+    TablePointer tablePointer = QueryTestUtils.fromTableName(Person.TABLE_NAME);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
 
     TablePointer conditionOccurrencePointer =
-        QueryTestUtils.fromTableName(ConditionOccurrenceConstants.CONDITION_OCCURRENCE);
+        QueryTestUtils.fromTableName(ConditionOccurrence.TABLE_NAME);
     TableVariable conditionOccurrenceVariable =
         TableVariable.forJoined(
             conditionOccurrencePointer,
-            PersonConstants.PERSON_ID,
-            new FieldVariable(
-                new FieldPointer(tablePointer, PersonConstants.PERSON_ID), tableVariable));
+            Person.PERSON_ID,
+            new FieldVariable(new FieldPointer(tablePointer, Person.PERSON_ID), tableVariable));
 
     TablePointer conditionAncestorPointer = QueryTestUtils.fromTableName("condition_ancestor");
     TableVariable conditionAncestorVariable =
         TableVariable.forJoined(
             conditionAncestorPointer,
-            ConceptAncestorConstants.ANCESTOR_CONCEPT_ID,
+            ConceptAncestor.ANCESTOR_CONCEPT_ID,
             new FieldVariable(
                 new FieldPointer(
-                    conditionOccurrencePointer, ConditionOccurrenceConstants.CONDITION_CONCEPT_ID),
+                    conditionOccurrencePointer, ConditionOccurrence.CONDITION_CONCEPT_ID),
                 conditionOccurrenceVariable));
 
     Query query =
         new Query(
             List.of(
                 new FieldVariable(
-                    new FieldPointer(tablePointer, PersonConstants.PERSON_ID, "COUNT"),
+                    new FieldPointer(tablePointer, Person.PERSON_ID, "COUNT"),
                     tableVariable,
                     null,
                     true)),
@@ -117,7 +116,7 @@ public class QueryTest {
                                 new FieldVariable(
                                     new FieldPointer(
                                         conditionOccurrencePointer,
-                                        ConditionOccurrenceConstants.CONDITION_CONCEPT_ID),
+                                        ConditionOccurrence.CONDITION_CONCEPT_ID),
                                     conditionOccurrenceVariable),
                                 BinaryFilterVariable.BinaryOperator.EQUALS,
                                 new Literal(316139)),
@@ -132,7 +131,7 @@ public class QueryTest {
                                 new FieldVariable(
                                     new FieldPointer(
                                         conditionOccurrencePointer,
-                                        ConditionOccurrenceConstants.CONDITION_CONCEPT_ID),
+                                        ConditionOccurrence.CONDITION_CONCEPT_ID),
                                     conditionOccurrenceVariable),
                                 BinaryFilterVariable.BinaryOperator.EQUALS,
                                 new Literal(4311280)),
@@ -140,14 +139,13 @@ public class QueryTest {
                                 new FieldVariable(
                                     new FieldPointer(
                                         conditionAncestorPointer,
-                                        ConceptAncestorConstants.ANCESTOR_CONCEPT_ID),
+                                        ConceptAncestor.ANCESTOR_CONCEPT_ID),
                                     conditionAncestorVariable),
                                 BinaryFilterVariable.BinaryOperator.EQUALS,
                                 new Literal(4311280)))),
                     new BinaryFilterVariable(
                         new FieldVariable(
-                            new FieldPointer(tablePointer, PersonConstants.YEAR_OF_BIRTH),
-                            tableVariable),
+                            new FieldPointer(tablePointer, Person.YEAR_OF_BIRTH), tableVariable),
                         BinaryFilterVariable.BinaryOperator.LESS_THAN,
                         new Literal(1983)))));
     String querySQL = query.renderSQL(context);

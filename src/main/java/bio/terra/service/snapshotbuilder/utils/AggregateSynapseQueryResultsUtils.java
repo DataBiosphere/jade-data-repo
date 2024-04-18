@@ -3,7 +3,7 @@ package bio.terra.service.snapshotbuilder.utils;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -30,8 +30,8 @@ public class AggregateSynapseQueryResultsUtils {
     }
 
     return new SnapshotBuilderConcept()
-        .name(getField(rs::getString, ConceptConstants.CONCEPT_NAME))
-        .id(getField(rs::getLong, ConceptConstants.CONCEPT_ID).intValue())
+        .name(getField(rs::getString, Concept.CONCEPT_NAME))
+        .id(getField(rs::getLong, Concept.CONCEPT_ID).intValue())
         .hasChildren(getField(rs::getBoolean, QueryBuilderFactory.HAS_CHILDREN))
         .count(count);
   }
@@ -48,6 +48,6 @@ public class AggregateSynapseQueryResultsUtils {
   }
 
   public static String toDomainId(ResultSet rs) {
-    return getField(rs::getString, ConceptConstants.DOMAIN_ID);
+    return getField(rs::getString, Concept.DOMAIN_ID);
   }
 }

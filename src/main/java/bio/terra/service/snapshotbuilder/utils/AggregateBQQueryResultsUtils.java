@@ -2,7 +2,7 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import com.google.cloud.bigquery.FieldValueList;
 
 public class AggregateBQQueryResultsUtils {
@@ -16,8 +16,8 @@ public class AggregateBQQueryResultsUtils {
       count = 1;
     }
     return new SnapshotBuilderConcept()
-        .id((int) (row.get(ConceptConstants.CONCEPT_ID).getLongValue()))
-        .name(row.get(ConceptConstants.CONCEPT_NAME).getStringValue())
+        .id((int) (row.get(Concept.CONCEPT_ID).getLongValue()))
+        .name(row.get(Concept.CONCEPT_NAME).getStringValue())
         .hasChildren(row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue())
         .count(count);
   }
@@ -27,6 +27,6 @@ public class AggregateBQQueryResultsUtils {
   }
 
   public static String toDomainId(FieldValueList row) {
-    return row.get(ConceptConstants.DOMAIN_ID).getStringValue();
+    return row.get(Concept.DOMAIN_ID).getStringValue();
   }
 }

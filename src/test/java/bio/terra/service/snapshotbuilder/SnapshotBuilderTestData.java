@@ -26,8 +26,8 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
-import bio.terra.service.snapshotbuilder.utils.constants.PersonConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import java.util.UUID;
 
@@ -84,8 +84,8 @@ public class SnapshotBuilderTestData {
               List.of(
                   generateSnapshotBuilderDomainOption(
                       10,
-                      ConditionOccurrenceConstants.CONDITION_OCCURRENCE,
-                      ConditionOccurrenceConstants.CONDITION_CONCEPT_ID,
+                      ConditionOccurrence.TABLE_NAME,
+                      ConditionOccurrence.CONDITION_CONCEPT_ID,
                       "Condition",
                       new SnapshotBuilderConcept()
                           .id(100)
@@ -115,27 +115,22 @@ public class SnapshotBuilderTestData {
           .programDataOptions(
               List.of(
                   generateSnapshotBuilderProgramDataRangeOption(
-                      1,
-                      PersonConstants.PERSON,
-                      PersonConstants.YEAR_OF_BIRTH,
-                      "Year of birth",
-                      0,
-                      100),
+                      1, Person.TABLE_NAME, Person.YEAR_OF_BIRTH, "Year of birth", 0, 100),
                   generateSnapshotBuilderProgramDataListOption(
                       2,
-                      PersonConstants.PERSON,
+                      Person.TABLE_NAME,
                       "ethnicity",
                       "Ethnicity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(40).name("unused"))),
                   generateSnapshotBuilderProgramDataListOption(
                       3,
-                      PersonConstants.PERSON,
+                      Person.TABLE_NAME,
                       "gender_identity",
                       "Gender Identity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(41).name("unused 2"))),
                   generateSnapshotBuilderProgramDataListOption(
                       4,
-                      PersonConstants.PERSON,
+                      Person.TABLE_NAME,
                       "race",
                       "Race",
                       List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
@@ -170,14 +165,14 @@ public class SnapshotBuilderTestData {
           .tables(
               List.of(
                   new DatasetTable()
-                      .name(PersonConstants.PERSON)
+                      .name(Person.TABLE_NAME)
                       .columns(
                           List.of(
                               new Column().name("race").type(TableDataType.INTEGER),
                               new Column().name("gender_identity").type(TableDataType.INTEGER),
                               new Column().name("ethnicity").type(TableDataType.INTEGER),
                               new Column()
-                                  .name(PersonConstants.YEAR_OF_BIRTH)
+                                  .name(Person.YEAR_OF_BIRTH)
                                   .type(TableDataType.INTEGER)))));
 
   public static SnapshotBuilderCohort createCohort() {

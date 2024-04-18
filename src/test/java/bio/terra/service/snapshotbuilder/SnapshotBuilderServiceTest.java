@@ -44,8 +44,8 @@ import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrenceConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -175,8 +175,8 @@ class SnapshotBuilderServiceTest {
     domainOption
         .name("condition")
         .id(19)
-        .tableName(ConditionOccurrenceConstants.CONDITION_OCCURRENCE)
-        .columnName(ConditionOccurrenceConstants.CONDITION_CONCEPT_ID);
+        .tableName(ConditionOccurrence.TABLE_NAME)
+        .columnName(ConditionOccurrence.CONDITION_CONCEPT_ID);
     SnapshotBuilderSettings snapshotBuilderSettings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
@@ -333,8 +333,8 @@ class SnapshotBuilderServiceTest {
   void testParentQueryResult() throws Exception {
     var resultSet = mock(ResultSet.class);
     when(resultSet.getInt(QueryBuilderFactory.PARENT_ID)).thenReturn(1);
-    when(resultSet.getInt(ConceptConstants.CONCEPT_ID)).thenReturn(2);
-    when(resultSet.getString(ConceptConstants.CONCEPT_NAME)).thenReturn("name");
+    when(resultSet.getInt(Concept.CONCEPT_ID)).thenReturn(2);
+    when(resultSet.getString(Concept.CONCEPT_NAME)).thenReturn("name");
     when(resultSet.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(true);
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(resultSet));
 
@@ -346,8 +346,8 @@ class SnapshotBuilderServiceTest {
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "name"),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "true")),
             Field.of(QueryBuilderFactory.PARENT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(ConceptConstants.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(ConceptConstants.CONCEPT_NAME, StandardSQLTypeName.STRING),
+            Field.of(Concept.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(Concept.CONCEPT_NAME, StandardSQLTypeName.STRING),
             Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL));
 
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));

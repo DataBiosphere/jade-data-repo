@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptConstants;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Tag;
@@ -42,18 +42,18 @@ class AggregateSynapseQueryResultsUtilsTest {
   @Test
   void toDomainIdReturnsString() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString(ConceptConstants.DOMAIN_ID)).thenReturn(ConceptConstants.DOMAIN_ID);
+    when(rs.getString(Concept.DOMAIN_ID)).thenReturn(Concept.DOMAIN_ID);
 
     assertThat(
         "domainId converts table result to a string",
         AggregateSynapseQueryResultsUtils.toDomainId(rs),
-        equalTo(ConceptConstants.DOMAIN_ID));
+        equalTo(Concept.DOMAIN_ID));
   }
 
   @Test
   void toDomainIdHandlesSQLException() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString(ConceptConstants.DOMAIN_ID)).thenThrow(new SQLException());
+    when(rs.getString(Concept.DOMAIN_ID)).thenThrow(new SQLException());
 
     assertThrows(
         ProcessResultSetException.class,
@@ -64,16 +64,12 @@ class AggregateSynapseQueryResultsUtilsTest {
   @Test
   void toConcept() throws Exception {
     var expected =
-        new SnapshotBuilderConcept()
-            .name(ConceptConstants.CONCEPT_NAME)
-            .id(1)
-            .hasChildren(true)
-            .count(100);
+        new SnapshotBuilderConcept().name(Concept.CONCEPT_NAME).id(1).hasChildren(true).count(100);
 
     ResultSet rs = mock(ResultSet.class);
     when(rs.getLong(QueryBuilderFactory.COUNT)).thenReturn((long) expected.getCount());
-    when(rs.getString(ConceptConstants.CONCEPT_NAME)).thenReturn(expected.getName());
-    when(rs.getLong(ConceptConstants.CONCEPT_ID)).thenReturn((long) expected.getId());
+    when(rs.getString(Concept.CONCEPT_NAME)).thenReturn(expected.getName());
+    when(rs.getLong(Concept.CONCEPT_ID)).thenReturn((long) expected.getId());
     when(rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
 
     assertThat(

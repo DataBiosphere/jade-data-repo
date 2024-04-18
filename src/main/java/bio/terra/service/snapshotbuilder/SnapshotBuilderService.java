@@ -27,8 +27,8 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
@@ -256,22 +256,22 @@ public class SnapshotBuilderService {
       int parentId, int childId, String childName, String code, int count, boolean hasChildren) {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
-          rs.getInt(HierarchyQueryBuilder.PARENT_ID),
-          rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
-          rs.getString(HierarchyQueryBuilder.CONCEPT_NAME),
-          rs.getString(HierarchyQueryBuilder.CONCEPT_CODE),
-          rs.getInt(HierarchyQueryBuilder.COUNT),
-          rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN));
+          rs.getInt(QueryBuilderFactory.PARENT_ID),
+          rs.getInt(Concept.CONCEPT_ID),
+          rs.getString(Concept.CONCEPT_NAME),
+          rs.getString(Concept.CONCEPT_CODE),
+          rs.getInt(QueryBuilderFactory.COUNT),
+          rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN));
     }
 
     ParentQueryResult(FieldValueList row) {
       this(
-          (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
-          (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
-          row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue(),
-          row.get(HierarchyQueryBuilder.CONCEPT_CODE).getStringValue(),
-          (int) row.get(HierarchyQueryBuilder.COUNT).getLongValue(),
-          row.get(HierarchyQueryBuilder.HAS_CHILDREN).getBooleanValue());
+          (int) row.get(QueryBuilderFactory.PARENT_ID).getLongValue(),
+          (int) row.get(Concept.CONCEPT_ID).getLongValue(),
+          row.get(Concept.CONCEPT_NAME).getStringValue(),
+          row.get(Concept.CONCEPT_CODE).getStringValue(),
+          (int) row.get(QueryBuilderFactory.COUNT).getLongValue(),
+          row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue());
     }
 
     SnapshotBuilderConcept toConcept() {

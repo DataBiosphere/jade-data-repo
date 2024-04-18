@@ -21,6 +21,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVari
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import java.util.Objects;
@@ -113,7 +114,8 @@ public class CriteriaQueryBuilder {
         new Query(
             List.of(
                 new FieldVariable(
-                    new FieldPointer(occurrencePointer, Person.PERSON_ID), occurrenceVariable)),
+                    new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
+                    occurrenceVariable)),
             List.of(occurrenceVariable, ancestorVariable),
             new BooleanAndOrFilterVariable(
                 BooleanAndOrFilterVariable.LogicalOperator.OR,

@@ -74,7 +74,7 @@ public class SearchConceptsQueryBuilder {
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
-    // SELECT concept_name, concept_id, count, has_children
+    // SELECT concept_name, concept_id, concept_code, count, has_children
     List<SelectExpression> select =
         List.of(
             nameField,
@@ -89,7 +89,7 @@ public class SearchConceptsQueryBuilder {
     List<OrderByVariable> orderBy =
         List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));
 
-    // GROUP BY c.concept_name, c.concept_id
+    // GROUP BY c.concept_name, c.concept_id, concept_code
     List<FieldVariable> groupBy = List.of(nameField, idField, conceptCode);
 
     FilterVariable where;

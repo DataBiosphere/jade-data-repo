@@ -357,7 +357,7 @@ class SnapshotBuilderServiceTest {
             Field.of(HierarchyQueryBuilder.PARENT_ID, StandardSQLTypeName.NUMERIC),
             Field.of(HierarchyQueryBuilder.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
             Field.of(HierarchyQueryBuilder.CONCEPT_NAME, StandardSQLTypeName.STRING),
-            Field.of(HierarchyQueryBuilder.CONCEPT_CODE, StandardSQLTypeName.NUMERIC),
+            Field.of(HierarchyQueryBuilder.CONCEPT_CODE, StandardSQLTypeName.STRING),
             Field.of(HierarchyQueryBuilder.COUNT, StandardSQLTypeName.NUMERIC),
             Field.of(HierarchyQueryBuilder.HAS_CHILDREN, StandardSQLTypeName.BOOL));
 

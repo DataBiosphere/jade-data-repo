@@ -63,12 +63,18 @@ class AggregateSynapseQueryResultsUtilsTest {
   @Test
   void toConcept() throws Exception {
     var expected =
-        new SnapshotBuilderConcept().name("concept_name").id(1).hasChildren(true).count(100);
+        new SnapshotBuilderConcept()
+            .name("concept_name")
+            .id(1)
+            .hasChildren(true)
+            .count(100)
+            .code("99");
 
     ResultSet rs = mock(ResultSet.class);
     when(rs.getLong("count")).thenReturn((long) expected.getCount());
     when(rs.getString("concept_name")).thenReturn(expected.getName());
     when(rs.getLong("concept_id")).thenReturn((long) expected.getId());
+    when(rs.getString("concept_code")).thenReturn(expected.getCode());
     when(rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
 
     assertThat(

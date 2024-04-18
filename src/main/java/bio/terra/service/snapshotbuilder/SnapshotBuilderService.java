@@ -100,11 +100,7 @@ public class SnapshotBuilderService {
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
 
-    // domain is needed to join with the domain specific occurrence table
-    // this does not work for the metadata domain
-    String domainId = getDomainId(conceptId, dataset, userRequest);
-    SnapshotBuilderDomainOption domainOption =
-        getDomainOptionFromSettingsByName(domainId, datasetId);
+    SnapshotBuilderDomainOption domainOption = getDomainOption(conceptId, dataset, userRequest);
 
     Query query =
         queryBuilderFactory
@@ -256,12 +252,15 @@ public class SnapshotBuilderService {
     return enumerateModel;
   }
 
-  record ParentQueryResult(int parentId, int childId, String childName, boolean hasChildren) {
+  record ParentQueryResult(
+      int parentId, int childId, String childName, String code, int count, boolean hasChildren) {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
           rs.getInt(HierarchyQueryBuilder.PARENT_ID),
           rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
           rs.getString(HierarchyQueryBuilder.CONCEPT_NAME),
+          rs.getString(HierarchyQueryBuilder.CONCEPT_CODE),
+          rs.getInt(HierarchyQueryBuilder.COUNT),
           rs.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN));
     }
 
@@ -270,6 +269,8 @@ public class SnapshotBuilderService {
           (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
           (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
           row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue(),
+          row.get(HierarchyQueryBuilder.CONCEPT_CODE).getStringValue(),
+          (int) row.get(HierarchyQueryBuilder.COUNT).getLongValue(),
           row.get(HierarchyQueryBuilder.HAS_CHILDREN).getBooleanValue());
     }
 
@@ -278,14 +279,17 @@ public class SnapshotBuilderService {
           .id(childId)
           .name(childName)
           .hasChildren(hasChildren)
-          .count(1);
+          .code(code)
+          .count(SnapshotBuilderService.fuzzyLowCount(count));
     }
   }
 
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(conceptId);
+
+    var domainOption = getDomainOption(conceptId, dataset, userRequest);
+    var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(domainOption, conceptId);
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
     runSnapshotBuilderQuery(
@@ -306,5 +310,13 @@ public class SnapshotBuilderService {
     }
 
     return new SnapshotBuilderGetConceptHierarchyResponse().result(List.copyOf(parents.values()));
+  }
+
+  private SnapshotBuilderDomainOption getDomainOption(
+      int conceptId, Dataset dataset, AuthenticatedUserRequest userRequest) {
+    // domain is needed to join with the domain specific occurrence table
+    // this does not work for the metadata domain
+    String domainId = getDomainId(conceptId, dataset, userRequest);
+    return getDomainOptionFromSettingsByName(domainId, dataset.getId());
   }
 }

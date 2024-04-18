@@ -240,7 +240,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
   publish_test_reports:
-    name: "Save execution reports and notify"
+    name: "Save execution reports"
     timeout-minutes: 60
     needs:
       - test_check

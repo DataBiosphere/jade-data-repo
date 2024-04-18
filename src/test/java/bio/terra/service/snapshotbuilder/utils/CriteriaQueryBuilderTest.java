@@ -81,7 +81,7 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
 
     String expectedSql =
-        "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE (c0.ancestor_concept_id = 0))";
+        "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE c0.ancestor_concept_id = 0)";
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(context),
@@ -109,7 +109,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         sql,
         equalToCompressingWhiteSpace(
-            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE (c0.ancestor_concept_id = 0))"));
+            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE c0.ancestor_concept_id = 0)"));
   }
 
   @ParameterizedTest
@@ -254,13 +254,13 @@ class CriteriaQueryBuilderTest {
       FROM condition_occurrence AS c
       JOIN concept_ancestor AS c0
       ON c0.descendant_concept_id = c.condition_concept_id
-      WHERE (c0.ancestor_concept_id = 0)) AND
+      WHERE c0.ancestor_concept_id = 0) AND
       p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100) AND
       p.person_id IN (SELECT p0.person_id
       FROM procedure_occurrence AS p0
       JOIN concept_ancestor AS c1
       ON c1.descendant_concept_id = p0.procedure_concept_id
-      WHERE (c1.ancestor_concept_id = 0)))))
+      WHERE c1.ancestor_concept_id = 0))))
     """;
     assertThat(
         "The sql generated is correct",

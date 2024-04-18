@@ -117,15 +117,12 @@ public class CriteriaQueryBuilder {
                     new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
                     occurrenceVariable)),
             List.of(occurrenceVariable, ancestorVariable),
-            new BooleanAndOrFilterVariable(
-                BooleanAndOrFilterVariable.LogicalOperator.OR,
-                List.of(
-                    new BinaryFilterVariable(
-                        new FieldVariable(
-                            new FieldPointer(ancestorPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID),
-                            ancestorVariable),
-                        BinaryFilterVariable.BinaryOperator.EQUALS,
-                        new Literal(domainCriteria.getConceptId()))))));
+            new BinaryFilterVariable(
+                new FieldVariable(
+                    new FieldPointer(ancestorPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID),
+                    ancestorVariable),
+                BinaryFilterVariable.BinaryOperator.EQUALS,
+                new Literal(domainCriteria.getConceptId()))));
   }
 
   FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {

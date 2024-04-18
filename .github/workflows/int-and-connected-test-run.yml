@@ -282,7 +282,8 @@ jobs:
           retention-days: 10
   report-workflow:
     uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
-    if: ${{ github.ref == 'refs/heads/develop' }}
+    ## DO NOT MERGE: removing conditional so that I can demo the change to Slacking via Sherlock.
+    ## if: ${{ github.ref == 'refs/heads/develop' }}
     with:
       relates-to-chart-releases: 'datarepo-dev'
       notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}

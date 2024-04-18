@@ -7,19 +7,14 @@ import com.google.cloud.bigquery.FieldValueList;
 
 public class AggregateBQQueryResultsUtils {
   public static SnapshotBuilderConcept toConcept(FieldValueList row) {
-    int count;
-    try {
-      count =
-          SnapshotBuilderService.fuzzyLowCount(
-              (int) row.get(QueryBuilderFactory.COUNT).getLongValue()); // If exists, use its value
-    } catch (IllegalArgumentException e) {
-      count = 1;
-    }
     return new SnapshotBuilderConcept()
         .id((int) (row.get(Concept.CONCEPT_ID).getLongValue()))
         .name(row.get(Concept.CONCEPT_NAME).getStringValue())
+        .code(row.get(Concept.CONCEPT_CODE).getStringValue())
         .hasChildren(row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue())
-        .count(count);
+        .count(
+            SnapshotBuilderService.fuzzyLowCount(
+                (int) row.get(QueryBuilderFactory.COUNT).getLongValue()));
   }
 
   public static int toCount(FieldValueList row) {

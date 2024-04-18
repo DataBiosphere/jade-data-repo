@@ -1,7 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils.constants;
 
 public final class ConceptRelationship {
-
   private ConceptRelationship() {}
 
   public static final String TABLE_NAME = "concept_relationship";

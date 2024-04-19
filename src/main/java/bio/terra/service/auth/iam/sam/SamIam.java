@@ -56,7 +56,6 @@ import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrl
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -356,7 +355,7 @@ public class SamIam implements IamProviderInterface {
     samResourceApi.createResourceV2(IamResourceType.SPEND_PROFILE.toString(), req);
   }
 
-  private @NotNull List<String> getAdminEmailList() {
+  private List<String> getAdminEmailList() {
     return StringUtils.isBlank(samConfig.adminsGroupEmail())
         ? List.of()
         : List.of(samConfig.adminsGroupEmail());

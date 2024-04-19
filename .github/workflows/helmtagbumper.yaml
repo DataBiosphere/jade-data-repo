@@ -1,15 +1,7 @@
 name: Update API Helm Image Tags
 on:
-  workflow_dispatch:
-    inputs:
-      notify-slack:
-        default: true
-        type: boolean
-  workflow_call:
-    inputs:
-      notify-slack:
-        default: false
-        type: boolean
+  workflow_dispatch: {}
+  workflow_call: {}
 jobs:
 # new integration image updater
   integration_helm_tag_update:
@@ -62,16 +54,6 @@ jobs:
           GITHUB_REPO: datarepo-helm-definitions
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
-      - name: "Notify Slack"
-        if: ${{ inputs.notify-slack && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          fields: job,repo,message,author,took
-          author_name: "[API] [datarepo-helm-definitions] Version update for Integration namespaces"
   datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
     steps:
@@ -119,13 +101,3 @@ jobs:
           GITHUB_REPO: datarepo-helm
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
-      - name: "Notify Slack"
-        if: ${{ inputs.notify-slack && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          fields: job,repo,message,author,took
-          author_name: "[API] [datarepo-helm] Version update for Helm Charts"

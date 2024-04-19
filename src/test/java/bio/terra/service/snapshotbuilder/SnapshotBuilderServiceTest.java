@@ -43,6 +43,7 @@ import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -339,10 +340,10 @@ class SnapshotBuilderServiceTest {
   @Test
   void testParentQueryResult() throws Exception {
     var resultSet = mock(ResultSet.class);
-    when(resultSet.getInt(HierarchyQueryBuilder.PARENT_ID)).thenReturn(1);
-    when(resultSet.getInt(HierarchyQueryBuilder.CONCEPT_ID)).thenReturn(2);
-    when(resultSet.getString(HierarchyQueryBuilder.CONCEPT_NAME)).thenReturn("name");
-    when(resultSet.getBoolean(HierarchyQueryBuilder.HAS_CHILDREN)).thenReturn(true);
+    when(resultSet.getInt(QueryBuilderFactory.PARENT_ID)).thenReturn(1);
+    when(resultSet.getInt(Concept.CONCEPT_ID)).thenReturn(2);
+    when(resultSet.getString(Concept.CONCEPT_NAME)).thenReturn("name");
+    when(resultSet.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(true);
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(resultSet));
 
     var fieldValueList =
@@ -354,12 +355,12 @@ class SnapshotBuilderServiceTest {
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "100"),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "99"),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "true")),
-            Field.of(HierarchyQueryBuilder.PARENT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(HierarchyQueryBuilder.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(HierarchyQueryBuilder.CONCEPT_NAME, StandardSQLTypeName.STRING),
-            Field.of(HierarchyQueryBuilder.CONCEPT_CODE, StandardSQLTypeName.STRING),
-            Field.of(HierarchyQueryBuilder.COUNT, StandardSQLTypeName.NUMERIC),
-            Field.of(HierarchyQueryBuilder.HAS_CHILDREN, StandardSQLTypeName.BOOL));
+            Field.of(QueryBuilderFactory.PARENT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(Concept.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(Concept.CONCEPT_NAME, StandardSQLTypeName.STRING),
+            Field.of(Concept.CONCEPT_CODE, StandardSQLTypeName.STRING),
+            Field.of(QueryBuilderFactory.COUNT, StandardSQLTypeName.NUMERIC),
+            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL));
 
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
   }

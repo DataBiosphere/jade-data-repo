@@ -1,4 +1,4 @@
-## On each release, publish a corresponding version of Python client to
+## Publish a corresponding version of Python client to
 ## https://pypi.org/project/data-repo-client/
 ##
 ## To manage the data-repo-client project in PyPi, you must have a PyPi account
@@ -8,9 +8,6 @@ name: Publish Python 🐍 distributions 📦 to PyPI
 
 on:
   workflow_dispatch: {}
-  push:
-    branches:
-      - develop
 
 env:
   NODE_VERSION: 20
@@ -64,15 +61,11 @@ jobs:
         with:
           packages_dir: ./data-repo-client/dist
           skip_existing: true
-      - name: Notify Jade Slack
-        if: always()
-        uses: broadinstitute/action-slack@v3.15.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#jade-spam"
-          username: "Data Repo publish"
-          text: "Publish Python client to PyPi"
-          fields: repo,message,commit,author,action,eventName,ref,workflow
+  report-workflow:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

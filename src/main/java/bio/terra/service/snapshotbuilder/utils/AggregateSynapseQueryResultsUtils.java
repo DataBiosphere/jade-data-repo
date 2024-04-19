@@ -27,7 +27,9 @@ public class AggregateSynapseQueryResultsUtils {
         .id(getField(rs::getLong, Concept.CONCEPT_ID).intValue())
         .hasChildren(getField(rs::getBoolean, QueryBuilderFactory.HAS_CHILDREN))
         .code(getField(rs::getString, Concept.CONCEPT_CODE))
-        .count(SnapshotBuilderService.fuzzyLowCount(getField(rs::getLong, QueryBuilderFactory.COUNT).intValue()));
+        .count(
+            SnapshotBuilderService.fuzzyLowCount(
+                getField(rs::getLong, QueryBuilderFactory.COUNT).intValue()));
   }
 
   public static int toCount(ResultSet rs) {

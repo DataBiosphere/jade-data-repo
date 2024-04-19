@@ -42,17 +42,24 @@ class AggregateBQQueryResultsUtilsTest {
   @Test
   void toConcept() {
     var expected =
-        new SnapshotBuilderConcept().name(Concept.CONCEPT_NAME).id(1).hasChildren(true).count(100);
+        new SnapshotBuilderConcept()
+            .name(Concept.CONCEPT_NAME)
+            .id(1)
+            .hasChildren(true)
+            .count(100)
+            .code("99");
     FieldValueList row =
         FieldValueList.of(
             List.of(
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.getId())),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, expected.getName()),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, expected.getCode()),
                 FieldValue.of(
                     FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.isHasChildren())),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.getCount()))),
             Field.of(Concept.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
             Field.of(Concept.CONCEPT_NAME, StandardSQLTypeName.STRING),
+            Field.of(Concept.CONCEPT_CODE, StandardSQLTypeName.STRING),
             Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL),
             Field.of(QueryBuilderFactory.COUNT, StandardSQLTypeName.NUMERIC));
     assertThat(AggregateBQQueryResultsUtils.toConcept(row), is(expected));

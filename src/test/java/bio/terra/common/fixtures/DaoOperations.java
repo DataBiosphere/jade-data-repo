@@ -10,6 +10,7 @@ import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.service.snapshot.Snapshot;
 import java.io.IOException;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -42,6 +43,11 @@ public class DaoOperations {
     projectResource.id(projectId);
 
     return createMinimalDataset(billingProfile.getId(), projectId);
+  }
+
+  public Snapshot createMinimalSnapshot() {
+    UUID snapshotId = UUID.randomUUID();
+    return new Snapshot().id(snapshotId);
   }
 
   public Dataset createMinimalDataset(UUID billingProfileId, UUID projectResourceId)

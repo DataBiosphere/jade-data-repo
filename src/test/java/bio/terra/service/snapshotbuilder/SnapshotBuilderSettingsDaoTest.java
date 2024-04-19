@@ -64,7 +64,7 @@ class SnapshotBuilderSettingsDaoTest {
 
   @Test
   void upsertSnapshotBuilderSettingsCreatesWhenNotExisting() {
-    snapshotBuilderSettingsDao.delete(dataset.getId());
+    snapshotBuilderSettingsDao.deleteByDatasetId(dataset.getId());
     assertThat(
         "Snapshot builder settings should be the same as the example",
         snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(

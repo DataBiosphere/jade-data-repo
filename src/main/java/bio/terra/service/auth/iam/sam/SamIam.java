@@ -56,6 +56,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrl
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -217,12 +218,8 @@ public class SamIam implements IamProviderInterface {
 
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(datasetId.toString());
 
-    List<String> adminEmailList =
-        StringUtils.isBlank(samConfig.adminsGroupEmail())
-            ? List.of()
-            : List.of(samConfig.adminsGroupEmail());
     req.putPoliciesItem(
-        IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, adminEmailList));
+        IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
@@ -287,12 +284,8 @@ public class SamIam implements IamProviderInterface {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
 
-    List<String> adminEmailList =
-        StringUtils.isBlank(samConfig.adminsGroupEmail())
-            ? List.of()
-            : List.of(samConfig.adminsGroupEmail());
     req.putPoliciesItem(
-        IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, adminEmailList));
+        IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 
     List<String> stewards = new ArrayList<>();
     stewards.add(userStatusInfo.getUserEmail());
@@ -349,12 +342,8 @@ public class SamIam implements IamProviderInterface {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2();
     req.setResourceId(profileId);
-    List<String> adminEmailList =
-        StringUtils.isBlank(samConfig.adminsGroupEmail())
-            ? List.of()
-            : List.of(samConfig.adminsGroupEmail());
     req.putPoliciesItem(
-        IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, adminEmailList));
+        IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
     req.putPoliciesItem(
         IamRole.OWNER.toString(),
         createAccessPolicyOne(IamRole.OWNER, userStatusInfo.getUserEmail()));
@@ -365,6 +354,12 @@ public class SamIam implements IamProviderInterface {
     logger.debug("SAM request: " + req);
 
     samResourceApi.createResourceV2(IamResourceType.SPEND_PROFILE.toString(), req);
+  }
+
+  private @NotNull List<String> getAdminEmailList() {
+    return StringUtils.isBlank(samConfig.adminsGroupEmail())
+        ? List.of()
+        : List.of(samConfig.adminsGroupEmail());
   }
 
   @Override

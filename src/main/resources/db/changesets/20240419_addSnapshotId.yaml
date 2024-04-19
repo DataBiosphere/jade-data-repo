@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: addSnapshotId
+      author: rjohanek
+      changes:
+        - addColumn:
+            tableName: snapshot_builder_settings
+            columns:
+              - column:
+                  name: snapshot_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: true
+                    unique: true
+                    foreignKeyName: fk_snapshot_snapshot_builder_settings
+                    references: snapshot(id)
+                    deleteCascade: true
+        - dropNotNullConstraint:
+            tableName: snapshot_builder_settings
+            columnName: dataset_id

@@ -8,7 +8,15 @@
       "stewards": ["DataRepoAdmins@dev.test.firecloud.org"],
       "custodians": [],
       "snapshot_creators": [],
-      "snapshots": [],
+      "snapshots": [
+        {
+          "name": "Azure_OMOP_Snapshot",
+          "description": "Test Azure Snapshot with OMOP data",
+          "readers": [
+            "JadeStewards-dev@dev.test.firecloud.org"
+          ]
+        }
+      ],
       "snapshotBuilderSettings": "dataset_snapshot_builder_settings.json"
     }
 ]

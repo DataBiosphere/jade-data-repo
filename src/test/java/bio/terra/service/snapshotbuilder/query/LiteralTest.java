@@ -40,10 +40,10 @@ class LiteralTest {
 
   public static Stream<Arguments> renderBoolean() {
     return Stream.of(
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.GCP), true, "true"),
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.GCP), false, "false"),
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.AZURE), true, "1"),
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.AZURE), false, "0"));
+        Arguments.of(SqlRenderContextTest.createContext(CloudPlatform.GCP), true, "true"),
+        Arguments.of(SqlRenderContextTest.createContext(CloudPlatform.GCP), false, "false"),
+        Arguments.of(SqlRenderContextTest.createContext(CloudPlatform.AZURE), true, "1"),
+        Arguments.of(SqlRenderContextTest.createContext(CloudPlatform.AZURE), false, "0"));
   }
 
   @ParameterizedTest

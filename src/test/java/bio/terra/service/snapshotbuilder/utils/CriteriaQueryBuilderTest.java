@@ -102,7 +102,7 @@ class CriteriaQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterIdentifiesDomainCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria =
-        generateDomainCriteria(10, 0); // Domain 10 = condition_occurrence
+        generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID, 0);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     String sql = filterVariable.renderSQL(context);
@@ -253,11 +253,11 @@ class CriteriaQueryBuilderTest {
                             .criteria(
                                 List.of(
                                     generateDomainCriteria(
-                                        10, 0), // Domain 10 = condition_occurrence
+                                        SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID, 0),
                                     generateEthnicityListCriteria(List.of(0, 1, 2)),
                                     generateYearOfBirthRangeCriteria(),
                                     generateDomainCriteria(
-                                        11, 0))) // Domain 11 = procedure_occurrence
+                                        SnapshotBuilderTestData.PROCEDURE_OCCURRENCE_DOMAIN_ID, 0)))
                             .meetAll(true)
                             .mustMeet(true))));
     String expectedSql =

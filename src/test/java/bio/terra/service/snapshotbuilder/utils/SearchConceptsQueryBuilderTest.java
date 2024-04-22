@@ -12,6 +12,7 @@ import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,26 +38,69 @@ class SearchConceptsQueryBuilderTest {
 
     String expectedGcp =
         """
-        SELECT c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT o.person_id) AS count, TRUE AS has_children
-        FROM concept AS c
-          JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id
-          LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id
-        WHERE ((c.domain_id = 'Observation' AND c.standard_concept = 'S') AND
-               (CONTAINS_SUBSTR(c.concept_name, 'cancer') OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))
-        GROUP BY c.concept_name, c.concept_id, c.concept_code
-        ORDER BY count DESC
-        LIMIT 100""";
+            SELECT
+              c.concept_name,
+              c.concept_id,
+              c.concept_code,
+              COUNT(DISTINCT o.person_id) AS count,
+              TRUE AS has_children
+            FROM
+              concept AS c
+            JOIN
+              concept_ancestor AS c0
+            ON
+              c0.ancestor_concept_id = c.concept_id
+            LEFT JOIN
+              observation AS o
+            ON
+              o.observation_concept_id = c0.descendant_concept_id
+            WHERE
+              ((c.domain_id = 'Observation'
+                  AND c.standard_concept = 'S')
+                AND (CONTAINS_SUBSTR(c.concept_name, 'cancer')
+                  OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))
+            GROUP BY
+              c.concept_name,
+              c.concept_id,
+              c.concept_code
+            ORDER BY
+              count DESC
+            LIMIT
+              100
+        """;
 
     String expectedAzure =
         """
-        SELECT TOP 100 c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT o.person_id) AS count, 1 AS has_children
-        FROM concept AS c
-          JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.concept_id
-          LEFT JOIN observation AS o ON o.observation_concept_id = c0.descendant_concept_id
-        WHERE ((c.domain_id = 'Observation' AND c.standard_concept = 'S') AND
-               (CHARINDEX('cancer', c.concept_name) > 0 OR CHARINDEX('cancer', c.concept_code) > 0))
-        GROUP BY c.concept_name, c.concept_id, c.concept_code
-        ORDER BY count DESC""";
+            SELECT
+              TOP 100 c.concept_name,
+              c.concept_id,
+              c.concept_code,
+              COUNT(DISTINCT o.person_id) AS count,
+              1 AS has_children
+            FROM
+              concept AS c
+            JOIN
+              concept_ancestor AS c0
+            ON
+              c0.ancestor_concept_id = c.concept_id
+            LEFT JOIN
+              observation AS o
+            ON
+              o.observation_concept_id = c0.descendant_concept_id
+            WHERE
+              ((c.domain_id = 'Observation'
+                  AND c.standard_concept = 'S')
+                AND (CHARINDEX('cancer',
+                    c.concept_name) > 0
+                  OR CHARINDEX('cancer',
+                    c.concept_code) > 0))
+            GROUP BY
+              c.concept_name,
+              c.concept_id,
+              c.concept_code
+            ORDER BY
+              count DESC
+        """;
 
     String actual =
         new QueryBuilderFactory()
@@ -112,9 +156,9 @@ class SearchConceptsQueryBuilderTest {
   void testCreateSearchConceptClause(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName("concept"));
+        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
     String actual =
-        createSearchConceptClause(conceptTableVariable, "cancer", "concept_name")
+        createSearchConceptClause(conceptTableVariable, "cancer", Concept.CONCEPT_NAME)
             .renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
@@ -132,7 +176,7 @@ class SearchConceptsQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void testCreateDomainClause(SqlRenderContext context) {
     TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName("concept"));
+        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
 
     assertThat(
         "generated sql is as expected",

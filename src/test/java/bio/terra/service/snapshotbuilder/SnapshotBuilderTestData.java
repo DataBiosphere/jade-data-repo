@@ -26,6 +26,10 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.Observation;
+import bio.terra.service.snapshotbuilder.utils.constants.Person;
+import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;
 import java.util.List;
 import java.util.UUID;
 
@@ -82,8 +86,8 @@ public class SnapshotBuilderTestData {
               List.of(
                   generateSnapshotBuilderDomainOption(
                       10,
-                      "condition_occurrence",
-                      "condition_concept_id",
+                      ConditionOccurrence.TABLE_NAME,
+                      ConditionOccurrence.CONDITION_CONCEPT_ID,
                       "Condition",
                       new SnapshotBuilderConcept()
                           .id(100)
@@ -92,8 +96,8 @@ public class SnapshotBuilderTestData {
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       11,
-                      "procedure_occurrence",
-                      "procedure_concept_id",
+                      ProcedureOccurrence.TABLE_NAME,
+                      ProcedureOccurrence.PROCEDURE_CONCEPT_ID,
                       "Procedure",
                       new SnapshotBuilderConcept()
                           .id(200)
@@ -102,8 +106,8 @@ public class SnapshotBuilderTestData {
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       12,
-                      "observation",
-                      "observation_concept_id",
+                      Observation.TABLE_NAME,
+                      Observation.OBSERVATION_CONCEPT_ID,
                       "Observation",
                       new SnapshotBuilderConcept()
                           .id(300)
@@ -113,23 +117,23 @@ public class SnapshotBuilderTestData {
           .programDataOptions(
               List.of(
                   generateSnapshotBuilderProgramDataRangeOption(
-                      1, "person", "year_of_birth", "Year of birth", 0, 100),
+                      1, Person.TABLE_NAME, Person.YEAR_OF_BIRTH, "Year of birth", 0, 100),
                   generateSnapshotBuilderProgramDataListOption(
                       2,
-                      "person",
-                      "ethnicity",
+                      Person.TABLE_NAME,
+                      Person.ETHNICITY_CONCEPT_ID,
                       "Ethnicity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(40).name("unused"))),
                   generateSnapshotBuilderProgramDataListOption(
                       3,
-                      "person",
-                      "gender_identity",
+                      Person.TABLE_NAME,
+                      Person.GENDER_CONCEPT_ID,
                       "Gender Identity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(41).name("unused 2"))),
                   generateSnapshotBuilderProgramDataListOption(
                       4,
-                      "person",
-                      "race",
+                      Person.TABLE_NAME,
+                      Person.RACE_CONCEPT_ID,
                       "Race",
                       List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
           .featureValueGroups(
@@ -163,13 +167,19 @@ public class SnapshotBuilderTestData {
           .tables(
               List.of(
                   new DatasetTable()
-                      .name("person")
+                      .name(Person.TABLE_NAME)
                       .columns(
                           List.of(
-                              new Column().name("race").type(TableDataType.INTEGER),
-                              new Column().name("gender_identity").type(TableDataType.INTEGER),
-                              new Column().name("ethnicity").type(TableDataType.INTEGER),
-                              new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
+                              new Column().name(Person.RACE_CONCEPT_ID).type(TableDataType.INTEGER),
+                              new Column()
+                                  .name(Person.GENDER_CONCEPT_ID)
+                                  .type(TableDataType.INTEGER),
+                              new Column()
+                                  .name(Person.ETHNICITY_CONCEPT_ID)
+                                  .type(TableDataType.INTEGER),
+                              new Column()
+                                  .name(Person.YEAR_OF_BIRTH)
+                                  .type(TableDataType.INTEGER)))));
 
   public static SnapshotBuilderCohort createCohort() {
 

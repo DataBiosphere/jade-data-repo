@@ -38,7 +38,7 @@ class LiteralTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void renderBoolean(SqlRenderContext context) {
     var literal = new Literal(true);
-    assertThat(literal.renderSQL(context), is("true"));
+    assertThat(literal.renderSQL(context), is(context.getPlatform().choose("true", "1")));
   }
 
   @ParameterizedTest

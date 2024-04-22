@@ -11,7 +11,6 @@ import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.TrueLiteral;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
@@ -82,7 +81,7 @@ public class SearchConceptsQueryBuilder {
             idField,
             conceptCode,
             countField,
-            new SelectAlias(new TrueLiteral(), HierarchyQueryBuilder.HAS_CHILDREN));
+            new SelectAlias(new Literal(true), HierarchyQueryBuilder.HAS_CHILDREN));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 

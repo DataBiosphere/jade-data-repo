@@ -17,7 +17,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "sam")
 public record SamConfiguration(
     String basePath,
-    String stewardsGroupEmail,
     String adminsGroupEmail,
     int retryInitialWaitSeconds,
     int retryMaximumWaitSeconds,

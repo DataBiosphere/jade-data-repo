@@ -36,7 +36,7 @@ class BooleanAndOrFilterVariableTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderSQL(SqlRenderContext context) {
-    assertThat(variable.renderSQL(context), is("(t.field1 = 'value1' AND t0.field2 = 'value2')"));
+    assertThat(variable.renderSQL(context), is("(t.field1 = 'value1' AND t1.field2 = 'value2')"));
   }
 
   @ParameterizedTest

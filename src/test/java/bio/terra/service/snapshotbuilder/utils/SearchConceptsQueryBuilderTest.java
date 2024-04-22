@@ -47,13 +47,13 @@ class SearchConceptsQueryBuilderTest {
             FROM
               concept AS c
             JOIN
-              concept_ancestor AS c0
+              concept_ancestor AS ca
             ON
-              c0.ancestor_concept_id = c.concept_id
+              ca.ancestor_concept_id = c.concept_id
             LEFT JOIN
               observation AS o
             ON
-              o.observation_concept_id = c0.descendant_concept_id
+              o.observation_concept_id = ca.descendant_concept_id
             WHERE
               ((c.domain_id = 'Observation'
                   AND c.standard_concept = 'S')
@@ -80,13 +80,13 @@ class SearchConceptsQueryBuilderTest {
             FROM
               concept AS c
             JOIN
-              concept_ancestor AS c0
+              concept_ancestor AS ca
             ON
-              c0.ancestor_concept_id = c.concept_id
+              ca.ancestor_concept_id = c.concept_id
             LEFT JOIN
               observation AS o
             ON
-              o.observation_concept_id = c0.descendant_concept_id
+              o.observation_concept_id = ca.descendant_concept_id
             WHERE
               ((c.domain_id = 'Observation'
                   AND c.standard_concept = 'S')
@@ -126,10 +126,10 @@ class SearchConceptsQueryBuilderTest {
             .renderSQL(context);
     String gcpExpected =
         """
-        SELECT c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT c0.person_id) AS count, true AS has_children
+        SELECT c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT co.person_id) AS count, true AS has_children
         FROM concept AS c
-          JOIN concept_ancestor AS c1 ON c1.ancestor_concept_id = c.concept_id
-          LEFT JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c1.descendant_concept_id
+          JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
+          LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id
         WHERE (c.domain_id = 'Condition' AND c.standard_concept = 'S')
         GROUP BY c.concept_name, c.concept_id, c.concept_code
         ORDER BY count DESC
@@ -137,10 +137,10 @@ class SearchConceptsQueryBuilderTest {
 
     String azureExpected =
         """
-        SELECT TOP 100 c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT c0.person_id) AS count, 1 AS has_children
+        SELECT TOP 100 c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT co.person_id) AS count, 1 AS has_children
         FROM concept AS c
-          JOIN concept_ancestor AS c1 ON c1.ancestor_concept_id = c.concept_id
-          LEFT JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c1.descendant_concept_id
+          JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
+          LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id
         WHERE (c.domain_id = 'Condition' AND c.standard_concept = 'S')
         GROUP BY c.concept_name, c.concept_id, c.concept_code
         ORDER BY count DESC""";

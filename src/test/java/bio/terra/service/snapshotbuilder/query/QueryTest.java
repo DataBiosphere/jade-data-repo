@@ -153,12 +153,12 @@ public class QueryTest {
         querySQL,
         allOf(
             containsString("SELECT COUNT(DISTINCT p.person_id) FROM person AS p"),
-            containsString("JOIN condition_occurrence AS c ON c.person_id = p.person_id"),
+            containsString("JOIN condition_occurrence AS co ON co.person_id = p.person_id"),
             containsString(
-                "JOIN condition_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id"),
+                "JOIN condition_ancestor AS ca ON ca.ancestor_concept_id = co.condition_concept_id"),
             containsString("WHERE ("),
             containsString(
-                "(c.condition_concept_id = 316139 OR c0.ancestor_concept_id = 316139 OR c.condition_concept_id = 4311280 OR c0.ancestor_concept_id = 4311280)"),
+                "(co.condition_concept_id = 316139 OR ca.ancestor_concept_id = 316139 OR co.condition_concept_id = 4311280 OR ca.ancestor_concept_id = 4311280)"),
             containsString("AND p.year_of_birth < 1983")));
   }
 }

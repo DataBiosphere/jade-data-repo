@@ -14,42 +14,42 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class LiteralTest {
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderString(SqlRenderContext context) {
     var literal = new Literal("foo");
     assertThat(literal.renderSQL(context), is("'foo'"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderStringEscaped(SqlRenderContext context) {
     var literal = new Literal("foo's");
     assertThat(literal.renderSQL(context), is("'foo’s'"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderInt(SqlRenderContext context) {
     var literal = new Literal(42);
     assertThat(literal.renderSQL(context), is("42"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderBoolean(SqlRenderContext context) {
     var literal = new Literal(true);
     assertThat(literal.renderSQL(context), is("true"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderDate(SqlRenderContext context) {
     var literal = new Literal(Date.valueOf("2021-01-01"));
     assertThat(literal.renderSQL(context), is("DATE('2021-01-01')"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderDouble(SqlRenderContext context) {
     var literal = new Literal(1.234);
     assertThat(literal.renderSQL(context), is("FLOAT('1.234')"));

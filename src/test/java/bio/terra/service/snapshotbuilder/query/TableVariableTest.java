@@ -12,21 +12,21 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class TableVariableTest {
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderSQLForPrimary(SqlRenderContext context) {
-    TableVariable tableVariable = TableVariable.forPrimary(QueryTestUtils.fromTableName("table"));
+    TableVariable tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
     assertThat(tableVariable.renderSQL(context), equalToIgnoringCase("table as t"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderSQLForJoined(SqlRenderContext context) {
-    TablePointer parentTable = QueryTestUtils.fromTableName("parentTable");
+    TablePointer parentTable = TablePointer.fromTableName("parentTable");
     TableVariable parentTableVariable = TableVariable.forPrimary(parentTable);
     FieldVariable joinFieldOnParent =
         new FieldVariable(
             new FieldPointer(parentTable, "parentJoinField"), parentTableVariable, null);
-    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
+    TablePointer tablePointer = TablePointer.fromTableName("table");
     TableVariable tableVariable =
         TableVariable.forJoined(tablePointer, "joinField", joinFieldOnParent);
     assertThat(

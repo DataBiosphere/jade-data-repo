@@ -7,7 +7,8 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
+import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test;
 class BinaryFilterVariableTest {
 
   private static FieldVariable createField() {
-    TableVariable tableVariable = TableVariable.forPrimary(QueryTestUtils.fromTableName("table"));
+    TableVariable tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
     return tableVariable.makeFieldVariable("column");
   }
 
@@ -26,14 +27,15 @@ class BinaryFilterVariableTest {
         new BinaryFilterVariable(
             createField(), BinaryFilterVariable.BinaryOperator.LESS_THAN, new Literal(1234));
     assertThat(
-        filter.renderSQL(QueryTestUtils.createContext(CloudPlatform.AZURE)), is("t.column < 1234"));
+        filter.renderSQL(SqlRenderContextTest.createContext(CloudPlatform.AZURE)),
+        is("t.column < 1234"));
   }
 
   @Test
   void equals() {
     var filter = BinaryFilterVariable.equals(createField(), new Literal("foo"));
     assertThat(
-        filter.renderSQL(QueryTestUtils.createContext(CloudPlatform.AZURE)),
+        filter.renderSQL(SqlRenderContextTest.createContext(CloudPlatform.AZURE)),
         is("t.column = 'foo'"));
   }
 
@@ -41,7 +43,7 @@ class BinaryFilterVariableTest {
   void notEquals() {
     var filter = BinaryFilterVariable.notEquals(createField(), new Literal("foo"));
     assertThat(
-        filter.renderSQL(QueryTestUtils.createContext(CloudPlatform.AZURE)),
+        filter.renderSQL(SqlRenderContextTest.createContext(CloudPlatform.AZURE)),
         is("t.column != 'foo'"));
   }
 
@@ -49,7 +51,7 @@ class BinaryFilterVariableTest {
   void notNull() {
     var filter = BinaryFilterVariable.notNull(createField());
     assertThat(
-        filter.renderSQL(QueryTestUtils.createContext(CloudPlatform.AZURE)),
+        filter.renderSQL(SqlRenderContextTest.createContext(CloudPlatform.AZURE)),
         is("t.column IS NOT NULL"));
   }
 }

@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class TablePointerTest {
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderSQL(SqlRenderContext context) {
     var tablePointer =
         new TablePointer("table", (primaryTable, tables) -> (cloudPlatform) -> "filter", null);

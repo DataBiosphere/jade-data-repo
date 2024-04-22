@@ -35,7 +35,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
@@ -302,7 +302,7 @@ class SnapshotBuilderServiceTest {
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
         .thenReturn(query);
     when(azureSynapsePdao.runQuery(
-            eq(query.renderSQL(QueryTestUtils.createContext(CloudPlatform.AZURE))), any()))
+            eq(query.renderSQL(SqlRenderContextTest.createContext(CloudPlatform.AZURE))), any()))
         .thenReturn(List.of(5));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(

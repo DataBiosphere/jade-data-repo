@@ -16,9 +16,9 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class FieldVariableTest {
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderSQL(SqlRenderContext context) {
-    var table = QueryTestUtils.fromTableName("table");
+    var table = TablePointer.fromTableName("table");
 
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
@@ -44,9 +44,9 @@ class FieldVariableTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderSQLForAliasAndDistinct(SqlRenderContext context) {
-    var table = QueryTestUtils.fromTableName("table");
+    var table = TablePointer.fromTableName("table");
     var tableVariable = TableVariable.forPrimary(table);
 
     var fieldVariable =
@@ -61,13 +61,13 @@ class FieldVariableTest {
 
   @Test
   void renderSqlForOrderBy() {
-    var table = QueryTestUtils.fromTableName("table");
+    var table = TablePointer.fromTableName("table");
     var tableVariable = TableVariable.forPrimary(table);
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
     assertThat(
         fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(
-            false, QueryTestUtils.createContext(CloudPlatform.GCP)),
+            false, SqlRenderContextTest.createContext(CloudPlatform.GCP)),
         is("foo(t.field) AS alias"));
   }
 
@@ -83,7 +83,7 @@ class FieldVariableTest {
     assertThat(new FieldVariable(fieldPointer, null).getAliasOrColumnName(), is("foo"));
     assertThat(new FieldVariable(fieldPointer, null, "bar").getAliasOrColumnName(), is("bar"));
     var fieldPointerForeignKey =
-        FieldPointer.foreignColumn(QueryTestUtils.fromTableName(null), "baz");
+        FieldPointer.foreignColumn(TablePointer.fromTableName(null), "baz");
     assertThat(new FieldVariable(fieldPointerForeignKey, null).getAliasOrColumnName(), is("baz"));
   }
 

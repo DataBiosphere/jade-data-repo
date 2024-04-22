@@ -8,8 +8,8 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
@@ -31,7 +31,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void buildSearchConceptsQuery(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
@@ -116,7 +116,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
@@ -164,7 +164,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     TableVariable conceptTableVariable =
@@ -185,7 +185,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void testCreateDomainClause(SqlRenderContext context) {
     TableVariable conceptTableVariable =
         TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));

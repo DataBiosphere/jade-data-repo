@@ -33,18 +33,17 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void buildSearchConceptsQuery(SqlRenderContext context) {
-    CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Observation", 27, "observation", "observation_concept_id");
 
-    String expectedGCPQuery =
+    String expectedGcp =
         """
             SELECT
               c.concept_name,
               c.concept_id,
               c.concept_code,
               COUNT(DISTINCT o.person_id) AS count,
-              1 AS has_children
+              true AS has_children
             FROM
               concept AS c
             JOIN
@@ -70,7 +69,7 @@ class SearchConceptsQueryBuilderTest {
               100
         """;
 
-    String expectedAzureQuery =
+    String expectedAzure =
         """
             SELECT
               TOP 100 c.concept_name,
@@ -112,13 +111,12 @@ class SearchConceptsQueryBuilderTest {
     assertThat(
         "generated SQL is correct",
         actual,
-        equalToCompressingWhiteSpace(platformWrapper.choose(expectedGCPQuery, expectedAzureQuery)));
+        equalToCompressingWhiteSpace(context.getPlatform().choose(expectedGcp, expectedAzure)));
   }
 
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
-    CloudPlatformWrapper platformWrapper = context.getPlatform();
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
@@ -126,41 +124,31 @@ class SearchConceptsQueryBuilderTest {
             .searchConceptsQueryBuilder()
             .buildSearchConceptsQuery(domainOption, "")
             .renderSQL(context);
-    String expected =
+    String gcpExpected =
         """
-            c.concept_name,
-            c.concept_id,
-            c.concept_code,
-            COUNT(DISTINCT c0.person_id) AS count,
-            1 AS has_children
-          FROM
-            concept AS c
-          JOIN
-            concept_ancestor AS c1
-          ON
-            c1.ancestor_concept_id = c.concept_id
-          LEFT JOIN
-            condition_occurrence AS c0
-          ON
-            c0.condition_concept_id = c1.descendant_concept_id
-          WHERE
-            (c.domain_id = 'Condition'
-              AND c.standard_concept = 'S')
-          GROUP BY
-            c.concept_name,
-            c.concept_id,
-            c.concept_code
-          ORDER BY
-            count DESC
-        """;
+        SELECT c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT c0.person_id) AS count, true AS has_children
+        FROM concept AS c
+          JOIN concept_ancestor AS c1 ON c1.ancestor_concept_id = c.concept_id
+          LEFT JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c1.descendant_concept_id
+        WHERE (c.domain_id = 'Condition' AND c.standard_concept = 'S')
+        GROUP BY c.concept_name, c.concept_id, c.concept_code
+        ORDER BY count DESC
+        LIMIT 100""";
+
+    String azureExpected =
+        """
+        SELECT TOP 100 c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT c0.person_id) AS count, 1 AS has_children
+        FROM concept AS c
+          JOIN concept_ancestor AS c1 ON c1.ancestor_concept_id = c.concept_id
+          LEFT JOIN condition_occurrence AS c0 ON c0.condition_concept_id = c1.descendant_concept_id
+        WHERE (c.domain_id = 'Condition' AND c.standard_concept = 'S')
+        GROUP BY c.concept_name, c.concept_id, c.concept_code
+        ORDER BY count DESC""";
 
     assertThat(
         "generated SQL for GCP and Azure empty search string is correct",
         actual,
-        // table name is added when the Query is created
-        equalToCompressingWhiteSpace(
-            platformWrapper.choose(
-                () -> "SELECT " + expected + " LIMIT 100", () -> "SELECT TOP 100 " + expected)));
+        equalToCompressingWhiteSpace(context.getPlatform().choose(gcpExpected, azureExpected)));
   }
 
   @ParameterizedTest

@@ -28,7 +28,8 @@ class FieldVariableTest {
         new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(context),
         is("t.field AS bar"));
 
-    var fieldPointerForeignKey = FieldPointer.foreignColumn(TablePointer.fromRawSql(null), null);
+    var fieldPointerForeignKey =
+        FieldPointer.foreignColumn(TablePointer.fromTableName("table"), "column");
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
     assertThrows(
         UnsupportedOperationException.class, () -> fieldVariableForeignKey.renderSQL(context));

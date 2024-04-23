@@ -23,6 +23,7 @@ import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
@@ -32,12 +33,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
-import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
@@ -288,27 +284,27 @@ class SnapshotBuilderServiceTest {
             .projectResource(new GoogleProjectResource().googleProjectId("project123"))
             .name("dataset123")
             .id(UUID.randomUUID());
-    TablePointer tablePointer = TablePointer.fromRawSql("table-name");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-    Query query =
-        new Query(
-            List.of(
-                new FieldVariable(new FieldPointer(tablePointer, "column-name"), tableVariable)),
-            List.of(tableVariable));
+    var settings = new SnapshotBuilderSettings();
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
+        .thenReturn(settings);
+    Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    when(queryBuilderFactory.criteriaQueryBuilder(any(), any()))
+    when(queryBuilderFactory.criteriaQueryBuilder("person", settings))
         .thenReturn(criteriaQueryBuilderMock);
-    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
+    var criteriaGroups = List.of(List.of(new SnapshotBuilderCriteriaGroup()));
+    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups))
         .thenReturn(query);
-    when(azureSynapsePdao.runQuery(
-            eq(query.renderSQL(SqlRenderContextTest.createContext(CloudPlatform.AZURE))), any()))
-        .thenReturn(List.of(5));
+    String sql = "sql";
+    // Not verified: creation of context based on dataset's cloud platform.
+    when(query.renderSQL(any())).thenReturn(sql);
+    var count = 5;
+    when(azureSynapsePdao.runQuery(eq(sql), any())).thenReturn(List.of(count));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(
-            dataset.getId(), List.of(List.of()), TEST_USER);
+            dataset.getId(), criteriaGroups, TEST_USER);
     assertThat(
-        "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
+        "rollup count should be response from stubbed query runner", rollupCount, equalTo(count));
   }
 
   @ParameterizedTest

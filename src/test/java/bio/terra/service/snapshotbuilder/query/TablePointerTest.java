@@ -16,14 +16,14 @@ class TablePointerTest {
   @ArgumentsSource(SqlRenderContextTest.Contexts.class)
   void renderSQL(SqlRenderContext context) {
     var tablePointer =
-        new TablePointer("table", (primaryTable, tables) -> (cloudPlatform) -> "filter", null);
+        new TablePointer("table", (primaryTable, tables) -> (cloudPlatform) -> "filter");
     assertThat(tablePointer.renderSQL(context), is("(SELECT t.* FROM table AS t WHERE filter)"));
   }
 
   @Test
   void renderSQLWithDatasetModel() {
     var tablePointer =
-        new TablePointer("table", (primaryTable, tables) -> (cloudPlatform) -> "filter", null);
+        new TablePointer("table", (primaryTable, tables) -> (cloudPlatform) -> "filter");
     var generatedName = "generated-table-name";
     assertThat(
         tablePointer.renderSQL(new SqlRenderContext(tableName -> generatedName, null)),

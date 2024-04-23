@@ -229,7 +229,7 @@ def delete_dataset_if_exists(name, clients):
 def add_snapshot_builder_settings(clients, dataset_id, directory, snapshot_builder_settings_file):
   with open(os.path.join("files", directory, snapshot_builder_settings_file)) as dataset_schema_json:
     clients.datasets_api.update_dataset_snapshot_builder_settings(dataset_id, json.load(dataset_schema_json))
-    print(f"Snapshot builder settings were updated")
+  print(f"Snapshot builder settings were updated")
 
 
 def main():

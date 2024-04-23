@@ -282,7 +282,7 @@ public class SamIam implements IamProviderInterface {
     policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
- 
+
     req.putPoliciesItem(
         IamRole.ADMIN.toString(), createAccessPolicy(IamRole.ADMIN, getAdminEmailList()));
 

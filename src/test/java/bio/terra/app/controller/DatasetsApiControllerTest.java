@@ -339,17 +339,17 @@ class DatasetsApiControllerTest {
     return Stream.of(
         arguments(
             """
-            {"kind":"domain","name":"name","id":0}""",
+            {"kind":"domain","id":0}""",
             SnapshotBuilderCriteria.class,
             SnapshotBuilderCriteria.KindEnum.DOMAIN),
         arguments(
             """
-            {"kind":"list","name":"name","id":0,"values":[]}""",
+            {"kind":"list","id":0,"values":[]}""",
             SnapshotBuilderProgramDataListCriteria.class,
             SnapshotBuilderCriteria.KindEnum.LIST),
         arguments(
             """
-            {"kind":"range","name":"name","id":0,"low":0,"high":10}""",
+            {"kind":"range","id":0,"low":0,"high":10}""",
             SnapshotBuilderProgramDataRangeCriteria.class,
             SnapshotBuilderCriteria.KindEnum.RANGE));
   }
@@ -362,7 +362,6 @@ class DatasetsApiControllerTest {
       SnapshotBuilderCriteria.KindEnum kind)
       throws Exception {
     SnapshotBuilderCriteria criteria = TestUtils.mapFromJson(json, criteriaClass);
-    assertThat(criteria.getName(), equalTo("name"));
     assertThat(criteria.getKind(), equalTo(kind));
   }
 

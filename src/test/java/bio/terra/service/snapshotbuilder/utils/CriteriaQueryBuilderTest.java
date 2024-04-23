@@ -78,7 +78,8 @@ class CriteriaQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForDomainCriteria(SqlRenderContext context) {
-    SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria(10, 0);
+    SnapshotBuilderDomainCriteria domainCriteria =
+        generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
 
     String expectedSql =
@@ -91,7 +92,7 @@ class CriteriaQueryBuilderTest {
 
   @Test
   void generateFilterForDomainCriteriaThrowsIfGivenUnknownDomain() {
-    SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria(1000, 0);
+    SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria(1000);
     assertThrows(
         BadRequestException.class,
         () -> criteriaQueryBuilder.generateFilter(domainCriteria),
@@ -102,7 +103,7 @@ class CriteriaQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterIdentifiesDomainCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria =
-        generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID, 0);
+        generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     String sql = filterVariable.renderSQL(context);
@@ -222,17 +223,16 @@ class CriteriaQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForCriteriaGroups(SqlRenderContext context) {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS)
-            .generateFilterForCriteriaGroups(
-                List.of(
-                    new SnapshotBuilderCriteriaGroup()
-                        .criteria(List.of(generateYearOfBirthRangeCriteria()))
-                        .meetAll(true)
-                        .mustMeet(true),
-                    new SnapshotBuilderCriteriaGroup()
-                        .criteria(List.of(generateEthnicityListCriteria(List.of(0, 1, 2))))
-                        .meetAll(true)
-                        .mustMeet(true)));
+        criteriaQueryBuilder.generateFilterForCriteriaGroups(
+            List.of(
+                new SnapshotBuilderCriteriaGroup()
+                    .criteria(List.of(generateYearOfBirthRangeCriteria()))
+                    .meetAll(true)
+                    .mustMeet(true),
+                new SnapshotBuilderCriteriaGroup()
+                    .criteria(List.of(generateEthnicityListCriteria(List.of(0, 1, 2))))
+                    .meetAll(true)
+                    .mustMeet(true)));
 
     assertThat(
         "The sql generated is correct",
@@ -245,21 +245,20 @@ class CriteriaQueryBuilderTest {
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateRollupCountsQueryForCriteriaGroupsList(SqlRenderContext context) {
     Query query =
-        new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS)
-            .generateRollupCountsQueryForCriteriaGroupsList(
+        criteriaQueryBuilder.generateRollupCountsQueryForCriteriaGroupsList(
+            List.of(
                 List.of(
-                    List.of(
-                        new SnapshotBuilderCriteriaGroup()
-                            .criteria(
-                                List.of(
-                                    generateDomainCriteria(
-                                        SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID, 0),
-                                    generateEthnicityListCriteria(List.of(0, 1, 2)),
-                                    generateYearOfBirthRangeCriteria(),
-                                    generateDomainCriteria(
-                                        SnapshotBuilderTestData.PROCEDURE_OCCURRENCE_DOMAIN_ID, 0)))
-                            .meetAll(true)
-                            .mustMeet(true))));
+                    new SnapshotBuilderCriteriaGroup()
+                        .criteria(
+                            List.of(
+                                generateDomainCriteria(
+                                    SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID),
+                                generateEthnicityListCriteria(List.of(0, 1, 2)),
+                                generateYearOfBirthRangeCriteria(),
+                                generateDomainCriteria(
+                                    SnapshotBuilderTestData.PROCEDURE_OCCURRENCE_DOMAIN_ID)))
+                        .meetAll(true)
+                        .mustMeet(true))));
     String expectedSql =
         """
       SELECT COUNT(DISTINCT p.person_id)
@@ -283,12 +282,11 @@ class CriteriaQueryBuilderTest {
         equalToCompressingWhiteSpace(expectedSql));
   }
 
-  private static SnapshotBuilderDomainCriteria generateDomainCriteria(int domainId, int conceptId) {
+  private static SnapshotBuilderDomainCriteria generateDomainCriteria(int domainId) {
     return (SnapshotBuilderDomainCriteria)
         new SnapshotBuilderDomainCriteria()
-            .conceptId(conceptId)
+            .conceptId(0)
             .id(domainId)
-            .name("domain_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN);
   }
 
@@ -298,7 +296,6 @@ class CriteriaQueryBuilderTest {
             .low(0)
             .high(100)
             .id(1)
-            .name("range_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.RANGE);
   }
 
@@ -308,7 +305,6 @@ class CriteriaQueryBuilderTest {
         new SnapshotBuilderProgramDataListCriteria()
             .values(values)
             .id(2)
-            .name("list_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.LIST);
   }
 }

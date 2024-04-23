@@ -7492,6 +7492,8 @@ components:
         kind:
           type: string
           enum: [ list, range, domain ]
+        name:
+          type: string
         id:
           description: the ID of either the domain or program data entry
           type: integer

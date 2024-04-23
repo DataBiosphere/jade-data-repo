@@ -15,14 +15,14 @@
     ],
     "upload_prefix": "gs://jade-testdata-useastregion/V2F_GWAS_Summary_Statistics",
     "format": "array",
-    "stewards": ["JadeStewards-dev@dev.test.firecloud.org"],
+    "stewards": ["DataRepoTestResourceAccess@dev.test.firecloud.org"],
     "custodians": [],
     "snapshot_creators": [],
     "snapshots": [
       {
         "name": "AzureV2FStats",
         "description": "Test Azure Snapshot",
-        "readers": ["JadeStewards-dev@dev.test.firecloud.org"]
+        "readers": ["DataRepoTestResourceAccess@dev.test.firecloud.org"]
       }
     ]
   }

@@ -1885,7 +1885,7 @@ public class DataRepoFixtures {
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
-      TestConfiguration.User user, UUID datasetId, Integer domainId, String searchText)
+      TestConfiguration.User user, UUID datasetId, int domainId, String searchText)
       throws Exception {
     String queryParams = "?searchText=%s".formatted(searchText);
 

@@ -13,7 +13,7 @@
           "name": "Azure_OMOP_Snapshot",
           "description": "Test Azure Snapshot with OMOP data",
           "readers": [
-            "JadeStewards-dev@dev.test.firecloud.org"
+            "DataRepoTestResourceAccess@dev.test.firecloud.org"
           ]
         }
       ],

@@ -112,7 +112,7 @@ def add_billing_profile_members(clients, profile_id):
   clients.profiles_api.add_profile_policy_member(profile_id,
     "owner",
     {
-      'email': 'JadeStewards-dev@dev.test.firecloud.org'})
+      'email': 'DataRepoTestResourceAccess@dev.test.firecloud.org'})
 
 
 def dataset_ingest_json(clients, dataset_id, dataset_to_upload):

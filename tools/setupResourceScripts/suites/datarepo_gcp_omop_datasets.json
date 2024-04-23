@@ -13,7 +13,7 @@
           "name": "GCP_OMOP_Snapshot",
           "description": "Test GCP Snapshot with OMOP data",
           "readers": [
-            "JadeStewards-dev@dev.test.firecloud.org"
+            "DataRepoTestResourceAccess@dev.test.firecloud.org"
           ]
         }
       ],

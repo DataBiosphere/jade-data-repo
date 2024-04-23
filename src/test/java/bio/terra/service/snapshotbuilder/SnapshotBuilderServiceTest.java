@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -43,6 +42,8 @@ import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
+import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -50,7 +51,6 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import java.sql.ResultSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,8 +61,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -153,8 +153,14 @@ class SnapshotBuilderServiceTest {
         .thenReturn(settings);
 
     var concept =
-        new SnapshotBuilderConcept().name("childConcept").id(2).count(1).hasChildren(true);
-    mockRunQueryForGetConcepts(concept("childConcept", 2), dataset, "domainId");
+        new SnapshotBuilderConcept()
+            .name("childConcept")
+            .id(2)
+            .count(1)
+            .hasChildren(true)
+            .code("100")
+            .count(99);
+    mockRunQueryForGetConcepts(concept("childConcept", 2, true), dataset, "domainId");
 
     var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
     assertThat(
@@ -178,6 +184,11 @@ class SnapshotBuilderServiceTest {
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
     when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
+
+    var queryBuilder = mock(SearchConceptsQueryBuilder.class);
+    when(queryBuilderFactory.searchConceptsQueryBuilder()).thenReturn(queryBuilder);
+    when(queryBuilder.buildSearchConceptsQuery(any(), any())).thenReturn(mock(Query.class));
+
     var concept = new SnapshotBuilderConcept().name("concept1").id(1);
     mockRunQueryForSearchConcepts(concept, dataset);
     var response =
@@ -221,6 +232,11 @@ class SnapshotBuilderServiceTest {
   private void mockRunQueryForGetConcepts(
       SnapshotBuilderConcept concept, Dataset dataset, String domainId) {
     mockRunQuery(dataset).thenReturn(List.of(domainId)).thenReturn(List.of(concept));
+  }
+
+  private void mockRunQueryForHierarchy(
+      Dataset dataset, String domainId, List<SnapshotBuilderService.ParentQueryResult> results) {
+    mockRunQuery(dataset).thenReturn(List.of(domainId)).thenReturn(List.copyOf(results));
   }
 
   private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Dataset dataset) {
@@ -324,9 +340,10 @@ class SnapshotBuilderServiceTest {
   @Test
   void testParentQueryResult() throws Exception {
     var resultSet = mock(ResultSet.class);
-    when(resultSet.getInt(HierarchyQueryBuilder.PARENT_ID)).thenReturn(1);
-    when(resultSet.getInt(HierarchyQueryBuilder.CONCEPT_ID)).thenReturn(2);
-    when(resultSet.getString(HierarchyQueryBuilder.CONCEPT_NAME)).thenReturn("name");
+    when(resultSet.getInt(QueryBuilderFactory.PARENT_ID)).thenReturn(1);
+    when(resultSet.getInt(Concept.CONCEPT_ID)).thenReturn(2);
+    when(resultSet.getString(Concept.CONCEPT_NAME)).thenReturn("name");
+    when(resultSet.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(true);
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(resultSet));
 
     var fieldValueList =
@@ -334,35 +351,27 @@ class SnapshotBuilderServiceTest {
             List.of(
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "1"),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2"),
-                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "name")),
-            Field.of(HierarchyQueryBuilder.PARENT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(HierarchyQueryBuilder.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
-            Field.of(HierarchyQueryBuilder.CONCEPT_NAME, StandardSQLTypeName.STRING));
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "name"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "100"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "99"),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "true")),
+            Field.of(QueryBuilderFactory.PARENT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(Concept.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
+            Field.of(Concept.CONCEPT_NAME, StandardSQLTypeName.STRING),
+            Field.of(Concept.CONCEPT_CODE, StandardSQLTypeName.STRING),
+            Field.of(QueryBuilderFactory.COUNT, StandardSQLTypeName.NUMERIC),
+            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL));
 
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
   }
 
-  static SnapshotBuilderConcept concept(String name, int id) {
-    return new SnapshotBuilderConcept().name(name).id(id).count(1).hasChildren(true);
-  }
-
-  private <T> void mockRunQueryForHierarchy(CloudPlatform cloudPlatform, List<T> results) {
-    CloudPlatformWrapper.of(cloudPlatform)
-        .choose(
-            () ->
-                when(
-                    bigQueryDatasetPdao.runQuery(
-                        any(),
-                        any(),
-                        argThat(
-                            (ArgumentMatcher<BigQueryDatasetPdao.Converter<T>>) Objects::nonNull))),
-            () ->
-                when(
-                    azureSynapsePdao.runQuery(
-                        any(),
-                        argThat(
-                            (ArgumentMatcher<AzureSynapsePdao.Converter<T>>) Objects::nonNull))))
-        .thenReturn(results);
+  static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {
+    return new SnapshotBuilderConcept()
+        .name(name)
+        .id(id)
+        .count(99)
+        .hasChildren(hasChildren)
+        .code("100");
   }
 
   @ParameterizedTest
@@ -373,17 +382,23 @@ class SnapshotBuilderServiceTest {
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
     var queryBuilder = mock(HierarchyQueryBuilder.class);
     when(queryBuilderFactory.hierarchyQueryBuilder()).thenReturn(queryBuilder);
-    when(queryBuilder.generateQuery(conceptId)).thenReturn(mock(Query.class));
-    var concept1 = concept("concept1", 1);
-    var concept2 = concept("concept2", 2);
-    var concept3 = concept("concept3", 3);
+    when(queryBuilderFactory.conceptChildrenQueryBuilder())
+        .thenReturn(mock(ConceptChildrenQueryBuilder.class, Mockito.RETURNS_DEEP_STUBS));
+    var domain = new SnapshotBuilderDomainOption();
+    domain.setName("domain");
+    var settings = new SnapshotBuilderSettings().domainOptions(List.of(domain));
+    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
+        .thenReturn(settings);
+    when(queryBuilder.generateQuery(domain, conceptId)).thenReturn(mock(Query.class));
+    var concept1 = concept("concept1", 1, true);
+    var concept2 = concept("concept2", 2, false);
+    var concept3 = concept("concept3", 3, false);
     var results =
         List.of(
-            new SnapshotBuilderService.ParentQueryResult(0, concept1.getId(), concept1.getName()),
-            new SnapshotBuilderService.ParentQueryResult(0, concept2.getId(), concept2.getName()),
-            new SnapshotBuilderService.ParentQueryResult(
-                concept1.getId(), concept3.getId(), concept3.getName()));
-    mockRunQueryForHierarchy(platform, results);
+            createResult(0, concept1),
+            createResult(0, concept2),
+            createResult(concept1.getId(), concept3));
+    mockRunQueryForHierarchy(dataset, domain.getName(), results);
     assertThat(
         snapshotBuilderService.getConceptHierarchy(dataset.getId(), conceptId, TEST_USER),
         equalTo(
@@ -396,5 +411,16 @@ class SnapshotBuilderServiceTest {
                         new SnapshotBuilderParentConcept()
                             .parentId(concept1.getId())
                             .children(List.of(concept3))))));
+  }
+
+  private static SnapshotBuilderService.ParentQueryResult createResult(
+      int parentId, SnapshotBuilderConcept concept) {
+    return new SnapshotBuilderService.ParentQueryResult(
+        parentId,
+        concept.getId(),
+        concept.getName(),
+        concept.getCode(),
+        concept.getCount(),
+        concept.isHasChildren());
   }
 }

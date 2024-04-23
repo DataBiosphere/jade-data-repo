@@ -17,6 +17,7 @@ import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
+import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -33,13 +34,14 @@ class CriteriaQueryBuilderTest {
 
   @BeforeEach
   void setup() {
-    criteriaQueryBuilder = new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS);
+    criteriaQueryBuilder =
+        new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS);
   }
 
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForRangeCriteria(SqlRenderContext context) {
-    SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
+    SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateYearOfBirthRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(rangeCriteria);
 
     assertThat(
@@ -51,19 +53,20 @@ class CriteriaQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForListCriteria(SqlRenderContext context) {
-    SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of(0, 1, 2));
+    SnapshotBuilderProgramDataListCriteria listCriteria =
+        generateEthnicityListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace("p.ethnicity IN (0,1,2)"));
+        equalToCompressingWhiteSpace("p.ethnicity_concept_id IN (0,1,2)"));
   }
 
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForListCriteriaWithEmptyValues(SqlRenderContext context) {
-    SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of());
+    SnapshotBuilderProgramDataListCriteria listCriteria = generateEthnicityListCriteria(List.of());
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
     assertThat(
@@ -75,20 +78,21 @@ class CriteriaQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForDomainCriteria(SqlRenderContext context) {
-    SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
+    SnapshotBuilderDomainCriteria domainCriteria =
+        generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
 
+    String expectedSql =
+        "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE c0.ancestor_concept_id = 0)";
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
+        equalToCompressingWhiteSpace(expectedSql));
   }
 
   @Test
   void generateFilterForDomainCriteriaThrowsIfGivenUnknownDomain() {
-    SnapshotBuilderDomainCriteria domainCriteria =
-        (SnapshotBuilderDomainCriteria) generateDomainCriteria().id(1000);
+    SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria(1000);
     assertThrows(
         BadRequestException.class,
         () -> criteriaQueryBuilder.generateFilter(domainCriteria),
@@ -98,7 +102,8 @@ class CriteriaQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterIdentifiesDomainCriteria(SqlRenderContext context) {
-    SnapshotBuilderCriteria criteria = generateDomainCriteria();
+    SnapshotBuilderCriteria criteria =
+        generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     String sql = filterVariable.renderSQL(context);
@@ -106,13 +111,13 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         sql,
         equalToCompressingWhiteSpace(
-            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0))"));
+            "p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c  JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id WHERE c0.ancestor_concept_id = 0)"));
   }
 
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterIdentifiesRangeCriteria(SqlRenderContext context) {
-    SnapshotBuilderCriteria criteria = generateRangeCriteria();
+    SnapshotBuilderCriteria criteria = generateYearOfBirthRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     assertThat(
@@ -124,13 +129,13 @@ class CriteriaQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterIdentifiesListCriteria(SqlRenderContext context) {
-    SnapshotBuilderCriteria criteria = generateListCriteria(List.of(0, 1, 2));
+    SnapshotBuilderCriteria criteria = generateEthnicityListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(context),
-        is("p.ethnicity IN (0,1,2)"));
+        is("p.ethnicity_concept_id IN (0,1,2)"));
   }
 
   @ParameterizedTest
@@ -138,7 +143,10 @@ class CriteriaQueryBuilderTest {
   void generateAndOrFilterForCriteriaGroupHandlesMeetAllTrue(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
+            .criteria(
+                List.of(
+                    generateEthnicityListCriteria(List.of(0, 1, 2)),
+                    generateYearOfBirthRangeCriteria()))
             .meetAll(true);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
@@ -147,7 +155,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
+            "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
@@ -155,7 +163,10 @@ class CriteriaQueryBuilderTest {
   void generateAndOrFilterForCriteriaGroupHandlesMeetAllFalse(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
+            .criteria(
+                List.of(
+                    generateEthnicityListCriteria(List.of(0, 1, 2)),
+                    generateYearOfBirthRangeCriteria()))
             .meetAll(false);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
@@ -163,7 +174,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(p.ethnicity IN (0,1,2) OR (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
+            "(p.ethnicity_concept_id IN (0,1,2) OR (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
@@ -171,7 +182,10 @@ class CriteriaQueryBuilderTest {
   void generateFilterForCriteriaGroupHandlesMustMeetTrue(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
+            .criteria(
+                List.of(
+                    generateEthnicityListCriteria(List.of(0, 1, 2)),
+                    generateYearOfBirthRangeCriteria()))
             .meetAll(true)
             .mustMeet(true);
     FilterVariable filterVariable =
@@ -181,7 +195,7 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
+            "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
   }
 
   @ParameterizedTest
@@ -189,7 +203,10 @@ class CriteriaQueryBuilderTest {
   void generateFilterForCriteriaGroupHandlesMustMeetFalse(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
-            .criteria(List.of(generateListCriteria(List.of(0, 1, 2)), generateRangeCriteria()))
+            .criteria(
+                List.of(
+                    generateEthnicityListCriteria(List.of(0, 1, 2)),
+                    generateYearOfBirthRangeCriteria()))
             .meetAll(true)
             .mustMeet(false);
     FilterVariable filterVariable =
@@ -199,95 +216,95 @@ class CriteriaQueryBuilderTest {
         "The sql generated is correct",
         filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(NOT (p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)))"));
+            "(NOT (p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)))"));
   }
 
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateFilterForCriteriaGroups(SqlRenderContext context) {
     FilterVariable filterVariable =
-        new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS)
-            .generateFilterForCriteriaGroups(
-                List.of(
-                    new SnapshotBuilderCriteriaGroup()
-                        .criteria(List.of(generateRangeCriteria()))
-                        .meetAll(true)
-                        .mustMeet(true),
-                    new SnapshotBuilderCriteriaGroup()
-                        .criteria(List.of(generateListCriteria(List.of(0, 1, 2))))
-                        .meetAll(true)
-                        .mustMeet(true)));
+        criteriaQueryBuilder.generateFilterForCriteriaGroups(
+            List.of(
+                new SnapshotBuilderCriteriaGroup()
+                    .criteria(List.of(generateYearOfBirthRangeCriteria()))
+                    .meetAll(true)
+                    .mustMeet(true),
+                new SnapshotBuilderCriteriaGroup()
+                    .criteria(List.of(generateEthnicityListCriteria(List.of(0, 1, 2))))
+                    .meetAll(true)
+                    .mustMeet(true)));
 
     assertThat(
         "The sql generated is correct",
         filterVariable.renderSQL(context),
         equalToCompressingWhiteSpace(
-            "(((p.year_of_birth >= 0 AND p.year_of_birth <= 100)) AND (p.ethnicity IN (0,1,2)))"));
+            "(((p.year_of_birth >= 0 AND p.year_of_birth <= 100)) AND (p.ethnicity_concept_id IN (0,1,2)))"));
   }
 
   @ParameterizedTest
   @ArgumentsSource(QueryTestUtils.Contexts.class)
   void generateRollupCountsQueryForCriteriaGroupsList(SqlRenderContext context) {
     Query query =
-        new CriteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS)
-            .generateRollupCountsQueryForCriteriaGroupsList(
+        criteriaQueryBuilder.generateRollupCountsQueryForCriteriaGroupsList(
+            List.of(
                 List.of(
-                    List.of(
-                        new SnapshotBuilderCriteriaGroup()
-                            .criteria(
-                                List.of(
-                                    generateDomainCriteria(),
-                                    generateListCriteria(List.of(0, 1, 2)),
-                                    generateRangeCriteria(),
-                                    generateDomainCriteria().id(11)))
-                            .meetAll(true)
-                            .mustMeet(true))));
-    // FIXME: is query correct? It doesn't contain the concept IDs 11 and 10.
+                    new SnapshotBuilderCriteriaGroup()
+                        .criteria(
+                            List.of(
+                                generateDomainCriteria(
+                                    SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID),
+                                generateEthnicityListCriteria(List.of(0, 1, 2)),
+                                generateYearOfBirthRangeCriteria(),
+                                generateDomainCriteria(
+                                    SnapshotBuilderTestData.PROCEDURE_OCCURRENCE_DOMAIN_ID)))
+                        .meetAll(true)
+                        .mustMeet(true))));
+    String expectedSql =
+        """
+      SELECT COUNT(DISTINCT p.person_id)
+          FROM person AS p
+          WHERE (((p.person_id IN (SELECT c.person_id
+            FROM condition_occurrence AS c
+            JOIN concept_ancestor AS c0
+              ON c0.descendant_concept_id = c.condition_concept_id
+            WHERE c0.ancestor_concept_id = 0) AND
+              p.ethnicity_concept_id IN (0,1,2)
+              AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)
+              AND p.person_id IN (SELECT p0.person_id
+            FROM procedure_occurrence AS p0
+              JOIN concept_ancestor AS c1
+              ON c1.descendant_concept_id = p0.procedure_concept_id
+            WHERE c1.ancestor_concept_id = 0))))
+    """;
     assertThat(
         "The sql generated is correct",
         query.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            """
-                SELECT COUNT(DISTINCT p.person_id)
-                  FROM person AS p
-                  WHERE (((p.person_id IN (SELECT c.person_id
-                    FROM condition_occurrence AS c
-                    JOIN concept_ancestor AS c0
-                      ON c0.ancestor_concept_id = c.condition_concept_id
-                    WHERE (c.condition_concept_id = 0 OR c0.ancestor_concept_id = 0)) AND
-                         p.ethnicity IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100) AND
-                         p.person_id IN (SELECT p0.person_id
-                    FROM procedure_occurrence AS p0
-                     JOIN concept_ancestor AS c1
-                     ON c1.ancestor_concept_id = p0.procedure_concept_id
-                    WHERE (p0.procedure_concept_id = 0 OR c1.ancestor_concept_id = 0)))))"""));
+        equalToCompressingWhiteSpace(expectedSql));
   }
 
-  private static SnapshotBuilderDomainCriteria generateDomainCriteria() {
+  private static SnapshotBuilderDomainCriteria generateDomainCriteria(int domainId) {
     return (SnapshotBuilderDomainCriteria)
         new SnapshotBuilderDomainCriteria()
             .conceptId(0)
-            .id(10)
-            .name("domain_column_name")
+            .id(domainId)
             .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN);
   }
 
-  private static SnapshotBuilderProgramDataRangeCriteria generateRangeCriteria() {
+  private static SnapshotBuilderProgramDataRangeCriteria generateYearOfBirthRangeCriteria() {
     return (SnapshotBuilderProgramDataRangeCriteria)
         new SnapshotBuilderProgramDataRangeCriteria()
             .low(0)
             .high(100)
             .id(1)
-            .name("range_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.RANGE);
   }
 
-  private static SnapshotBuilderProgramDataListCriteria generateListCriteria(List<Integer> values) {
+  private static SnapshotBuilderProgramDataListCriteria generateEthnicityListCriteria(
+      List<Integer> values) {
     return (SnapshotBuilderProgramDataListCriteria)
         new SnapshotBuilderProgramDataListCriteria()
             .values(values)
             .id(2)
-            .name("list_column_name")
             .kind(SnapshotBuilderCriteria.KindEnum.LIST);
   }
 }

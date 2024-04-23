@@ -2,24 +2,19 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import com.google.cloud.bigquery.FieldValueList;
 
 public class AggregateBQQueryResultsUtils {
-  // TODO - pull real values for hasChildren and count
   public static SnapshotBuilderConcept toConcept(FieldValueList row) {
-    int count;
-    try {
-      count =
-          SnapshotBuilderService.fuzzyLowCount(
-              (int) row.get("count").getLongValue()); // If exists, use its value
-    } catch (IllegalArgumentException e) {
-      count = 1;
-    }
     return new SnapshotBuilderConcept()
-        .id((int) (row.get("concept_id").getLongValue()))
-        .name(row.get("concept_name").getStringValue())
-        .hasChildren(true)
-        .count(count);
+        .id((int) (row.get(Concept.CONCEPT_ID).getLongValue()))
+        .name(row.get(Concept.CONCEPT_NAME).getStringValue())
+        .code(row.get(Concept.CONCEPT_CODE).getStringValue())
+        .hasChildren(row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue())
+        .count(
+            SnapshotBuilderService.fuzzyLowCount(
+                (int) row.get(QueryBuilderFactory.COUNT).getLongValue()));
   }
 
   public static int toCount(FieldValueList row) {
@@ -27,6 +22,6 @@ public class AggregateBQQueryResultsUtils {
   }
 
   public static String toDomainId(FieldValueList row) {
-    return row.get("domain_id").getStringValue();
+    return row.get(Concept.DOMAIN_ID).getStringValue();
   }
 }

@@ -1,2 +1,2 @@
-data-repo-client>=1.313
+data-repo-client>=2.43.0
 google-cloud-bigquery

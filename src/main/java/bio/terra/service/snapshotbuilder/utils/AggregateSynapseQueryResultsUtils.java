@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.utils;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -20,20 +21,15 @@ public class AggregateSynapseQueryResultsUtils {
     }
   }
 
-  // TODO - pull real values for hasChildren and count
   public static SnapshotBuilderConcept toConcept(ResultSet rs) {
-    int count;
-    try {
-      count = SnapshotBuilderService.fuzzyLowCount((int) rs.getLong("count"));
-    } catch (SQLException | IllegalArgumentException e) {
-      count = 1;
-    }
-
     return new SnapshotBuilderConcept()
-        .name(getField(rs::getString, "concept_name"))
-        .id(getField(rs::getLong, "concept_id").intValue())
-        .hasChildren(true)
-        .count(count);
+        .name(getField(rs::getString, Concept.CONCEPT_NAME))
+        .id(getField(rs::getLong, Concept.CONCEPT_ID).intValue())
+        .hasChildren(getField(rs::getBoolean, QueryBuilderFactory.HAS_CHILDREN))
+        .code(getField(rs::getString, Concept.CONCEPT_CODE))
+        .count(
+            SnapshotBuilderService.fuzzyLowCount(
+                getField(rs::getLong, QueryBuilderFactory.COUNT).intValue()));
   }
 
   public static int toCount(ResultSet rs) {
@@ -48,6 +44,6 @@ public class AggregateSynapseQueryResultsUtils {
   }
 
   public static String toDomainId(ResultSet rs) {
-    return getField(rs::getString, "domain_id");
+    return getField(rs::getString, Concept.DOMAIN_ID);
   }
 }

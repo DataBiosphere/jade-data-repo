@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,7 +50,11 @@ class FieldVariableTest {
     var tableVariable = TableVariable.forPrimary(table);
 
     var fieldVariable =
-        new FieldVariable(new FieldPointer(table, "field", "COUNT"), tableVariable, "count", true);
+        new FieldVariable(
+            new FieldPointer(table, "field", "COUNT"),
+            tableVariable,
+            QueryBuilderFactory.COUNT,
+            true);
 
     assertThat(fieldVariable.renderSQL(context), is("COUNT(DISTINCT t.field) AS count"));
   }

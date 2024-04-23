@@ -26,6 +26,10 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.Observation;
+import bio.terra.service.snapshotbuilder.utils.constants.Person;
+import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,14 +80,22 @@ public class SnapshotBuilderTestData {
     return rangeOption;
   }
 
+  public static final int CONDITION_OCCURRENCE_DOMAIN_ID = 10;
+  public static final int PROCEDURE_OCCURRENCE_DOMAIN_ID = 11;
+  public static final int OBSERVATION_DOMAIN_ID = 12;
+  public static final int YEAR_OF_BIRTH_PROGRAM_DATA_ID = 1;
+  public static final int ETHNICITY_PROGRAM_DATA_ID = 2;
+  public static final int GENDER_PROGRAM_DATA_ID = 3;
+  public static final int RACE_PROGRAM_DATA_ID = 4;
+
   public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
           .domainOptions(
               List.of(
                   generateSnapshotBuilderDomainOption(
-                      10,
-                      "condition_occurrence",
-                      "condition_concept_id",
+                      CONDITION_OCCURRENCE_DOMAIN_ID,
+                      ConditionOccurrence.TABLE_NAME,
+                      ConditionOccurrence.CONDITION_CONCEPT_ID,
                       "Condition",
                       new SnapshotBuilderConcept()
                           .id(100)
@@ -91,9 +103,9 @@ public class SnapshotBuilderTestData {
                           .count(100)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
-                      11,
-                      "procedure_occurrence",
-                      "procedure_concept_id",
+                      PROCEDURE_OCCURRENCE_DOMAIN_ID,
+                      ProcedureOccurrence.TABLE_NAME,
+                      ProcedureOccurrence.PROCEDURE_CONCEPT_ID,
                       "Procedure",
                       new SnapshotBuilderConcept()
                           .id(200)
@@ -101,9 +113,9 @@ public class SnapshotBuilderTestData {
                           .count(100)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
-                      12,
-                      "observation",
-                      "observation_concept_id",
+                      OBSERVATION_DOMAIN_ID,
+                      Observation.TABLE_NAME,
+                      Observation.OBSERVATION_CONCEPT_ID,
                       "Observation",
                       new SnapshotBuilderConcept()
                           .id(300)
@@ -113,23 +125,28 @@ public class SnapshotBuilderTestData {
           .programDataOptions(
               List.of(
                   generateSnapshotBuilderProgramDataRangeOption(
-                      1, "person", "year_of_birth", "Year of birth", 0, 100),
+                      YEAR_OF_BIRTH_PROGRAM_DATA_ID,
+                      Person.TABLE_NAME,
+                      Person.YEAR_OF_BIRTH,
+                      "Year of birth",
+                      0,
+                      100),
                   generateSnapshotBuilderProgramDataListOption(
-                      2,
-                      "person",
-                      "ethnicity",
+                      ETHNICITY_PROGRAM_DATA_ID,
+                      Person.TABLE_NAME,
+                      Person.ETHNICITY_CONCEPT_ID,
                       "Ethnicity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(40).name("unused"))),
                   generateSnapshotBuilderProgramDataListOption(
-                      3,
-                      "person",
-                      "gender_identity",
+                      GENDER_PROGRAM_DATA_ID,
+                      Person.TABLE_NAME,
+                      Person.GENDER_CONCEPT_ID,
                       "Gender Identity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(41).name("unused 2"))),
                   generateSnapshotBuilderProgramDataListOption(
-                      4,
-                      "person",
-                      "race",
+                      RACE_PROGRAM_DATA_ID,
+                      Person.TABLE_NAME,
+                      Person.RACE_CONCEPT_ID,
                       "Race",
                       List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
           .featureValueGroups(
@@ -163,13 +180,19 @@ public class SnapshotBuilderTestData {
           .tables(
               List.of(
                   new DatasetTable()
-                      .name("person")
+                      .name(Person.TABLE_NAME)
                       .columns(
                           List.of(
-                              new Column().name("race").type(TableDataType.INTEGER),
-                              new Column().name("gender_identity").type(TableDataType.INTEGER),
-                              new Column().name("ethnicity").type(TableDataType.INTEGER),
-                              new Column().name("year_of_birth").type(TableDataType.INTEGER)))));
+                              new Column().name(Person.RACE_CONCEPT_ID).type(TableDataType.INTEGER),
+                              new Column()
+                                  .name(Person.GENDER_CONCEPT_ID)
+                                  .type(TableDataType.INTEGER),
+                              new Column()
+                                  .name(Person.ETHNICITY_CONCEPT_ID)
+                                  .type(TableDataType.INTEGER),
+                              new Column()
+                                  .name(Person.YEAR_OF_BIRTH)
+                                  .type(TableDataType.INTEGER)))));
 
   public static SnapshotBuilderCohort createCohort() {
 

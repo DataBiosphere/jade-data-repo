@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
@@ -55,6 +56,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
@@ -395,13 +397,10 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(concept3.getCount(), is(24));
     assertThat(concepts.size(), is(2));
 
-    // Test searchConcepts
-    //    var searchConceptResponse =
-    //        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");
-    //    List<String> searchConceptNames =
-    //
-    // searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    //    assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
+    var searchConceptResponse = dataRepoFixtures.searchConcepts(steward, datasetId, 19, "concept1");
+    List<String> searchConceptNames =
+        searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
   }
 
   @Test

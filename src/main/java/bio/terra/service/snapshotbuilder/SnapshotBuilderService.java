@@ -27,26 +27,29 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
-import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
 
-  public static final String CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE =
-      "Cloud platform not implemented";
+  private static final Logger logger = LoggerFactory.getLogger(SnapshotBuilderService.class);
+
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final DatasetService datasetService;
@@ -82,21 +85,22 @@ public class SnapshotBuilderService {
       BigQueryDatasetPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
     String sql = query.renderSQL(createContext(dataset, userRequest));
-    return CloudPlatformWrapper.of(dataset.getCloudPlatform())
-        .choose(
-            () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
-            () -> azureSynapsePdao.runQuery(sql, synapseConverter));
+    Instant start = Instant.now();
+    List<T> result =
+        CloudPlatformWrapper.of(dataset.getCloudPlatform())
+            .choose(
+                () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
+                () -> azureSynapsePdao.runQuery(sql, synapseConverter));
+    logger.info(
+        "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
+    return result;
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
 
-    // domain is needed to join with the domain specific occurrence table
-    // this does not work for the metadata domain
-    String domainId = getDomainId(conceptId, dataset, userRequest);
-    SnapshotBuilderDomainOption domainOption =
-        getDomainOptionFromSettingsByName(domainId, datasetId);
+    SnapshotBuilderDomainOption domainOption = getDomainOption(conceptId, dataset, userRequest);
 
     Query query =
         queryBuilderFactory
@@ -165,8 +169,10 @@ public class SnapshotBuilderService {
                         "Invalid domain category is given: %s".formatted(domainId)));
 
     Query query =
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            snapshotBuilderDomainOption, searchText);
+        queryBuilderFactory
+            .searchConceptsQueryBuilder()
+            .buildSearchConceptsQuery(snapshotBuilderDomainOption, searchText);
+
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             query,
@@ -246,26 +252,44 @@ public class SnapshotBuilderService {
     return enumerateModel;
   }
 
-  record ParentQueryResult(int parentId, int childId, String childName) {
+  record ParentQueryResult(
+      int parentId, int childId, String childName, String code, int count, boolean hasChildren) {
     ParentQueryResult(ResultSet rs) throws SQLException {
       this(
-          rs.getInt(HierarchyQueryBuilder.PARENT_ID),
-          rs.getInt(HierarchyQueryBuilder.CONCEPT_ID),
-          rs.getString(HierarchyQueryBuilder.CONCEPT_NAME));
+          rs.getInt(QueryBuilderFactory.PARENT_ID),
+          rs.getInt(Concept.CONCEPT_ID),
+          rs.getString(Concept.CONCEPT_NAME),
+          rs.getString(Concept.CONCEPT_CODE),
+          rs.getInt(QueryBuilderFactory.COUNT),
+          rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN));
     }
 
     ParentQueryResult(FieldValueList row) {
       this(
-          (int) row.get(HierarchyQueryBuilder.PARENT_ID).getLongValue(),
-          (int) row.get(HierarchyQueryBuilder.CONCEPT_ID).getLongValue(),
-          row.get(HierarchyQueryBuilder.CONCEPT_NAME).getStringValue());
+          (int) row.get(QueryBuilderFactory.PARENT_ID).getLongValue(),
+          (int) row.get(Concept.CONCEPT_ID).getLongValue(),
+          row.get(Concept.CONCEPT_NAME).getStringValue(),
+          row.get(Concept.CONCEPT_CODE).getStringValue(),
+          (int) row.get(QueryBuilderFactory.COUNT).getLongValue(),
+          row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue());
+    }
+
+    SnapshotBuilderConcept toConcept() {
+      return new SnapshotBuilderConcept()
+          .id(childId)
+          .name(childName)
+          .hasChildren(hasChildren)
+          .code(code)
+          .count(SnapshotBuilderService.fuzzyLowCount(count));
     }
   }
 
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
       UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
-    var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(conceptId);
+
+    var domainOption = getDomainOption(conceptId, dataset, userRequest);
+    var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(domainOption, conceptId);
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
     runSnapshotBuilderQuery(
@@ -279,17 +303,20 @@ public class SnapshotBuilderService {
                           new SnapshotBuilderParentConcept()
                               .parentId(k)
                               .children(new ArrayList<>()));
-              parent.addChildrenItem(
-                  new SnapshotBuilderConcept()
-                      .id(row.childId)
-                      .name(row.childName)
-                      .hasChildren(true)
-                      .count(1));
+              parent.addChildrenItem(row.toConcept());
             });
     if (parents.isEmpty()) {
       throw new BadRequestException("No parents found for concept %s".formatted(conceptId));
     }
 
     return new SnapshotBuilderGetConceptHierarchyResponse().result(List.copyOf(parents.values()));
+  }
+
+  private SnapshotBuilderDomainOption getDomainOption(
+      int conceptId, Dataset dataset, AuthenticatedUserRequest userRequest) {
+    // domain is needed to join with the domain specific occurrence table
+    // this does not work for the metadata domain
+    String domainId = getDomainId(conceptId, dataset, userRequest);
+    return getDomainOptionFromSettingsByName(domainId, dataset.getId());
   }
 }

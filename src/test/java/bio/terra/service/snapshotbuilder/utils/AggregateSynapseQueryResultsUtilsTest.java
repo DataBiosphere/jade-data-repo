@@ -7,15 +7,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
+import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class AggregateSynapseQueryResultsUtilsTest {
   @Test
@@ -43,22 +42,45 @@ class AggregateSynapseQueryResultsUtilsTest {
   @Test
   void toDomainIdReturnsString() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString("domain_id")).thenReturn("domain_id");
+    when(rs.getString(Concept.DOMAIN_ID)).thenReturn(Concept.DOMAIN_ID);
 
     assertThat(
         "domainId converts table result to a string",
         AggregateSynapseQueryResultsUtils.toDomainId(rs),
-        equalTo("domain_id"));
+        equalTo(Concept.DOMAIN_ID));
   }
 
   @Test
   void toDomainIdHandlesSQLException() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
-    when(rs.getString("domain_id")).thenThrow(new SQLException());
+    when(rs.getString(Concept.DOMAIN_ID)).thenThrow(new SQLException());
 
     assertThrows(
         ProcessResultSetException.class,
         () -> AggregateSynapseQueryResultsUtils.toDomainId(rs),
         "Error processing result set into String domain ID");
+  }
+
+  @Test
+  void toConcept() throws Exception {
+    var expected =
+        new SnapshotBuilderConcept()
+            .name(Concept.CONCEPT_NAME)
+            .id(1)
+            .hasChildren(true)
+            .count(100)
+            .code("99");
+
+    ResultSet rs = mock(ResultSet.class);
+    when(rs.getLong(QueryBuilderFactory.COUNT)).thenReturn((long) expected.getCount());
+    when(rs.getString(Concept.CONCEPT_NAME)).thenReturn(expected.getName());
+    when(rs.getLong(Concept.CONCEPT_ID)).thenReturn((long) expected.getId());
+    when(rs.getString(Concept.CONCEPT_CODE)).thenReturn(expected.getCode());
+    when(rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
+
+    assertThat(
+        "toConcept converts table result to SnapshotBuilderConcept",
+        AggregateSynapseQueryResultsUtils.toConcept(rs),
+        equalTo(expected));
   }
 }

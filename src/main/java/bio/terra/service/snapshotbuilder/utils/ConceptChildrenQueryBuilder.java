@@ -24,6 +24,7 @@ public class ConceptChildrenQueryBuilder {
   private static final String DOMAIN_ID = "domain_id";
   private static final String CONCEPT_ID = "concept_id";
   private static final String CONCEPT_NAME = "concept_name";
+  public static final String CONCEPT_CODE = "concept_code";
   private static final String STANDARD_CONCEPT = "standard_concept";
   private static final String ANCESTOR_CONCEPT_ID = "ancestor_concept_id";
   private static final String DESCENDANT_CONCEPT_ID = "descendant_concept_id";
@@ -48,6 +49,7 @@ public class ConceptChildrenQueryBuilder {
     TableVariable concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
     FieldVariable conceptName = concept.makeFieldVariable(CONCEPT_NAME);
     FieldVariable conceptId = concept.makeFieldVariable(CONCEPT_ID);
+    FieldVariable conceptCode = concept.makeFieldVariable(CONCEPT_CODE);
 
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id.
     // We use concept_ancestor for the rollup count because we want to include counts
@@ -60,7 +62,7 @@ public class ConceptChildrenQueryBuilder {
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
     TableVariable domainOccurrence =
-        TableVariable.forJoined(
+        TableVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
             descendantConceptId);
@@ -68,11 +70,17 @@ public class ConceptChildrenQueryBuilder {
     // COUNT(DISTINCT person_id)
     FieldVariable count = domainOccurrence.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
 
-    List<SelectExpression> select = List.of(conceptName, conceptId, count);
+    List<SelectExpression> select =
+        List.of(
+            conceptName,
+            conceptId,
+            conceptCode,
+            count,
+            HierarchyQueryBuilder.hasChildrenExpression(conceptId));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
-    List<FieldVariable> groupBy = List.of(conceptName, conceptId);
+    List<FieldVariable> groupBy = List.of(conceptName, conceptId, conceptCode);
 
     List<OrderByVariable> orderBy =
         List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING));

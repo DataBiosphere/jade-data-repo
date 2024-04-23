@@ -15,14 +15,14 @@
     ],
     "upload_prefix": "gs://jade-testdata-useastregion/V2F_GWAS_Summary_Statistics",
     "format": "array",
-    "stewards": ["JadeStewards-dev@dev.test.firecloud.org"],
+    "stewards": ["DataRepoTestResourceAccess@dev.test.firecloud.org"],
     "custodians": [],
     "snapshot_creators": [],
     "snapshots": [
       {
         "name": "V2FGWASSummaryStatisticsSnapshot",
         "description": "Test Sansphot",
-        "readers": ["JadeStewards-dev@dev.test.firecloud.org"]
+        "readers": ["DataRepoTestResourceAccess@dev.test.firecloud.org"]
       }
     ]
   },
@@ -34,6 +34,6 @@
     "format": "array",
     "stewards": [],
     "custodians": [],
-    "snapshot_creators": ["JadeStewards-dev@dev.test.firecloud.org"]
+    "snapshot_creators": ["DataRepoTestResourceAccess@dev.test.firecloud.org"]
   }
 ]

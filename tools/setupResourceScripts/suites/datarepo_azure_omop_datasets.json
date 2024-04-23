@@ -5,16 +5,14 @@
       "cloud_platform": "azure",
       "tables": ["person","procedure_occurrence","condition_occurrence", "drug_exposure", "domain", "concept", "concept_ancestor"],
       "format": "array",
-      "stewards": ["DataRepoAdmins@dev.test.firecloud.org"],
+      "stewards": [],
       "custodians": [],
       "snapshot_creators": [],
       "snapshots": [
         {
           "name": "Azure_OMOP_Snapshot",
           "description": "Test Azure Snapshot with OMOP data",
-          "readers": [
-            "DataRepoTestResourceAccess@dev.test.firecloud.org"
-          ]
+          "readers": []
         }
       ],
       "snapshotBuilderSettings": "dataset_snapshot_builder_settings.json"

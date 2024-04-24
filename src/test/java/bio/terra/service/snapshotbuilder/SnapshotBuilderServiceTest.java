@@ -34,6 +34,7 @@ import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
@@ -57,6 +58,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -296,8 +298,9 @@ class SnapshotBuilderServiceTest {
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups))
         .thenReturn(query);
     String sql = "sql";
-    // Not verified: creation of context based on dataset's cloud platform.
-    when(query.renderSQL(any())).thenReturn(sql);
+    // Use a captor to verify that the context was created using the dataset's cloud platform.
+    var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);
+    when(query.renderSQL(contextArgument.capture())).thenReturn(sql);
     var count = 5;
     when(azureSynapsePdao.runQuery(eq(sql), any())).thenReturn(List.of(count));
     int rollupCount =
@@ -305,6 +308,9 @@ class SnapshotBuilderServiceTest {
             dataset.getId(), criteriaGroups, TEST_USER);
     assertThat(
         "rollup count should be response from stubbed query runner", rollupCount, equalTo(count));
+    assertThat(
+        contextArgument.getValue().getPlatform().getCloudPlatform(),
+        is(dataset.getCloudPlatform()));
   }
 
   @ParameterizedTest

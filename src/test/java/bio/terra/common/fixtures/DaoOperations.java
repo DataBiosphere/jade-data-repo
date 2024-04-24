@@ -42,7 +42,7 @@ public class DaoOperations {
     this.snapshotService = snapshotService;
   }
 
-  public Dataset createMinimalDataset() throws IOException {
+  public Dataset createDataset(String path) throws IOException {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     BillingProfileModel billingProfile =
         profileDao.createBillingProfile(profileRequest, "testUser");
@@ -51,12 +51,31 @@ public class DaoOperations {
     UUID projectId = resourceDao.createProject(projectResource);
     projectResource.id(projectId);
 
-    return createMinimalDataset(billingProfile.getId(), projectId);
+    return createDataset(billingProfile.getId(), projectId, path);
   }
 
-  public Snapshot createSnapshotFromDataset(Dataset dataset) throws IOException {
+  public Dataset createDataset(UUID billingProfileId, UUID projectResourceId, String path)
+      throws IOException {
+    DatasetRequestModel datasetRequest = jsonLoader.loadObject(path, DatasetRequestModel.class);
+    String newName = datasetRequest.getName() + UUID.randomUUID();
+    datasetRequest
+        .name(newName)
+        .defaultProfileId(billingProfileId)
+        .cloudPlatform(CloudPlatform.GCP);
+    Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+    dataset.projectResourceId(projectResourceId);
+    String createFlightId = UUID.randomUUID().toString();
+    UUID datasetId = UUID.randomUUID();
+    dataset.id(datasetId);
+    datasetDao.createAndLock(dataset, createFlightId);
+    datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+    return datasetDao.retrieve(datasetId);
+  }
+
+  public Snapshot createSnapshotFromDataset(Dataset dataset, String snapshotPath)
+      throws IOException {
     SnapshotRequestModel snapshotRequest =
-        jsonLoader.loadObject("snapshot-from-dataset-minimal.json", SnapshotRequestModel.class);
+        jsonLoader.loadObject(snapshotPath, SnapshotRequestModel.class);
 
     String newName = snapshotRequest.getName() + UUID.randomUUID();
     snapshotRequest.name(newName).profileId(dataset.getDefaultProfileId());
@@ -71,25 +90,5 @@ public class DaoOperations {
     snapshotDao.createAndLock(snapshot, createFlightId);
     snapshotDao.unlock(snapshot.getId(), createFlightId);
     return snapshotDao.retrieveSnapshot(snapshot.getId());
-  }
-
-  public Dataset createMinimalDataset(UUID billingProfileId, UUID projectResourceId)
-      throws IOException {
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
-    String newName = datasetRequest.getName() + UUID.randomUUID();
-    datasetRequest
-        .name(newName)
-        .defaultProfileId(billingProfileId)
-        .cloudPlatform(CloudPlatform.GCP);
-    Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-    dataset.projectResourceId(projectResourceId);
-    String createFlightId = UUID.randomUUID().toString();
-    UUID datasetId = UUID.randomUUID();
-    dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
-    datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-
-    return dataset;
   }
 }

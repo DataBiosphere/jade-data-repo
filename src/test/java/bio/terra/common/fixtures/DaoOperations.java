@@ -72,7 +72,7 @@ public class DaoOperations {
     return datasetDao.retrieve(datasetId);
   }
 
-  public Snapshot createSnapshotFromDataset(Dataset dataset, String snapshotPath)
+  public SnapshotRequestModel createSnapshotRequestFromDataset(Dataset dataset, String snapshotPath)
       throws IOException {
     SnapshotRequestModel snapshotRequest =
         jsonLoader.loadObject(snapshotPath, SnapshotRequestModel.class);
@@ -81,14 +81,28 @@ public class DaoOperations {
     snapshotRequest.name(newName).profileId(dataset.getDefaultProfileId());
     snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
+    return snapshotRequest;
+  }
+
+  public Snapshot createSnapshotFromSnapshotRequest(
+      SnapshotRequestModel snapshotRequest, UUID projectResourceId) {
     Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
     snapshot.id(UUID.randomUUID());
-    snapshot.projectResourceId(dataset.getProjectResourceId());
+    snapshot.projectResourceId(projectResourceId);
+    return snapshot;
+  }
 
+  public Snapshot ingestSnapshot(Snapshot snapshot) {
     String createFlightId = UUID.randomUUID().toString();
-
     snapshotDao.createAndLock(snapshot, createFlightId);
     snapshotDao.unlock(snapshot.getId(), createFlightId);
     return snapshotDao.retrieveSnapshot(snapshot.getId());
+  }
+
+  public Snapshot createAndIngestSnapshot(Dataset dataset, String snapshotPath) throws IOException {
+    SnapshotRequestModel snapshotRequest = createSnapshotRequestFromDataset(dataset, snapshotPath);
+    Snapshot snapshot =
+        createSnapshotFromSnapshotRequest(snapshotRequest, dataset.getProjectResourceId());
+    return ingestSnapshot(snapshot);
   }
 }

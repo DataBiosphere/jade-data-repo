@@ -128,10 +128,7 @@ public class SnapshotDaoTest {
     profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
-        jsonLoader
-            .loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
-            .profileId(profileId);
-    snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
+        daoOperations.createSnapshotRequestFromDataset(dataset, "snapshot-test-snapshot.json");
 
     snapshotIds = new ArrayList<>();
     datasetIds = new ArrayList<>();
@@ -161,23 +158,13 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {
-    UUID snapshotId = UUID.randomUUID();
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(request)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-
-    String createFlightId = UUID.randomUUID().toString();
-
-    return insertAndRetrieveSnapshot(snapshot, createFlightId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, projectId);
+    return insertAndRetrieveSnapshot(snapshot);
   }
 
-  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
-    snapshotDao.createAndLock(snapshot, flightId);
-    snapshotDao.unlock(snapshot.getId(), flightId);
+  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot) {
     snapshotIds.add(snapshot.getId());
-    return snapshotDao.retrieveSnapshot(snapshot.getId());
+    return daoOperations.ingestSnapshot(snapshot);
   }
 
   @Test
@@ -192,12 +179,8 @@ public class SnapshotDaoTest {
   public void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(UUID.randomUUID());
-    Snapshot fromDb = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot fromDb = insertAndRetrieveSnapshot(snapshot);
     assertThat("snapshot name set correctly", fromDb.getName(), equalTo(snapshot.getName()));
 
     assertThat(
@@ -811,13 +794,8 @@ public class SnapshotDaoTest {
     String properties =
         "{\"projectName\":\"project\", " + "\"authors\": [\"harry\", \"ron\", \"hermionie\"]}";
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).properties(properties);
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(UUID.randomUUID());
-    String flightId = UUID.randomUUID().toString();
-    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, flightId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot);
     assertThat(
         "snapshot properties set correctly",
         fromDB.getProperties(),

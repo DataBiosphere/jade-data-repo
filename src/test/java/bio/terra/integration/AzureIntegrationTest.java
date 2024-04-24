@@ -2,7 +2,6 @@ package bio.terra.integration;
 
 import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
@@ -19,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
-import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -57,6 +55,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
@@ -74,7 +73,6 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility;
 import bio.terra.service.filedata.google.util.GcsBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -108,6 +106,7 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -140,12 +139,9 @@ public class AzureIntegrationTest extends UsersBase {
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
-  @Autowired private SynapseUtils synapseUtils;
-  @Autowired private AzureSynapsePdao azureSynapsePdao;
   @Autowired private JsonLoader jsonLoader;
   @Rule @Autowired public TestJobWatcher testWatcher;
 
-  private String stewardToken;
   private User steward;
   private User admin;
   private UUID datasetId;
@@ -153,7 +149,6 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID profileId;
   private AzureBlobIOTestUtility azureBlobIOTestUtility;
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
-  private RequestRetryOptions retryOptions;
   private Set<String> storageAccounts;
 
   @Before
@@ -161,11 +156,10 @@ public class AzureIntegrationTest extends UsersBase {
     super.setup(false);
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
-    stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
     admin = admin("hermione");
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
-    retryOptions =
+    RequestRetryOptions retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
             azureResourceConfiguration.maxRetries(),
@@ -384,23 +378,47 @@ public class AzureIntegrationTest extends UsersBase {
   public void testSnapshotBuilder() throws Exception {
     populateOmopTable();
 
-    // Test getConcepts
+    var concept1 =
+        new SnapshotBuilderConcept().name("concept1").id(1).count(22).code("11").hasChildren(false);
+    var concept3 =
+        new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
+
+    getConceptChildrenTest(concept1, concept3);
+    searchConceptTest(concept1);
+    getConceptHierarchyTest(concept1, concept3);
+  }
+
+  private void searchConceptTest(SnapshotBuilderConcept concept1) throws Exception {
+    var searchConceptsResult =
+        dataRepoFixtures.searchConcepts(steward, datasetId, 19, concept1.getName());
+    // A concept returned by search concepts always has hasChildren = true, even if it doesn't
+    // have children.
+    var concept1WithChildren =
+        new SnapshotBuilderConcept()
+            .name(concept1.getName())
+            .id(concept1.getId())
+            .count(concept1.getCount())
+            .code(concept1.getCode())
+            .hasChildren(true);
+    assertThat(searchConceptsResult.getResult(), CoreMatchers.is(List.of(concept1WithChildren)));
+  }
+
+  private void getConceptHierarchyTest(
+      SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
+    var searchConceptsResult = dataRepoFixtures.getConceptHierarchy(steward, datasetId, 3);
+    assertThat(
+        searchConceptsResult.getResult(),
+        CoreMatchers.is(
+            List.of(
+                new SnapshotBuilderParentConcept()
+                    .parentId(2)
+                    .children(List.of(concept1, concept3)))));
+  }
+
+  private void getConceptChildrenTest(
+      SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
     var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
-    var concepts = getConceptResponse.getResult();
-
-    var concept1 = concepts.get(0);
-    var concept3 = concepts.get(1);
-
-    assertThat(concept1.getId(), is(1));
-    assertThat(concept1.getCount(), is(22));
-    assertThat(concept3.getId(), is(3));
-    assertThat(concept3.getCount(), is(24));
-    assertThat(concepts.size(), is(2));
-
-    var searchConceptResponse = dataRepoFixtures.searchConcepts(steward, datasetId, 19, "concept1");
-    List<String> searchConceptNames =
-        searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
+    assertThat(getConceptResponse.getResult(), CoreMatchers.is(List.of(concept1, concept3)));
   }
 
   @Test

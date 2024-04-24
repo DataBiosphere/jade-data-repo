@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
-import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -60,7 +60,7 @@ class HierarchyQueryBuilderTest {
       ORDER BY c.concept_name ASC""";
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateQuery(SqlRenderContext context) {
     var query =
         new HierarchyQueryBuilder()

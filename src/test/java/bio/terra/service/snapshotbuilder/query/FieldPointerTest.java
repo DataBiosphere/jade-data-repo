@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class FieldPointerTest {
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildVariable(SqlRenderContext context) {
     TablePointer table = TablePointer.fromTableName("table");
     var fieldPointer = FieldPointer.allFields(table);
@@ -24,7 +24,7 @@ class FieldPointerTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildVariableForeign(SqlRenderContext context) {
     TablePointer table = TablePointer.fromTableName("table");
     var fieldPointer = FieldPointer.foreignColumn(table, "column");

@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
-import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class HavingFilterVariableTest {
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQL(SqlRenderContext context) {
     HavingFilterVariable having =
         new HavingFilterVariable(BinaryFilterVariable.BinaryOperator.GREATER_THAN, 1);

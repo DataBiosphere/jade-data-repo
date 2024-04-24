@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
-import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
@@ -65,7 +65,7 @@ class ConceptChildrenQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildConceptChildrenQuery(SqlRenderContext context) {
     String sql =
         new QueryBuilderFactory()
@@ -78,7 +78,7 @@ class ConceptChildrenQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildGetDomainIdQuery(SqlRenderContext context) {
     String sql =
         new QueryBuilderFactory()

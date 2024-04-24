@@ -16,7 +16,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class FieldVariableTest {
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQL(SqlRenderContext context) {
     var table = TablePointer.fromTableName("table");
 
@@ -45,7 +45,7 @@ class FieldVariableTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLForAliasAndDistinct(SqlRenderContext context) {
     var table = TablePointer.fromTableName("table");
     var tableVariable = TableVariable.forPrimary(table);
@@ -68,7 +68,7 @@ class FieldVariableTest {
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
     assertThat(
         fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(
-            false, SqlRenderContextTest.createContext(CloudPlatform.GCP)),
+            false, SqlRenderContextProvider.of(CloudPlatform.GCP)),
         is("foo(t.field) AS alias"));
   }
 

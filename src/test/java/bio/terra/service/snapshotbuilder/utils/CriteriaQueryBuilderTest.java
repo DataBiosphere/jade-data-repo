@@ -16,7 +16,7 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
-import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +39,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterForRangeCriteria(SqlRenderContext context) {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(rangeCriteria);
@@ -51,7 +51,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterForListCriteria(SqlRenderContext context) {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
@@ -63,7 +63,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterForListCriteriaWithEmptyValues(SqlRenderContext context) {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria(List.of());
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
@@ -75,7 +75,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterForDomainCriteria(SqlRenderContext context) {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
@@ -99,7 +99,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterIdentifiesDomainCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria = generateDomainCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
@@ -113,7 +113,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterIdentifiesRangeCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria = generateRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
@@ -125,7 +125,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterIdentifiesListCriteria(SqlRenderContext context) {
     SnapshotBuilderCriteria criteria = generateListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
@@ -137,7 +137,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateAndOrFilterForCriteriaGroupHandlesMeetAllTrue(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
@@ -154,7 +154,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateAndOrFilterForCriteriaGroupHandlesMeetAllFalse(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
@@ -170,7 +170,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterForCriteriaGroupHandlesMustMeetTrue(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
@@ -188,7 +188,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterForCriteriaGroupHandlesMustMeetFalse(SqlRenderContext context) {
     SnapshotBuilderCriteriaGroup criteriaGroup =
         new SnapshotBuilderCriteriaGroup()
@@ -206,7 +206,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateFilterForCriteriaGroups(SqlRenderContext context) {
     FilterVariable filterVariable =
         new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS)
@@ -229,7 +229,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateRollupCountsQueryForCriteriaGroupsList(SqlRenderContext context) {
     Query query =
         new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS)

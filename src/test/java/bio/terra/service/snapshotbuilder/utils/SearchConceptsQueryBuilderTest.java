@@ -9,7 +9,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
-import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
@@ -31,7 +31,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildSearchConceptsQuery(SqlRenderContext context) {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Observation", 27, "observation", "observation_concept_id");
@@ -115,7 +115,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
@@ -152,7 +152,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
     TableVariable conceptTableVariable =
@@ -173,7 +173,7 @@ class SearchConceptsQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
     TableVariable conceptTableVariable =
         TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));

@@ -6,45 +6,21 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
-import java.util.Arrays;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
 
 @Tag(Unit.TAG)
-public class SqlRenderContextTest {
-
-  public static SqlRenderContext createContext(CloudPlatform cloudPlatform) {
-    return new SqlRenderContext(x -> x, CloudPlatformWrapper.of(cloudPlatform)) {
-      @Override
-      public String toString() {
-        // Overridden to improve the display of a context in the test run output.
-        return cloudPlatform.toString();
-      }
-    };
-  }
-
-  public static class Contexts implements ArgumentsProvider {
-    @Override
-    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-      return Arrays.stream(CloudPlatform.values())
-          .map(SqlRenderContextTest::createContext)
-          .map(Arguments::of);
-    }
-  }
+class SqlRenderContextTest {
 
   @Test
   void getTableName() {
-    var context = createContext(CloudPlatform.GCP);
+    var context = SqlRenderContextProvider.of(CloudPlatform.GCP);
     assertThat(context.getTableName("table"), is("table"));
   }
 
   @Test
   void getPlatform() {
-    var context = createContext(CloudPlatform.GCP);
+    var context = SqlRenderContextProvider.of(CloudPlatform.GCP);
     assertThat(context.getPlatform(), is(CloudPlatformWrapper.of(CloudPlatform.GCP)));
   }
 
@@ -58,7 +34,7 @@ public class SqlRenderContextTest {
 
   @Test
   void getAlias() {
-    var context = createContext(CloudPlatform.GCP);
+    var context = SqlRenderContextProvider.of(CloudPlatform.GCP);
     var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
     assertThat(context.getAlias(tableVariable), is("t"));
     assertThat(context.getAlias(tableVariable), is("t"));

@@ -48,13 +48,13 @@ public class QueryTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQL(SqlRenderContext context) {
     assertThat(createQuery().renderSQL(context), is("SELECT t.* FROM table AS t"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLWithLimit(SqlRenderContext context) {
     String query = "t.* FROM table AS t";
     String expected =
@@ -63,7 +63,7 @@ public class QueryTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSqlGroupBy(SqlRenderContext context) {
     TablePointer tablePointer = TablePointer.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
@@ -74,7 +74,7 @@ public class QueryTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextTest.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderComplexSQL(SqlRenderContext context) {
     TablePointer tablePointer = TablePointer.fromTableName(Person.TABLE_NAME);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);

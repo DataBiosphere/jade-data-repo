@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
-import bio.terra.service.snapshotbuilder.query.SqlRenderContextTest;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +16,7 @@ class NotFilterVariableTest {
   void renderSQL() {
     assertThat(
         new NotFilterVariable((context) -> "filter")
-            .renderSQL(SqlRenderContextTest.createContext(CloudPlatform.AZURE)),
+            .renderSQL(SqlRenderContextProvider.of(CloudPlatform.AZURE)),
         is("(NOT filter)"));
   }
 }

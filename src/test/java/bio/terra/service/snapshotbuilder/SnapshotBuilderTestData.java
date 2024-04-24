@@ -80,12 +80,20 @@ public class SnapshotBuilderTestData {
     return rangeOption;
   }
 
+  public static final int CONDITION_OCCURRENCE_DOMAIN_ID = 10;
+  public static final int PROCEDURE_OCCURRENCE_DOMAIN_ID = 11;
+  public static final int OBSERVATION_DOMAIN_ID = 12;
+  public static final int YEAR_OF_BIRTH_PROGRAM_DATA_ID = 1;
+  public static final int ETHNICITY_PROGRAM_DATA_ID = 2;
+  public static final int GENDER_PROGRAM_DATA_ID = 3;
+  public static final int RACE_PROGRAM_DATA_ID = 4;
+
   public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
           .domainOptions(
               List.of(
                   generateSnapshotBuilderDomainOption(
-                      10,
+                      CONDITION_OCCURRENCE_DOMAIN_ID,
                       ConditionOccurrence.TABLE_NAME,
                       ConditionOccurrence.CONDITION_CONCEPT_ID,
                       "Condition",
@@ -95,7 +103,7 @@ public class SnapshotBuilderTestData {
                           .count(100)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
-                      11,
+                      PROCEDURE_OCCURRENCE_DOMAIN_ID,
                       ProcedureOccurrence.TABLE_NAME,
                       ProcedureOccurrence.PROCEDURE_CONCEPT_ID,
                       "Procedure",
@@ -105,7 +113,7 @@ public class SnapshotBuilderTestData {
                           .count(100)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
-                      12,
+                      OBSERVATION_DOMAIN_ID,
                       Observation.TABLE_NAME,
                       Observation.OBSERVATION_CONCEPT_ID,
                       "Observation",
@@ -117,21 +125,26 @@ public class SnapshotBuilderTestData {
           .programDataOptions(
               List.of(
                   generateSnapshotBuilderProgramDataRangeOption(
-                      1, Person.TABLE_NAME, Person.YEAR_OF_BIRTH, "Year of birth", 0, 100),
+                      YEAR_OF_BIRTH_PROGRAM_DATA_ID,
+                      Person.TABLE_NAME,
+                      Person.YEAR_OF_BIRTH,
+                      "Year of birth",
+                      0,
+                      100),
                   generateSnapshotBuilderProgramDataListOption(
-                      2,
+                      ETHNICITY_PROGRAM_DATA_ID,
                       Person.TABLE_NAME,
                       Person.ETHNICITY_CONCEPT_ID,
                       "Ethnicity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(40).name("unused"))),
                   generateSnapshotBuilderProgramDataListOption(
-                      3,
+                      GENDER_PROGRAM_DATA_ID,
                       Person.TABLE_NAME,
                       Person.GENDER_CONCEPT_ID,
                       "Gender Identity",
                       List.of(new SnapshotBuilderProgramDataListItem().id(41).name("unused 2"))),
                   generateSnapshotBuilderProgramDataListOption(
-                      4,
+                      RACE_PROGRAM_DATA_ID,
                       Person.TABLE_NAME,
                       Person.RACE_CONCEPT_ID,
                       "Race",

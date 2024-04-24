@@ -36,9 +36,13 @@ class SqlRenderContextTest {
   void getAlias() {
     var context = SqlRenderContextProvider.of(CloudPlatform.GCP);
     var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
-    assertThat(context.getAlias(tableVariable), is("t"));
-    assertThat(context.getAlias(tableVariable), is("t"));
+    assertThat("first call generates a new alias", context.getAlias(tableVariable), is("t"));
+    assertThat(
+        "second call should find the alias in the cache", context.getAlias(tableVariable), is("t"));
     var tableVariable2 = TableVariable.forPrimary(TablePointer.fromTableName("table2"));
-    assertThat(context.getAlias(tableVariable2), is("t1"));
+    assertThat(
+        "table with the same prefix generates a new alias",
+        context.getAlias(tableVariable2),
+        is("t1"));
   }
 }

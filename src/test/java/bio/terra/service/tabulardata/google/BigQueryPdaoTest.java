@@ -5,7 +5,6 @@ import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -29,6 +28,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -86,8 +86,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
 
 @RunWith(SpringRunner.class)
@@ -287,61 +289,111 @@ public class BigQueryPdaoTest {
     }
   }
 
-  private void ingestTable(
-      Dataset dataset, String tableName, String ingestFile, int expectedRowCount) throws Exception {
-    List<Map<String, Object>> data =
-        jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
-    var ingestRequestArray =
-        new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.ARRAY)
-            .ignoreUnknownValues(false)
-            .maxBadRecords(0)
-            .table(tableName)
-            .records(List.of(data.toArray()));
-    connectedOperations.ingestTableSuccess(dataset.getId(), ingestRequestArray);
-    connectedOperations.checkTableRowCount(dataset, tableName, PDAO_PREFIX, expectedRowCount);
+  record IngestSource(String tableName, String ingestFile, int expectedRowCount) {}
+
+  static final List<IngestSource> TABLES =
+      List.of(
+          new IngestSource("concept", "omop/concept-table-data.jsonl", 7),
+          new IngestSource("relationship", "omop/relationship.jsonl", 2),
+          new IngestSource("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10),
+          new IngestSource(
+              "condition_occurrence", "omop/condition-occurrence-table-data.jsonl", 53),
+          new IngestSource(
+              "concept_relationship", "omop/concept-relationship-table-data.jsonl", 4));
+
+  class Ingester {
+    private final IngestSource source;
+    private MvcResult result;
+
+    Ingester(IngestSource source) {
+      this.source = source;
+    }
+
+    void ingest(Dataset dataset) throws Exception {
+      String tableName = source.tableName();
+      List<Map<String, Object>> data =
+          jsonLoader.loadObjectAsStream(source.ingestFile(), new TypeReference<>() {});
+      var ingestRequestArray =
+          new IngestRequestModel()
+              .format(IngestRequestModel.FormatEnum.ARRAY)
+              .ignoreUnknownValues(false)
+              .maxBadRecords(0)
+              .table(tableName)
+              .records(List.of(data.toArray()));
+      result = connectedOperations.ingestTableRaw(dataset.getId(), ingestRequestArray, null);
+    }
+
+    void waitForCompletion(Dataset dataset) throws Exception {
+      MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+      connectedOperations.checkIngestTableResponse(response);
+      connectedOperations.checkTableRowCount(
+          dataset, source.tableName, PDAO_PREFIX, source.expectedRowCount());
+    }
   }
 
   private Dataset stageOmopDataset() throws Exception {
-    Dataset dataset = readDataset("omop/it-dataset-omop.json");
-    SnapshotBuilderSettings settings = readSettings("omop/settings.json");
+    Dataset dataset = readDataset("omop/it-dataset-omop.jsonl");
+    var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
     settingsDao.upsertSnapshotBuilderSettingsByDataset(dataset.getId(), settings);
 
     // Stage tabular data for ingest.
-    ingestTable(dataset, "concept", "omop/concept-table-data.json", 7);
-    ingestTable(dataset, "relationship", "omop/relationship.json", 2);
-    ingestTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 10);
-    ingestTable(dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 53);
-    ingestTable(dataset, "concept_relationship", "omop/concept-relationship-table-data.json", 4);
-
+    var ingesters = TABLES.stream().map(Ingester::new).toList();
+    for (Ingester ingester : ingesters) {
+      ingester.ingest(dataset);
+    }
+    for (Ingester ingester : ingesters) {
+      ingester.waitForCompletion(dataset);
+    }
     return dataset;
-  }
-
-  private SnapshotBuilderSettings readSettings(String file) throws IOException {
-    return jsonLoader.loadObject(file, SnapshotBuilderSettings.class);
   }
 
   @Test
   public void snapshotBuilderQuery() throws Exception {
+    // Since stageOmopDataset takes > 1 min to run, we test all concept APIs in one test.
     var dataset = stageOmopDataset();
-    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
-    var concepts = conceptResponse.getResult();
-    assertThat(concepts.size(), is(equalTo(2)));
-    var concept1 = concepts.get(0);
-    var concept3 = concepts.get(1);
+    var concept1 =
+        new SnapshotBuilderConcept().name("concept1").id(1).count(22).code("11").hasChildren(false);
+    var concept3 =
+        new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
+    getConceptChildrenTest(dataset, concept1, concept3);
+    searchConceptTest(dataset, concept1);
+    getConceptHierarchyTest(dataset, concept1, concept3);
+  }
 
-    assertThat(concept1.getId(), is(equalTo(1)));
-    assertThat(concept1.getCount(), is(equalTo(22)));
-    assertThat(concept3.getId(), is(equalTo(3)));
-    assertThat(concept3.getCount(), is(equalTo(24)));
-
+  private void searchConceptTest(Dataset dataset, SnapshotBuilderConcept concept1) {
     var searchConceptsResult =
-        snapshotBuilderService.searchConcepts(dataset.getId(), 19, "concept1", TEST_USER);
-    List<String> searchConceptNames =
-        searchConceptsResult.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat(searchConceptNames, contains("concept1"));
+        snapshotBuilderService.searchConcepts(dataset.getId(), 19, concept1.getName(), TEST_USER);
+    // A concept returned by search concepts always has hasChildren = true, even if it doesn't
+    // have children.
+    var concept1WithChildren =
+        new SnapshotBuilderConcept()
+            .name(concept1.getName())
+            .id(concept1.getId())
+            .count(concept1.getCount())
+            .code(concept1.getCode())
+            .hasChildren(true);
+    assertThat(searchConceptsResult.getResult(), is(List.of(concept1WithChildren)));
+  }
+
+  private void getConceptHierarchyTest(
+      Dataset dataset, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
+    var searchConceptsResult =
+        snapshotBuilderService.getConceptHierarchy(dataset.getId(), 3, TEST_USER);
+    assertThat(
+        searchConceptsResult.getResult(),
+        is(
+            List.of(
+                new SnapshotBuilderParentConcept()
+                    .parentId(2)
+                    .children(List.of(concept1, concept3)))));
+  }
+
+  private void getConceptChildrenTest(
+      Dataset dataset, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
+    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
+    assertThat(conceptResponse.getResult(), is(List.of(concept1, concept3)));
   }
 
   @Test

@@ -27,16 +27,14 @@ class BinaryFilterVariableTest {
         new BinaryFilterVariable(
             createField(), BinaryFilterVariable.BinaryOperator.LESS_THAN, new Literal(1234));
     assertThat(
-        filter.renderSQL(SqlRenderContextProvider.of(CloudPlatform.AZURE)),
-        is("t.column < 1234"));
+        filter.renderSQL(SqlRenderContextProvider.of(CloudPlatform.AZURE)), is("t.column < 1234"));
   }
 
   @Test
   void equals() {
     var filter = BinaryFilterVariable.equals(createField(), new Literal("foo"));
     assertThat(
-        filter.renderSQL(SqlRenderContextProvider.of(CloudPlatform.AZURE)),
-        is("t.column = 'foo'"));
+        filter.renderSQL(SqlRenderContextProvider.of(CloudPlatform.AZURE)), is("t.column = 'foo'"));
   }
 
   @Test

@@ -37,13 +37,13 @@ class SnapshotBuilderSettingsDaoTest {
     dataset = daoOperations.createMinimalDataset();
     snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
         dataset.getId(), SnapshotBuilderTestData.SETTINGS);
-    snapshot = daoOperations.createMinimalSnapshot();
+    snapshot = daoOperations.createSnapshotFromDataset(dataset);
     snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsBySnapshotId(
-        dataset.getId(), SnapshotBuilderTestData.SETTINGS);
+        snapshot.getId(), SnapshotBuilderTestData.SETTINGS);
   }
 
   @Test
-  void getSnapshotBuilderSettingsReturnsSettings() {
+  void getSettingsByDatasetIdReturnsSettings() {
     assertThat(
         "Snapshot builder settings should be the same as the example",
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()),
@@ -51,7 +51,7 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void getSnapshotBuilderBySnapshotIdSettingsReturnsSettings() {
+  void getSettingsBySnapshotIdReturnsSettings() {
     assertThat(
         "Snapshot builder settings should be the same as the example",
         snapshotBuilderSettingsDao.getSnapshotBuilderSettingsBySnapshotId(snapshot.getId()),
@@ -59,7 +59,7 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void getSnapshotBuilderSettingsForDatasetThatDoesNotExistErrors() {
+  void getSettingsForDatasetThatDoesNotExistErrors() {
     UUID unusedUUID = UUID.randomUUID();
     assertThrows(
         NotFoundException.class,
@@ -67,7 +67,7 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void getSnapshotBuilderSettingsForSnapshotThatDoesNotExistErrors() {
+  void getSettingsForSnapshotThatDoesNotExistErrors() {
     UUID unusedUUID = UUID.randomUUID();
     assertThrows(
         NotFoundException.class,
@@ -75,7 +75,7 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void upsertSnapshotBuilderSettingsUpdatesWhenExisting() {
+  void upsertSettingsByDatasetIdUpdatesWhenExisting() {
     assertThat(
         "Snapshot builder settings should be the new upserted value",
         snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
@@ -84,7 +84,7 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void upsertSnapshotBuilderSettingsBySnapshotIdUpdatesWhenExisting() {
+  void upsertSettingsBySnapshotIdUpdatesWhenExisting() {
     assertThat(
         "Snapshot builder settings should be the new upserted value",
         snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsBySnapshotId(
@@ -93,7 +93,7 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void upsertSnapshotBuilderSettingsCreatesWhenNotExisting() {
+  void upsertSettingsByDatasetIdCreatesWhenNotExisting() {
     snapshotBuilderSettingsDao.deleteByDatasetId(dataset.getId());
     assertThat(
         "Snapshot builder settings should be the same as the example",
@@ -103,7 +103,7 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void upsertSnapshotBuilderSettingsBySnapshotIdCreatesWhenNotExisting() {
+  void upsertSettingsBySnapshotIdCreatesWhenNotExisting() {
     snapshotBuilderSettingsDao.deleteBySnapshotId(snapshot.getId());
     assertThat(
         "Snapshot builder settings should be the same as the example",
@@ -113,11 +113,20 @@ class SnapshotBuilderSettingsDaoTest {
   }
 
   @Test
-  void deleteSnapshotBuilderSettingsBySnapshotId() {
+  void deleteSettingsByDatasetId() {
+    snapshotBuilderSettingsDao.deleteByDatasetId(dataset.getId());
+    assertThrows(
+        NotFoundException.class,
+        () -> snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(snapshot.getId()),
+        "There are no snapshot builder settings for the snapshot");
+  }
+
+  @Test
+  void deleteSettingsBySnapshotId() {
     snapshotBuilderSettingsDao.deleteBySnapshotId(snapshot.getId());
-    assertThat(
-        "Snapshot builder settings should be the same as the example",
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsBySnapshotId(snapshot.getId()),
-        equalTo(null));
+    assertThrows(
+        NotFoundException.class,
+        () -> snapshotBuilderSettingsDao.getSnapshotBuilderSettingsBySnapshotId(snapshot.getId()),
+        "There are no snapshot builder settings for the snapshot");
   }
 }

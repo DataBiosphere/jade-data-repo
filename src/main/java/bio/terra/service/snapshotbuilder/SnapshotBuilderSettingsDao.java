@@ -98,7 +98,7 @@ public class SnapshotBuilderSettingsDao {
             + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_snapshot_id_key"
             + " DO UPDATE SET settings = cast(:settings as jsonb)",
         Map.of(snapshotIdField, snapshotId, "settings", jsonValue));
-    return getSnapshotBuilderSettingsByDatasetId(snapshotId);
+    return getSnapshotBuilderSettingsBySnapshotId(snapshotId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

@@ -19,13 +19,13 @@ class ConceptChildrenQueryBuilderTest {
   private static final String GCP_EXPECTED =
       """
       SELECT c.concept_name, c.concept_id, c.concept_code,
-             COUNT(DISTINCT co.person_id) AS count,
-             EXISTS (SELECT 1
-               FROM concept_ancestor AS ca
-                        JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
-               WHERE (ca.ancestor_concept_id = c.concept_id AND
-                      ca.descendant_concept_id != c.concept_id AND c1.standard_concept = 'S'))
-             AS has_children
+        COUNT(DISTINCT co.person_id) AS count,
+        EXISTS (SELECT 1
+          FROM concept_ancestor AS ca
+                   JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
+          WHERE (ca.ancestor_concept_id = c.concept_id AND
+                 ca.descendant_concept_id != c.concept_id AND c1.standard_concept = 'S'))
+        AS has_children
       FROM concept AS c
         JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = c.concept_id
         LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
@@ -38,13 +38,13 @@ class ConceptChildrenQueryBuilderTest {
   private static final String AZURE_EXPECTED =
       """
       SELECT c.concept_name, c.concept_id, c.concept_code,
-             COUNT(DISTINCT co.person_id) AS count,
-             CASE WHEN EXISTS (SELECT 1
-               FROM concept_ancestor AS ca
-                        JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
-               WHERE (ca.ancestor_concept_id = c.concept_id AND
-                      ca.descendant_concept_id != c.concept_id AND c1.standard_concept = 'S'))
-             THEN 1 ELSE 0 END AS has_children
+        COUNT(DISTINCT co.person_id) AS count,
+        CASE WHEN EXISTS (SELECT 1
+          FROM concept_ancestor AS ca
+                   JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
+          WHERE (ca.ancestor_concept_id = c.concept_id AND
+                 ca.descendant_concept_id != c.concept_id AND c1.standard_concept = 'S'))
+        THEN 1 ELSE 0 END AS has_children
       FROM concept AS c
         JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = c.concept_id
         LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id

@@ -1,0 +1,6 @@
+{ "person_id": 100, "gender_concept_id": 0, "year_of_birth": 1950, "month_of_birth": 3, "day_of_birth": 15, "birth_datetime": "1950-03-15 00:00:00.000",  "race_concept_id": 8516, "ethnicity_concept_id": 38003563 }
+{ "person_id": 101, "gender_concept_id": 0, "year_of_birth": 1990, "month_of_birth": 3, "day_of_birth": 15, "birth_datetime": "1990-03-15 00:00:00.000",  "race_concept_id": 8516, "ethnicity_concept_id": 38003563 }
+{ "person_id": 102, "gender_concept_id": 8532, "year_of_birth": 1950, "month_of_birth": 3, "day_of_birth": 15, "birth_datetime": "1950-03-15 00:00:00.000",  "race_concept_id": 8516, "ethnicity_concept_id": 38003563 }
+{ "person_id": 103, "gender_concept_id": 0, "year_of_birth": 1950, "month_of_birth": 3, "day_of_birth": 15, "birth_datetime": "1950-03-15 00:00:00.000",  "race_concept_id": 8516, "ethnicity_concept_id": 38003564 }
+{ "person_id": 104, "gender_concept_id": 0, "year_of_birth": 1950, "month_of_birth": 3, "day_of_birth": 15, "birth_datetime": "1950-03-15 00:00:00.000",  "race_concept_id": 8515, "ethnicity_concept_id": 38003563 }
+{ "person_id": 124, "gender_concept_id": 0, "year_of_birth": 1950, "month_of_birth": 3, "day_of_birth": 15, "birth_datetime": "1950-03-15 00:00:00.000",  "race_concept_id": 8516, "ethnicity_concept_id": 38003563 }

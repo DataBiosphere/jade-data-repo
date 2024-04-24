@@ -28,7 +28,13 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteria;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
+import bio.terra.model.SnapshotBuilderDomainCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -311,6 +317,7 @@ public class BigQueryPdaoTest {
 
     // Stage tabular data for ingest.
     ingestTable(dataset, "concept", "omop/concept-table-data.json", 7);
+    ingestTable(dataset, "person", "omop/person-table-data.json", 6);
     ingestTable(dataset, "relationship", "omop/relationship.json", 2);
     ingestTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 10);
     ingestTable(dataset, "condition_occurrence", "omop/condition-occurrence-table-data.json", 53);
@@ -342,6 +349,33 @@ public class BigQueryPdaoTest {
     List<String> searchConceptNames =
         searchConceptsResult.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
     assertThat(searchConceptNames, contains("concept1"));
+
+    var rollupCountsResult =
+        snapshotBuilderService.getCountResponse(dataset.getId(), List.of(
+            new SnapshotBuilderCohort()
+                .criteriaGroups(
+                    List.of(
+                        new SnapshotBuilderCriteriaGroup()
+                            .meetAll(true)
+                            .mustMeet(true)
+                            .criteria(
+                                List.of(
+                                    new SnapshotBuilderProgramDataListCriteria()
+                                        .values(List.of(0))
+                                        .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                                        .id(1),
+                                    new SnapshotBuilderProgramDataRangeCriteria()
+                                        .high(1960)
+                                        .low(1940)
+                                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                                        .id(0),
+                                    new SnapshotBuilderDomainCriteria()
+                                        .conceptId(1)
+                                        .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
+                                        .id(19)))))) , TEST_USER);
+
+    // Count is 19 because of the fuzzy low counts.
+    assertThat(rollupCountsResult.getResult().getTotal(), is(19));
   }
 
   @Test

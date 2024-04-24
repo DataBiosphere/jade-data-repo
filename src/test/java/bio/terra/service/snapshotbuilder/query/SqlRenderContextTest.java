@@ -8,6 +8,8 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @Tag(Unit.TAG)
 class SqlRenderContextTest {
@@ -24,12 +26,10 @@ class SqlRenderContextTest {
     assertThat(context.getPlatform(), is(CloudPlatformWrapper.of(CloudPlatform.GCP)));
   }
 
-  @Test
-  void getDefaultAlias() {
-    assertThat(SqlRenderContext.getDefaultAlias("concept"), is("c"));
-    assertThat(SqlRenderContext.getDefaultAlias("concept_ancestor"), is("ca"));
-    assertThat(SqlRenderContext.getDefaultAlias("concept__ancestor"), is("ca"));
-    assertThat(SqlRenderContext.getDefaultAlias("a_b_c"), is("abc"));
+  @ParameterizedTest
+  @CsvSource({"concept, c", "concept_ancestor, ca", "concept__ancestor, ca", "a_b_c, abc"})
+  void getDefaultAlias(String tableName, String expectedAlias) {
+    assertThat(SqlRenderContext.getDefaultAlias(tableName), is(expectedAlias));
   }
 
   @Test

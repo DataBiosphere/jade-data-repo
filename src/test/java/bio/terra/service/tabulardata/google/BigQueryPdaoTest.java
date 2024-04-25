@@ -367,14 +367,14 @@ public class BigQueryPdaoTest {
         snapshotBuilderService.searchConcepts(dataset.getId(), 19, concept1.getName(), TEST_USER);
     // A concept returned by search concepts always has hasChildren = true, even if it doesn't
     // have children.
-    var concept1WithChildren =
+    var concept =
         new SnapshotBuilderConcept()
             .name(concept1.getName())
             .id(concept1.getId())
             .count(concept1.getCount())
             .code(concept1.getCode())
             .hasChildren(true);
-    assertThat(searchConceptsResult.getResult(), is(List.of(concept1WithChildren)));
+    assertThat(searchConceptsResult.getResult(), is(List.of(concept)));
   }
 
   private void getConceptHierarchyTest(

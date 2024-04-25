@@ -6152,8 +6152,6 @@ components:
           $ref: '#/components/schemas/ObjectNameProperty'
         query:
           type: string
-        date:
-          type: string
       description: >
         A specification of the query to go into a snapshot.
     SnapshotRequestRowIdModel:

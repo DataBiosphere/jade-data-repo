@@ -410,34 +410,36 @@ public class AzureIntegrationTest extends UsersBase {
         searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
     assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
 
-    var rollupCountsResponse =
-        dataRepoFixtures.getRollupCounts(
-            steward,
-            datasetId,
-            new SnapshotBuilderCountRequest()
-                .cohorts(
-                    List.of(
-                        new SnapshotBuilderCohort()
-                            .criteriaGroups(
-                                List.of(
-                                    new SnapshotBuilderCriteriaGroup()
-                                        .meetAll(true)
-                                        .mustMeet(true)
-                                        .criteria(
-                                            List.of(
-                                                new SnapshotBuilderProgramDataListCriteria()
-                                                    .values(List.of(0))
-                                                    .kind(SnapshotBuilderCriteria.KindEnum.LIST)
-                                                    .id(1),
-                                                new SnapshotBuilderProgramDataRangeCriteria()
-                                                    .high(1960)
-                                                    .low(1940)
-                                                    .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
-                                                    .id(0),
-                                                new SnapshotBuilderDomainCriteria()
-                                                    .conceptId(1)
-                                                    .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
-                                                    .id(19))))))));
+    getCountResponseTest();
+  }
+
+  private void getCountResponseTest() throws Exception {
+    SnapshotBuilderCountRequest request =
+        new SnapshotBuilderCountRequest()
+            .cohorts(
+                List.of(
+                    new SnapshotBuilderCohort()
+                        .criteriaGroups(
+                            List.of(
+                                new SnapshotBuilderCriteriaGroup()
+                                    .meetAll(true)
+                                    .mustMeet(true)
+                                    .criteria(
+                                        List.of(
+                                            new SnapshotBuilderProgramDataListCriteria()
+                                                .values(List.of(0))
+                                                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                                                .id(1),
+                                            new SnapshotBuilderProgramDataRangeCriteria()
+                                                .high(1960)
+                                                .low(1940)
+                                                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                                                .id(0),
+                                            new SnapshotBuilderDomainCriteria()
+                                                .conceptId(1)
+                                                .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
+                                                .id(19)))))));
+    var rollupCountsResponse = dataRepoFixtures.getRollupCounts(steward, datasetId, request);
     // Count is 19 because of the fuzzy low counts.
     assertThat(rollupCountsResponse.getResult().getTotal(), is(19));
   }

@@ -350,32 +350,35 @@ public class BigQueryPdaoTest {
         searchConceptsResult.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
     assertThat(searchConceptNames, contains("concept1"));
 
+    getCountResponseTest(dataset);
+  }
+
+  private void getCountResponseTest(Dataset dataset) {
+    List<SnapshotBuilderCohort> cohorts =
+        List.of(
+            new SnapshotBuilderCohort()
+                .criteriaGroups(
+                    List.of(
+                        new SnapshotBuilderCriteriaGroup()
+                            .meetAll(true)
+                            .mustMeet(true)
+                            .criteria(
+                                List.of(
+                                    new SnapshotBuilderProgramDataListCriteria()
+                                        .values(List.of(0))
+                                        .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                                        .id(1),
+                                    new SnapshotBuilderProgramDataRangeCriteria()
+                                        .high(1960)
+                                        .low(1940)
+                                        .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                                        .id(0),
+                                    new SnapshotBuilderDomainCriteria()
+                                        .conceptId(1)
+                                        .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
+                                        .id(19))))));
     var rollupCountsResult =
-        snapshotBuilderService.getCountResponse(
-            dataset.getId(),
-            List.of(
-                new SnapshotBuilderCohort()
-                    .criteriaGroups(
-                        List.of(
-                            new SnapshotBuilderCriteriaGroup()
-                                .meetAll(true)
-                                .mustMeet(true)
-                                .criteria(
-                                    List.of(
-                                        new SnapshotBuilderProgramDataListCriteria()
-                                            .values(List.of(0))
-                                            .kind(SnapshotBuilderCriteria.KindEnum.LIST)
-                                            .id(1),
-                                        new SnapshotBuilderProgramDataRangeCriteria()
-                                            .high(1960)
-                                            .low(1940)
-                                            .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
-                                            .id(0),
-                                        new SnapshotBuilderDomainCriteria()
-                                            .conceptId(1)
-                                            .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
-                                            .id(19)))))),
-            TEST_USER);
+        snapshotBuilderService.getCountResponse(dataset.getId(), cohorts, TEST_USER);
 
     // Count is 19 because of the fuzzy low counts.
     assertThat(rollupCountsResult.getResult().getTotal(), is(19));

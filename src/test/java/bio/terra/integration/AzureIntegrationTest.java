@@ -377,7 +377,7 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestTable("person", "omop/person-table-data.json", 6);
+    ingestTable("person", "omop/person-table-data.json", 23);
     ingestTable("concept", "omop/concept-table-data.json", 7);
     ingestTable("relationship", "omop/relationship.json", 2);
     ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 10);
@@ -411,9 +411,52 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
 
     getCountResponseTest();
+    getCountResponseFuzzyValuesTest();
+    getCountResponseZeroCaseTest();
   }
 
   private void getCountResponseTest() throws Exception {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataListCriteria()
+                .values(List.of(0))
+                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                .id(1),
+            new SnapshotBuilderProgramDataRangeCriteria()
+                .high(1960)
+                .low(1940)
+                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                .id(0),
+            new SnapshotBuilderDomainCriteria()
+                .conceptId(1)
+                .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
+                .id(19));
+    testRollupCountsWithCriteriaAndExpected(criteria, 20);
+  }
+
+  private void getCountResponseZeroCaseTest() throws Exception {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataRangeCriteria()
+                .high(1911)
+                .low(1911)
+                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                .id(0));
+    testRollupCountsWithCriteriaAndExpected(criteria, 0);
+  }
+
+  private void getCountResponseFuzzyValuesTest() throws Exception {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataListCriteria()
+                .values(List.of(8532))
+                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                .id(1));
+    testRollupCountsWithCriteriaAndExpected(criteria, 19);
+  }
+
+  private void testRollupCountsWithCriteriaAndExpected(
+      List<SnapshotBuilderCriteria> criteria, int expectedParticipants) throws Exception {
     SnapshotBuilderCountRequest request =
         new SnapshotBuilderCountRequest()
             .cohorts(
@@ -424,24 +467,9 @@ public class AzureIntegrationTest extends UsersBase {
                                 new SnapshotBuilderCriteriaGroup()
                                     .meetAll(true)
                                     .mustMeet(true)
-                                    .criteria(
-                                        List.of(
-                                            new SnapshotBuilderProgramDataListCriteria()
-                                                .values(List.of(0))
-                                                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
-                                                .id(1),
-                                            new SnapshotBuilderProgramDataRangeCriteria()
-                                                .high(1960)
-                                                .low(1940)
-                                                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
-                                                .id(0),
-                                            new SnapshotBuilderDomainCriteria()
-                                                .conceptId(1)
-                                                .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
-                                                .id(19)))))));
+                                    .criteria(criteria)))));
     var rollupCountsResponse = dataRepoFixtures.getRollupCounts(steward, datasetId, request);
-    // Count is 19 because of the fuzzy low counts.
-    assertThat(rollupCountsResponse.getResult().getTotal(), is(19));
+    assertThat(rollupCountsResponse.getResult().getTotal(), is(expectedParticipants));
   }
 
   @Test

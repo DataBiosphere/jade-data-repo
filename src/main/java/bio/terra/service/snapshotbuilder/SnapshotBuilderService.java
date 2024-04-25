@@ -117,8 +117,7 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
-  @VisibleForTesting
-  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
+  public SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     TableNameGenerator tableNameGenerator =
         CloudPlatformWrapper.of(dataset.getCloudPlatform())

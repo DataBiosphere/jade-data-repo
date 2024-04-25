@@ -170,4 +170,22 @@ public class CriteriaQueryBuilder {
 
     return new Query(List.of(personId), List.of(rootTable), filterVariable);
   }
+
+  public Query generatePersonQueryForCriteriaGroupsList(
+      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
+
+    FieldVariable personId =
+        new FieldVariable(
+            new FieldPointer(getRootTablePointer(), Person.PERSON_ID),
+            rootTable,
+            null,
+            true);
+
+    FilterVariable filterVariable =
+        new BooleanAndOrFilterVariable(
+            BooleanAndOrFilterVariable.LogicalOperator.OR,
+            criteriaGroupsList.stream().map(this::generateFilterForCriteriaGroups).toList());
+
+    return new Query(List.of(personId), List.of(rootTable), filterVariable);
+  }
 }

@@ -33,8 +33,7 @@ public class SqlRenderContext {
   static String getDefaultAlias(String tableName) {
     return Arrays.stream(tableName.split("_"))
         .filter(part -> !part.isEmpty())
-        .map(part -> part.toLowerCase().charAt(0))
-        .map(Object::toString)
+        .map(part -> part.toLowerCase().substring(0, 1))
         .collect(Collectors.joining());
   }
 
@@ -46,10 +45,9 @@ public class SqlRenderContext {
     return aliases.computeIfAbsent(
         tableVariable,
         key -> {
-          // Iterate through all the s and generate a unique alias for each
-          // one. Start with the default alias (= first letter of the table name) and if that's
-          // taken, append successively higher integers until we find one that doesn't conflict with
-          // any other table aliases.
+          // If no alias exists, find the next unused one using the default alias as a base. Append
+          // successively higher integers until we find one that doesn't conflict with any other
+          // table aliases.
           String defaultAlias = getDefaultAlias(key.getTablePointer().tableName());
           String alias = defaultAlias;
           int suffix = 1;

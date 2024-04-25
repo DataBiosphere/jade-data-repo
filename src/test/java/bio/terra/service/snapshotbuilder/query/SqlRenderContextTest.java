@@ -16,14 +16,13 @@ class SqlRenderContextTest {
 
   @Test
   void getTableName() {
-    var context = SqlRenderContextProvider.of(CloudPlatform.GCP);
-    assertThat(context.getTableName("table"), is("table"));
+    assertThat(new SqlRenderContext(x -> "table", null).getTableName(null), is("table"));
   }
 
   @Test
   void getPlatform() {
-    var context = SqlRenderContextProvider.of(CloudPlatform.GCP);
-    assertThat(context.getPlatform(), is(CloudPlatformWrapper.of(CloudPlatform.GCP)));
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(CloudPlatform.GCP);
+    assertThat(new SqlRenderContext(x -> x, platform).getPlatform(), is(platform));
   }
 
   @ParameterizedTest
@@ -34,7 +33,7 @@ class SqlRenderContextTest {
 
   @Test
   void getAlias() {
-    var context = SqlRenderContextProvider.of(CloudPlatform.GCP);
+    var context = new SqlRenderContext(x -> x, null);
     var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
     assertThat("first call generates a new alias", context.getAlias(tableVariable), is("t"));
     assertThat(

@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: addSnapshotId
+      id: add_snapshot_id
       author: rjohanek
       changes:
         - addColumn:

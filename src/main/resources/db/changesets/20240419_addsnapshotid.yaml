@@ -10,8 +10,6 @@ databaseChangeLog:
                   name: snapshot_id
                   type: ${uuid_type}
                   constraints:
-                    nullable: true
-                    unique: true
                     foreignKeyName: fk_snapshot_snapshot_builder_settings
                     references: snapshot(id)
                     deleteCascade: true

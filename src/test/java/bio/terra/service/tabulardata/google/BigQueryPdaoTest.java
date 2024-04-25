@@ -5,6 +5,7 @@ import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -27,6 +28,7 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -334,6 +336,12 @@ public class BigQueryPdaoTest {
     assertThat(concept1.getCount(), is(equalTo(22)));
     assertThat(concept3.getId(), is(equalTo(3)));
     assertThat(concept3.getCount(), is(equalTo(24)));
+
+    var searchConceptsResult =
+        snapshotBuilderService.searchConcepts(dataset.getId(), 19, "concept1", TEST_USER);
+    List<String> searchConceptNames =
+        searchConceptsResult.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
+    assertThat(searchConceptNames, contains("concept1"));
   }
 
   @Test

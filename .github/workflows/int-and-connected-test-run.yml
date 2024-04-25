@@ -188,8 +188,8 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: 0.0.8
-          helm_datarepo_api_chart_version: 0.0.648
-          helm_datarepo_ui_chart_version: 0.0.327
+          helm_datarepo_api_chart_version: 0.0.654
+          helm_datarepo_ui_chart_version: 0.0.329
           helm_gcloud_sqlproxy_chart_version: 0.19.13
           helm_oidc_proxy_chart_version: 0.0.44
       - name: "Fetch gitHash for deployed integration version"
@@ -240,7 +240,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
   publish_test_reports:
-    name: "Save execution reports and notify"
+    name: "Save execution reports"
     timeout-minutes: 60
     needs:
       - test_check
@@ -251,12 +251,6 @@ jobs:
         os: [ubuntu-latest]
     if: always()
     runs-on: ${{ matrix.os }}
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      RUN_STATUS: >-
-        ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
-      SLACK_FIELDS: repo,commit,workflow
     steps:
       - name: "Load unit test cache"
         uses: actions/cache@v3
@@ -286,12 +280,12 @@ jobs:
           name: junit-test-reports
           path: build/reports
           retention-days: 10
-      - name: "Notify Jade Slack on nightly test run"
-        if: ${{ github.event_name == 'schedule' && always() }}
-        uses: broadinstitute/action-slack@v3.15.0
-        with:
-          status: ${{ env.RUN_STATUS }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Nightly Unit, Connected and Integration tests"
-          fields: ${{ env.SLACK_FIELDS }}
+  report-workflow:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    if: ${{ github.ref == 'refs/heads/develop' }}
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

@@ -112,7 +112,7 @@ def add_billing_profile_members(clients, profile_id):
   clients.profiles_api.add_profile_policy_member(profile_id,
     "owner",
     {
-      'email': 'JadeStewards-dev@dev.test.firecloud.org'})
+      'email': 'DataRepoTestResourceAccess@dev.test.firecloud.org'})
 
 
 def dataset_ingest_json(clients, dataset_id, dataset_to_upload):
@@ -227,14 +227,9 @@ def delete_dataset_if_exists(name, clients):
 
 
 def add_snapshot_builder_settings(clients, dataset_id, directory, snapshot_builder_settings_file):
-  with open(
-    os.path.join("files", directory, snapshot_builder_settings_file)) as dataset_schema_json:
-    # In order to use the client API, we need to publish the updated python client library
-    response = requests.post(f"{clients.api_client.configuration.host}/api/repository/v1/datasets/{dataset_id}/snapshotBuilder/settings", json=json.load(dataset_schema_json), headers={"Authorization": f"Bearer {clients.api_client.configuration.access_token}"})
-    if response.status_code != 200:
-      print(f"Failed to update snapshot builder settings. {response.json}")
-      print(response.json())
-  return response.json()
+  with open(os.path.join("files", directory, snapshot_builder_settings_file)) as dataset_schema_json:
+    clients.datasets_api.update_dataset_snapshot_builder_settings(dataset_id, json.load(dataset_schema_json))
+  print(f"Snapshot builder settings were updated")
 
 
 def main():

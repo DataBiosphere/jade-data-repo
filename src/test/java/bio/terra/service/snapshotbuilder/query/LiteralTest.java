@@ -4,11 +4,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import java.sql.Date;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @Tag(Unit.TAG)
 class LiteralTest {
@@ -34,11 +38,18 @@ class LiteralTest {
     assertThat(literal.renderSQL(context), is("42"));
   }
 
+  public static Stream<Arguments> renderBoolean() {
+    return Stream.of(
+        Arguments.of(QueryTestUtils.createContext(CloudPlatform.GCP), true, "true"),
+        Arguments.of(QueryTestUtils.createContext(CloudPlatform.GCP), false, "false"),
+        Arguments.of(QueryTestUtils.createContext(CloudPlatform.AZURE), true, "1"),
+        Arguments.of(QueryTestUtils.createContext(CloudPlatform.AZURE), false, "0"));
+  }
+
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
-  void renderBoolean(SqlRenderContext context) {
-    var literal = new Literal(true);
-    assertThat(literal.renderSQL(context), is("true"));
+  @MethodSource
+  void renderBoolean(SqlRenderContext context, boolean value, String expected) {
+    assertThat(new Literal(value).renderSQL(context), is(expected));
   }
 
   @ParameterizedTest

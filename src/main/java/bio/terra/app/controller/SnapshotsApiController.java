@@ -10,6 +10,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
 import bio.terra.model.AddAuthDomainResponseModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
@@ -19,6 +20,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -422,5 +424,28 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.retrieveSnapshotSummary(UUID.fromString(resourceId));
     // Verify snapshot permissions
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, resourceId, actions);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderSettings> getSnapshotSnapshotBuilderSettings(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(snapshotService.getSnapshotBuilderSettings(id));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderSettings> updateSnapshotSnapshotBuilderSettings(UUID id, SnapshotBuilderSettings settings) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest,
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    snapshotService.updateSnapshotBuilderSettings(id, settings);
+    return ResponseEntity.ok(settings);
   }
 }

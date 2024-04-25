@@ -58,6 +58,8 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotExportResponseModel;
@@ -1902,6 +1904,22 @@ public class DataRepoFixtures {
     assertThat(
         "search concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  public SnapshotBuilderCountResponse getRollupCounts(
+      TestConfiguration.User user, UUID datasetId, SnapshotBuilderCountRequest request)
+      throws Exception {
+    String json = TestUtils.mapToJson(request);
+    DataRepoResponse<SnapshotBuilderCountResponse> response =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/count",
+            json,
+            new TypeReference<>() {});
+    assertThat(
+        "get rollup counts job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("rollup counts response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 }

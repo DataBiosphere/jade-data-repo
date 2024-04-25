@@ -38,22 +38,31 @@ public class HierarchyQueryBuilder {
     var conceptRelationship =
         TableVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
     var relationshipId = conceptRelationship.makeFieldVariable(ConceptRelationship.RELATIONSHIP_ID);
-    var conceptId1 = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1);
-    var conceptId2 = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
+    var parentId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1);
+    var childId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
     var child =
         TableVariable.forJoined(
-            TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, conceptId2);
+            TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, childId);
     var parent =
         TableVariable.forJoined(
-            TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, conceptId1);
+            TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, parentId);
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
+
+    // To get the total occurrence count for a child concept, we need to join the child through the
+    // ancestor table to find all of its children. We don't need to use a left join here
+    // because every concept has itself as an ancestor, so there will be at least one match.
+    var conceptAncestor =
+        TableVariable.forJoined(
+            TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
+            ConceptAncestor.ANCESTOR_CONCEPT_ID,
+            childId);
 
     TableVariable domainOccurrence =
         TableVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
-            conceptId2);
+            conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID));
 
     // COUNT(DISTINCT person_id)
     FieldVariable count =
@@ -62,19 +71,19 @@ public class HierarchyQueryBuilder {
 
     return new Query(
         List.of(
-            new SelectAlias(conceptId1, QueryBuilderFactory.PARENT_ID),
-            new SelectAlias(conceptId2, Concept.CONCEPT_ID),
+            new SelectAlias(parentId, QueryBuilderFactory.PARENT_ID),
+            new SelectAlias(childId, Concept.CONCEPT_ID),
             conceptName,
             conceptCode,
             count,
-            hasChildrenExpression(conceptId2)),
-        List.of(conceptRelationship, child, parent, domainOccurrence),
+            hasChildrenExpression(childId)),
+        List.of(conceptRelationship, child, parent, conceptAncestor, domainOccurrence),
         BooleanAndOrFilterVariable.and(
-            SubQueryFilterVariable.in(conceptId1, selectAllParents(conceptId)),
+            SubQueryFilterVariable.in(parentId, selectAllParents(conceptId)),
             BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
             requireStandardConcept(parent),
             requireStandardConcept(child)),
-        List.of(conceptName, conceptId1, conceptId2, conceptCode),
+        List.of(conceptName, parentId, childId, conceptCode),
         List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING)));
   }
 

@@ -766,8 +766,7 @@ public class DatasetService {
 
   public void updateDatasetSnapshotBuilderSettings(
       UUID datasetId, SnapshotBuilderSettings snapshotBuilderSettings) {
-    snapshotBuilderSettingsDao.upsertByDatasetId(
-        datasetId, snapshotBuilderSettings);
+    snapshotBuilderSettingsDao.upsertByDatasetId(datasetId, snapshotBuilderSettings);
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

@@ -150,8 +150,7 @@ class SnapshotBuilderServiceTest {
     domainOption.name("domainId").tableName("domainTable").columnName("domain_concept_id");
     SnapshotBuilderSettings settings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getByDatasetId(any()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(any())).thenReturn(settings);
 
     var concept =
         new SnapshotBuilderConcept().name("childConcept").id(2).count(1).hasChildren(true);

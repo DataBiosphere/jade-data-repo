@@ -29,10 +29,10 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
@@ -300,7 +300,7 @@ public class BigQueryPdaoTest {
   static final List<IngestSource> TABLES =
       List.of(
           new IngestSource("concept", "omop/concept-table-data.jsonl", 7),
-          new IngestSource("person", "omop/person-table-data.json", 23),
+          new IngestSource("person", "omop/person-table-data.jsonl", 23),
           new IngestSource("relationship", "omop/relationship.jsonl", 2),
           new IngestSource("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10),
           new IngestSource(
@@ -426,7 +426,7 @@ public class BigQueryPdaoTest {
     testRollupCountsWithCriteriaAndExpected(dataset, criteria, 20);
   }
 
-  private void getCountResponseZeroCaseTest(Dataset dataset) throws Exception {
+  private void getCountResponseZeroCaseTest(Dataset dataset) {
     List<SnapshotBuilderCriteria> criteria =
         List.of(
             new SnapshotBuilderProgramDataRangeCriteria()
@@ -437,7 +437,7 @@ public class BigQueryPdaoTest {
     testRollupCountsWithCriteriaAndExpected(dataset, criteria, 0);
   }
 
-  private void getCountResponseFuzzyValuesTest(Dataset dataset) throws Exception {
+  private void getCountResponseFuzzyValuesTest(Dataset dataset) {
     List<SnapshotBuilderCriteria> criteria =
         List.of(
             new SnapshotBuilderProgramDataListCriteria()

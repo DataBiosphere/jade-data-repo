@@ -56,11 +56,11 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotExportResponseModel;
@@ -371,7 +371,7 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestTable("person", "omop/person-table-data.json", 23);
+    ingestTable("person", "omop/person-table-data.jsonl", 23);
     ingestTable("concept", "omop/concept-table-data.jsonl", 7);
     ingestTable("relationship", "omop/relationship.jsonl", 2);
     ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10);

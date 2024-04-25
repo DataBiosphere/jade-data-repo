@@ -386,8 +386,7 @@ class SnapshotBuilderServiceTest {
     var domain = new SnapshotBuilderDomainOption();
     domain.setName("domain");
     var settings = new SnapshotBuilderSettings().domainOptions(List.of(domain));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
     when(queryBuilder.generateQuery(domain, conceptId)).thenReturn(mock(Query.class));
     var concept1 = concept("concept1", 1, true);
     var concept2 = concept("concept2", 2, false);

@@ -305,7 +305,7 @@ public class BigQueryPdaoTest {
     SnapshotBuilderSettings settings = readSettings("omop/settings.json");
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
-    settingsDao.upsertSnapshotBuilderSettingsByDataset(dataset.getId(), settings);
+    settingsDao.upsertByDatasetId(dataset.getId(), settings);
 
     // Stage tabular data for ingest.
     ingestTable(dataset, "concept", "omop/concept-table-data.json", 7);

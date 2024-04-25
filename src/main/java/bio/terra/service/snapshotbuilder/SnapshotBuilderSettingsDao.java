@@ -42,7 +42,7 @@ public class SnapshotBuilderSettingsDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-  public SnapshotBuilderSettings getSnapshotBuilderSettingsByDatasetId(UUID datasetId) {
+  public SnapshotBuilderSettings getByDatasetId(UUID datasetId) {
     try {
 
       return jdbcTemplate.queryForObject(
@@ -55,7 +55,7 @@ public class SnapshotBuilderSettingsDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-  public SnapshotBuilderSettings getSnapshotBuilderSettingsBySnapshotId(UUID snapshotId) {
+  public SnapshotBuilderSettings getBySnapshotId(UUID snapshotId) {
     try {
 
       return jdbcTemplate.queryForObject(
@@ -68,7 +68,7 @@ public class SnapshotBuilderSettingsDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotBuilderSettings upsertSnapshotBuilderSettingsByDataset(
+  public SnapshotBuilderSettings upsertByDatasetId(
       UUID datasetId, SnapshotBuilderSettings settings) {
     String jsonValue;
     try {
@@ -82,11 +82,11 @@ public class SnapshotBuilderSettingsDao {
             + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_dataset_id_key"
             + " DO UPDATE SET settings = cast(:settings as jsonb)",
         Map.of(DATASET_ID_FIELD, datasetId, SETTINGS_FIELD, jsonValue));
-    return getSnapshotBuilderSettingsByDatasetId(datasetId);
+    return getByDatasetId(datasetId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotBuilderSettings upsertSnapshotBuilderSettingsBySnapshotId(
+  public SnapshotBuilderSettings upsertBySnapshotId(
       UUID snapshotId, SnapshotBuilderSettings settings) {
     String jsonValue;
     try {
@@ -100,7 +100,7 @@ public class SnapshotBuilderSettingsDao {
             + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_snapshot_id_key"
             + " DO UPDATE SET settings = cast(:settings as jsonb)",
         Map.of(SNAPSHOT_ID_FIELD, snapshotId, SETTINGS_FIELD, jsonValue));
-    return getSnapshotBuilderSettingsBySnapshotId(snapshotId);
+    return getBySnapshotId(snapshotId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

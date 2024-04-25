@@ -149,7 +149,7 @@ public final class DatasetJsonConversion {
 
     if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
       datasetModel.snapshotBuilderSettings(
-          snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()));
+          snapshotBuilderSettingsDao.getByDatasetId(dataset.getId()));
     }
 
     return datasetModel;

@@ -13,7 +13,6 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
@@ -202,7 +201,7 @@ public class BufferServiceConnectedTest {
 
   private DatasetSummaryModel setupMinimalDataset() throws Exception {
     DatasetSummaryModel datasetMinimalSummary =
-        connectedOperations.createDataset(billingProfile, DaoOperations.DATASET_MINIMAL);
+        connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
     loadData(
         datasetMinimalSummary.getId(),
         "participant",

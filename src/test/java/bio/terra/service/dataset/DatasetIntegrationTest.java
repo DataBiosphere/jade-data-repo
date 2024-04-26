@@ -17,7 +17,6 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -282,9 +281,9 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetUnauthorizedPermissionsTest() throws Exception {
     // These should fail because they don't have access to the billing profile
     dataRepoFixtures.createDatasetError(
-        custodian(), profileId, DaoOperations.DATASET_MINIMAL, HttpStatus.FORBIDDEN);
+        custodian(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
     dataRepoFixtures.createDatasetError(
-        reader(), profileId, DaoOperations.DATASET_MINIMAL, HttpStatus.FORBIDDEN);
+        reader(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
 
     EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader());
     List<DatasetSummaryModel> items = enumDatasetsResp.getItems();
@@ -300,8 +299,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel = null;
 
-    summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, DaoOperations.DATASET_MINIMAL);
+    summaryModel = dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
     datasetId = summaryModel.getId();
 
     DataRepoResponse<DatasetModel> getDatasetResp =

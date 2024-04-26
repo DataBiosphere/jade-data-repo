@@ -38,9 +38,7 @@ class SnapshotBuilderSettingsDaoTest {
   void setup() throws IOException {
     dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
     snapshotBuilderSettingsDao.upsertByDatasetId(dataset.getId(), SnapshotBuilderTestData.SETTINGS);
-    snapshot =
-        daoOperations.createAndIngestSnapshot(
-            dataset, "snapshot-from-dataset-minimal.json");
+    snapshot = daoOperations.createAndIngestSnapshot(dataset, "snapshot-from-dataset-minimal.json");
     snapshotBuilderSettingsDao.upsertBySnapshotId(
         snapshot.getId(), SnapshotBuilderTestData.SETTINGS);
   }

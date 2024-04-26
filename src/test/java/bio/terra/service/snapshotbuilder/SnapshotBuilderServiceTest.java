@@ -147,8 +147,7 @@ class SnapshotBuilderServiceTest {
     domainOption.name("domainId").tableName("domainTable").columnName("domain_concept_id");
     SnapshotBuilderSettings settings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(any()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(any())).thenReturn(settings);
 
     var concept =
         new SnapshotBuilderConcept()
@@ -180,7 +179,7 @@ class SnapshotBuilderServiceTest {
         .columnName("condition_concept_id");
     SnapshotBuilderSettings snapshotBuilderSettings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
 
     var queryBuilder = mock(SearchConceptsQueryBuilder.class);
@@ -205,7 +204,7 @@ class SnapshotBuilderServiceTest {
     when(datasetService.retrieve(datasetId)).thenReturn(dataset);
     var domainOption = new SnapshotBuilderDomainOption();
     domainOption.setId(19);
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId))
+    when(snapshotBuilderSettingsDao.getByDatasetId(datasetId))
         .thenReturn(new SnapshotBuilderSettings().domainOptions(List.of(domainOption)));
     assertThrows(
         BadRequestException.class,
@@ -287,8 +286,7 @@ class SnapshotBuilderServiceTest {
             .name("dataset123")
             .id(UUID.randomUUID());
     var settings = new SnapshotBuilderSettings();
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
     Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
@@ -389,8 +387,7 @@ class SnapshotBuilderServiceTest {
     var domain = new SnapshotBuilderDomainOption();
     domain.setName("domain");
     var settings = new SnapshotBuilderSettings().domainOptions(List.of(domain));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
     when(queryBuilder.generateQuery(domain, conceptId)).thenReturn(mock(Query.class));
     var concept1 = concept("concept1", 1, true);
     var concept2 = concept("concept2", 2, false);

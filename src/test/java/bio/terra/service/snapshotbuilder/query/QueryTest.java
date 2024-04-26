@@ -43,18 +43,18 @@ public class QueryTest {
   }
 
   private static TableVariable makeTableVariable() {
-    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
+    TablePointer tablePointer = TablePointer.fromTableName("table");
     return TableVariable.forPrimary(tablePointer);
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQL(SqlRenderContext context) {
     assertThat(createQuery().renderSQL(context), is("SELECT t.* FROM table AS t"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLWithLimit(SqlRenderContext context) {
     String query = "t.* FROM table AS t";
     String expected =
@@ -63,9 +63,9 @@ public class QueryTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSqlGroupBy(SqlRenderContext context) {
-    TablePointer tablePointer = QueryTestUtils.fromTableName("table");
+    TablePointer tablePointer = TablePointer.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
@@ -74,20 +74,20 @@ public class QueryTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderComplexSQL(SqlRenderContext context) {
-    TablePointer tablePointer = QueryTestUtils.fromTableName(Person.TABLE_NAME);
+    TablePointer tablePointer = TablePointer.fromTableName(Person.TABLE_NAME);
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
 
     TablePointer conditionOccurrencePointer =
-        QueryTestUtils.fromTableName(ConditionOccurrence.TABLE_NAME);
+        TablePointer.fromTableName(ConditionOccurrence.TABLE_NAME);
     TableVariable conditionOccurrenceVariable =
         TableVariable.forJoined(
             conditionOccurrencePointer,
             Person.PERSON_ID,
             new FieldVariable(new FieldPointer(tablePointer, Person.PERSON_ID), tableVariable));
 
-    TablePointer conditionAncestorPointer = QueryTestUtils.fromTableName("condition_ancestor");
+    TablePointer conditionAncestorPointer = TablePointer.fromTableName("condition_ancestor");
     TableVariable conditionAncestorVariable =
         TableVariable.forJoined(
             conditionAncestorPointer,
@@ -153,12 +153,12 @@ public class QueryTest {
         querySQL,
         allOf(
             containsString("SELECT COUNT(DISTINCT p.person_id) FROM person AS p"),
-            containsString("JOIN condition_occurrence AS c ON c.person_id = p.person_id"),
+            containsString("JOIN condition_occurrence AS co ON co.person_id = p.person_id"),
             containsString(
-                "JOIN condition_ancestor AS c0 ON c0.ancestor_concept_id = c.condition_concept_id"),
+                "JOIN condition_ancestor AS ca ON ca.ancestor_concept_id = co.condition_concept_id"),
             containsString("WHERE ("),
             containsString(
-                "(c.condition_concept_id = 316139 OR c0.ancestor_concept_id = 316139 OR c.condition_concept_id = 4311280 OR c0.ancestor_concept_id = 4311280)"),
+                "(co.condition_concept_id = 316139 OR ca.ancestor_concept_id = 316139 OR co.condition_concept_id = 4311280 OR ca.ancestor_concept_id = 4311280)"),
             containsString("AND p.year_of_birth < 1983")));
   }
 }

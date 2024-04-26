@@ -4,8 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -16,53 +16,53 @@ class HierarchyQueryBuilderTest {
   private static final String GCP_EXPECTED =
       """
       SELECT
-          c.concept_id_1 AS parent_id, c.concept_id_2 AS concept_id, c0.concept_name, c0.concept_code,
-             COUNT(DISTINCT c1.person_id) AS count,
+          cr.concept_id_1 AS parent_id, cr.concept_id_2 AS concept_id, c.concept_name, c.concept_code,
+             COUNT(DISTINCT co.person_id) AS count,
              EXISTS (SELECT 1
-           FROM concept_ancestor AS c2
-                    JOIN concept AS c3 ON c3.concept_id = c2.descendant_concept_id
-           WHERE (c2.ancestor_concept_id = c.concept_id_2 AND
-                  c2.descendant_concept_id != c.concept_id_2 AND
-                  c3.standard_concept = 'S'))
-                 AS has_children
-      FROM concept_relationship AS c
-               JOIN concept AS c0 ON c0.concept_id = c.concept_id_2
-               JOIN concept AS c4 ON c4.concept_id = c.concept_id_1
-               JOIN concept_ancestor AS c5 ON c5.ancestor_concept_id = c.concept_id_2
-               LEFT JOIN condition_occurrence AS c1 ON c1.condition_concept_id = c5.descendant_concept_id
-      WHERE (c.concept_id_1 IN (SELECT c6.ancestor_concept_id
-           FROM concept_ancestor AS c6
-           WHERE (c6.descendant_concept_id = 1 AND c6.ancestor_concept_id != 1)) AND
-             c.relationship_id = 'Subsumes' AND c4.standard_concept = 'S' AND c0.standard_concept = 'S')
-      GROUP BY c0.concept_name, c.concept_id_1, c.concept_id_2, c0.concept_code
-      ORDER BY c0.concept_name ASC""";
+                     FROM concept_ancestor AS ca
+                              JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
+                     WHERE (ca.ancestor_concept_id = cr.concept_id_2 AND
+                            ca.descendant_concept_id != cr.concept_id_2 AND c1.standard_concept = 'S'))
+              AS has_children
+      FROM concept_relationship AS cr
+               JOIN concept AS c ON c.concept_id = cr.concept_id_2
+               JOIN concept AS c2 ON c2.concept_id = cr.concept_id_1
+               JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = cr.concept_id_2
+               LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
+      WHERE (cr.concept_id_1 IN (SELECT ca2.ancestor_concept_id
+           FROM concept_ancestor AS ca2
+           WHERE (ca2.descendant_concept_id = 1 AND
+                  ca2.ancestor_concept_id != 1)) AND
+             cr.relationship_id = 'Subsumes' AND c2.standard_concept = 'S' AND c.standard_concept = 'S')
+      GROUP BY c.concept_name, cr.concept_id_1, cr.concept_id_2, c.concept_code
+      ORDER BY c.concept_name ASC""";
 
   private static final String AZURE_EXPECTED =
       """
-      SELECT c.concept_id_1 AS parent_id, c.concept_id_2 AS concept_id, c0.concept_name, c0.concept_code,
-        COUNT(DISTINCT c1.person_id) AS count,
-        CASE
-            WHEN EXISTS (SELECT 1
-              FROM concept_ancestor AS c2
-                       JOIN concept AS c3 ON c3.concept_id = c2.descendant_concept_id
-              WHERE (c2.ancestor_concept_id = c.concept_id_2 AND
-                     c2.descendant_concept_id != c.concept_id_2 AND
-                     c3.standard_concept = 'S')) THEN 1
-            ELSE 0 END AS has_children
-      FROM concept_relationship AS c
-         JOIN concept AS c0 ON c0.concept_id = c.concept_id_2
-         JOIN concept AS c4 ON c4.concept_id = c.concept_id_1
-         JOIN concept_ancestor AS c5 ON c5.ancestor_concept_id = c.concept_id_2
-         LEFT JOIN condition_occurrence AS c1 ON c1.condition_concept_id = c5.descendant_concept_id
-      WHERE (c.concept_id_1 IN (SELECT c6.ancestor_concept_id
-               FROM concept_ancestor AS c6
-               WHERE (c6.descendant_concept_id = 1 AND c6.ancestor_concept_id != 1)) AND
-             c.relationship_id = 'Subsumes' AND c4.standard_concept = 'S' AND c0.standard_concept = 'S')
-      GROUP BY c0.concept_name, c.concept_id_1, c.concept_id_2, c0.concept_code
-      ORDER BY c0.concept_name ASC""";
+      SELECT
+          cr.concept_id_1 AS parent_id, cr.concept_id_2 AS concept_id, c.concept_name, c.concept_code,
+             COUNT(DISTINCT co.person_id) AS count,
+             CASE WHEN EXISTS (SELECT 1
+                     FROM concept_ancestor AS ca
+                              JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
+                     WHERE (ca.ancestor_concept_id = cr.concept_id_2 AND
+                            ca.descendant_concept_id != cr.concept_id_2 AND c1.standard_concept = 'S'))
+              THEN 1 ELSE 0 END AS has_children
+      FROM concept_relationship AS cr
+               JOIN concept AS c ON c.concept_id = cr.concept_id_2
+               JOIN concept AS c2 ON c2.concept_id = cr.concept_id_1
+               JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = cr.concept_id_2
+               LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
+      WHERE (cr.concept_id_1 IN (SELECT ca2.ancestor_concept_id
+           FROM concept_ancestor AS ca2
+           WHERE (ca2.descendant_concept_id = 1 AND
+                  ca2.ancestor_concept_id != 1)) AND
+             cr.relationship_id = 'Subsumes' AND c2.standard_concept = 'S' AND c.standard_concept = 'S')
+      GROUP BY c.concept_name, cr.concept_id_1, cr.concept_id_2, c.concept_code
+      ORDER BY c.concept_name ASC""";
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateQuery(SqlRenderContext context) {
     var query =
         new HierarchyQueryBuilder()

@@ -10,7 +10,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.IntegrationOperations;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -250,7 +250,7 @@ public class SnapshotMinimalConnectedTest {
   private DatasetSummaryModel setupMinimalDataset() throws Exception {
     DatasetSummaryModel datasetMinimalSummary =
         SnapshotConnectedTestUtils.createTestDataset(
-            connectedOperations, billingProfile, IntegrationOperations.DATASET_MINIMAL);
+            connectedOperations, billingProfile, DaoOperations.DATASET_MINIMAL);
     SnapshotConnectedTestUtils.loadCsvData(
         connectedOperations,
         jsonLoader,

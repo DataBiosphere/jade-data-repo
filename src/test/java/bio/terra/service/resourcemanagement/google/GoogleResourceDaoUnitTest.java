@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.IntegrationOperations;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
@@ -50,7 +50,7 @@ public class GoogleResourceDaoUnitTest {
 
   @Autowired private DatasetDao datasetDao;
 
-  @Autowired private IntegrationOperations integrationOperations;
+  @Autowired private DaoOperations daoOperations;
 
   @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
   @Mock private GcsConfiguration gcsConfiguration;
@@ -100,8 +100,8 @@ public class GoogleResourceDaoUnitTest {
   /* Helper method to create a minimal dataset and register its ID for cleanup */
   private Dataset createDataset(UUID projectResourceId) throws IOException {
     Dataset dataset =
-        integrationOperations.createDataset(
-            billingProfile.getId(), projectResourceId, IntegrationOperations.DATASET_MINIMAL);
+        daoOperations.createDataset(
+            billingProfile.getId(), projectResourceId, DaoOperations.DATASET_MINIMAL);
     datasetIds.add(dataset.getId());
     return dataset;
   }

@@ -27,7 +27,7 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.fixtures.IntegrationOperations;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
@@ -148,7 +148,7 @@ public class DatasetDaoTest {
 
   @Test
   public void setSecureMonitoringTest() throws Exception {
-    UUID datasetId = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId = createDataset(DaoOperations.DATASET_MINIMAL);
     Dataset dataset = datasetDao.retrieve(datasetId);
     assertThat(
         "Dataset should by default have secure monitoring set to false",
@@ -166,7 +166,7 @@ public class DatasetDaoTest {
 
   @Test
   public void enumerateTest() throws Exception {
-    UUID datasetId1 = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId1 = createDataset(DaoOperations.DATASET_MINIMAL);
     Dataset dataset1 = datasetDao.retrieve(datasetId1);
     UUID datasetId2 = createDataset("ingest-test-dataset-east.json");
     Dataset dataset2 = datasetDao.retrieve(datasetId2);
@@ -843,7 +843,7 @@ public class DatasetDaoTest {
 
   @Test
   public void rowMetadataTable() throws Exception {
-    UUID datasetId = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId = createDataset(DaoOperations.DATASET_MINIMAL);
     Dataset dataset = datasetDao.retrieve(datasetId);
     dataset
         .getTables()
@@ -971,7 +971,7 @@ public class DatasetDaoTest {
 
   @Test
   public void updatePredictableFileIdsFlag() throws Exception {
-    UUID datasetId = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId = createDataset(DaoOperations.DATASET_MINIMAL);
     assertFalse(
         "predictable file ids flag is false",
         datasetDao.retrieve(datasetId).hasPredictableFileIds());
@@ -1142,7 +1142,7 @@ public class DatasetDaoTest {
 
   @Test
   public void updateTags() throws Exception {
-    UUID datasetId = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId = createDataset(DaoOperations.DATASET_MINIMAL);
 
     List<String> add = new ArrayList<>(List.of(" a ", "b", "b ", "c,d", "e", " "));
     add.add(null);
@@ -1191,7 +1191,7 @@ public class DatasetDaoTest {
 
   @Test
   public void testRetrieveExclusivelyLockedDataset() throws Exception {
-    UUID datasetId = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId = createDataset(DaoOperations.DATASET_MINIMAL);
     String flightId = "flightId";
 
     // After exclusively locking the dataset, we should still be able to retrieve it
@@ -1222,7 +1222,7 @@ public class DatasetDaoTest {
 
   @Test
   public void testRetrieveSharedLock() throws Exception {
-    UUID datasetId = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId = createDataset(DaoOperations.DATASET_MINIMAL);
     String flightId = ShortUUID.get();
     datasetDao.lockShared(datasetId, flightId);
     Dataset lockedDataset = datasetDao.retrieve(datasetId);

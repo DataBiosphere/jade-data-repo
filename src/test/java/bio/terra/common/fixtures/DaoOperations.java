@@ -19,7 +19,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
-public class IntegrationOperations {
+public class DaoOperations {
   private final JsonLoader jsonLoader;
   private final DatasetDao datasetDao;
   private final ProfileDao profileDao;
@@ -29,7 +29,7 @@ public class IntegrationOperations {
 
   public static final String DATASET_MINIMAL = "dataset-minimal.json";
 
-  public IntegrationOperations(
+  public DaoOperations(
       JsonLoader jsonLoader,
       DatasetDao datasetDao,
       ProfileDao profileDao,

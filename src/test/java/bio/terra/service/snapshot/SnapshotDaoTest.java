@@ -28,7 +28,7 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.fixtures.IntegrationOperations;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
@@ -99,7 +99,7 @@ public class SnapshotDaoTest {
 
   @Autowired private DrsDao drsDao;
 
-  @Autowired private IntegrationOperations integrationOperations;
+  @Autowired private DaoOperations daoOperations;
 
   @MockBean private DuosClient duosClient;
 
@@ -122,13 +122,13 @@ public class SnapshotDaoTest {
 
   @Before
   public void setup() throws Exception {
-    dataset = integrationOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
+    dataset = daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
     datasetId = dataset.getId();
     projectId = dataset.getProjectResource().getId();
     profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
-        integrationOperations.createSnapshotRequestFromDataset(
+        daoOperations.createSnapshotRequestFromDataset(
             dataset, "snapshot-test-snapshot.json");
 
     snapshotIds = new ArrayList<>();
@@ -159,13 +159,13 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {
-    Snapshot snapshot = integrationOperations.createSnapshotFromSnapshotRequest(request, projectId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, projectId);
     return insertAndRetrieveSnapshot(snapshot);
   }
 
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot) {
     snapshotIds.add(snapshot.getId());
-    return integrationOperations.ingestSnapshot(snapshot);
+    return daoOperations.ingestSnapshot(snapshot);
   }
 
   @Test
@@ -181,7 +181,7 @@ public class SnapshotDaoTest {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
     Snapshot snapshot =
-        integrationOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+        daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
     Snapshot fromDb = insertAndRetrieveSnapshot(snapshot);
     assertThat("snapshot name set correctly", fromDb.getName(), equalTo(snapshot.getName()));
 
@@ -797,7 +797,7 @@ public class SnapshotDaoTest {
         "{\"projectName\":\"project\", " + "\"authors\": [\"harry\", \"ron\", \"hermionie\"]}";
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).properties(properties);
     Snapshot snapshot =
-        integrationOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+        daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
     Snapshot fromDB = insertAndRetrieveSnapshot(snapshot);
     assertThat(
         "snapshot properties set correctly",

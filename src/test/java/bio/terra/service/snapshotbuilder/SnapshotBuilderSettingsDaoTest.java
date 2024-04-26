@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.NotFoundException;
-import bio.terra.common.fixtures.IntegrationOperations;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
@@ -29,17 +29,17 @@ import org.springframework.test.context.ActiveProfiles;
 @EmbeddedDatabaseTest
 class SnapshotBuilderSettingsDaoTest {
 
-  @Autowired private IntegrationOperations integrationOperations;
+  @Autowired private DaoOperations daoOperations;
   @Autowired private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private Dataset dataset;
   private Snapshot snapshot;
 
   @BeforeEach
   void setup() throws IOException {
-    dataset = integrationOperations.createDataset(IntegrationOperations.DATASET_MINIMAL);
+    dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
     snapshotBuilderSettingsDao.upsertByDatasetId(dataset.getId(), SnapshotBuilderTestData.SETTINGS);
     snapshot =
-        integrationOperations.createAndIngestSnapshot(
+        daoOperations.createAndIngestSnapshot(
             dataset, "snapshot-from-dataset-minimal.json");
     snapshotBuilderSettingsDao.upsertBySnapshotId(
         snapshot.getId(), SnapshotBuilderTestData.SETTINGS);

@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.IntegrationOperations;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
@@ -103,7 +103,7 @@ public class DatasetStorageAccountDaoTest {
 
   @Test
   public void testCreateEntry() throws Exception {
-    UUID datasetId = createDataset(IntegrationOperations.DATASET_MINIMAL);
+    UUID datasetId = createDataset(DaoOperations.DATASET_MINIMAL);
     datasetIds.add(datasetId);
 
     AzureStorageAccountResource storageAccount =

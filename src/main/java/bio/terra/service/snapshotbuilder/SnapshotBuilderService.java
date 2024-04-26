@@ -20,9 +20,10 @@ import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
@@ -56,6 +57,7 @@ public class SnapshotBuilderService {
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final DatasetService datasetService;
   private final IamService iamService;
+  private final SnapshotService snapshotService;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
@@ -66,6 +68,7 @@ public class SnapshotBuilderService {
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       DatasetService datasetService,
       IamService iamService,
+      SnapshotService snapshotService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       AzureSynapsePdao azureSynapsePdao,
       QueryBuilderFactory queryBuilderFactory) {
@@ -73,6 +76,7 @@ public class SnapshotBuilderService {
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
     this.iamService = iamService;
+    this.snapshotService = snapshotService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.azureSynapsePdao = azureSynapsePdao;
     this.queryBuilderFactory = queryBuilderFactory;
@@ -96,16 +100,16 @@ public class SnapshotBuilderService {
 
   private <T> List<T> runSnapshotBuilderQuery(
       Query query,
-      Dataset dataset,
+      Snapshot snapshot,
       AuthenticatedUserRequest userRequest,
       BigQueryDatasetPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
-    String sql = query.renderSQL(createContext(dataset, userRequest));
+    String sql = query.renderSQL(createContext(snapshot, userRequest));
     Instant start = Instant.now();
     List<T> result =
-        CloudPlatformWrapper.of(dataset.getCloudPlatform())
+        CloudPlatformWrapper.of(snapshot.getCloudPlatform())
             .choose(
-                () -> bigQueryDatasetPdao.runQuery(sql, dataset, bqConverter),
+                () -> bigQueryDatasetPdao.runQuery(sql, snapshot, bqConverter),
                 () -> azureSynapsePdao.runQuery(sql, synapseConverter));
     logger.info(
         "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
@@ -113,10 +117,10 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(
-      UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
-    Dataset dataset = datasetService.retrieve(datasetId);
+      UUID snapshotId, int conceptId, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-    SnapshotBuilderDomainOption domainOption = getDomainOption(conceptId, dataset, userRequest);
+    SnapshotBuilderDomainOption domainOption = getDomainOption(conceptId, snapshot, userRequest);
 
     Query query =
         queryBuilderFactory
@@ -126,7 +130,7 @@ public class SnapshotBuilderService {
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             query,
-            dataset,
+            snapshot,
             userRequest,
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
@@ -134,16 +138,17 @@ public class SnapshotBuilderService {
   }
 
   @VisibleForTesting
-  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
-    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+  SqlRenderContext createContext(Snapshot snapshot, AuthenticatedUserRequest userRequest) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
     TableNameGenerator tableNameGenerator =
-        CloudPlatformWrapper.of(dataset.getCloudPlatform())
+        CloudPlatformWrapper.of(snapshot.getCloudPlatform())
             .choose(
                 () ->
-                    BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest)),
+                    BigQueryVisitor.bqSnapshotTableName(
+                        snapshotService.retrieveSnapshotModel(snapshot.getId(), userRequest)),
                 () ->
                     SynapseVisitor.azureTableName(
-                        datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
+                        snapshotService.getOrCreateExternalAzureDataSource(snapshot, userRequest)));
     return new SqlRenderContext(tableNameGenerator, platform);
   }
 
@@ -172,10 +177,10 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
-      UUID datasetId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
-    Dataset dataset = datasetService.retrieve(datasetId);
+      UUID snapshotId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getByDatasetId(datasetId);
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
 
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
@@ -194,7 +199,7 @@ public class SnapshotBuilderService {
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             query,
-            dataset,
+            snapshot,
             userRequest,
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
@@ -202,12 +207,12 @@ public class SnapshotBuilderService {
   }
 
   public int getRollupCountForCriteriaGroups(
-      UUID datasetId,
+      UUID snapshotId,
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
       AuthenticatedUserRequest userRequest) {
-    Dataset dataset = datasetService.retrieve(datasetId);
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getByDatasetId(datasetId);
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
 
     Query query =
         queryBuilderFactory
@@ -216,7 +221,7 @@ public class SnapshotBuilderService {
 
     return runSnapshotBuilderQuery(
             query,
-            dataset,
+            snapshot,
             userRequest,
             AggregateBQQueryResultsUtils::toCount,
             AggregateSynapseQueryResultsUtils::toCount)
@@ -237,11 +242,12 @@ public class SnapshotBuilderService {
                     "Invalid domain category is given: %s".formatted(domainId)));
   }
 
-  private String getDomainId(int conceptId, Dataset dataset, AuthenticatedUserRequest userRequest) {
+  private String getDomainId(
+      int conceptId, Snapshot snapshot, AuthenticatedUserRequest userRequest) {
     List<String> domainIdResult =
         runSnapshotBuilderQuery(
             queryBuilderFactory.conceptChildrenQueryBuilder().retrieveDomainId(conceptId),
-            dataset,
+            snapshot,
             userRequest,
             AggregateBQQueryResultsUtils::toDomainId,
             AggregateSynapseQueryResultsUtils::toDomainId);
@@ -287,15 +293,15 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
-      UUID datasetId, int conceptId, AuthenticatedUserRequest userRequest) {
-    Dataset dataset = datasetService.retrieve(datasetId);
+      UUID snapshotId, int conceptId, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-    var domainOption = getDomainOption(conceptId, dataset, userRequest);
+    var domainOption = getDomainOption(conceptId, snapshot, userRequest);
     var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(domainOption, conceptId);
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
     runSnapshotBuilderQuery(
-            query, dataset, userRequest, ParentQueryResult::new, ParentQueryResult::new)
+            query, snapshot, userRequest, ParentQueryResult::new, ParentQueryResult::new)
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =
@@ -315,10 +321,10 @@ public class SnapshotBuilderService {
   }
 
   private SnapshotBuilderDomainOption getDomainOption(
-      int conceptId, Dataset dataset, AuthenticatedUserRequest userRequest) {
+      int conceptId, Snapshot snapshot, AuthenticatedUserRequest userRequest) {
     // domain is needed to join with the domain specific occurrence table
     // this does not work for the metadata domain
-    String domainId = getDomainId(conceptId, dataset, userRequest);
-    return getDomainOptionFromSettingsByName(domainId, dataset.getId());
+    String domainId = getDomainId(conceptId, snapshot, userRequest);
+    return getDomainOptionFromSettingsByName(domainId, snapshot.getId());
   }
 }

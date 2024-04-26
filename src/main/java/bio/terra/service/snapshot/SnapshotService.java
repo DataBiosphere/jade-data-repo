@@ -837,7 +837,7 @@ public class SnapshotService {
             "Error retrieving preview for snapshot " + snapshot.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-      String datasourceName = getOrCreateExternalDataSource(userRequest, tableName, snapshot);
+      String datasourceName = getOrCreateExternalAzureDataSource(snapshot, userRequest);
       String parquetFilePath = IngestUtils.getSnapshotParquetFilePathForQuery(tableName);
       List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
@@ -860,10 +860,16 @@ public class SnapshotService {
     }
   }
 
-  private String getOrCreateExternalDataSource(
-      AuthenticatedUserRequest userRequest, String tableName, Snapshot snapshot) {
+  /**
+   * @param snapshot the snapshot to configure the AzureDataSourceFor
+   * @param userRequest the user making the request
+   * @return the name of the datasource created
+   * @throws RuntimeException when the external datasource could not be configured
+   */
+  public String getOrCreateExternalAzureDataSource(
+      Snapshot snapshot, AuthenticatedUserRequest userRequest) {
     AccessInfoModel accessInfoModel =
-        metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
+        metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest);
     try {
       return azureSynapsePdao.getOrCreateExternalDataSourceForResource(
           accessInfoModel, snapshot.getId(), userRequest);

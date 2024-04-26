@@ -33,14 +33,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
-import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderCountRequest;
-import bio.terra.model.SnapshotBuilderCountResponse;
-import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteria;
-import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SqlSortDirectionAscDefault;
@@ -60,7 +53,6 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -96,6 +88,7 @@ class DatasetsApiControllerTest {
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
   @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+  // TODO - can I remove this after phil's changes also are merged?
   @MockBean private SnapshotBuilderService snapshotBuilderService;
 
   private static final AuthenticatedUserRequest TEST_USER =
@@ -113,18 +106,13 @@ class DatasetsApiControllerTest {
   private static final String SNAPSHOT_BUILDER_ENDPOINT = DATASET_ID_ENDPOINT + "/snapshotBuilder";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       SNAPSHOT_BUILDER_ENDPOINT + "/settings";
-  private static final String GET_CONCEPTS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{parentConcept}";
-  private static final String GET_COUNT_ENDPOINT = SNAPSHOT_BUILDER_ENDPOINT + "/count";
-  private static final String SEARCH_CONCEPTS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{domainId}/search";
+
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final DatasetPatchRequestModel DATASET_PATCH_REQUEST =
       new DatasetPatchRequestModel().phsId("a-phs-id").description("a-description");
   private static final Set<IamAction> DATASET_PATCH_ACTIONS =
       Set.of(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER);
-  private static final int CONCEPT_ID = 0;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;
@@ -428,82 +416,6 @@ class DatasetsApiControllerTest {
     assertThat(criteria.getKind(), equalTo(kind));
   }
 
-  @Test
-  void testGetConcepts() throws Exception {
-    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
-    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID, TEST_USER))
-        .thenReturn(expected);
-    String actualJson =
-        mvc.perform(get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    SnapshotBuilderGetConceptsResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
-    assertThat("Concept list and sql is returned", actual, equalTo(expected));
-
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  @Test
-  void getSnapshotBuilderCount() throws Exception {
-    mockValidators();
-    var cohorts = List.of(SnapshotBuilderTestData.createCohort());
-    int count = 1234;
-    when(snapshotBuilderService.getCountResponse(DATASET_ID, cohorts, TEST_USER))
-        .thenReturn(
-            new SnapshotBuilderCountResponse()
-                .result(new SnapshotBuilderCountResponseResult().total(count)));
-    mvc.perform(
-            post(GET_COUNT_ENDPOINT, DATASET_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(new SnapshotBuilderCountRequest().cohorts(cohorts))))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.total").value(count));
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  private static Stream<String> searchTextArguments() {
-    return Stream.of("cancer", "", null);
-  }
-
-  @ParameterizedTest
-  @MethodSource("searchTextArguments")
-  void testSearchConcepts(String searchText) throws Exception {
-    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
-
-    var domainId = 1234;
-
-    when(snapshotBuilderService.searchConcepts(DATASET_ID, domainId, searchText, TEST_USER))
-        .thenReturn(expected);
-    String actualJson =
-        mvc.perform(
-                get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, domainId)
-                    .queryParam("searchText", searchText))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    SnapshotBuilderGetConceptsResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
-    assertThat("Concept list and sql is returned", actual, equalTo(expected));
-
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  private SnapshotBuilderGetConceptsResponse makeGetConceptsResponse() {
-    return new SnapshotBuilderGetConceptsResponse()
-        .sql("SELECT * FROM dataset")
-        .result(
-            List.of(
-                new SnapshotBuilderConcept()
-                    .count(100)
-                    .name("Stub concept")
-                    .hasChildren(true)
-                    .id(CONCEPT_ID + 1)));
-  }
-
   /** Mock so that the user does not hold `iamAction` on the dataset. */
   private void mockNotFound() {
     doThrow(DatasetNotFoundException.class).when(datasetService).retrieveDatasetSummary(DATASET_ID);
@@ -599,34 +511,5 @@ class DatasetsApiControllerTest {
     assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, unlockRequest);
-  }
-
-  @Test
-  void getConceptHierarchy() throws Exception {
-    var expected =
-        new SnapshotBuilderGetConceptHierarchyResponse()
-            .result(
-                List.of(
-                    new SnapshotBuilderParentConcept()
-                        .parentId(1234)
-                        .addChildrenItem(new SnapshotBuilderConcept().name("test"))));
-    var conceptId = 1234;
-
-    when(snapshotBuilderService.getConceptHierarchy(DATASET_ID, conceptId, TEST_USER))
-        .thenReturn(expected);
-    String actualJson =
-        mvc.perform(
-                get(
-                    SNAPSHOT_BUILDER_ENDPOINT + "/conceptHierarchy/{conceptId}",
-                    DATASET_ID,
-                    conceptId))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    var actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptHierarchyResponse.class);
-    assertThat(actual, equalTo(expected));
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 }

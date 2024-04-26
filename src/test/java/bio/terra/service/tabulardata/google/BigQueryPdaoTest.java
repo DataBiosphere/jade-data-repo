@@ -399,6 +399,7 @@ public class BigQueryPdaoTest {
 
   private void getConceptChildrenTest(
       Dataset dataset, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
+    // TODO - reference snapshots instead
     var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
     assertThat(conceptResponse.getResult(), is(List.of(concept1, concept3)));
 

@@ -30,6 +30,7 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
@@ -37,6 +38,9 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
@@ -77,6 +81,7 @@ class SnapshotBuilderServiceTest {
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private DatasetService datasetService;
   @Mock private IamService iamService;
+  @Mock private SnapshotService snapshotService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
@@ -92,6 +97,7 @@ class SnapshotBuilderServiceTest {
             snapshotBuilderSettingsDao,
             datasetService,
             iamService,
+            snapshotService,
             bigQueryDatasetPdao,
             azureSynapsePdao,
             queryBuilderFactory);
@@ -151,7 +157,7 @@ class SnapshotBuilderServiceTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void getConceptChildren(CloudPlatform cloudPlatform) {
-
+    // TODO - rework to reference snapshots
     Dataset dataset = makeDataset(cloudPlatform);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
 
@@ -271,14 +277,19 @@ class SnapshotBuilderServiceTest {
   @Test
   void getTableNameGeneratorHandlesGCPCorrectly() {
     Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.GCP));
-    when(datasetService.retrieveModel(dataset, TEST_USER))
-        .thenReturn(new DatasetModel().name("name").dataProject("data-project"));
-    var renderContext = snapshotBuilderService.createContext(dataset, TEST_USER);
+    Snapshot snapshot =
+        new Snapshot()
+            .id(UUID.randomUUID())
+            .snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
+    when(snapshotService.retrieveSnapshotModel(snapshot.getId(), TEST_USER))
+        .thenReturn(new SnapshotModel().name("name").dataProject("data-project"));
+    var renderContext = snapshotBuilderService.createContext(snapshot, TEST_USER);
     assertThat(
         "The generated name is the same as the BQVisitor generated name",
         renderContext.getTableName("table"),
         equalTo(
-            BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, TEST_USER))
+            BigQueryVisitor.bqSnapshotTableName(
+                    snapshotService.retrieveSnapshotModel(snapshot.getId(), TEST_USER))
                 .generate("table")));
   }
 
@@ -287,9 +298,11 @@ class SnapshotBuilderServiceTest {
     String dataSourceName = "data-source";
     String tableName = "azure-table";
     Dataset dataset = new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE));
-    when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+    Snapshot snapshot =
+        new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
+    when(snapshotService.getOrCreateExternalAzureDataSource(snapshot, TEST_USER))
         .thenReturn(dataSourceName);
-    var renderContext = snapshotBuilderService.createContext(dataset, TEST_USER);
+    var renderContext = snapshotBuilderService.createContext(snapshot, TEST_USER);
     assertThat(
         "The generated name is the same as the SynapseVisitor generated name",
         renderContext.getTableName(tableName),

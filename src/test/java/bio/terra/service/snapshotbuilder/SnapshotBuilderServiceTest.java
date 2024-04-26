@@ -286,8 +286,7 @@ class SnapshotBuilderServiceTest {
             .name("dataset123")
             .id(UUID.randomUUID());
     var settings = new SnapshotBuilderSettings();
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
     Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);

@@ -31,7 +31,13 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
   private final SnapshotRequestDao snapshotRequestDao;
   private final AuthenticatedUserRequest userReq;
 
-  public CreateByQuerySnapshotRequestModelStep(SnapshotRequestModel snapshotReq, DatasetService datasetService, SnapshotBuilderService snapshotBuilderService, SnapshotBuilderSettingsDao snapshotBuilderSettingsDao, SnapshotRequestDao snapshotRequestDao, AuthenticatedUserRequest userReq) {
+  public CreateByQuerySnapshotRequestModelStep(
+      SnapshotRequestModel snapshotReq,
+      DatasetService datasetService,
+      SnapshotBuilderService snapshotBuilderService,
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
+      SnapshotRequestDao snapshotRequestDao,
+      AuthenticatedUserRequest userReq) {
     this.snapshotReq = snapshotReq;
     this.datasetService = datasetService;
     this.snapshotBuilderService = snapshotBuilderService;
@@ -42,27 +48,36 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    UUID accessRequestId = snapshotReq.getContents().get(0).getRequestIdSpec().getSnapshotRequestId();
+    UUID accessRequestId =
+        snapshotReq.getContents().get(0).getRequestIdSpec().getSnapshotRequestId();
     SnapshotAccessRequestResponse accessRequest = snapshotRequestDao.getById(accessRequestId);
 
     // TODO: move to snapshot Id instead of dataset Id
     UUID dataReleaseDatasetId = accessRequest.getDatasetId();
     Dataset dataReleaseDataset = datasetService.retrieve(dataReleaseDatasetId);
     Instant filterByDate = dataReleaseDataset.getCreatedDate();
-    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataReleaseDatasetId);
+    SnapshotBuilderSettings settings =
+        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataReleaseDatasetId);
 
-    List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups = accessRequest.getSnapshotSpecification().getCohorts().stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
+    List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups =
+        accessRequest.getSnapshotSpecification().getCohorts().stream()
+            .map(SnapshotBuilderCohort::getCriteriaGroups)
+            .toList();
 
-    Query sqlQuery = new QueryBuilderFactory()
-        .criteriaQueryBuilder("person", settings)
-        .generatePersonQueryForCriteriaGroupsList(criteriaGroups);
-    String sqlString = sqlQuery.renderSQL(snapshotBuilderService.createContext(dataReleaseDataset, userReq));
+    Query sqlQuery =
+        new QueryBuilderFactory()
+            .criteriaQueryBuilder("person", settings)
+            .generatePersonQueryForCriteriaGroupsList(criteriaGroups);
+    String sqlString =
+        sqlQuery.renderSQL(snapshotBuilderService.createContext(dataReleaseDataset, userReq));
 
     // populate model with query and add to map
     SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
-    SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
-        .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
-        .querySpec(new SnapshotRequestQueryModel().query(sqlString).assetName("notImplemented"));
+    SnapshotRequestContentsModel snapshotRequestContentsModel =
+        new SnapshotRequestContentsModel()
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
+            .querySpec(
+                new SnapshotRequestQueryModel().query(sqlString).assetName("notImplemented"));
     snapshotRequestModel.contents(List.of(snapshotRequestContentsModel));
     // TODO: implement asset creation and time filtering
     context.getWorkingMap().put("byQuerySnapshotRequestModel", snapshotRequestModel);

@@ -176,10 +176,7 @@ public class CriteriaQueryBuilder {
 
     FieldVariable personId =
         new FieldVariable(
-            new FieldPointer(getRootTablePointer(), Person.PERSON_ID),
-            rootTable,
-            null,
-            true);
+            new FieldPointer(getRootTablePointer(), Person.PERSON_ID), rootTable, null, true);
 
     FilterVariable filterVariable =
         new BooleanAndOrFilterVariable(

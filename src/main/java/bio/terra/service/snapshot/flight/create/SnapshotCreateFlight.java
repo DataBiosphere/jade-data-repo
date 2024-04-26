@@ -54,14 +54,11 @@ import bio.terra.service.snapshot.flight.duos.SyncDuosFirecloudGroupStep;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
-import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -110,7 +107,8 @@ public class SnapshotCreateFlight extends Flight {
     SnapshotRequestDao snapshotRequestDao = appContext.getBean(SnapshotRequestDao.class);
     SnapshotBuilderSettingsDao snapshotBuilderSettingsDao =
         appContext.getBean(SnapshotBuilderSettingsDao.class);
-    SnapshotBuilderService snapshotBuilderService = appContext.getBean(SnapshotBuilderService.class);
+    SnapshotBuilderService snapshotBuilderService =
+        appContext.getBean(SnapshotBuilderService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -223,7 +221,15 @@ public class SnapshotCreateFlight extends Flight {
         }
         break;
       case BYQUERY:
-        stepsForByQueryCreation(datasetService, snapshotReq, platform, bigQuerySnapshotPdao, snapshotService, snapshotDao, userReq, azureSynapsePdao);
+        stepsForByQueryCreation(
+            datasetService,
+            snapshotReq,
+            platform,
+            bigQuerySnapshotPdao,
+            snapshotService,
+            snapshotDao,
+            userReq,
+            azureSynapsePdao);
         break;
 
       case BYROWID:
@@ -241,9 +247,24 @@ public class SnapshotCreateFlight extends Flight {
 
       case BYREQUESTID:
         // creates byQuery snapshot request model from byRequestId snapshot request model
-        addStep(new CreateByQuerySnapshotRequestModelStep(snapshotReq, datasetService, snapshotBuilderService, snapshotBuilderSettingsDao, snapshotRequestDao, userReq));
-        // uses the existing byQuery code snapshot request model to create the snapshot
-        stepsForByQueryCreation(datasetService, byQuerySnapshotReq, platform, bigQuerySnapshotPdao, snapshotService, snapshotDao, userReq, azureSynapsePdao);
+        addStep(
+            new CreateByQuerySnapshotRequestModelStep(
+                snapshotReq,
+                datasetService,
+                snapshotBuilderService,
+                snapshotBuilderSettingsDao,
+                snapshotRequestDao,
+                userReq));
+        // uses the existing byQuery snapshot request model code to create the snapshot
+        stepsForByQueryCreation(
+            datasetService,
+            inputParameters.get("byQuerySnapshotRequestModel", SnapshotRequestModel.class),
+            platform,
+            bigQuerySnapshotPdao,
+            snapshotService,
+            snapshotDao,
+            userReq,
+            azureSynapsePdao);
         break;
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
@@ -364,7 +385,15 @@ public class SnapshotCreateFlight extends Flight {
             "A snapshot was created from this dataset."));
   }
 
-  private boolean stepsForByQueryCreation(DatasetService datasetService, SnapshotRequestModel snapshotReq, CloudPlatformWrapper platform, BigQuerySnapshotPdao bigQuerySnapshotPdao, SnapshotService snapshotService, SnapshotDao snapshotDao, AuthenticatedUserRequest userReq, AzureSynapsePdao azureSynapsePdao) {
+  private boolean stepsForByQueryCreation(
+      DatasetService datasetService,
+      SnapshotRequestModel snapshotReq,
+      CloudPlatformWrapper platform,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
+      SnapshotService snapshotService,
+      SnapshotDao snapshotDao,
+      AuthenticatedUserRequest userReq,
+      AzureSynapsePdao azureSynapsePdao) {
     addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
     if (platform.isGcp()) {
       addStep(

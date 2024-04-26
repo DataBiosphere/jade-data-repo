@@ -75,12 +75,6 @@ public final class TableVariable implements SqlExpression {
     return sql;
   }
 
-  /** Default table alias is the first letter of the table name. */
-  public String getDefaultAlias() {
-    String tableName = tablePointer.tableName();
-    return tableName != null ? tableName.toLowerCase().substring(0, 1) : "x";
-  }
-
   public TablePointer getTablePointer() {
     return tablePointer;
   }

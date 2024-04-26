@@ -277,7 +277,7 @@ Below you'll find a list of environment variables needed to run TDR and tests lo
 values. On daily setup, you'll need to run the following two commands *in order*:
 ```
 ./render-configs.sh
-source ~/.zhsrc
+source ~/.zshrc
 ```
 An alternate is to run `./render-configs.sh -i` which will put the variables into your clipboard. You
 can then paste these values into an intellij bootRun or test run profile.

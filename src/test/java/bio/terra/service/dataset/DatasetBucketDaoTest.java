@@ -82,7 +82,8 @@ public class DatasetBucketDaoTest {
     projectIds.add(projectId);
 
     dataset =
-        integrationOperations.createDataset(billingProfile.getId(), projectId, "dataset-minimal.json");
+        integrationOperations.createDataset(
+            billingProfile.getId(), projectId, IntegrationOperations.DATASET_MINIMAL);
     datasetId = dataset.getId();
     datasetIds.add(datasetId);
   }
@@ -183,7 +184,7 @@ public class DatasetBucketDaoTest {
     // Get project given a new dataset
     Dataset dataset_second =
         integrationOperations.createDataset(
-            billingProfile2.getId(), ingestProjectId, "dataset-minimal.json");
+            billingProfile2.getId(), ingestProjectId, IntegrationOperations.DATASET_MINIMAL);
     datasetIds.add(dataset_second.getId());
     createBucketDbEntry(projectResource);
     assertNull(

@@ -101,7 +101,7 @@ public class GoogleResourceDaoUnitTest {
   private Dataset createDataset(UUID projectResourceId) throws IOException {
     Dataset dataset =
         integrationOperations.createDataset(
-            billingProfile.getId(), projectResourceId, "dataset-minimal.json");
+            billingProfile.getId(), projectResourceId, IntegrationOperations.DATASET_MINIMAL);
     datasetIds.add(dataset.getId());
     return dataset;
   }

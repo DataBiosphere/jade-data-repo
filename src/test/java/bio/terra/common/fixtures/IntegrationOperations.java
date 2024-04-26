@@ -27,6 +27,8 @@ public class IntegrationOperations {
   private final SnapshotDao snapshotDao;
   private final SnapshotService snapshotService;
 
+  public static final String DATASET_MINIMAL = "dataset-minimal.json";
+
   public IntegrationOperations(
       JsonLoader jsonLoader,
       DatasetDao datasetDao,

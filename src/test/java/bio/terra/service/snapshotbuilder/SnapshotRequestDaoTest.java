@@ -46,7 +46,7 @@ class SnapshotRequestDaoTest {
 
   @BeforeEach
   void beforeEach() throws IOException {
-    dataset = integrationOperations.createDataset("dataset-minimal.json");
+    dataset = integrationOperations.createDataset(IntegrationOperations.DATASET_MINIMAL);
     snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest();
   }
 

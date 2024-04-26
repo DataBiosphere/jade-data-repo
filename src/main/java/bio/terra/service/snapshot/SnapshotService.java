@@ -1247,11 +1247,10 @@ public class SnapshotService {
 
   public void updateSnapshotBuilderSettings(
       UUID snapshotId, SnapshotBuilderSettings snapshotBuilderSettings) {
-    snapshotBuilderSettingsDao.upsertSnapshotBuilderSettingsByDataset(
-        snapshotId, snapshotBuilderSettings);
+    snapshotBuilderSettingsDao.upsertBySnapshotId(snapshotId, snapshotBuilderSettings);
   }
 
   public SnapshotBuilderSettings getSnapshotBuilderSettings(UUID snapshotId) {
-    return snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(snapshotId);
+    return snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
   }
 }

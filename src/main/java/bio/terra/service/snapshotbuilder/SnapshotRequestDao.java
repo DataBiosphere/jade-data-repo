@@ -156,6 +156,7 @@ public class SnapshotRequestDao {
   }
   /**
    * Create a new Snapshot Access Request for the given snapshot id.
+   *
    * @param snapshotId associated with the snapshot request.
    * @param request the snapshot access request.
    * @param email the email of the user creating the request.

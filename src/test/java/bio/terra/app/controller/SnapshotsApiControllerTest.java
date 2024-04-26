@@ -308,6 +308,24 @@ class SnapshotsApiControllerTest {
     verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 
+  @Test
+  void updateSnapshotSnapshotBuilderSettingsForbidden() throws Exception {
+    mockValidators();
+    IamAction iamAction = IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS;
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
+
+    mvc.perform(
+            put(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+  }
+
   /** Verify that snapshot authorization was checked. */
   private void verifyAuthorizationCall(IamAction iamAction) {
     verify(iamService)

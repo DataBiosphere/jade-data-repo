@@ -680,7 +680,7 @@ public class DatasetServiceTest {
     datasetService.updateDatasetSnapshotBuilderSettings(
         datasetId, SnapshotBuilderTestData.SETTINGS);
     verify(snapshotBuilderSettingsDao)
-        .upsertSnapshotBuilderSettingsByDataset(datasetId, SnapshotBuilderTestData.SETTINGS);
+        .upsertByDatasetId(datasetId, SnapshotBuilderTestData.SETTINGS);
   }
 
   @Test

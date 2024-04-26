@@ -7377,7 +7377,6 @@ components:
       description: The response object for a submitted SnapshotAccessRequest.
       required:
         - id
-        - datasetId
         - snapshotName
         - snapshotResearchPurpose
         - snapshotSpecification
@@ -7388,6 +7387,8 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        snapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
         snapshotName:
           type: string

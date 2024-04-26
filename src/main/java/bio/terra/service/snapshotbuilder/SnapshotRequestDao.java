@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SnapshotRequestDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final ObjectMapper objectMapper;
+  private static final String SNAPSHOT_ID = "snapshot_id";
   private static final String ID = "id";
   private static final String DATASET_ID = "dataset_id";
   private static final String SNAPSHOT_NAME = "snapshot_name";
@@ -45,6 +46,7 @@ public class SnapshotRequestDao {
           new SnapshotAccessRequestResponse()
               .id(rs.getObject(ID, UUID.class))
               .datasetId(rs.getObject(DATASET_ID, UUID.class))
+              .snapshotId(rs.getObject(ID, UUID.class))
               .snapshotName(rs.getString(SNAPSHOT_NAME))
               .snapshotResearchPurpose(rs.getString(SNAPSHOT_RESEARCH_PURPOSE))
               .snapshotSpecification(mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)))
@@ -103,6 +105,24 @@ public class SnapshotRequestDao {
     }
   }
 
+  /**
+   * Return the list of Snapshot Requests associated with the given snapshot id.
+   *
+   * @param snapshotId associated with any number of snapshot requests.
+   * @return the list of snapshot requests, empty if none, or an exception if the snapshot does not
+   *     exist.
+   */
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public List<SnapshotAccessRequestResponse> enumerateBySnapshotId(UUID snapshotId) {
+    String sql = "SELECT * FROM snapshot_request WHERE snapshot_id = :snapshot_id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue(SNAPSHOT_ID, snapshotId);
+    try {
+      return jdbcTemplate.query(sql, params, responseMapper);
+    } catch (EmptyResultDataAccessException ex) {
+      throw new NotFoundException("No snapshot requests found for given dataset id", ex);
+    }
+  }
+
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public SnapshotAccessRequestResponse create(
       UUID datasetId, SnapshotAccessRequest request, String email) {
@@ -122,6 +142,43 @@ public class SnapshotRequestDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(DATASET_ID, datasetId)
+            .addValue(SNAPSHOT_NAME, request.getName())
+            .addValue(SNAPSHOT_RESEARCH_PURPOSE, request.getResearchPurposeStatement())
+            .addValue(SNAPSHOT_SPECIFICATION, jsonValue)
+            .addValue(CREATED_BY, email);
+    try {
+      jdbcTemplate.update(sql, params, keyHolder);
+    } catch (DataIntegrityViolationException ex) {
+      throw new NotFoundException("Dataset with given dataset id does not exist.");
+    }
+    UUID id = keyHolder.getId();
+    return getById(id);
+  }
+  /**
+   * @param snapshotId
+   * @param request
+   * @param email
+   * @return
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public SnapshotAccessRequestResponse createV2(
+      UUID snapshotId, SnapshotAccessRequest request, String email) {
+    String jsonValue;
+    try {
+      jsonValue = objectMapper.writeValueAsString(request.getDatasetRequest());
+    } catch (JsonProcessingException e) {
+      throw new BadRequestException("Could not write snapshot access request to json", e);
+    }
+    DaoKeyHolder keyHolder = new DaoKeyHolder();
+    String sql =
+        """
+        INSERT INTO snapshot_request
+        (snapshot_id, snapshot_name, snapshot_research_purpose, snapshot_specification, created_by)
+        VALUES (:snapshot_id, :snapshot_name, :snapshot_research_purpose, cast(:snapshot_specification as jsonb), :created_by)
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue(SNAPSHOT_ID, snapshotId)
             .addValue(SNAPSHOT_NAME, request.getName())
             .addValue(SNAPSHOT_RESEARCH_PURPOSE, request.getResearchPurposeStatement())
             .addValue(SNAPSHOT_SPECIFICATION, jsonValue)

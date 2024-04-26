@@ -141,7 +141,8 @@ public class SnapshotService {
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
-      DuosClient duosClient, SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
+      DuosClient duosClient,
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;

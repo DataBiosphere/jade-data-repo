@@ -4509,7 +4509,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-    post:
+    put:
       tags:
         - snapshots
         - repository

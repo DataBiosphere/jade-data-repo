@@ -10,7 +10,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
 import bio.terra.model.AddAuthDomainResponseModel;
-import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
@@ -438,7 +437,8 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotBuilderSettings> updateSnapshotSnapshotBuilderSettings(UUID id, SnapshotBuilderSettings settings) {
+  public ResponseEntity<SnapshotBuilderSettings> updateSnapshotSnapshotBuilderSettings(
+      UUID id, SnapshotBuilderSettings settings) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,

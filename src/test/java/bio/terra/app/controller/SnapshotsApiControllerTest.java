@@ -17,12 +17,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.JobModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.UnlockResourceRequest;
@@ -85,13 +87,14 @@ class SnapshotsApiControllerTest {
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final String FILTER = "";
 
-  private static final String RETRIEVE_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}";
-  private static final String LOCK_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}/lock";
-  private static final String UNLOCK_SNAPSHOT_ENDPOINT = "/api/repository/v1/snapshots/{id}/unlock";
+  private static final String API_PREFIX = "/api/repository/v1/snapshots/{id}";
+  private static final String LOCK_SNAPSHOT_ENDPOINT = API_PREFIX + "/lock";
+  private static final String UNLOCK_SNAPSHOT_ENDPOINT = API_PREFIX + "/unlock";
 
-  private static final String QUERY_SNAPSHOT_DATA_ENDPOINT =
-      RETRIEVE_SNAPSHOT_ENDPOINT + "/data/{table}";
-  private static final String EXPORT_SNAPSHOT_ENDPOINT = RETRIEVE_SNAPSHOT_ENDPOINT + "/export";
+  private static final String QUERY_SNAPSHOT_DATA_ENDPOINT = API_PREFIX + "/data/{table}";
+  private static final String EXPORT_SNAPSHOT_ENDPOINT = API_PREFIX + "/export";
+  private static final String SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
+      API_PREFIX + "/snapshotBuilder/settings";
 
   @BeforeEach
   void setUp() {
@@ -259,6 +262,50 @@ class SnapshotsApiControllerTest {
     assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(snapshotService).manualExclusiveUnlock(TEST_USER, SNAPSHOT_ID, unlockRequest);
+  }
+
+  @Test
+  void getSnapshotSnapshotBuilderSettings() throws Exception {
+    mockValidators();
+    mvc.perform(get(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isOk());
+    verify(snapshotService).getSnapshotBuilderSettings(SNAPSHOT_ID);
+    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  @Test
+  void getSnapshotSnapshotBuilderSettingsForbidden() throws Exception {
+    mockValidators();
+    IamAction iamAction = IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS;
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
+
+    mvc.perform(get(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID))
+        .andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+  }
+
+  @Test
+  void getSnapshotSnapshotBuilderSettingsNotFound() throws Exception {
+    mockValidators();
+    doThrow(NotFoundException.class).when(snapshotService).getSnapshotBuilderSettings(SNAPSHOT_ID);
+    mvc.perform(get(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateSnapshotSnapshotBuilderSettings() throws Exception {
+    mockValidators();
+    var snapshotBuilderSettings = new SnapshotBuilderSettings();
+    mvc.perform(
+            put(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(snapshotBuilderSettings)))
+        .andExpect(status().isOk());
+    verify(snapshotService).updateSnapshotBuilderSettings(SNAPSHOT_ID, snapshotBuilderSettings);
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 
   /** Verify that snapshot authorization was checked. */

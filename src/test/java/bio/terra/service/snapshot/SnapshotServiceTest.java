@@ -93,6 +93,7 @@ import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControl
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -145,6 +146,7 @@ public class SnapshotServiceTest {
 
   @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;
+  @MockBean private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   @MockBean private FireStoreDependencyDao dependencyDao;
   @MockBean private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;

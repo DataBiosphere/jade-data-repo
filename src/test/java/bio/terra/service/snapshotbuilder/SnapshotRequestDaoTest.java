@@ -18,6 +18,7 @@ import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.snapshot.Snapshot;
 import java.io.IOException;
 import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
@@ -40,6 +41,7 @@ class SnapshotRequestDaoTest {
   @Autowired private SnapshotRequestDao snapshotRequestDao;
 
   private Dataset dataset;
+  private Snapshot snapshot;
   private SnapshotAccessRequest snapshotAccessRequest;
 
   private static final String EMAIL = "user@gmail.com";
@@ -47,6 +49,7 @@ class SnapshotRequestDaoTest {
   @BeforeEach
   void beforeEach() throws IOException {
     dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
+    snapshot = daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
     snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest();
   }
 
@@ -54,9 +57,17 @@ class SnapshotRequestDaoTest {
     return snapshotRequestDao.create(dataset.getId(), snapshotAccessRequest, EMAIL);
   }
 
-  private void verifyResponseContents(SnapshotAccessRequestResponse response) {
+  private SnapshotAccessRequestResponse createRequestV2() {
+    return snapshotRequestDao.createV2(snapshot.getId(), snapshotAccessRequest, EMAIL);
+  }
+
+  private void verifyResponseContents(SnapshotAccessRequestResponse response, boolean isV2) {
     SnapshotAccessRequestResponse expected = new SnapshotAccessRequestResponse();
-    expected.datasetId(dataset.getId());
+    if (isV2) {
+      expected.snapshotId(snapshot.getId());
+    } else {
+      expected.datasetId(dataset.getId());
+    }
     expected.snapshotName(
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotName());
     expected.snapshotResearchPurpose(
@@ -78,7 +89,7 @@ class SnapshotRequestDaoTest {
   void getById() {
     SnapshotAccessRequestResponse response = createRequest();
     SnapshotAccessRequestResponse retrieved = snapshotRequestDao.getById(response.getId());
-    verifyResponseContents(retrieved);
+    verifyResponseContents(retrieved, false);
   }
 
   @Test
@@ -105,9 +116,27 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
+  void enumerateBySnapshotId() {
+    SnapshotAccessRequestResponse response = createRequestV2();
+    SnapshotAccessRequestResponse response1 = createRequestV2();
+    assertThat(
+        "Snapshot Access Request should be the same as the example",
+        snapshotRequestDao.enumerateBySnapshotId(snapshot.getId()),
+        contains(response, response1));
+  }
+
+  @Test
+  void enumerateBySnapshotIdNotFound() {
+    assertThat(
+        "For a dataset id that does not exist nothing is returned",
+        snapshotRequestDao.enumerateBySnapshotId(UUID.randomUUID()),
+        empty());
+  }
+
+  @Test
   void create() {
     SnapshotAccessRequestResponse response = createRequest();
-    verifyResponseContents(response);
+    verifyResponseContents(response, false);
 
     SnapshotAccessRequestResponse response1 =
         snapshotRequestDao.create(dataset.getId(), snapshotAccessRequest, EMAIL);
@@ -130,10 +159,35 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
+  void createV2() {
+    SnapshotAccessRequestResponse response = createRequestV2();
+    verifyResponseContents(response, true);
+
+    SnapshotAccessRequestResponse response1 =
+        snapshotRequestDao.createV2(snapshot.getId(), snapshotAccessRequest, EMAIL);
+
+    Assertions.assertNotEquals(
+        response1.getId(),
+        response.getId(),
+        "Snapshot Access Request Response should have unique request id");
+    Assertions.assertNotEquals(
+        response1.getCreatedDate(),
+        response.getCreatedDate(),
+        "Snapshot Access Request Response should have unique create date timestamp");
+  }
+
+  @Test
+  void createV2SnapshotIdNotFound() {
+    assertThrows(
+        NotFoundException.class,
+        () -> snapshotRequestDao.createV2(UUID.randomUUID(), snapshotAccessRequest, EMAIL));
+  }
+
+  @Test
   void update() {
     SnapshotAccessRequestResponse response = createRequest();
     assertNull(response.getUpdatedDate(), "Response was never updated.");
-    verifyResponseContents(response);
+    verifyResponseContents(response, false);
 
     SnapshotAccessRequestResponse updatedResponse =
         snapshotRequestDao.update(response.getId(), SnapshotAccessRequestStatus.APPROVED);

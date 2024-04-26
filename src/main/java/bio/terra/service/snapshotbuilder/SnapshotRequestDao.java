@@ -46,7 +46,7 @@ public class SnapshotRequestDao {
           new SnapshotAccessRequestResponse()
               .id(rs.getObject(ID, UUID.class))
               .datasetId(rs.getObject(DATASET_ID, UUID.class))
-              .snapshotId(rs.getObject(ID, UUID.class))
+              .snapshotId(rs.getObject(SNAPSHOT_ID, UUID.class))
               .snapshotName(rs.getString(SNAPSHOT_NAME))
               .snapshotResearchPurpose(rs.getString(SNAPSHOT_RESEARCH_PURPOSE))
               .snapshotSpecification(mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)))
@@ -119,7 +119,7 @@ public class SnapshotRequestDao {
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot requests found for given dataset id", ex);
+      throw new NotFoundException("No snapshot requests found for given snapshot id", ex);
     }
   }
 
@@ -155,10 +155,11 @@ public class SnapshotRequestDao {
     return getById(id);
   }
   /**
-   * @param snapshotId
-   * @param request
-   * @param email
-   * @return
+   * Create a new Snapshot Access Request for the given snapshot id.
+   * @param snapshotId associated with the snapshot request.
+   * @param request the snapshot access request.
+   * @param email the email of the user creating the request.
+   * @return the created snapshot access request response.
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public SnapshotAccessRequestResponse createV2(
@@ -186,7 +187,7 @@ public class SnapshotRequestDao {
     try {
       jdbcTemplate.update(sql, params, keyHolder);
     } catch (DataIntegrityViolationException ex) {
-      throw new NotFoundException("Dataset with given dataset id does not exist.");
+      throw new NotFoundException("Snapshot with given snapshot id does not exist.");
     }
     UUID id = keyHolder.getId();
     return getById(id);

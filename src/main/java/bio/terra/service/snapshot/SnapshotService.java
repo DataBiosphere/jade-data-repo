@@ -1253,4 +1253,8 @@ public class SnapshotService {
   public SnapshotBuilderSettings getSnapshotBuilderSettings(UUID snapshotId) {
     return snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
   }
+
+  public void deleteSnapshotBuilderSettings(UUID snapshotId) {
+    snapshotBuilderSettingsDao.deleteBySnapshotId(snapshotId);
+  }
 }

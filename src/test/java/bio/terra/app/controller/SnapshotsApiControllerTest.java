@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -148,10 +149,7 @@ class SnapshotsApiControllerTest {
   @Test
   void testExportSnapshotForbidden() throws Exception {
     IamAction iamAction = IamAction.EXPORT_SNAPSHOT;
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
+    failValidation(iamAction);
 
     mvc.perform(
             get(EXPORT_SNAPSHOT_ENDPOINT, SNAPSHOT_ID)
@@ -276,10 +274,7 @@ class SnapshotsApiControllerTest {
   void getSnapshotSnapshotBuilderSettingsForbidden() throws Exception {
     mockValidators();
     IamAction iamAction = IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS;
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
+    failValidation(iamAction);
 
     mvc.perform(get(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID))
         .andExpect(status().isForbidden());
@@ -312,10 +307,7 @@ class SnapshotsApiControllerTest {
   void updateSnapshotSnapshotBuilderSettingsForbidden() throws Exception {
     mockValidators();
     IamAction iamAction = IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS;
-    doThrow(IamForbiddenException.class)
-        .when(iamService)
-        .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
+    failValidation(iamAction);
 
     mvc.perform(
             put(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)
@@ -324,6 +316,33 @@ class SnapshotsApiControllerTest {
         .andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
+  }
+
+  @Test
+  void deleteSnapshotBuilderSettings() throws Exception {
+    mockValidators();
+    mvc.perform(delete(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isOk());
+    verify(snapshotService).deleteSnapshotBuilderSettings(SNAPSHOT_ID);
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+  }
+
+  @Test
+  void deleteSnapshotBuilderSettingsForbidden() throws Exception {
+    mockValidators();
+    IamAction iamAction = IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS;
+    failValidation(iamAction);
+
+    mvc.perform(delete(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID))
+        .andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+  }
+
+  private void failValidation(IamAction iamAction) {
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), iamAction);
   }
 
   /** Verify that snapshot authorization was checked. */

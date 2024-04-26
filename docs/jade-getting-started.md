@@ -29,10 +29,13 @@ encounter a permission error, it is likely because you are missing appropriate
 access.
 
 - DataBiosphere: Join the `#github` Slack channel, click the lightning bolt in the
-channel header, and select `Join DataBiosphere`.  Once you've been granted access
-to DataBiosphere, ask a team member to add your github user to the
-[DataBiosphere/data-custodian-journeys group](https://github.com/orgs/DataBiosphere/teams/data-custodian-journeys).
-This will give you admin access to our repositories.
+channel header, and select `Join DataBiosphere`. Once you've been granted access to DataBiosphere,
+you should have write access to our repositories via membership in the
+[DataBiosphere/broadwrite team](https://github.com/orgs/DataBiosphere/teams/broadwrite).
+This level of permission should be sufficient for most contributions from across DSP.
+  - If needed, repository admin access is conferred via membership in the
+  [DataBiosphere/data-custodian-journeys team](https://github.com/orgs/DataBiosphere/teams/data-custodian-journeys),
+  among others.
 - Google Groups: Ask a team member for access to Google Groups including `jade-internal` and `dsde-engineering`.
 
 ## 3. Connect accounts

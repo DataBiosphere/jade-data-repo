@@ -168,7 +168,7 @@ public class DatasetJsonConversionTest {
 
   @Test
   public void populateDatasetModelFromDataset() {
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(DATASET_ID))
+    when(snapshotBuilderSettingsDao.getByDatasetId(DATASET_ID))
         .thenReturn(new SnapshotBuilderSettings());
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
@@ -183,7 +183,7 @@ public class DatasetJsonConversionTest {
 
   @Test
   public void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(DATASET_ID))
+    when(snapshotBuilderSettingsDao.getByDatasetId(DATASET_ID))
         .thenReturn(new SnapshotBuilderSettings());
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(

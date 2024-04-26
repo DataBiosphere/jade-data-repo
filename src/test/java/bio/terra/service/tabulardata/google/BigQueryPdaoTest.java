@@ -343,7 +343,7 @@ public class BigQueryPdaoTest {
     var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
-    settingsDao.upsertSnapshotBuilderSettingsByDataset(dataset.getId(), settings);
+    settingsDao.upsertByDatasetId(dataset.getId(), settings);
 
     // Stage tabular data for ingest.
     var ingesters = TABLES.stream().map(Ingester::new).toList();

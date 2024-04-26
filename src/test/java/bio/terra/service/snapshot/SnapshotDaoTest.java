@@ -28,14 +28,11 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetPatchRequestModel;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ResourceCreateTags;
@@ -45,7 +42,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.duos.DuosDao;
@@ -54,7 +50,6 @@ import bio.terra.service.filedata.DrsDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
@@ -104,6 +99,8 @@ public class SnapshotDaoTest {
 
   @Autowired private DrsDao drsDao;
 
+  @Autowired private DaoOperations daoOperations;
+
   @MockBean private DuosClient duosClient;
 
   @MockBean private DuosService duosService;
@@ -125,36 +122,13 @@ public class SnapshotDaoTest {
 
   @Before
   public void setup() throws Exception {
-    BillingProfileModel billingProfile =
-        profileDao.createBillingProfile(ProfileFixtures.randomBillingProfileRequest(), "hi@hi.hi");
-    profileId = billingProfile.getId();
-
-    GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
-    projectId = resourceDao.createProject(projectResource);
-
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject(
-            "snapshot-test-dataset-with-multi-columns.json", DatasetRequestModel.class);
-    datasetRequest
-        .name(datasetRequest.getName() + UUID.randomUUID())
-        .defaultProfileId(profileId)
-        .cloudPlatform(CloudPlatform.GCP);
-
-    dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-    dataset.projectResourceId(projectId);
-
-    String createFlightId = UUID.randomUUID().toString();
-    datasetId = UUID.randomUUID();
-    dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
-    datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-    dataset = datasetDao.retrieve(datasetId);
+    dataset = daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
+    datasetId = dataset.getId();
+    projectId = dataset.getProjectResource().getId();
+    profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
-        jsonLoader
-            .loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
-            .profileId(profileId);
-    snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
+        daoOperations.createSnapshotRequestFromDataset(dataset, "snapshot-test-snapshot.json");
 
     snapshotIds = new ArrayList<>();
     datasetIds = new ArrayList<>();
@@ -184,23 +158,13 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {
-    UUID snapshotId = UUID.randomUUID();
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(request)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-
-    String createFlightId = UUID.randomUUID().toString();
-
-    return insertAndRetrieveSnapshot(snapshot, createFlightId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, projectId);
+    return insertAndRetrieveSnapshot(snapshot);
   }
 
-  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
-    snapshotDao.createAndLock(snapshot, flightId);
-    snapshotDao.unlock(snapshot.getId(), flightId);
+  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot) {
     snapshotIds.add(snapshot.getId());
-    return snapshotDao.retrieveSnapshot(snapshot.getId());
+    return daoOperations.ingestSnapshot(snapshot);
   }
 
   @Test
@@ -215,12 +179,8 @@ public class SnapshotDaoTest {
   public void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(UUID.randomUUID());
-    Snapshot fromDb = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot fromDb = insertAndRetrieveSnapshot(snapshot);
     assertThat("snapshot name set correctly", fromDb.getName(), equalTo(snapshot.getName()));
 
     assertThat(
@@ -834,13 +794,8 @@ public class SnapshotDaoTest {
     String properties =
         "{\"projectName\":\"project\", " + "\"authors\": [\"harry\", \"ron\", \"hermionie\"]}";
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).properties(properties);
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(UUID.randomUUID());
-    String flightId = UUID.randomUUID().toString();
-    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, flightId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot);
     assertThat(
         "snapshot properties set correctly",
         fromDB.getProperties(),

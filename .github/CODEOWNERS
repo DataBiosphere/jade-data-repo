@@ -4,10 +4,10 @@
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # These owners will be the default owners for everything in the repo.
-*       @DataBiosphere/data-custodian-journeys
+*       @DataBiosphere/data-custodian-journeys @DataBiosphere/data-explorer-eng
 
 # Order is important. The last matching pattern has the most precedence.
-# So if a pull request only touches files in a `/snapshotbuilder` directory
+# Example: if a pull request only touches files in a `/snapshotbuilder` directory
 # such as `/src/main/../snapshotbuilder` or `/src/test/../snapshotbuilder`,
 # only these owners will be requested to review.
-**/snapshotbuilder @DataBiosphere/data-explorer-eng
+# **/snapshotbuilder @DataBiosphere/data-explorer-eng

@@ -18,21 +18,21 @@ import org.junit.jupiter.params.provider.MethodSource;
 class LiteralTest {
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderString(SqlRenderContext context) {
     var literal = new Literal("foo");
     assertThat(literal.renderSQL(context), is("'foo'"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderStringEscaped(SqlRenderContext context) {
     var literal = new Literal("foo's");
     assertThat(literal.renderSQL(context), is("'foo’s'"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderInt(SqlRenderContext context) {
     var literal = new Literal(42);
     assertThat(literal.renderSQL(context), is("42"));
@@ -40,10 +40,10 @@ class LiteralTest {
 
   public static Stream<Arguments> renderBoolean() {
     return Stream.of(
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.GCP), true, "true"),
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.GCP), false, "false"),
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.AZURE), true, "1"),
-        Arguments.of(QueryTestUtils.createContext(CloudPlatform.AZURE), false, "0"));
+        Arguments.of(SqlRenderContextProvider.of(CloudPlatform.GCP), true, "true"),
+        Arguments.of(SqlRenderContextProvider.of(CloudPlatform.GCP), false, "false"),
+        Arguments.of(SqlRenderContextProvider.of(CloudPlatform.AZURE), true, "1"),
+        Arguments.of(SqlRenderContextProvider.of(CloudPlatform.AZURE), false, "0"));
   }
 
   @ParameterizedTest
@@ -53,14 +53,14 @@ class LiteralTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderDate(SqlRenderContext context) {
     var literal = new Literal(Date.valueOf("2021-01-01"));
     assertThat(literal.renderSQL(context), is("DATE('2021-01-01')"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderDouble(SqlRenderContext context) {
     var literal = new Literal(1.234);
     assertThat(literal.renderSQL(context), is("FLOAT('1.234')"));

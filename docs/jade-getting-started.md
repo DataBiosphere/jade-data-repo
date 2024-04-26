@@ -31,7 +31,7 @@ access.
 - DataBiosphere: Join the `#github` Slack channel, click the lightning bolt in the
 channel header, and select `Join DataBiosphere`.  Once you've been granted access
 to DataBiosphere, ask a team member to add your github user to the
-[DataBiosphere/jadeteam group](https://github.com/orgs/DataBiosphere/teams/jadeteam).
+[DataBiosphere/data-custodian-journeys group](https://github.com/orgs/DataBiosphere/teams/data-custodian-journeys).
 This will give you admin access to our repositories.
 - Google Groups: Ask a team member for access to Google Groups including `jade-internal` and `dsde-engineering`.
 

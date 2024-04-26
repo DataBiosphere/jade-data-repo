@@ -77,4 +77,5 @@
     <include file="changesets/20230519_drsalias.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230906_snapshotbuildersettings.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20231129_snapshotrequests.yaml" relativeToChangelogFile="true" />
+  <include file="changesets/20240426_addsnapshotidtorequest.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

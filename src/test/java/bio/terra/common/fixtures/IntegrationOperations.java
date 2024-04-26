@@ -19,7 +19,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DaoOperations {
+public class IntegrationOperations {
   private final JsonLoader jsonLoader;
   private final DatasetDao datasetDao;
   private final ProfileDao profileDao;
@@ -27,7 +27,7 @@ public class DaoOperations {
   private final SnapshotDao snapshotDao;
   private final SnapshotService snapshotService;
 
-  public DaoOperations(
+  public IntegrationOperations(
       JsonLoader jsonLoader,
       DatasetDao datasetDao,
       ProfileDao profileDao,

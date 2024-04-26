@@ -9,7 +9,7 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.DaoOperations;
+import bio.terra.common.fixtures.IntegrationOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
@@ -54,7 +54,7 @@ public class DatasetBucketDaoTest {
 
   @Autowired private GoogleResourceDao resourceDao;
 
-  @Autowired private DaoOperations daoOperations;
+  @Autowired private IntegrationOperations integrationOperations;
 
   private BillingProfileModel billingProfile;
   private GoogleProjectResource projectResource;
@@ -82,7 +82,7 @@ public class DatasetBucketDaoTest {
     projectIds.add(projectId);
 
     dataset =
-        daoOperations.createDataset(billingProfile.getId(), projectId, "dataset-minimal.json");
+        integrationOperations.createDataset(billingProfile.getId(), projectId, "dataset-minimal.json");
     datasetId = dataset.getId();
     datasetIds.add(datasetId);
   }
@@ -182,7 +182,7 @@ public class DatasetBucketDaoTest {
 
     // Get project given a new dataset
     Dataset dataset_second =
-        daoOperations.createDataset(
+        integrationOperations.createDataset(
             billingProfile2.getId(), ingestProjectId, "dataset-minimal.json");
     datasetIds.add(dataset_second.getId());
     createBucketDbEntry(projectResource);

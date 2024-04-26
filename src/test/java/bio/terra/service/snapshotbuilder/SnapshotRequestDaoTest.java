@@ -13,7 +13,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.NotFoundException;
-import bio.terra.common.fixtures.DaoOperations;
+import bio.terra.common.fixtures.IntegrationOperations;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
@@ -36,7 +36,7 @@ import org.springframework.test.context.ActiveProfiles;
 @EmbeddedDatabaseTest
 class SnapshotRequestDaoTest {
 
-  @Autowired private DaoOperations daoOperations;
+  @Autowired private IntegrationOperations integrationOperations;
   @Autowired private SnapshotRequestDao snapshotRequestDao;
 
   private Dataset dataset;
@@ -46,7 +46,7 @@ class SnapshotRequestDaoTest {
 
   @BeforeEach
   void beforeEach() throws IOException {
-    dataset = daoOperations.createDataset("dataset-minimal.json");
+    dataset = integrationOperations.createDataset("dataset-minimal.json");
     snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest();
   }
 

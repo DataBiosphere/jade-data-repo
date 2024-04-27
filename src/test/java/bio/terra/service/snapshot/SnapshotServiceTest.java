@@ -11,8 +11,7 @@ import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -77,15 +76,12 @@ import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.SnapshotService.SnapshotAccessibleResult;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
@@ -97,6 +93,7 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import bio.terra.stairway.FlightMap;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.time.Instant;
@@ -107,25 +104,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.function.ThrowingRunnable;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 
-@RunWith(SpringRunner.class)
-@ContextConfiguration(classes = {SnapshotService.class, MetadataDataAccessUtils.class})
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class SnapshotServiceTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class SnapshotServiceTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
@@ -144,22 +140,16 @@ public class SnapshotServiceTest {
   private static final String PASSPORT = "passportJwt";
   private static final String DUOS_ID = "DUOS-123456";
 
-  @MockBean private JobService jobService;
-  @MockBean private DatasetService datasetService;
-  @MockBean private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
-  @MockBean private FireStoreDependencyDao dependencyDao;
-  @MockBean private BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
-  @MockBean private ResourceService resourceService;
-  @MockBean private AzureBlobStorePdao azureBlobStorePdao;
-  @MockBean private ProfileService profileService;
-  @MockBean private SnapshotDao snapshotDao;
-  @MockBean private SnapshotTableDao snapshotTableDao;
-  @MockBean private IamService iamService;
-  @MockBean private AzureSynapsePdao azureSynapsePdao;
-  @MockBean private EcmService ecmService;
-  @MockBean private RawlsService rawlsService;
-  @MockBean private DuosClient duosClient;
+  @Mock private JobService jobService;
+  @Mock private DatasetService datasetService;
+  @Mock private MetadataDataAccessUtils metadataDataAccessUtils;
+  @Mock private SnapshotDao snapshotDao;
+  @Mock private SnapshotTableDao snapshotTableDao;
+  @Mock private IamService iamService;
+  @Mock private AzureSynapsePdao azureSynapsePdao;
+  @Mock private EcmService ecmService;
+  @Mock private RawlsService rawlsService;
+  @Mock private DuosClient duosClient;
 
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
@@ -169,10 +159,29 @@ public class SnapshotServiceTest {
   private final DuosFirecloudGroupModel duosFirecloudGroup =
       DuosFixtures.createDbFirecloudGroup(DUOS_ID);
 
-  @Autowired private SnapshotService service;
+  private SnapshotService service;
+
+  @BeforeEach
+  void beforeEach() {
+    service =
+        new SnapshotService(
+            jobService,
+            datasetService,
+            mock(FireStoreDependencyDao.class),
+            mock(BigQuerySnapshotPdao.class),
+            snapshotDao,
+            snapshotTableDao,
+            metadataDataAccessUtils,
+            iamService,
+            ecmService,
+            azureSynapsePdao,
+            rawlsService,
+            duosClient,
+            mock(SnapshotBuilderSettingsDao.class));
+  }
 
   @Test
-  public void testRetrieveSnapshot() {
+  void testRetrieveSnapshot() {
     mockSnapshot();
     assertThat(
         service.retrieveSnapshotModel(snapshotId, TEST_USER),
@@ -213,7 +222,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testRetrieveSnapshotNoFields() {
+  void testRetrieveSnapshotNoFields() {
     mockSnapshot();
     assertThat(
         service.retrieveSnapshotModel(
@@ -222,7 +231,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testRetrieveSnapshotDefaultFields() {
+  void testRetrieveSnapshotDefaultFields() {
     mockSnapshot();
     assertThat(
         service.retrieveSnapshotModel(
@@ -239,7 +248,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testRetrieveSnapshotOnlyCreationInfo() {
+  void testRetrieveSnapshotOnlyCreationInfo() {
     mockSnapshot();
     assertThat(
         service.retrieveSnapshotModel(
@@ -253,7 +262,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testRetrieveSnapshotOnlyAccessInfo() {
+  void testRetrieveSnapshotOnlyAccessInfo() {
     mockSnapshot();
     AccessInfoModel accessInfoModel =
         new AccessInfoModel()
@@ -315,7 +324,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testRetrieveSnapshotOnlyDuos() {
+  void testRetrieveSnapshotOnlyDuos() {
     mockSnapshot();
     assertThat(
         service.retrieveSnapshotModel(
@@ -324,7 +333,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testRetrieveSnapshotMultiInfo() {
+  void testRetrieveSnapshotMultiInfo() {
     mockSnapshot();
     assertThat(
         service.retrieveSnapshotModel(
@@ -396,7 +405,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void enumerateSnapshots() throws Exception {
+  void enumerateSnapshots() throws Exception {
     IamRole role = IamRole.DISCOVERER;
     Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(snapshotId, Set.of(role));
     when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT))
@@ -425,7 +434,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void patchSnapshotIamActions() {
+  void patchSnapshotIamActions() {
     assertThat(
         "Patch without consent code update does not require passport identifier update permissions",
         service.patchSnapshotIamActions(new SnapshotPatchRequestModel()),
@@ -449,7 +458,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void listAuthorizedSnapshotsWhenEcmReturns() throws Exception {
+  void listAuthorizedSnapshotsWhenEcmReturns() throws Exception {
     UUID snapshotId = UUID.randomUUID();
 
     IamRole samAuthorizedRole = IamRole.STEWARD;
@@ -465,8 +474,6 @@ public class SnapshotServiceTest {
 
     Map<UUID, Set<IamRole>> authorizedSnapshots =
         service.listAuthorizedSnapshots(TEST_USER, errors);
-    verify(ecmService, times(1)).getRasDbgapPermissions(TEST_USER);
-    verify(snapshotDao, times(1)).getAccessibleSnapshots(permissions);
 
     assertThat(
         "Expected snapshot is authorized", authorizedSnapshots.keySet(), contains(snapshotId));
@@ -479,7 +486,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void listAuthorizedSnapshotsWhenEcmThrows() throws Exception {
+  void listAuthorizedSnapshotsWhenEcmThrows() throws Exception {
     Map<UUID, Set<IamRole>> samAuthorizedSnapshots =
         Map.of(UUID.randomUUID(), Set.of(IamRole.STEWARD));
     HttpClientErrorException ecmException = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
@@ -492,7 +499,6 @@ public class SnapshotServiceTest {
         "ECM exception should not block snapshot enumeration",
         service.listAuthorizedSnapshots(TEST_USER, errors),
         equalTo(samAuthorizedSnapshots));
-    verify(ecmService, times(1)).getRasDbgapPermissions(TEST_USER);
 
     assertThat("ECM error added to error list", errors.size(), equalTo(1));
     assertThat(
@@ -502,13 +508,13 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void listRasAuthorizedSnapshots() throws Exception {
+  void listRasAuthorizedSnapshots() throws Exception {
     List<RasDbgapPermissions> perms = List.of(new RasDbgapPermissions(CONSENT_CODE, PHS_ID));
     List<UUID> uuids = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
     // First attempt: No linked passport.
     when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(List.of());
-    when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(List.of());
+    when(snapshotDao.getAccessibleSnapshots(List.of())).thenReturn(List.of());
     assertThat(
         "No linked passport yields empty result",
         service.listRasAuthorizedSnapshots(TEST_USER).entrySet(),
@@ -516,6 +522,7 @@ public class SnapshotServiceTest {
 
     // Second attempt: Linked passport, no matching snapshots.
     when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(perms);
+    when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(List.of());
     assertThat(
         "Linked passport but no matching snapshots yields empty result",
         service.listRasAuthorizedSnapshots(TEST_USER).entrySet(),
@@ -525,13 +532,9 @@ public class SnapshotServiceTest {
     when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(uuids);
     Map<UUID, Set<IamRole>> idsAndRolesActual = service.listRasAuthorizedSnapshots(TEST_USER);
     assertThat(
-        "Linked passport matching snapshots returns correct number of snapshots",
-        idsAndRolesActual.size(),
-        equalTo(uuids.size()));
-    assertThat(
         "All matching snapshot UUIDs are found in map keys",
         idsAndRolesActual.keySet(),
-        containsInAnyOrder(uuids.toArray()));
+        is(Set.copyOf(uuids)));
     assertThat(
         "Snapshot accessibility by passport attributed to reader role",
         idsAndRolesActual.values(),
@@ -539,8 +542,8 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void combineIdsAndRoles() {
-    UUID[] uuids = new UUID[] {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
+  void combineIdsAndRoles() {
+    UUID[] uuids = {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
 
     assertThat("No arguments yield empty map", service.combineIdsAndRoles().entrySet(), empty());
 
@@ -565,33 +568,33 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifyPassportAuthNoPassports() {
+  void verifyPassportAuthNoPassports() {
     SnapshotSummaryModel snapshotSummaryModel =
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
         () -> service.verifyPassportAuth(snapshotSummaryModel, List.of()));
-    verify(ecmService, never()).validatePassport(any());
+    verifyNoInteractions(ecmService);
   }
 
   @Test
-  public void verifyPassportAuthNoPhsId() {
+  void verifyPassportAuthNoPhsId() {
     SnapshotSummaryModel snapshotSummaryModel =
         new SnapshotSummaryModel().id(snapshotId).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
         () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
-    verify(ecmService, never()).validatePassport(any());
+    verifyNoInteractions(ecmService);
   }
 
   @Test
-  public void verifyPassportAuthNoConsentCode() {
+  void verifyPassportAuthNoConsentCode() {
     SnapshotSummaryModel snapshotSummaryModel =
         new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID);
     assertThrows(
         InvalidAuthorizationMethod.class,
         () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
-    verify(ecmService, never()).validatePassport(any());
+    verifyNoInteractions(ecmService);
   }
 
   private void mockSnapshotSummary() {
@@ -612,7 +615,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void retrieveUserSnapshotRolesSamReader() {
+  void retrieveUserSnapshotRolesSamReader() {
     List<String> samRoles = List.of(IamRole.ADMIN.toString(), IamRole.READER.toString());
     when(iamService.retrieveUserRoles(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
         .thenReturn(samRoles);
@@ -625,7 +628,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void retrieveUserSnapshotRolesNoSamReaderNoPassport() {
+  void retrieveUserSnapshotRolesNoSamReaderNoPassport() {
     List<String> samRoles = List.of(IamRole.ADMIN.toString(), IamRole.STEWARD.toString());
     when(iamService.retrieveUserRoles(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
         .thenReturn(samRoles);
@@ -640,7 +643,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void retrieveUserSnapshotRolesPassportReader() {
+  void retrieveUserSnapshotRolesPassportReader() {
     List<String> samRoles = List.of(IamRole.ADMIN.toString(), IamRole.STEWARD.toString());
     when(iamService.retrieveUserRoles(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
         .thenReturn(samRoles);
@@ -649,8 +652,7 @@ public class SnapshotServiceTest {
     when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
     when(ecmService.validatePassport(any())).thenReturn(new ValidatePassportResult().valid(true));
 
-    List<String> samRolesAndReader = new ArrayList<>();
-    samRolesAndReader.addAll(samRoles);
+    List<String> samRolesAndReader = new ArrayList<>(samRoles);
     samRolesAndReader.add(IamRole.READER.toString());
     assertThat(
         "SAM roles and reader are returned",
@@ -660,7 +662,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void retrieveSnapshotPolicies() {
+  void retrieveSnapshotPolicies() {
     SamPolicyModel spm1 = mock(SamPolicyModel.class);
     SamPolicyModel spm2 = mock(SamPolicyModel.class);
     when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
@@ -706,7 +708,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void snapshotInaccessibleByPassportWhenNoLinkedPassport() {
+  void snapshotInaccessibleByPassportWhenNoLinkedPassport() {
     mockSnapshotSummaryWithPassportCriteria();
 
     SnapshotAccessibleResult result = service.snapshotAccessibleByPassport(snapshotId, TEST_USER);
@@ -721,7 +723,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void snapshotInaccessibleByPassportWhenPassportFetchThrows() {
+  void snapshotInaccessibleByPassportWhenPassportFetchThrows() {
     mockSnapshotSummaryWithPassportCriteria();
     HttpClientErrorException ecmEx =
         new HttpClientErrorException(
@@ -740,7 +742,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void snapshotInaccessibleByPassportWhenPassportValidationThrows() {
+  void snapshotInaccessibleByPassportWhenPassportValidationThrows() {
     mockSnapshotSummaryWithPassportCriteria();
     when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
     HttpClientErrorException ecmEx =
@@ -759,7 +761,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void snapshotInaccessibleByPassportWhenPassportInvalid() {
+  void snapshotInaccessibleByPassportWhenPassportInvalid() {
     mockSnapshotSummaryWithPassportCriteria();
     when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
     when(ecmService.validatePassport(any())).thenReturn(new ValidatePassportResult().valid(false));
@@ -776,7 +778,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void snapshotAccessibleByPassportWhenPassportValid() {
+  void snapshotAccessibleByPassportWhenPassportValid() {
     mockSnapshotSummaryWithPassportCriteria();
     when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
     when(ecmService.validatePassport(any())).thenReturn(new ValidatePassportResult().valid(true));
@@ -790,7 +792,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifySnapshotListableBySam() {
+  void verifySnapshotListableBySam() {
     mockSnapshotSummary();
     service.verifySnapshotListable(snapshotId, TEST_USER);
 
@@ -801,7 +803,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifySnapshotReadableBySam() {
+  void verifySnapshotReadableBySam() {
     mockSnapshotSummary();
     service.verifySnapshotReadable(snapshotId, TEST_USER);
 
@@ -813,7 +815,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifySnapshotUnlistableBySamAndAccessibleByPassport() {
+  void verifySnapshotUnlistableBySamAndAccessibleByPassport() {
     IamForbiddenException samEx = new IamForbiddenException("Snapshot unlistable via SAM");
     doThrow(samEx)
         .when(iamService)
@@ -827,7 +829,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifySnapshotUnreadableBySamAndAccessibleByPassport() {
+  void verifySnapshotUnreadableBySamAndAccessibleByPassport() {
     IamForbiddenException samEx = new IamForbiddenException("Snapshot unreadable via SAM");
     doThrow(samEx)
         .when(iamService)
@@ -859,7 +861,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifySnapshotUnlistableBySamAndInaccessibleByPassport() {
+  void verifySnapshotUnlistableBySamAndInaccessibleByPassport() {
     IamForbiddenException samEx = new IamForbiddenException("Snapshot unlistable via SAM");
     doThrow(samEx)
         .when(iamService)
@@ -873,7 +875,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifySnapshotUnreadableBySamAndInaccessibleByPassport() {
+  void verifySnapshotUnreadableBySamAndInaccessibleByPassport() {
     IamForbiddenException samEx = new IamForbiddenException("Snapshot unreadable via SAM");
     doThrow(samEx)
         .when(iamService)
@@ -892,7 +894,7 @@ public class SnapshotServiceTest {
    * Assumes that iamService has been mocked to indicate that the snapshot is inaccessible via Sam.
    */
   private void verifySnapshotInaccessibleBySamAndPassport(
-      IamForbiddenException samEx, ThrowingRunnable verifySnapshotAccessible) {
+      IamForbiddenException samEx, Executable verifySnapshotAccessible) {
     mockSnapshotSummaryWithPassportCriteria();
     when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
 
@@ -922,7 +924,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testCreateSnapshotWithoutDuosDataset() {
+  void testCreateSnapshotWithoutDuosDataset() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(null);
     JobBuilder jobBuilder = mock(JobBuilder.class);
     when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
@@ -938,7 +940,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testCreateSnapshotWithDuosDataset() {
+  void testCreateSnapshotWithDuosDataset() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     JobBuilder jobBuilder = mock(JobBuilder.class);
     when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
@@ -954,7 +956,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testCreateSnapshotThrowsWhenDuosClientThrows() {
+  void testCreateSnapshotThrowsWhenDuosClientThrows() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
     when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
@@ -973,7 +975,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testUpdateSnapshotDuosDataset() {
+  void testUpdateSnapshotDuosDataset() {
     mockSnapshotWithDuosDataset();
 
     JobBuilder jobBuilder = mock(JobBuilder.class);
@@ -999,7 +1001,7 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testUpdateSnapshotDuosDatasetUnset() {
+  void testUpdateSnapshotDuosDatasetUnset() {
     mockSnapshotWithDuosDataset();
 
     JobBuilder jobBuilder = mock(JobBuilder.class);
@@ -1025,14 +1027,9 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testUpdateSnapshotDuosDatasetThrowsWhenSnapshotDoesNotExist() {
+  void testUpdateSnapshotDuosDatasetThrowsWhenSnapshotDoesNotExist() {
     SnapshotNotFoundException expectedEx = new SnapshotNotFoundException("Snapshot not found");
     when(snapshotDao.retrieveSnapshot(snapshotId)).thenThrow(expectedEx);
-
-    JobBuilder jobBuilder = mock(JobBuilder.class);
-    when(jobService.newJob(
-            anyString(), eq(SnapshotUpdateDuosDatasetFlight.class), eq(null), eq(TEST_USER)))
-        .thenReturn(jobBuilder);
 
     SnapshotNotFoundException thrown =
         assertThrows(
@@ -1043,17 +1040,12 @@ public class SnapshotServiceTest {
     // Verify that we do not try to check for DUOS dataset existence if snapshot does not exist
     verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
     // Job is not created or submitted if snapshot does not exist
-    verifyNoInteractions(jobBuilder);
+    verifyNoInteractions(jobService);
   }
 
   @Test
-  public void testUpdateSnapshotDuosDatasetThrowsWhenDuosClientThrows() {
+  void testUpdateSnapshotDuosDatasetThrowsWhenDuosClientThrows() {
     mockSnapshotWithDuosDataset();
-
-    JobBuilder jobBuilder = mock(JobBuilder.class);
-    when(jobService.newJob(
-            anyString(), eq(SnapshotUpdateDuosDatasetFlight.class), eq(null), eq(TEST_USER)))
-        .thenReturn(jobBuilder);
 
     HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
     when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
@@ -1063,13 +1055,10 @@ public class SnapshotServiceTest {
             HttpClientErrorException.class,
             () -> service.updateSnapshotDuosDataset(snapshotId, TEST_USER, DUOS_ID));
     assertThat("DUOS client exception thrown", thrown, equalTo(expectedEx));
-
-    // Job is not created or submitted if DUOS client cannot successfully obtain DUOS dataset
-    verifyNoInteractions(jobBuilder);
   }
 
   @Test
-  public void getSnapshotIdsAndRoles() throws ParseException {
+  void getSnapshotIdsAndRoles() throws ParseException {
     // Arranging Sam-accessible snapshots (could contain snapshots registered in a different TDR)
     UUID accessibleNonTdrSnapshotId = UUID.randomUUID();
     IamRole role = IamRole.DISCOVERER;
@@ -1101,7 +1090,7 @@ public class SnapshotServiceTest {
         "ECM error contents match expectations",
         errors.get(0).getMessage(),
         containsString("Error listing RAS-authorized snapshots"));
-    assertTrue(
+    assertThat(
         "Role map only contains accessible snapshot present in TDR",
         roleMap.containsKey(snapshotId.toString()));
     assertThat(
@@ -1118,7 +1107,7 @@ public class SnapshotServiceTest {
     errors = result.getErrors();
     roleMap = result.getRoleMap();
     assertThat("No errors encountered when constructing role map", errors, empty());
-    assertTrue(
+    assertThat(
         "Role map only contains accessible snapshot present in TDR",
         roleMap.containsKey(snapshotId.toString()));
     assertThat(
@@ -1128,61 +1117,61 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testRetrievePreviewGCPNoRows() {
+  void testRetrievePreviewGCPNoRows() {
     mockSnapshotForPreview(CloudPlatform.GCP, 0);
     testSnapshotPreviewRowCountsGCP(0, 0);
   }
 
   @Test
-  public void testRetrievePreviewGCPNoFilteredRows() {
+  void testRetrievePreviewGCPNoFilteredRows() {
     mockSnapshotForPreview(CloudPlatform.GCP, 10);
     testSnapshotPreviewRowCountsGCP(10, 0);
   }
 
   @Test
-  public void testRetrievePreviewGCP() {
+  void testRetrievePreviewGCP() {
     mockSnapshotForPreview(CloudPlatform.GCP, 10);
     testSnapshotPreviewRowCountsGCP(10, 4);
   }
 
   @Test
-  public void testRetrievePreviewAzurePNoRows() throws SQLException {
+  void testRetrievePreviewAzurePNoRows() throws SQLException {
     mockSnapshotForPreview(CloudPlatform.AZURE, 0);
     testSnapshotPreviewRowCountsAzure(0, 0);
   }
 
   @Test
-  public void testRetrievePreviewAzureNoFilteredRows() throws SQLException {
+  void testRetrievePreviewAzureNoFilteredRows() throws SQLException {
     mockSnapshotForPreview(CloudPlatform.AZURE, 10);
     testSnapshotPreviewRowCountsAzure(10, 0);
   }
 
   @Test
-  public void testRetrievePreviewAzure() throws SQLException {
+  void testRetrievePreviewAzure() throws SQLException {
     mockSnapshotForPreview(CloudPlatform.AZURE, 10);
     testSnapshotPreviewRowCountsAzure(10, 4);
   }
 
   @Test
-  public void testPatchSnapshotAuthDomain() {
-    mockSnapshot();
+  void testPatchSnapshotAuthDomain() {
     List<String> userGroups = List.of("testGroup");
-    JobBuilder jobBuilder = mock(JobBuilder.class);
+    var flightClass = SnapshotAddDataAccessControlsFlight.class;
+    JobBuilder jobBuilder = new JobBuilder(null, flightClass, null, TEST_USER, jobService);
     AddAuthDomainResponseModel jobResponse =
         new AddAuthDomainResponseModel().authDomain(userGroups);
-    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
-    when(jobBuilder.submitAndWait(AddAuthDomainResponseModel.class)).thenReturn(jobResponse);
-    when(jobService.newJob(
-            anyString(),
-            eq(SnapshotAddDataAccessControlsFlight.class),
-            eq(userGroups),
-            eq(TEST_USER)))
+    when(jobService.newJob(anyString(), eq(flightClass), eq(userGroups), eq(TEST_USER)))
         .thenReturn(jobBuilder);
+    ArgumentCaptor<FlightMap> flightMapCaptor = ArgumentCaptor.forClass(FlightMap.class);
+    when(jobService.submitAndWait(
+            eq(flightClass), flightMapCaptor.capture(), eq(AddAuthDomainResponseModel.class)))
+        .thenReturn(jobResponse);
 
     AddAuthDomainResponseModel result =
         service.addSnapshotDataAccessControls(TEST_USER, snapshotId, userGroups);
     assertThat("Job is submitted and response returned", result, equalTo(jobResponse));
-    verify(jobBuilder).addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString());
+    assertThat(
+        flightMapCaptor.getValue().get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class),
+        equalTo(snapshotId.toString()));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {
@@ -1273,6 +1262,8 @@ public class SnapshotServiceTest {
                         new SnapshotSource()
                             .dataset(
                                 new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))))));
-    when(snapshotTableDao.retrieveColumns(any())).thenReturn(columns);
+    if (cloudPlatform == CloudPlatform.GCP) {
+      when(snapshotTableDao.retrieveColumns(any())).thenReturn(columns);
+    }
   }
 }

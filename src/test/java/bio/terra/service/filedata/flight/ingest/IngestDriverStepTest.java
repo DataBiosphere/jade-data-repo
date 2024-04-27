@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -29,27 +30,23 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.Collections;
 import java.util.UUID;
-import junit.framework.TestCase;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(SpringRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class IngestDriverStepTest extends TestCase {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class IngestDriverStepTest {
 
-  @MockBean private LoadService loadService;
+  @Mock private LoadService loadService;
 
-  @MockBean private ConfigurationService configurationService;
+  @Mock private ConfigurationService configurationService;
 
-  @MockBean private JobService jobService;
+  @Mock private JobService jobService;
 
   @Mock private Stairway stairway;
 
@@ -99,24 +96,27 @@ public class IngestDriverStepTest extends TestCase {
     inputParameters.put(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), PARENT_RESOURCE_ID);
     inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), PARENT_RESOURCE_ACTION);
 
-    when(flightContext.getFlightId()).thenReturn(PARENT_FLIGHT_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    when(flightContext.getInputParameters()).thenReturn(inputParameters);
-    when(flightContext.getStairway()).thenReturn(stairway);
+    if (maxFailedFileLoads != 0) {
+      when(flightContext.getFlightId()).thenReturn(PARENT_FLIGHT_ID);
+      when(flightContext.getInputParameters()).thenReturn(inputParameters);
+      when(flightContext.getStairway()).thenReturn(stairway);
 
-    when(stairway.createFlightId()).thenReturn(CHILD_FLIGHT_ID);
+      when(stairway.createFlightId()).thenReturn(CHILD_FLIGHT_ID);
 
-    // When loadService.setLoadFileRunning() is called with our UUID, update the candidate state so
-    // no files are left. Otherwise the step would loop forever.
-    doAnswer(invocation -> candidates.candidateFiles(Collections.emptyList()))
-        .when(loadService)
-        .setLoadFileRunning(loadUuid, null, CHILD_FLIGHT_ID);
+      // When loadService.setLoadFileRunning() is called with our UUID, update the candidate state
+      // so
+      // no files are left. Otherwise the step would loop forever.
+      doAnswer(invocation -> candidates.candidateFiles(Collections.emptyList()))
+          .when(loadService)
+          .setLoadFileRunning(loadUuid, null, CHILD_FLIGHT_ID);
+    }
 
     return step.doStep(flightContext);
   }
 
   @Test
-  public void testDoStepAllowFailed() throws Exception {
+  void testDoStepAllowFailed() throws Exception {
     // Allow unlimited file load errors.
     StepResult stepResult = runTest(-1);
 
@@ -151,7 +151,7 @@ public class IngestDriverStepTest extends TestCase {
   }
 
   @Test
-  public void testDoStepDisallowFailed() throws Exception {
+  void testDoStepDisallowFailed() throws Exception {
     // Don't allow any file load errors.
     StepResult stepResult = runTest(0);
 
@@ -167,20 +167,7 @@ public class IngestDriverStepTest extends TestCase {
   }
 
   @Test
-  public void testPropagateContextToFlightMap() {
-    IngestDriverStep step =
-        new IngestDriverStep(
-            loadService,
-            configurationService,
-            jobService,
-            null,
-            null,
-            -1,
-            0,
-            null,
-            CloudPlatform.GCP,
-            null);
-
+  void testPropagateContextToFlightMap() {
     FlightContext flightContext = mock(FlightContext.class);
     FlightMap inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), PARENT_RESOURCE_TYPE);
@@ -188,16 +175,16 @@ public class IngestDriverStepTest extends TestCase {
 
     FlightMap flightMap = new FlightMap();
 
-    step.propagateContextToFlightMap(
+    IngestDriverStep.propagateContextToFlightMap(
         flightContext, flightMap, "not a key in flightContext.inputParameters", String.class);
     assertThat("Missing value leaves new flight map unchanged", flightMap.isEmpty());
 
-    step.propagateContextToFlightMap(
+    IngestDriverStep.propagateContextToFlightMap(
         flightContext, flightMap, JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamAction.class);
     assertThat(
         "Inability to deserialize value leaves new flight map unchanged", flightMap.isEmpty());
 
-    step.propagateContextToFlightMap(
+    IngestDriverStep.propagateContextToFlightMap(
         flightContext, flightMap, JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
     assertThat(flightMap.getMap().size(), equalTo(1));
     assertThat(

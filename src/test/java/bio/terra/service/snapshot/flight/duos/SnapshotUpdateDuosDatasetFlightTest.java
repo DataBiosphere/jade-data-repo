@@ -11,18 +11,16 @@ import bio.terra.service.job.OptionalStep;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class SnapshotUpdateDuosDatasetFlightTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class SnapshotUpdateDuosDatasetFlightTest {
 
   @Mock private ApplicationContext context;
 
@@ -31,7 +29,7 @@ public class SnapshotUpdateDuosDatasetFlightTest {
       DuosFixtures.createDbFirecloudGroup(DUOS_ID);
 
   @Test
-  public void testConstructFlightLinkDuosDataset() {
+  void testConstructFlightLinkDuosDataset() {
     FlightMap inputParameters = new FlightMap();
     inputParameters.put(SnapshotDuosMapKeys.DUOS_ID, DUOS_ID);
     inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, null);
@@ -58,7 +56,7 @@ public class SnapshotUpdateDuosDatasetFlightTest {
   }
 
   @Test
-  public void testConstructFlightUpdateExistingDuosDatasetLink() {
+  void testConstructFlightUpdateExistingDuosDatasetLink() {
     FlightMap inputParameters = new FlightMap();
     inputParameters.put(SnapshotDuosMapKeys.DUOS_ID, DUOS_ID);
     inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, FIRECLOUD_GROUP_PREV);
@@ -86,7 +84,7 @@ public class SnapshotUpdateDuosDatasetFlightTest {
   }
 
   @Test
-  public void testConstructFlightUnlinkDuosDataset() {
+  void testConstructFlightUnlinkDuosDataset() {
     FlightMap inputParameters = new FlightMap();
     inputParameters.put(SnapshotDuosMapKeys.DUOS_ID, null);
     inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, FIRECLOUD_GROUP_PREV);

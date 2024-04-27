@@ -91,7 +91,7 @@ public class SamIamTest {
         new SamIam(
             samConfig,
             new ConfigurationService(
-                samConfig, null, resourceConfiguration, new ApplicationConfiguration()),
+                samConfig, resourceConfiguration, new ApplicationConfiguration()),
             samApiService);
   }
 

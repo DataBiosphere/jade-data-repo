@@ -4,29 +4,29 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class IamActionTest {
+@Tag(Unit.TAG)
+class IamActionTest {
 
-  @Test
-  public void testFromValue() {
-    for (IamAction action : IamAction.values()) {
-      assertThat(
-          action + " maps back to itself via IamAction.fromValue",
-          IamAction.fromValue(action.toString()),
-          equalTo(action));
-      assertThat(
-          action + " lowercased maps back to itself via IamAction.fromValue",
-          IamAction.fromValue(action.toString().toLowerCase()),
-          equalTo(action));
-      assertThat(
-          action + " uppercased maps back to itself via IamAction.fromValue",
-          IamAction.fromValue(action.toString().toUpperCase()),
-          equalTo(action));
-    }
+  @ParameterizedTest
+  @EnumSource(IamAction.class)
+  void testFromValue(IamAction action) {
+    assertThat(
+        action + " maps back to itself via IamAction.fromValue",
+        IamAction.fromValue(action.toString()),
+        equalTo(action));
+    assertThat(
+        action + " lowercased maps back to itself via IamAction.fromValue",
+        IamAction.fromValue(action.toString().toLowerCase()),
+        equalTo(action));
+    assertThat(
+        action + " uppercased maps back to itself via IamAction.fromValue",
+        IamAction.fromValue(action.toString().toUpperCase()),
+        equalTo(action));
   }
 }

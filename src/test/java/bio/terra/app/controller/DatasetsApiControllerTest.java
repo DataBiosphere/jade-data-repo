@@ -122,7 +122,7 @@ class DatasetsApiControllerTest {
       SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{domainId}/search";
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
-  private static final Integer CONCEPT_ID = 0;
+  private static final int CONCEPT_ID = 0;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;

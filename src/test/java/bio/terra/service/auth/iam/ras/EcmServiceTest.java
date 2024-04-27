@@ -4,10 +4,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.OidcApi;
 import bio.terra.service.auth.ras.EcmService;
@@ -19,38 +22,39 @@ import com.nimbusds.jwt.PlainJWT;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-public class EcmServiceTest {
-  @Mock private EcmConfiguration ecmConfiguration;
-  @Mock private RestTemplate restTemplate;
-  @Mock private OidcApiService oidcApiService;
-  private ObjectMapper objectMapper;
+@Tag(Unit.TAG)
+@ExtendWith(MockitoExtension.class)
+class EcmServiceTest {
   private EcmService ecmService;
   @Mock private OidcApi oidcApi;
-  @Mock private AuthenticatedUserRequest userReq;
 
-  @Before
-  public void setup() {
-    objectMapper = new ObjectMapper();
-    ecmService = new EcmService(ecmConfiguration, restTemplate, oidcApiService, objectMapper);
-    when(oidcApiService.getOidcApi(any())).thenReturn(oidcApi);
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
+
+  @BeforeEach
+  void setup() {
+    ObjectMapper objectMapper = new ObjectMapper();
+    OidcApiService oidcApiService = mock(OidcApiService.class);
+    ecmService =
+        new EcmService(
+            mock(EcmConfiguration.class), mock(RestTemplate.class), oidcApiService, objectMapper);
+    when(oidcApiService.getOidcApi(TEST_USER)).thenReturn(oidcApi);
   }
 
   @Test
-  public void testGetRasProviderPassport() {
+  void testGetRasProviderPassport() {
     String passport = "passportJwt";
     HttpClientErrorException shouldCatch = new HttpClientErrorException(HttpStatus.NOT_FOUND);
     HttpClientErrorException shouldThrow = new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
@@ -60,47 +64,47 @@ public class EcmServiceTest {
         .thenThrow(shouldThrow);
 
     assertThat(
-        "Passport is returned", ecmService.getRasProviderPassport(userReq), equalTo(passport));
+        "Passport is returned", ecmService.getRasProviderPassport(TEST_USER), equalTo(passport));
     assertThat(
         "Passport not found returns null",
-        ecmService.getRasProviderPassport(userReq),
+        ecmService.getRasProviderPassport(TEST_USER),
         equalTo(null));
     assertThrows(
         HttpClientErrorException.class,
-        () -> ecmService.getRasProviderPassport(userReq),
+        () -> ecmService.getRasProviderPassport(TEST_USER),
         "Other exceptions are thrown");
   }
 
   @Test
-  public void testGetRasDbgapPermissionsNoPassport() throws Exception {
+  void testGetRasDbgapPermissionsNoPassport() throws Exception {
     when(oidcApi.getProviderPassport(any()))
         .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
     assertThat(
         "No RAS dbGaP permissions when a user doesn't have a passport",
-        ecmService.getRasDbgapPermissions(userReq),
+        ecmService.getRasDbgapPermissions(TEST_USER),
         empty());
   }
 
   @Test
-  public void testGetRasDbgapPermissionsNoVisaClaim() throws Exception {
+  void testGetRasDbgapPermissionsNoVisaClaim() throws Exception {
     when(oidcApi.getProviderPassport(any())).thenReturn(toJwtToken("{}"));
     assertThat(
         "No RAS dbGaP permissions when a user's passport has no visa claim'",
-        ecmService.getRasDbgapPermissions(userReq),
+        ecmService.getRasDbgapPermissions(TEST_USER),
         empty());
   }
 
   @Test
-  public void testGetRasDbgapPermissionsNoVisas() throws Exception {
+  void testGetRasDbgapPermissionsNoVisas() throws Exception {
     when(oidcApi.getProviderPassport(any())).thenReturn(toPassportJwt(null));
     assertThat(
         "No RAS dbGaP permissions when a user's passport has no visas",
-        ecmService.getRasDbgapPermissions(userReq),
+        ecmService.getRasDbgapPermissions(TEST_USER),
         empty());
   }
 
   @Test
-  public void testGetRasDbgapPermissionsInvalidVisas() throws Exception {
+  void testGetRasDbgapPermissionsInvalidVisas() throws Exception {
     String invalidVisa =
         """
       {
@@ -112,12 +116,12 @@ public class EcmServiceTest {
 
     assertThat(
         "No RAS dbGaP permissions when a user's passport has invalid visas",
-        ecmService.getRasDbgapPermissions(userReq),
+        ecmService.getRasDbgapPermissions(TEST_USER),
         empty());
   }
 
   @Test
-  public void testGetRasDbgapPermissionsValidVisas() throws Exception {
+  void testGetRasDbgapPermissionsValidVisas() throws Exception {
     String validVisa =
         """
       {
@@ -145,7 +149,7 @@ public class EcmServiceTest {
 
     assertThat(
         "Passport visa permissions are successfully decoded and unknown properties ignored",
-        ecmService.getRasDbgapPermissions(userReq),
+        ecmService.getRasDbgapPermissions(TEST_USER),
         Matchers.contains(
             new RasDbgapPermissions("c01", "phs000001"),
             new RasDbgapPermissions("c02", "phs000001"),
@@ -156,7 +160,8 @@ public class EcmServiceTest {
   private String toPassportJwt(String visa) throws Exception {
     String visaJwt = (visa == null) ? "" : String.format("\"%s\"", toJwtToken(visa));
     String passportPayload =
-        String.format("{\"%s\": [%s]}", EcmService.GA4GH_PASSPORT_V1_CLAIM, visaJwt);
+        """
+            {"%s": [%s]}""".formatted(EcmService.GA4GH_PASSPORT_V1_CLAIM, visaJwt);
     String returned = toJwtToken(passportPayload);
     System.out.println(returned);
     return returned;

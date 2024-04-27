@@ -1,9 +1,13 @@
 package bio.terra.service.resourcemanagement.google;
 
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
@@ -16,30 +20,29 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
+import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-public class ResourceServiceUnitTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class ResourceServiceUnitTest {
 
-  @InjectMocks private ResourceService resourceService;
+  private ResourceService resourceService;
 
   @Mock private GoogleBucketService bucketService;
 
@@ -48,10 +51,6 @@ public class ResourceServiceUnitTest {
   @Mock private DatasetStorageAccountDao datasetStorageAccountDao;
 
   @Mock private AzureApplicationDeploymentService applicationDeploymentService;
-
-  @Mock private GoogleProjectService googleProjectService;
-
-  @Mock private AzureDataLocationSelector azureDataLocationSelector;
 
   private final UUID billingProfileId = UUID.randomUUID();
 
@@ -71,18 +70,6 @@ public class ResourceServiceUnitTest {
                       AzureRegion.DEFAULT_AZURE_REGION)));
   private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);
 
-  private final GoogleProjectResource projectResource =
-      new GoogleProjectResource().profileId(billingProfileId).googleProjectId("randProjectId");
-
-  private final UUID bucketName = UUID.randomUUID();
-  private final UUID bucketId = UUID.randomUUID();
-  private final GoogleBucketResource bucketResource =
-      new GoogleBucketResource()
-          .resourceId(bucketId)
-          .name(bucketName.toString())
-          .projectResource(projectResource)
-          .autoclassEnabled(false);
-
   private final BillingProfileModel profileModel =
       ProfileFixtures.randomAzureBillingProfile().id(billingProfileId);
   private final UUID applicationId = UUID.randomUUID();
@@ -101,12 +88,28 @@ public class ResourceServiceUnitTest {
           .name(STORAGE_ACCOUNT_NAME)
           .applicationResource(applicationResource);
 
-  public void setup() throws InterruptedException {
-    MockitoAnnotations.initMocks(this);
+  @BeforeEach
+  void setup() {
+    resourceService =
+        new ResourceService(
+            mock(AzureDataLocationSelector.class),
+            mock(GoogleProjectService.class),
+            bucketService,
+            applicationDeploymentService,
+            storageAccountService,
+            mock(SamConfiguration.class),
+            datasetStorageAccountDao,
+            mock(SnapshotStorageAccountDao.class),
+            mock(GoogleResourceManagerService.class),
+            mock(AzureContainerPdao.class),
+            mock(ProfileDao.class));
   }
 
   @Test
-  public void testGrabBucket() throws Exception {
+  void testGrabBucket() throws Exception {
+    GoogleProjectResource projectResource = new GoogleProjectResource();
+    GoogleBucketResource bucketResource =
+        new GoogleBucketResource().projectResource(projectResource);
     when(bucketService.getOrCreateBucket(
             any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(bucketResource);
@@ -114,11 +117,11 @@ public class ResourceServiceUnitTest {
 
     GoogleBucketResource foundBucket =
         resourceService.getOrCreateBucketForFile(dataset, projectResource, "flightId", null);
-    Assert.assertEquals(bucketResource, foundBucket);
+    assertThat(foundBucket, is(bucketResource));
   }
 
   @Test
-  public void testGetOrCreateStorageAccount() throws Exception {
+  void testGetOrCreateStorageAccount() throws Exception {
     when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any(), any()))
         .thenReturn(storageAccountResource);
     when(storageAccountService.getStorageAccountResourceById(storageAccountId, true))
@@ -129,6 +132,6 @@ public class ResourceServiceUnitTest {
         .thenReturn(List.of(storageAccountId));
     AzureStorageAccountResource createdStorageAccount =
         resourceService.getOrCreateDatasetStorageAccount(dataset, profileModel, "flightId");
-    Assert.assertEquals(storageAccountResource, createdStorageAccount);
+    assertThat(createdStorageAccount, is(storageAccountResource));
   }
 }

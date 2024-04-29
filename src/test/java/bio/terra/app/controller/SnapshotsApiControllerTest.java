@@ -20,7 +20,6 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -66,14 +65,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @ActiveProfiles({"google", "unittest"})
-@ContextConfiguration(
-    classes = {SnapshotsApiController.class, GlobalExceptionHandler.class, JsonLoader.class})
+@ContextConfiguration(classes = {SnapshotsApiController.class, GlobalExceptionHandler.class})
 @Tag(Unit.TAG)
 @WebMvcTest
 class SnapshotsApiControllerTest {
 
   @Autowired private MockMvc mvc;
-  @Autowired private JsonLoader jsonLoader;
 
   @MockBean private JobService jobService;
   @MockBean private SnapshotRequestValidator snapshotRequestValidator;
@@ -91,6 +88,8 @@ class SnapshotsApiControllerTest {
   private static final String JOB_ID = "a-job-id";
   private static final JobModel JOB_MODEL =
       new JobModel().id(JOB_ID).jobStatus(JobModel.JobStatusEnum.RUNNING);
+  private static final SnapshotRequestModel SNAPSHOT_REQUEST_MODEL =
+      new SnapshotRequestModel().name("snapshot_name");
   private static final Boolean EXPORT_GCS_PATHS = false;
   private static final Boolean VALIDATE_PRIMARY_KEY_UNIQUENESS = true;
   private static final Boolean SIGN_URLS = true;
@@ -283,9 +282,7 @@ class SnapshotsApiControllerTest {
   void createSnapshot() throws Exception {
     mockValidators();
 
-    SnapshotRequestModel requestModel =
-        jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(requestModel))
+    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
         .thenReturn(List.of(DATASET_ID));
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
@@ -293,14 +290,14 @@ class SnapshotsApiControllerTest {
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
         .thenReturn(true);
 
-    when(snapshotService.createSnapshot(requestModel, TEST_USER)).thenReturn(JOB_ID);
+    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, TEST_USER)).thenReturn(JOB_ID);
     when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(JOB_MODEL);
 
     String actualJson =
         mvc.perform(
                 post(SNAPSHOTS_ENDPOINT)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(requestModel)))
+                    .content(TestUtils.mapToJson(SNAPSHOT_REQUEST_MODEL)))
             .andExpect(status().isAccepted())
             .andReturn()
             .getResponse()
@@ -316,9 +313,7 @@ class SnapshotsApiControllerTest {
   void createSnapshot_forbidden() throws Exception {
     mockValidators();
 
-    SnapshotRequestModel requestModel =
-        jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(requestModel))
+    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
         .thenReturn(List.of(DATASET_ID));
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
@@ -329,7 +324,7 @@ class SnapshotsApiControllerTest {
     mvc.perform(
             post(SNAPSHOTS_ENDPOINT)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(requestModel)))
+                .content(TestUtils.mapToJson(SNAPSHOT_REQUEST_MODEL)))
         .andExpect(status().isForbidden());
 
     verify(iamService)

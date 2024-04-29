@@ -222,17 +222,28 @@ public class SnapshotCreateFlight extends Flight {
         }
         break;
       case BYQUERY:
-        stepsForByQueryCreation(
-            datasetService,
-            snapshotReq,
-            platform,
-            bigQuerySnapshotPdao,
-            snapshotService,
-            snapshotDao,
-            userReq,
-            azureSynapsePdao);
-        break;
-
+        addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
+        if (platform.isGcp()) {
+          addStep(
+              new CreateSnapshotPrimaryDataQueryGcpStep(
+                  bigQuerySnapshotPdao,
+                  snapshotService,
+                  datasetService,
+                  snapshotDao,
+                  snapshotReq,
+                  userReq));
+          break;
+        } else if (platform.isAzure()) {
+          addStep(
+              new CreateSnapshotByQueryParquetFilesAzureStep(
+                  azureSynapsePdao,
+                  snapshotDao,
+                  snapshotService,
+                  snapshotReq,
+                  datasetService,
+                  userReq));
+          break;
+        }
       case BYROWID:
         if (platform.isGcp()) {
           addStep(
@@ -258,9 +269,7 @@ public class SnapshotCreateFlight extends Flight {
                 userReq));
         // use the existing byQuery snapshot request model code to create the snapshot
         stepsForByQueryCreation(
-            datasetService,
-            inputParameters.get(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL, SnapshotRequestModel.class),
-            platform,
+            datasetService,platform,
             bigQuerySnapshotPdao,
             snapshotService,
             snapshotDao,
@@ -388,31 +397,28 @@ public class SnapshotCreateFlight extends Flight {
 
   private boolean stepsForByQueryCreation(
       DatasetService datasetService,
-      SnapshotRequestModel snapshotReq,
       CloudPlatformWrapper platform,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq,
       AzureSynapsePdao azureSynapsePdao) {
-    addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
+    addStep(new CreateSnapshotValidateQueryByRequestStep(datasetService));
     if (platform.isGcp()) {
       addStep(
-          new CreateSnapshotPrimaryDataQueryGcpStep(
+          new CreateSnapshotPrimaryDataByRequestGcpStep(
               bigQuerySnapshotPdao,
               snapshotService,
               datasetService,
               snapshotDao,
-              snapshotReq,
               userReq));
       return true;
     } else if (platform.isAzure()) {
       addStep(
-          new CreateSnapshotByQueryParquetFilesAzureStep(
+          new CreateSnapshotByRequestParquetFilesAzureStep(
               azureSynapsePdao,
               snapshotDao,
               snapshotService,
-              snapshotReq,
               datasetService,
               userReq));
       return true;

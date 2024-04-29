@@ -26,7 +26,6 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -40,8 +39,6 @@ import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
@@ -56,7 +53,6 @@ import bio.terra.model.TransactionModel;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
@@ -76,7 +72,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -552,28 +547,6 @@ public class DatasetsApiController implements DatasetsApi {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASNAPSHOT,
-        id.toString(),
-        IamAction.CREATE_SNAPSHOT_REQUEST);
-    return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(userRequest, id, snapshotAccessRequest));
-  }
-
-  @Override
-  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests() {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    Map<UUID, Set<IamRole>> authorizedResources =
-        iamService.listAuthorizedResources(userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST);
-    return ResponseEntity.ok(
-        snapshotBuilderService.enumerateSnapshotRequests(authorizedResources.keySet()));
   }
 
   @Override

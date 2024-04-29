@@ -111,22 +111,14 @@ class SnapshotBuilderServiceTest {
   }
 
   @Test
-  void enumerateSnapshotRequestsByDatasetId() {
+  void enumerateSnapshotRequests() {
     SnapshotAccessRequestResponse responseItem =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(UUID.randomUUID());
     List<SnapshotAccessRequestResponse> response = List.of(responseItem);
     when(snapshotRequestDao.enumerate(Set.of(responseItem.getId()))).thenReturn(response);
 
-    SnapshotAccessRequestResponse expectedItem =
-        new SnapshotAccessRequestResponse()
-            .id(responseItem.getId())
-            .status(responseItem.getStatus())
-            .createdDate(responseItem.getCreatedDate())
-            .snapshotName(responseItem.getSnapshotName())
-            .snapshotResearchPurpose(responseItem.getSnapshotResearchPurpose())
-            .createdBy(responseItem.getCreatedBy());
     EnumerateSnapshotAccessRequest expected =
-        new EnumerateSnapshotAccessRequest().addItemsItem(expectedItem);
+        new EnumerateSnapshotAccessRequest().addItemsItem(responseItem);
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",

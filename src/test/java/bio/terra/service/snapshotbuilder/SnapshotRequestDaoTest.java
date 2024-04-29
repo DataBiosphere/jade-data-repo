@@ -56,12 +56,9 @@ class SnapshotRequestDaoTest {
   }
 
   private void verifyResponseContents(SnapshotAccessRequestResponse response) {
-    SnapshotAccessRequestResponse expected = new SnapshotAccessRequestResponse();
+    SnapshotAccessRequestResponse expected =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(UUID.randomUUID());
     expected.datasetId(dataset.getId());
-    expected.snapshotName(
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotName());
-    expected.snapshotResearchPurpose(
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotResearchPurpose());
     expected.snapshotSpecification(SnapshotBuilderTestData.createSnapshotBuilderRequest());
     expected.createdBy(EMAIL);
     expected.status(SnapshotAccessRequestStatus.SUBMITTED);

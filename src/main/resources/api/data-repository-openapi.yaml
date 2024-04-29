@@ -3020,7 +3020,7 @@ paths:
   /api/repository/v1/snapshotRequests:
     get:
       tags:
-        - datasets
+        - SnapshotBuilderRequest
       description: As an admin for this dataset, view all snapshot requests for this dataset.
       operationId: enumerateSnapshotRequests
       responses:
@@ -3062,7 +3062,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     post:
       tags:
-        - datasets
+        - SnapshotBuilderRequest
       description: As a researcher, create a snapshot request for a dataset, given a set of criteria
         and required concept sets and values.
       operationId: createSnapshotRequest
@@ -7404,6 +7404,10 @@ components:
     SnapshotAccessRequest:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
+          description: The UUID for the snapshot the request is based on
         name:
           type: string
         researchPurposeStatement:

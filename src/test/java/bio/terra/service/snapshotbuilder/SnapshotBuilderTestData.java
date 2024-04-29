@@ -233,10 +233,10 @@ public class SnapshotBuilderTestData {
         .datasetRequest(createSnapshotBuilderRequest());
   }
 
-  public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse() {
+  public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse(UUID snapshotId) {
     return new SnapshotAccessRequestResponse()
         .id(UUID.randomUUID())
-        .datasetId(UUID.randomUUID())
+        .datasetId(snapshotId)
         .snapshotName(createSnapshotAccessRequest().getName())
         .snapshotResearchPurpose(createSnapshotAccessRequest().getResearchPurposeStatement())
         .snapshotSpecification(createSnapshotAccessRequest().getDatasetRequest())

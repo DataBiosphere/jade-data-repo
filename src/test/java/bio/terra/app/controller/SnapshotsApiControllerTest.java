@@ -107,11 +107,11 @@ class SnapshotsApiControllerTest {
   private static final SnapshotRetrieveIncludeModel INCLUDE = SnapshotRetrieveIncludeModel.TABLES;
 
   private static final String SNAPSHOTS_ENDPOINT = "/api/repository/v1/snapshots";
-  private static final String SNAPSHOT_ENDPOINT = SNAPSHOTS_ENDPOINT + "/{id}";
-  private static final String LOCK_SNAPSHOT_ENDPOINT = SNAPSHOT_ENDPOINT + "/lock";
-  private static final String UNLOCK_SNAPSHOT_ENDPOINT = SNAPSHOT_ENDPOINT + "/unlock";
-  private static final String QUERY_SNAPSHOT_DATA_ENDPOINT = SNAPSHOT_ENDPOINT + "/data/{table}";
-  private static final String EXPORT_SNAPSHOT_ENDPOINT = SNAPSHOT_ENDPOINT + "/export";
+  private static final String SNAPSHOT_ID_ENDPOINT = SNAPSHOTS_ENDPOINT + "/{id}";
+  private static final String LOCK_SNAPSHOT_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/lock";
+  private static final String UNLOCK_SNAPSHOT_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/unlock";
+  private static final String QUERY_SNAPSHOT_DATA_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/data/{table}";
+  private static final String EXPORT_SNAPSHOT_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/export";
 
   @BeforeEach
   void setUp() {
@@ -344,7 +344,8 @@ class SnapshotsApiControllerTest {
 
     String actualJson =
         mvc.perform(
-                get(SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("include", String.valueOf(INCLUDE)))
+                get(SNAPSHOT_ID_ENDPOINT, SNAPSHOT_ID)
+                    .queryParam("include", String.valueOf(INCLUDE)))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -361,7 +362,8 @@ class SnapshotsApiControllerTest {
         .when(snapshotService)
         .verifySnapshotReadable(SNAPSHOT_ID, TEST_USER);
 
-    mvc.perform(get(SNAPSHOT_ENDPOINT, SNAPSHOT_ID).queryParam("include", String.valueOf(INCLUDE)))
+    mvc.perform(
+            get(SNAPSHOT_ID_ENDPOINT, SNAPSHOT_ID).queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isForbidden());
 
     verify(snapshotService).verifySnapshotReadable(SNAPSHOT_ID, TEST_USER);
@@ -420,7 +422,7 @@ class SnapshotsApiControllerTest {
     when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(JOB_MODEL);
 
     String actualJson =
-        mvc.perform(delete(SNAPSHOT_ENDPOINT, SNAPSHOT_ID))
+        mvc.perform(delete(SNAPSHOT_ID_ENDPOINT, SNAPSHOT_ID))
             .andExpect(status().isAccepted())
             .andReturn()
             .getResponse()
@@ -437,7 +439,7 @@ class SnapshotsApiControllerTest {
         .when(snapshotService)
         .retrieveSnapshotSummary(SNAPSHOT_ID);
 
-    mvc.perform(delete(SNAPSHOT_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isNotFound());
+    mvc.perform(delete(SNAPSHOT_ID_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isNotFound());
 
     verifyNoInteractions(iamService);
   }
@@ -449,7 +451,7 @@ class SnapshotsApiControllerTest {
         .verifyAuthorization(
             TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID.toString(), IamAction.DELETE);
 
-    mvc.perform(delete(SNAPSHOT_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isForbidden());
+    mvc.perform(delete(SNAPSHOT_ID_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isForbidden());
 
     verifyAuthorizationCall(IamAction.DELETE);
   }

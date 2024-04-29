@@ -50,9 +50,20 @@ def get_access_token():
     return run_command(token_command)
 
 
+def handle_response(response):
+    if response.status_code == 200:
+        print("Request successful!")
+    elif response.status_code == 502:
+        print(
+            "Request timed out, to get a more accurate time, please use the Logs Explorer at console.cloud.google.com for accurate timings"
+        )
+    else:
+        print(
+            f"Request failed with status code {response.status_code}: {response.text}"
+        )
+
+
 # HTTP Request Functions
-
-
 def make_get_request(endpoint_url, token):
     """
     Makes a GET request to the specified endpoint with the given access token.
@@ -72,20 +83,8 @@ def make_get_request(endpoint_url, token):
         response = requests.get(url, headers=headers)
         end_time = time.time()
 
-        total_time = end_time - start_time
-
-        if response.status_code == 200:
-            print("Request successful!")
-        elif response.status_code == 502:
-            print(
-                "Request timed out, to get a more accurate time, please use the Logs Explorer at console.cloud.google.com for accurate timings"
-            )
-        else:
-            print(
-                f"Request failed with status code {response.status_code}: {response.text}"
-            )
-
-        return total_time
+        handle_response(response)
+        return end_time - start_time
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
         return None
@@ -113,21 +112,8 @@ def make_post_request(endpoint_url, token, body):
         start_time = time.time()
         response = requests.post(url, headers=headers, json=body)
         end_time = time.time()
-
-        time_taken = end_time - start_time
-
-        if response.status_code == 200:
-            print("Request successful!")
-        elif response.status_code == 502:
-            print(
-                "Request timed out, to get a more accurate time, please use the Logs Explorer at console.cloud.google.com for accurate timings"
-            )
-        else:
-            print(
-                f"Request failed with status code {response.status_code}: {response.text}"
-            )
-
-        return time_taken
+        handle_response(response)
+        return end_time - start_time
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
@@ -306,7 +292,6 @@ if __name__ == "__main__":
     access_token = get_access_token()
 
     # Define endpoint handlers
-
     endpoint_handlers = {
         "getSnapshotBuilderCount": profile_get_snapshot_builder_count,
         "getConceptHierarchy": profile_get_concept_hierarchy,

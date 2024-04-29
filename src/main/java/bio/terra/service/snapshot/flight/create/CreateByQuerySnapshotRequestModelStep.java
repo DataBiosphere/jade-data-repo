@@ -74,21 +74,26 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
 
     // populate model with query and add to map
     SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
+    snapshotRequestModel.globalFileIds(true);
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         new SnapshotRequestContentsModel()
             .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
             .querySpec(
-                new SnapshotRequestQueryModel().query(sqlString).assetName("notImplemented"));
+                new SnapshotRequestQueryModel()
+                    .query(sqlString)
+                    .assetName("notImplemented"));
     snapshotRequestModel.contents(List.of(snapshotRequestContentsModel));
     // TODO: implement asset creation and time filtering
-    context.getWorkingMap().put(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL, snapshotRequestModel);
+    context
+        .getWorkingMap()
+        .put(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL, snapshotRequestModel);
 
     return null;
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // remove new model from map?
+    // nothing to undo
     return StepResult.getStepResultSuccess();
   }
 }

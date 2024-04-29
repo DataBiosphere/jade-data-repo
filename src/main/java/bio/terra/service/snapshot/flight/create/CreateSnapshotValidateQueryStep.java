@@ -5,23 +5,24 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import bio.terra.grammar.Query;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
 import java.util.Optional;
 
-public class CreateSnapshotValidateQueryStep implements Step {
+public class CreateSnapshotValidateQueryStep extends DefaultByQueryStep {
 
   private DatasetService datasetService;
-  private SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotValidateQueryStep(
-      DatasetService datasetService, SnapshotRequestModel snapshotReq) {
+      DatasetService datasetService) {
     this.datasetService = datasetService;
-    this.snapshotReq = snapshotReq;
   }
 
   @Override
@@ -35,6 +36,7 @@ public class CreateSnapshotValidateQueryStep implements Step {
      * make sure the user has custodian data access (currently this is done in the controller,
      * but this should be moved
      */
+    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     String snapshotQuery = snapshotReq.getContents().get(0).getQuerySpec().getQuery();
     Query query = Query.parse(snapshotQuery);
     List<String> datasetNames = query.getDatasetNames();

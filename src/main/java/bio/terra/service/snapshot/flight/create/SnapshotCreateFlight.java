@@ -45,7 +45,6 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.snapshot.flight.duos.CreateDuosFirecloudGroupStep;
 import bio.terra.service.snapshot.flight.duos.IfNoGroupRetrievedStep;
@@ -222,28 +221,15 @@ public class SnapshotCreateFlight extends Flight {
         }
         break;
       case BYQUERY:
-        addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
-        if (platform.isGcp()) {
-          addStep(
-              new CreateSnapshotPrimaryDataQueryGcpStep(
-                  bigQuerySnapshotPdao,
-                  snapshotService,
-                  datasetService,
-                  snapshotDao,
-                  snapshotReq,
-                  userReq));
+        stepsForByQueryCreation(
+            datasetService,
+            platform,
+            bigQuerySnapshotPdao,
+            snapshotService,
+            snapshotDao,
+            userReq,
+            azureSynapsePdao);
           break;
-        } else if (platform.isAzure()) {
-          addStep(
-              new CreateSnapshotByQueryParquetFilesAzureStep(
-                  azureSynapsePdao,
-                  snapshotDao,
-                  snapshotService,
-                  snapshotReq,
-                  datasetService,
-                  userReq));
-          break;
-        }
       case BYROWID:
         if (platform.isGcp()) {
           addStep(
@@ -269,7 +255,8 @@ public class SnapshotCreateFlight extends Flight {
                 userReq));
         // use the existing byQuery snapshot request model code to create the snapshot
         stepsForByQueryCreation(
-            datasetService,platform,
+            datasetService,
+            platform,
             bigQuerySnapshotPdao,
             snapshotService,
             snapshotDao,
@@ -395,7 +382,7 @@ public class SnapshotCreateFlight extends Flight {
             "A snapshot was created from this dataset."));
   }
 
-  private boolean stepsForByQueryCreation(
+  private void stepsForByQueryCreation(
       DatasetService datasetService,
       CloudPlatformWrapper platform,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -403,26 +390,23 @@ public class SnapshotCreateFlight extends Flight {
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq,
       AzureSynapsePdao azureSynapsePdao) {
-    addStep(new CreateSnapshotValidateQueryByRequestStep(datasetService));
+    addStep(new CreateSnapshotValidateQueryStep(datasetService));
     if (platform.isGcp()) {
       addStep(
-          new CreateSnapshotPrimaryDataByRequestGcpStep(
+          new CreateSnapshotPrimaryDataQueryGcpStep(
               bigQuerySnapshotPdao,
               snapshotService,
               datasetService,
               snapshotDao,
               userReq));
-      return true;
     } else if (platform.isAzure()) {
       addStep(
-          new CreateSnapshotByRequestParquetFilesAzureStep(
+          new CreateSnapshotByQueryParquetFilesAzureStep(
               azureSynapsePdao,
               snapshotDao,
               snapshotService,
               datasetService,
               userReq));
-      return true;
     }
-    return false;
   }
 }

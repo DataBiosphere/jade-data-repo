@@ -28,7 +28,6 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
     implements CreateSnapshotPrimaryDataQueryInterface {
 
   private final SnapshotDao snapshotDao;
-  private final SnapshotRequestModel snapshotReq;
   private final DatasetService datasetService;
   private final AuthenticatedUserRequest userRequest;
   private String sourceDatasetDataSourceName;
@@ -38,11 +37,9 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
       AzureSynapsePdao azureSynapsePdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq,
       DatasetService datasetService,
       AuthenticatedUserRequest userRequest) {
     super(azureSynapsePdao, snapshotService);
-    this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
     this.datasetService = datasetService;
     this.userRequest = userRequest;
@@ -50,6 +47,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     sourceDatasetDataSourceName = IngestUtils.getSourceDatasetDataSourceName(context.getFlightId());
     targetDataSourceName = IngestUtils.getTargetDataSourceName(context.getFlightId());
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
@@ -64,6 +62,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
       String sqlQuery,
       Instant filterBefore) {
     FlightMap workingMap = context.getWorkingMap();
+    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     try {
       Map<String, Long> tableRowCounts =
           azureSynapsePdao.createSnapshotParquetFilesByQuery(

@@ -19,13 +19,12 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 
-public class CreateSnapshotPrimaryDataQueryGcpStep
-    implements CreateSnapshotPrimaryDataQueryInterface, Step {
+public class CreateSnapshotPrimaryDataQueryGcpStep extends DefaultByQueryStep
+    implements CreateSnapshotPrimaryDataQueryInterface {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final DatasetService datasetService;
   private final SnapshotDao snapshotDao;
-  private final SnapshotRequestModel snapshotReq;
   private final AuthenticatedUserRequest userRequest;
 
   public CreateSnapshotPrimaryDataQueryGcpStep(
@@ -33,18 +32,17 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
       SnapshotService snapshotService,
       DatasetService datasetService,
       SnapshotDao snapshotDao,
-      SnapshotRequestModel snapshotReq,
       AuthenticatedUserRequest userRequest) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.datasetService = datasetService;
     this.snapshotDao = snapshotDao;
-    this.snapshotReq = snapshotReq;
     this.userRequest = userRequest;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
   }
@@ -79,6 +77,7 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
+    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     snapshotService.undoCreateSnapshot(snapshotReq.getName());
     return StepResult.getStepResultSuccess();
   }

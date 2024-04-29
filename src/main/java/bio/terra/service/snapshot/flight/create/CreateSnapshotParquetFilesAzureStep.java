@@ -14,7 +14,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 
-public class CreateSnapshotParquetFilesAzureStep implements Step {
+public class CreateSnapshotParquetFilesAzureStep extends DefaultByQueryStep {
 
   protected AzureSynapsePdao azureSynapsePdao;
   protected SnapshotService snapshotService;

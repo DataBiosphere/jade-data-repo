@@ -568,7 +568,7 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests(UUID id) {
+  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests() {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     Map<UUID, Set<IamRole>> authorizedResources =
         iamService.listAuthorizedResources(userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST);

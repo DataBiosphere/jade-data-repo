@@ -6,7 +6,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -159,7 +158,8 @@ public class SnapshotBuilderService {
   }
 
   public EnumerateSnapshotAccessRequest enumerateSnapshotRequests(Set<UUID> authorizedResources) {
-    return convertToEnumerateModel(snapshotRequestDao.enumerate(authorizedResources));
+    return new EnumerateSnapshotAccessRequest()
+        .items(snapshotRequestDao.enumerate(authorizedResources));
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
@@ -243,22 +243,6 @@ public class SnapshotBuilderService {
     } else {
       throw new IllegalStateException("Multiple domains found for concept: " + conceptId);
     }
-  }
-
-  private EnumerateSnapshotAccessRequest convertToEnumerateModel(
-      List<SnapshotAccessRequestResponse> responses) {
-    EnumerateSnapshotAccessRequest enumerateModel = new EnumerateSnapshotAccessRequest();
-    for (SnapshotAccessRequestResponse response : responses) {
-      enumerateModel.addItemsItem(
-          new EnumerateSnapshotAccessRequestItem()
-              .id(response.getId())
-              .status(response.getStatus())
-              .createdDate(response.getCreatedDate())
-              .name(response.getSnapshotName())
-              .researchPurpose(response.getSnapshotResearchPurpose())
-              .createdBy(response.getCreatedBy()));
-    }
-    return enumerateModel;
   }
 
   record ParentQueryResult(

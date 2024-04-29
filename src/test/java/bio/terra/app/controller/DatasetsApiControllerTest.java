@@ -394,9 +394,9 @@ class DatasetsApiControllerTest {
   void testEnumerateSnapshotRequests() throws Exception {
     mockValidators();
     var expectedResponseItem =
-        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     var secondExpectedResponseItem =
-        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     var expectedResponse = new EnumerateSnapshotAccessRequest();
     Map<UUID, Set<IamRole>> authResponse =
         Map.of(

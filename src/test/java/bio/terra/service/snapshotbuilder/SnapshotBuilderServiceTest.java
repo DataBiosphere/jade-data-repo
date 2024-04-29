@@ -20,7 +20,6 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
@@ -118,13 +117,13 @@ class SnapshotBuilderServiceTest {
     List<SnapshotAccessRequestResponse> response = List.of(responseItem);
     when(snapshotRequestDao.enumerate(Set.of(responseItem.getId()))).thenReturn(response);
 
-    EnumerateSnapshotAccessRequestItem expectedItem =
-        new EnumerateSnapshotAccessRequestItem()
+    SnapshotAccessRequestResponse expectedItem =
+        new SnapshotAccessRequestResponse()
             .id(responseItem.getId())
             .status(responseItem.getStatus())
             .createdDate(responseItem.getCreatedDate())
-            .name(responseItem.getSnapshotName())
-            .researchPurpose(responseItem.getSnapshotResearchPurpose())
+            .snapshotName(responseItem.getSnapshotName())
+            .snapshotResearchPurpose(responseItem.getSnapshotResearchPurpose())
             .createdBy(responseItem.getCreatedBy());
     EnumerateSnapshotAccessRequest expected =
         new EnumerateSnapshotAccessRequest().addItemsItem(expectedItem);

@@ -6,7 +6,6 @@ import time
 UUID = "c672c3c9-ab54-4e19-827c-f2af329da814"
 DATAREPO_URL = "https://jade.datarepo-dev.broadinstitute.org"
 
-# Utility Functions
 
 def run_command(command):
   """
@@ -117,8 +116,7 @@ def make_post_request(endpoint_url, token, body):
     return None, None
 
 # Endpoint Profiling Functions
-
-def process_get_snapshot_builder_count(token):
+def profile_get_snapshot_builder_count(token):
   """
   Profiles the getSnapshotBuilderCount endpoint and returns the time taken.
 
@@ -248,8 +246,7 @@ def process_get_snapshot_builder_count(token):
 
   return f"Time taken: {time_length / len(bodys)} seconds"
 
-# Process other endpoints
-def process_get_concept_hierarchy(token):
+def profile_get_concept_hierarchy(token):
   """
   Profiles the getConceptHierarchy endpoint and returns the average time taken.
 
@@ -269,7 +266,7 @@ def process_get_concept_hierarchy(token):
 
   return f"Time taken: {time_length / len(concept_ids)} seconds"
 
-def process_search_concepts(token):
+def profile_search_concepts(token):
   """
   Profiles the searchConcepts endpoint and returns the average time taken.
 
@@ -305,7 +302,7 @@ def process_search_concepts(token):
 
   return f"Time taken: {time_length / len(params)} seconds"
 
-def process_get_concepts(token):
+def profile_get_concepts(token):
   """
   Profiles the getConcepts endpoint and returns the average time taken.
 
@@ -328,17 +325,18 @@ def process_get_concepts(token):
 # Main function
 if __name__ == "__main__":
   # Uncomment the following line to authenticate if needed
-  # authenticate()
+  authenticate()
 
   # Obtain access token
   access_token = get_access_token()
 
   # Define endpoint handlers
+
   endpoint_handlers = {
-    "getSnapshotBuilderCount": process_get_snapshot_builder_count,
-    "getConceptHierarchy": process_get_concept_hierarchy,
-    "searchConcepts": process_search_concepts,
-    "getConcepts": process_get_concepts
+    "getSnapshotBuilderCount": profile_get_snapshot_builder_count,
+    "getConceptHierarchy": profile_get_concept_hierarchy,
+    "searchConcepts": profile_search_concepts,
+    "getConcepts": profile_get_concepts
   }
 
   # List of endpoints to process

@@ -260,9 +260,8 @@ public final class TestUtils {
     try {
       return objectMapper.readValue(content, valueType);
     } catch (Exception ex) {
-      logger.error(
+      throw new RuntimeException(
           "unable to map JSON response to " + valueType.getName() + " JSON: " + content, ex);
-      throw ex;
     }
   }
 

@@ -133,7 +133,7 @@ def make_post_request(endpoint_url, token, body):
         print(f"An error occurred during the request: {e}")
         return None
 
-g
+
 # Endpoint Profiling Functions
 def profile_get_snapshot_builder_count(token):
     """
@@ -212,7 +212,7 @@ def profile_get_snapshot_builder_count(token):
 
     time_length = 0
     for body in bodys:
-        _, time_taken = make_post_request("count", token, body)
+        time_taken = make_post_request("count", token, body)
         time_length += time_taken
 
     return f"Time taken: {time_length / len(bodys)} seconds"

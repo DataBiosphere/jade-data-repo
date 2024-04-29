@@ -4,9 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotSourceModel;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
@@ -17,8 +15,7 @@ class BigQueryVisitorTest {
 
   @Test
   void bqTableName() {
-    var dataset = new DatasetSummaryModel().name("name").dataProject("project");
-    var snapshot = new SnapshotModel().addSourceItem(new SnapshotSourceModel().dataset(dataset));
+    var snapshot = new SnapshotModel().name("name").dataProject("project");
     String tableName = "table";
     String fullTableName = BigQueryVisitor.bqSnapshotTableName(snapshot).generate(tableName);
     String expected = "`project.name.table`";
@@ -30,8 +27,7 @@ class BigQueryVisitorTest {
 
   @Test
   void bqTableNameNull() {
-    var dataset = new DatasetSummaryModel();
-    var snapshot = new SnapshotModel().addSourceItem(new SnapshotSourceModel().dataset(dataset));
+    var snapshot = new SnapshotModel();
     String tableName = null;
     String fullTableName = BigQueryVisitor.bqSnapshotTableName(snapshot).generate(tableName);
     String expected = "`null.null.null`";

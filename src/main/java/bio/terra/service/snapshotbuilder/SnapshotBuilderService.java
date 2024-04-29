@@ -32,6 +32,7 @@ import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
@@ -58,7 +59,7 @@ public class SnapshotBuilderService {
   private final DatasetService datasetService;
   private final IamService iamService;
   private final SnapshotService snapshotService;
-  private final BigQueryDatasetPdao bigQueryDatasetPdao;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
   private final QueryBuilderFactory queryBuilderFactory;
@@ -69,7 +70,7 @@ public class SnapshotBuilderService {
       DatasetService datasetService,
       IamService iamService,
       SnapshotService snapshotService,
-      BigQueryDatasetPdao bigQueryDatasetPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       AzureSynapsePdao azureSynapsePdao,
       QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
@@ -77,7 +78,7 @@ public class SnapshotBuilderService {
     this.datasetService = datasetService;
     this.iamService = iamService;
     this.snapshotService = snapshotService;
-    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.azureSynapsePdao = azureSynapsePdao;
     this.queryBuilderFactory = queryBuilderFactory;
   }
@@ -109,7 +110,7 @@ public class SnapshotBuilderService {
     List<T> result =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform())
             .choose(
-                () -> bigQueryDatasetPdao.runQuery(sql, snapshot, bqConverter),
+                () -> bigQuerySnapshotPdao.runQuery(sql, snapshot, bqConverter),
                 () -> azureSynapsePdao.runQuery(sql, synapseConverter));
     logger.info(
         "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
@@ -179,8 +180,9 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse searchConcepts(
       UUID snapshotId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
+    // TODO - switch to bySnapshotID w/ Phil's changes
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
+        snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId());
 
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
@@ -211,8 +213,9 @@ public class SnapshotBuilderService {
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
       AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
+    // TODO - switch to bySnapshotID w/ Phil's changes
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
+        snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId());
 
     Query query =
         queryBuilderFactory
@@ -325,6 +328,8 @@ public class SnapshotBuilderService {
     // domain is needed to join with the domain specific occurrence table
     // this does not work for the metadata domain
     String domainId = getDomainId(conceptId, snapshot, userRequest);
-    return getDomainOptionFromSettingsByName(domainId, snapshot.getId());
+    // TODO - switch to bySnapshotID w/ Phil's changes
+    var sourceDatasetId = snapshot.getSourceDataset().getId();
+    return getDomainOptionFromSettingsByName(domainId, sourceDatasetId);
   }
 }

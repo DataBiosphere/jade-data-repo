@@ -152,6 +152,7 @@ public class AzureIntegrationTest extends UsersBase {
   private User steward;
   private User admin;
   private UUID datasetId;
+  private UUID releaseSnapshotId;
   private List<UUID> snapshotIds;
   private UUID profileId;
   private AzureBlobIOTestUtility azureBlobIOTestUtility;
@@ -187,6 +188,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   @After
   public void teardown() throws Exception {
+    snapshotIds.add(releaseSnapshotId);
     logger.info(
         "Teardown: trying to delete snapshots {}, dataset {}, billing profile {}",
         snapshotIds,
@@ -389,7 +391,23 @@ public class AzureIntegrationTest extends UsersBase {
     ingestTable("concept_relationship", "omop/concept-relationship-table-data.jsonl", 4);
 
     // Add settings to dataset
+    // TODO - we'll want to instead populate this a snapshot once those endpoints are published
+    // Until then, we'll reference the source dataset's settings
     dataRepoFixtures.updateSettings(steward, datasetId, "omop/settings.json");
+
+    // Create a snapshot
+    SnapshotRequestModel requestSnapshotRelease =
+        jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
+    requestSnapshotRelease.getContents().get(0).datasetName(summaryModel.getName());
+
+    SnapshotSummaryModel snapshotSummaryAll =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward, summaryModel.getName(), profileId, requestSnapshotRelease);
+    UUID snapshotByFullViewId = snapshotSummaryAll.getId();
+    releaseSnapshotId = snapshotByFullViewId;
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
+    assertThat(
+        "Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestSnapshotRelease.getName()));
   }
 
   @Test
@@ -408,7 +426,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   private void searchConceptTest(SnapshotBuilderConcept concept1) throws Exception {
     var searchConceptsResult =
-        dataRepoFixtures.searchConcepts(steward, datasetId, 19, concept1.getName());
+        dataRepoFixtures.getConcepts(steward, releaseSnapshotId, 19, concept1.getName());
     // A concept returned by search concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =
@@ -423,7 +441,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   private void getConceptHierarchyTest(
       SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
-    var searchConceptsResult = dataRepoFixtures.getConceptHierarchy(steward, datasetId, 3);
+    var searchConceptsResult = dataRepoFixtures.getConceptHierarchy(steward, releaseSnapshotId, 3);
     assertThat(
         searchConceptsResult.getResult(),
         CoreMatchers.is(
@@ -435,7 +453,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   private void getConceptChildrenTest(
       SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
-    var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
+    var getConceptResponse = dataRepoFixtures.getConceptChildren(steward, releaseSnapshotId, 2);
     assertThat(getConceptResponse.getResult(), CoreMatchers.is(List.of(concept1, concept3)));
 
     getCountResponseTest();
@@ -496,7 +514,8 @@ public class AzureIntegrationTest extends UsersBase {
                                     .meetAll(true)
                                     .mustMeet(true)
                                     .criteria(criteria)))));
-    var rollupCountsResponse = dataRepoFixtures.getRollupCounts(steward, datasetId, request);
+    var rollupCountsResponse =
+        dataRepoFixtures.getRollupCounts(steward, releaseSnapshotId, request);
     assertThat(rollupCountsResponse.getResult().getTotal(), is(expectedParticipants));
   }
 

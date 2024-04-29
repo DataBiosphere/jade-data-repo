@@ -39,7 +39,6 @@ import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
@@ -1429,18 +1428,5 @@ public class BigQueryDatasetPdao {
 
   public interface Converter<T> {
     T convert(FieldValueList fieldValue);
-  }
-
-  // WARNING: SQL string must be sanitized before calling this method
-  public <T> List<T> runQuery(String sql, Snapshot snapshot, Converter<T> converter) {
-    try {
-      final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-      final TableResult result = bigQueryProject.query(sql);
-      return StreamSupport.stream(result.iterateAll().spliterator(), false)
-          .map(converter::convert)
-          .toList();
-    } catch (InterruptedException ex) {
-      throw new PdaoException("Snapshot builder query was interrupted", ex);
-    }
   }
 }

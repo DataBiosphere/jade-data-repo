@@ -338,7 +338,7 @@ public class BigQueryPdaoTest {
     }
   }
 
-  private Dataset stageOmopDataset() throws Exception {
+  private Snapshot stageOmopData() throws Exception {
     Dataset dataset = readDataset("omop/it-dataset-omop.jsonl");
     var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
     connectedOperations.addDataset(dataset.getId());
@@ -353,25 +353,30 @@ public class BigQueryPdaoTest {
     for (Ingester ingester : ingesters) {
       ingester.waitForCompletion(dataset);
     }
-    return dataset;
+
+    DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
+    SnapshotSummaryModel snapshotSummary =
+        connectedOperations.createSnapshot(
+            datasetSummary, "omop/release-snapshot-request.json", "");
+    return snapshotService.retrieve(snapshotSummary.getId());
   }
 
   @Test
   public void snapshotBuilderQuery() throws Exception {
     // Since stageOmopDataset takes > 1 min to run, we test all concept APIs in one test.
-    var dataset = stageOmopDataset();
+    var snapshot = stageOmopData();
     var concept1 =
         new SnapshotBuilderConcept().name("concept1").id(1).count(22).code("11").hasChildren(false);
     var concept3 =
         new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
-    getConceptChildrenTest(dataset, concept1, concept3);
-    searchConceptTest(dataset, concept1);
-    getConceptHierarchyTest(dataset, concept1, concept3);
+    getConceptChildrenTest(snapshot, concept1, concept3);
+    searchConceptTest(snapshot, concept1);
+    getConceptHierarchyTest(snapshot, concept1, concept3);
   }
 
-  private void searchConceptTest(Dataset dataset, SnapshotBuilderConcept concept1) {
+  private void searchConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
     var searchConceptsResult =
-        snapshotBuilderService.searchConcepts(dataset.getId(), 19, concept1.getName(), TEST_USER);
+        snapshotBuilderService.searchConcepts(snapshot.getId(), 19, concept1.getName(), TEST_USER);
     // A concept returned by search concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =
@@ -385,9 +390,9 @@ public class BigQueryPdaoTest {
   }
 
   private void getConceptHierarchyTest(
-      Dataset dataset, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
+      Snapshot snapshot, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
     var searchConceptsResult =
-        snapshotBuilderService.getConceptHierarchy(dataset.getId(), 3, TEST_USER);
+        snapshotBuilderService.getConceptHierarchy(snapshot.getId(), 3, TEST_USER);
     assertThat(
         searchConceptsResult.getResult(),
         is(
@@ -398,17 +403,16 @@ public class BigQueryPdaoTest {
   }
 
   private void getConceptChildrenTest(
-      Dataset dataset, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
-    // TODO - reference snapshots instead
-    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
+      Snapshot snapshot, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
+    var conceptResponse = snapshotBuilderService.getConceptChildren(snapshot.getId(), 2, TEST_USER);
     assertThat(conceptResponse.getResult(), is(List.of(concept1, concept3)));
 
-    getCountResponseTest(dataset);
-    getCountResponseZeroCaseTest(dataset);
-    getCountResponseFuzzyValuesTest(dataset);
+    getCountResponseTest(snapshot);
+    getCountResponseZeroCaseTest(snapshot);
+    getCountResponseFuzzyValuesTest(snapshot);
   }
 
-  private void getCountResponseTest(Dataset dataset) {
+  private void getCountResponseTest(Snapshot snapshot) {
     List<SnapshotBuilderCriteria> criteria =
         List.of(
             new SnapshotBuilderProgramDataListCriteria()
@@ -424,10 +428,10 @@ public class BigQueryPdaoTest {
                 .conceptId(1)
                 .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
                 .id(19));
-    testRollupCountsWithCriteriaAndExpected(dataset, criteria, 20);
+    testRollupCountsWithCriteriaAndExpected(snapshot, criteria, 20);
   }
 
-  private void getCountResponseZeroCaseTest(Dataset dataset) {
+  private void getCountResponseZeroCaseTest(Snapshot snapshot) {
     List<SnapshotBuilderCriteria> criteria =
         List.of(
             new SnapshotBuilderProgramDataRangeCriteria()
@@ -435,21 +439,21 @@ public class BigQueryPdaoTest {
                 .low(1911)
                 .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
                 .id(0));
-    testRollupCountsWithCriteriaAndExpected(dataset, criteria, 0);
+    testRollupCountsWithCriteriaAndExpected(snapshot, criteria, 0);
   }
 
-  private void getCountResponseFuzzyValuesTest(Dataset dataset) {
+  private void getCountResponseFuzzyValuesTest(Snapshot snapshot) {
     List<SnapshotBuilderCriteria> criteria =
         List.of(
             new SnapshotBuilderProgramDataListCriteria()
                 .values(List.of(8532))
                 .kind(SnapshotBuilderCriteria.KindEnum.LIST)
                 .id(1));
-    testRollupCountsWithCriteriaAndExpected(dataset, criteria, 19);
+    testRollupCountsWithCriteriaAndExpected(snapshot, criteria, 19);
   }
 
   private void testRollupCountsWithCriteriaAndExpected(
-      Dataset dataset, List<SnapshotBuilderCriteria> criteria, int expectedResult) {
+      Snapshot snapshot, List<SnapshotBuilderCriteria> criteria, int expectedResult) {
     List<SnapshotBuilderCohort> cohorts =
         List.of(
             new SnapshotBuilderCohort()
@@ -460,7 +464,7 @@ public class BigQueryPdaoTest {
                             .mustMeet(true)
                             .criteria(criteria))));
     var rollupCountsResult =
-        snapshotBuilderService.getCountResponse(dataset.getId(), cohorts, TEST_USER);
+        snapshotBuilderService.getCountResponse(snapshot.getId(), cohorts, TEST_USER);
 
     assertThat(rollupCountsResult.getResult().getTotal(), is(expectedResult));
   }

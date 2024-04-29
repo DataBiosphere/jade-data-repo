@@ -21,7 +21,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -34,7 +33,6 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -49,7 +47,7 @@ import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -82,7 +80,7 @@ class SnapshotBuilderServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private IamService iamService;
   @Mock private SnapshotService snapshotService;
-  @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
+  @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
 
@@ -98,7 +96,7 @@ class SnapshotBuilderServiceTest {
             datasetService,
             iamService,
             snapshotService,
-            bigQueryDatasetPdao,
+            bigQuerySnapshotPdao,
             azureSynapsePdao,
             queryBuilderFactory);
   }
@@ -157,9 +155,8 @@ class SnapshotBuilderServiceTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void getConceptChildren(CloudPlatform cloudPlatform) {
-    // TODO - rework to reference snapshots
-    Dataset dataset = makeDataset(cloudPlatform);
-    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    Snapshot snapshot = makeSnapshot(cloudPlatform);
+    when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
 
     var queryBuilder = mock(ConceptChildrenQueryBuilder.class);
     when(queryBuilderFactory.conceptChildrenQueryBuilder()).thenReturn(queryBuilder);
@@ -181,9 +178,9 @@ class SnapshotBuilderServiceTest {
             .hasChildren(true)
             .code("100")
             .count(99);
-    mockRunQueryForGetConcepts(concept("childConcept", 2, true), dataset, "domainId");
+    mockRunQueryForGetConcepts(concept("childConcept", 2, true), snapshot, "domainId");
 
-    var response = snapshotBuilderService.getConceptChildren(dataset.getId(), 1, TEST_USER);
+    var response = snapshotBuilderService.getConceptChildren(snapshot.getId(), 1, TEST_USER);
     assertThat(
         "getConceptChildren returns the expected response",
         response.getResult(),
@@ -193,8 +190,8 @@ class SnapshotBuilderServiceTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void searchConcepts(CloudPlatform cloudPlatform) {
-    Dataset dataset = makeDataset(cloudPlatform);
-    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    Snapshot snapshot = makeSnapshot(cloudPlatform);
+    when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
     domainOption
         .name("condition")
@@ -203,7 +200,7 @@ class SnapshotBuilderServiceTest {
         .columnName("condition_concept_id");
     SnapshotBuilderSettings snapshotBuilderSettings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId()))
+    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
         .thenReturn(snapshotBuilderSettings);
 
     var queryBuilder = mock(SearchConceptsQueryBuilder.class);
@@ -211,10 +208,10 @@ class SnapshotBuilderServiceTest {
     when(queryBuilder.buildSearchConceptsQuery(any(), any())).thenReturn(mock(Query.class));
 
     var concept = new SnapshotBuilderConcept().name("concept1").id(1);
-    mockRunQueryForSearchConcepts(concept, dataset);
+    mockRunQueryForSearchConcepts(concept, snapshot);
     var response =
         snapshotBuilderService.searchConcepts(
-            dataset.getId(), domainOption.getId(), "cancer", TEST_USER);
+            snapshot.getId(), domainOption.getId(), "cancer", TEST_USER);
     assertThat(
         "searchConcepts returns the expected response",
         response.getResult(),
@@ -223,20 +220,23 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void searchConceptsUnknownDomain() {
-    Dataset dataset = makeDataset(CloudPlatform.GCP);
-    UUID datasetId = dataset.getId();
-    when(datasetService.retrieve(datasetId)).thenReturn(dataset);
+    Snapshot snapshot = makeSnapshot(CloudPlatform.GCP);
+    UUID snapshotId = snapshot.getId();
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
     var domainOption = new SnapshotBuilderDomainOption();
     domainOption.setId(19);
-    when(snapshotBuilderSettingsDao.getByDatasetId(datasetId))
+    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
         .thenReturn(new SnapshotBuilderSettings().domainOptions(List.of(domainOption)));
     assertThrows(
         BadRequestException.class,
-        () -> snapshotBuilderService.searchConcepts(datasetId, 20, "cancer", TEST_USER));
+        () -> snapshotBuilderService.searchConcepts(snapshotId, 20, "cancer", TEST_USER));
   }
 
-  private DatasetModel makeDatasetModel() {
-    return new DatasetModel().name("name").dataProject("project");
+  private static Snapshot makeSnapshot(CloudPlatform cloudPlatform) {
+    return new Snapshot()
+        .snapshotSources(List.of(new SnapshotSource().dataset(makeDataset(cloudPlatform))))
+        .name("snapshot123")
+        .id(UUID.randomUUID());
   }
 
   private static Dataset makeDataset(CloudPlatform cloudPlatform) {
@@ -246,29 +246,30 @@ class SnapshotBuilderServiceTest {
         .id(UUID.randomUUID());
   }
 
-  private void mockRunQueryForSearchConcepts(SnapshotBuilderConcept concept, Dataset dataset) {
-    mockRunQuery(dataset).thenReturn(List.of(concept));
+  private void mockRunQueryForSearchConcepts(SnapshotBuilderConcept concept, Snapshot snapshot) {
+    mockRunQuery(snapshot).thenReturn(List.of(concept));
   }
 
   private void mockRunQueryForGetConcepts(
-      SnapshotBuilderConcept concept, Dataset dataset, String domainId) {
-    mockRunQuery(dataset).thenReturn(List.of(domainId)).thenReturn(List.of(concept));
+      SnapshotBuilderConcept concept, Snapshot snapshot, String domainId) {
+    mockRunQuery(snapshot).thenReturn(List.of(domainId)).thenReturn(List.of(concept));
   }
 
   private void mockRunQueryForHierarchy(
-      Dataset dataset, String domainId, List<SnapshotBuilderService.ParentQueryResult> results) {
-    mockRunQuery(dataset).thenReturn(List.of(domainId)).thenReturn(List.copyOf(results));
+      Snapshot snapshot, String domainId, List<SnapshotBuilderService.ParentQueryResult> results) {
+    mockRunQuery(snapshot).thenReturn(List.of(domainId)).thenReturn(List.copyOf(results));
   }
 
-  private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Dataset dataset) {
-    return CloudPlatformWrapper.of(dataset.getCloudPlatform())
+  private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Snapshot snapshot) {
+    return CloudPlatformWrapper.of(snapshot.getCloudPlatform())
         .choose(
             () -> {
-              when(datasetService.retrieveModel(dataset, TEST_USER)).thenReturn(makeDatasetModel());
-              return when(bigQueryDatasetPdao.runQuery(any(), any(), any()));
+              // Not sure if we need this mock?
+              // when(snapshotService.retrieve(snapshot, TEST_USER)).thenReturn(makeDatasetModel());
+              return when(bigQuerySnapshotPdao.runQuery(any(), any(), any()));
             },
             () -> {
-              when(datasetService.getOrCreateExternalAzureDataSource(dataset, TEST_USER))
+              when(snapshotService.getOrCreateExternalAzureDataSource(snapshot, TEST_USER))
                   .thenReturn("dataSource");
               return when(azureSynapsePdao.runQuery(any(), any()));
             });
@@ -311,16 +312,13 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void getRollupCountForCriteriaGroupsGeneratesAndRunsAQuery() {
-    Dataset dataset =
-        new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
-            .projectResource(new GoogleProjectResource().googleProjectId("project123"))
-            .name("dataset123")
-            .id(UUID.randomUUID());
+    Snapshot snapshot = makeSnapshot(CloudPlatform.AZURE);
     var settings = new SnapshotBuilderSettings();
-    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
+        .thenReturn(settings);
     Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
-    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
     when(queryBuilderFactory.criteriaQueryBuilder("person", settings))
         .thenReturn(criteriaQueryBuilderMock);
     var criteriaGroups = List.of(List.of(new SnapshotBuilderCriteriaGroup()));
@@ -334,12 +332,12 @@ class SnapshotBuilderServiceTest {
     when(azureSynapsePdao.runQuery(eq(sql), any())).thenReturn(List.of(count));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(
-            dataset.getId(), criteriaGroups, TEST_USER);
+            snapshot.getId(), criteriaGroups, TEST_USER);
     assertThat(
         "rollup count should be response from stubbed query runner", rollupCount, equalTo(count));
     assertThat(
         contextArgument.getValue().getPlatform().getCloudPlatform(),
-        is(dataset.getCloudPlatform()));
+        is(snapshot.getCloudPlatform()));
   }
 
   @ParameterizedTest
@@ -408,9 +406,9 @@ class SnapshotBuilderServiceTest {
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
   void getConceptHierarchy(CloudPlatform platform) {
-    Dataset dataset = makeDataset(platform);
+    Snapshot snapshot = makeSnapshot(platform);
     var conceptId = 1;
-    when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
+    when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
     var queryBuilder = mock(HierarchyQueryBuilder.class);
     when(queryBuilderFactory.hierarchyQueryBuilder()).thenReturn(queryBuilder);
     when(queryBuilderFactory.conceptChildrenQueryBuilder())
@@ -418,7 +416,10 @@ class SnapshotBuilderServiceTest {
     var domain = new SnapshotBuilderDomainOption();
     domain.setName("domain");
     var settings = new SnapshotBuilderSettings().domainOptions(List.of(domain));
-    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
+    // TODO - this will change w/ Phil's PR
+    // I could get the source dataset id for now
+    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
+        .thenReturn(settings);
     when(queryBuilder.generateQuery(domain, conceptId)).thenReturn(mock(Query.class));
     var concept1 = concept("concept1", 1, true);
     var concept2 = concept("concept2", 2, false);
@@ -428,9 +429,9 @@ class SnapshotBuilderServiceTest {
             createResult(0, concept1),
             createResult(0, concept2),
             createResult(concept1.getId(), concept3));
-    mockRunQueryForHierarchy(dataset, domain.getName(), results);
+    mockRunQueryForHierarchy(snapshot, domain.getName(), results);
     assertThat(
-        snapshotBuilderService.getConceptHierarchy(dataset.getId(), conceptId, TEST_USER),
+        snapshotBuilderService.getConceptHierarchy(snapshot.getId(), conceptId, TEST_USER),
         equalTo(
             new SnapshotBuilderGetConceptHierarchyResponse()
                 .result(

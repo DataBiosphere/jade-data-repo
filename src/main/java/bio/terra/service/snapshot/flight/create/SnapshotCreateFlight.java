@@ -45,6 +45,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.snapshot.flight.duos.CreateDuosFirecloudGroupStep;
 import bio.terra.service.snapshot.flight.duos.IfNoGroupRetrievedStep;
@@ -246,7 +247,7 @@ public class SnapshotCreateFlight extends Flight {
         break;
 
       case BYREQUESTID:
-        // creates byQuery snapshot request model from byRequestId snapshot request model
+        // create byQuery snapshot request model from byRequestId snapshot request model
         addStep(
             new CreateByQuerySnapshotRequestModelStep(
                 snapshotReq,
@@ -255,10 +256,10 @@ public class SnapshotCreateFlight extends Flight {
                 snapshotBuilderSettingsDao,
                 snapshotRequestDao,
                 userReq));
-        // uses the existing byQuery snapshot request model code to create the snapshot
+        // use the existing byQuery snapshot request model code to create the snapshot
         stepsForByQueryCreation(
             datasetService,
-            inputParameters.get("byQuerySnapshotRequestModel", SnapshotRequestModel.class),
+            inputParameters.get(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL, SnapshotRequestModel.class),
             platform,
             bigQuerySnapshotPdao,
             snapshotService,

@@ -10,6 +10,7 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
@@ -80,7 +81,7 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
                 new SnapshotRequestQueryModel().query(sqlString).assetName("notImplemented"));
     snapshotRequestModel.contents(List.of(snapshotRequestContentsModel));
     // TODO: implement asset creation and time filtering
-    context.getWorkingMap().put("byQuerySnapshotRequestModel", snapshotRequestModel);
+    context.getWorkingMap().put(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL, snapshotRequestModel);
 
     return null;
   }

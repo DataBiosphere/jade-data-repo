@@ -51,8 +51,8 @@ class AddSnapshotAuthDomainSetResponseStepTest {
     verify(iamService).retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID);
 
     FlightMap workingMap = flightContext.getWorkingMap();
-    assertEquals(HttpStatus.OK,
-        workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class));
+    assertEquals(
+        HttpStatus.OK, workingMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class));
     assertTrue(
         workingMap
             .get(JobMapKeys.RESPONSE.getKeyName(), AddAuthDomainResponseModel.class)

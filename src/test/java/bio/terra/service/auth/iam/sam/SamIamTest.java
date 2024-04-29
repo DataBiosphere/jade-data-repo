@@ -67,10 +67,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("unittest")
 @Tag("bio.terra.common.category.Unit")
-public class SamIamTest {
+class SamIamTest {
 
   @Mock private SamApiService samApiService;
   @Mock private GoogleApi samGoogleApi;
@@ -84,7 +86,7 @@ public class SamIamTest {
       AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     GoogleResourceConfiguration resourceConfiguration =
         new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     samIam =

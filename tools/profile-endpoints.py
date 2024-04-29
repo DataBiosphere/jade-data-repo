@@ -70,8 +70,10 @@ def make_get_request(endpoint_url, token):
 
     total_time = end_time - start_time
 
-    if response.status_code == 200 or response.status_code == 502:
+    if response.status_code == 200:
       print("Request successful!")
+    elif response.status_code == 502:
+      print("Request timed out, to get a more accurate time, please use the Logs Explorer at console.cloud.google.com for accurate timings")
     else:
       print(f"Request failed with status code {response.status_code}: {response.text}")
 
@@ -105,12 +107,16 @@ def make_post_request(endpoint_url, token, body):
 
     time_taken = end_time - start_time
 
+
     if response.status_code == 200:
       print("Request successful!")
+    elif response.status_code == 502:
+      print("Request timed out, to get a more accurate time, please use the Logs Explorer at console.cloud.google.com for accurate timings")
     else:
       print(f"Request failed with status code {response.status_code}: {response.text}")
 
-    return response, time_taken
+
+return response, time_taken
   except requests.exceptions.RequestException as e:
     print(f"An error occurred during the request: {e}")
     return None, None
@@ -340,7 +346,8 @@ if __name__ == "__main__":
   }
 
   # List of endpoints to process
-  endpoints = ["getSnapshotBuilderCount", "getConceptHierarchy", "searchConcepts", "getConcepts"]
+  # endpoints = ["getSnapshotBuilderCount", "getConceptHierarchy", "searchConcepts", "getConcepts"]
+  endpoints = ["getConcepts"]
 
   # Iterate through the endpoints and call the corresponding function
   for endpoint in endpoints:

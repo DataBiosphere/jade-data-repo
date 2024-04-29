@@ -3017,14 +3017,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotRequests:
+  /api/repository/v1/snapshotRequests:
     get:
       tags:
         - datasets
       description: As an admin for this dataset, view all snapshot requests for this dataset.
       operationId: enumerateSnapshotRequests
-      parameters:
-        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: The snapshot requests have been retrieved.
@@ -7346,31 +7344,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/EnumerateSnapshotAccessRequestItem'
-
-    EnumerateSnapshotAccessRequestItem:
-      type: object
-      description: The model for SnapshotAccessRequests when enumerated in a response.
-      required:
-        - id
-        - status
-        - createdDate
-        - name
-        - researchPurpose
-        - createdBy
-      properties:
-        id:
-          $ref: '#/components/schemas/UniqueIdProperty'
-        status:
-          $ref: '#/components/schemas/SnapshotAccessRequestStatus'
-        createdDate:
-          type: string
-        name:
-          type: string
-        researchPurpose:
-          type: string
-        createdBy:
-          type: string
+            $ref: '#/components/schemas/SnapshotAccessRequestResponse'
 
     SnapshotAccessRequestResponse:
       type: object

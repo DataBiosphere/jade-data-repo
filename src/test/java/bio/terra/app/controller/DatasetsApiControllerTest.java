@@ -5,7 +5,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -47,6 +46,7 @@ import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -62,6 +62,8 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -371,7 +373,7 @@ class DatasetsApiControllerTest {
     SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest();
     SnapshotAccessRequestResponse expectedResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
-    when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(request), anyString()))
+    when(snapshotBuilderService.createSnapshotRequest(any(), eq(DATASET_ID), eq(request)))
         .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
@@ -393,9 +395,17 @@ class DatasetsApiControllerTest {
     mockValidators();
     var expectedResponseItem =
         SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
+    var secondExpectedResponseItem =
+        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
     var expectedResponse = new EnumerateSnapshotAccessRequest();
-    expectedResponse.items(List.of(expectedResponseItem, expectedResponseItem));
-    when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(expectedResponse);
+    Map<UUID, Set<IamRole>> authResponse =
+        Map.of(
+            expectedResponseItem.getId(), Set.of(), secondExpectedResponseItem.getId(), Set.of());
+    expectedResponse.items(List.of(expectedResponseItem, secondExpectedResponseItem));
+    when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.SNAPSHOT_BUILDER_REQUEST))
+        .thenReturn(authResponse);
+    when(snapshotBuilderService.enumerateSnapshotRequests(authResponse.keySet()))
+        .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(get(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))
             .andExpect(status().isOk())

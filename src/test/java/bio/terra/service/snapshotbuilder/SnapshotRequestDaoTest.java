@@ -19,6 +19,7 @@ import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.dataset.Dataset;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,7 +93,7 @@ class SnapshotRequestDaoTest {
     SnapshotAccessRequestResponse response1 = createRequest();
     assertThat(
         "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.enumerateByDatasetId(dataset.getId()),
+        snapshotRequestDao.enumerate(Set.of(response.getId(), response1.getId())),
         contains(response, response1));
   }
 
@@ -100,7 +101,7 @@ class SnapshotRequestDaoTest {
   void enumerateByDatasetIdNotFound() {
     assertThat(
         "For a dataset id that does not exist nothing is returned",
-        snapshotRequestDao.enumerateByDatasetId(UUID.randomUUID()),
+        snapshotRequestDao.enumerate(Set.of()),
         empty());
   }
 

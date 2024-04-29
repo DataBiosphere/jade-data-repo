@@ -314,6 +314,38 @@ public class SamIam implements IamProviderInterface {
     return policies;
   }
 
+  @Override
+  public Map<IamRole, String> createSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> createSnapshotBuilderRequestResourceInner(userReq, snapshotBuilderRequestId));
+    return Map.of(IamRole.OWNER, userReq.getEmail());
+  }
+
+  private void createSnapshotBuilderRequestResourceInner(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
+    CreateResourceRequestV2 req =
+        createSnapshotBuilderRequestResourceRequest(userReq, snapshotBuilderRequestId);
+    samResourceApi.createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), req);
+  }
+
+  @VisibleForTesting
+  CreateResourceRequestV2 createSnapshotBuilderRequestResourceRequest(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) {
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    CreateResourceRequestV2 req =
+        new CreateResourceRequestV2().resourceId(snapshotBuilderRequestId.toString());
+
+    req.putPoliciesItem(
+        IamRole.OWNER.toString(),
+        createAccessPolicy(IamRole.OWNER, List.of(userStatusInfo.getUserEmail())));
+
+    logger.debug("SAM request: " + req);
+    return req;
+  }
+
   private String syncOnePolicy(
       AuthenticatedUserRequest userReq, IamResourceType resourceType, UUID id, IamRole role)
       throws ApiException {

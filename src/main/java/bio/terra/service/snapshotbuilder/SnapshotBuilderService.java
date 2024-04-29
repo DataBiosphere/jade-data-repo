@@ -19,6 +19,7 @@ import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +55,7 @@ public class SnapshotBuilderService {
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final DatasetService datasetService;
+  private final IamService iamService;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
@@ -62,20 +65,26 @@ public class SnapshotBuilderService {
       SnapshotRequestDao snapshotRequestDao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       DatasetService datasetService,
+      IamService iamService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       AzureSynapsePdao azureSynapsePdao,
       QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
+    this.iamService = iamService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.azureSynapsePdao = azureSynapsePdao;
     this.queryBuilderFactory = queryBuilderFactory;
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest, String email) {
-    return snapshotRequestDao.create(id, snapshotAccessRequest, email);
+      AuthenticatedUserRequest userRequest, UUID id, SnapshotAccessRequest snapshotAccessRequest) {
+    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+        snapshotRequestDao.create(id, snapshotAccessRequest, userRequest.getEmail());
+    iamService.createSnapshotBuilderRequestResource(
+        userRequest, snapshotAccessRequestResponse.getId());
+    return snapshotAccessRequestResponse;
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -149,8 +158,8 @@ public class SnapshotBuilderService {
     return rollupCount == 0 ? rollupCount : Math.max(rollupCount, 19);
   }
 
-  public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
-    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
+  public EnumerateSnapshotAccessRequest enumerateSnapshotRequests(Set<UUID> authorizedResources) {
+    return convertToEnumerateModel(snapshotRequestDao.enumerate(authorizedResources));
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(

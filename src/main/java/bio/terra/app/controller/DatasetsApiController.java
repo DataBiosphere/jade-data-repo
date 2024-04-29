@@ -56,6 +56,7 @@ import bio.terra.model.TransactionModel;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
@@ -75,6 +76,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -558,23 +560,20 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,
-        IamResourceType.DATASET,
+        IamResourceType.DATASNAPSHOT,
         id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.CREATE_SNAPSHOT_REQUEST);
     return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(
-            id, snapshotAccessRequest, userRequest.getEmail()));
+        snapshotBuilderService.createSnapshotRequest(userRequest, id, snapshotAccessRequest));
   }
 
   @Override
   public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.enumerateByDatasetId(id));
+    Map<UUID, Set<IamRole>> authorizedResources =
+        iamService.listAuthorizedResources(userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST);
+    return ResponseEntity.ok(
+        snapshotBuilderService.enumerateSnapshotRequests(authorizedResources.keySet()));
   }
 
   @Override

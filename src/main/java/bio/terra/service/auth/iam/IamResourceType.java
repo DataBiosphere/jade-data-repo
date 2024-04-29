@@ -10,6 +10,7 @@ public enum IamResourceType {
   DATASET("dataset"),
   DATASNAPSHOT("datasnapshot"),
   SPEND_PROFILE("spend-profile"),
+  SNAPSHOT_BUILDER_REQUEST("snapshot-builder-request"),
   WORKSPACE("workspace");
 
   private final String samResourceName;

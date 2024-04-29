@@ -28,6 +28,8 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -48,6 +50,8 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import java.sql.ResultSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,6 +74,7 @@ class SnapshotBuilderServiceTest {
   @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private DatasetService datasetService;
+  @Mock private IamService iamService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
@@ -84,6 +89,7 @@ class SnapshotBuilderServiceTest {
             snapshotRequestDao,
             snapshotBuilderSettingsDao,
             datasetService,
+            iamService,
             bigQueryDatasetPdao,
             azureSynapsePdao,
             queryBuilderFactory);
@@ -92,26 +98,25 @@ class SnapshotBuilderServiceTest {
   @Test
   void createSnapshotRequest() {
     UUID datasetId = UUID.randomUUID();
-    String email = "user@gmail.com";
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
     when(snapshotRequestDao.create(
-            datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
+            datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), TEST_USER.getEmail()))
         .thenReturn(response);
-
+    when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any()))
+        .thenReturn(Map.of(IamRole.OWNER, TEST_USER.getEmail()));
     assertThat(
         "createSnapshotRequest returns the expected response",
         snapshotBuilderService.createSnapshotRequest(
-            datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email),
+            TEST_USER, datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest()),
         equalTo(response));
   }
 
   @Test
   void enumerateSnapshotRequestsByDatasetId() {
-    UUID datasetId = UUID.randomUUID();
     SnapshotAccessRequestResponse responseItem =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     List<SnapshotAccessRequestResponse> response = List.of(responseItem);
-    when(snapshotRequestDao.enumerateByDatasetId(datasetId)).thenReturn(response);
+    when(snapshotRequestDao.enumerate(Set.of(responseItem.getId()))).thenReturn(response);
 
     EnumerateSnapshotAccessRequestItem expectedItem =
         new EnumerateSnapshotAccessRequestItem()
@@ -126,7 +131,7 @@ class SnapshotBuilderServiceTest {
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",
-        snapshotBuilderService.enumerateByDatasetId(datasetId),
+        snapshotBuilderService.enumerateSnapshotRequests(Set.of(responseItem.getId())),
         equalTo(expected));
   }
 

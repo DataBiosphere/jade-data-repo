@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -39,6 +40,7 @@ public class SnapshotRequestDao {
   private static final String CREATED_DATE = "created_date";
   private static final String UPDATED_DATE = "updated_date";
   private static final String STATUS = "status";
+  private static final String AUTHORIZED_RESOURCES = "authorized_resources";
 
   private final RowMapper<SnapshotAccessRequestResponse> responseMapper =
       (rs, rowNum) ->
@@ -88,18 +90,26 @@ public class SnapshotRequestDao {
   /**
    * Return the list of Snapshot Requests associated with the given dataset id.
    *
-   * @param datasetId associated with any number of snapshot requests.
+   * @param authorizedResources snapshot requests that the user has permission to see.
    * @return the list of snapshot requests, empty if none, or an exception if the dataset does not
    *     exist.
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-  public List<SnapshotAccessRequestResponse> enumerateByDatasetId(UUID datasetId) {
-    String sql = "SELECT * FROM snapshot_request WHERE dataset_id = :dataset_id";
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue(DATASET_ID, datasetId);
+  public List<SnapshotAccessRequestResponse> enumerate(Set<UUID> authorizedResources) {
+    String sql = "SELECT * FROM snapshot_request WHERE id IN(authorized_resources)";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue(
+                AUTHORIZED_RESOURCES,
+                String.join(
+                    ",",
+                    authorizedResources.size() > 0
+                        ? authorizedResources.stream().map(UUID::toString).toList()
+                        : List.of("NULL")));
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot requests found for given dataset id", ex);
+      throw new NotFoundException("No snapshot requests found for user", ex);
     }
   }
 

@@ -5,12 +5,8 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import bio.terra.grammar.Query;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
@@ -18,10 +14,9 @@ import java.util.Optional;
 
 public class CreateSnapshotValidateQueryStep extends DefaultByQueryStep {
 
-  private DatasetService datasetService;
+  private final DatasetService datasetService;
 
-  public CreateSnapshotValidateQueryStep(
-      DatasetService datasetService) {
+  public CreateSnapshotValidateQueryStep(DatasetService datasetService) {
     this.datasetService = datasetService;
   }
 

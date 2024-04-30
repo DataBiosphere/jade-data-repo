@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -37,6 +38,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,8 +83,13 @@ public class SnapshotBuilderService {
       AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
         snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
-    iamService.createSnapshotBuilderRequestResource(
-        userRequest, snapshotAccessRequest.getId(), snapshotAccessRequestResponse.getId());
+    try {
+      iamService.createSnapshotBuilderRequestResource(
+          userRequest, snapshotAccessRequest.getId(), snapshotAccessRequestResponse.getId());
+    } catch (ApiException e) {
+      snapshotRequestDao.delete(snapshotAccessRequestResponse.getId());
+      throw e;
+    }
     return snapshotAccessRequestResponse;
   }
 
@@ -157,7 +164,7 @@ public class SnapshotBuilderService {
     return rollupCount == 0 ? rollupCount : Math.max(rollupCount, 19);
   }
 
-  public EnumerateSnapshotAccessRequest enumerateSnapshotRequests(Set<UUID> authorizedResources) {
+  public EnumerateSnapshotAccessRequest enumerateSnapshotRequests(Collection<UUID> authorizedResources) {
     return new EnumerateSnapshotAccessRequest()
         .items(snapshotRequestDao.enumerate(authorizedResources));
   }

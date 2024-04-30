@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -98,17 +99,15 @@ public class SnapshotRequestDao {
    *     exist.
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-  public List<SnapshotAccessRequestResponse> enumerate(Set<UUID> authorizedResources) {
+  public List<SnapshotAccessRequestResponse> enumerate(Collection<UUID> authorizedResources) {
     String sql = "SELECT * FROM snapshot_request WHERE id IN (:authorized_resources)";
+    if (authorizedResources.size() == 0) {
+      return List.of();
+    }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(
-                AUTHORIZED_RESOURCES,
-                authorizedResources.size() > 0
-                    ? authorizedResources.stream()
-                        .map(UUID::toString)
-                        .collect(Collectors.joining(","))
-                    : "NULL");
+                AUTHORIZED_RESOURCES, authorizedResources);
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {

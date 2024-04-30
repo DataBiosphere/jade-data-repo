@@ -342,7 +342,7 @@ public class SamIam implements IamProviderInterface {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     FullyQualifiedResourceId parentId =
         new FullyQualifiedResourceId()
-            .resourceTypeName("datasnapshot")
+            .resourceTypeName(IamResourceType.DATASNAPSHOT.toString())
             .resourceId(snapshotId.toString());
     CreateResourceRequestV2 req =
         new CreateResourceRequestV2()

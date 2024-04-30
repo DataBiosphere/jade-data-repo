@@ -39,11 +39,10 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
-@ContextConfiguration(
-    classes = {SnapshotBuilderRequestApiController.class, GlobalExceptionHandler.class})
+@ContextConfiguration(classes = {SnapshotRequestApiController.class, GlobalExceptionHandler.class})
 @Tag("bio.terra.common.category.Unit")
 @WebMvcTest
-public class SnapshotBuilderRequestApiControllerTest {
+public class SnapshotRequestApiControllerTest {
   @Autowired private MockMvc mvc;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private SnapshotBuilderService snapshotBuilderService;

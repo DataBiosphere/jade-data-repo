@@ -2,7 +2,7 @@ package bio.terra.app.controller;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
-import bio.terra.controller.SnapshotBuilderRequestApi;
+import bio.terra.controller.SnapshotRequestApi;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
@@ -21,15 +21,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
 @Controller
-@Api(tags = {"SnapshotBuilderRequest"})
-public class SnapshotBuilderRequestApiController implements SnapshotBuilderRequestApi {
+@Api(tags = {"SnapshotRequest"})
+public class SnapshotRequestApiController implements SnapshotRequestApi {
   private final HttpServletRequest request;
   private final IamService iamService;
   private final SnapshotBuilderService snapshotBuilderService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
   @Autowired
-  public SnapshotBuilderRequestApiController(
+  public SnapshotRequestApiController(
       HttpServletRequest request,
       IamService iamService,
       SnapshotBuilderService snapshotBuilderService,

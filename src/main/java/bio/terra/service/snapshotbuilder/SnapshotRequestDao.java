@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -98,16 +99,16 @@ public class SnapshotRequestDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerate(Set<UUID> authorizedResources) {
-    String sql = "SELECT * FROM snapshot_request WHERE id IN(:authorized_resources)";
+    String sql = "SELECT * FROM snapshot_request WHERE id IN (:authorized_resources)";
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(
                 AUTHORIZED_RESOURCES,
-                String.join(
-                    ",",
-                    authorizedResources.size() > 0
-                        ? authorizedResources.stream().map(UUID::toString).toList()
-                        : List.of("NULL")));
+                authorizedResources.size() > 0
+                    ? authorizedResources.stream()
+                        .map(UUID::toString)
+                        .collect(Collectors.joining(","))
+                    : "NULL");
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {

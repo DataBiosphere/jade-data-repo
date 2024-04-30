@@ -59,15 +59,10 @@ class SnapshotRequestDaoTest {
     return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
   }
 
-  private void verifyResponseContents(SnapshotAccessRequestResponse response, boolean isOld) {
-    SnapshotAccessRequestResponse expected;
-    if (isOld) {
-      expected = SnapshotBuilderTestData.createSnapshotAccessRequestResponse(dataset.getId());
-      expected.datasetId(dataset.getId());
-    } else {
-      expected = SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshot.getId());
-      expected.sourceSnapshotId(snapshot.getId());
-    }
+  private void verifyResponseContents(SnapshotAccessRequestResponse response) {
+    SnapshotAccessRequestResponse expected = SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshot.getId());
+    expected.sourceSnapshotId(snapshot.getId());
+
     expected.createdBy(EMAIL);
     expected.status(SnapshotAccessRequestStatus.SUBMITTED);
     assertThat(
@@ -84,7 +79,7 @@ class SnapshotRequestDaoTest {
   void getById() {
     SnapshotAccessRequestResponse response = createRequest();
     SnapshotAccessRequestResponse retrieved = snapshotRequestDao.getById(response.getId());
-    verifyResponseContents(retrieved, false);
+    verifyResponseContents(retrieved);
   }
 
   @Test
@@ -113,7 +108,7 @@ class SnapshotRequestDaoTest {
   @Test
   void create() {
     SnapshotAccessRequestResponse response = createRequest();
-    verifyResponseContents(response, false);
+    verifyResponseContents(response);
 
     SnapshotAccessRequestResponse response1 =
         snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
@@ -138,7 +133,7 @@ class SnapshotRequestDaoTest {
   void update() {
     SnapshotAccessRequestResponse response = createRequest();
     assertNull(response.getUpdatedDate(), "Response was never updated.");
-    verifyResponseContents(response, false);
+    verifyResponseContents(response);
 
     SnapshotAccessRequestResponse updatedResponse =
         snapshotRequestDao.update(response.getId(), SnapshotAccessRequestStatus.APPROVED);

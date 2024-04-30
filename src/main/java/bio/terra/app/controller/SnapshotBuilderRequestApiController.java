@@ -42,15 +42,15 @@ public class SnapshotBuilderRequestApiController implements SnapshotBuilderReque
 
   @Override
   public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
+      SnapshotAccessRequest snapshotAccessRequest) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,
         IamResourceType.DATASNAPSHOT,
-        id.toString(),
+        snapshotAccessRequest.getId().toString(),
         IamAction.CREATE_SNAPSHOT_REQUEST);
     return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(userRequest, id, snapshotAccessRequest));
+        snapshotBuilderService.createSnapshotRequest(userRequest, snapshotAccessRequest));
   }
 
   @Override

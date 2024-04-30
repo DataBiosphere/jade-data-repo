@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,13 +56,19 @@ public class SnapshotBuilderRequestApiControllerTest {
 
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
 
+  @BeforeEach
+  void setUp() {
+    when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
+  }
+
   @Test
   void testCreateSnapshotRequest() throws Exception {
-    SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest();
+    SnapshotAccessRequest request =
+        SnapshotBuilderTestData.createSnapshotAccessRequest(SNAPSHOT_ID);
 
     SnapshotAccessRequestResponse expectedResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(SNAPSHOT_ID);
-    when(snapshotBuilderService.createSnapshotRequest(any(), eq(SNAPSHOT_ID), eq(request)))
+    when(snapshotBuilderService.createSnapshotRequest(any(), eq(request)))
         .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(

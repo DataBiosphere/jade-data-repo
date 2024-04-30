@@ -78,9 +78,9 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
-      AuthenticatedUserRequest userRequest, UUID id, SnapshotAccessRequest snapshotAccessRequest) {
+      AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
-        snapshotRequestDao.create(id, snapshotAccessRequest, userRequest.getEmail());
+        snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
     iamService.createSnapshotBuilderRequestResource(
         userRequest, snapshotAccessRequestResponse.getId());
     return snapshotAccessRequestResponse;

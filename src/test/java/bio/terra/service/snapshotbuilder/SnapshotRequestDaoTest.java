@@ -48,11 +48,11 @@ class SnapshotRequestDaoTest {
   @BeforeEach
   void beforeEach() throws IOException {
     dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
-    snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest();
+    snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest(dataset.getId());
   }
 
   private SnapshotAccessRequestResponse createRequest() {
-    return snapshotRequestDao.create(dataset.getId(), snapshotAccessRequest, EMAIL);
+    return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
   }
 
   private void verifyResponseContents(SnapshotAccessRequestResponse response) {
@@ -108,7 +108,7 @@ class SnapshotRequestDaoTest {
     verifyResponseContents(response);
 
     SnapshotAccessRequestResponse response1 =
-        snapshotRequestDao.create(dataset.getId(), snapshotAccessRequest, EMAIL);
+        snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
 
     Assertions.assertNotEquals(
         response1.getId(),
@@ -123,8 +123,7 @@ class SnapshotRequestDaoTest {
   @Test
   void createDatasetIdNotFound() {
     assertThrows(
-        NotFoundException.class,
-        () -> snapshotRequestDao.create(UUID.randomUUID(), snapshotAccessRequest, EMAIL));
+        NotFoundException.class, () -> snapshotRequestDao.create(snapshotAccessRequest, EMAIL));
   }
 
   @Test

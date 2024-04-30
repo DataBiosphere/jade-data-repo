@@ -3066,8 +3066,6 @@ paths:
       description: As a researcher, create a snapshot request for a dataset, given a set of criteria
         and required concept sets and values.
       operationId: createSnapshotRequest
-      parameters:
-        - $ref: '#/components/parameters/Id'
       requestBody:
         description: Description of the snapshot being requested.
         content:

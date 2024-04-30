@@ -226,20 +226,22 @@ public class SnapshotBuilderTestData {
             new SnapshotBuilderFeatureValueGroup().name("valueGroup").addValuesItem("value"));
   }
 
-  public static SnapshotAccessRequest createSnapshotAccessRequest() {
+  public static SnapshotAccessRequest createSnapshotAccessRequest(UUID snapshotId) {
     return new SnapshotAccessRequest()
+        .id(snapshotId)
         .name("name")
         .researchPurposeStatement("purpose")
         .datasetRequest(createSnapshotBuilderRequest());
   }
 
   public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse(UUID snapshotId) {
+    SnapshotAccessRequest request = createSnapshotAccessRequest(snapshotId);
     return new SnapshotAccessRequestResponse()
         .id(UUID.randomUUID())
         .datasetId(snapshotId)
-        .snapshotName(createSnapshotAccessRequest().getName())
-        .snapshotResearchPurpose(createSnapshotAccessRequest().getResearchPurposeStatement())
-        .snapshotSpecification(createSnapshotAccessRequest().getDatasetRequest())
+        .snapshotName(request.getName())
+        .snapshotResearchPurpose(request.getResearchPurposeStatement())
+        .snapshotSpecification(request.getDatasetRequest())
         .createdDate("date")
         .createdBy("user@gmail.com")
         .status(SnapshotAccessRequestStatus.SUBMITTED);

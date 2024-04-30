@@ -96,7 +96,7 @@ public class SnapshotRequestDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerate(Set<UUID> authorizedResources) {
-    String sql = "SELECT * FROM snapshot_request WHERE id IN(authorized_resources)";
+    String sql = "SELECT * FROM snapshot_request WHERE id IN(:authorized_resources)";
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(
@@ -114,8 +114,7 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotAccessRequestResponse create(
-      UUID datasetId, SnapshotAccessRequest request, String email) {
+  public SnapshotAccessRequestResponse create(SnapshotAccessRequest request, String email) {
     String jsonValue;
     try {
       jsonValue = objectMapper.writeValueAsString(request.getDatasetRequest());
@@ -131,7 +130,7 @@ public class SnapshotRequestDao {
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue(DATASET_ID, datasetId)
+            .addValue(DATASET_ID, request.getId())
             .addValue(SNAPSHOT_NAME, request.getName())
             .addValue(SNAPSHOT_RESEARCH_PURPOSE, request.getResearchPurposeStatement())
             .addValue(SNAPSHOT_SPECIFICATION, jsonValue)

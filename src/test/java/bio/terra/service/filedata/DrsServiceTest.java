@@ -517,7 +517,8 @@ class DrsServiceTest {
         new DrsId("", "v1", randomSnapshotId.toString(), googleFileId.toString(), false);
     String drsObjectIdWithInvalidSnapshotId = drsIdWithInvalidSnapshotId.toDrsObjectId();
     DrsId drsId = drsIdService.fromObjectId(drsObjectIdWithInvalidSnapshotId);
-    assertThrows(DrsObjectNotFoundException.class, () -> drsService.lookupSnapshotsForDRSObject(drsId));
+    assertThrows(
+        DrsObjectNotFoundException.class, () -> drsService.lookupSnapshotsForDRSObject(drsId));
   }
 
   @Test

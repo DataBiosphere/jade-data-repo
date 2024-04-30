@@ -71,23 +71,33 @@ def make_get_request(endpoint_url, token):
     Args:
         endpoint_url (str): The endpoint URL to request.
         token (str): The access token for authentication.
-
-    Returns:
-        float: The time taken for the request in seconds.
     """
-    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
+    # Construct the complete URL
+    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUId}/snapshotBuilder/{endpoint_url}"
+
+    # Define headers for the request
     headers = {"Authorization": f"Bearer {token}"}
 
-    try:
-        start_time = time.time()
-        response = requests.get(url, headers=headers)
-        end_time = time.time()
+    # Record start time
+    start_time = time.time()
 
+    try:
+        # Make the GET request
+        response = requests.get(url, headers=headers)
+
+        # Raise an exception if the request failed
+        response.raise_for_status()
+
+        # Handle the response (you can call a separate function here)
         handle_response(response)
-        return end_time - start_time
+
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
-        return None
+
+    finally:
+        # Record end time and calculate the time taken
+        end_time = time.time()
+        print(f"Time taken: {end_time - start_time:.2f} seconds")
 
 
 def make_post_request(endpoint_url, token, body):
@@ -107,17 +117,26 @@ def make_post_request(endpoint_url, token, body):
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",  # Indicating the request body is in JSON format
     }
+    # Record start time
+    start_time = time.time()
 
     try:
-        start_time = time.time()
+        # Make the POST request with JSON body
         response = requests.post(url, headers=headers, json=body)
+
+        # Calculate the time taken for the request
         end_time = time.time()
+        time_taken = end_time - start_time
+
+        # Print the request and time taken
+        print(f"POST request made to {url} with body: {body}")
+        print(f"Time taken: {time_taken:.2f} seconds")
+
+        # Handle the response (you can call a separate function here if needed)
         handle_response(response)
-        return end_time - start_time
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
-        return None
 
 
 # Endpoint Profiling Functions
@@ -196,44 +215,29 @@ def profile_get_snapshot_builder_count(token):
         },
     ]
 
-    time_length = 0
     for body in bodys:
-        time_taken = make_post_request("count", token, body)
-        time_length += time_taken
-
-    return f"Time taken: {time_length / len(bodys)} seconds"
+        make_post_request("count", token, body)
 
 
 def profile_get_concept_hierarchy(token):
     """
-    Profiles the getConceptHierarchy endpoint and returns the average time taken.
-
+    Profiles the getConceptHierarchy endpoint
     Args:
         token (str): The access token for authentication.
-
-    Returns:
-        str: A string indicating the average time taken for the request.
     """
     print("Profiling getConceptHierarchy endpoint")
 
     concept_ids = [4180169, 4027384, 4029205]
-    time_length = 0
 
     for concept_id in concept_ids:
-        time_length += make_get_request(f"conceptHierarchy/{concept_id}", token)
-
-    return f"Time taken: {time_length / len(concept_ids)} seconds"
+        make_get_request(f"conceptHierarchy/{concept_id}", token)
 
 
 def profile_search_concepts(token):
     """
-    Profiles the searchConcepts endpoint and returns the average time taken.
-
+    Profiles the searchConcepts endpoint
     Args:
         token (str): The access token for authentication.
-
-    Returns:
-        str: A string indicating the average time taken for the request.
     """
     print("Profiling searchConcepts endpoint")
 
@@ -246,8 +250,6 @@ def profile_search_concepts(token):
         (21, "inches"),
     ]
 
-    time_length = 0
-
     for param in params:
         domain_id = param[0]
         search_text = param[1]
@@ -257,36 +259,27 @@ def profile_search_concepts(token):
         else:
             url = f"concepts/{domain_id}/search?/searchText={search_text}"
 
-        time_length += make_get_request(url, token)
-
-    return f"Time taken: {time_length / len(params)} seconds"
+        make_get_request(url, token)
 
 
 def profile_get_concepts(token):
     """
-    Profiles the getConcepts endpoint and returns the average time taken.
-
+    Profiles the getConcepts endpoint
     Args:
         token (str): The access token for authentication.
-
-    Returns:
-        str: A string indicating the average time taken for the request.
     """
     print("Profiling getConcepts endpoint")
 
     concept_ids = [443883, 4042140, 4103320]
-    time_length = 0
 
     for concept_id in concept_ids:
-        time_length += make_get_request(f"concepts/{concept_id}", token)
-
-    return f"Time taken: {time_length / len(concept_ids)} seconds"
+        make_get_request(f"concepts/{concept_id}", token)
 
 
 # Main function
 if __name__ == "__main__":
     # Uncomment the following line to authenticate if needed
-    authenticate()
+    # authenticate()
 
     # Obtain access token
     access_token = get_access_token()
@@ -310,6 +303,6 @@ if __name__ == "__main__":
     # Iterate through the endpoints and call the corresponding function
     for endpoint in endpoints:
         if endpoint in endpoint_handlers:
-            print(endpoint_handlers[endpoint](access_token))
+            endpoint_handlers[endpoint](access_token)
         else:
             print(f"Unknown endpoint: {endpoint}")

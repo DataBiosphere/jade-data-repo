@@ -84,6 +84,9 @@ def make_get_request(endpoint_url, token):
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
 
+    print()
+    print()
+
 
 def make_post_request(endpoint_url, token, body):
     """
@@ -112,6 +115,9 @@ def make_post_request(endpoint_url, token, body):
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
+
+    print()
+    print()
 
 
 # Endpoint Profiling Functions

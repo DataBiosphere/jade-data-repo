@@ -42,7 +42,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +163,8 @@ public class SnapshotBuilderService {
     return rollupCount == 0 ? rollupCount : Math.max(rollupCount, 19);
   }
 
-  public EnumerateSnapshotAccessRequest enumerateSnapshotRequests(Collection<UUID> authorizedResources) {
+  public EnumerateSnapshotAccessRequest enumerateSnapshotRequests(
+      Collection<UUID> authorizedResources) {
     return new EnumerateSnapshotAccessRequest()
         .items(snapshotRequestDao.enumerate(authorizedResources));
   }

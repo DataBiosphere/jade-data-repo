@@ -15,9 +15,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -105,9 +103,7 @@ public class SnapshotRequestDao {
       return List.of();
     }
     MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue(
-                AUTHORIZED_RESOURCES, authorizedResources);
+        new MapSqlParameterSource().addValue(AUTHORIZED_RESOURCES, authorizedResources);
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {

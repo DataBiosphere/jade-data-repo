@@ -135,7 +135,7 @@ public class SnapshotRequestDao {
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue(SOURCE_SNAPSHOT_ID, request.getId())
+            .addValue(SOURCE_SNAPSHOT_ID, request.getSourceSnapshotId())
             .addValue(SNAPSHOT_NAME, request.getName())
             .addValue(SNAPSHOT_RESEARCH_PURPOSE, request.getResearchPurposeStatement())
             .addValue(SNAPSHOT_SPECIFICATION, jsonValue)

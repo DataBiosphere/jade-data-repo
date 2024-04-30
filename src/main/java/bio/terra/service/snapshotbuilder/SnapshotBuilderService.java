@@ -84,7 +84,9 @@ public class SnapshotBuilderService {
         snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
     try {
       iamService.createSnapshotBuilderRequestResource(
-          userRequest, snapshotAccessRequest.getId(), snapshotAccessRequestResponse.getId());
+          userRequest,
+          snapshotAccessRequest.getSourceSnapshotId(),
+          snapshotAccessRequestResponse.getId());
     } catch (ApiException e) {
       snapshotRequestDao.delete(snapshotAccessRequestResponse.getId());
       throw e;

@@ -47,7 +47,7 @@ public class SnapshotRequestApiController implements SnapshotRequestApi {
     iamService.verifyAuthorization(
         userRequest,
         IamResourceType.DATASNAPSHOT,
-        snapshotAccessRequest.getId().toString(),
+        snapshotAccessRequest.getSourceSnapshotId().toString(),
         IamAction.CREATE_SNAPSHOT_REQUEST);
     return ResponseEntity.ok(
         snapshotBuilderService.createSnapshotRequest(userRequest, snapshotAccessRequest));

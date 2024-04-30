@@ -226,9 +226,9 @@ public class SnapshotBuilderTestData {
             new SnapshotBuilderFeatureValueGroup().name("valueGroup").addValuesItem("value"));
   }
 
-  public static SnapshotAccessRequest createSnapshotAccessRequest(UUID snapshotId) {
+  public static SnapshotAccessRequest createSnapshotAccessRequest(UUID sourceSnapshotId) {
     return new SnapshotAccessRequest()
-        .id(snapshotId)
+        .sourceSnapshotId(sourceSnapshotId)
         .name("name")
         .researchPurposeStatement("purpose")
         .datasetRequest(createSnapshotBuilderRequest());
@@ -238,7 +238,7 @@ public class SnapshotBuilderTestData {
     SnapshotAccessRequest request = createSnapshotAccessRequest(snapshotId);
     return new SnapshotAccessRequestResponse()
         .id(UUID.randomUUID())
-        .datasetId(snapshotId)
+        .sourceSnapshotId(request.getSourceSnapshotId())
         .snapshotName(request.getName())
         .snapshotResearchPurpose(request.getResearchPurposeStatement())
         .snapshotSpecification(request.getDatasetRequest())

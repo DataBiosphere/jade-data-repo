@@ -7395,10 +7395,9 @@ components:
     SnapshotAccessRequest:
       type: object
       properties:
-        id:
+        sourceSnapshotId:
           type: string
           format: uuid
-          description: The UUID for the snapshot the request is based on
         name:
           type: string
         researchPurposeStatement:

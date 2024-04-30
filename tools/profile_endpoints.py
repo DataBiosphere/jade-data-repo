@@ -61,6 +61,8 @@ def handle_response(response):
         print(
             f"Request failed with status code {response.status_code}: {response.text}"
         )
+    print()
+    print()
 
 
 # HTTP Request Functions
@@ -72,32 +74,16 @@ def make_get_request(endpoint_url, token):
         endpoint_url (str): The endpoint URL to request.
         token (str): The access token for authentication.
     """
-    # Construct the complete URL
-    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUId}/snapshotBuilder/{endpoint_url}"
-
-    # Define headers for the request
+    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
     headers = {"Authorization": f"Bearer {token}"}
-
-    # Record start time
     start_time = time.time()
-
     try:
-        # Make the GET request
         response = requests.get(url, headers=headers)
-
-        # Raise an exception if the request failed
-        response.raise_for_status()
-
-        # Handle the response (you can call a separate function here)
+        end_time = time.time()
         handle_response(response)
-
+        print(f"Time taken: {end_time - start_time:.2f} seconds")
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
-
-    finally:
-        # Record end time and calculate the time taken
-        end_time = time.time()
-        print(f"Time taken: {end_time - start_time:.2f} seconds")
 
 
 def make_post_request(endpoint_url, token, body):
@@ -117,23 +103,13 @@ def make_post_request(endpoint_url, token, body):
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",  # Indicating the request body is in JSON format
     }
-    # Record start time
     start_time = time.time()
-
     try:
-        # Make the POST request with JSON body
         response = requests.post(url, headers=headers, json=body)
-
-        # Calculate the time taken for the request
         end_time = time.time()
-        time_taken = end_time - start_time
-
-        # Print the request and time taken
-        print(f"POST request made to {url} with body: {body}")
-        print(f"Time taken: {time_taken:.2f} seconds")
-
-        # Handle the response (you can call a separate function here if needed)
         handle_response(response)
+        print(f"POST request made to {url} with body: {body}")
+        print(f"Time taken: {end_time - start_time:.2f} seconds")
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")

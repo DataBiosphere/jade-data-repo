@@ -28,6 +28,7 @@ public class DaoOperations {
   private final SnapshotService snapshotService;
 
   public static final String DATASET_MINIMAL = "dataset-minimal.json";
+  public static final String SNAPSHOT_MINIMAL = "snapshot-from-dataset-minimal.json";
 
   public DaoOperations(
       JsonLoader jsonLoader,

@@ -40,6 +40,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -541,11 +542,14 @@ class SamIamTest {
 
       CreateResourceRequestV2 req = new CreateResourceRequestV2();
       req.setResourceId(profileId.toString());
-      req.putPoliciesItem(
-          IamRole.ADMIN.toString(),
-          new AccessPolicyMembershipRequest()
-              .memberEmails(List.of(samConfig.adminsGroupEmail()))
-              .roles(List.of(IamRole.ADMIN.toString())));
+      Optional.ofNullable(samConfig.adminsGroupEmail())
+          .ifPresent(
+              adminsGroupEmail ->
+                  req.putPoliciesItem(
+                      IamRole.ADMIN.toString(),
+                      new AccessPolicyMembershipRequest()
+                          .memberEmails(List.of(adminsGroupEmail))
+                          .roles(List.of(IamRole.ADMIN.toString()))));
       req.putPoliciesItem(
           IamRole.OWNER.toString(),
           new AccessPolicyMembershipRequest()

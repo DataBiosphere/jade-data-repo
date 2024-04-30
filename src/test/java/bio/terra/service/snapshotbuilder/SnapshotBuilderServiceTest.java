@@ -94,7 +94,7 @@ class SnapshotBuilderServiceTest {
     UUID datasetId = UUID.randomUUID();
     String email = "user@gmail.com";
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
-    when(snapshotRequestDao.create(
+    when(snapshotRequestDao.create_old(
             datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
         .thenReturn(response);
 
@@ -111,7 +111,7 @@ class SnapshotBuilderServiceTest {
     SnapshotAccessRequestResponse responseItem =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     List<SnapshotAccessRequestResponse> response = List.of(responseItem);
-    when(snapshotRequestDao.enumerateByDatasetId(datasetId)).thenReturn(response);
+    when(snapshotRequestDao.enumerateByDatasetId_old(datasetId)).thenReturn(response);
 
     EnumerateSnapshotAccessRequestItem expectedItem =
         new EnumerateSnapshotAccessRequestItem()

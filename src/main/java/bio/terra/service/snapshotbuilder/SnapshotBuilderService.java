@@ -75,7 +75,7 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
       UUID id, SnapshotAccessRequest snapshotAccessRequest, String email) {
-    return snapshotRequestDao.create(id, snapshotAccessRequest, email);
+    return snapshotRequestDao.create_old(id, snapshotAccessRequest, email);
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -150,7 +150,7 @@ public class SnapshotBuilderService {
   }
 
   public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
-    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
+    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId_old(id));
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(

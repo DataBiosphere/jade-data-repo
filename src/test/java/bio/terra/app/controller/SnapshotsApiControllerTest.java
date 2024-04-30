@@ -30,6 +30,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;

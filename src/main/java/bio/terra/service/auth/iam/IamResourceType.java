@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.commons.lang3.StringUtils;
 
 public enum IamResourceType {
+  // To add a hyphenated resource type, special case it in fromEnum and toIamResourceTypeEnum
+  // since the swagger generated enums will use _
   DATAREPO("datarepo"),
   DATASET("dataset"),
   DATASNAPSHOT("datasnapshot"),
@@ -42,6 +44,8 @@ public enum IamResourceType {
   public static IamResourceType fromEnum(IamResourceTypeEnum apiEnum) {
     if (apiEnum == IamResourceTypeEnum.SPEND_PROFILE) {
       return IamResourceType.SPEND_PROFILE;
+    } else if (apiEnum == IamResourceTypeEnum.SNAPSHOT_BUILDER_REQUEST) {
+      return IamResourceType.SNAPSHOT_BUILDER_REQUEST;
     }
     return fromString(apiEnum.toString());
   }
@@ -58,6 +62,8 @@ public enum IamResourceType {
   public static IamResourceTypeEnum toIamResourceTypeEnum(IamResourceType resourceType) {
     if (resourceType.equals(IamResourceType.SPEND_PROFILE)) {
       return IamResourceTypeEnum.SPEND_PROFILE;
+    } else if (resourceType.equals(IamResourceType.SNAPSHOT_BUILDER_REQUEST)) {
+      return IamResourceTypeEnum.SNAPSHOT_BUILDER_REQUEST;
     }
     for (IamResourceTypeEnum b : IamResourceTypeEnum.values()) {
       if (String.valueOf(b).equalsIgnoreCase(resourceType.toString())) {

@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.DatasetDao;
@@ -21,7 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 class StatusServiceTest {
 
   @Mock private DatasetDao datasetDao;

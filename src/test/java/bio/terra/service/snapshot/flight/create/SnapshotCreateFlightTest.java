@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
@@ -29,8 +30,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SnapshotCreateFlightTest {
+@Tag(Unit.TAG)
+class SnapshotCreateFlightTest {
 
   @Mock private ApplicationContext context;
   private FlightMap inputParameters;

@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -81,7 +82,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
 class DatasetsApiControllerTest {
   @Autowired private MockMvc mvc;

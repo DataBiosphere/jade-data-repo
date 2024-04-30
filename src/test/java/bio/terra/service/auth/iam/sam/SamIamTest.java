@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
@@ -69,7 +70,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 class SamIamTest {
 
   @Mock private SamApiService samApiService;

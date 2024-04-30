@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.UserMetricsConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -40,8 +41,8 @@ import org.springframework.test.context.ContextConfiguration;
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = UserLoggingMetrics.class)
 @SpringBootTest
-@Tag("bio.terra.common.category.Unit")
-public class UserMetricsInterceptorTest {
+@Tag(Unit.TAG)
+class UserMetricsInterceptorTest {
   @Autowired private UserLoggingMetrics eventProperties;
   @MockBean private BardClient bardClient;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;

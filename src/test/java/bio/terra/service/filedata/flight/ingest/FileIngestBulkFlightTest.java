@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.CloudPlatform;
@@ -30,8 +31,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class FileIngestBulkFlightTest {
+@Tag(Unit.TAG)
+class FileIngestBulkFlightTest {
   @Mock private ApplicationContext context;
   @Mock private DatasetSummary datasetSummary;
   private FlightMap inputParameters;

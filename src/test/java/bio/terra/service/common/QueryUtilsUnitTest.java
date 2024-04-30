@@ -4,11 +4,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
+import bio.terra.common.category.Unit;
 import bio.terra.grammar.exception.InvalidFilterException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 class QueryUtilsUnitTest {
 
   @Test

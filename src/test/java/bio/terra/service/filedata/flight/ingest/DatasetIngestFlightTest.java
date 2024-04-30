@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
@@ -41,8 +42,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class DatasetIngestFlightTest {
+@Tag(Unit.TAG)
+class DatasetIngestFlightTest {
   @Mock private ApplicationContext context;
   @Mock private DatasetSummary datasetSummary;
   @Mock private ConfigurationService configurationService;

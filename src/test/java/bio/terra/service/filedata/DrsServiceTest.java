@@ -33,6 +33,7 @@ import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.TestUtils;
 import bio.terra.common.UriUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
@@ -108,10 +109,10 @@ import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
 @ActiveProfiles({"google", "unittest"})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
-public class DrsServiceTest {
+class DrsServiceTest {
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
@@ -307,10 +308,10 @@ public class DrsServiceTest {
         mockSnapshot(snpId3, billingIdB, CloudPlatform.GCP, "google-project-3").globalFileIds(true);
     Snapshot snp4 =
         mockSnapshot(snpId4, billingIdB, CloudPlatform.GCP, "google-project-4").globalFileIds(true);
-    when(snapshotService.retrieve(eq(snpId1))).thenReturn(snp1);
-    when(snapshotService.retrieve(eq(snpId2))).thenReturn(snp2);
-    when(snapshotService.retrieve(eq(snpId3))).thenReturn(snp3);
-    when(snapshotService.retrieve(eq(snpId4))).thenReturn(snp4);
+    when(snapshotService.retrieve(snpId1)).thenReturn(snp1);
+    when(snapshotService.retrieve(snpId2)).thenReturn(snp2);
+    when(snapshotService.retrieve(snpId3)).thenReturn(snp3);
+    when(snapshotService.retrieve(snpId4)).thenReturn(snp4);
     when(snapshotService.retrieveSnapshotProject(any()))
         .then(
             a ->
@@ -403,8 +404,8 @@ public class DrsServiceTest {
     Snapshot snp1 =
         mockSnapshot(snpId1, billingIdA, CloudPlatform.GCP, "google-project-1").globalFileIds(true);
     Snapshot snp2 = mockSnapshot(snpId2, billingIdB, CloudPlatform.AZURE, null).globalFileIds(true);
-    when(snapshotService.retrieve(eq(snpId1))).thenReturn(snp1);
-    when(snapshotService.retrieve(eq(snpId2))).thenReturn(snp2);
+    when(snapshotService.retrieve(snpId1)).thenReturn(snp1);
+    when(snapshotService.retrieve(snpId2)).thenReturn(snp2);
     when(snapshotService.retrieveSnapshotProject(any()))
         .then(
             a ->
@@ -515,11 +516,8 @@ public class DrsServiceTest {
     DrsId drsIdWithInvalidSnapshotId =
         new DrsId("", "v1", randomSnapshotId.toString(), googleFileId.toString(), false);
     String drsObjectIdWithInvalidSnapshotId = drsIdWithInvalidSnapshotId.toDrsObjectId();
-    assertThrows(
-        DrsObjectNotFoundException.class,
-        () ->
-            drsService.lookupSnapshotsForDRSObject(
-                drsIdService.fromObjectId(drsObjectIdWithInvalidSnapshotId)));
+    DrsId drsId = drsIdService.fromObjectId(drsObjectIdWithInvalidSnapshotId);
+    assertThrows(DrsObjectNotFoundException.class, () -> drsService.lookupSnapshotsForDRSObject(drsId));
   }
 
   @Test
@@ -961,9 +959,8 @@ public class DrsServiceTest {
             GoogleRegion.US_CENTRAL1,
             Instant.parse("2022-01-02T00:00:00.00Z"));
 
-    assertThrows(
-        InvalidDrsObjectException.class,
-        () -> drsService.mergeDRSObjects(List.of(drsObject1, drsObject2)));
+    List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
+    assertThrows(InvalidDrsObjectException.class, () -> drsService.mergeDRSObjects(drsObjects));
   }
 
   @Test
@@ -987,9 +984,8 @@ public class DrsServiceTest {
             GoogleRegion.US_CENTRAL1,
             Instant.parse("2022-01-02T00:00:00.00Z"));
 
-    assertThrows(
-        InvalidDrsObjectException.class,
-        () -> drsService.mergeDRSObjects(List.of(drsObject1, drsObject2)));
+    List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
+    assertThrows(InvalidDrsObjectException.class, () -> drsService.mergeDRSObjects(drsObjects));
   }
 
   @Test
@@ -1042,15 +1038,14 @@ public class DrsServiceTest {
             CloudPlatform.AZURE,
             AzureRegion.CENTRAL_US,
             Instant.parse("2022-01-01T00:00:00.00Z"));
+    List<DRSObject> drsObjects = List.of(drsObject1, drsObject2);
     assertThat(
         "distinct value is correctly returned",
-        DrsService.extractUniqueDrsObjectValue(List.of(drsObject1, drsObject2), DRSObject::getId),
+        DrsService.extractUniqueDrsObjectValue(drsObjects, DRSObject::getId),
         equalTo("v2_file1"));
     assertThrows(
         InvalidDrsObjectException.class,
-        () ->
-            DrsService.extractUniqueDrsObjectValue(
-                List.of(drsObject1, drsObject2), DRSObject::getSize));
+        () -> DrsService.extractUniqueDrsObjectValue(drsObjects, DRSObject::getSize));
   }
 
   @Test

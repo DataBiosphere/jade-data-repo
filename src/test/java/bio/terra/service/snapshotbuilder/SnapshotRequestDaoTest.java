@@ -60,7 +60,8 @@ class SnapshotRequestDaoTest {
   }
 
   private void verifyResponseContents(SnapshotAccessRequestResponse response) {
-    SnapshotAccessRequestResponse expected = SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshot.getId());
+    SnapshotAccessRequestResponse expected =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshot.getId());
     expected.sourceSnapshotId(snapshot.getId());
 
     expected.createdBy(EMAIL);

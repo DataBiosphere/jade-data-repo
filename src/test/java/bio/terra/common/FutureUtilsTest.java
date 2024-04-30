@@ -30,9 +30,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
 class FutureUtilsTest {
   private static final Logger logger = LoggerFactory.getLogger(FutureUtilsTest.class);

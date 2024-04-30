@@ -4,8 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,18 +26,16 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-public class IamServiceTest {
+@Tag(Unit.TAG)
+@ExtendWith(MockitoExtension.class)
+class IamServiceTest {
   private static final UUID ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -44,22 +43,24 @@ public class IamServiceTest {
   @Mock private IamProviderInterface iamProvider;
 
   @Mock private ConfigurationService configurationService;
-  @Mock private JournalService journalService;
-  @Mock private GoogleCredentialsService googleCredentialsService;
 
   private IamService iamService;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS))
         .thenReturn(0);
 
     iamService =
-        new IamService(iamProvider, configurationService, journalService, googleCredentialsService);
+        new IamService(
+            iamProvider,
+            configurationService,
+            mock(JournalService.class),
+            mock(GoogleCredentialsService.class));
   }
 
   @Test
-  public void testAddPolicyMember() throws InterruptedException {
+  void testAddPolicyMember() throws InterruptedException {
     var policyModel = new PolicyModel();
     String policyName = "policyName";
     String email = "email";
@@ -75,7 +76,7 @@ public class IamServiceTest {
   }
 
   @Test
-  public void testDeletePolicyMember() throws InterruptedException {
+  void testDeletePolicyMember() throws InterruptedException {
     var policyModel = new PolicyModel();
     String policyName = "policyName";
     String email = "email";
@@ -92,7 +93,7 @@ public class IamServiceTest {
   }
 
   @Test
-  public void testVerifyAuthorization() throws Exception {
+  void testVerifyAuthorization() throws Exception {
     IamResourceType resourceType = IamResourceType.DATASET;
     String id = ID.toString();
     IamAction action = IamAction.READ_DATA;
@@ -114,7 +115,7 @@ public class IamServiceTest {
   }
 
   @Test
-  public void testVerifyAuthorizationAnyAction() throws InterruptedException {
+  void testVerifyAuthorizationAnyAction() throws InterruptedException {
     IamResourceType resourceType = IamResourceType.DATASET;
     String id = ID.toString();
 
@@ -134,7 +135,7 @@ public class IamServiceTest {
   }
 
   @Test
-  public void testVerifyAuthorizations() throws Exception {
+  void testVerifyAuthorizations() throws Exception {
     IamResourceType resourceType = IamResourceType.DATASET;
     String id = ID.toString();
 
@@ -166,7 +167,7 @@ public class IamServiceTest {
   }
 
   @Test
-  public void testDeriveSnapshotPolicies() {
+  void testDeriveSnapshotPolicies() {
     assertThat(
         "Request without policies or readers returns new policy object",
         iamService.deriveSnapshotPolicies(new SnapshotRequestModel()),

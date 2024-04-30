@@ -2,20 +2,20 @@ package bio.terra.service.filedata;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(Unit.class)
-public class DrsIdServiceTest {
+@Tag(Unit.TAG)
+class DrsIdServiceTest {
 
   private static final String HOSTNAME = "myhost.org";
   private static final String COMPACT_ID_PREFIX = "foo.0";
@@ -24,14 +24,14 @@ public class DrsIdServiceTest {
 
   private DrsIdService drsIdService;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     applicationConfiguration.setDnsName(HOSTNAME);
     drsIdService = new DrsIdService(applicationConfiguration);
   }
 
   @Test
-  public void testV1DrsIds() {
+  void testV1DrsIds() {
     UUID snapshotId = UUID.randomUUID();
     UUID fileId = UUID.randomUUID();
     assertThat(
@@ -54,7 +54,7 @@ public class DrsIdServiceTest {
   }
 
   @Test
-  public void testV2DrsIds() {
+  void testV2DrsIds() {
     UUID fileId = UUID.randomUUID();
     assertThat(
         "v2 object id can be parsed",
@@ -76,7 +76,7 @@ public class DrsIdServiceTest {
   }
 
   @Test
-  public void testCompactIdDrsIds() {
+  void testCompactIdDrsIds() {
     UUID snapshotId = UUID.randomUUID();
     UUID fileId = UUID.randomUUID();
     String drsUriV1 = "drs://" + COMPACT_ID_PREFIX + ":v1_" + snapshotId + "_" + fileId;
@@ -101,47 +101,47 @@ public class DrsIdServiceTest {
   }
 
   @Test
-  public void testInvalidDrsIds() {
+  void testInvalidDrsIds() {
     UUID snapshotId = UUID.randomUUID();
     UUID fileId = UUID.randomUUID();
     assertThrows(
-        "v3 object id cannot be parsed",
         InvalidDrsIdException.class,
-        () -> drsIdService.fromObjectId("v3_" + snapshotId + "_" + fileId));
+        () -> drsIdService.fromObjectId("v3_" + snapshotId + "_" + fileId),
+        "v3 object id cannot be parsed");
 
     assertThrows(
-        "badly formed v1 object id cannot be parsed - no snapshot",
         InvalidDrsIdException.class,
-        () -> drsIdService.fromObjectId("v1_" + fileId));
+        () -> drsIdService.fromObjectId("v1_" + fileId),
+        "badly formed v1 object id cannot be parsed - no snapshot");
 
     assertThrows(
-        "badly formed v1 object id cannot be parsed - extra field",
         InvalidDrsIdException.class,
-        () -> drsIdService.fromObjectId("v1_" + snapshotId + "_" + fileId + "_foo"));
+        () -> drsIdService.fromObjectId("v1_" + snapshotId + "_" + fileId + "_foo"),
+        "badly formed v1 object id cannot be parsed - extra field");
 
     assertThrows(
-        "badly formed v2 object id cannot be parsed - has a snapshot",
         InvalidDrsIdException.class,
-        () -> drsIdService.fromObjectId("v2_" + snapshotId + "_" + fileId));
+        () -> drsIdService.fromObjectId("v2_" + snapshotId + "_" + fileId),
+        "badly formed v2 object id cannot be parsed - has a snapshot");
 
     assertThrows(
-        "badly formed uri - invalid protocol",
         InvalidDrsIdException.class,
-        () -> DrsIdService.fromUri("https://notadrsurl.com"));
+        () -> DrsIdService.fromUri("https://notadrsurl.com"),
+        "badly formed uri - invalid protocol");
 
     assertThrows(
-        "badly formed uri - just a host",
         InvalidDrsIdException.class,
-        () -> DrsIdService.fromUri("drs://" + HOSTNAME));
+        () -> DrsIdService.fromUri("drs://" + HOSTNAME),
+        "badly formed uri - just a host");
   }
 
   @Test
-  public void testDrsObjectIdValidation() {
+  void testDrsObjectIdValidation() {
     UUID snapshotId = UUID.randomUUID();
     UUID fileId = UUID.randomUUID();
 
-    assertTrue("v1 id is valid", drsIdService.isValidObjectId("v1_" + snapshotId + "_" + fileId));
-    assertTrue("v2 id is valid", drsIdService.isValidObjectId("v2_" + fileId));
-    assertFalse("invalid id is invalid", drsIdService.isValidObjectId("v3_foo"));
+    assertTrue(drsIdService.isValidObjectId("v1_" + snapshotId + "_" + fileId), "v1 id is valid");
+    assertTrue(drsIdService.isValidObjectId("v2_" + fileId), "v2 id is valid");
+    assertFalse(drsIdService.isValidObjectId("v3_foo"), "invalid id is invalid");
   }
 }

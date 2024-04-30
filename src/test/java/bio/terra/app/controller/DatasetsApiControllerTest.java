@@ -131,7 +131,7 @@ class DatasetsApiControllerTest {
       new DatasetPatchRequestModel().phsId("a-phs-id").description("a-description");
   private static final Set<IamAction> DATASET_PATCH_ACTIONS =
       Set.of(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER);
-  private static final Integer CONCEPT_ID = 0;
+  private static final int CONCEPT_ID = 0;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;

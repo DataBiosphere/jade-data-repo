@@ -3,7 +3,7 @@ package bio.terra.service.snapshot.flight.authDomain;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,17 +20,15 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class AddSnapshotAuthDomainStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AddSnapshotAuthDomainStepTest {
 
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
@@ -40,7 +38,7 @@ public class AddSnapshotAuthDomainStepTest {
   private static final List<String> userGroups = List.of("group1", "group2");
 
   @Test
-  public void testDoAndUndoStepSucceeds() throws InterruptedException {
+  void testDoAndUndoStepSucceeds() throws InterruptedException {
     AddSnapshotAuthDomainStep step =
         new AddSnapshotAuthDomainStep(iamService, TEST_USER, SNAPSHOT_ID, userGroups);
     StepResult doResult = step.doStep(flightContext);
@@ -50,7 +48,7 @@ public class AddSnapshotAuthDomainStepTest {
   }
 
   @Test
-  public void testSnapshotAuthDomainExistsError() throws InterruptedException {
+  void testSnapshotAuthDomainExistsError() throws InterruptedException {
     when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(userGroups);
 
@@ -62,7 +60,7 @@ public class AddSnapshotAuthDomainStepTest {
   }
 
   @Test
-  public void testUserGroupNotFoundError() throws InterruptedException {
+  void testUserGroupNotFoundError() throws InterruptedException {
     AuthDomainGroupNotFoundException ex =
         new AuthDomainGroupNotFoundException("auth domain not found");
     when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))

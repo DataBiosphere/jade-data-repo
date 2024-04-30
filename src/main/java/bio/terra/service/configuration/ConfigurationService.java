@@ -42,9 +42,8 @@ import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,20 +58,17 @@ public class ConfigurationService {
 
   private final ApplicationConfiguration appConfiguration;
   private final SamConfiguration samConfiguration;
-  private final GcsConfiguration gcsConfiguration;
   private final GoogleResourceConfiguration googleResourceConfiguration;
 
-  private Map<ConfigEnum, ConfigBase> configuration = new HashMap<>();
+  private final Map<ConfigEnum, ConfigBase> configuration = new EnumMap<>(ConfigEnum.class);
 
   @Autowired
   public ConfigurationService(
       SamConfiguration samConfiguration,
-      GcsConfiguration gcsConfiguration,
       GoogleResourceConfiguration googleResourceConfiguration,
       ApplicationConfiguration appConfiguration) {
     this.appConfiguration = appConfiguration;
     this.samConfiguration = samConfiguration;
-    this.gcsConfiguration = gcsConfiguration;
     this.googleResourceConfiguration = googleResourceConfiguration;
     setConfiguration();
   }

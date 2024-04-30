@@ -4,14 +4,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
+import bio.terra.common.category.Unit;
 import bio.terra.grammar.exception.InvalidFilterException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
-@Tag("bio.terra.common.category.Unit")
-public class QueryUtilsUnitTest {
+@Tag(Unit.TAG)
+class QueryUtilsUnitTest {
 
   @Test
   void testWhereClause() {

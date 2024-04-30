@@ -20,10 +20,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
-@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class AzureAuthzServiceTest {
 

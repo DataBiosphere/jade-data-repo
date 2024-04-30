@@ -2,7 +2,6 @@ package bio.terra.service.resourcemanagement.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -16,9 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class RecordAzureStorageAccountsStepTest {

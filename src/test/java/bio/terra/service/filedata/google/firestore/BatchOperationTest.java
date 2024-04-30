@@ -41,8 +41,7 @@ public class BatchOperationTest {
     GoogleResourceConfiguration resourceConfiguration =
         new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     ConfigurationService configurationService =
-        new ConfigurationService(
-            samConfiguration, gcsConfiguration, resourceConfiguration, appConfiguration);
+        new ConfigurationService(samConfiguration, resourceConfiguration, appConfiguration);
 
     fireStoreUtils = new FireStoreUtils(configurationService, appConfiguration);
   }

@@ -8,9 +8,7 @@ import bio.terra.model.IamResourceTypeEnum;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
 class IamResourceTypeTest {
 

@@ -9,9 +9,7 @@ import java.util.Collections;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
 class ValidationUtilsTest {
 

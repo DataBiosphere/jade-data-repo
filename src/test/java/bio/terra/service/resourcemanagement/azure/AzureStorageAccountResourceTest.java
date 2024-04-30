@@ -7,9 +7,7 @@ import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag("bio.terra.common.category.Unit")
 class AzureStorageAccountResourceTest {
   @Test

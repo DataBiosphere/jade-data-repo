@@ -10,11 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag("bio.terra.common.category.Unit")
-public class CloudRegionTest {
+class CloudRegionTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

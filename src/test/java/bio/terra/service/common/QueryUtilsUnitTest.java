@@ -7,11 +7,9 @@ import static org.junit.Assert.assertThrows;
 import bio.terra.grammar.exception.InvalidFilterException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag("bio.terra.common.category.Unit")
-public class QueryUtilsUnitTest {
+class QueryUtilsUnitTest {
 
   @Test
   void testWhereClause() {

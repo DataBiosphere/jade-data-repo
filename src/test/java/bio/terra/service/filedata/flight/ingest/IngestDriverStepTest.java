@@ -105,8 +105,7 @@ class IngestDriverStepTest {
       when(stairway.createFlightId()).thenReturn(CHILD_FLIGHT_ID);
 
       // When loadService.setLoadFileRunning() is called with our UUID, update the candidate state
-      // so
-      // no files are left. Otherwise the step would loop forever.
+      // so no files are left. Otherwise the step would loop forever.
       doAnswer(invocation -> candidates.candidateFiles(Collections.emptyList()))
           .when(loadService)
           .setLoadFileRunning(loadUuid, null, CHILD_FLIGHT_ID);

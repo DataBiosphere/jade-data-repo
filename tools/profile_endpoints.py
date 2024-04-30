@@ -61,8 +61,6 @@ def handle_response(response):
         print(
             f"Request failed with status code {response.status_code}: {response.text}"
         )
-    print()
-    print()
 
 
 # HTTP Request Functions
@@ -81,6 +79,7 @@ def make_get_request(endpoint_url, token):
         response = requests.get(url, headers=headers)
         end_time = time.time()
         handle_response(response)
+        print(f"GET request made to {url}")
         print(f"Time taken: {end_time - start_time:.2f} seconds")
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")

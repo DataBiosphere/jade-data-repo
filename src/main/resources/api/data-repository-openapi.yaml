@@ -7347,19 +7347,12 @@ components:
     SnapshotAccessRequestResponse:
       type: object
       description: The response object for a submitted SnapshotAccessRequest.
-      required:
-        - id
-        - datasetId
-        - snapshotName
-        - snapshotResearchPurpose
-        - snapshotSpecification
-        - createdBy
-        - createdDate
-        - status
       properties:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        sourceSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
         snapshotName:
           type: string

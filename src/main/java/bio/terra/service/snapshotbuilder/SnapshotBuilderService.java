@@ -77,10 +77,10 @@ public class SnapshotBuilderService {
     this.queryBuilderFactory = queryBuilderFactory;
   }
 
-  public SnapshotAccessRequestResponse createSnapshotRequest(
+  public SnapshotAccessRequestResponse createSnapshotRequestWithDataset(
       AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
-        snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
+        snapshotRequestDao.create_old(snapshotAccessRequest, userRequest.getEmail());
     iamService.createSnapshotBuilderRequestResource(
         userRequest, snapshotAccessRequestResponse.getId());
     return snapshotAccessRequestResponse;

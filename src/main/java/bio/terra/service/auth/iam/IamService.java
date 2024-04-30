@@ -257,13 +257,16 @@ public class IamService {
    * Create a snapshot builder request IAM resource
    *
    * @param userReq authenticated user
-   * @param snapshotBuilderRequestId id of the snapshot
+   * @param snapshotId the snapshot id of the snapshot this is based off of
+   * @param snapshotBuilderRequestId id of the snapshot request
    * @return Map of policy group emails for the snapshot builder request policies
    */
   public Map<IamRole, String> createSnapshotBuilderRequestResource(
-      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) {
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId) {
     return callProvider(
-        () -> iamProvider.createSnapshotBuilderRequestResource(userReq, snapshotBuilderRequestId));
+        () ->
+            iamProvider.createSnapshotBuilderRequestResource(
+                userReq, snapshotId, snapshotBuilderRequestId));
   }
 
   /**

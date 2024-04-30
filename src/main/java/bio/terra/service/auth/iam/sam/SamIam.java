@@ -52,6 +52,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
@@ -316,27 +317,37 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public Map<IamRole, String> createSnapshotBuilderRequestResource(
-      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException {
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
+      throws InterruptedException {
     SamRetry.retry(
         configurationService,
-        () -> createSnapshotBuilderRequestResourceInner(userReq, snapshotBuilderRequestId));
+        () ->
+            createSnapshotBuilderRequestResourceInner(
+                userReq, snapshotId, snapshotBuilderRequestId));
     return Map.of(IamRole.OWNER, userReq.getEmail());
   }
 
   private void createSnapshotBuilderRequestResourceInner(
-      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws ApiException {
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
+      throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     CreateResourceRequestV2 req =
-        createSnapshotBuilderRequestResourceRequest(userReq, snapshotBuilderRequestId);
+        createSnapshotBuilderRequestResourceRequest(userReq, snapshotId, snapshotBuilderRequestId);
     samResourceApi.createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), req);
   }
 
   @VisibleForTesting
   CreateResourceRequestV2 createSnapshotBuilderRequestResourceRequest(
-      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) {
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId) {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    FullyQualifiedResourceId parentId =
+        new FullyQualifiedResourceId()
+            .resourceTypeName("datasnapshot")
+            .resourceId(snapshotId.toString());
     CreateResourceRequestV2 req =
-        new CreateResourceRequestV2().resourceId(snapshotBuilderRequestId.toString());
+        new CreateResourceRequestV2()
+            .resourceId(snapshotBuilderRequestId.toString())
+            .parent(parentId);
 
     req.putPoliciesItem(
         IamRole.OWNER.toString(),

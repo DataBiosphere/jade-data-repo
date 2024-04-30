@@ -103,8 +103,6 @@ class DatasetsApiControllerTest {
   private static final String DATASET_ID_ENDPOINT = "/api/repository/v1/datasets/{id}";
   private static final String LOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/lock";
   private static final String UNLOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/unlock";
-  private static final String SNAPSHOT_REQUESTS_ENDPOINT =
-      DATASET_ID_ENDPOINT + "/snapshotRequests";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String QUERY_DATA_ENDPOINT = DATASET_ID_ENDPOINT + "/data/{table}";

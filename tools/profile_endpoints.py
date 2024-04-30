@@ -202,9 +202,7 @@ def profile_get_concept_hierarchy(token):
         token (str): The access token for authentication.
     """
     print("Profiling getConceptHierarchy endpoint")
-
     concept_ids = [4180169, 4027384, 4029205]
-
     for concept_id in concept_ids:
         make_get_request(f"conceptHierarchy/{concept_id}", token)
 
@@ -216,7 +214,6 @@ def profile_search_concepts(token):
         token (str): The access token for authentication.
     """
     print("Profiling searchConcepts endpoint")
-
     params = [
         (19, None),
         (19, "cancer"),
@@ -225,16 +222,13 @@ def profile_search_concepts(token):
         (21, None),
         (21, "inches"),
     ]
-
     for param in params:
         domain_id = param[0]
         search_text = param[1]
-
         if search_text is None:
             url = f"concepts/{domain_id}/search?/searchText="
         else:
             url = f"concepts/{domain_id}/search?/searchText={search_text}"
-
         make_get_request(url, token)
 
 
@@ -245,9 +239,7 @@ def profile_get_concepts(token):
         token (str): The access token for authentication.
     """
     print("Profiling getConcepts endpoint")
-
     concept_ids = [443883, 4042140, 4103320]
-
     for concept_id in concept_ids:
         make_get_request(f"concepts/{concept_id}", token)
 
@@ -255,7 +247,7 @@ def profile_get_concepts(token):
 # Main function
 if __name__ == "__main__":
     # Uncomment the following line to authenticate if needed
-    # authenticate()
+    authenticate()
 
     # Obtain access token
     access_token = get_access_token()

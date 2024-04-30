@@ -7898,7 +7898,7 @@ components:
           description: A note about the journal entry
     IamResourceTypeEnum:
       type: string
-      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE ]
+      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE, SNAPSHOT_BUILDER_REQUEST ]
       description: >
         The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile.  DATAREPO and WORKSPACE are not implemented at this time but are included in the list for completeness.
   parameters:

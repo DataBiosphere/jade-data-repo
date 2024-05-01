@@ -116,7 +116,7 @@ public class JournalEntry {
         .className(getClassName())
         .entryType(
             JournalEntryModel.EntryTypeEnum.fromValue(getEntryType().toString().toUpperCase()))
-        .resourceType(getResourceType().getIamResourceTypeEnum())
+        .resourceType(IamResourceType.toIamResourceTypeEnum(getResourceType()))
         .methodName(getMethodName())
         .user(getUser())
         .mutation(getMutations())

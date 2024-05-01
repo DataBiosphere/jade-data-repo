@@ -26,10 +26,6 @@ public enum IamResourceType {
     return samResourceName;
   }
 
-  public IamResourceTypeEnum getIamResourceTypeEnum() {
-    return iamResourceTypeEnum;
-  }
-
   @Override
   @JsonValue
   public String toString() {

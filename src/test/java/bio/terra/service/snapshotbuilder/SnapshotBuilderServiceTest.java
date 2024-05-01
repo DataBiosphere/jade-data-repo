@@ -168,7 +168,7 @@ class SnapshotBuilderServiceTest {
     domainOption.name("domainId").tableName("domainTable").columnName("domain_concept_id");
     SnapshotBuilderSettings settings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getByDatasetId(any())).thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(any())).thenReturn(settings);
 
     var concept =
         new SnapshotBuilderConcept()
@@ -200,7 +200,7 @@ class SnapshotBuilderServiceTest {
         .columnName("condition_concept_id");
     SnapshotBuilderSettings snapshotBuilderSettings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
+    when(snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId()))
         .thenReturn(snapshotBuilderSettings);
 
     var queryBuilder = mock(SearchConceptsQueryBuilder.class);
@@ -225,7 +225,7 @@ class SnapshotBuilderServiceTest {
     when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
     var domainOption = new SnapshotBuilderDomainOption();
     domainOption.setId(19);
-    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
+    when(snapshotBuilderSettingsDao.getBySnapshotId(snapshotId))
         .thenReturn(new SnapshotBuilderSettings().domainOptions(List.of(domainOption)));
     assertThrows(
         BadRequestException.class,
@@ -314,8 +314,7 @@ class SnapshotBuilderServiceTest {
   void getRollupCountForCriteriaGroupsGeneratesAndRunsAQuery() {
     Snapshot snapshot = makeSnapshot(CloudPlatform.AZURE);
     var settings = new SnapshotBuilderSettings();
-    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId())).thenReturn(settings);
     Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
@@ -416,10 +415,7 @@ class SnapshotBuilderServiceTest {
     var domain = new SnapshotBuilderDomainOption();
     domain.setName("domain");
     var settings = new SnapshotBuilderSettings().domainOptions(List.of(domain));
-    // TODO - this will change w/ Phil's PR
-    // I could get the source dataset id for now
-    when(snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId())).thenReturn(settings);
     when(queryBuilder.generateQuery(domain, conceptId)).thenReturn(mock(Query.class));
     var concept1 = concept("concept1", 1, true);
     var concept2 = concept("concept2", 2, false);

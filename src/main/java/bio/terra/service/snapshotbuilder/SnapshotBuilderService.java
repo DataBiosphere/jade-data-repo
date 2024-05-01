@@ -180,9 +180,8 @@ public class SnapshotBuilderService {
   public SnapshotBuilderGetConceptsResponse searchConcepts(
       UUID snapshotId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    // TODO - switch to bySnapshotID w/ Phil's changes
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId());
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
 
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
@@ -213,9 +212,8 @@ public class SnapshotBuilderService {
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
       AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    // TODO - switch to bySnapshotID w/ Phil's changes
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getByDatasetId(snapshot.getSourceDataset().getId());
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
 
     Query query =
         queryBuilderFactory
@@ -232,9 +230,9 @@ public class SnapshotBuilderService {
   }
 
   private SnapshotBuilderDomainOption getDomainOptionFromSettingsByName(
-      String domainId, UUID datasetId) {
+      String domainId, UUID snapshotId) {
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getByDatasetId(datasetId);
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
 
     return snapshotBuilderSettings.getDomainOptions().stream()
         .filter(domainOption -> domainOption.getName().equals(domainId))
@@ -328,8 +326,6 @@ public class SnapshotBuilderService {
     // domain is needed to join with the domain specific occurrence table
     // this does not work for the metadata domain
     String domainId = getDomainId(conceptId, snapshot, userRequest);
-    // TODO - switch to bySnapshotID w/ Phil's changes
-    var sourceDatasetId = snapshot.getSourceDataset().getId();
-    return getDomainOptionFromSettingsByName(domainId, sourceDatasetId);
+    return getDomainOptionFromSettingsByName(domainId, snapshot.getId());
   }
 }

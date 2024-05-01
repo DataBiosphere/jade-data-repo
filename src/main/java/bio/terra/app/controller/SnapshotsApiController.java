@@ -485,7 +485,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         getAuthenticatedInfo(),
         IamResourceType.DATASNAPSHOT,
         id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.UPDATE_SNAPSHOT);
     snapshotService.updateSnapshotBuilderSettings(id, settings);
     return ResponseEntity.ok(settings);
   }
@@ -496,7 +496,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         getAuthenticatedInfo(),
         IamResourceType.DATASNAPSHOT,
         id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.UPDATE_SNAPSHOT);
     snapshotService.deleteSnapshotBuilderSettings(id);
     return ResponseEntity.ok().build();
   }

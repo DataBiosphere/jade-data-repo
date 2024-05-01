@@ -1859,20 +1859,19 @@ public class DataRepoFixtures {
         user, "/api/repository/v1/jobs" + queryParams, new TypeReference<>() {});
   }
 
-  public DatasetModel updateSettings(
-      TestConfiguration.User user, UUID datasetId, String settingsFileName) throws Exception {
+  public void updateSettings(TestConfiguration.User user, UUID snapshotId, String settingsFileName)
+      throws Exception {
     SnapshotBuilderSettings settings =
         jsonLoader.loadObject(settingsFileName, SnapshotBuilderSettings.class);
-    DataRepoResponse<DatasetModel> response =
-        dataRepoClient.post(
+    DataRepoResponse<SnapshotBuilderSettings> response =
+        dataRepoClient.put(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/settings",
+            "/api/repository/v1/snapshots/" + snapshotId + "/snapshotBuilder/settings",
             TestUtils.mapToJson(settings),
             new TypeReference<>() {});
 
     assertThat("post settings job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("post settings response is present", response.getResponseObject().isPresent());
-    return response.getResponseObject().get();
   }
 
   public SnapshotBuilderGetConceptsResponse getConceptChildren(

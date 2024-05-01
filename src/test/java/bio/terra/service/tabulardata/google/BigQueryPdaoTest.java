@@ -340,10 +340,8 @@ public class BigQueryPdaoTest {
 
   private Snapshot stageOmopData() throws Exception {
     Dataset dataset = readDataset("omop/it-dataset-omop.jsonl");
-    var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
-    settingsDao.upsertByDatasetId(dataset.getId(), settings);
 
     // Stage tabular data for ingest.
     var ingesters = TABLES.stream().map(Ingester::new).toList();
@@ -358,6 +356,8 @@ public class BigQueryPdaoTest {
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(
             datasetSummary, "omop/release-snapshot-request.json", "");
+    var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
+    settingsDao.upsertBySnapshotId(snapshotSummary.getId(), settings);
     return snapshotService.retrieve(snapshotSummary.getId());
   }
 

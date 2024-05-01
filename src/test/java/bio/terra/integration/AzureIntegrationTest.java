@@ -390,11 +390,6 @@ public class AzureIntegrationTest extends UsersBase {
     ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.jsonl", 53);
     ingestTable("concept_relationship", "omop/concept-relationship-table-data.jsonl", 4);
 
-    // Add settings to dataset
-    // TODO - we'll want to instead populate this a snapshot once those endpoints are published
-    // Until then, we'll reference the source dataset's settings
-    dataRepoFixtures.updateSettings(steward, datasetId, "omop/settings.json");
-
     // Create a snapshot
     SnapshotRequestModel requestSnapshotRelease =
         jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
@@ -408,6 +403,9 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat(
         "Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestSnapshotRelease.getName()));
+
+    // Add settings to snapshot
+    dataRepoFixtures.updateSettings(steward, releaseSnapshotId, "omop/settings.json");
   }
 
   @Test

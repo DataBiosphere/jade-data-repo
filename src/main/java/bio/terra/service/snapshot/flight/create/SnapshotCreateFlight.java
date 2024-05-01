@@ -248,7 +248,7 @@ public class SnapshotCreateFlight extends Flight {
         addStep(
             new CreateByQuerySnapshotRequestModelStep(
                 snapshotReq,
-                datasetService,
+                snapshotDao,
                 snapshotBuilderService,
                 snapshotBuilderSettingsDao,
                 snapshotRequestDao,

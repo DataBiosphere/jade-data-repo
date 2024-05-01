@@ -283,7 +283,7 @@ class CriteriaQueryBuilderTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void generateRowIdQueryForCriteriaGroupsList(SqlRenderContext context) {
     Query query =
         criteriaQueryBuilder.generateRowIdQueryForCriteriaGroupsList(
@@ -298,9 +298,9 @@ class CriteriaQueryBuilderTest {
     SELECT p.datarepo_row_id FROM person AS p WHERE p.person_id IN
       (SELECT p.person_id FROM person AS p WHERE
         (((1=1 OR
-        p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c
-          JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id
-          WHERE c0.ancestor_concept_id = 100) OR
+        p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co
+          JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id
+          WHERE ca.ancestor_concept_id = 100) OR
         (p.year_of_birth >= 1950 AND p.year_of_birth <= 2000)))))
     """;
     assertThat(

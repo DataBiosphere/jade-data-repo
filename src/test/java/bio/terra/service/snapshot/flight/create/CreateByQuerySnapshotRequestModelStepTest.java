@@ -15,7 +15,9 @@ import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
@@ -39,7 +41,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag("bio.terra.common.category.Unit")
 class CreateByQuerySnapshotRequestModelStepTest {
   @Mock SnapshotRequestDao snapshotRequestDao;
-  @Mock DatasetService datasetService;
+  @Mock SnapshotDao snapshotDao;
   @Mock SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   @Mock SnapshotBuilderService snapshotBuilderService;
   @Mock FlightContext flightContext;
@@ -50,10 +52,15 @@ class CreateByQuerySnapshotRequestModelStepTest {
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     UUID datasetId = UUID.randomUUID();
     UUID snapshotAccessRequestId = UUID.randomUUID();
+    UUID sourceSnapshotId = UUID.randomUUID();
     Dataset dataset = new Dataset();
     accessRequestResponse.datasetId(datasetId);
     accessRequestResponse.id(snapshotAccessRequestId);
+    accessRequestResponse.sourceSnapshotId(sourceSnapshotId);
     dataset.id(datasetId);
+    dataset.name("dataset_name");
+    Snapshot snapshot = new Snapshot();
+    snapshot.snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
     SqlRenderContext sqlRenderContext =
         new SqlRenderContext(s -> s, CloudPlatformWrapper.of(CloudPlatform.GCP));
     SqlRenderContext sqlRenderContext2 =
@@ -70,8 +77,8 @@ class CreateByQuerySnapshotRequestModelStepTest {
     AuthenticatedUserRequest user = AuthenticationFixtures.randomUserRequest();
 
     when(snapshotRequestDao.getById(any())).thenReturn(accessRequestResponse);
-    when(datasetService.retrieve(datasetId)).thenReturn(dataset);
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId))
+    when(snapshotDao.retrieveSnapshot(sourceSnapshotId)).thenReturn(snapshot);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(sourceSnapshotId))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
     when(snapshotBuilderService.createContext(any(), any())).thenReturn(sqlRenderContext);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
@@ -79,7 +86,7 @@ class CreateByQuerySnapshotRequestModelStepTest {
     Step step =
         new CreateByQuerySnapshotRequestModelStep(
             requestModel,
-            datasetService,
+            snapshotDao,
             snapshotBuilderService,
             snapshotBuilderSettingsDao,
             snapshotRequestDao,
@@ -104,11 +111,12 @@ class CreateByQuerySnapshotRequestModelStepTest {
             .contents(
                 List.of(
                     new SnapshotRequestContentsModel()
+                        .datasetName(dataset.getName())
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
                         .querySpec(
                             new SnapshotRequestQueryModel()
                                 .query(expectedQuery)
-                                .assetName("notImplemented"))));
+                                .assetName("person_visit"))));
 
     assertTrue(workingMap.containsKey(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL));
     assertEquals(

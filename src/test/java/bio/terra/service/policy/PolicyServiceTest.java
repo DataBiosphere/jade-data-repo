@@ -36,12 +36,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
-public class PolicyServiceTest {
+class PolicyServiceTest {
 
   @Mock private PolicyApiService policyApiService;
   @Mock private TpsApi tpsApi;
@@ -56,7 +54,7 @@ public class PolicyServiceTest {
   private TpsPaoUpdateRequest updateRequest;
 
   @BeforeEach
-  public void setup() throws Exception {
+  void setup() {
     policyService = new PolicyService(policyApiService);
     updateRequest = new TpsPaoUpdateRequest().updateMode(PolicyService.UPDATE_MODE);
   }

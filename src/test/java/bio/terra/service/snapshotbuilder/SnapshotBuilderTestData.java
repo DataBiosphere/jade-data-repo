@@ -205,6 +205,7 @@ public class SnapshotBuilderTestData {
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
+                        .conceptId(100)
                         .id(19)
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(

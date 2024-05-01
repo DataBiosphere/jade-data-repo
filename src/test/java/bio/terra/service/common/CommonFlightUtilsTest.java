@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.Direction;
@@ -16,24 +17,18 @@ import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.List;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class CommonFlightUtilsTest {
-  private static final AuthenticatedUserRequest TEST_USER1 =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
+@Tag(Unit.TAG)
+class CommonFlightUtilsTest {
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
 
   @Test
-  public void journalMapShouldRemoveUserInfo() throws JsonProcessingException {
+  void journalMapShouldRemoveUserInfo() throws JsonProcessingException {
     FlightMap flightMap = new FlightMap();
-    flightMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER1);
+    flightMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER);
     flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), null);
     flightMap.put(JobMapKeys.REQUEST.getKeyName(), "A request string");
     FlightContext flightContext =

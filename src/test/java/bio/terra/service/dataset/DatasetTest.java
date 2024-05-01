@@ -1,15 +1,16 @@
 package bio.terra.service.dataset;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("bio.terra.common.category.Unit")
-public class DatasetTest {
+@Tag(Unit.TAG)
+class DatasetTest {
 
   @Test
   void testHasDedicatedGcpServiceAccount() {
@@ -19,22 +20,22 @@ public class DatasetTest {
 
     datasetSummary.cloudPlatform(CloudPlatform.AZURE);
     assertFalse(
-        "Azure datasets do not have a dedicated GCP service account",
-        dataset.hasDedicatedGcpServiceAccount());
+        dataset.hasDedicatedGcpServiceAccount(),
+        "Azure datasets do not have a dedicated GCP service account");
 
     datasetSummary.cloudPlatform(CloudPlatform.GCP);
     assertFalse(
-        "GCP datasets by default use the general TDR service account",
-        dataset.hasDedicatedGcpServiceAccount());
+        dataset.hasDedicatedGcpServiceAccount(),
+        "GCP datasets by default use the general TDR service account");
 
     projectResource.dedicatedServiceAccount(false);
     assertFalse(
-        "GCP dataset uses the general TDR service account",
-        dataset.hasDedicatedGcpServiceAccount());
+        dataset.hasDedicatedGcpServiceAccount(),
+        "GCP dataset uses the general TDR service account");
 
     projectResource.dedicatedServiceAccount(true);
     assertTrue(
-        "GCP dataset uses a dedicated GCP service account",
-        dataset.hasDedicatedGcpServiceAccount());
+        dataset.hasDedicatedGcpServiceAccount(),
+        "GCP dataset uses a dedicated GCP service account");
   }
 }

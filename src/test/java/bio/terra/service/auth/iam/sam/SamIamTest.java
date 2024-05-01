@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
@@ -71,8 +72,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SamIamTest {
+@Tag(Unit.TAG)
+class SamIamTest {
 
   @Mock private SamApiService samApiService;
   @Mock private GoogleApi samGoogleApi;
@@ -86,14 +87,14 @@ public class SamIamTest {
       AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     GoogleResourceConfiguration resourceConfiguration =
         new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     samIam =
         new SamIam(
             samConfig,
             new ConfigurationService(
-                samConfig, null, resourceConfiguration, new ApplicationConfiguration()),
+                samConfig, resourceConfiguration, new ApplicationConfiguration()),
             samApiService);
   }
 

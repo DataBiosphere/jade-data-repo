@@ -12,12 +12,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AssetUtils {
-  @Autowired JsonLoader jsonLoader;
+  private final JsonLoader jsonLoader;
+
+  public AssetUtils(JsonLoader jsonLoader) {
+    this.jsonLoader = jsonLoader;
+  }
 
   public AssetSpecification buildTestAssetSpec() throws IOException {
     AssetTable assetTable_sample = setUpAssetTable("ingest-test-dataset-table-sample.json");

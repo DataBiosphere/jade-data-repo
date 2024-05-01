@@ -7,14 +7,14 @@ import static org.hamcrest.Matchers.nullValue;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.exception.InvalidUriException;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(Unit.class)
-public class UriUtilsTest {
+@Tag(Unit.TAG)
+class UriUtilsTest {
 
   @Test
-  public void testGetQueryParameterValue() {
+  void testGetQueryParameterValue() {
     assertThat(
         "query parameter is returned",
         UriUtils.getValueFromQueryParameter("http://foo/bar?q=123", "q"),
@@ -30,7 +30,7 @@ public class UriUtilsTest {
   }
 
   @Test
-  public void testInvalidUris() {
+  void testInvalidUris() {
     String badUri = "not a good uri";
 
     TestUtils.assertError(
@@ -43,7 +43,7 @@ public class UriUtilsTest {
   }
 
   @Test
-  public void testOmitQueryParameter() {
+  void testOmitQueryParameter() {
     assertThat(
         "query parameter is removed",
         UriUtils.omitQueryParameter("http://foo/bar?q=123", "q"),

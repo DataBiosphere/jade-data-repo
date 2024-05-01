@@ -2,8 +2,11 @@ package bio.terra.service.policy.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.Dataset;
@@ -25,7 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 public class DeleteSnapshotPolicyStepTest {
   @Mock private DatasetService datasetService;
   @Mock private PolicyService policyService;

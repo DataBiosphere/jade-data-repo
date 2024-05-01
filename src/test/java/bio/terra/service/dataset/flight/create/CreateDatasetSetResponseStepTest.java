@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -22,8 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class CreateDatasetSetResponseStepTest {
+@Tag(Unit.TAG)
+class CreateDatasetSetResponseStepTest {
 
   @Mock private DatasetService datasetService;
   @Mock private FlightContext flightContext;

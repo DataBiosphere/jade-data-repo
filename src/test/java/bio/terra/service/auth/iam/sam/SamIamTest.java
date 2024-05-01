@@ -54,6 +54,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SubsystemStatus;
@@ -530,6 +531,33 @@ public class SamIamTest {
           is(
               syncedPolicies.stream()
                   .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
+    }
+
+    @Test
+    void testCreateSnapshotBuilderRequest() throws InterruptedException, ApiException {
+      mockUserInfo(TEST_USER.getSubjectId(), TEST_USER.getEmail());
+
+      final UUID snapshotId = UUID.randomUUID();
+      final UUID snapshotBuilderRequestId = UUID.randomUUID();
+      final CreateResourceRequestV2 request =
+          new CreateResourceRequestV2()
+              .parent(
+                  new FullyQualifiedResourceId()
+                      .resourceTypeName(IamResourceType.DATASNAPSHOT.toString())
+                      .resourceId(snapshotId.toString()))
+              .resourceId(snapshotBuilderRequestId.toString())
+              .policies(
+                  Map.of(
+                      IamRole.OWNER.toString(),
+                      new AccessPolicyMembershipRequest()
+                          .roles(List.of(IamRole.OWNER.toString()))
+                          .memberEmails(List.of(TEST_USER.getEmail()))));
+      assertThat(
+          samIam.createSnapshotBuilderRequestResource(
+              TEST_USER, snapshotId, snapshotBuilderRequestId),
+          is(Map.of(IamRole.OWNER, TEST_USER.getEmail())));
+      verify(samResourceApi)
+          .createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), request);
     }
 
     @Test

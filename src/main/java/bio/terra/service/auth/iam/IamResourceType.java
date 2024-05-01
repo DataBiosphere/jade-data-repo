@@ -6,8 +6,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.commons.lang3.StringUtils;
 
 public enum IamResourceType {
-  // To add a hyphenated resource type, special case it in fromEnum and toIamResourceTypeEnum
-  // since the swagger generated enums will use _
   DATAREPO("datarepo", IamResourceTypeEnum.DATAREPO),
   DATASET("dataset", IamResourceTypeEnum.DATASET),
   DATASNAPSHOT("datasnapshot", IamResourceTypeEnum.DATASNAPSHOT),

@@ -5,11 +5,11 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
 import java.time.Instant;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(Unit.class)
-public class DateTimeUtilsTest {
+@Tag(Unit.TAG)
+class DateTimeUtilsTest {
 
   private static final String INSTANT_STRING = "2022-01-01T03:23:12.872120Z";
   private static final Instant INSTANT = Instant.parse(INSTANT_STRING);
@@ -20,17 +20,17 @@ public class DateTimeUtilsTest {
   private static final long CONVERTED_NANOS = 1641007392872121L;
 
   @Test
-  public void testToEpochMicros() {
+  void testToEpochMicros() {
     assertThat("can convert to micros", DateTimeUtils.toEpochMicros(INSTANT), equalTo(MICROS));
   }
 
   @Test
-  public void testOfEpochMicros() {
+  void testOfEpochMicros() {
     assertThat("can convert to micros", DateTimeUtils.ofEpicMicros(MICROS), equalTo(INSTANT));
   }
 
   @Test
-  public void testNanoToEpochMicros() {
+  void testNanoToEpochMicros() {
     assertThat(
         "Can convert nanos to micros",
         DateTimeUtils.toEpochMicros(NANO_INSTANT),
@@ -38,7 +38,7 @@ public class DateTimeUtilsTest {
   }
 
   @Test
-  public void testMicrosToString() {
+  void testMicrosToString() {
     assertThat(
         "to string method is correct",
         DateTimeUtils.toMicrosString(INSTANT),

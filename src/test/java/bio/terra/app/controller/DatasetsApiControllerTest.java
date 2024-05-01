@@ -8,10 +8,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -26,7 +29,9 @@ import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
@@ -62,6 +67,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +87,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
 class DatasetsApiControllerTest {
   @Autowired private MockMvc mvc;
@@ -99,20 +105,19 @@ class DatasetsApiControllerTest {
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
-  private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
-  private static final String LOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/lock";
-  private static final String UNLOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/unlock";
+  private static final String DATASET_ID_ENDPOINT = "/api/repository/v1/datasets/{id}";
+  private static final String LOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/lock";
+  private static final String UNLOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/unlock";
   private static final String SNAPSHOT_REQUESTS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotRequests";
+      DATASET_ID_ENDPOINT + "/snapshotRequests";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
-  private static final String QUERY_DATA_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
+  private static final String QUERY_DATA_ENDPOINT = DATASET_ID_ENDPOINT + "/data/{table}";
 
   private static final String QUERY_COLUMN_STATISTICS_ENDPOINT =
       QUERY_DATA_ENDPOINT + "/statistics/{column}";
 
-  private static final String SNAPSHOT_BUILDER_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder";
+  private static final String SNAPSHOT_BUILDER_ENDPOINT = DATASET_ID_ENDPOINT + "/snapshotBuilder";
   private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
       SNAPSHOT_BUILDER_ENDPOINT + "/settings";
   private static final String GET_CONCEPTS_ENDPOINT =
@@ -122,7 +127,11 @@ class DatasetsApiControllerTest {
       SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{domainId}/search";
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
-  private static final Integer CONCEPT_ID = 0;
+  private static final DatasetPatchRequestModel DATASET_PATCH_REQUEST =
+      new DatasetPatchRequestModel().phsId("a-phs-id").description("a-description");
+  private static final Set<IamAction> DATASET_PATCH_ACTIONS =
+      Set.of(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER);
+  private static final int CONCEPT_ID = 0;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;
@@ -141,8 +150,7 @@ class DatasetsApiControllerTest {
 
     String actualJson =
         mvc.perform(
-                get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
-                    .queryParam("include", String.valueOf(INCLUDE)))
+                get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -157,9 +165,7 @@ class DatasetsApiControllerTest {
   @Test
   void testRetrieveDatasetNotFound() throws Exception {
     mockNotFound();
-    mvc.perform(
-            get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
-                .queryParam("include", String.valueOf(INCLUDE)))
+    mvc.perform(get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isNotFound());
     verifyNoInteractions(iamService);
   }
@@ -172,12 +178,76 @@ class DatasetsApiControllerTest {
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), List.of(iamAction));
 
-    mvc.perform(
-            get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
-                .queryParam("include", String.valueOf(INCLUDE)))
+    mvc.perform(get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isForbidden());
 
     verifyAuthorizationsCall(List.of(iamAction));
+  }
+
+  private void mockPatchDatasetIamActions() {
+    when(datasetService.patchDatasetIamActions(DATASET_PATCH_REQUEST))
+        .thenReturn(DATASET_PATCH_ACTIONS);
+  }
+
+  @Test
+  void patchDataset() throws Exception {
+    mockValidators();
+    mockPatchDatasetIamActions();
+
+    var patchedDatasetSummary =
+        new DatasetSummaryModel().id(DATASET_ID).description("patched dataset");
+    when(datasetService.patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER))
+        .thenReturn(patchedDatasetSummary);
+
+    String actualJson =
+        mvc.perform(
+                patch(DATASET_ID_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    DatasetSummaryModel actual = TestUtils.mapFromJson(actualJson, DatasetSummaryModel.class);
+    assertThat("Dataset summary is returned", actual, equalTo(patchedDatasetSummary));
+
+    verify(iamService)
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), DATASET_PATCH_ACTIONS);
+  }
+
+  @Test
+  void patchDataset_notFound() throws Exception {
+    mockValidators();
+    mockPatchDatasetIamActions();
+    mockNotFound();
+
+    mvc.perform(
+            patch(DATASET_ID_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
+        .andExpect(status().isNotFound());
+
+    verifyNoInteractions(iamService);
+    verify(datasetService, never()).patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER);
+  }
+
+  @Test
+  void patchDataset_forbidden() throws Exception {
+    mockValidators();
+    mockPatchDatasetIamActions();
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), DATASET_PATCH_ACTIONS);
+
+    mvc.perform(
+            patch(DATASET_ID_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
+        .andExpect(status().isForbidden());
+
+    verify(datasetService, never()).patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER);
   }
 
   @ParameterizedTest

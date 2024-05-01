@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.category.Unit;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.stairway.FlightMap;
@@ -19,8 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SnapshotDeleteFlightTest {
+@Tag(Unit.TAG)
+class SnapshotDeleteFlightTest {
   @Mock private ApplicationContext context;
   private FlightMap inputParameters;
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();

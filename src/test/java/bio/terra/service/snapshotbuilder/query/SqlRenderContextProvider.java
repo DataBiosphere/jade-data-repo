@@ -8,12 +8,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 
-public class QueryTestUtils {
-  public static TablePointer fromTableName(String tableName) {
-    return TablePointer.fromTableName(tableName);
-  }
-
-  public static SqlRenderContext createContext(CloudPlatform cloudPlatform) {
+public class SqlRenderContextProvider implements ArgumentsProvider {
+  public static SqlRenderContext of(CloudPlatform cloudPlatform) {
     return new SqlRenderContext(x -> x, CloudPlatformWrapper.of(cloudPlatform)) {
       @Override
       public String toString() {
@@ -23,12 +19,10 @@ public class QueryTestUtils {
     };
   }
 
-  public static class Contexts implements ArgumentsProvider {
-    @Override
-    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-      return Arrays.stream(CloudPlatform.values())
-          .map(QueryTestUtils::createContext)
-          .map(Arguments::of);
-    }
+  @Override
+  public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+    return Arrays.stream(CloudPlatform.values())
+        .map(SqlRenderContextProvider::of)
+        .map(Arguments::of);
   }
 }

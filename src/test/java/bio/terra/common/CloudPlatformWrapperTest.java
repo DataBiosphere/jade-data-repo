@@ -1,6 +1,6 @@
 package bio.terra.common;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;

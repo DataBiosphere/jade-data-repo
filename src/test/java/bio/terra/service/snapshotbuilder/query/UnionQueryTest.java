@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class UnionQueryTest {
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQL(SqlRenderContext context) {
     var query = QueryTest.createQuery();
     var unionQuery = new UnionQuery(List.of(query, query));

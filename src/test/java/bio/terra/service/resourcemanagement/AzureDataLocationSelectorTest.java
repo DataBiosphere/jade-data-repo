@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -15,11 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
-@Tag("bio.terra.common.category.Unit")
-public class AzureDataLocationSelectorTest {
+@Tag(Unit.TAG)
+class AzureDataLocationSelectorTest {
 
   private static final BillingProfileModel PROFILE_1 =
       new BillingProfileModel().id(UUID.randomUUID()).profileName("foo");

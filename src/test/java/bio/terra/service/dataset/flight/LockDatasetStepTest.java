@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetLockException;
@@ -31,8 +32,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.TransactionSystemException;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class LockDatasetStepTest {
+@Tag(Unit.TAG)
+class LockDatasetStepTest {
 
   @Mock private DatasetService datasetService;
   @Mock private FlightContext flightContext;

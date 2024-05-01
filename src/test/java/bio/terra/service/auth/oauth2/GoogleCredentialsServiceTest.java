@@ -15,18 +15,16 @@ import com.google.auth.oauth2.GoogleCredentials;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-public class GoogleCredentialsServiceTest {
+@Tag(Unit.TAG)
+@ExtendWith(MockitoExtension.class)
+class GoogleCredentialsServiceTest {
 
   @Mock private GoogleCredentials credentials;
 
@@ -36,17 +34,16 @@ public class GoogleCredentialsServiceTest {
   private static final String TOKEN_VALUE = UUID.randomUUID().toString();
   private static final AccessToken ACCESS_TOKEN = new AccessToken(TOKEN_VALUE, null);
 
-  @Before
-  public void setup() throws IOException {
+  @BeforeEach
+  void setup() throws IOException {
     service = new GoogleCredentialsService();
 
     when(credentials.createScopedRequired()).thenReturn(false);
-    when(credentials.createScoped(anyList())).thenReturn(credentials);
     when(credentials.refreshAccessToken()).thenReturn(ACCESS_TOKEN);
   }
 
   @Test
-  public void testGetAccessTokenScopesNotRequired() {
+  void testGetAccessTokenScopesNotRequired() {
     assertThat(service.getAccessToken(credentials, List.of()), equalTo(TOKEN_VALUE));
     verify(credentials, never()).createScoped(anyList());
 
@@ -55,18 +52,18 @@ public class GoogleCredentialsServiceTest {
   }
 
   @Test
-  public void testGetAccessTokenScopesRequired() {
+  void testGetAccessTokenScopesRequired() {
     when(credentials.createScopedRequired()).thenReturn(true);
 
+    when(credentials.createScoped(List.of())).thenReturn(credentials);
     assertThat(service.getAccessToken(credentials, List.of()), equalTo(TOKEN_VALUE));
-    verify(credentials).createScoped(List.of());
 
+    when(credentials.createScoped(SCOPES)).thenReturn(credentials);
     assertThat(service.getAccessToken(credentials, SCOPES), equalTo(TOKEN_VALUE));
-    verify(credentials).createScoped(SCOPES);
   }
 
   @Test
-  public void testGetAccessTokenThrows() throws IOException {
+  void testGetAccessTokenThrows() throws IOException {
     var expectedEx = new IOException("Cannot refresh token");
     when(credentials.refreshAccessToken()).thenThrow(expectedEx);
 

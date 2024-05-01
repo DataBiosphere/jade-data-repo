@@ -14,27 +14,27 @@ class OrderByVariableTest {
 
   @NotNull
   private static FieldVariable createVariable() {
-    TablePointer table = QueryTestUtils.fromTableName("table");
+    TablePointer table = TablePointer.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(table);
     return new FieldVariable(new FieldPointer(table, "column"), tableVariable);
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLAsc(SqlRenderContext context) {
     var orderByVariable = new OrderByVariable(createVariable());
     assertThat(orderByVariable.renderSQL(false, context), is("t.column ASC"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLDesc(SqlRenderContext context) {
     var orderByVariable = new OrderByVariable(createVariable(), OrderByDirection.DESCENDING);
     assertThat(orderByVariable.renderSQL(false, context), is("t.column DESC"));
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLRandom(SqlRenderContext context) {
     var orderByVariable = OrderByVariable.random();
     assertThat(orderByVariable.renderSQL(true, context), is("RAND()"));

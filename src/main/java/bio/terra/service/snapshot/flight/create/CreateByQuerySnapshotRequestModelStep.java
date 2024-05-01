@@ -68,12 +68,14 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
     Query sqlQuery =
         new QueryBuilderFactory()
             .criteriaQueryBuilder("person", settings)
-            .generatePersonQueryForCriteriaGroupsList(criteriaGroups);
+            .generateRowIdQueryForCriteriaGroupsList(criteriaGroups);
     String sqlString =
         sqlQuery.renderSQL(snapshotBuilderService.createContext(dataReleaseDataset, userReq));
 
     // populate model with query and add to map
     SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
+    snapshotRequestModel.name(accessRequest.getSnapshotName());
+    snapshotRequestModel.profileId(dataReleaseDataset.getDefaultProfileId());
     snapshotRequestModel.globalFileIds(true);
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         new SnapshotRequestContentsModel()
@@ -86,7 +88,7 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
         .getWorkingMap()
         .put(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL, snapshotRequestModel);
 
-    return null;
+    return StepResult.getStepResultSuccess();
   }
 
   @Override

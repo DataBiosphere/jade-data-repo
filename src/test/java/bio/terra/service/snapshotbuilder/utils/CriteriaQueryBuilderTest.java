@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
@@ -275,6 +276,33 @@ class CriteriaQueryBuilderTest {
               JOIN concept_ancestor AS c1
               ON c1.descendant_concept_id = p0.procedure_concept_id
             WHERE c1.ancestor_concept_id = 0))))
+    """;
+    assertThat(
+        "The sql generated is correct",
+        query.renderSQL(context),
+        equalToCompressingWhiteSpace(expectedSql));
+  }
+
+  @ParameterizedTest
+  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  void generateRowIdQueryForCriteriaGroupsList(SqlRenderContext context) {
+    Query query =
+        criteriaQueryBuilder.generateRowIdQueryForCriteriaGroupsList(
+            SnapshotBuilderTestData.createSnapshotAccessRequest()
+                .getDatasetRequest()
+                .getCohorts()
+                .stream()
+                .map(SnapshotBuilderCohort::getCriteriaGroups)
+                .toList());
+    String expectedSql =
+        """
+    SELECT p.datarepo_row_id FROM person AS p WHERE p.person_id IN
+      (SELECT p.person_id FROM person AS p WHERE
+        (((1=1 OR
+        p.person_id IN (SELECT c.person_id FROM condition_occurrence AS c
+          JOIN concept_ancestor AS c0 ON c0.descendant_concept_id = c.condition_concept_id
+          WHERE c0.ancestor_concept_id = 100) OR
+        (p.year_of_birth >= 1950 AND p.year_of_birth <= 2000)))))
     """;
     assertThat(
         "The sql generated is correct",

@@ -171,18 +171,27 @@ public class CriteriaQueryBuilder {
     return new Query(List.of(personId), List.of(rootTable), filterVariable);
   }
 
-  public Query generatePersonQueryForCriteriaGroupsList(
+  public Query generateRowIdQueryForCriteriaGroupsList(
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
 
     FieldVariable personId =
         new FieldVariable(
-            new FieldPointer(getRootTablePointer(), Person.PERSON_ID), rootTable, null, true);
+            new FieldPointer(getRootTablePointer(), Person.PERSON_ID), rootTable, null, false);
+    FieldVariable rowId =
+        new FieldVariable(new FieldPointer(getRootTablePointer(), Person.ROW_ID), rootTable);
 
     FilterVariable filterVariable =
         new BooleanAndOrFilterVariable(
             BooleanAndOrFilterVariable.LogicalOperator.OR,
             criteriaGroupsList.stream().map(this::generateFilterForCriteriaGroups).toList());
 
-    return new Query(List.of(personId), List.of(rootTable), filterVariable);
+    FilterVariable subQuery =
+        new SubQueryFilterVariable(
+            personId,
+            SubQueryFilterVariable.Operator.IN,
+            new Query(List.of(personId), List.of(rootTable), filterVariable));
+
+    // select row_id from person where person_id is in the cohort specification
+    return new Query(List.of(rowId), List.of(rootTable), subQuery);
   }
 }

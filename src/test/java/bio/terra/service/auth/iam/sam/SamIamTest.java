@@ -555,7 +555,7 @@ public class SamIamTest {
       assertThat(
           samIam.createSnapshotBuilderRequestResource(
               TEST_USER, snapshotId, snapshotBuilderRequestId),
-          is(Map.of(IamRole.OWNER, TEST_USER.getEmail())));
+          is(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail()))));
       verify(samResourceApi)
           .createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), request);
     }

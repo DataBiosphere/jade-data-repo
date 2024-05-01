@@ -316,29 +316,37 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public Map<IamRole, String> createSnapshotBuilderRequestResource(
+  public Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
       AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
       throws InterruptedException {
+    var initialRoles = Map.of(IamRole.OWNER, List.of(userReq.getEmail()));
     SamRetry.retry(
         configurationService,
         () ->
             createSnapshotBuilderRequestResourceInner(
-                userReq, snapshotId, snapshotBuilderRequestId));
-    return Map.of(IamRole.OWNER, userReq.getEmail());
+                userReq, snapshotId, snapshotBuilderRequestId, initialRoles));
+    return initialRoles;
   }
 
   private void createSnapshotBuilderRequestResourceInner(
-      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID snapshotBuilderRequestId,
+      Map<IamRole, List<String>> initialRoles)
       throws ApiException {
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     CreateResourceRequestV2 req =
-        createSnapshotBuilderRequestResourceRequest(userReq, snapshotId, snapshotBuilderRequestId);
+        createSnapshotBuilderRequestResourceRequest(
+            userReq, snapshotId, snapshotBuilderRequestId, initialRoles);
     samResourceApi.createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), req);
   }
 
   @VisibleForTesting
   CreateResourceRequestV2 createSnapshotBuilderRequestResourceRequest(
-      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId) {
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID snapshotBuilderRequestId,
+      Map<IamRole, List<String>> initialRoles) {
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     FullyQualifiedResourceId parentId =
         new FullyQualifiedResourceId()
@@ -347,11 +355,13 @@ public class SamIam implements IamProviderInterface {
     CreateResourceRequestV2 req =
         new CreateResourceRequestV2()
             .resourceId(snapshotBuilderRequestId.toString())
-            .parent(parentId);
-
-    req.putPoliciesItem(
-        IamRole.OWNER.toString(),
-        createAccessPolicy(IamRole.OWNER, List.of(userStatusInfo.getUserEmail())));
+            .parent(parentId)
+            .policies(
+                initialRoles.entrySet().stream()
+                    .collect(
+                        Collectors.toMap(
+                            entry -> entry.getKey().toString(),
+                            entry -> createAccessPolicy(entry.getKey(), entry.getValue()))));
 
     logger.debug("SAM request: " + req);
     return req;

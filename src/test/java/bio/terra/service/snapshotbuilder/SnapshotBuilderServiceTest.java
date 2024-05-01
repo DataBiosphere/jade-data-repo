@@ -102,7 +102,7 @@ class SnapshotBuilderServiceTest {
             SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
         .thenReturn(response);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
-        .thenReturn(Map.of(IamRole.OWNER, TEST_USER.getEmail()));
+        .thenReturn(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail())));
     assertThat(
         "createSnapshotRequest returns the expected response",
         snapshotBuilderService.createSnapshotRequest(

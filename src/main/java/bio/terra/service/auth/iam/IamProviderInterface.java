@@ -138,7 +138,7 @@ public interface IamProviderInterface {
    * @param snapshotBuilderRequestId id of the snapshot builder request
    * @return Map of policy group emails for the snapshot builder request policies
    */
-  Map<IamRole, String> createSnapshotBuilderRequestResource(
+  Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
       AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
       throws InterruptedException;
 

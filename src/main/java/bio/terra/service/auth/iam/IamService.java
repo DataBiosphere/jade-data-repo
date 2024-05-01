@@ -261,7 +261,7 @@ public class IamService {
    * @param snapshotBuilderRequestId id of the snapshot request
    * @return Map of policy group emails for the snapshot builder request policies
    */
-  public Map<IamRole, String> createSnapshotBuilderRequestResource(
+  public Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
       AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId) {
     return callProvider(
         () ->

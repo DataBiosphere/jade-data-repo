@@ -3017,12 +3017,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshotRequests:
+  /api/repository/v1/snapshotAccessRequests:
     get:
       tags:
-        - SnapshotRequest
+        - SnapshotAccessRequest
       description: As an admin for this dataset, view all snapshot requests for this dataset.
-      operationId: enumerateSnapshotRequests
+      operationId: enumerateSnapshotAccessRequests
       responses:
         200:
           description: The snapshot requests have been retrieved.
@@ -3062,10 +3062,10 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     post:
       tags:
-        - SnapshotRequest
+        - SnapshotAccessRequest
       description: As a researcher, create a snapshot request for a dataset, given a set of criteria
         and required concept sets and values.
-      operationId: createSnapshotRequest
+      operationId: createSnapshotAccessRequest
       requestBody:
         description: Description of the snapshot being requested.
         content:

@@ -341,8 +341,7 @@ public class SamIam implements IamProviderInterface {
     samResourceApi.createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), req);
   }
 
-  @VisibleForTesting
-  CreateResourceRequestV2 createSnapshotBuilderRequestResourceRequest(
+  private CreateResourceRequestV2 createSnapshotBuilderRequestResourceRequest(
       AuthenticatedUserRequest userReq,
       UUID snapshotId,
       UUID snapshotBuilderRequestId,

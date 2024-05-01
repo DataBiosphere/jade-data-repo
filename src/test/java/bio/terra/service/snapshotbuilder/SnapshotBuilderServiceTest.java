@@ -105,7 +105,7 @@ class SnapshotBuilderServiceTest {
         .thenReturn(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail())));
     assertThat(
         "createSnapshotRequest returns the expected response",
-        snapshotBuilderService.createSnapshotRequest(
+        snapshotBuilderService.createSnapshotAccessRequest(
             TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)),
         equalTo(response));
   }
@@ -122,7 +122,7 @@ class SnapshotBuilderServiceTest {
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",
-        snapshotBuilderService.enumerateSnapshotRequests(Set.of(responseItem.getId())),
+        snapshotBuilderService.enumerateSnapshotAccessRequests(Set.of(responseItem.getId())),
         equalTo(expected));
   }
 

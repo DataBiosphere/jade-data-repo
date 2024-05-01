@@ -78,7 +78,7 @@ public class SnapshotBuilderService {
     this.queryBuilderFactory = queryBuilderFactory;
   }
 
-  public SnapshotAccessRequestResponse createSnapshotRequest(
+  public SnapshotAccessRequestResponse createSnapshotAccessRequest(
       AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
         snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
@@ -165,7 +165,7 @@ public class SnapshotBuilderService {
     return rollupCount == 0 ? rollupCount : Math.max(rollupCount, 19);
   }
 
-  public EnumerateSnapshotAccessRequest enumerateSnapshotRequests(
+  public EnumerateSnapshotAccessRequest enumerateSnapshotAccessRequests(
       Collection<UUID> authorizedResources) {
     return new EnumerateSnapshotAccessRequest()
         .items(snapshotRequestDao.enumerate(authorizedResources));

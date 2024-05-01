@@ -3,7 +3,7 @@ package bio.terra.service.auth.iam;
 import bio.terra.model.IamResourceTypeEnum;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import org.apache.commons.lang3.StringUtils;
+import java.util.Arrays;
 
 public enum IamResourceType {
   DATAREPO("datarepo", IamResourceTypeEnum.DATAREPO),
@@ -36,35 +36,37 @@ public enum IamResourceType {
     return samResourceName;
   }
 
+  @FunctionalInterface
+  private interface FilterFunction {
+    boolean apply(IamResourceType resourceType);
+  }
+
+  private static IamResourceType findIamResourceType(FilterFunction filter, String typeName) {
+    return Arrays.stream(IamResourceType.values())
+        .filter(filter::apply)
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("Invalid resource type: " + typeName));
+  }
+
   @JsonCreator
   static IamResourceType fromValue(String text) {
-    for (IamResourceType b : IamResourceType.values()) {
-      if (StringUtils.equalsIgnoreCase(b.getSamResourceName(), text)) {
-        return b;
-      }
-    }
-    return null;
+    return findIamResourceType(
+        iamResourceType -> iamResourceType.getSamResourceName().equalsIgnoreCase(text), text);
   }
 
   public static IamResourceType fromEnum(IamResourceTypeEnum apiEnum) {
-    for (IamResourceType b : IamResourceType.values()) {
-      if (b.getIamResourceTypeEnum().equals(apiEnum)) {
-        return b;
-      }
-    }
-    return null;
+    return findIamResourceType(
+        iamResourceType -> iamResourceType.iamResourceTypeEnum == apiEnum, apiEnum.toString());
   }
 
   public static IamResourceType fromString(String stringResourceType) {
-    for (IamResourceType b : IamResourceType.values()) {
-      if (b.getSamResourceName().equalsIgnoreCase(stringResourceType)) {
-        return b;
-      }
-    }
-    throw new RuntimeException("Invalid resource type: " + stringResourceType);
+    return findIamResourceType(
+        iamResourceType ->
+            iamResourceType.getSamResourceName().equalsIgnoreCase(stringResourceType),
+        stringResourceType);
   }
 
   public static IamResourceTypeEnum toIamResourceTypeEnum(IamResourceType resourceType) {
-    return resourceType.getIamResourceTypeEnum();
+    return resourceType.iamResourceTypeEnum;
   }
 }

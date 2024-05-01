@@ -2,7 +2,7 @@ package bio.terra.app.controller;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
-import bio.terra.controller.SnapshotRequestApi;
+import bio.terra.controller.SnapshotAccessRequestApi;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
@@ -21,15 +21,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
 @Controller
-@Api(tags = {"SnapshotRequest"})
-public class SnapshotRequestApiController implements SnapshotRequestApi {
+@Api(tags = {"SnapshotAccessRequest"})
+public class SnapshotAccessRequestApiController implements SnapshotAccessRequestApi {
   private final HttpServletRequest request;
   private final IamService iamService;
   private final SnapshotBuilderService snapshotBuilderService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
   @Autowired
-  public SnapshotRequestApiController(
+  public SnapshotAccessRequestApiController(
       HttpServletRequest request,
       IamService iamService,
       SnapshotBuilderService snapshotBuilderService,
@@ -41,7 +41,7 @@ public class SnapshotRequestApiController implements SnapshotRequestApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotRequest(
+  public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotAccessRequest(
       SnapshotAccessRequest snapshotAccessRequest) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
@@ -50,16 +50,16 @@ public class SnapshotRequestApiController implements SnapshotRequestApi {
         snapshotAccessRequest.getSourceSnapshotId().toString(),
         IamAction.CREATE_SNAPSHOT_REQUEST);
     return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(userRequest, snapshotAccessRequest));
+        snapshotBuilderService.createSnapshotAccessRequest(userRequest, snapshotAccessRequest));
   }
 
   @Override
-  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests() {
+  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotAccessRequests() {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     Map<UUID, Set<IamRole>> authorizedResources =
         iamService.listAuthorizedResources(userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST);
     return ResponseEntity.ok(
-        snapshotBuilderService.enumerateSnapshotRequests(authorizedResources.keySet()));
+        snapshotBuilderService.enumerateSnapshotAccessRequests(authorizedResources.keySet()));
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {

@@ -39,16 +39,17 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
-@ContextConfiguration(classes = {SnapshotRequestApiController.class, GlobalExceptionHandler.class})
+@ContextConfiguration(
+    classes = {SnapshotAccessRequestApiController.class, GlobalExceptionHandler.class})
 @Tag("bio.terra.common.category.Unit")
 @WebMvcTest
-public class SnapshotRequestApiControllerTest {
+public class SnapshotAccessRequestApiControllerTest {
   @Autowired private MockMvc mvc;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private SnapshotBuilderService snapshotBuilderService;
   @MockBean private IamService iamService;
 
-  private static final String ENDPOINT = "/api/repository/v1/snapshotRequests";
+  private static final String ENDPOINT = "/api/repository/v1/snapshotAccessRequests";
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -67,7 +68,7 @@ public class SnapshotRequestApiControllerTest {
 
     SnapshotAccessRequestResponse expectedResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(SNAPSHOT_ID);
-    when(snapshotBuilderService.createSnapshotRequest(any(), eq(request)))
+    when(snapshotBuilderService.createSnapshotAccessRequest(any(), eq(request)))
         .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
@@ -102,7 +103,7 @@ public class SnapshotRequestApiControllerTest {
     expectedResponse.items(List.of(expectedResponseItem, secondExpectedResponseItem));
     when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.SNAPSHOT_BUILDER_REQUEST))
         .thenReturn(authResponse);
-    when(snapshotBuilderService.enumerateSnapshotRequests(authResponse.keySet()))
+    when(snapshotBuilderService.enumerateSnapshotAccessRequests(authResponse.keySet()))
         .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(get(ENDPOINT))

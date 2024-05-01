@@ -81,7 +81,7 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
         new SnapshotRequestContentsModel()
             .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
             .querySpec(
-                new SnapshotRequestQueryModel().query(sqlString).assetName("notImplemented"));
+                new SnapshotRequestQueryModel().query(sqlString).assetName("person_visit"));
     snapshotRequestModel.contents(List.of(snapshotRequestContentsModel));
     // TODO: implement asset creation and time filtering
     context

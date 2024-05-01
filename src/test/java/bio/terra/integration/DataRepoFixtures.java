@@ -58,6 +58,8 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotExportResponseModel;
@@ -1902,6 +1904,24 @@ public class DataRepoFixtures {
     assertThat(
         "search concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  public SnapshotAccessRequestResponse createSnapshotAccessRequest(
+      TestConfiguration.User user, UUID datasetId, String filename) throws Exception {
+    SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
+
+    DataRepoResponse<SnapshotAccessRequestResponse> response =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/snapshotRequests",
+            TestUtils.mapToJson(request),
+            new TypeReference<>() {});
+    assertThat(
+        "create Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 }

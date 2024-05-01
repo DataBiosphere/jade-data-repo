@@ -1,0 +1,14 @@
+{
+  "name": "test-by-requestId",
+  "description": "",
+  "policies": {},
+  "contents": [
+    {
+      "datasetName": "it_dataset_omop",
+      "mode": "byRequest",
+      "requestSpec": {
+        "requestId": "willBeOverridden"
+    }
+  }
+  ]
+}

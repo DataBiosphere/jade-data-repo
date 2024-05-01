@@ -56,6 +56,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
@@ -149,7 +150,9 @@ public class AzureIntegrationTest extends UsersBase {
   private User steward;
   private User admin;
   private UUID datasetId;
+  private String datasetName;
   private List<UUID> snapshotIds;
+  private UUID releaseSnapshotId;
   private UUID profileId;
   private AzureBlobIOTestUtility azureBlobIOTestUtility;
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
@@ -193,7 +196,7 @@ public class AzureIntegrationTest extends UsersBase {
         profileId);
 
     dataRepoFixtures.resetConfig(steward);
-
+    snapshotIds.add(releaseSnapshotId);
     if (snapshotIds != null) {
       for (UUID snapshotId : snapshotIds) {
         dataRepoFixtures.deleteSnapshot(steward, snapshotId);
@@ -210,6 +213,13 @@ public class AzureIntegrationTest extends UsersBase {
     }
     azureBlobIOTestUtility.teardown();
     gcsBlobIOTestUtility.teardown();
+  }
+
+  @Test
+  public void testSnapshotCreateFromRequest() throws Exception {
+    populateOmopTable();
+    UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
+    SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
   }
 
   @Test
@@ -367,6 +377,7 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    datasetName = summaryModel.getName();
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
@@ -378,6 +389,47 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Add settings to dataset
     dataRepoFixtures.updateSettings(steward, datasetId, "omop/settings.json");
+
+    // Create a snapshot
+    SnapshotRequestModel requestSnapshotRelease =
+        jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
+    requestSnapshotRelease.getContents().get(0).datasetName(datasetName);
+
+    SnapshotSummaryModel snapshotSummaryAll =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward, summaryModel.getName(), profileId, requestSnapshotRelease);
+    UUID snapshotByFullViewId = snapshotSummaryAll.getId();
+    releaseSnapshotId = snapshotByFullViewId;
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
+    assertThat(
+        "Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestSnapshotRelease.getName()));
+
+    // add settings to the snapshot
+  }
+
+  private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
+    String filename = "omop/snapshot-access-request.json";
+    SnapshotAccessRequestResponse accessRequest =
+        dataRepoFixtures.createSnapshotAccessRequest(steward, datasetId, filename);
+    assertThat("Snapshot access request exists", accessRequest, notNullValue());
+    return accessRequest;
+  }
+
+  private SnapshotSummaryModel makeSnapshotFromRequest(UUID requestSnapshotId) throws Exception {
+    SnapshotRequestModel requestSnapshot =
+        jsonLoader.loadObject(
+            "omop/snapshot-request-model-by-request-id", SnapshotRequestModel.class);
+    requestSnapshot.getContents().get(0).datasetName(datasetName);
+    requestSnapshot.getContents().get(0).getRequestIdSpec().snapshotRequestId(requestSnapshotId);
+
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward, datasetName, profileId, requestSnapshot);
+    UUID snapshotByRequestId = snapshotSummary.getId();
+    snapshotIds.add(snapshotByRequestId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
+    assertThat("Snapshot exists", snapshotSummary.getName(), equalTo(requestSnapshot.getName()));
+    return snapshotSummary;
   }
 
   @Test

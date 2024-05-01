@@ -8,21 +8,28 @@ import org.apache.commons.lang3.StringUtils;
 public enum IamResourceType {
   // To add a hyphenated resource type, special case it in fromEnum and toIamResourceTypeEnum
   // since the swagger generated enums will use _
-  DATAREPO("datarepo"),
-  DATASET("dataset"),
-  DATASNAPSHOT("datasnapshot"),
-  SPEND_PROFILE("spend-profile"),
-  SNAPSHOT_BUILDER_REQUEST("snapshot-builder-request"),
-  WORKSPACE("workspace");
+  DATAREPO("datarepo", IamResourceTypeEnum.DATAREPO),
+  DATASET("dataset", IamResourceTypeEnum.DATASET),
+  DATASNAPSHOT("datasnapshot", IamResourceTypeEnum.DATASNAPSHOT),
+  SPEND_PROFILE("spend-profile", IamResourceTypeEnum.SPEND_PROFILE),
+  SNAPSHOT_BUILDER_REQUEST(
+      "snapshot-builder-request", IamResourceTypeEnum.SNAPSHOT_BUILDER_REQUEST),
+  WORKSPACE("workspace", IamResourceTypeEnum.WORKSPACE);
 
   private final String samResourceName;
+  private final IamResourceTypeEnum iamResourceTypeEnum;
 
-  IamResourceType(String samResourceName) {
+  IamResourceType(String samResourceName, IamResourceTypeEnum iamResourceTypeEnum) {
     this.samResourceName = samResourceName;
+    this.iamResourceTypeEnum = iamResourceTypeEnum;
   }
 
   public String getSamResourceName() {
     return samResourceName;
+  }
+
+  public IamResourceTypeEnum getIamResourceTypeEnum() {
+    return iamResourceTypeEnum;
   }
 
   @Override
@@ -42,12 +49,12 @@ public enum IamResourceType {
   }
 
   public static IamResourceType fromEnum(IamResourceTypeEnum apiEnum) {
-    if (apiEnum == IamResourceTypeEnum.SPEND_PROFILE) {
-      return IamResourceType.SPEND_PROFILE;
-    } else if (apiEnum == IamResourceTypeEnum.SNAPSHOT_BUILDER_REQUEST) {
-      return IamResourceType.SNAPSHOT_BUILDER_REQUEST;
+    for (IamResourceType b : IamResourceType.values()) {
+      if (b.getIamResourceTypeEnum().equals(apiEnum)) {
+        return b;
+      }
     }
-    return fromString(apiEnum.toString());
+    return null;
   }
 
   public static IamResourceType fromString(String stringResourceType) {
@@ -60,16 +67,6 @@ public enum IamResourceType {
   }
 
   public static IamResourceTypeEnum toIamResourceTypeEnum(IamResourceType resourceType) {
-    if (resourceType.equals(IamResourceType.SPEND_PROFILE)) {
-      return IamResourceTypeEnum.SPEND_PROFILE;
-    } else if (resourceType.equals(IamResourceType.SNAPSHOT_BUILDER_REQUEST)) {
-      return IamResourceTypeEnum.SNAPSHOT_BUILDER_REQUEST;
-    }
-    for (IamResourceTypeEnum b : IamResourceTypeEnum.values()) {
-      if (String.valueOf(b).equalsIgnoreCase(resourceType.toString())) {
-        return b;
-      }
-    }
-    throw new RuntimeException("Invalid resource type: " + resourceType);
+    return resourceType.getIamResourceTypeEnum();
   }
 }

@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.IamResourceTypeEnum;
+import java.util.Objects;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.test.context.ActiveProfiles;
@@ -18,14 +19,15 @@ public class IamResourceTypeTest {
     for (IamResourceType resource : IamResourceType.values()) {
       assertThat(
           "ENUM encodes and decodes",
-          IamResourceType.fromEnum(IamResourceType.toIamResourceTypeEnum(resource)),
+          IamResourceType.fromEnum(resource.getIamResourceTypeEnum()),
           equalTo(resource));
     }
 
     for (IamResourceTypeEnum resource : IamResourceTypeEnum.values()) {
       assertThat(
           "ENUM encodes and decodes",
-          IamResourceType.toIamResourceTypeEnum(IamResourceType.fromEnum(resource)),
+          IamResourceType.toIamResourceTypeEnum(
+              Objects.requireNonNull(IamResourceType.fromEnum(resource))),
           equalTo(resource));
     }
   }

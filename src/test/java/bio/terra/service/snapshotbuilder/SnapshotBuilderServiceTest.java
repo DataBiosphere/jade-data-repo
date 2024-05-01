@@ -96,17 +96,17 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void createSnapshotRequest() {
-    UUID datasetId = UUID.randomUUID();
+    UUID snapshotId = UUID.randomUUID();
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
     when(snapshotRequestDao.create(
-            SnapshotBuilderTestData.createSnapshotAccessRequest(datasetId), TEST_USER.getEmail()))
+            SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
         .thenReturn(response);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
         .thenReturn(Map.of(IamRole.OWNER, TEST_USER.getEmail()));
     assertThat(
         "createSnapshotRequest returns the expected response",
         snapshotBuilderService.createSnapshotRequest(
-            TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(datasetId)),
+            TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)),
         equalTo(response));
   }
 

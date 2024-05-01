@@ -48,7 +48,7 @@ public class SnapshotRequestApiControllerTest {
   @MockBean private SnapshotBuilderService snapshotBuilderService;
   @MockBean private IamService iamService;
 
-  private static final String SNAPSHOT_REQUESTS_ENDPOINT = "/api/repository/v1/snapshotRequests";
+  private static final String ENDPOINT = "/api/repository/v1/snapshotRequests";
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -71,7 +71,7 @@ public class SnapshotRequestApiControllerTest {
         .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
-                post(SNAPSHOT_REQUESTS_ENDPOINT)
+                post(ENDPOINT)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtils.mapToJson(request)))
             .andExpect(status().isOk())
@@ -105,7 +105,7 @@ public class SnapshotRequestApiControllerTest {
     when(snapshotBuilderService.enumerateSnapshotRequests(authResponse.keySet()))
         .thenReturn(expectedResponse);
     String actualJson =
-        mvc.perform(get(SNAPSHOT_REQUESTS_ENDPOINT))
+        mvc.perform(get(ENDPOINT))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: drop_snapshot_builder_settings_constraint
+      author: sholden
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: snapshot_builder_settings
+            constraintName: fk_snapshot_snapshot_builder_settings

@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_snapshot_builder_settings_constraint
+      author: sholden
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: snapshot_id
+            baseTableName: snapshot_builder_settings
+            constraintName: fk_snapshot_snapshot_builder_settings
+            onDelete: CASCADE
+            referencedColumnNames: id
+            referencedTableName: snapshot

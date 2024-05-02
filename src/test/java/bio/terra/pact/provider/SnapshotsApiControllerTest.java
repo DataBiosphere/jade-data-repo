@@ -32,7 +32,6 @@ import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;

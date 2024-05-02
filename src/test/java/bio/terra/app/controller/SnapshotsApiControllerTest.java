@@ -583,12 +583,12 @@ class SnapshotsApiControllerTest {
     verifyAuthorizationCall(IamAction.READ_AGGREGATE_DATA);
   }
 
-  private static Stream<String> searchTextArguments() {
+  private static Stream<String> testEnumerateConcepts() {
     return Stream.of("cancer", "", null);
   }
 
   @ParameterizedTest
-  @MethodSource("searchTextArguments")
+  @MethodSource
   void testEnumerateConcepts(String searchText) throws Exception {
     SnapshotBuilderConceptsResponse expected = makeGetConceptChildrenResponse();
 

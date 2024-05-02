@@ -41,7 +41,7 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
   }
 
   public static TableNameGenerator bqSnapshotTableName(SnapshotModel snapshot) {
-    return (tableName) -> generateSnapshotTableName(snapshot, snapshot.getName(), tableName);
+    return tableName -> generateSnapshotTableName(snapshot, snapshot.getName(), tableName);
   }
 
   private static String generateDatasetTableName(

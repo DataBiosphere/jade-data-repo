@@ -43,7 +43,7 @@ import org.springframework.test.web.servlet.MockMvc;
     classes = {SnapshotAccessRequestApiController.class, GlobalExceptionHandler.class})
 @Tag("bio.terra.common.category.Unit")
 @WebMvcTest
-public class SnapshotAccessRequestApiControllerTest {
+class SnapshotAccessRequestApiControllerTest {
   @Autowired private MockMvc mvc;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private SnapshotBuilderService snapshotBuilderService;

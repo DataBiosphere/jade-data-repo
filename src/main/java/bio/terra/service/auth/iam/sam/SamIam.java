@@ -346,7 +346,7 @@ public class SamIam implements IamProviderInterface {
       UUID snapshotId,
       UUID snapshotBuilderRequestId,
       Map<IamRole, List<String>> initialRoles) {
-    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    getUserInfoAndVerify(userReq);
     FullyQualifiedResourceId parentId =
         new FullyQualifiedResourceId()
             .resourceTypeName(IamResourceType.DATASNAPSHOT.toString())
@@ -362,7 +362,7 @@ public class SamIam implements IamProviderInterface {
                             entry -> entry.getKey().toString(),
                             entry -> createAccessPolicy(entry.getKey(), entry.getValue()))));
 
-    logger.debug("SAM request: " + req);
+    logger.debug(String.format("SAM request: %s", req));
     return req;
   }
 

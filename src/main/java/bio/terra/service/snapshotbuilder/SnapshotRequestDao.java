@@ -99,7 +99,7 @@ public class SnapshotRequestDao {
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerate(Collection<UUID> authorizedResources) {
     String sql = "SELECT * FROM snapshot_request WHERE id IN (:authorized_resources)";
-    if (authorizedResources.size() == 0) {
+    if (authorizedResources.isEmpty()) {
       return List.of();
     }
     MapSqlParameterSource params =

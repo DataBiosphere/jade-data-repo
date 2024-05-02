@@ -7,12 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -108,6 +111,25 @@ class SnapshotBuilderServiceTest {
         snapshotBuilderService.createSnapshotAccessRequest(
             TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)),
         equalTo(response));
+  }
+
+  @Test
+  void createSnapshotRequestRollsBackIfSamFails() {
+    UUID snapshotId = UUID.randomUUID();
+    UUID snapshotRequestId = UUID.randomUUID();
+    SnapshotAccessRequestResponse response =
+        new SnapshotAccessRequestResponse().id(snapshotRequestId);
+    when(snapshotRequestDao.create(
+            SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
+        .thenReturn(response);
+    when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
+        .thenThrow(new ApiException("Error"));
+    doNothing().when(snapshotRequestDao).delete(snapshotRequestId);
+    assertThrows(
+        InternalServerErrorException.class,
+        () ->
+            snapshotBuilderService.createSnapshotAccessRequest(
+                TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)));
   }
 
   @Test

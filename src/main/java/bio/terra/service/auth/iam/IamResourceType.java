@@ -4,6 +4,7 @@ import bio.terra.model.IamResourceTypeEnum;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
+import java.util.Objects;
 
 public enum IamResourceType {
   DATAREPO("datarepo", IamResourceTypeEnum.DATAREPO),
@@ -48,13 +49,17 @@ public enum IamResourceType {
   }
 
   public static IamResourceType fromEnum(IamResourceTypeEnum apiEnum) {
-    return findIamResourceType(iamResourceType -> iamResourceType.iamResourceTypeEnum == apiEnum);
+    return Objects.requireNonNull(
+        findIamResourceType(iamResourceType -> iamResourceType.iamResourceTypeEnum == apiEnum),
+        () -> String.format("Invalid resource type: %s", apiEnum.toString()));
   }
 
   public static IamResourceType fromString(String stringResourceType) {
-    return findIamResourceType(
-        iamResourceType ->
-            iamResourceType.getSamResourceName().equalsIgnoreCase(stringResourceType));
+    return Objects.requireNonNull(
+        findIamResourceType(
+            iamResourceType ->
+                iamResourceType.getSamResourceName().equalsIgnoreCase(stringResourceType)),
+        () -> String.format("Invalid resource type: %s", stringResourceType));
   }
 
   public static IamResourceTypeEnum toIamResourceTypeEnum(IamResourceType resourceType) {

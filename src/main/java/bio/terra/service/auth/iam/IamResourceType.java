@@ -37,29 +37,24 @@ public enum IamResourceType {
     boolean apply(IamResourceType resourceType);
   }
 
-  private static IamResourceType findIamResourceType(FilterFunction filter, String typeName) {
-    return Arrays.stream(IamResourceType.values())
-        .filter(filter::apply)
-        .findFirst()
-        .orElseThrow(() -> new RuntimeException("Invalid resource type: " + typeName));
+  private static IamResourceType findIamResourceType(FilterFunction filter) {
+    return Arrays.stream(values()).filter(filter::apply).findFirst().orElse(null);
   }
 
   @JsonCreator
   static IamResourceType fromValue(String text) {
     return findIamResourceType(
-        iamResourceType -> iamResourceType.getSamResourceName().equalsIgnoreCase(text), text);
+        iamResourceType -> iamResourceType.getSamResourceName().equalsIgnoreCase(text));
   }
 
   public static IamResourceType fromEnum(IamResourceTypeEnum apiEnum) {
-    return findIamResourceType(
-        iamResourceType -> iamResourceType.iamResourceTypeEnum == apiEnum, apiEnum.toString());
+    return findIamResourceType(iamResourceType -> iamResourceType.iamResourceTypeEnum == apiEnum);
   }
 
   public static IamResourceType fromString(String stringResourceType) {
     return findIamResourceType(
         iamResourceType ->
-            iamResourceType.getSamResourceName().equalsIgnoreCase(stringResourceType),
-        stringResourceType);
+            iamResourceType.getSamResourceName().equalsIgnoreCase(stringResourceType));
   }
 
   public static IamResourceTypeEnum toIamResourceTypeEnum(IamResourceType resourceType) {

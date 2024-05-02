@@ -19,10 +19,10 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -417,7 +417,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConceptChildren(
+  public ResponseEntity<SnapshotBuilderConceptsResponse> getConceptChildren(
       UUID id, Integer conceptId) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
@@ -425,12 +425,12 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(
+  public ResponseEntity<SnapshotBuilderConceptsResponse> enumerateConcepts(
       UUID id, Integer domainId, String filterText) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
     return ResponseEntity.ok(
-        snapshotBuilderService.searchConcepts(id, domainId, filterText, userRequest));
+        snapshotBuilderService.enumerateConcepts(id, domainId, filterText, userRequest));
   }
 
   @Override

@@ -11,12 +11,12 @@ import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.auth.iam.IamService;
@@ -117,7 +117,7 @@ public class SnapshotBuilderService {
     return result;
   }
 
-  public SnapshotBuilderGetConceptsResponse getConceptChildren(
+  public SnapshotBuilderConceptsResponse getConceptChildren(
       UUID snapshotId, int conceptId, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
@@ -135,7 +135,7 @@ public class SnapshotBuilderService {
             userRequest,
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
-    return new SnapshotBuilderGetConceptsResponse().result(concepts);
+    return new SnapshotBuilderConceptsResponse().result(concepts);
   }
 
   @VisibleForTesting
@@ -177,7 +177,7 @@ public class SnapshotBuilderService {
         .items(snapshotRequestDao.enumerate(authorizedResources));
   }
 
-  public SnapshotBuilderGetConceptsResponse searchConcepts(
+  public SnapshotBuilderConceptsResponse enumerateConcepts(
       UUID snapshotId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
@@ -204,7 +204,7 @@ public class SnapshotBuilderService {
             userRequest,
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
-    return new SnapshotBuilderGetConceptsResponse().result(concepts);
+    return new SnapshotBuilderConceptsResponse().result(concepts);
   }
 
   public int getRollupCountForCriteriaGroups(

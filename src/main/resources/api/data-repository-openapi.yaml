@@ -4600,7 +4600,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshots/{id}/snapshotBuilder/conceptChildren/{conceptId}:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts/{conceptId}/children:
     get:
       tags:
         - snapshots
@@ -4628,7 +4628,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderGetConceptsResponse'
+                $ref: '#/components/schemas/SnapshotBuilderConceptsResponse'
         400:
           description: Bad request - invalid id, badly formed IamResourceType.
           content:
@@ -4659,14 +4659,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts/{domainId}:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts:
     get:
       tags:
         - snapshots
         - repository
       description: >
         Retrieves concepts of the specified domain and enables filtering concepts given by the searchText.
-      operationId: getConcepts
+      operationId: enumerateConcepts
       parameters:
         - in: path
           description: The UUID of the snapshot.
@@ -4675,7 +4675,7 @@ paths:
           schema:
             type: string
             format: uuid
-        - in: path
+        - in: query
           description: The concept ID of the domain
           name: domainId
           required: true
@@ -4692,7 +4692,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderGetConceptsResponse'
+                $ref: '#/components/schemas/SnapshotBuilderConceptsResponse'
         400:
           description: Bad request - invalid id, badly formed IamResourceType.
           content:
@@ -4724,7 +4724,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /api/repository/v1/snapshots/{id}/snapshotBuilder/conceptHierarchy/{conceptId}:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts/{conceptId}/hierarchy:
     get:
       tags:
         - snapshots
@@ -7355,7 +7355,7 @@ components:
       description: >
         ⚠️ An object describing high level information about a domain for use in the snapshot builder
 
-    SnapshotBuilderGetConceptsResponse:
+    SnapshotBuilderConceptsResponse:
       type: object
       description: >
         ⚠️ The response object for the getConcepts endpoint

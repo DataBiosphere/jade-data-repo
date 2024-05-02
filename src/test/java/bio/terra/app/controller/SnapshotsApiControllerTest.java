@@ -31,11 +31,11 @@ import bio.terra.model.JobModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
@@ -127,13 +127,12 @@ class SnapshotsApiControllerTest {
       SNAPSHOT_ID_ENDPOINT + "/snapshotBuilder/settings";
 
   private static final String SNAPSHOT_BUILDER_ENDPOINT = SNAPSHOT_ID_ENDPOINT + "/snapshotBuilder";
-  private static final String GET_CONCEPTS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/conceptChildren/{parentConcept}";
+  private static final String GET_CONCEPT_CHILDREN_ENDPOINT =
+      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{conceptId}/children";
   private static final String GET_COUNT_ENDPOINT = SNAPSHOT_BUILDER_ENDPOINT + "/count";
-  private static final String SEARCH_CONCEPTS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{domainId}";
+  private static final String ENUMERATE_CONCEPTS_ENDPOINT = SNAPSHOT_BUILDER_ENDPOINT + "/concepts";
   private static final String GET_CONCEPT_HIERARCHY_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/conceptHierarchy/{conceptId}";
+      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{conceptId}/hierarchy";
   private static final Integer CONCEPT_ID = 0;
 
   @BeforeEach
@@ -510,13 +509,13 @@ class SnapshotsApiControllerTest {
                 .content(TestUtils.mapToJson(snapshotBuilderSettings)))
         .andExpect(status().isOk());
     verify(snapshotService).updateSnapshotBuilderSettings(SNAPSHOT_ID, snapshotBuilderSettings);
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT);
   }
 
   @Test
   void updateSnapshotSnapshotBuilderSettingsForbidden() throws Exception {
     mockValidators();
-    IamAction iamAction = IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS;
+    IamAction iamAction = IamAction.UPDATE_SNAPSHOT;
     failValidation(iamAction);
 
     mvc.perform(
@@ -533,13 +532,13 @@ class SnapshotsApiControllerTest {
     mockValidators();
     mvc.perform(delete(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isOk());
     verify(snapshotService).deleteSnapshotBuilderSettings(SNAPSHOT_ID);
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT);
   }
 
   @Test
   void deleteSnapshotBuilderSettingsForbidden() throws Exception {
     mockValidators();
-    IamAction iamAction = IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS;
+    IamAction iamAction = IamAction.UPDATE_SNAPSHOT;
     failValidation(iamAction);
 
     mvc.perform(delete(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID))
@@ -549,18 +548,18 @@ class SnapshotsApiControllerTest {
   }
 
   @Test
-  void testGetConcepts() throws Exception {
-    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
+  void testGetConceptChildren() throws Exception {
+    SnapshotBuilderConceptsResponse expected = makeGetConceptChildrenResponse();
     when(snapshotBuilderService.getConceptChildren(SNAPSHOT_ID, CONCEPT_ID, TEST_USER))
         .thenReturn(expected);
     String actualJson =
-        mvc.perform(get(GET_CONCEPTS_ENDPOINT, SNAPSHOT_ID, CONCEPT_ID))
+        mvc.perform(get(GET_CONCEPT_CHILDREN_ENDPOINT, SNAPSHOT_ID, CONCEPT_ID))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
-    SnapshotBuilderGetConceptsResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
+    SnapshotBuilderConceptsResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderConceptsResponse.class);
     assertThat("Concept list and sql is returned", actual, equalTo(expected));
 
     verifyAuthorizationCall(IamAction.READ_AGGREGATE_DATA);
@@ -590,23 +589,24 @@ class SnapshotsApiControllerTest {
 
   @ParameterizedTest
   @MethodSource("searchTextArguments")
-  void testSearchConcepts(String searchText) throws Exception {
-    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
+  void testEnumerateConcepts(String searchText) throws Exception {
+    SnapshotBuilderConceptsResponse expected = makeGetConceptChildrenResponse();
 
     var domainId = 1234;
 
-    when(snapshotBuilderService.searchConcepts(SNAPSHOT_ID, domainId, searchText, TEST_USER))
+    when(snapshotBuilderService.enumerateConcepts(SNAPSHOT_ID, domainId, searchText, TEST_USER))
         .thenReturn(expected);
     String actualJson =
         mvc.perform(
-                get(SEARCH_CONCEPTS_ENDPOINT, SNAPSHOT_ID, domainId)
+                get(ENUMERATE_CONCEPTS_ENDPOINT, SNAPSHOT_ID)
+                    .queryParam("domainId", String.valueOf(domainId))
                     .queryParam("filterText", searchText))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
-    SnapshotBuilderGetConceptsResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
+    SnapshotBuilderConceptsResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotBuilderConceptsResponse.class);
     assertThat("Concept list and sql is returned", actual, equalTo(expected));
 
     verifyAuthorizationCall(IamAction.READ_AGGREGATE_DATA);
@@ -637,8 +637,8 @@ class SnapshotsApiControllerTest {
     verifyAuthorizationCall(IamAction.READ_AGGREGATE_DATA);
   }
 
-  private SnapshotBuilderGetConceptsResponse makeGetConceptsResponse() {
-    return new SnapshotBuilderGetConceptsResponse()
+  private SnapshotBuilderConceptsResponse makeGetConceptChildrenResponse() {
+    return new SnapshotBuilderConceptsResponse()
         .sql("SELECT * FROM dataset")
         .result(
             List.of(

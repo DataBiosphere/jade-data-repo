@@ -424,7 +424,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   private void searchConceptTest(SnapshotBuilderConcept concept1) throws Exception {
     var searchConceptsResult =
-        dataRepoFixtures.getConcepts(steward, releaseSnapshotId, 19, concept1.getName());
+        dataRepoFixtures.enumerateConcepts(steward, releaseSnapshotId, 19, concept1.getName());
     // A concept returned by search concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =

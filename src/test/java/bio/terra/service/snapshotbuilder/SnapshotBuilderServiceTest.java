@@ -210,7 +210,7 @@ class SnapshotBuilderServiceTest {
     var concept = new SnapshotBuilderConcept().name("concept1").id(1);
     mockRunQueryForSearchConcepts(concept, snapshot);
     var response =
-        snapshotBuilderService.searchConcepts(
+        snapshotBuilderService.enumerateConcepts(
             snapshot.getId(), domainOption.getId(), "cancer", TEST_USER);
     assertThat(
         "searchConcepts returns the expected response",
@@ -229,7 +229,7 @@ class SnapshotBuilderServiceTest {
         .thenReturn(new SnapshotBuilderSettings().domainOptions(List.of(domainOption)));
     assertThrows(
         BadRequestException.class,
-        () -> snapshotBuilderService.searchConcepts(snapshotId, 20, "cancer", TEST_USER));
+        () -> snapshotBuilderService.enumerateConcepts(snapshotId, 20, "cancer", TEST_USER));
   }
 
   private static Snapshot makeSnapshot(CloudPlatform cloudPlatform) {

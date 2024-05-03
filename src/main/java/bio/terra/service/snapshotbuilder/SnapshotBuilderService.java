@@ -20,7 +20,6 @@ import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -56,7 +55,6 @@ public class SnapshotBuilderService {
 
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
-  private final DatasetService datasetService;
   private final IamService iamService;
   private final SnapshotService snapshotService;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
@@ -67,7 +65,6 @@ public class SnapshotBuilderService {
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
-      DatasetService datasetService,
       IamService iamService,
       SnapshotService snapshotService,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -75,7 +72,6 @@ public class SnapshotBuilderService {
       QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
-    this.datasetService = datasetService;
     this.iamService = iamService;
     this.snapshotService = snapshotService;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;

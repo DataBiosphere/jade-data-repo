@@ -77,7 +77,6 @@ class SnapshotBuilderServiceTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
   @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private SnapshotBuilderService snapshotBuilderService;
-  @Mock private DatasetService datasetService;
   @Mock private IamService iamService;
   @Mock private SnapshotService snapshotService;
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
@@ -93,7 +92,6 @@ class SnapshotBuilderServiceTest {
         new SnapshotBuilderService(
             snapshotRequestDao,
             snapshotBuilderSettingsDao,
-            datasetService,
             iamService,
             snapshotService,
             bigQuerySnapshotPdao,

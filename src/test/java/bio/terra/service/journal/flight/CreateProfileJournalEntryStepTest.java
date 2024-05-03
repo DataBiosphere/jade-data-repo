@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileRequestModel;
@@ -24,8 +25,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class CreateProfileJournalEntryStepTest {
+@Tag(Unit.TAG)
+class CreateProfileJournalEntryStepTest {
   @Mock private JournalService journalService;
   @Mock private FlightContext flightContext;
 

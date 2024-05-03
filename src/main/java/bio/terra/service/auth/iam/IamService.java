@@ -3,7 +3,6 @@ package bio.terra.service.auth.iam;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -207,11 +206,6 @@ public class IamService {
     }
   }
 
-  public List<String> listActions(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
-    return callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId));
-  }
-
   /**
    * If user has any action on a resource than we allow that user to list the resource, rather than
    * have a specific action for listing. That is the Sam convention.
@@ -247,19 +241,6 @@ public class IamService {
   }
 
   /**
-   * Create a dataset IAM resource
-   *
-   * @param userReq authenticated user
-   * @param datasetId id of the dataset
-   * @param policies user emails to add as dataset policy members
-   * @return List of policy group emails for the dataset policies
-   */
-  public Map<IamRole, String> createDatasetResource(
-      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies) {
-    return callProvider(() -> iamProvider.createDatasetResource(userReq, datasetId, policies));
-  }
-
-  /**
    * Create a snapshot IAM resource
    *
    * @param userReq authenticated user
@@ -270,6 +251,22 @@ public class IamService {
   public Map<IamRole, String> createSnapshotResource(
       AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
     return callProvider(() -> iamProvider.createSnapshotResource(userReq, snapshotId, policies));
+  }
+
+  /**
+   * Create a snapshot builder request IAM resource
+   *
+   * @param userReq authenticated user
+   * @param snapshotId the snapshot id of the snapshot this is based off of
+   * @param snapshotBuilderRequestId id of the snapshot request
+   * @return Map of policy group emails for the snapshot builder request policies
+   */
+  public Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId) {
+    return callProvider(
+        () ->
+            iamProvider.createSnapshotBuilderRequestResource(
+                userReq, snapshotId, snapshotBuilderRequestId));
   }
 
   /**

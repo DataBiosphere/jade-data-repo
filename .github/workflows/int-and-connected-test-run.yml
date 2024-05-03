@@ -12,6 +12,9 @@ env:
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
   RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+  AZURE_CREDENTIALS_SECRET: ${{ secrets.AZURE_CREDENTIALS_SECRET }}
+  AZURE_SYNAPSE_SQLADMINUSER: ${{ secrets.AZURE_SYNAPSE_SQLADMINUSER }}
+  AZURE_SYNAPSE_SQLADMINPASSWORD: ${{ secrets.AZURE_SYNAPSE_SQLADMINPASSWORD }}
   AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
   CACHE_PATHS: |
     build/jacoco
@@ -36,6 +39,11 @@ on:
   workflow_dispatch: {}
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
+concurrency:
+  # Don't run this workflow concurrently on the same branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # For PRs, don't wait for completion of existing runs, cancel them instead
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   test_check:
     name: "Checkout, verify and run unit tests"
@@ -70,7 +78,7 @@ jobs:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-unit }}
       - name: "Run unit tests and sonar scan via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -109,24 +117,12 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-connected
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
-          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
-            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
-            secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
-            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
       - name: "Write RBS SA to a file"
         run: |
           # write vault token
-          base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
+          base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run connected tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -172,39 +168,30 @@ jobs:
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-integration
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
-          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradlebuild' # creates gcr build with git_hash tag
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'helmdeploy'
-          helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.575
-          helm_datarepo_ui_chart_version: 0.0.291
-          helm_gcloud_sqlproxy_chart_version: 0.19.9
-          helm_oidc_proxy_chart_version: 0.0.42
+          helm_create_secret_manager_secret_version: 0.0.8
+          helm_datarepo_api_chart_version: 0.0.663
+          helm_datarepo_ui_chart_version: 0.0.329
+          helm_gcloud_sqlproxy_chart_version: 0.19.13
+          helm_oidc_proxy_chart_version: 0.0.44
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
@@ -212,17 +199,17 @@ jobs:
           echo "git_hash=${git_hash}" >> $GITHUB_OUTPUT
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.73.0
         timeout-minutes: 20
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run integration tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -232,12 +219,12 @@ jobs:
           AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
   report-to-sherlock:
@@ -253,7 +240,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
   publish_test_reports:
-    name: "Save execution reports and notify"
+    name: "Save execution reports"
     timeout-minutes: 60
     needs:
       - test_check
@@ -264,12 +251,6 @@ jobs:
         os: [ubuntu-latest]
     if: always()
     runs-on: ${{ matrix.os }}
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      RUN_STATUS: >-
-        ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
-      SLACK_FIELDS: repo,commit,workflow
     steps:
       - name: "Load unit test cache"
         uses: actions/cache@v3
@@ -299,21 +280,12 @@ jobs:
           name: junit-test-reports
           path: build/reports
           retention-days: 10
-      - name: "Notify Jade Slack on nightly test run"
-        if: ${{ github.event_name == 'schedule' && always() }}
-        uses: broadinstitute/action-slack@v3.15.0
-        with:
-          status: ${{ env.RUN_STATUS }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Nightly Unit, Connected and Integration tests"
-          fields: ${{ env.SLACK_FIELDS }}
-      - name: "Notify QA Slack on nightly test run"
-        if: ${{ github.event_name == 'schedule' && always() }}
-        uses: broadinstitute/action-slack@v3.15.0
-        with:
-          status: ${{ env.RUN_STATUS }}
-          channel: "#dsde-qa"
-          username: "Data Repo tests"
-          text: "Nightly Unit, Connected and Integration tests"
-          fields: ${{ env.SLACK_FIELDS }}
+  report-workflow:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    if: ${{ github.ref == 'refs/heads/develop' }}
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

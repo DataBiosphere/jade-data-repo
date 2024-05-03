@@ -5,11 +5,8 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetPatchRequestModel;
-import bio.terra.datarepo.model.PolicyMemberRequest;
-import bio.terra.datarepo.model.PolicyResponse;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
@@ -37,22 +34,10 @@ public class RetrieveDataset extends SimpleDataset {
         datasetModel.getName(),
         datasetModel.getDataProject());
 
-    // add test user as steward so that they have access to edit phs id
-    try {
-      logger.debug("Adding test user {} as steward", testUser.userEmail);
-      PolicyResponse policyResponse =
-          repositoryApi.addDatasetPolicyMember(
-              datasetSummaryModel.getId(),
-              "steward",
-              new PolicyMemberRequest().email(testUser.userEmail));
-    } catch (ApiException e) {
-      throw new RuntimeException("Error adding user as steward", e);
-    }
-
-    // Test editing PhsId via patch endpoint
+    // Test editing description via patch endpoint, which custodians can do
     DatasetPatchRequestModel request = new DatasetPatchRequestModel();
-    String newPhsId = "phs123456";
-    request.setPhsId(newPhsId);
+    String newDescription = "new description";
+    request.setDescription(newDescription);
 
     // Retry patch dataset endpoint
     // Can run into concurrent update error
@@ -62,9 +47,11 @@ public class RetrieveDataset extends SimpleDataset {
             () -> {
               try {
                 assertThat(
-                    "PhsId has been updated for dataset",
-                    repositoryApi.patchDataset(datasetSummaryModel.getId(), request).getPhsId(),
-                    equalTo(newPhsId));
+                    "Description has been updated for dataset",
+                    repositoryApi
+                        .patchDataset(datasetSummaryModel.getId(), request)
+                        .getDescription(),
+                    equalTo(newDescription));
               } catch (Exception ex) {
                 return false;
               }

@@ -3,10 +3,10 @@ package bio.terra.service.common;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.validation.constraints.NotNull;
 
 // Utility methods for interacting with common flight values
 public class CommonFlightUtils {

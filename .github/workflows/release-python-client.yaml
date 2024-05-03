@@ -1,17 +1,29 @@
+## Publish a corresponding version of Python client to
+## https://pypi.org/project/data-repo-client/
+##
+## To manage the data-repo-client project in PyPi, you must have a PyPi account
+## and be added as an owner to the project by a current owner.
+
 name: Publish Python 🐍 distributions 📦 to PyPI
 
 on:
   workflow_dispatch: {}
-  push:
-    branches:
-      - develop
+
+env:
+  NODE_VERSION: 20
 
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-latest
+    # Specifying a GitHub environment is optional, but strongly encouraged
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing (OIDC)
+      # https://docs.pypi.org/trusted-publishers/using-a-publisher/
+      id-token: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python 3.7
         uses: actions/setup-python@v4
         with:
@@ -20,10 +32,10 @@ jobs:
         run: |
           CURRENT_SEMVER=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "CURRENT_SEMVER=${CURRENT_SEMVER}" >> "$GITHUB_ENV"
-      - name: Use Node.js ${{matrix.node-version }}
+      - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install openapi-generator-cli
         run: npm install @openapitools/openapi-generator-cli -g
       - name: set version to 4.3.1
@@ -34,7 +46,7 @@ jobs:
           -i src/main/resources/api/data-repository-openapi.yaml \
           -g python \
           -o data-repo-client \
-          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
+          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER},useSpringBoot3=true \
           --skip-validate-spec
       - name: Install pypa/build
         working-directory: ./data-repo-client
@@ -45,8 +57,15 @@ jobs:
         run: >-
           python -m build --sdist --wheel --outdir dist/ .
       - name: Publish distribution 📦 to PyPI
-        uses: broadinstitute/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
           packages_dir: ./data-repo-client/dist
           skip_existing: true
+  report-workflow:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

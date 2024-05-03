@@ -12,7 +12,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
 public class StairwayExceptionSerializer implements ExceptionSerializer {
-  private ObjectMapper objectMapper;
+  private final ObjectMapper objectMapper;
 
   public StairwayExceptionSerializer(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;

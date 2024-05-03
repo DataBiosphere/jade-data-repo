@@ -52,6 +52,7 @@ import com.azure.storage.blob.models.BlobProperties;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobGetOption;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -66,6 +67,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -122,6 +124,10 @@ public class AzureBlobStorePdaoTest {
   @MockBean private AzureAuthService azureAuthService;
   @MockBean private GcsPdao gcsPdao;
   @MockBean private GcsProjectFactory gcsProjectFactory;
+
+  @MockBean(name = "azureTableThreadpool")
+  private AsyncTaskExecutor asyncTaskExecutor;
+
   @Autowired private AzureBlobStorePdao dao;
 
   @MockBean
@@ -445,7 +451,8 @@ public class AzureBlobStorePdaoTest {
   private void mockGcsFileAccess(String projectId) {
     Storage storage = mock(Storage.class);
     Blob blob = mock(Blob.class);
-    when(storage.get(eq(BlobId.fromGsUtilUri(SOURCE_GCS_PATH)), any())).thenReturn(blob);
+    when(storage.get(eq(BlobId.fromGsUtilUri(SOURCE_GCS_PATH)), any(BlobGetOption[].class)))
+        .thenReturn(blob);
     when(gcsProjectFactory.getStorage(projectId)).thenReturn(storage);
   }
 }

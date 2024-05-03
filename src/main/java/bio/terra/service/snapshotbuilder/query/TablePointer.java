@@ -2,24 +2,16 @@ package bio.terra.service.snapshotbuilder.query;
 
 import java.util.List;
 
-public record TablePointer(String tableName, Filter filter, String sql) implements SqlExpression {
+public record TablePointer(String tableName, Filter filter) implements SqlExpression {
 
   public static TablePointer fromTableName(String tableName) {
-    return new TablePointer(tableName, null, null);
-  }
-
-  public static TablePointer fromRawSql(String sql) {
-    return new TablePointer(null, null, sql);
+    return new TablePointer(tableName, null);
   }
 
   @Override
-  public String renderSQL() {
-    if (sql != null) {
-      return "(" + sql + ")";
-    }
+  public String renderSQL(SqlRenderContext context) {
     if (filter == null) {
-      // TODO: use platform to render tableName correctly (or fix it using DatasetAwareVisitor).
-      return tableName;
+      return context.getTableName(tableName);
     }
 
     TablePointer tablePointerWithoutFilter = TablePointer.fromTableName(tableName);
@@ -29,6 +21,6 @@ public record TablePointer(String tableName, Filter filter, String sql) implemen
     FilterVariable filterVar = filter.buildVariable(tableVar, List.of(tableVar));
 
     Query query = new Query(List.of(fieldVar), List.of(tableVar), filterVar);
-    return "(" + query.renderSQL() + ")";
+    return "(" + query.renderSQL(context) + ")";
   }
 }

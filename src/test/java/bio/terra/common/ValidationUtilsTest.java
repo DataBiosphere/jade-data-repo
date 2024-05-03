@@ -6,17 +6,15 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import bio.terra.common.category.Unit;
 import java.util.Arrays;
 import java.util.Collections;
-import liquibase.util.StringUtils;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.springframework.test.context.ActiveProfiles;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class ValidationUtilsTest {
+@Tag(Unit.TAG)
+class ValidationUtilsTest {
 
   @Test
-  public void testEmailFormats() throws Exception {
+  void testEmailFormats() throws Exception {
     assertThat(ValidationUtils.isValidEmail("john@somewhere.com")).isTrue();
     assertThat(ValidationUtils.isValidEmail("john.foo@somewhere.com")).isTrue();
     assertThat(ValidationUtils.isValidEmail("john.foo+label@somewhere.com")).isTrue();
@@ -31,7 +29,7 @@ public class ValidationUtilsTest {
   }
 
   @Test
-  public void testHasDuplicates() {
+  void testHasDuplicates() {
     assertThat(ValidationUtils.hasDuplicates(Arrays.asList("a", "a", "b", "c"))).isTrue();
     assertThat(ValidationUtils.hasDuplicates(Arrays.asList(1, 1, 2, 3))).isTrue();
     assertThat(ValidationUtils.hasDuplicates(Arrays.asList("a", "b", "c"))).isFalse();
@@ -41,19 +39,19 @@ public class ValidationUtilsTest {
   }
 
   @Test
-  public void testDescriptionFormats() throws Exception {
+  void testDescriptionFormats() throws Exception {
     assertThat(ValidationUtils.isValidDescription("somedescription")).isTrue();
     assertThat(ValidationUtils.isValidDescription(StringUtils.repeat("X", 5_000))).isFalse();
   }
 
   @Test
-  public void testPathFormats() throws Exception {
+  void testPathFormats() throws Exception {
     assertThat(ValidationUtils.isValidPath("/some_path")).isTrue();
     assertThat(ValidationUtils.isValidPath("some_path")).isFalse();
   }
 
   @Test
-  public void testUuidFormats() {
+  void testUuidFormats() {
     assertThat(ValidationUtils.isValidUuid("2c297e7c-b303-4243-af6a-76cd9d3b0ca8")).isTrue();
     assertThat(ValidationUtils.convertToUuid("2c297e7c-b303-4243-af6a-76cd9d3b0ca8")).isPresent();
     assertThat(ValidationUtils.isValidUuid("not a uuid")).isFalse();
@@ -61,7 +59,7 @@ public class ValidationUtilsTest {
   }
 
   @Test
-  public void testValidationOfEmptyBlankAndNullStrings() {
+  void testValidationOfEmptyBlankAndNullStrings() {
 
     assertThatExceptionOfType(IllegalArgumentException.class)
         .isThrownBy(() -> ValidationUtils.requireNotBlank("", "empty arg"));
@@ -72,7 +70,7 @@ public class ValidationUtilsTest {
   }
 
   @Test
-  public void testValidationOfValidInputString() {
+  void testValidationOfValidInputString() {
     // no exception is thrown
     ValidationUtils.requireNotBlank("abc", "error msg");
   }

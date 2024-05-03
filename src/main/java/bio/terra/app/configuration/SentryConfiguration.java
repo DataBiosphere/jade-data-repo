@@ -6,18 +6,16 @@ import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import io.sentry.Sentry;
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 @ConfigurationProperties(prefix = "sentry")
-@ConstructorBinding
 public record SentryConfiguration(String dsn, String environment) {
   private static final Logger logger = LoggerFactory.getLogger(SentryConfiguration.class);
   private static final String DEFAULT_UNDEFINED_ENVIRONMENT = "undefined";

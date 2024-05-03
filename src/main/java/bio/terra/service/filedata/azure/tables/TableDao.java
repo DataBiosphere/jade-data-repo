@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -459,16 +460,17 @@ public class TableDao {
       TableServiceClient snapshotTableServiceClient,
       UUID datasetId,
       String datasetName,
-      UUID snapshotId,
-      List<String> refIds) {
+      Snapshot snapshot,
+      Set<String> refIds) {
 
     directoryDao.addEntriesToSnapshot(
         datasetTableServiceClient,
         snapshotTableServiceClient,
         datasetId,
         datasetName,
-        snapshotId,
-        refIds);
+        snapshot.getId(),
+        refIds,
+        snapshot.hasGlobalFileIds());
   }
 
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory

@@ -2,11 +2,9 @@ package bio.terra.service.filedata.google.bq;
 
 import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Profile;
 
 /** Configuration for interacting with BigQuery. */
-@ConstructorBinding
 @Profile("google")
 @ConfigurationProperties(prefix = "datarepo.bq")
 public record BigQueryConfiguration(Integer rateLimitRetries, Integer rateLimitRetryWaitMs) {

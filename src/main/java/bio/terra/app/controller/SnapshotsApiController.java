@@ -19,6 +19,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -42,14 +43,14 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import io.swagger.annotations.Api;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,7 +185,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       String filter,
       String region,
       List<String> datasetIds,
-      List<String> tags) {
+      List<String> tags,
+      List<String> duosIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
@@ -200,7 +202,8 @@ public class SnapshotsApiController implements SnapshotsApi {
             filter,
             region,
             datasetUUIDs,
-            tags);
+            tags,
+            duosIds);
     return ResponseEntity.ok(esm);
   }
 
@@ -420,5 +423,38 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.retrieveSnapshotSummary(UUID.fromString(resourceId));
     // Verify snapshot permissions
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, resourceId, actions);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderSettings> getSnapshotSnapshotBuilderSettings(UUID id) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(),
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(snapshotService.getSnapshotBuilderSettings(id));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderSettings> updateSnapshotSnapshotBuilderSettings(
+      UUID id, SnapshotBuilderSettings settings) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(),
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    snapshotService.updateSnapshotBuilderSettings(id, settings);
+    return ResponseEntity.ok(settings);
+  }
+
+  @Override
+  public ResponseEntity<Void> deleteSnapshotSnapshotBuilderSettings(UUID id) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(),
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    snapshotService.deleteSnapshotBuilderSettings(id);
+    return ResponseEntity.ok().build();
   }
 }

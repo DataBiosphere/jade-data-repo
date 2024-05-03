@@ -13,11 +13,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /** Configuration for working with Azure resources */
-@ConstructorBinding
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "azure")
 public record AzureResourceConfiguration(
@@ -26,7 +27,8 @@ public record AzureResourceConfiguration(
     int maxRetries,
     int retryTimeoutSeconds,
     String apiVersion,
-    Monitoring monitoring) {
+    Monitoring monitoring,
+    Threading threading) {
 
   /**
    * Given a user tenant Id, return Azure credentials
@@ -160,6 +162,20 @@ public record AzureResourceConfiguration(
       boolean initialize,
       int connectRetryInterval,
       int connectRetryCount) {}
+
+  public record Threading(int numTableThreads) {}
+
+  @Bean("azureTableThreadpool")
+  public AsyncTaskExecutor azureTableThreadpool() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(threading().numTableThreads());
+    executor.setMaxPoolSize(threading().numTableThreads());
+    executor.setKeepAliveSeconds(0);
+    executor.setQueueCapacity(threading().numTableThreads());
+    executor.setThreadNamePrefix("az-table-thread-");
+    executor.initialize();
+    return executor;
+  }
 
   /** Track the monitoring-related configuration */
   public record Monitoring(

@@ -1,17 +1,23 @@
 package bio.terra.service.job;
 
 import bio.terra.common.exception.ErrorReportException;
-import bio.terra.service.job.exception.ExceptionSerializerException;
 import bio.terra.service.job.exception.JobExecutionException;
 import bio.terra.service.job.exception.StepExecutionException;
 import bio.terra.stairway.Step;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StairwayExceptionFieldsFactory {
 
-  private static final String CONTACT_TEAM_MESSAGE = "Please contact the TDR team for help.";
+  private static final Logger logger =
+      LoggerFactory.getLogger(StairwayExceptionFieldsFactory.class);
+
+  private static final String CONTACT_SUPPORT_MESSAGE =
+      "For further assistance, please contact Terra Support (https://support.terra.bio).";
 
   public static StairwayExceptionFields fromException(Exception ex) {
     String stepName = getStepNameFromStairwayException(ex);
@@ -46,8 +52,8 @@ public class StairwayExceptionFieldsFactory {
           break;
         }
       } catch (ClassNotFoundException e) {
-        throw new ExceptionSerializerException(
-            "All steps in a stacktrace should be able to be found", e);
+        // Unknown classes are possible in a stack trace: log, but keep walking the path.
+        logger.warn("Could not resolve StackTraceElement to a class", e);
       }
     }
     return failedStepName;
@@ -66,13 +72,18 @@ public class StairwayExceptionFieldsFactory {
     if (errorReportCauses != null) {
       return errorReportCauses;
     }
-    return List.of("The job failed, but not while running a step", CONTACT_TEAM_MESSAGE);
+    return List.of("The job failed, but not while running a step", CONTACT_SUPPORT_MESSAGE);
   }
 
   private static String getStepExceptionMessage(String stepName, Exception exception) {
     if (StringUtils.isNotBlank(exception.getMessage())) {
       return exception.getMessage();
     }
+    return getFallbackStepExceptionMessage(stepName, exception);
+  }
+
+  @VisibleForTesting
+  static String getFallbackStepExceptionMessage(String stepName, Exception exception) {
     return String.format(
         "Encountered %s while running %s.", exception.getClass().getSimpleName(), stepName);
   }
@@ -82,7 +93,7 @@ public class StairwayExceptionFieldsFactory {
     if (errorReportCauses != null) {
       return errorReportCauses;
     }
-    return List.of("The step failed for an unknown reason.", CONTACT_TEAM_MESSAGE);
+    return List.of("The step failed for an unknown reason.", CONTACT_SUPPORT_MESSAGE);
   }
 
   private static List<String> getErrorReportExceptionCauses(Exception exception) {

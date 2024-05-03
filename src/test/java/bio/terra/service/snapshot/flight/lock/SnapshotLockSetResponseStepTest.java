@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.lock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;

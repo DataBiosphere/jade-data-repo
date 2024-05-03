@@ -11,8 +11,9 @@ import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.dataset.StorageResource;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 import org.springframework.validation.Errors;
 
 public abstract class CloudPlatformWrapper {
@@ -38,13 +39,10 @@ public abstract class CloudPlatformWrapper {
     if (cloudPlatform == null) {
       cloudPlatform = DEFAULT;
     }
-    switch (cloudPlatform) {
-      case AZURE:
-        return AzurePlatform.INSTANCE;
-      case GCP:
-      default:
-        return GcpPlatform.INSTANCE;
-    }
+    return switch (cloudPlatform) {
+      case AZURE -> AzurePlatform.INSTANCE;
+      case GCP -> GcpPlatform.INSTANCE;
+    };
   }
 
   public boolean isGcp() {
@@ -54,6 +52,14 @@ public abstract class CloudPlatformWrapper {
   public boolean isAzure() {
     return false;
   }
+
+  public <T> T choose(Map<CloudPlatform, Supplier<T>> cloudMap) {
+    return cloudMap.get(getCloudPlatform()).get();
+  }
+
+  public abstract <T> T choose(Supplier<T> gcp, Supplier<T> azure);
+
+  public abstract <T> T choose(T gcp, T azure);
 
   public abstract void ensureValidRegion(String region, Errors errors);
 
@@ -90,6 +96,16 @@ public abstract class CloudPlatformWrapper {
     }
 
     @Override
+    public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
+      return gcp.get();
+    }
+
+    @Override
+    public <T> T choose(T gcp, T azure) {
+      return gcp;
+    }
+
+    @Override
     public void ensureValidRegion(String region, Errors errors) {
       ensureValidRegion(CloudPlatform.GCP, region, GoogleRegion.SUPPORTED_REGIONS, errors);
     }
@@ -101,20 +117,15 @@ public abstract class CloudPlatformWrapper {
       return Arrays.stream(GoogleCloudResource.values())
           .map(
               resource -> {
-                final GoogleRegion finalRegion;
-                switch (resource) {
-                  case FIRESTORE:
-                    finalRegion = region.getRegionOrFallbackFirestoreRegion();
-                    break;
-                  case BUCKET:
-                    finalRegion = region.getRegionOrFallbackBucketRegion();
-                    break;
-                  default:
-                    finalRegion = region;
-                }
+                final GoogleRegion finalRegion =
+                    switch (resource) {
+                      case FIRESTORE -> region.getRegionOrFallbackFirestoreRegion();
+                      case BUCKET -> region.getRegionOrFallbackBucketRegion();
+                      case BIGQUERY -> region;
+                    };
                 return new GoogleStorageResource(null, resource, finalRegion);
               })
-          .collect(Collectors.toList());
+          .toList();
     }
   }
 
@@ -132,6 +143,16 @@ public abstract class CloudPlatformWrapper {
     }
 
     @Override
+    public <T> T choose(Supplier<T> gcp, Supplier<T> azure) {
+      return azure.get();
+    }
+
+    @Override
+    public <T> T choose(T gcp, T azure) {
+      return azure;
+    }
+
+    @Override
     public void ensureValidRegion(String region, Errors errors) {
       ensureValidRegion(CloudPlatform.AZURE, region, AzureRegion.SUPPORTED_REGIONS, errors);
     }
@@ -142,7 +163,7 @@ public abstract class CloudPlatformWrapper {
       final AzureRegion region = AzureRegion.fromValueWithDefault(datasetRequest.getRegion());
       return Arrays.stream(AzureCloudResource.values())
           .map(resource -> new AzureStorageResource(null, resource, region))
-          .collect(Collectors.toList());
+          .toList();
     }
   }
 }

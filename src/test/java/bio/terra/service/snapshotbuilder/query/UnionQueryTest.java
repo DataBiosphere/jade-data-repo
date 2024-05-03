@@ -8,16 +8,20 @@ import bio.terra.common.category.Unit;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
 class UnionQueryTest {
 
-  @Test
-  void renderSQL() {
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQL(SqlRenderContext context) {
     var query = QueryTest.createQuery();
     var unionQuery = new UnionQuery(List.of(query, query));
     assertThat(
-        unionQuery.renderSQL(), is("SELECT t.* FROM table AS t UNION SELECT t.* FROM table AS t"));
+        unionQuery.renderSQL(context),
+        is("SELECT t.* FROM table AS t UNION SELECT t.* FROM table AS t"));
   }
 
   // Suppress the warning about the constructor call inside the assertThrows lambda.

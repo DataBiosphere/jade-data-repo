@@ -6,8 +6,10 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import io.opentelemetry.api.OpenTelemetry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +23,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SamApiServiceTest {
+@Tag(Unit.TAG)
+class SamApiServiceTest {
 
   @Mock private SamConfiguration samConfig;
   @Mock private ConfigurationService configurationService;
-  private SamApiService samApiService;
   private Map<String, ApiClient> unauthorizedApiClients;
   private Map<String, ApiClient> authorizedApiClients;
 
@@ -38,7 +39,8 @@ public class SamApiServiceTest {
   void setUp() {
     when(configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS))
         .thenReturn(OPERATION_TIMEOUT_SECONDS);
-    samApiService = new SamApiService(samConfig, configurationService);
+    SamApiService samApiService =
+        new SamApiService(samConfig, configurationService, OpenTelemetry.noop());
     unauthorizedApiClients = Map.of("StatusApi", samApiService.statusApi().getApiClient());
     authorizedApiClients =
         Map.of(

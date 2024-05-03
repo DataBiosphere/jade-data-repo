@@ -1,14 +1,15 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import jakarta.ws.rs.NotSupportedException;
 import java.util.Objects;
 import java.util.Set;
-import javax.ws.rs.NotSupportedException;
 
 public class SynapseColumn extends Column {
   private static final Set<TableDataType> FILE_TYPES =
       Set.of(TableDataType.FILEREF, TableDataType.DIRREF);
   private String synapseDataType;
+  private String synapseDataTypeForCsv;
   private boolean requiresCollate;
   private boolean requiresJSONCast;
 
@@ -29,6 +30,15 @@ public class SynapseColumn extends Column {
 
   public SynapseColumn synapseDataType(String synapseDataType) {
     this.synapseDataType = synapseDataType;
+    return this;
+  }
+
+  public String getSynapseDataTypeForCsv() {
+    return synapseDataTypeForCsv;
+  }
+
+  public SynapseColumn synapseDataTypeForCsv(String synapseDataTypeForCsv) {
+    this.synapseDataTypeForCsv = synapseDataTypeForCsv;
     return this;
   }
 
@@ -64,8 +74,13 @@ public class SynapseColumn extends Column {
   }
 
   public static String translateDataType(TableDataType datatype, boolean isArrayOf) {
+    return translateDataType(datatype, isArrayOf, false);
+  }
+
+  public static String translateDataType(
+      TableDataType datatype, boolean isArrayOf, boolean isForCsv) {
     if (isArrayOf) {
-      return "varchar(8000)";
+      return "varchar(%s)".formatted(isForCsv ? "8000" : "max");
     }
     return switch (datatype) {
       case BOOLEAN -> "bit";
@@ -78,7 +93,8 @@ public class SynapseColumn extends Column {
       case NUMERIC -> "real";
         // DIRREF and FILEREF store a UUID on ingest
         // But, are translated to DRS URI on Snapshot Creation
-      case DIRREF, FILEREF, TEXT, STRING -> "varchar(8000)";
+        // Note that the Synapse CSV parser does not support varchars larger than 8000 bytes
+      case DIRREF, FILEREF, TEXT, STRING -> "varchar(%s)".formatted(isForCsv ? "8000" : "max");
       case TIME -> "time";
         // Data of type RECORD contains table-like that can be nested or repeated
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
@@ -103,29 +119,20 @@ public class SynapseColumn extends Column {
     if (isArrayOf) {
       return true;
     }
-    switch (dataType) {
-      case DIRREF:
-      case FILEREF:
-      case TEXT:
-      case STRING:
-        return true;
-      default:
-        return false;
-    }
+    return switch (dataType) {
+      case DIRREF, FILEREF, TEXT, STRING -> true;
+      default -> false;
+    };
   }
 
   static boolean checkForJSONCastRequirement(TableDataType dataType, boolean isArrayOf) {
     if (isArrayOf) {
       return false;
-    }
-    switch (dataType) {
-      case DIRREF:
-      case FILEREF:
-      case TEXT:
-      case STRING:
-        return false;
-      default:
-        return true;
+    } else {
+      return switch (dataType) {
+        case TEXT, STRING -> true;
+        default -> false;
+      };
     }
   }
 

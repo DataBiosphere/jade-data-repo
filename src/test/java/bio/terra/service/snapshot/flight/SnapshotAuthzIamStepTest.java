@@ -2,8 +2,8 @@ package bio.terra.service.snapshot.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,19 +26,17 @@ import bio.terra.stairway.StepStatus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class SnapshotAuthzIamStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class SnapshotAuthzIamStepTest {
   @Mock private IamService iamService;
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
@@ -54,8 +52,8 @@ public class SnapshotAuthzIamStepTest {
   private FlightMap workingMap;
   private SnapshotRequestModel snapshotRequestModel;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     workingMap = new FlightMap();
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     snapshotRequestModel = new SnapshotRequestModel();
@@ -64,7 +62,7 @@ public class SnapshotAuthzIamStepTest {
   }
 
   @Test
-  public void testDoAndUndoStep() throws InterruptedException {
+  void testDoAndUndoStep() throws InterruptedException {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     step = new SnapshotAuthzIamStep(iamService, snapshotService, snapshotRequestModel, TEST_USER);
     StepResult doResult = step.doStep(flightContext);
@@ -82,7 +80,7 @@ public class SnapshotAuthzIamStepTest {
   }
 
   @Test
-  public void testDoAndUndoStepWithDUOS() throws InterruptedException {
+  void testDoAndUndoStepWithDUOS() throws InterruptedException {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 

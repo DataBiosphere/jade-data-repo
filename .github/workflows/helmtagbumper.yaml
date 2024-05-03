@@ -1,15 +1,7 @@
 name: Update API Helm Image Tags
 on:
-  workflow_dispatch:
-    inputs:
-      notify-slack:
-        default: true
-        type: boolean
-  workflow_call:
-    inputs:
-      notify-slack:
-        default: false
-        type: boolean
+  workflow_dispatch: {}
+  workflow_call: {}
 jobs:
 # new integration image updater
   integration_helm_tag_update:
@@ -56,22 +48,12 @@ jobs:
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "[datarepo-helm-definitions] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.73.0
         env:
           COMMIT_MESSAGE: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm-definitions
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
-      - name: "Notify Slack"
-        if: ${{ inputs.notify-slack && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          fields: job,repo,message,author,took
-          author_name: "[API] [datarepo-helm-definitions] Version update for Integration namespaces"
   datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
     steps:
@@ -113,19 +95,9 @@ jobs:
         with:
           args: yq w -i datarepo-helm/charts/datarepo-api/Chart.yaml version ${{ steps.chartversion.outputs.chartversion }}"
       - name: "[datarepo-helm] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.69.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.73.0
         env:
           COMMIT_MESSAGE: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
-      - name: "Notify Slack"
-        if: ${{ inputs.notify-slack && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          fields: job,repo,message,author,took
-          author_name: "[API] [datarepo-helm] Version update for Helm Charts"

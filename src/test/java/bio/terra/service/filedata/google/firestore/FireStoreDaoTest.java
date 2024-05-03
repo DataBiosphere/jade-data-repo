@@ -18,7 +18,6 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.common.collect.Streams;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,7 +80,6 @@ public class FireStoreDaoTest {
   // - do the compute and validate
   // Use binary for the sizes so each size combo will be unique
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void snapshotTest() throws Exception {
     GoogleProjectResource projectResource =
         new GoogleProjectResource().googleProjectId(System.getenv("GOOGLE_CLOUD_DATA_PROJECT"));

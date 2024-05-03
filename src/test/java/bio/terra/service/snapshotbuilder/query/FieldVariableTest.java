@@ -5,57 +5,71 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
-import java.util.List;
+import bio.terra.model.CloudPlatform;
+import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
 class FieldVariableTest {
 
-  @Test
-  void renderSQL() {
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQL(SqlRenderContext context) {
     var table = TablePointer.fromTableName("table");
 
     var fieldPointer = new FieldPointer(table, "field");
     var tableVariable = TableVariable.forPrimary(table);
-    TableVariable.generateAliases(List.of(tableVariable));
-    assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(), is("t.field"));
+    assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(context), is("t.field"));
 
     assertThat(
-        new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(), is("t.field AS bar"));
+        new FieldVariable(fieldPointer, tableVariable, "bar").renderSQL(context),
+        is("t.field AS bar"));
 
-    var fieldPointerForeignKey = FieldPointer.foreignColumn(TablePointer.fromRawSql(null), null);
+    var fieldPointerForeignKey =
+        FieldPointer.foreignColumn(TablePointer.fromTableName("table"), "column");
     var fieldVariableForeignKey = new FieldVariable(fieldPointerForeignKey, tableVariable);
-    assertThrows(UnsupportedOperationException.class, () -> fieldVariableForeignKey.renderSQL());
+    assertThrows(
+        UnsupportedOperationException.class, () -> fieldVariableForeignKey.renderSQL(context));
 
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSQL(), is("foo(t.field)"));
+    assertThat(fieldVariableFunctionWrapper.renderSQL(context), is("foo(t.field) AS alias"));
 
     var fieldVariableSqlFunctionWrapper =
         new FieldVariable(
             new FieldPointer(table, "field", "custom(<fieldSql>)"), tableVariable, "alias");
-    assertThat(fieldVariableSqlFunctionWrapper.renderSQL(), is("custom(t.field)"));
+    assertThat(fieldVariableSqlFunctionWrapper.renderSQL(context), is("custom(t.field) AS alias"));
+  }
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQLForAliasAndDistinct(SqlRenderContext context) {
+    var table = TablePointer.fromTableName("table");
+    var tableVariable = TableVariable.forPrimary(table);
+
+    var fieldVariable =
+        new FieldVariable(
+            new FieldPointer(table, "field", "COUNT"),
+            tableVariable,
+            QueryBuilderFactory.COUNT,
+            true);
+
+    assertThat(fieldVariable.renderSQL(context), is("COUNT(DISTINCT t.field) AS count"));
   }
 
   @Test
   void renderSqlForOrderBy() {
     var table = TablePointer.fromTableName("table");
     var tableVariable = TableVariable.forPrimary(table);
-    TableVariable.generateAliases(List.of(tableVariable));
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
-    assertThat(fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(false), is("foo(t.field)"));
-  }
-
-  @Test
-  void renderSqlForWhere() {
-    TablePointer table = TablePointer.fromTableName("table");
-    var fieldPointer = new FieldPointer(table, "field");
-    var tableVariable = TableVariable.forPrimary(table);
-    TableVariable.generateAliases(List.of(tableVariable));
     assertThat(
-        new FieldVariable(fieldPointer, tableVariable, "bar").renderSqlForWhere(), is("t.field"));
+        fieldVariableFunctionWrapper.renderSqlForOrderOrGroupBy(
+            false, SqlRenderContextProvider.of(CloudPlatform.GCP)),
+        is("foo(t.field) AS alias"));
   }
 
   @Test

@@ -11,7 +11,7 @@ public enum OrderByDirection implements SqlExpression {
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(SqlRenderContext context) {
     return sql;
   }
 }

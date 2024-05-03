@@ -8,11 +8,12 @@ import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicat
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
-import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
+import bio.terra.common.stairway.MonitoringHook;
 import bio.terra.common.stairway.StairwayComponent;
+import bio.terra.common.stairway.StairwayLoggingHook;
 import bio.terra.model.JobModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -40,6 +41,9 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -50,7 +54,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
-import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,8 +77,8 @@ public class JobService {
   private final AtomicBoolean isRunning;
   private final Migrate migrate;
   private final ObjectMapper objectMapper;
-  private final PerformanceLogger performanceLogger;
   private final ApplicationContext applicationContext;
+  private final OpenTelemetry openTelemetry;
   private Stairway stairway;
 
   @Autowired
@@ -88,7 +91,7 @@ public class JobService {
       ApplicationContext applicationContext,
       Migrate migrate,
       ObjectMapper objectMapper,
-      PerformanceLogger performanceLogger)
+      OpenTelemetry openTelemetry)
       throws StairwayExecutionException {
     this.samService = samService;
     this.appConfig = appConfig;
@@ -98,8 +101,8 @@ public class JobService {
     this.migrate = migrate;
     this.applicationContext = applicationContext;
     this.objectMapper = objectMapper;
-    this.performanceLogger = performanceLogger;
     this.kubeService = kubeService;
+    this.openTelemetry = openTelemetry;
   }
 
   /**
@@ -118,7 +121,8 @@ public class JobService {
             .newStairwayOptionsBuilder()
             .dataSource(stairwayJdbcConfiguration.getDataSource())
             .context(applicationContext)
-            .addHook(new StairwayLoggingHooks(performanceLogger))
+            .addHook(new StairwayLoggingHook())
+            .addHook(new MonitoringHook(openTelemetry))
             .exceptionSerializer(serializer));
     stairway = stairwayComponent.get();
   }
@@ -216,7 +220,7 @@ public class JobService {
 
   // submit a new job to stairway, wait for it to finish, then return the result
   // protected method intended to be called only from JobBuilder
-  protected <T> T submitAndWait(
+  public <T> T submitAndWait(
       Class<? extends Flight> flightClass, FlightMap parameterMap, Class<T> resultClass) {
     String jobId = submit(flightClass, parameterMap);
     waitForJob(jobId);
@@ -395,6 +399,7 @@ public class JobService {
             JobMapKeys.IAM_RESOURCE_ID.getKeyName(), FlightFilterOp.IN, authorizedResources));
   }
 
+  @WithSpan
   public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
     boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
@@ -449,6 +454,7 @@ public class JobService {
    * @param jobId to process
    * @return object of the result class pulled from the result map
    */
+  @WithSpan
   public <T> JobResultWithStatus<T> retrieveJobResult(
       String jobId, Class<T> resultClass, AuthenticatedUserRequest userReq) {
     boolean canListAnyJob = checkUserCanListAnyJob(userReq);

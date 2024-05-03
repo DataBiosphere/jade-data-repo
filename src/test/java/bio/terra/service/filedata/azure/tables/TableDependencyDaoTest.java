@@ -24,7 +24,7 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableItem;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.Before;
@@ -80,7 +80,7 @@ public class TableDependencyDaoTest {
     UUID datasetId = UUID.randomUUID();
     UUID snapshotId = UUID.randomUUID();
     String refId = UUID.randomUUID().toString();
-    dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));
+    dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, Set.of(refId));
     verify(tableClient, times(1)).submitTransaction(any());
   }
 
@@ -103,7 +103,7 @@ public class TableDependencyDaoTest {
     when(mockPagedIterable.stream()).thenReturn(Stream.of(fireStoreDependencyEntity));
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
-    dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));
+    dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, Set.of(refId));
     verify(tableClient, times(0)).upsertEntity(any());
     verify(tableClient, times(0)).submitTransaction(any());
   }

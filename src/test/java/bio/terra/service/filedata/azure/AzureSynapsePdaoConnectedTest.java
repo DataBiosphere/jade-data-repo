@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -32,13 +33,16 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotTable;
 import com.azure.storage.blob.BlobUrlParts;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import java.sql.Time;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
@@ -116,6 +120,21 @@ public class AzureSynapsePdaoConnectedTest {
           .peek(r -> r.put("arrayCol", Optional.empty()))
           .toList();
 
+  private static final List<Map<String, Optional<Object>>> SAMPLE_DATA_LARGE_FIELDS =
+      SAMPLE_DATA.stream()
+          // Copy the records so that changing them in this list doesn't affect the original
+          .map(r -> r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
+          // Add large fields to expected records
+          .peek(
+              r ->
+                  r.putAll(
+                      Map.of(
+                          "textCol", Optional.of("A".repeat(10000)),
+                          "arrayCol",
+                              Optional.of(
+                                  IntStream.range(0, 8000).mapToObj(Integer::toString).toList()))))
+          .toList();
+
   private String snapshotDataSourceName;
   private String sourceDatasetDataSourceName;
   private UUID snapshotId;
@@ -168,6 +187,22 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   @Test
+  public void testSynapseQueryCSVLargeField() throws Exception {
+    IngestRequestModel ingestRequestModel =
+        new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
+    assertThrows(
+        "Should throw an exception when a field is too large",
+        SQLServerException.class,
+        () ->
+            testSynapseQuery(
+                ingestRequestModel,
+                "azure-simple-dataset-ingest-request-large-field.csv",
+                SAMPLE_DATA_LARGE_FIELDS,
+                false,
+                null));
+  }
+
+  @Test
   public void testSynapseQueryNonStandardCSV() throws Exception {
     IngestRequestModel nonStandardIngestRequestModel =
         new IngestRequestModel()
@@ -206,6 +241,17 @@ public class AzureSynapsePdaoConnectedTest {
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
     testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA, false, null);
+  }
+
+  @Test
+  public void testSynapseQueryJSONLargeFields() throws Exception {
+    IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
+    testSynapseQuery(
+        ingestRequestModel,
+        "azure-ingest-large-fields-request.json",
+        SAMPLE_DATA_LARGE_FIELDS,
+        false,
+        null);
   }
 
   @Test
@@ -298,7 +344,7 @@ public class AzureSynapsePdaoConnectedTest {
     snapshotTable.rowCount(snapshotRowIds.size());
     snapshot.snapshotTables(List.of(snapshotTable));
 
-    List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
+    Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     assertThat("4 fileRefs Returned.", refIds.size(), equalTo(4));
 
     // Make sure all are valid UUIDs

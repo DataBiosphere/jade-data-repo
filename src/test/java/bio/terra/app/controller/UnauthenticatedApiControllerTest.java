@@ -10,6 +10,7 @@ import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.configuration.TerraConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.job.JobService;
 import bio.terra.service.status.StatusService;
@@ -24,9 +25,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = UnauthenticatedApiController.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
-public class UnauthenticatedApiControllerTest {
+class UnauthenticatedApiControllerTest {
 
   @Autowired private MockMvc mvc;
   @MockBean private OauthConfiguration oauthConfig;

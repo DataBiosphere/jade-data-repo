@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -23,10 +24,11 @@ import bio.terra.service.snapshot.SnapshotSource;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -59,7 +61,7 @@ public class TableDaoConnectedTest {
   private Dataset dataset;
   private UUID snapshotId;
   private Snapshot snapshot;
-  private List<String> refIds;
+  private Set<String> refIds;
   private String loadTag;
   private int numFilesToLoad;
   private String targetBasePathFormat = "/%s/%s/file-%s.json";
@@ -83,7 +85,7 @@ public class TableDaoConnectedTest {
             .buildClient();
     datasetId = UUID.randomUUID();
     dataset = new Dataset().id(datasetId).name(Names.randomizeName("dataset"));
-    refIds = new ArrayList<>();
+    refIds = new HashSet<>();
     snapshotId = UUID.randomUUID();
     snapshot =
         new Snapshot()
@@ -148,7 +150,7 @@ public class TableDaoConnectedTest {
         tableServiceClient,
         dataset.getId(),
         dataset.getName(),
-        snapshot.getId(),
+        snapshot,
         refIds);
 
     // Now make sure that the same directory entries exist in the snapshot's storage table
@@ -220,7 +222,6 @@ public class TableDaoConnectedTest {
   // - do the compute and validate
   // Use binary for the sizes so each size combo will be unique
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void testComputeSnapshot() throws Exception {
 
     // Make files that will be in the snapshot
@@ -248,12 +249,18 @@ public class TableDaoConnectedTest {
     }
 
     // Make the snapshot file system
-    List<String> fileIdList = new ArrayList<>();
+    Set<String> fileIdList = new HashSet<>();
     for (FireStoreDirectoryEntry fireStoreDirectoryEntry : snapObjects) {
       fileIdList.add(fireStoreDirectoryEntry.getFileId());
     }
     tableDirectoryDao.addEntriesToSnapshot(
-        tableServiceClient, tableServiceClient, datasetId, "dataset", snapshotId, fileIdList);
+        tableServiceClient,
+        tableServiceClient,
+        datasetId,
+        dataset.getName(),
+        snapshotId,
+        fileIdList,
+        true);
 
     // Validate we cannot lookup dataset files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : dsetObjects) {
@@ -278,6 +285,21 @@ public class TableDaoConnectedTest {
         "The directory had its checksum calculated",
         snapObject.getChecksumMd5(),
         not(emptyOrNullString()));
+
+    // Verify files
+    fileIdList.forEach(
+        fileId -> {
+          FireStoreDirectoryEntry snapFileObject =
+              tableDirectoryDao.retrieveById(
+                  tableServiceClient, StorageTableName.SNAPSHOT.toTableName(snapshotId), fileId);
+          assertNotNull("file exists", snapFileObject);
+          assertThat(
+              "the file had its checksum calculated",
+              snapFileObject.getChecksumMd5(),
+              not(emptyOrNullString()));
+          assertThat(
+              "the file has the proper directory", snapFileObject.getPath(), startsWith(uniqueDir));
+        });
   }
 
   private FireStoreDirectoryEntry makeFileObject(UUID datasetId, String fullPath, long size) {

@@ -1,0 +1,20 @@
+[
+    {
+      "name": "GCP_OMOP_Dataset",
+      "schema": "OMOPDataset",
+      "cloud_platform": "gcp",
+      "tables": ["person","procedure_occurrence","condition_occurrence", "drug_exposure", "domain", "concept", "concept_ancestor"],
+      "format": "array",
+      "stewards": [],
+      "custodians": [],
+      "snapshot_creators": [],
+      "snapshots": [
+        {
+          "name": "GCP_OMOP_Snapshot",
+          "description": "Test GCP Snapshot with OMOP data",
+          "readers": []
+        }
+      ],
+      "snapshotBuilderSettings": "dataset_snapshot_builder_settings.json"
+    }
+]

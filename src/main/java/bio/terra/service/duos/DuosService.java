@@ -26,7 +26,7 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -155,7 +155,7 @@ public class DuosService {
     UUID id = firecloudGroup.getId();
     try {
       duosDao.updateFirecloudGroupLastSyncedDate(id, lastSyncedDate);
-    } catch (CannotSerializeTransactionException ex) {
+    } catch (PessimisticLockingFailureException ex) {
       String message =
           firecloudGroup.getFirecloudGroupEmail()
               + " members were updated, "
@@ -203,7 +203,7 @@ public class DuosService {
         results.stream()
             .map(SyncResult::error)
             .filter(Objects::nonNull)
-            .collect(Collectors.toCollection(ArrayList::new));
+            .collect(Collectors.toCollection(ArrayList::new)); // We need a modifiable list here
     maybeDbError.ifPresent(errors::add);
 
     return new DuosFirecloudGroupsSyncResponse()

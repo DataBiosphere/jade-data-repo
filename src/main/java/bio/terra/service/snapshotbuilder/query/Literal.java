@@ -2,7 +2,7 @@ package bio.terra.service.snapshotbuilder.query;
 
 import java.sql.Date;
 
-public class Literal implements SqlExpression {
+public class Literal implements SelectExpression {
   private final DataType dataType;
   private final String stringVal;
   private final long int64Val;
@@ -54,6 +54,11 @@ public class Literal implements SqlExpression {
     this(DataType.DOUBLE, null, 0, false, null, doubleVal);
   }
 
+  /** Make a literal for NULL. */
+  public Literal() {
+    this(DataType.STRING, null, 0, false, null, 0.0);
+  }
+
   // TODO: use named parameters for literals to protect against SQL injection
   // FIXME: for now, "escape" sql strings by mapping single quote to curly quote.
   private static String sqlEscape(String s) {
@@ -61,11 +66,15 @@ public class Literal implements SqlExpression {
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(SqlRenderContext context) {
     return switch (dataType) {
       case STRING -> stringVal == null ? "NULL" : "'" + sqlEscape(stringVal) + "'";
       case INT64 -> String.valueOf(int64Val);
-      case BOOLEAN -> String.valueOf(booleanVal);
+      case BOOLEAN -> context
+          .getPlatform()
+          // In T-SQL, TRUE is not a keyword, so we need to use 1 instead. The JDBC API converts
+          // the 1 to a boolean TRUE when the query result is processed.
+          .choose(() -> String.valueOf(booleanVal), () -> booleanVal ? "1" : "0");
       case DATE -> "DATE('" + dateVal.toString() + "')";
       case DOUBLE -> "FLOAT('" + doubleVal + "')";
     };

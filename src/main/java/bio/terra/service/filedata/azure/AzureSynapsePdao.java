@@ -52,6 +52,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import jakarta.annotation.PostConstruct;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -62,9 +63,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
@@ -97,6 +98,8 @@ public class AzureSynapsePdao {
   private static final String DEFAULT_COLLATION = "Latin1_General_100_CI_AI_SC_UTF8";
   private static final String EMPTY_TABLE_ERROR_MESSAGE =
       "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
+  private static final String QUERY_EMPTY_TABLE_ERROR_MESSAGE =
+      "Unable to query the parquet file for one of the tables in this query. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
   private static final String MAX_BIG_INT = "9223372036854770000";
 
   private static final String DB_CREATION_TEMPLATE =
@@ -154,9 +157,9 @@ public class AzureSynapsePdao {
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
                          <if(isGlobalFileIds)>
-                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(8000) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(max) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <else>
-                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(8000) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(max) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <endif>
                        <else>
                          <if(isGlobalFileIds)>
@@ -177,7 +180,7 @@ public class AzureSynapsePdao {
                  BULK '<ingestFileName>',
                  DATA_SOURCE = '<ingestFileDataSourceName>',
                  FORMAT = 'parquet') WITH (
-                              <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
+                              <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(max)<else><c.synapseDataType><endif>
                               <if(c.requiresCollate)> COLLATE <collation><endif>
                               }; separator=", ">
                              ) AS rows
@@ -271,9 +274,9 @@ public class AzureSynapsePdao {
           <else>
           newid() as datarepo_row_id,
           <columns:{c|
-          <if(c.requiresJSONCast)>cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]
-          <elseif(c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]
-          <else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]
+          <if(c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(max)) [<c.name>]
+          <elseif(c.requiresJSONCast)>(SELECT field FROM OPENJSON(doc) WITH (field <c.synapseDataType> '$.<c.name>')) [<c.name>]
+          <else>cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]
           <endif>
           }; separator=", ">
           <endif>
@@ -293,7 +296,7 @@ public class AzureSynapsePdao {
           <endif>
               ) WITH (
                 <if(isCSV)>
-          <columns:{c|[<c.name>] <c.synapseDataType>
+          <columns:{c|[<c.name>] <c.synapseDataTypeForCsv>
           <if(c.requiresCollate)> COLLATE <collation><endif>
           }; separator=", ">
           <else>doc nvarchar(max)
@@ -320,7 +323,7 @@ public class AzureSynapsePdao {
       SELECT DISTINCT [Element] AS [<refCol>]
           FROM [<tableName>]
           /* Note, refIds can be either UUIDs or drs ids, which is why we are extracting Element as a large value */
-          CROSS APPLY OPENJSON([<refCol>]) WITH (Element VARCHAR(8000) '$') AS ARRAY_VALUES
+          CROSS APPLY OPENJSON([<refCol>]) WITH (Element VARCHAR(max) '$') AS ARRAY_VALUES
           WHERE [<refCol>] IS NOT NULL
           AND [Element] IS NOT NULL;""";
 
@@ -350,7 +353,7 @@ public class AzureSynapsePdao {
                   FROM OPENROWSET(BULK '<parquetFileLocation>',
                                 DATA_SOURCE = '<datasource>',
                                 FORMAT='PARQUET') WITH (
-                                  <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(8000)<else><c.synapseDataType><endif>
+                                  <columns:{c|[<c.name>] <if(c.requiresTypeCast)>varchar(max)<else><c.synapseDataType><endif>
                                   <if(c.requiresCollate)> COLLATE <collation><endif>
                                   }; separator=", ">
                                  ) AS rows
@@ -512,7 +515,7 @@ public class AzureSynapsePdao {
     return Optional.of(drsId.getFsObjectId());
   }
 
-  public List<String> getRefIdsForSnapshot(Snapshot snapshot) {
+  public Set<String> getRefIdsForSnapshot(Snapshot snapshot) {
     return snapshot.getTables().stream()
         .filter(table -> table.getRowCount() > 0)
         .flatMap(
@@ -526,7 +529,7 @@ public class AzureSynapsePdao {
                       column ->
                           getRefIds(tableName, column, snapshot.getCollectionType()).stream());
             })
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
   }
 
   public String getOrCreateExternalDataSourceForResource(
@@ -1390,6 +1393,20 @@ public class AzureSynapsePdao {
         resultSet.next();
         return resultSet.getInt(1);
       }
+    }
+  }
+
+  public interface Converter<T> {
+    T convert(ResultSet rs) throws SQLException;
+  }
+
+  // WARNING: SQL string must be sanitized before calling this method
+  public <T> List<T> runQuery(String sql, Converter<? extends T> converter) {
+    try {
+      return synapseJdbcTemplate.query(sql, (rs, rowNum) -> converter.convert(rs));
+    } catch (DataAccessException ex) {
+      logger.warn(QUERY_EMPTY_TABLE_ERROR_MESSAGE, ex);
+      return new ArrayList<>();
     }
   }
 

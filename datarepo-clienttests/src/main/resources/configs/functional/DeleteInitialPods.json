@@ -1,7 +1,7 @@
 {
   "name": "DeleteInitialPods",
   "description": "Two bulk file loads on two 2 different datasets, while incrementally deleting all initially created pods",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "integration-6.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 3

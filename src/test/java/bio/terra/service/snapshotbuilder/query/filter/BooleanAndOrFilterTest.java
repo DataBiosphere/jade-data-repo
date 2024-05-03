@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.Filter;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import java.util.List;
@@ -20,7 +21,7 @@ class BooleanAndOrFilterTest {
     var subFilterVariable =
         new FilterVariable() {
           @Override
-          public String renderSQL() {
+          public String renderSQL(SqlRenderContext context) {
             return "sql";
           }
         };

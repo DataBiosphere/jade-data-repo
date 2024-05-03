@@ -30,10 +30,6 @@ info:
 servers:
   - url: /
 security:
-  - googleoauth:
-      - openid
-      - email
-      - profile
   - oidc:
       - openid
       - email
@@ -524,6 +520,17 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/Tag'
+        - name: duosDatasetIds
+          in: query
+          description: >
+            Filter the results where snapshots have been linked to one of these DUOS datasetIds
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/DuosId'
       responses:
         200:
           description: List of snapshots
@@ -3010,14 +3017,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotRequests:
+  /api/repository/v1/snapshotAccessRequests:
     get:
       tags:
-        - datasets
+        - SnapshotAccessRequest
       description: As an admin for this dataset, view all snapshot requests for this dataset.
-      operationId: enumerateSnapshotRequests
-      parameters:
-        - $ref: '#/components/parameters/Id'
+      operationId: enumerateSnapshotAccessRequests
       responses:
         200:
           description: The snapshot requests have been retrieved.
@@ -3057,12 +3062,10 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     post:
       tags:
-        - datasets
+        - SnapshotAccessRequest
       description: As a researcher, create a snapshot request for a dataset, given a set of criteria
         and required concept sets and values.
-      operationId: createSnapshotRequest
-      parameters:
-        - $ref: '#/components/parameters/Id'
+      operationId: createSnapshotAccessRequest
       requestBody:
         description: Description of the snapshot being requested.
         content:
@@ -3981,113 +3984,6 @@ paths:
       x-codegen-request-body-name: upgrade
 
 ##############################################################################
-## SEARCH API STANDARD ENDPOINTS
-##############################################################################
-
-  /api/repository/v1/search/{id}/index:
-    post:
-      tags:
-        - search
-        - snapshots
-        - repository
-      description: Create a new search index for a snapshot
-      operationId: createSearchIndex
-      parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
-      requestBody:
-        description: Index to create from SQL
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SearchIndexRequest'
-        required: true
-      responses:
-        200:
-          description: Return index result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchIndexModel'
-        400:
-          description: Bad request - invalid id, badly formed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: No permission to see snapshot
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: Not found - snapshot id does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-
-  /api/repository/v1/search/query:
-    post:
-      tags:
-        - search
-        - snapshots
-        - repository
-      description: Run a query on the metadata of one or more snapshots
-      operationId: querySearchIndices
-      parameters:
-        - name: offset
-          in: query
-          description: The number of results to skip before retrieving the next
-            page
-          schema:
-            type: integer
-            default: 0
-        - name: limit
-          in: query
-          description: The number of search results to return
-          schema:
-            type: integer
-            default: 1000
-      requestBody:
-        description: Search query to run against one or more snapshots
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SearchQueryRequest'
-        required: true
-      responses:
-        200:
-          description: List of search results
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchQueryResultModel'
-        400:
-          description: Bad request - one or more invalid ids, badly formed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: No permission to see one or more snapshots
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: Not found - one or more snapshot ids do not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-
-##############################################################################
 ## DRS STANDARD ENDPOINTS
 ##############################################################################
   /ga4gh/drs/v1/service-info:
@@ -4556,6 +4452,94 @@ paths:
   ## SNAPSHOT BUILDER API ENDPOINTS
   ## ⚠️ NOTE: ALL SNAPSHOT APIS ARE SUBJECT TO CHANGE
   ##############################################################################
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/settings:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Get the snapshot builder settings for a snapshot.
+      operationId: getSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: The snapshot builder settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderSettings'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Updates the snapshot builder settings for a snapshot.
+      operationId: updateSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New settings for the snapshot to use for snapshot building
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotBuilderSettings'
+        required: true
+      responses:
+        200:
+          description: The updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderSettings'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    delete:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Removes the snapshot builder settings for a snapshot.
+      operationId: deleteSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Settings were deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/snapshotBuilder/settings:
     post:
       tags:
@@ -4658,7 +4642,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: Unauthorized - missing permissions to update snapshot builder settings.
+          description: Unauthorized - missing permissions to view snapshot builder settings.
           content:
             application/json:
               schema:
@@ -4675,6 +4659,132 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{domainId}/search:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Searches concepts of the specified domain that match the given searchText.
+      operationId: searchConcepts
+      parameters:
+        - in: path
+          description: The UUID of the dataset.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          description: The concept ID of the domain
+          name: domainId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          description: User specified text to search concepts for.
+          name: searchText
+          schema:
+            type: string
+      responses:
+        200:
+          description: The concepts of the specified domain that match the given text.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderGetConceptsResponse'
+        400:
+          description: Bad request - invalid id, badly formed IamResourceType.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - dataset does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to update snapshot builder settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No dataset or domain found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/repository/v1/datasets/{id}/snapshotBuilder/conceptHierarchy/{conceptId}:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: >
+        Given a concept ID, return the tree of concepts that contain this concept. A tree
+        is represented as a list of parent IDs and their children, which are concepts.
+      operationId: getConceptHierarchy
+      parameters:
+        - in: path
+          description: The UUID of the dataset.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          description: A dataset concept id.
+          name: conceptId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: The concepts that define the hierarchy that contain this concept.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderGetConceptHierarchyResponse'
+        400:
+          description: Bad request - invalid id, badly formed IamResourceType.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - dataset does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to view snapshot builder settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No dataset found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
   /api/repository/v1/datasets/{id}/snapshotBuilder/count:
     post:
       tags:
@@ -5390,6 +5500,12 @@ components:
             an array of json metadata records to ingest
         format:
           type: string
+          description: >
+            format of the data to ingest.  Currently supported formats are `csv`, `json`, and `array`
+            `array` indicates loading from a JSON object payload in the records field.
+
+            Note: when ingesting from a CSV file into an Azure dataset, no string or text field may be
+            larger than 8000 bytes
           enum:
             - csv
             - json
@@ -6227,6 +6343,8 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
+        duosId:
+          $ref: '#/components/schemas/DuosId'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -7127,6 +7245,82 @@ components:
             $ref:
               '#/components/schemas/SnapshotBuilderDatasetConceptSet'
 
+    SnapshotBuilderOption:
+      type: object
+      required:
+        - kind
+        - id
+        - name
+        - tableName
+        - columnName
+      properties:
+        kind:
+          type: string
+          enum: [ list, range, domain ]
+        name:
+          type: string
+        id:
+          description: the ID of either the domain or program data entry
+          type: integer
+        tableName:
+          type: string
+        columnName:
+          type: string
+      discriminator:
+        propertyName: kind
+        mapping:
+          list: '#/components/schemas/SnapshotBuilderProgramDataOption'
+          range: '#/components/schemas/SnapshotBuilderProgramDataOption'
+          domain: '#/components/schemas/SnapshotBuilderDomainOption'
+
+    SnapshotBuilderProgramDataOption:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderOption'
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum: [ list, range ]
+      discriminator:
+        propertyName: kind
+        mapping:
+          list: 'SnapshotBuilderProgramDataListOption'
+          range: 'SnapshotBuilderProgramDataRangeOption'
+
+    SnapshotBuilderProgramDataListOption:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
+        - type: object
+          properties:
+            values:
+              type: array
+              items:
+                $ref: '#/components/schemas/SnapshotBuilderProgramDataListItem'
+      description: List format program data, part of a CriteriaGroup.
+
+    SnapshotBuilderProgramDataListItem:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+        id:
+          description: the ID of the list item in the specified table
+          type: integer
+
+    SnapshotBuilderProgramDataRangeOption:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
+        - type: object
+          properties:
+            min:
+              type: integer
+            max:
+              type: integer
+      description: List format program data, part of a CriteriaGroup.
+
     SnapshotBuilderDatasetConceptSet:
       type: object
       description: >
@@ -7139,26 +7333,24 @@ components:
           type: string
         featureValueGroupName:
           type: string
+        concept:
+          $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderDomainOption:
-      type: object
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderOption'
+        - type: object
+          required:
+            - root
+          properties:
+            root:
+              $ref: '#/components/schemas/SnapshotBuilderConcept'
+            conceptCount:
+              type: integer
+            participantCount:
+              type: integer
       description: >
         ⚠️ An object describing high level information about a domain for use in the snapshot builder
-      required:
-        - id
-        - category
-        - root
-      properties:
-        id:
-          type: integer
-        category:
-          type: string
-        conceptCount:
-          type: integer
-        participantCount:
-          type: integer
-        root:
-          $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderGetConceptsResponse:
       type: object
@@ -7174,6 +7366,18 @@ components:
         sql:
           type: string
 
+    SnapshotBuilderParentConcept:
+      type: object
+      description: >
+        ⚠️ An object describing a parent concept in the Snapshot Builder
+      properties:
+        parentId:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderConcept'
+
     SnapshotBuilderConcept:
       type: object
       description: >
@@ -7185,6 +7389,8 @@ components:
       properties:
         id:
           type: integer
+        code:
+          type: string
         name:
           type: string
         count:
@@ -7192,26 +7398,15 @@ components:
         hasChildren:
           type: boolean
 
-    SnapshotBuilderProgramDataOption:
+    SnapshotBuilderGetConceptHierarchyResponse:
       type: object
       description: >
-        ⚠️ An object describing high level information about program data for use in the snapshot builder
-      required:
-        - id
-        - name
-        - kind
+        ⚠️ The response object for the getConceptHierarchy endpoint
       properties:
-        id:
-          type: integer
-        name:
-          type: string
-        tableName:
-          type: string
-        columnName:
-          type: string
-        kind:
-          type: string
-          enum: [ range, list ]
+        result:
+          type: array
+          items:
+             $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
     SnapshotBuilderFeatureValueGroup:
       type: object
@@ -7235,45 +7430,17 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/EnumerateSnapshotAccessRequestItem'
-
-    EnumerateSnapshotAccessRequestItem:
-      type: object
-      description: The model for SnapshotAccessRequests when enumerated in a response.
-      required:
-        - id
-        - status
-        - createdDate
-        - name
-        - researchPurpose
-      properties:
-        id:
-          $ref: '#/components/schemas/UniqueIdProperty'
-        status:
-          $ref: '#/components/schemas/SnapshotAccessRequestStatus'
-        createdDate:
-          type: string
-        name:
-          type: string
-        researchPurpose:
-          type: string
+            $ref: '#/components/schemas/SnapshotAccessRequestResponse'
 
     SnapshotAccessRequestResponse:
       type: object
       description: The response object for a submitted SnapshotAccessRequest.
-      required:
-        - id
-        - datasetId
-        - snapshotName
-        - snapshotResearchPurpose
-        - snapshotSpecification
-        - createdBy
-        - createdDate
-        - status
       properties:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        sourceSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
         snapshotName:
           type: string
@@ -7316,6 +7483,9 @@ components:
     SnapshotAccessRequest:
       type: object
       properties:
+        sourceSnapshotId:
+          type: string
+          format: uuid
         name:
           type: string
         researchPurposeStatement:
@@ -7373,100 +7543,59 @@ components:
       type: object
       required:
         - kind
+        - id
       properties:
         kind:
           type: string
           enum: [ list, range, domain ]
-        name:
-          type: string
         id:
-          type: number
+          description: the ID of either the domain or program data entry
+          type: integer
       discriminator:
         propertyName: kind
         mapping:
           list: '#/components/schemas/SnapshotBuilderProgramDataListCriteria'
           range: '#/components/schemas/SnapshotBuilderProgramDataRangeCriteria'
-          domain: '#/components/schemas/SnapshotBuilderCriteria'
+          domain: '#/components/schemas/SnapshotBuilderDomainCriteria'
 
     SnapshotBuilderProgramDataListCriteria:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - values
           properties:
             values:
               type: array
               items:
-                type: number
+                type: integer
       description: List format program data, part of a CriteriaGroup.
 
     SnapshotBuilderProgramDataRangeCriteria:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - low
+            - high
           properties:
             low:
-              type: number
+              type: integer
             high:
-              type: number
+              type: integer
       description: Range format program data, part of a CriteriaGroup.
 
-    ##############################################################################
-    ## SEARCH API STANDARD MODELS
-    ##############################################################################
-    SearchIndexRequest:
-      required:
-        - sql
-      type: object
-      properties:
-        sql:
-          type: string
-          description: >
-            SQL to index BigQuery columns for searching
-    SearchIndexModel:
-      type: object
-      properties:
-        indexSummary:
-          type: string
-          description: Summary of this index for searching
-    SearchMetadataModel:
-      type: object
-      properties:
-        metadataSummary:
-          type: string
-          description: Summary of this metadata for searching
-    SearchQueryRequest:
-      required:
-        - query
-      type: object
-      properties:
-        snapshotIds:
-          type: array
-          items:
-            $ref: '#/components/schemas/UniqueIdProperty'
-        query:
-          type: string
-          description: >
-            Query to search against snapshot indices
-    SearchQueryResultModel:
-      type: object
-      properties:
-        result:
-          type: array
-          items:
-            type: object
-            additionalProperties:
-              type: string
-          description: Results that match the search criteria
-      description: >
-        The available search results that match the filter criteria
-    SearchMetadataResponse:
-      type: object
-      properties:
-        result:
-          type: array
-          items:
-            type: object
-      description: List of snapshot metadata
+    SnapshotBuilderDomainCriteria:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderCriteria'
+        - type: object
+          required:
+            - conceptId
+          properties:
+            conceptId:
+              type: integer
+      description: Selection of a domain concept id, part of a CriteriaGroup.
+
     DuosFirecloudGroupModel:
       type: object
       description: >
@@ -7857,7 +7986,7 @@ components:
           description: A note about the journal entry
     IamResourceTypeEnum:
       type: string
-      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE ]
+      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE, SNAPSHOT_BUILDER_REQUEST ]
       description: >
         The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile.  DATAREPO and WORKSPACE are not implemented at this time but are included in the list for completeness.
   parameters:
@@ -7946,16 +8075,6 @@ components:
         type: string
         format: uuid
   securitySchemes:
-    googleoauth:
-      type: oauth2
-      flows:
-        implicit:
-          authorizationUrl: https://accounts.google.com/o/oauth2/auth
-          scopes:
-            openid: open id authorization
-            email: email authorization
-            profile: profile authorization
-            https://www.googleapis.com/auth/cloud-billing.readonly: cloud billing authorization
     oidc:
       type: oauth2
       flows:

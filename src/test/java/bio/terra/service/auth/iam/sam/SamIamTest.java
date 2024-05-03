@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
@@ -39,6 +40,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,6 +55,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SubsystemStatus;
@@ -69,8 +72,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SamIamTest {
+@Tag(Unit.TAG)
+class SamIamTest {
 
   @Mock private SamApiService samApiService;
   @Mock private GoogleApi samGoogleApi;
@@ -79,25 +82,19 @@ public class SamIamTest {
   private SamIam samIam;
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
   private final SamConfiguration samConfig =
-      new SamConfiguration(
-          "https://sam.dsde-dev.broadinstitute.org",
-          "samStewardsGroupEmail@a.com",
-          ADMIN_EMAIL,
-          10,
-          30,
-          60);
+      new SamConfiguration("https://sam.dsde-dev.broadinstitute.org", ADMIN_EMAIL, 10, 30, 60);
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     GoogleResourceConfiguration resourceConfiguration =
         new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     samIam =
         new SamIam(
             samConfig,
             new ConfigurationService(
-                samConfig, null, resourceConfiguration, new ApplicationConfiguration()),
+                samConfig, resourceConfiguration, new ApplicationConfiguration()),
             samApiService);
   }
 
@@ -538,6 +535,33 @@ public class SamIamTest {
     }
 
     @Test
+    void testCreateSnapshotBuilderRequest() throws InterruptedException, ApiException {
+      mockUserInfo(TEST_USER.getSubjectId(), TEST_USER.getEmail());
+
+      final UUID snapshotId = UUID.randomUUID();
+      final UUID snapshotBuilderRequestId = UUID.randomUUID();
+      final CreateResourceRequestV2 request =
+          new CreateResourceRequestV2()
+              .parent(
+                  new FullyQualifiedResourceId()
+                      .resourceTypeName(IamResourceType.DATASNAPSHOT.toString())
+                      .resourceId(snapshotId.toString()))
+              .resourceId(snapshotBuilderRequestId.toString())
+              .policies(
+                  Map.of(
+                      IamRole.OWNER.toString(),
+                      new AccessPolicyMembershipRequest()
+                          .roles(List.of(IamRole.OWNER.toString()))
+                          .memberEmails(List.of(TEST_USER.getEmail()))));
+      assertThat(
+          samIam.createSnapshotBuilderRequestResource(
+              TEST_USER, snapshotId, snapshotBuilderRequestId),
+          is(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail()))));
+      verify(samResourceApi)
+          .createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), request);
+    }
+
+    @Test
     void testCreateProfile() throws InterruptedException, ApiException {
       final UUID profileId = UUID.randomUUID();
       final String userSubjectId = "userid";
@@ -546,11 +570,14 @@ public class SamIamTest {
 
       CreateResourceRequestV2 req = new CreateResourceRequestV2();
       req.setResourceId(profileId.toString());
-      req.putPoliciesItem(
-          IamRole.ADMIN.toString(),
-          new AccessPolicyMembershipRequest()
-              .memberEmails(List.of(samConfig.adminsGroupEmail()))
-              .roles(List.of(IamRole.ADMIN.toString())));
+      Optional.ofNullable(samConfig.adminsGroupEmail())
+          .ifPresent(
+              adminsGroupEmail ->
+                  req.putPoliciesItem(
+                      IamRole.ADMIN.toString(),
+                      new AccessPolicyMembershipRequest()
+                          .memberEmails(List.of(adminsGroupEmail))
+                          .roles(List.of(IamRole.ADMIN.toString()))));
       req.putPoliciesItem(
           IamRole.OWNER.toString(),
           new AccessPolicyMembershipRequest()
@@ -691,20 +718,24 @@ public class SamIamTest {
                             {GooglePubSub=class SubsystemStatus {
                                 ok: true
                                 messages: null
+                                additionalProperties: null
                             }}""")));
     }
 
     @Test
     void testGetStatusException() throws ApiException {
-      when(samStatusApi.getSystemStatus()).thenThrow(new ApiException("BOOM!"));
-      assertThat(
-          samIam.samStatus(),
-          is(
-              new RepositoryStatusModelSystems()
-                  .ok(false)
-                  .message(
-                      "Sam status check failed: bio.terra.service.auth.iam.exception.IamInternalServerErrorException: "
-                          + "BOOM!")));
+      when(samStatusApi.getSystemStatus()).thenThrow(new ApiException("BOOM!", 502, null, null));
+      var expected =
+          new RepositoryStatusModelSystems()
+              .ok(false)
+              .message(
+                  """
+                      Sam status check failed: bio.terra.service.auth.iam.exception.IamInternalServerErrorException: Message: BOOM!
+                      HTTP response code: 502
+                      HTTP response body: null
+                      HTTP response headers: null""");
+      var result = samIam.samStatus();
+      assertThat(result, equalTo(expected));
     }
   }
 

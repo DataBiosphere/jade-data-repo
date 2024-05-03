@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -18,16 +17,13 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 public class TableFileDaoTest {
@@ -37,7 +33,7 @@ public class TableFileDaoTest {
 
   @Mock private TableServiceClient tableServiceClient;
   @Mock private TableClient tableClient;
-  private final TableFileDao dao = new TableFileDao(mock(ExecutorService.class));
+  private final TableFileDao dao = new TableFileDao(Runnable::run);
   private final TableEntity entity =
       new TableEntity(PARTITION_KEY, FILE_ID)
           .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, FILE_ID)

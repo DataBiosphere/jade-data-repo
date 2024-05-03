@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.CloudResource;
@@ -27,30 +28,28 @@ import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetPatchRequestModel;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ResourceCreateTags;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.duos.DuosClient;
 import bio.terra.service.duos.DuosDao;
+import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
@@ -70,6 +69,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -82,6 +82,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class SnapshotDaoTest {
 
   @Autowired private SnapshotDao snapshotDao;
+
+  @Autowired private SnapshotTableDao snapshotTableDao;
 
   @Autowired private DatasetDao datasetDao;
 
@@ -96,6 +98,14 @@ public class SnapshotDaoTest {
   @Autowired private DuosDao duosDao;
 
   @Autowired private DrsDao drsDao;
+
+  @Autowired private DaoOperations daoOperations;
+
+  @MockBean private DuosClient duosClient;
+
+  @MockBean private DuosService duosService;
+
+  @MockBean private IamService iamService;
 
   private Dataset dataset;
   private UUID datasetId;
@@ -112,36 +122,13 @@ public class SnapshotDaoTest {
 
   @Before
   public void setup() throws Exception {
-    BillingProfileModel billingProfile =
-        profileDao.createBillingProfile(ProfileFixtures.randomBillingProfileRequest(), "hi@hi.hi");
-    profileId = billingProfile.getId();
-
-    GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
-    projectId = resourceDao.createProject(projectResource);
-
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject(
-            "snapshot-test-dataset-with-multi-columns.json", DatasetRequestModel.class);
-    datasetRequest
-        .name(datasetRequest.getName() + UUID.randomUUID())
-        .defaultProfileId(profileId)
-        .cloudPlatform(CloudPlatform.GCP);
-
-    dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-    dataset.projectResourceId(projectId);
-
-    String createFlightId = UUID.randomUUID().toString();
-    datasetId = UUID.randomUUID();
-    dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
-    datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-    dataset = datasetDao.retrieve(datasetId);
+    dataset = daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
+    datasetId = dataset.getId();
+    projectId = dataset.getProjectResource().getId();
+    profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
-        jsonLoader
-            .loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
-            .profileId(profileId);
-    snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
+        daoOperations.createSnapshotRequestFromDataset(dataset, "snapshot-test-snapshot.json");
 
     snapshotIds = new ArrayList<>();
     datasetIds = new ArrayList<>();
@@ -171,23 +158,13 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {
-    UUID snapshotId = UUID.randomUUID();
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(request)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-
-    String createFlightId = UUID.randomUUID().toString();
-
-    return insertAndRetrieveSnapshot(snapshot, createFlightId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, projectId);
+    return insertAndRetrieveSnapshot(snapshot);
   }
 
-  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
-    snapshotDao.createAndLock(snapshot, flightId);
-    snapshotDao.unlock(snapshot.getId(), flightId);
+  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot) {
     snapshotIds.add(snapshot.getId());
-    return snapshotDao.retrieveSnapshot(snapshot.getId());
+    return daoOperations.ingestSnapshot(snapshot);
   }
 
   @Test
@@ -202,12 +179,8 @@ public class SnapshotDaoTest {
   public void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(UUID.randomUUID());
-    Snapshot fromDb = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot fromDb = insertAndRetrieveSnapshot(snapshot);
     assertThat("snapshot name set correctly", fromDb.getName(), equalTo(snapshot.getName()));
 
     assertThat(
@@ -248,22 +221,14 @@ public class SnapshotDaoTest {
         source.getSnapshotMapTables().stream()
             .filter(t -> t.getFromTable().getName().equals("thetable"))
             .findFirst()
-            .orElseThrow(AssertionError::new);
+            .orElseThrow();
     Table datasetTable =
         dataset.getTables().stream()
             .filter(t -> t.getName().equals("thetable"))
             .findFirst()
-            .orElseThrow(AssertionError::new);
-    Table snapshotTable1 =
-        snapshot.getTables().stream()
-            .filter(t -> t.getName().equals("thetable"))
-            .findFirst()
-            .orElseThrow(AssertionError::new);
-    Table snapshotTable2 =
-        snapshot.getTables().stream()
-            .filter(t -> t.getName().equals("anothertable"))
-            .findFirst()
-            .orElseThrow(AssertionError::new);
+            .orElseThrow();
+    SnapshotTable snapshotTable1 = fromDb.getTableByName("thetable").orElseThrow();
+    SnapshotTable snapshotTable2 = fromDb.getTableByName("anothertable").orElseThrow();
 
     assertThat(
         "correct map table dataset table",
@@ -318,6 +283,17 @@ public class SnapshotDaoTest {
         "Second table columns are in descending order of name",
         snapshotTable2.getColumns().stream().map(Column::getName).toList(),
         contains("anothercolumn3", "anothercolumn2", "anothercolumn1"));
+
+    // Verify snapshot column can be fetched by individual table
+    assertThat(
+        "First table columns can be fetched",
+        snapshotTableDao.retrieveColumns(snapshotTable1),
+        equalTo(snapshotTable1.getColumns()));
+
+    assertThat(
+        "Second table columns can be fetched",
+        snapshotTableDao.retrieveColumns(snapshotTable2),
+        equalTo(snapshotTable2.getColumns()));
   }
 
   @Test
@@ -339,10 +315,17 @@ public class SnapshotDaoTest {
       } else {
         snapshotRequest.tags(null);
       }
-      createSnapshot(snapshotRequest);
+      Snapshot snapshot = createSnapshot(snapshotRequest);
+      // set a DUOS ID on the first 2 snapshots
+      if (i <= 1) {
+        DuosFirecloudGroupModel duosGroupMode = duosDao.retrieveFirecloudGroupByDuosId(duosId);
+        when(duosService.syncDuosDatasetAuthorizedUsers(duosId)).thenReturn(duosGroupMode);
+        snapshotService.updateSnapshotDuosDataset(snapshot.getId(), TEST_USER, duosId);
+      }
     }
     MetadataEnumeration<SnapshotSummary> allSnapshots =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, null, null);
 
     for (var snapshotSummary : allSnapshots.getItems()) {
       assertThat(
@@ -381,6 +364,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> filteredSnapshotsById = filterIdEnum.getItems();
     assertThat("snapshot filter by id returns one snapshot", filteredSnapshotsById, hasSize(1));
@@ -399,6 +383,7 @@ public class SnapshotDaoTest {
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
     assertThat(
@@ -426,6 +411,7 @@ public class SnapshotDaoTest {
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> filteredNameAndRegionSnapshots = filterNameAndRegionEnum.getItems();
     assertThat(
@@ -459,6 +445,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("filtered and retrieved 2 snapshots", summaryList, hasSize(2));
@@ -469,17 +456,20 @@ public class SnapshotDaoTest {
     }
 
     MetadataEnumeration<SnapshotSummary> emptyEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, "__", null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, "__", null, datasetIds, snapshotIds, null, null);
     assertThat("underscores don't act as wildcards", emptyEnum.getItems(), empty());
 
     MetadataEnumeration<SnapshotSummary> summaryEnum0 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 10, null, null, null, null, datasetIds, snapshotIds, null, null);
     assertThat("no dataset uuid gives all snapshots", summaryEnum0.getTotal(), equalTo(6));
 
     // use the original dataset id and make sure you get all snapshots
     datasetIds = singletonList(datasetId);
     MetadataEnumeration<SnapshotSummary> summaryEnum1 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 10, null, null, null, null, datasetIds, snapshotIds, null, null);
     assertThat(
         "expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(6));
 
@@ -487,14 +477,15 @@ public class SnapshotDaoTest {
     List<UUID> datasetIdsBad = singletonList(UUID.randomUUID());
     MetadataEnumeration<SnapshotSummary> summaryEnum2 =
         snapshotDao.retrieveSnapshots(
-            0, 10, null, null, null, null, datasetIdsBad, snapshotIds, null);
+            0, 10, null, null, null, null, datasetIdsBad, snapshotIds, null, null);
     assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
 
     // Test filtering by tags
 
     // Filtering on all tags for a snapshot returns the snapshot
     MetadataEnumeration<SnapshotSummary> filteredAllTagsMatchEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, tags, null);
     List<SnapshotSummary> filteredAllTagsMatchSnapshots = filteredAllTagsMatchEnum.getItems();
     assertThat(
         "snapshot filter by tags returns correct filtered total",
@@ -509,12 +500,34 @@ public class SnapshotDaoTest {
         filteredAllTagsMatchEnum.getTotal(),
         equalTo(6));
 
+    // Test filtering on DUOS IDs
+    MetadataEnumeration<SnapshotSummary> filteredDuosIdsMatchEnum =
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, null, List.of(duosId));
+    List<SnapshotSummary> filteredDuosIdsMatchSnapshots = filteredDuosIdsMatchEnum.getItems();
+    assertThat(
+        "snapshot filter by duosid returns correct filtered total",
+        filteredDuosIdsMatchSnapshots,
+        hasSize(2));
+    assertThat(
+        "snapshot filter by duosid returns correct snapshot",
+        filteredDuosIdsMatchSnapshots.stream().map(SnapshotSummary::getId).sorted().toList(),
+        equalTo(snapshotIds.subList(0, 2).stream().sorted().toList()));
+    assertThat(
+        "each returned snapshot has the correct duos id",
+        filteredDuosIdsMatchSnapshots.stream().map(SnapshotSummary::getDuosId).distinct().toList(),
+        equalTo(List.of(duosId)));
+    assertThat(
+        "snapshot filter by tags returns correct total",
+        filteredDuosIdsMatchEnum.getTotal(),
+        equalTo(6));
+
     // Filtering on a strict subset of tags for a dataset returns the dataset
     tags.forEach(
         tag -> {
           MetadataEnumeration<SnapshotSummary> filteredSubsetTagsMatchEnum =
               snapshotDao.retrieveSnapshots(
-                  0, 6, null, null, null, null, datasetIds, snapshotIds, List.of(tag));
+                  0, 6, null, null, null, null, datasetIds, snapshotIds, List.of(tag), null);
           List<SnapshotSummary> filteredSubsetTagsMatchSnapshots =
               filteredSubsetTagsMatchEnum.getItems();
           assertThat(
@@ -535,7 +548,8 @@ public class SnapshotDaoTest {
     // matching tags are included
     tags.add(UUID.randomUUID().toString());
     MetadataEnumeration<SnapshotSummary> incompleteTagMatchEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, tags, null);
     assertThat(
         "snapshot filter by tags excludes snapshot which do not match filter completely",
         incompleteTagMatchEnum.getItems(),
@@ -602,6 +616,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
@@ -623,6 +638,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("the full list comes back", summaryList.size(), equalTo(6));
@@ -650,6 +666,7 @@ public class SnapshotDaoTest {
             null,
             datasetIds,
             snapshotIds,
+            null,
             null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = offset;
@@ -777,13 +794,8 @@ public class SnapshotDaoTest {
     String properties =
         "{\"projectName\":\"project\", " + "\"authors\": [\"harry\", \"ron\", \"hermionie\"]}";
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).properties(properties);
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(UUID.randomUUID());
-    String flightId = UUID.randomUUID().toString();
-    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, flightId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot);
     assertThat(
         "snapshot properties set correctly",
         fromDB.getProperties(),
@@ -1064,7 +1076,8 @@ public class SnapshotDaoTest {
         equalTo(flightId));
 
     MetadataEnumeration<SnapshotSummary> snapshotEnumeration =
-        snapshotDao.retrieveSnapshots(0, 1, null, null, null, null, datasetIds, snapshotIds, null);
+        snapshotDao.retrieveSnapshots(
+            0, 1, null, null, null, null, datasetIds, snapshotIds, null, null);
     assertThat(snapshotEnumeration.getTotal(), equalTo(1));
     SnapshotSummary lockedSnapshotSummaryEnumerationItem = snapshotEnumeration.getItems().get(0);
     String lockedSnapshotSummaryEnumerationItemExclusiveLock =

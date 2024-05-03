@@ -30,6 +30,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -85,6 +86,7 @@ import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -125,6 +127,7 @@ public class SnapshotService {
   private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
+  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
   public SnapshotService(
       JobService jobService,
@@ -138,7 +141,8 @@ public class SnapshotService {
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
-      DuosClient duosClient) {
+      DuosClient duosClient,
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -151,6 +155,7 @@ public class SnapshotService {
     this.azureSynapsePdao = azureSynapsePdao;
     this.rawlsService = rawlsService;
     this.duosClient = duosClient;
+    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
   /**
@@ -380,7 +385,8 @@ public class SnapshotService {
       String filter,
       String region,
       List<UUID> datasetIds,
-      List<String> tags) {
+      List<String> tags,
+      List<String> duosIds) {
     List<ErrorModel> errors = new ArrayList<>();
     Map<UUID, Set<IamRole>> idsAndRoles = listAuthorizedSnapshots(userReq, errors);
     if (idsAndRoles.isEmpty()) {
@@ -388,7 +394,16 @@ public class SnapshotService {
     }
     var enumeration =
         snapshotDao.retrieveSnapshots(
-            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet(), tags);
+            offset,
+            limit,
+            sort,
+            direction,
+            filter,
+            region,
+            datasetIds,
+            idsAndRoles.keySet(),
+            tags,
+            duosIds);
     List<SnapshotSummaryModel> models =
         enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
 
@@ -1199,6 +1214,7 @@ public class SnapshotService {
             "",
             "",
             List.of(datasetId),
+            List.of(),
             List.of())
         .getItems()
         .stream()
@@ -1227,5 +1243,18 @@ public class SnapshotService {
             userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId)
         .submitAndWait(ResourceLocks.class);
+  }
+
+  public void updateSnapshotBuilderSettings(
+      UUID snapshotId, SnapshotBuilderSettings snapshotBuilderSettings) {
+    snapshotBuilderSettingsDao.upsertBySnapshotId(snapshotId, snapshotBuilderSettings);
+  }
+
+  public SnapshotBuilderSettings getSnapshotBuilderSettings(UUID snapshotId) {
+    return snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
+  }
+
+  public void deleteSnapshotBuilderSettings(UUID snapshotId) {
+    snapshotBuilderSettingsDao.deleteBySnapshotId(snapshotId);
   }
 }

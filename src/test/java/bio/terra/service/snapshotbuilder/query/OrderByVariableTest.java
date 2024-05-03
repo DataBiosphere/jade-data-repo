@@ -4,10 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
-import java.util.List;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
 class OrderByVariableTest {
@@ -16,26 +16,27 @@ class OrderByVariableTest {
   private static FieldVariable createVariable() {
     TablePointer table = TablePointer.fromTableName("table");
     TableVariable tableVariable = TableVariable.forPrimary(table);
-    var fieldVariable = new FieldVariable(new FieldPointer(table, "column"), tableVariable);
-    TableVariable.generateAliases(List.of(tableVariable));
-    return fieldVariable;
+    return new FieldVariable(new FieldPointer(table, "column"), tableVariable);
   }
 
-  @Test
-  void renderSQLAsc() {
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQLAsc(SqlRenderContext context) {
     var orderByVariable = new OrderByVariable(createVariable());
-    assertThat(orderByVariable.renderSQL(false), is("t.column ASC"));
+    assertThat(orderByVariable.renderSQL(false, context), is("t.column ASC"));
   }
 
-  @Test
-  void renderSQLDesc() {
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQLDesc(SqlRenderContext context) {
     var orderByVariable = new OrderByVariable(createVariable(), OrderByDirection.DESCENDING);
-    assertThat(orderByVariable.renderSQL(false), is("t.column DESC"));
+    assertThat(orderByVariable.renderSQL(false, context), is("t.column DESC"));
   }
 
-  @Test
-  void renderSQLRandom() {
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQLRandom(SqlRenderContext context) {
     var orderByVariable = OrderByVariable.random();
-    assertThat(orderByVariable.renderSQL(true), is("RAND()"));
+    assertThat(orderByVariable.renderSQL(true, context), is("RAND()"));
   }
 }

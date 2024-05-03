@@ -4,6 +4,7 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import org.stringtemplate.v4.ST;
 
 public class SubQueryFilterVariable implements FilterVariable {
@@ -20,11 +21,11 @@ public class SubQueryFilterVariable implements FilterVariable {
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(SqlRenderContext context) {
     return new ST(TEMPLATE)
-        .add("operator", operator.renderSQL())
-        .add("subQuery", subQuery.renderSQL())
-        .add("fieldVariable", fieldVariable.renderSqlForWhere())
+        .add("operator", operator.renderSQL(context))
+        .add("subQuery", subQuery.renderSQL(context))
+        .add("fieldVariable", fieldVariable.renderSQL(context))
         .render();
   }
 
@@ -39,8 +40,12 @@ public class SubQueryFilterVariable implements FilterVariable {
     }
 
     @Override
-    public String renderSQL() {
+    public String renderSQL(SqlRenderContext context) {
       return sql;
     }
+  }
+
+  public static SubQueryFilterVariable in(FieldVariable fieldVariable, Query subQuery) {
+    return new SubQueryFilterVariable(fieldVariable, Operator.IN, subQuery);
   }
 }

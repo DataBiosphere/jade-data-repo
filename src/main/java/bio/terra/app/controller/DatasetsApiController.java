@@ -26,7 +26,6 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -40,10 +39,9 @@ import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirectionAscDefault;
@@ -68,14 +66,14 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -199,7 +197,7 @@ public class DatasetsApiController implements DatasetsApi {
         IamResourceType.DATASET,
         id.toString(),
         IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId));
+    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId, userRequest));
   }
 
   @Override
@@ -208,7 +206,8 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     verifyDatasetAuthorization(
         userRequest, id.toString(), IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.getCountResponse(id, body.getCohorts()));
+    return ResponseEntity.ok(
+        snapshotBuilderService.getCountResponse(id, body.getCohorts(), userRequest));
   }
 
   @Override
@@ -551,28 +550,29 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
+  public ResponseEntity<SnapshotBuilderGetConceptsResponse> searchConcepts(
+      UUID id, Integer domainId, String searchText) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,
         IamResourceType.DATASET,
         id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS); // TODO: change once SQL is sanitized
     return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(
-            id, snapshotAccessRequest, userRequest.getEmail()));
+        snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
   }
 
   @Override
-  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests(UUID id) {
+  public ResponseEntity<SnapshotBuilderGetConceptHierarchyResponse> getConceptHierarchy(
+      UUID id, Integer conceptId) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest,
         IamResourceType.DATASET,
         id.toString(),
         IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.enumerateByDatasetId(id));
+    return ResponseEntity.ok(
+        snapshotBuilderService.getConceptHierarchy(id, conceptId, userRequest));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

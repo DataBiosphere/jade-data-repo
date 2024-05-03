@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -18,9 +19,10 @@ import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.snapshot.Snapshot;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -40,34 +42,33 @@ class SnapshotRequestDaoTest {
   @Autowired private SnapshotRequestDao snapshotRequestDao;
 
   private Dataset dataset;
+  private Snapshot snapshot;
   private SnapshotAccessRequest snapshotAccessRequest;
 
   private static final String EMAIL = "user@gmail.com";
 
   @BeforeEach
   void beforeEach() throws IOException {
-    dataset = daoOperations.createMinimalDataset();
-    snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest();
+    dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
+    snapshot = daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
+    snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest(snapshot.getId());
   }
 
   private SnapshotAccessRequestResponse createRequest() {
-    return snapshotRequestDao.create(dataset.getId(), snapshotAccessRequest, EMAIL);
+    return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
   }
 
   private void verifyResponseContents(SnapshotAccessRequestResponse response) {
-    SnapshotAccessRequestResponse expected = new SnapshotAccessRequestResponse();
-    expected.datasetId(dataset.getId());
-    expected.snapshotName(
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotName());
-    expected.snapshotResearchPurpose(
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotResearchPurpose());
-    expected.snapshotSpecification(SnapshotBuilderTestData.createSnapshotBuilderRequest());
+    SnapshotAccessRequestResponse expected =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshot.getId());
+    expected.sourceSnapshotId(snapshot.getId());
+
     expected.createdBy(EMAIL);
     expected.status(SnapshotAccessRequestStatus.SUBMITTED);
     assertThat(
         "Given response is the same as expected.",
         response,
-        samePropertyValuesAs(expected, "id", "createdDate"));
+        samePropertyValuesAs(expected, "id", "createdDate", "datasetId"));
     assertNotNull(response.getId(), "Snapshot Access Request Response should have an id");
     assertNotNull(
         response.getCreatedDate(),
@@ -87,20 +88,20 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void enumerateByDatasetId() {
+  void enumerate() {
     SnapshotAccessRequestResponse response = createRequest();
     SnapshotAccessRequestResponse response1 = createRequest();
     assertThat(
         "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.enumerateByDatasetId(dataset.getId()),
+        snapshotRequestDao.enumerate(Set.of(response.getId(), response1.getId())),
         contains(response, response1));
   }
 
   @Test
-  void enumerateByDatasetIdNotFound() {
+  void enumerateNotFound() {
     assertThat(
         "For a dataset id that does not exist nothing is returned",
-        snapshotRequestDao.enumerateByDatasetId(UUID.randomUUID()),
+        snapshotRequestDao.enumerate(Set.of()),
         empty());
   }
 
@@ -110,23 +111,25 @@ class SnapshotRequestDaoTest {
     verifyResponseContents(response);
 
     SnapshotAccessRequestResponse response1 =
-        snapshotRequestDao.create(dataset.getId(), snapshotAccessRequest, EMAIL);
+        snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
 
-    Assertions.assertNotEquals(
+    assertNotEquals(
         response1.getId(),
         response.getId(),
         "Snapshot Access Request Response should have unique request id");
-    Assertions.assertNotEquals(
+    assertNotEquals(
         response1.getCreatedDate(),
         response.getCreatedDate(),
         "Snapshot Access Request Response should have unique create date timestamp");
   }
 
   @Test
-  void createDatasetIdNotFound() {
+  void createSnapshotIdNotFound() {
     assertThrows(
         NotFoundException.class,
-        () -> snapshotRequestDao.create(UUID.randomUUID(), snapshotAccessRequest, EMAIL));
+        () ->
+            snapshotRequestDao.create(
+                snapshotAccessRequest.sourceSnapshotId(UUID.randomUUID()), EMAIL));
   }
 
   @Test
@@ -153,17 +156,6 @@ class SnapshotRequestDaoTest {
     assertThrows(
         NotFoundException.class,
         () -> snapshotRequestDao.update(UUID.randomUUID(), SnapshotAccessRequestStatus.APPROVED));
-  }
-
-  @Test
-  void delete() {
-    SnapshotAccessRequestResponse response = createRequest();
-    assertThat(
-        "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.getById(response.getId()),
-        equalTo(response));
-    snapshotRequestDao.delete(response.getId());
-    assertThrows(NotFoundException.class, () -> snapshotRequestDao.getById(response.getId()));
   }
 
   @Test

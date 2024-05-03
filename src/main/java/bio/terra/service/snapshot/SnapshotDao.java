@@ -34,6 +34,7 @@ import bio.terra.service.tags.TaggableResourceDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -43,6 +44,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
@@ -142,6 +144,7 @@ public class SnapshotDao implements TaggableResourceDao {
    * @throws SnapshotLockException if the snapshot is locked by another flight
    * @throws SnapshotNotFoundException if the snapshot does not exist
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void lock(UUID snapshotId, String flightId) {
     if (flightId == null) {
@@ -180,6 +183,7 @@ public class SnapshotDao implements TaggableResourceDao {
    * @param flightId flight id that wants to unlock the snapshot
    * @return true if a snapshot was unlocked, false otherwise
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean unlock(UUID snapshotId, String flightId) {
     // update the snapshot entry to remove the flightid IF it is currently set to this flightid
@@ -199,6 +203,7 @@ public class SnapshotDao implements TaggableResourceDao {
    * @param snapshot the snapshot object to create
    * @throws InvalidSnapshotException if a row already exists with this snapshot name
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void createAndLock(Snapshot snapshot, String flightId) {
     logger.debug("createAndLock snapshot " + snapshot.getName());
@@ -279,6 +284,7 @@ public class SnapshotDao implements TaggableResourceDao {
     snapshotRelationshipDao.createSnapshotRelationships(snapshotSource.getSnapshot());
   }
 
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean delete(UUID id) {
     logger.debug("delete snapshot by id: " + id);
@@ -294,6 +300,7 @@ public class SnapshotDao implements TaggableResourceDao {
    * @param snapshotId the snapshot id
    * @return the Snapshot object
    */
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -309,6 +316,7 @@ public class SnapshotDao implements TaggableResourceDao {
     return snapshot;
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -344,6 +352,7 @@ public class SnapshotDao implements TaggableResourceDao {
     }
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -367,6 +376,7 @@ public class SnapshotDao implements TaggableResourceDao {
     }
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -490,6 +500,7 @@ public class SnapshotDao implements TaggableResourceDao {
    *     RAS passports)
    * @return snapshot UUIDs accessible under the permissions
    */
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -522,6 +533,7 @@ public class SnapshotDao implements TaggableResourceDao {
   /**
    * @return a list of all snapshot IDs
    */
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -544,6 +556,7 @@ public class SnapshotDao implements TaggableResourceDao {
    *     service)
    * @return a list of dataset summary objects
    */
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -557,28 +570,29 @@ public class SnapshotDao implements TaggableResourceDao {
       String region,
       List<UUID> datasetIds,
       Collection<UUID> accessibleSnapshotIds,
-      List<String> tags) {
-    logger.debug(
-        "retrieve snapshots offset: "
-            + offset
-            + " limit: "
-            + limit
-            + " sort: "
-            + sort
-            + " direction: "
-            + direction
-            + " filter: "
-            + filter
-            + " datasetIds: "
-            + StringUtils.join(datasetIds, ",")
-            + " tags: "
-            + StringUtils.join(tags, ","));
+      List<String> tags,
+      List<String> duosIds) {
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "retrieve snapshots offset: {} limit: {} sort: {} direction: {} filter: {} datasetIds: {} tags: {} duosIds: {}",
+          offset,
+          limit,
+          sort,
+          direction,
+          filter,
+          String.join(",", datasetIds.stream().map(UUID::toString).toList()),
+          String.join(",", tags),
+          String.join(",", duosIds));
+    }
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
     String joinSql =
-        " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
-            + "JOIN dataset on dataset.id = snapshot_source.dataset_id ";
+        """
+      JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id
+          JOIN dataset ON dataset.id = snapshot_source.dataset_id
+            LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id
+      """;
 
     if (!datasetIds.isEmpty()) {
       String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
@@ -606,6 +620,11 @@ public class SnapshotDao implements TaggableResourceDao {
       throw new IllegalArgumentException(
           "Failed to convert snapshot request tags list to SQL array", e);
     }
+    if (!Objects.requireNonNullElse(duosIds, List.of()).isEmpty()) {
+      String duosIdMatchSql = "dfg.duos_id IN (:duosIds)";
+      whereClauses.add(duosIdMatchSql);
+      params.addValue("duosIds", duosIds);
+    }
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
@@ -624,7 +643,8 @@ public class SnapshotDao implements TaggableResourceDao {
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
             + "snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
             + "snapshot_source.id, "
-            + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+            + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id,"
+            + "dataset.self_hosted, dfg.duos_id,"
             + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
@@ -642,6 +662,7 @@ public class SnapshotDao implements TaggableResourceDao {
         .filteredTotal(filteredTotal);
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -651,11 +672,13 @@ public class SnapshotDao implements TaggableResourceDao {
     try {
       String sql =
           "SELECT snapshot.*, dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
+              + "dfg.duos_id,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + "LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id "
               + "WHERE snapshot.id = :id ";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
@@ -664,6 +687,7 @@ public class SnapshotDao implements TaggableResourceDao {
     }
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -673,12 +697,13 @@ public class SnapshotDao implements TaggableResourceDao {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
               + "snapshot.consent_code, snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
-              + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
+              + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted, dfg.duos_id, "
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + "LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id "
               + "WHERE snapshot_source.dataset_id = :datasetId";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
       return jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -688,6 +713,7 @@ public class SnapshotDao implements TaggableResourceDao {
     }
   }
 
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void updateSnapshotTableRowCounts(Snapshot snapshot, Map<String, Long> tableRowCounts) {
     String sql =
@@ -716,6 +742,7 @@ public class SnapshotDao implements TaggableResourceDao {
    * @param patchRequest updates to merge with existing snapshot
    * @return whether the snapshot record was updated
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean patch(
       UUID id, SnapshotPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
@@ -744,6 +771,7 @@ public class SnapshotDao implements TaggableResourceDao {
     return patchSucceeded;
   }
 
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void updateDuosFirecloudGroupId(UUID id, UUID duosFirecloudGroupId)
       throws SnapshotUpdateException {
@@ -801,7 +829,8 @@ public class SnapshotDao implements TaggableResourceDao {
           .selfHosted(rs.getBoolean("self_hosted"))
           .globalFileIds(rs.getBoolean("global_file_ids"))
           .tags(DaoUtils.getStringList(rs, "tags"))
-          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")));
+          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")))
+          .duosId(rs.getString("duos_id"));
     }
   }
 

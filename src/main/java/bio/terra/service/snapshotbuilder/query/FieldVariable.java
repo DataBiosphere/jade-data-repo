@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
-public class FieldVariable implements SqlExpression {
+public class FieldVariable implements SelectExpression {
   private static final Logger LOGGER = LoggerFactory.getLogger(FieldVariable.class);
   private final FieldPointer fieldPointer;
   private final TableVariable tableVariable;
@@ -28,52 +28,49 @@ public class FieldVariable implements SqlExpression {
     this.isDistinct = isDistinct;
   }
 
-  @Override
-  public String renderSQL() {
-    return renderSQL(true, true);
+  public TableVariable getTableVariable() {
+    return tableVariable;
   }
 
-  public String renderSqlForOrderOrGroupBy(boolean includedInSelect) {
+  public String renderSqlForOrderOrGroupBy(boolean includedInSelect, SqlRenderContext context) {
     if (includedInSelect) {
       if (alias == null) {
-        String sql = renderSQL(false, true);
+        String sql = renderSQL(context);
         LOGGER.warn(
             "ORDER or GROUP BY clause is also included in SELECT but has no alias: {}", sql);
         return sql;
       }
       return alias;
     }
-    return renderSQL(false, true);
+    return renderSQL(context);
   }
 
-  public String renderSqlForWhere() {
-    return renderSQL(false, true);
-  }
-
-  private String renderSQL(boolean useAlias, boolean useFunctionWrapper) {
+  @Override
+  public String renderSQL(SqlRenderContext context) {
 
     String sql =
         "%s%s.%s"
             .formatted(
                 isDistinct ? "DISTINCT " : "",
-                tableVariable.getAlias(),
+                context.getAlias(tableVariable),
                 fieldPointer.getColumnName());
 
     if (fieldPointer.isForeignKey()) {
       throw new UnsupportedOperationException("TODO: implement embedded selects " + sql);
     }
 
-    if (fieldPointer.hasSqlFunctionWrapper() && useFunctionWrapper) {
+    if (fieldPointer.hasSqlFunctionWrapper()) {
       String sqlFunctionWrapper = fieldPointer.getSqlFunctionWrapper();
       LOGGER.debug("Found sql function wrapper: {}", sqlFunctionWrapper);
       final String substitutionVar = "<fieldSql>";
       if (sqlFunctionWrapper.contains(substitutionVar)) {
-        return new ST(sqlFunctionWrapper).add("fieldSql", sql).render();
+        sql = new ST(sqlFunctionWrapper).add("fieldSql", sql).render();
+      } else {
+        sql = sqlFunctionWrapper + "(" + sql + ")";
       }
-      return sqlFunctionWrapper + "(" + sql + ")";
     }
 
-    if (alias != null && useAlias) {
+    if (alias != null) {
       return "%s AS %s".formatted(sql, alias);
     }
 

@@ -28,6 +28,7 @@ public class SnapshotSummary {
   private boolean globalFileIds;
   private List<String> tags;
   private ResourceLocks resourceLocks;
+  private String duosId;
 
   public UUID getId() {
     return id;
@@ -173,6 +174,15 @@ public class SnapshotSummary {
     return this;
   }
 
+  public String getDuosId() {
+    return duosId;
+  }
+
+  public SnapshotSummary duosId(String duosId) {
+    this.duosId = duosId;
+    return this;
+  }
+
   public SnapshotSummaryModel toModel() {
     return new SnapshotSummaryModel()
         .id(getId())
@@ -190,7 +200,8 @@ public class SnapshotSummary {
         .selfHosted(isSelfHosted())
         .globalFileIds(isGlobalFileIds())
         .tags(getTags())
-        .resourceLocks(getResourceLocks());
+        .resourceLocks(getResourceLocks())
+        .duosId(getDuosId());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

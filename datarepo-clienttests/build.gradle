@@ -21,15 +21,15 @@ dependencies {
         junit = "5.4.2"
         findbugsAnnotations = "3.0.1"
 
-        jackson = "2.10.2"
-        kubernetesClient = "10.0.0"
-        logback = "1.2.3"
+        jackson = "2.15.3"
+        kubernetesClient = "20.0.1"
+        logback = "1.4.11"
         slf4j = "1.7.25"
         hamcrest = "2.1"
         apacheMath = "3.0"
 
-        swaggerAnnotations = "2.1.5"
-        jersey = "2.32"
+        swaggerAnnotations = "2.2.20"
+        jersey = "3.1.3"
 
         datarepoClient = "1.343.0-SNAPSHOT"
         samClient = "0.1-c53306a-SNAP"
@@ -43,7 +43,6 @@ dependencies {
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jackson}"
     implementation "io.kubernetes:client-java:${kubernetesClient}"
     implementation "ch.qos.logback:logback-classic:${logback}"
-    implementation "org.slf4j:slf4j-api:${slf4j}"
     implementation "org.hamcrest:hamcrest:${hamcrest}"
     implementation "org.apache.commons:commons-math3:${apacheMath}"
 

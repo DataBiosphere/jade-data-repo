@@ -1,87 +1,92 @@
 package bio.terra.common;
 
-import bio.terra.app.controller.exception.ApiException;
+import bio.terra.common.exception.ApiException;
+import bio.terra.common.exception.ErrorReportException;
+import bio.terra.common.exception.ServiceUnavailableException;
+import com.google.common.annotations.VisibleForTesting;
+import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class FutureUtils {
 
   private FutureUtils() {}
 
-  public static <T> List<T> waitFor(final List<Future<T>> futures) {
-    return waitFor(futures, Optional.empty());
+  /**
+   * Wait indefinitely for a list of {@link Future} objects to complete and returns a list of the
+   * resolved values. If any of the futures fail, throws the first found instance of failure
+   * (non-deterministic) and cancel any active futures remaining.
+   *
+   * @param futures The {@link List} of futures to wait for
+   * @param <T> The type that should be returned for the list of futures
+   * @return The resolved values of the futures with nulls removed. There is no guarantee that the
+   *     order of returned values matches the order of the passed in futures
+   */
+  public static <T> List<@NotNull T> waitFor(final List<Future<T>> futures) {
+    return waitFor(futures, null);
   }
 
   /**
-   * Wait for a list of {@link Future} objects to complete and returns a list of the resolved
-   * values. If any of the threads fail, throws the first found instance of failure
-   * (non-deterministic) but waits for all futures to resolve.
+   * Wait for a list of {@link Future} objects to complete and returns a list of the resolved values
+   * with nulls removed. If any of the futures fail, throws the first found instance of failure
+   * (non-deterministic) and cancel any active futures remaining.
    *
    * @param futures The {@link List} of futures to wait for
-   * @param maxThreadWait The maximum of time to wait per thread
+   * @param maxThreadWait The maximum of time to wait per future
    * @param <T> The type that should be returned for the list of futures
-   * @return The resolved values of the futures. There is no guarantee that the order of returned
-   *     values matches the order of the passed in futures
+   * @return The resolved values of the futures with nulls removed. There is no guarantee that the
+   *     order of returned values matches the order of the passed in futures
    */
-  public static <T> List<T> waitFor(
-      final List<Future<T>> futures, final Optional<Duration> maxThreadWait) {
-
-    final AtomicReference<Optional<ApiException>> foundFailure =
-        new AtomicReference<>(Optional.empty());
-    try (Stream<Future<T>> stream = futures.stream()) {
-      List<T> returnList =
-          stream
-              .map(
-                  f -> {
-                    try {
-                      // If a failure was found, all subsequent tasks should be canceled
-                      if (foundFailure.get().isPresent()) {
-                        f.cancel(true);
-                      } else if (maxThreadWait.isPresent()) {
-                        return f.get(maxThreadWait.get().toMillis(), TimeUnit.MILLISECONDS);
-                      } else {
-                        return f.get();
-                      }
-                    } catch (TimeoutException e) {
-                      if (!foundFailure.get().isPresent()) {
-                        foundFailure.set(Optional.of(new ApiException("Thread timed out", e)));
-                        // Cancel the thread
-                        f.cancel(true);
-                      }
-                    } catch (InterruptedException e) {
-                      if (!foundFailure.get().isPresent()) {
-                        foundFailure.set(
-                            Optional.of(new ApiException("Thread was interrupted", e)));
-                      }
-                    } catch (ExecutionException e) {
-                      if (!foundFailure.get().isPresent()) {
-                        foundFailure.set(
-                            Optional.of(new ApiException("Error executing thread", e)));
-                      }
+  @VisibleForTesting
+  static <T> List<@NotNull T> waitFor(final List<Future<T>> futures, final Duration maxThreadWait) {
+    final AtomicReference<ErrorReportException> foundFailure = new AtomicReference<>();
+    List<T> returnList =
+        futures.stream()
+            .map(
+                f -> {
+                  try {
+                    // If a failure was found, all subsequent tasks should be canceled
+                    if (foundFailure.get() != null) {
+                      f.cancel(true);
+                    } else if (maxThreadWait != null) {
+                      return f.get(maxThreadWait.toMillis(), TimeUnit.MILLISECONDS);
+                    } else {
+                      return f.get();
                     }
-                    // Returning null here but this will ultimately result in throwing an exception
-                    // to results should
-                    // never be read
-                    return null;
-                  })
-              .collect(Collectors.toList());
+                  } catch (TimeoutException e) {
+                    foundFailure.compareAndSet(
+                        null, new ServiceUnavailableException("Thread timed out", e));
+                    // Cancellation may not be necessary, but it can't hurt:
+                    f.cancel(true);
+                  } catch (InterruptedException e) {
+                    foundFailure.compareAndSet(null, new ApiException("Thread was interrupted", e));
+                    // Cancellation may not be necessary, but it can't hurt:
+                    f.cancel(true);
+                  } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ErrorReportException ere) {
+                      // We do not wrap an ErrorReportException cause to preserve its HTTP status.
+                      foundFailure.compareAndSet(null, ere);
+                    } else {
+                      foundFailure.compareAndSet(
+                          null, new ApiException("Error executing thread", e));
+                    }
+                  }
+                  return null;
+                })
+            .filter(Objects::nonNull)
+            .toList();
 
-      // Throw an exception if any of the tasks failed
-      foundFailure
-          .get()
-          .ifPresent(
-              e -> {
-                throw e;
-              });
-      return returnList;
+    // Throw an exception if any of the tasks failed
+    ErrorReportException maybeException = foundFailure.get();
+    if (maybeException != null) {
+      throw maybeException;
     }
+    return returnList;
   }
 }

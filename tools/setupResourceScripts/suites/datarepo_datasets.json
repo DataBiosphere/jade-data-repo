@@ -1,0 +1,39 @@
+[
+  {
+    "name": "V2F_GWAS_Summary_Statistics",
+    "cloud_platform": "gcp",
+    "schema": "V2F_GWAS_Summary_Statistics",
+    "tables": [
+      "ancestry_specific_meta_analysis",
+      "feature_consequence",
+      "dataset_specific_analysis",
+      "frequency_analysis",
+      "trans_ethnic_meta_analysis",
+      "transcript_consequence",
+      "variant",
+      "all_data_types"
+    ],
+    "upload_prefix": "gs://jade-testdata-useastregion/V2F_GWAS_Summary_Statistics",
+    "format": "array",
+    "stewards": ["DataRepoTestResourceAccess@dev.test.firecloud.org"],
+    "custodians": [],
+    "snapshot_creators": [],
+    "snapshots": [
+      {
+        "name": "V2FGWASSummaryStatisticsSnapshot",
+        "description": "Test Sansphot",
+        "readers": ["DataRepoTestResourceAccess@dev.test.firecloud.org"]
+      }
+    ]
+  },
+  {
+    "name": "NonStewardDataset",
+    "schema": "V2F_GWAS_Summary_Statistics",
+    "cloud_platform": "gcp",
+    "tables": [],
+    "format": "array",
+    "stewards": [],
+    "custodians": [],
+    "snapshot_creators": ["DataRepoTestResourceAccess@dev.test.firecloud.org"]
+  }
+]

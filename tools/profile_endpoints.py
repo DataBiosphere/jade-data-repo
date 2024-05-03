@@ -2,6 +2,27 @@ import subprocess
 import requests
 import time
 
+"""This script is designed for measuring the performance and response times of different
+'snapshotbuilder' endpoints in the process of various performance optimizations.
+
+It utilizes the Google Cloud SDK (gcloud) for authentication and authorization purposes and the
+requests library for making HTTP requests to the specified endpoints.
+
+The profiling functions are structured to analyze the following endpoints:
+
+ - getSnapshotBuilderCount: Profiles the performance of the getSnapshotBuilderCount endpoint by
+sending POST requests with different criteria.
+
+ - getConceptHierarchy: Profiles the performance of
+the getConceptHierarchy endpoint by sending GET requests with different concept IDs.
+
+ - searchConcepts: Profiles the performance of the searchConcepts endpoint by sending GET requests
+with different domain IDs and search texts.
+
+ - getConcepts: Profiles the performance of the getConcepts endpoint by sending GET requests with
+ different concept IDs.
+"""
+
 # Constants
 UUID = "c672c3c9-ab54-4e19-827c-f2af329da814"
 DATAREPO_URL = "https://jade.datarepo-dev.broadinstitute.org"
@@ -66,7 +87,7 @@ def handle_response(response):
 # HTTP Request Functions
 def make_get_request(endpoint_url, token):
     """
-    Makes a GET request to the specified endpoint with the given access token.
+    Makes a GET request to the specified endpoint with the given access token and endpoint_url.
 
     Args:
         endpoint_url (str): The endpoint URL to request.
@@ -123,7 +144,7 @@ def make_post_request(endpoint_url, token, body):
 # Endpoint Profiling Functions
 def profile_get_snapshot_builder_count(token):
     """
-    Profiles the getSnapshotBuilderCount endpoint and returns the time taken.
+    Profiles the getSnapshotBuilderCount endpoint and logs the request and time taken
 
     Args:
         token (str): The access token for authentication.
@@ -202,7 +223,7 @@ def profile_get_snapshot_builder_count(token):
 
 def profile_get_concept_hierarchy(token):
     """
-    Profiles the getConceptHierarchy endpoint
+    Profiles the getConceptHierarchy endpoint and logs the request and time taken
     Args:
         token (str): The access token for authentication.
     """
@@ -214,7 +235,7 @@ def profile_get_concept_hierarchy(token):
 
 def profile_search_concepts(token):
     """
-    Profiles the searchConcepts endpoint
+    Profiles the searchConcepts endpoint and logs the request and time taken
     Args:
         token (str): The access token for authentication.
     """
@@ -239,7 +260,7 @@ def profile_search_concepts(token):
 
 def profile_get_concepts(token):
     """
-    Profiles the getConcepts endpoint
+    Profiles the getConcepts endpoint and logs the request and time taken
     Args:
         token (str): The access token for authentication.
     """

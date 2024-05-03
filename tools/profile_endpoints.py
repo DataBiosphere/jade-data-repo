@@ -164,7 +164,7 @@ def profile_get_snapshot_builder_count(token):
                         {
                             "name": "Group 1",
                             "mustMeet": True,
-                            "meetAll": False,
+                            "meetAll": True,
                             "criteria": [
                                 {"kind": "range", "id": 0, "low": 1955, "high": 2021},
                                 {"kind": "list", "id": 2, "values": [38003563]},
@@ -182,7 +182,7 @@ def profile_get_snapshot_builder_count(token):
                     "criteriaGroups": [
                         {
                             "name": "Group 1",
-                            "mustMeet": True,
+                            "mustMeet": False,
                             "meetAll": False,
                             "criteria": [
                                 {"kind": "domain", "id": 19, "conceptId": 4042140},

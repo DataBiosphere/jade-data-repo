@@ -2,9 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotBuilderCohort;
-import bio.terra.model.SnapshotBuilderCriteriaGroup;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
@@ -13,10 +10,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
-import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -28,7 +22,6 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
   private final SnapshotRequestModel snapshotReq;
   private final SnapshotDao snapshotDao;
   private final SnapshotBuilderService snapshotBuilderService;
-  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final SnapshotRequestDao snapshotRequestDao;
   private final AuthenticatedUserRequest userReq;
 
@@ -36,13 +29,11 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
       SnapshotRequestModel snapshotReq,
       SnapshotDao snapshotDao,
       SnapshotBuilderService snapshotBuilderService,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       SnapshotRequestDao snapshotRequestDao,
       AuthenticatedUserRequest userReq) {
     this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
     this.snapshotBuilderService = snapshotBuilderService;
-    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.snapshotRequestDao = snapshotRequestDao;
     this.userReq = userReq;
   }
@@ -61,26 +52,14 @@ public class CreateByQuerySnapshotRequestModelStep implements Step {
     }
     Dataset dataset = dataReleaseSnapshot.getSnapshotSources().get(0).getDataset();
 
-    SnapshotBuilderSettings settings =
-        snapshotBuilderSettingsDao.getBySnapshotId(dataReleaseSnapshotId);
-
-    List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups =
-        accessRequest.getSnapshotSpecification().getCohorts().stream()
-            .map(SnapshotBuilderCohort::getCriteriaGroups)
-            .toList();
-
-    Query sqlQuery =
-        new QueryBuilderFactory()
-            .criteriaQueryBuilder("person", settings)
-            .generateRowIdQueryForCriteriaGroupsList(criteriaGroups);
     String sqlString =
-        // should create context need to take a snapshot now instead of a dataset?
-        sqlQuery.renderSQL(snapshotBuilderService.createContext(dataset, userReq));
+        snapshotBuilderService.generateRowIdQuery(accessRequest, dataReleaseSnapshot, userReq);
 
     // populate model with query and add to map
     SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
     snapshotRequestModel.name(accessRequest.getSnapshotName());
-    snapshotRequestModel.profileId(dataReleaseSnapshot.getProfileId());
+    // should this be the underlying dataset profile id? of the profile id on the snapshot?
+    snapshotRequestModel.profileId(dataset.getDefaultProfileId());
     snapshotRequestModel.globalFileIds(true);
     // use underlying dataset to query
     SnapshotRequestContentsModel snapshotRequestContentsModel =

@@ -52,7 +52,6 @@ import bio.terra.service.snapshot.flight.duos.RecordDuosFirecloudGroupStep;
 import bio.terra.service.snapshot.flight.duos.RetrieveDuosFirecloudGroupStep;
 import bio.terra.service.snapshot.flight.duos.SyncDuosFirecloudGroupStep;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
@@ -105,8 +104,6 @@ public class SnapshotCreateFlight extends Flight {
     AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
         new AzureStorageMonitoringStepProvider(monitoringService);
     SnapshotRequestDao snapshotRequestDao = appContext.getBean(SnapshotRequestDao.class);
-    SnapshotBuilderSettingsDao snapshotBuilderSettingsDao =
-        appContext.getBean(SnapshotBuilderSettingsDao.class);
     SnapshotBuilderService snapshotBuilderService =
         appContext.getBean(SnapshotBuilderService.class);
 
@@ -247,12 +244,7 @@ public class SnapshotCreateFlight extends Flight {
         // create byQuery snapshot request model from byRequestId snapshot request model
         addStep(
             new CreateByQuerySnapshotRequestModelStep(
-                snapshotReq,
-                snapshotDao,
-                snapshotBuilderService,
-                snapshotBuilderSettingsDao,
-                snapshotRequestDao,
-                userReq));
+                snapshotReq, snapshotDao, snapshotBuilderService, snapshotRequestDao, userReq));
         // use the existing byQuery snapshot request model code to create the snapshot
         stepsForByQueryCreation(
             datasetService,

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
-import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
@@ -287,12 +286,7 @@ class CriteriaQueryBuilderTest {
   void generateRowIdQueryForCriteriaGroupsList(SqlRenderContext context) {
     Query query =
         criteriaQueryBuilder.generateRowIdQueryForCriteriaGroupsList(
-            SnapshotBuilderTestData.createSnapshotAccessRequest()
-                .getDatasetRequest()
-                .getCohorts()
-                .stream()
-                .map(SnapshotBuilderCohort::getCriteriaGroups)
-                .toList());
+            SnapshotBuilderTestData.createSnapshotAccessRequest().getDatasetRequest().getCohorts());
     String expectedSql =
         """
     SELECT p.datarepo_row_id FROM person AS p WHERE p.person_id IN

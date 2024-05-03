@@ -5,8 +5,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -32,12 +30,9 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
-import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
@@ -108,8 +103,6 @@ class DatasetsApiControllerTest {
   private static final String DATASET_ID_ENDPOINT = "/api/repository/v1/datasets/{id}";
   private static final String LOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/lock";
   private static final String UNLOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/unlock";
-  private static final String SNAPSHOT_REQUESTS_ENDPOINT =
-      DATASET_ID_ENDPOINT + "/snapshotRequests";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String QUERY_DATA_ENDPOINT = DATASET_ID_ENDPOINT + "/data/{table}";
@@ -433,49 +426,6 @@ class DatasetsApiControllerTest {
       throws Exception {
     SnapshotBuilderCriteria criteria = TestUtils.mapFromJson(json, criteriaClass);
     assertThat(criteria.getKind(), equalTo(kind));
-  }
-
-  @Test
-  void testCreateSnapshotRequest() throws Exception {
-    mockValidators();
-    SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest();
-    SnapshotAccessRequestResponse expectedResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
-    when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(request), anyString()))
-        .thenReturn(expectedResponse);
-    String actualJson =
-        mvc.perform(
-                post(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(request)))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    SnapshotAccessRequestResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
-    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  @Test
-  void testEnumerateSnapshotRequests() throws Exception {
-    mockValidators();
-    var expectedResponseItem =
-        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
-    var expectedResponse = new EnumerateSnapshotAccessRequest();
-    expectedResponse.items(List.of(expectedResponseItem, expectedResponseItem));
-    when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(expectedResponse);
-    String actualJson =
-        mvc.perform(get(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    EnumerateSnapshotAccessRequest actual =
-        TestUtils.mapFromJson(actualJson, EnumerateSnapshotAccessRequest.class);
-    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
   }
 
   @Test

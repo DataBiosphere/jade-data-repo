@@ -130,6 +130,18 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
       throws InterruptedException;
 
+  /**
+   * Create a snapshot builder request IAM resource
+   *
+   * @param userReq authenticated user
+   * @param snapshotId id of the snapshot the request is based off of
+   * @param snapshotBuilderRequestId id of the snapshot builder request
+   * @return Map of policy group emails for the snapshot builder request policies
+   */
+  Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
+      throws InterruptedException;
+
   // -- billing profile resource support --
 
   /**

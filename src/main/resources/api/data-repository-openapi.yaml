@@ -3017,14 +3017,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotRequests:
+  /api/repository/v1/snapshotAccessRequests:
     get:
       tags:
-        - datasets
+        - SnapshotAccessRequest
       description: As an admin for this dataset, view all snapshot requests for this dataset.
-      operationId: enumerateSnapshotRequests
-      parameters:
-        - $ref: '#/components/parameters/Id'
+      operationId: enumerateSnapshotAccessRequests
       responses:
         200:
           description: The snapshot requests have been retrieved.
@@ -3064,12 +3062,10 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     post:
       tags:
-        - datasets
+        - SnapshotAccessRequest
       description: As a researcher, create a snapshot request for a dataset, given a set of criteria
         and required concept sets and values.
-      operationId: createSnapshotRequest
-      parameters:
-        - $ref: '#/components/parameters/Id'
+      operationId: createSnapshotAccessRequest
       requestBody:
         description: Description of the snapshot being requested.
         content:
@@ -7446,31 +7442,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/EnumerateSnapshotAccessRequestItem'
-
-    EnumerateSnapshotAccessRequestItem:
-      type: object
-      description: The model for SnapshotAccessRequests when enumerated in a response.
-      required:
-        - id
-        - status
-        - createdDate
-        - name
-        - researchPurpose
-        - createdBy
-      properties:
-        id:
-          $ref: '#/components/schemas/UniqueIdProperty'
-        status:
-          $ref: '#/components/schemas/SnapshotAccessRequestStatus'
-        createdDate:
-          type: string
-        name:
-          type: string
-        researchPurpose:
-          type: string
-        createdBy:
-          type: string
+            $ref: '#/components/schemas/SnapshotAccessRequestResponse'
 
     SnapshotAccessRequestResponse:
       type: object
@@ -7523,6 +7495,9 @@ components:
     SnapshotAccessRequest:
       type: object
       properties:
+        sourceSnapshotId:
+          type: string
+          format: uuid
         name:
           type: string
         researchPurposeStatement:
@@ -8023,7 +7998,7 @@ components:
           description: A note about the journal entry
     IamResourceTypeEnum:
       type: string
-      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE ]
+      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE, SNAPSHOT_BUILDER_REQUEST ]
       description: >
         The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile.  DATAREPO and WORKSPACE are not implemented at this time but are included in the list for completeness.
   parameters:

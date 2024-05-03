@@ -5,6 +5,8 @@ import time
 """This script is designed for measuring the performance and response times of different
 'snapshotbuilder' endpoints in the process of various performance optimizations.
 
+There is a google.sheets log of the endpoints in 'Engineering notes'
+
 It utilizes the Google Cloud SDK (gcloud) for authentication and authorization purposes and the
 requests library for making HTTP requests to the specified endpoints.
 

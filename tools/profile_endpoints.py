@@ -13,8 +13,8 @@ The profiling functions are structured to analyze the following endpoints:
  - getSnapshotBuilderCount: Profiles the performance of the getSnapshotBuilderCount endpoint by
 sending POST requests with different criteria.
 
- - getConceptHierarchy: Profiles the performance of
-the getConceptHierarchy endpoint by sending GET requests with different concept IDs.
+ - getConceptHierarchy: Profiles the performance of the getConceptHierarchy endpoint by sending
+ GET requests with different concept IDs.
 
  - searchConcepts: Profiles the performance of the searchConcepts endpoint by sending GET requests
 with different domain IDs and search texts.

@@ -20,6 +20,7 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -290,7 +291,9 @@ class CriteriaQueryBuilderTest {
   void generateRowIdQueryForCohortList(SqlRenderContext context) {
     Query query =
         criteriaQueryBuilder.generateRowIdQueryForCohortList(
-            SnapshotBuilderTestData.createSnapshotAccessRequest().getDatasetRequest().getCohorts());
+            SnapshotBuilderTestData.createSnapshotAccessRequest(UUID.randomUUID())
+                .getDatasetRequest()
+                .getCohorts());
     String expectedSql =
         """
     SELECT p.datarepo_row_id FROM person AS p WHERE p.person_id IN

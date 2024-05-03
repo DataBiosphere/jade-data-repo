@@ -54,7 +54,7 @@ class CreateByQuerySnapshotRequestModelStepTest {
     sourceSnapshot.snapshotSources(List.of(new SnapshotSource().dataset(sourceDataset)));
 
     SnapshotAccessRequestResponse accessRequestResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
     accessRequestResponse.sourceSnapshotId(sourceSnapshotId);
 

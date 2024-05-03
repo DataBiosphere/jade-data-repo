@@ -342,9 +342,9 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void generateRowIdQuery() {
-    SnapshotAccessRequestResponse accessRequest =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     UUID snapshotId = UUID.randomUUID();
+    SnapshotAccessRequestResponse accessRequest =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
 
     Dataset dataset = makeDataset(CloudPlatform.GCP);
     Snapshot dataReleaseSnapshot =

@@ -274,7 +274,6 @@ def profile_get_concepts(token):
 
 # Main function
 if __name__ == "__main__":
-    # Uncomment the following line to authenticate if needed
     authenticate()
 
     # Obtain access token

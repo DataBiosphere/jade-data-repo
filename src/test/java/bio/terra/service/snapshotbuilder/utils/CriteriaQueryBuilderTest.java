@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
@@ -243,22 +244,25 @@ class CriteriaQueryBuilderTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void generateRollupCountsQueryForCriteriaGroupsList(SqlRenderContext context) {
+  void generateRollupCountsQueryForCohortList(SqlRenderContext context) {
     Query query =
-        criteriaQueryBuilder.generateRollupCountsQueryForCriteriaGroupsList(
+        criteriaQueryBuilder.generateRollupCountsQueryForCohortList(
             List.of(
-                List.of(
-                    new SnapshotBuilderCriteriaGroup()
-                        .criteria(
-                            List.of(
-                                generateDomainCriteria(
-                                    SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID),
-                                generateEthnicityListCriteria(List.of(0, 1, 2)),
-                                generateYearOfBirthRangeCriteria(),
-                                generateDomainCriteria(
-                                    SnapshotBuilderTestData.PROCEDURE_OCCURRENCE_DOMAIN_ID)))
-                        .meetAll(true)
-                        .mustMeet(true))));
+                new SnapshotBuilderCohort()
+                    .criteriaGroups(
+                        List.of(
+                            new SnapshotBuilderCriteriaGroup()
+                                .criteria(
+                                    List.of(
+                                        generateDomainCriteria(
+                                            SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID),
+                                        generateEthnicityListCriteria(List.of(0, 1, 2)),
+                                        generateYearOfBirthRangeCriteria(),
+                                        generateDomainCriteria(
+                                            SnapshotBuilderTestData
+                                                .PROCEDURE_OCCURRENCE_DOMAIN_ID)))
+                                .meetAll(true)
+                                .mustMeet(true)))));
     String expectedSql =
         """
         SELECT COUNT(DISTINCT p.person_id)
@@ -283,9 +287,9 @@ class CriteriaQueryBuilderTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void generateRowIdQueryForCriteriaGroupsList(SqlRenderContext context) {
+  void generateRowIdQueryForCohortList(SqlRenderContext context) {
     Query query =
-        criteriaQueryBuilder.generateRowIdQueryForCriteriaGroupsList(
+        criteriaQueryBuilder.generateRowIdQueryForCohortList(
             SnapshotBuilderTestData.createSnapshotAccessRequest().getDatasetRequest().getCohorts());
     String expectedSql =
         """

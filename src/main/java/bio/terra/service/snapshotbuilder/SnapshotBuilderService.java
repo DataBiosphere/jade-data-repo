@@ -13,7 +13,6 @@ import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
-import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
@@ -32,6 +31,7 @@ import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -117,7 +117,8 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
-  public SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
+  @VisibleForTesting
+  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     TableNameGenerator tableNameGenerator =
         CloudPlatformWrapper.of(dataset.getCloudPlatform())
@@ -132,11 +133,7 @@ public class SnapshotBuilderService {
 
   public SnapshotBuilderCountResponse getCountResponse(
       UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
-    int rollupCount =
-        getRollupCountForCriteriaGroups(
-            id,
-            cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
-            userRequest);
+    int rollupCount = getRollupCountForCohorts(id, cohorts, userRequest);
     return new SnapshotBuilderCountResponse()
         .result(new SnapshotBuilderCountResponseResult().total(fuzzyLowCount(rollupCount)));
   }
@@ -182,10 +179,8 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderGetConceptsResponse().result(concepts);
   }
 
-  public int getRollupCountForCriteriaGroups(
-      UUID datasetId,
-      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
-      AuthenticatedUserRequest userRequest) {
+  public int getRollupCountForCohorts(
+      UUID datasetId, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getByDatasetId(datasetId);
@@ -193,7 +188,7 @@ public class SnapshotBuilderService {
     Query query =
         queryBuilderFactory
             .criteriaQueryBuilder("person", snapshotBuilderSettings)
-            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
+            .generateRollupCountsQueryForCohortList(cohorts);
 
     return runSnapshotBuilderQuery(
             query,
@@ -261,9 +256,9 @@ public class SnapshotBuilderService {
     List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
 
     Query sqlQuery =
-        new QueryBuilderFactory()
+        queryBuilderFactory
             .criteriaQueryBuilder("person", settings)
-            .generateRowIdQueryForCriteriaGroupsList(cohorts);
+            .generateRowIdQueryForCohortList(cohorts);
     // change to just use dataReleaseSnapshot once Shelby's PR merges
     return sqlQuery.renderSQL(
         createContext(dataReleaseSnapshot.getSnapshotSources().get(0).getDataset(), userReq));

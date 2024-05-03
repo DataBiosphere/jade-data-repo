@@ -155,8 +155,9 @@ public class CriteriaQueryBuilder {
         criteriaGroups.stream().map(this::generateFilterForCriteriaGroup).toList());
   }
 
-  public Query generateRollupCountsQueryForCriteriaGroupsList(
-      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
+  public Query generateRollupCountsQueryForCohortList(List<SnapshotBuilderCohort> cohorts) {
+    List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
+        cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
 
     FieldVariable personId =
         new FieldVariable(
@@ -170,10 +171,9 @@ public class CriteriaQueryBuilder {
     return new Query(List.of(personId), List.of(rootTable), filterVariable);
   }
 
-  public Query generateRowIdQueryForCriteriaGroupsList(
-      List<SnapshotBuilderCohort> SnapshotBuilderCohorts) {
+  public Query generateRowIdQueryForCohortList(List<SnapshotBuilderCohort> cohorts) {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
-        SnapshotBuilderCohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
+        cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
 
     FieldVariable personId =
         new FieldVariable(

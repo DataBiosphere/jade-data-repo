@@ -40,6 +40,8 @@ public class SnapshotBuilderTestData {
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
     domainOption
         .root(root)
+        .conceptCount(100)
+        .participantCount(100)
         .id(id)
         .tableName(tableName)
         .columnName(columnName)

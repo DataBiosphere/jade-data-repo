@@ -3,9 +3,9 @@ import requests
 import time
 
 """This script is designed for measuring the performance and response times of different
-'snapshotbuilder' endpoints in the process of various performance optimizations.
+'snapshotbuilder' endpoints in the process of various performance optimizations for Azure Synapse.
 
-There is a google.sheets log of the endpoints in 'Engineering notes' folder in Google Drive.
+There is a google.sheets log of the endpoints in the 'Engineering notes' folder in Google Drive.
 
 It utilizes the Google Cloud SDK (gcloud) for authentication and authorization purposes and the
 requests library for making HTTP requests to the specified endpoints.
@@ -26,7 +26,7 @@ with different domain IDs and search texts.
 """
 
 # Constants
-UUID = "c672c3c9-ab54-4e19-827c-f2af329da814"
+UUID = "c672c3c9-ab54-4e19-827c-f2af329da814" # Azure Synapse UUID
 DATAREPO_URL = "https://jade.datarepo-dev.broadinstitute.org"
 
 

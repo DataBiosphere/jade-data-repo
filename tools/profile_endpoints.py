@@ -5,7 +5,7 @@ import time
 """This script is designed for measuring the performance and response times of different
 'snapshotbuilder' endpoints in the process of various performance optimizations.
 
-There is a google.sheets log of the endpoints in 'Engineering notes'
+There is a google.sheets log of the endpoints in 'Engineering notes' folder in Google Drive.
 
 It utilizes the Google Cloud SDK (gcloud) for authentication and authorization purposes and the
 requests library for making HTTP requests to the specified endpoints.
@@ -13,7 +13,7 @@ requests library for making HTTP requests to the specified endpoints.
 The profiling functions are structured to analyze the following endpoints:
 
  - getSnapshotBuilderCount: Profiles the performance of the getSnapshotBuilderCount endpoint by
-sending POST requests with different criteria.
+sending POST requests with different criteria.s
 
  - getConceptHierarchy: Profiles the performance of the getConceptHierarchy endpoint by sending
  GET requests with different concept IDs.

@@ -188,7 +188,9 @@ public class AzureIntegrationTest extends UsersBase {
 
   @After
   public void teardown() throws Exception {
-    snapshotIds.add(releaseSnapshotId);
+    if (releaseSnapshotId != null) {
+      snapshotIds.add(releaseSnapshotId);
+    }
     logger.info(
         "Teardown: trying to delete snapshots {}, dataset {}, billing profile {}",
         snapshotIds,

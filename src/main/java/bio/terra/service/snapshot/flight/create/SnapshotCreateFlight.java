@@ -218,6 +218,7 @@ public class SnapshotCreateFlight extends Flight {
         }
         break;
       case BYQUERY:
+        addStep(new CreateSnapshotValidateQueryStep(datasetService));
         stepsForByQueryCreation(
             datasetService,
             platform,
@@ -382,7 +383,6 @@ public class SnapshotCreateFlight extends Flight {
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq,
       AzureSynapsePdao azureSynapsePdao) {
-    addStep(new CreateSnapshotValidateQueryStep(datasetService));
     if (platform.isGcp()) {
       addStep(
           new CreateSnapshotPrimaryDataQueryGcpStep(

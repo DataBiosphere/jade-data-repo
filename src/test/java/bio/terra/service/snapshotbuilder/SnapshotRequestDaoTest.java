@@ -21,6 +21,7 @@ import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -50,35 +51,24 @@ class SnapshotRequestDaoTest {
   void beforeEach() throws IOException {
     dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
     snapshot = daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
-    snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest();
-  }
-
-  private SnapshotAccessRequestResponse createRequest_old() {
-    return snapshotRequestDao.create_old(dataset.getId(), snapshotAccessRequest, EMAIL);
+    snapshotAccessRequest = SnapshotBuilderTestData.createSnapshotAccessRequest(snapshot.getId());
   }
 
   private SnapshotAccessRequestResponse createRequest() {
-    return snapshotRequestDao.create(snapshot.getId(), snapshotAccessRequest, EMAIL);
+    return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
   }
 
-  private void verifyResponseContents(SnapshotAccessRequestResponse response, boolean isOld) {
-    SnapshotAccessRequestResponse expected = new SnapshotAccessRequestResponse();
-    if (isOld) {
-      expected.datasetId(dataset.getId());
-    } else {
-      expected.sourceSnapshotId(snapshot.getId());
-    }
-    expected.snapshotName(
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotName());
-    expected.snapshotResearchPurpose(
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse().getSnapshotResearchPurpose());
-    expected.snapshotSpecification(SnapshotBuilderTestData.createSnapshotBuilderRequest());
+  private void verifyResponseContents(SnapshotAccessRequestResponse response) {
+    SnapshotAccessRequestResponse expected =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshot.getId());
+    expected.sourceSnapshotId(snapshot.getId());
+
     expected.createdBy(EMAIL);
     expected.status(SnapshotAccessRequestStatus.SUBMITTED);
     assertThat(
         "Given response is the same as expected.",
         response,
-        samePropertyValuesAs(expected, "id", "createdDate"));
+        samePropertyValuesAs(expected, "id", "createdDate", "datasetId"));
     assertNotNull(response.getId(), "Snapshot Access Request Response should have an id");
     assertNotNull(
         response.getCreatedDate(),
@@ -86,17 +76,10 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void getById_old() {
-    SnapshotAccessRequestResponse response = createRequest_old();
-    SnapshotAccessRequestResponse retrieved = snapshotRequestDao.getById(response.getId());
-    verifyResponseContents(retrieved, true);
-  }
-
-  @Test
   void getById() {
     SnapshotAccessRequestResponse response = createRequest();
     SnapshotAccessRequestResponse retrieved = snapshotRequestDao.getById(response.getId());
-    verifyResponseContents(retrieved, false);
+    verifyResponseContents(retrieved);
   }
 
   @Test
@@ -105,73 +88,30 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void enumerateByDatasetId_old() {
-    SnapshotAccessRequestResponse response = createRequest_old();
-    SnapshotAccessRequestResponse response1 = createRequest_old();
-    assertThat(
-        "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.enumerateByDatasetId_old(dataset.getId()),
-        contains(response, response1));
-  }
-
-  @Test
-  void enumerateByDatasetIdNotFound_old() {
-    assertThat(
-        "For a dataset id that does not exist nothing is returned",
-        snapshotRequestDao.enumerateByDatasetId_old(UUID.randomUUID()),
-        empty());
-  }
-
-  @Test
-  void enumerateBySnapshotId() {
+  void enumerate() {
     SnapshotAccessRequestResponse response = createRequest();
     SnapshotAccessRequestResponse response1 = createRequest();
     assertThat(
         "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.enumerateBySnapshotId(snapshot.getId()),
+        snapshotRequestDao.enumerate(Set.of(response.getId(), response1.getId())),
         contains(response, response1));
   }
 
   @Test
-  void enumerateBySnapshotIdNotFound() {
+  void enumerateNotFound() {
     assertThat(
         "For a dataset id that does not exist nothing is returned",
-        snapshotRequestDao.enumerateBySnapshotId(UUID.randomUUID()),
+        snapshotRequestDao.enumerate(Set.of()),
         empty());
-  }
-
-  @Test
-  void create_old() {
-    SnapshotAccessRequestResponse response = createRequest_old();
-    verifyResponseContents(response, true);
-
-    SnapshotAccessRequestResponse response1 =
-        snapshotRequestDao.create_old(dataset.getId(), snapshotAccessRequest, EMAIL);
-
-    assertNotEquals(
-        response1.getId(),
-        response.getId(),
-        "Snapshot Access Request Response should have unique request id");
-    assertNotEquals(
-        response1.getCreatedDate(),
-        response.getCreatedDate(),
-        "Snapshot Access Request Response should have unique create date timestamp");
-  }
-
-  @Test
-  void createDatasetIdNotFound_old() {
-    assertThrows(
-        NotFoundException.class,
-        () -> snapshotRequestDao.create_old(UUID.randomUUID(), snapshotAccessRequest, EMAIL));
   }
 
   @Test
   void create() {
     SnapshotAccessRequestResponse response = createRequest();
-    verifyResponseContents(response, false);
+    verifyResponseContents(response);
 
     SnapshotAccessRequestResponse response1 =
-        snapshotRequestDao.create(snapshot.getId(), snapshotAccessRequest, EMAIL);
+        snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
 
     assertNotEquals(
         response1.getId(),
@@ -187,32 +127,16 @@ class SnapshotRequestDaoTest {
   void createSnapshotIdNotFound() {
     assertThrows(
         NotFoundException.class,
-        () -> snapshotRequestDao.create(UUID.randomUUID(), snapshotAccessRequest, EMAIL));
-  }
-
-  @Test
-  void update_old() {
-    SnapshotAccessRequestResponse response = createRequest_old();
-    assertNull(response.getUpdatedDate(), "Response was never updated.");
-    verifyResponseContents(response, true);
-
-    SnapshotAccessRequestResponse updatedResponse =
-        snapshotRequestDao.update(response.getId(), SnapshotAccessRequestStatus.APPROVED);
-
-    assertThat(
-        "Updated Snapshot Access Request Response should have approved status",
-        updatedResponse.getStatus(),
-        equalTo(SnapshotAccessRequestStatus.APPROVED));
-    assertNotNull(
-        updatedResponse.getUpdatedDate(),
-        "Updated Snapshot Access Request Response should have an update date");
+        () ->
+            snapshotRequestDao.create(
+                snapshotAccessRequest.sourceSnapshotId(UUID.randomUUID()), EMAIL));
   }
 
   @Test
   void update() {
     SnapshotAccessRequestResponse response = createRequest();
     assertNull(response.getUpdatedDate(), "Response was never updated.");
-    verifyResponseContents(response, false);
+    verifyResponseContents(response);
 
     SnapshotAccessRequestResponse updatedResponse =
         snapshotRequestDao.update(response.getId(), SnapshotAccessRequestStatus.APPROVED);
@@ -232,17 +156,6 @@ class SnapshotRequestDaoTest {
     assertThrows(
         NotFoundException.class,
         () -> snapshotRequestDao.update(UUID.randomUUID(), SnapshotAccessRequestStatus.APPROVED));
-  }
-
-  @Test
-  void delete() {
-    SnapshotAccessRequestResponse response = createRequest_old();
-    assertThat(
-        "Snapshot Access Request should be the same as the example",
-        snapshotRequestDao.getById(response.getId()),
-        equalTo(response));
-    snapshotRequestDao.delete(response.getId());
-    assertThrows(NotFoundException.class, () -> snapshotRequestDao.getById(response.getId()));
   }
 
   @Test

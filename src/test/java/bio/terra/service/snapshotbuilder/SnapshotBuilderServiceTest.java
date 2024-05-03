@@ -7,12 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -20,7 +23,6 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
@@ -28,6 +30,8 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -48,6 +52,8 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import java.sql.ResultSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,6 +76,7 @@ class SnapshotBuilderServiceTest {
   @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private DatasetService datasetService;
+  @Mock private IamService iamService;
   @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
@@ -84,6 +91,7 @@ class SnapshotBuilderServiceTest {
             snapshotRequestDao,
             snapshotBuilderSettingsDao,
             datasetService,
+            iamService,
             bigQueryDatasetPdao,
             azureSynapsePdao,
             queryBuilderFactory);
@@ -91,42 +99,52 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void createSnapshotRequest() {
-    UUID datasetId = UUID.randomUUID();
-    String email = "user@gmail.com";
+    UUID snapshotId = UUID.randomUUID();
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
-    when(snapshotRequestDao.create_old(
-            datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
+    when(snapshotRequestDao.create(
+            SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
         .thenReturn(response);
-
+    when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
+        .thenReturn(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail())));
     assertThat(
         "createSnapshotRequest returns the expected response",
-        snapshotBuilderService.createSnapshotRequest(
-            datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email),
+        snapshotBuilderService.createSnapshotAccessRequest(
+            TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)),
         equalTo(response));
   }
 
   @Test
-  void enumerateSnapshotRequestsByDatasetId() {
-    UUID datasetId = UUID.randomUUID();
-    SnapshotAccessRequestResponse responseItem =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
-    List<SnapshotAccessRequestResponse> response = List.of(responseItem);
-    when(snapshotRequestDao.enumerateByDatasetId_old(datasetId)).thenReturn(response);
+  void createSnapshotRequestRollsBackIfSamFails() {
+    UUID snapshotId = UUID.randomUUID();
+    UUID snapshotRequestId = UUID.randomUUID();
+    SnapshotAccessRequestResponse response =
+        new SnapshotAccessRequestResponse().id(snapshotRequestId);
+    when(snapshotRequestDao.create(
+            SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
+        .thenReturn(response);
+    when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
+        .thenThrow(new ApiException("Error"));
+    doNothing().when(snapshotRequestDao).delete(snapshotRequestId);
+    assertThrows(
+        InternalServerErrorException.class,
+        () ->
+            snapshotBuilderService.createSnapshotAccessRequest(
+                TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)));
+  }
 
-    EnumerateSnapshotAccessRequestItem expectedItem =
-        new EnumerateSnapshotAccessRequestItem()
-            .id(responseItem.getId())
-            .status(responseItem.getStatus())
-            .createdDate(responseItem.getCreatedDate())
-            .name(responseItem.getSnapshotName())
-            .researchPurpose(responseItem.getSnapshotResearchPurpose())
-            .createdBy(responseItem.getCreatedBy());
+  @Test
+  void enumerateSnapshotRequests() {
+    SnapshotAccessRequestResponse responseItem =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(UUID.randomUUID());
+    List<SnapshotAccessRequestResponse> response = List.of(responseItem);
+    when(snapshotRequestDao.enumerate(Set.of(responseItem.getId()))).thenReturn(response);
+
     EnumerateSnapshotAccessRequest expected =
-        new EnumerateSnapshotAccessRequest().addItemsItem(expectedItem);
+        new EnumerateSnapshotAccessRequest().addItemsItem(responseItem);
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",
-        snapshotBuilderService.enumerateByDatasetId(datasetId),
+        snapshotBuilderService.enumerateSnapshotAccessRequests(Set.of(responseItem.getId())),
         equalTo(expected));
   }
 

@@ -2,7 +2,6 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.Column;
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
@@ -228,31 +227,24 @@ public class SnapshotBuilderTestData {
             new SnapshotBuilderFeatureValueGroup().name("valueGroup").addValuesItem("value"));
   }
 
-  public static SnapshotAccessRequest createSnapshotAccessRequest() {
+  public static SnapshotAccessRequest createSnapshotAccessRequest(UUID sourceSnapshotId) {
     return new SnapshotAccessRequest()
+        .sourceSnapshotId(sourceSnapshotId)
         .name("name")
         .researchPurposeStatement("purpose")
         .datasetRequest(createSnapshotBuilderRequest());
   }
 
-  public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse() {
+  public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse(UUID snapshotId) {
+    SnapshotAccessRequest request = createSnapshotAccessRequest(snapshotId);
     return new SnapshotAccessRequestResponse()
         .id(UUID.randomUUID())
-        .datasetId(UUID.randomUUID())
-        .snapshotName(createSnapshotAccessRequest().getName())
-        .snapshotResearchPurpose(createSnapshotAccessRequest().getResearchPurposeStatement())
-        .snapshotSpecification(createSnapshotAccessRequest().getDatasetRequest())
+        .sourceSnapshotId(request.getSourceSnapshotId())
+        .snapshotName(request.getName())
+        .snapshotResearchPurpose(request.getResearchPurposeStatement())
+        .snapshotSpecification(request.getDatasetRequest())
         .createdDate("date")
         .createdBy("user@gmail.com")
-        .status(SnapshotAccessRequestStatus.SUBMITTED);
-  }
-
-  public static EnumerateSnapshotAccessRequestItem createEnumerateSnapshotAccessRequestModelItem() {
-    return new EnumerateSnapshotAccessRequestItem()
-        .id(UUID.randomUUID())
-        .name(createSnapshotAccessRequest().getName())
-        .researchPurpose(createSnapshotAccessRequest().getResearchPurposeStatement())
-        .createdDate(createSnapshotAccessRequestResponse().getCreatedDate())
         .status(SnapshotAccessRequestStatus.SUBMITTED);
   }
 }

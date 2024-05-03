@@ -1,12 +1,12 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -19,6 +19,7 @@ import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -37,6 +38,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +55,7 @@ public class SnapshotBuilderService {
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final DatasetService datasetService;
+  private final IamService iamService;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
@@ -62,20 +65,33 @@ public class SnapshotBuilderService {
       SnapshotRequestDao snapshotRequestDao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       DatasetService datasetService,
+      IamService iamService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       AzureSynapsePdao azureSynapsePdao,
       QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
+    this.iamService = iamService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.azureSynapsePdao = azureSynapsePdao;
     this.queryBuilderFactory = queryBuilderFactory;
   }
 
-  public SnapshotAccessRequestResponse createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest, String email) {
-    return snapshotRequestDao.create_old(id, snapshotAccessRequest, email);
+  public SnapshotAccessRequestResponse createSnapshotAccessRequest(
+      AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
+    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+        snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
+    try {
+      iamService.createSnapshotBuilderRequestResource(
+          userRequest,
+          snapshotAccessRequest.getSourceSnapshotId(),
+          snapshotAccessRequestResponse.getId());
+    } catch (ApiException e) {
+      snapshotRequestDao.delete(snapshotAccessRequestResponse.getId());
+      throw e;
+    }
+    return snapshotAccessRequestResponse;
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -149,8 +165,10 @@ public class SnapshotBuilderService {
     return rollupCount == 0 ? rollupCount : Math.max(rollupCount, 19);
   }
 
-  public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
-    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId_old(id));
+  public EnumerateSnapshotAccessRequest enumerateSnapshotAccessRequests(
+      Collection<UUID> authorizedResources) {
+    return new EnumerateSnapshotAccessRequest()
+        .items(snapshotRequestDao.enumerate(authorizedResources));
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
@@ -234,22 +252,6 @@ public class SnapshotBuilderService {
     } else {
       throw new IllegalStateException("Multiple domains found for concept: " + conceptId);
     }
-  }
-
-  private EnumerateSnapshotAccessRequest convertToEnumerateModel(
-      List<SnapshotAccessRequestResponse> responses) {
-    EnumerateSnapshotAccessRequest enumerateModel = new EnumerateSnapshotAccessRequest();
-    for (SnapshotAccessRequestResponse response : responses) {
-      enumerateModel.addItemsItem(
-          new EnumerateSnapshotAccessRequestItem()
-              .id(response.getId())
-              .status(response.getStatus())
-              .createdDate(response.getCreatedDate())
-              .name(response.getSnapshotName())
-              .researchPurpose(response.getSnapshotResearchPurpose())
-              .createdBy(response.getCreatedBy()));
-    }
-    return enumerateModel;
   }
 
   record ParentQueryResult(

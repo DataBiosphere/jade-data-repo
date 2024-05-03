@@ -26,7 +26,6 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -40,8 +39,6 @@ import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
@@ -550,31 +547,6 @@ public class DatasetsApiController implements DatasetsApi {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(
-            id, snapshotAccessRequest, userRequest.getEmail()));
-  }
-
-  @Override
-  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests(UUID id) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.enumerateByDatasetId(id));
   }
 
   @Override

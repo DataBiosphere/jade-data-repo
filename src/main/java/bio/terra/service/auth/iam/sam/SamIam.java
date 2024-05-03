@@ -52,6 +52,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
 import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
@@ -312,6 +313,57 @@ public class SamIam implements IamProviderInterface {
       policies.put(role, policy);
     }
     return policies;
+  }
+
+  @Override
+  public Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
+      throws InterruptedException {
+    var initialRoles = Map.of(IamRole.OWNER, List.of(userReq.getEmail()));
+    SamRetry.retry(
+        configurationService,
+        () ->
+            createSnapshotBuilderRequestResourceInner(
+                userReq, snapshotId, snapshotBuilderRequestId, initialRoles));
+    return initialRoles;
+  }
+
+  private void createSnapshotBuilderRequestResourceInner(
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID snapshotBuilderRequestId,
+      Map<IamRole, List<String>> initialRoles)
+      throws ApiException {
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
+    CreateResourceRequestV2 req =
+        createSnapshotBuilderRequestResourceRequest(
+            userReq, snapshotId, snapshotBuilderRequestId, initialRoles);
+    samResourceApi.createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), req);
+  }
+
+  private CreateResourceRequestV2 createSnapshotBuilderRequestResourceRequest(
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId,
+      UUID snapshotBuilderRequestId,
+      Map<IamRole, List<String>> initialRoles) {
+    getUserInfoAndVerify(userReq);
+    FullyQualifiedResourceId parentId =
+        new FullyQualifiedResourceId()
+            .resourceTypeName(IamResourceType.DATASNAPSHOT.toString())
+            .resourceId(snapshotId.toString());
+    CreateResourceRequestV2 req =
+        new CreateResourceRequestV2()
+            .resourceId(snapshotBuilderRequestId.toString())
+            .parent(parentId)
+            .policies(
+                initialRoles.entrySet().stream()
+                    .collect(
+                        Collectors.toMap(
+                            entry -> entry.getKey().toString(),
+                            entry -> createAccessPolicy(entry.getKey(), entry.getValue()))));
+
+    logger.debug(String.format("SAM request: %s", req));
+    return req;
   }
 
   private String syncOnePolicy(

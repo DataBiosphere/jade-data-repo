@@ -220,7 +220,7 @@ public class JobService {
 
   // submit a new job to stairway, wait for it to finish, then return the result
   // protected method intended to be called only from JobBuilder
-  protected <T> T submitAndWait(
+  public <T> T submitAndWait(
       Class<? extends Flight> flightClass, FlightMap parameterMap, Class<T> resultClass) {
     String jobId = submit(flightClass, parameterMap);
     waitForJob(jobId);

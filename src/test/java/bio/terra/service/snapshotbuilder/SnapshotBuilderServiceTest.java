@@ -23,6 +23,7 @@ import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
@@ -32,12 +33,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
-import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.QueryTestUtils;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
@@ -61,6 +58,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -96,7 +94,7 @@ class SnapshotBuilderServiceTest {
     UUID datasetId = UUID.randomUUID();
     String email = "user@gmail.com";
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
-    when(snapshotRequestDao.create(
+    when(snapshotRequestDao.create_old(
             datasetId, SnapshotBuilderTestData.createSnapshotAccessRequest(), email))
         .thenReturn(response);
 
@@ -113,7 +111,7 @@ class SnapshotBuilderServiceTest {
     SnapshotAccessRequestResponse responseItem =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
     List<SnapshotAccessRequestResponse> response = List.of(responseItem);
-    when(snapshotRequestDao.enumerateByDatasetId(datasetId)).thenReturn(response);
+    when(snapshotRequestDao.enumerateByDatasetId_old(datasetId)).thenReturn(response);
 
     EnumerateSnapshotAccessRequestItem expectedItem =
         new EnumerateSnapshotAccessRequestItem()
@@ -149,8 +147,7 @@ class SnapshotBuilderServiceTest {
     domainOption.name("domainId").tableName("domainTable").columnName("domain_concept_id");
     SnapshotBuilderSettings settings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(any()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(any())).thenReturn(settings);
 
     var concept =
         new SnapshotBuilderConcept()
@@ -182,7 +179,7 @@ class SnapshotBuilderServiceTest {
         .columnName("condition_concept_id");
     SnapshotBuilderSettings snapshotBuilderSettings =
         new SnapshotBuilderSettings().domainOptions(List.of(domainOption));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId()))
         .thenReturn(snapshotBuilderSettings);
 
     var queryBuilder = mock(SearchConceptsQueryBuilder.class);
@@ -207,7 +204,7 @@ class SnapshotBuilderServiceTest {
     when(datasetService.retrieve(datasetId)).thenReturn(dataset);
     var domainOption = new SnapshotBuilderDomainOption();
     domainOption.setId(19);
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId))
+    when(snapshotBuilderSettingsDao.getByDatasetId(datasetId))
         .thenReturn(new SnapshotBuilderSettings().domainOptions(List.of(domainOption)));
     assertThrows(
         BadRequestException.class,
@@ -288,27 +285,30 @@ class SnapshotBuilderServiceTest {
             .projectResource(new GoogleProjectResource().googleProjectId("project123"))
             .name("dataset123")
             .id(UUID.randomUUID());
-    TablePointer tablePointer = TablePointer.fromRawSql("table-name");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
-    Query query =
-        new Query(
-            List.of(
-                new FieldVariable(new FieldPointer(tablePointer, "column-name"), tableVariable)),
-            List.of(tableVariable));
+    var settings = new SnapshotBuilderSettings();
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
+    Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(datasetService.retrieve(dataset.getId())).thenReturn(dataset);
-    when(queryBuilderFactory.criteriaQueryBuilder(any(), any()))
+    when(queryBuilderFactory.criteriaQueryBuilder("person", settings))
         .thenReturn(criteriaQueryBuilderMock);
-    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(any()))
+    var criteriaGroups = List.of(List.of(new SnapshotBuilderCriteriaGroup()));
+    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups))
         .thenReturn(query);
-    when(azureSynapsePdao.runQuery(
-            eq(query.renderSQL(QueryTestUtils.createContext(CloudPlatform.AZURE))), any()))
-        .thenReturn(List.of(5));
+    String sql = "sql";
+    // Use a captor to verify that the context was created using the dataset's cloud platform.
+    var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);
+    when(query.renderSQL(contextArgument.capture())).thenReturn(sql);
+    var count = 5;
+    when(azureSynapsePdao.runQuery(eq(sql), any())).thenReturn(List.of(count));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCriteriaGroups(
-            dataset.getId(), List.of(List.of()), TEST_USER);
+            dataset.getId(), criteriaGroups, TEST_USER);
     assertThat(
-        "rollup count should be response from stubbed query runner", rollupCount, equalTo(5));
+        "rollup count should be response from stubbed query runner", rollupCount, equalTo(count));
+    assertThat(
+        contextArgument.getValue().getPlatform().getCloudPlatform(),
+        is(dataset.getCloudPlatform()));
   }
 
   @ParameterizedTest
@@ -387,8 +387,7 @@ class SnapshotBuilderServiceTest {
     var domain = new SnapshotBuilderDomainOption();
     domain.setName("domain");
     var settings = new SnapshotBuilderSettings().domainOptions(List.of(domain));
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()))
-        .thenReturn(settings);
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId())).thenReturn(settings);
     when(queryBuilder.generateQuery(domain, conceptId)).thenReturn(mock(Query.class));
     var concept1 = concept("concept1", 1, true);
     var concept2 = concept("concept2", 2, false);

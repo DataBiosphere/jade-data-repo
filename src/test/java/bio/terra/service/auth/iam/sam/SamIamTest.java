@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
@@ -39,6 +40,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -69,8 +71,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SamIamTest {
+@Tag(Unit.TAG)
+class SamIamTest {
 
   @Mock private SamApiService samApiService;
   @Mock private GoogleApi samGoogleApi;
@@ -84,14 +86,14 @@ public class SamIamTest {
       AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     GoogleResourceConfiguration resourceConfiguration =
         new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     samIam =
         new SamIam(
             samConfig,
             new ConfigurationService(
-                samConfig, null, resourceConfiguration, new ApplicationConfiguration()),
+                samConfig, resourceConfiguration, new ApplicationConfiguration()),
             samApiService);
   }
 
@@ -540,11 +542,14 @@ public class SamIamTest {
 
       CreateResourceRequestV2 req = new CreateResourceRequestV2();
       req.setResourceId(profileId.toString());
-      req.putPoliciesItem(
-          IamRole.ADMIN.toString(),
-          new AccessPolicyMembershipRequest()
-              .memberEmails(List.of(samConfig.adminsGroupEmail()))
-              .roles(List.of(IamRole.ADMIN.toString())));
+      Optional.ofNullable(samConfig.adminsGroupEmail())
+          .ifPresent(
+              adminsGroupEmail ->
+                  req.putPoliciesItem(
+                      IamRole.ADMIN.toString(),
+                      new AccessPolicyMembershipRequest()
+                          .memberEmails(List.of(adminsGroupEmail))
+                          .roles(List.of(IamRole.ADMIN.toString()))));
       req.putPoliciesItem(
           IamRole.OWNER.toString(),
           new AccessPolicyMembershipRequest()

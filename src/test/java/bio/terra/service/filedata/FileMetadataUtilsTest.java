@@ -5,8 +5,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
@@ -26,16 +26,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class FileMetadataUtilsTest {
+@Tag(Unit.TAG)
+class FileMetadataUtilsTest {
 
   @Test
-  public void makeLookupPathNoRootDir() {
+  void makeLookupPathNoRootDir() {
     String noRootDir = "/test/path/file.json";
     String lookupPath = FileMetadataUtils.makeLookupPath(noRootDir);
     assertThat(
@@ -43,14 +41,14 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void makeLookupPathWithRootDir() {
+  void makeLookupPathWithRootDir() {
     String withRootDir = ROOT_DIR_NAME + "/test/path/file.json";
     String lookupPath = FileMetadataUtils.makeLookupPath(withRootDir);
     assertThat("url should not have changed.", lookupPath, equalTo(withRootDir));
   }
 
   @Test
-  public void findNewDirectoryPaths() {
+  void findNewDirectoryPaths() {
     List<FireStoreDirectoryEntry> testEntries = initTestEntries(2);
     // LRU has enough space for all entries
     LRUMap<String, Boolean> pathMap = new LRUMap<>(5);
@@ -77,7 +75,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void findNewDirectoryPathsTestCache() {
+  void findNewDirectoryPathsTestCache() {
     List<FireStoreDirectoryEntry> testEntries = initTestEntries(5);
     // LRU does NOT have enough space for all entries
     LRUMap<String, Boolean> pathMap = new LRUMap<>(2);
@@ -134,7 +132,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void testUniqueNewPaths() {
+  void testUniqueNewPaths() {
     List<FireStoreDirectoryEntry> testEntries = initTestEntries(5);
 
     // Checking for unique new paths requires two constraints on the findNewDirectoryPaths method
@@ -163,7 +161,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void testValidateFileMd5ForIngest() {
+  void testValidateFileMd5ForIngest() {
     assertThat(
         "matching md5s pass",
         FileMetadataUtils.validateFileMd5ForIngest("foo", "foo", "gs://bucket/path.txt"),
@@ -196,7 +194,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void extractDirectoryPathsTest() {
+  void extractDirectoryPathsTest() {
     assertThat(FileMetadataUtils.extractDirectoryPaths("/foo.txt"), equalTo(List.of("/")));
 
     assertThat(FileMetadataUtils.extractDirectoryPaths("/"), equalTo(List.of("/")));
@@ -209,7 +207,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void pathParsingTest() {
+  void pathParsingTest() {
     assertThat("empty string returns empty", FileMetadataUtils.getDirectoryPath(""), equalTo(""));
     assertThat("root directory dir looks ok", FileMetadataUtils.getDirectoryPath("/"), equalTo(""));
     assertThat("root directory file looks ok", FileMetadataUtils.getName("/"), equalTo(""));
@@ -232,7 +230,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void testToFileModel() {
+  void testToFileModel() {
     UUID fileId = UUID.randomUUID();
     String collectionId = UUID.randomUUID().toString();
     FireStoreDirectoryEntry entry =
@@ -276,7 +274,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void testToFileModelMismatchedSizes() {
+  void testToFileModelMismatchedSizes() {
     List<FireStoreDirectoryEntry> entries = List.of(new FireStoreDirectoryEntry());
     List<FireStoreFile> files = List.of(new FireStoreFile(), new FireStoreFile());
     assertThrows(

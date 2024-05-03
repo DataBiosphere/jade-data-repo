@@ -16,14 +16,14 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(Unit.class)
-public class DaoUtilsTest {
+@Tag(Unit.TAG)
+class DaoUtilsTest {
 
   @Test
-  public void testOrderByClause() {
+  void testOrderByClause() {
     assertThat(
         "order by clause looks correct",
         DaoUtils.orderByClause(EnumerateSortByParam.NAME, SqlSortDirection.ASC, "foo"),
@@ -36,7 +36,7 @@ public class DaoUtilsTest {
   }
 
   @Test
-  public void testCreateSqlStringArray() throws SQLException {
+  void testCreateSqlStringArray() throws SQLException {
     Connection connection = mock(Connection.class);
 
     // A null input list is converted to an empty array
@@ -50,7 +50,7 @@ public class DaoUtilsTest {
   }
 
   @Test
-  public void testGetStringList() throws SQLException {
+  void testGetStringList() throws SQLException {
     ResultSet rs = mock(ResultSet.class);
 
     String nullColumn = "nullColumn";

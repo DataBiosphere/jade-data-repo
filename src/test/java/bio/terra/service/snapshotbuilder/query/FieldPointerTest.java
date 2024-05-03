@@ -14,9 +14,9 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 class FieldPointerTest {
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildVariable(SqlRenderContext context) {
-    TablePointer table = QueryTestUtils.fromTableName("table");
+    TablePointer table = TablePointer.fromTableName("table");
     var fieldPointer = FieldPointer.allFields(table);
     TableVariable primaryTable = TableVariable.forPrimary(table);
     var fieldVariable = fieldPointer.buildVariable(primaryTable, null);
@@ -24,9 +24,9 @@ class FieldPointerTest {
   }
 
   @ParameterizedTest
-  @ArgumentsSource(QueryTestUtils.Contexts.class)
+  @ArgumentsSource(SqlRenderContextProvider.class)
   void buildVariableForeign(SqlRenderContext context) {
-    TablePointer table = QueryTestUtils.fromTableName("table");
+    TablePointer table = TablePointer.fromTableName("table");
     var fieldPointer = FieldPointer.foreignColumn(table, "column");
     TableVariable primaryTable = TableVariable.forPrimary(table);
     List<TableVariable> tables = new ArrayList<>();

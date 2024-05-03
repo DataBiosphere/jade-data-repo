@@ -4456,6 +4456,94 @@ paths:
   ## SNAPSHOT BUILDER API ENDPOINTS
   ## ⚠️ NOTE: ALL SNAPSHOT APIS ARE SUBJECT TO CHANGE
   ##############################################################################
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/settings:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Get the snapshot builder settings for a snapshot.
+      operationId: getSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: The snapshot builder settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderSettings'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Updates the snapshot builder settings for a snapshot.
+      operationId: updateSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New settings for the snapshot to use for snapshot building
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotBuilderSettings'
+        required: true
+      responses:
+        200:
+          description: The updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderSettings'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    delete:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Removes the snapshot builder settings for a snapshot.
+      operationId: deleteSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Settings were deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/snapshotBuilder/settings:
     post:
       tags:
@@ -7375,19 +7463,12 @@ components:
     SnapshotAccessRequestResponse:
       type: object
       description: The response object for a submitted SnapshotAccessRequest.
-      required:
-        - id
-        - datasetId
-        - snapshotName
-        - snapshotResearchPurpose
-        - snapshotSpecification
-        - createdBy
-        - createdDate
-        - status
       properties:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        sourceSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
         snapshotName:
           type: string
@@ -7534,7 +7615,7 @@ components:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
           required:
-            -conceptId
+            - conceptId
           properties:
             conceptId:
               type: integer

@@ -1,49 +1,49 @@
 package bio.terra.app.utils;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class ControllerUtilsTest {
+@Tag(Unit.TAG)
+class ControllerUtilsTest {
 
-  @Test(expected = ValidationException.class)
-  public void testValidateEnumerateParamsOffset() {
-    ControllerUtils.validateEnumerateParams(-1, 1);
-  }
-
-  @Test(expected = ValidationException.class)
-  public void testValidateEnumerateParamsLimit() {
-    ControllerUtils.validateEnumerateParams(0, -1);
+  @Test
+  void testValidateEnumerateParamsOffset() {
+    assertThrows(ValidationException.class, () -> ControllerUtils.validateEnumerateParams(-1, 1));
   }
 
   @Test
-  public void testValidateEnumerateParamsOk() {
+  void testValidateEnumerateParamsLimit() {
+    assertThrows(ValidationException.class, () -> ControllerUtils.validateEnumerateParams(0, -1));
+  }
+
+  @Test
+  void testValidateEnumerateParamsOk() {
     ControllerUtils.validateEnumerateParams(0, 1);
   }
 
   @Test
-  public void testJobToResponse() {
+  void testJobToResponse() {
     var jobModel = new JobModel();
     jobModel.setId("id");
 
     jobModel.setJobStatus(JobStatusEnum.RUNNING);
     ResponseEntity<JobModel> entity = ControllerUtils.jobToResponse(jobModel);
-    assertEquals(HttpStatus.ACCEPTED, entity.getStatusCode());
-    assertEquals("/api/repository/v1/jobs/id", entity.getHeaders().getFirst("Location"));
+    assertThat(entity.getStatusCode(), is(HttpStatus.ACCEPTED));
+    assertThat(entity.getHeaders().getFirst("Location"), is("/api/repository/v1/jobs/id"));
 
     jobModel.setJobStatus(JobStatusEnum.SUCCEEDED);
     entity = ControllerUtils.jobToResponse(jobModel);
-    assertEquals(HttpStatus.OK, entity.getStatusCode());
-    assertEquals("/api/repository/v1/jobs/id/result", entity.getHeaders().getFirst("Location"));
+    assertThat(entity.getStatusCode(), is(HttpStatus.OK));
+    assertThat(entity.getHeaders().getFirst("Location"), is("/api/repository/v1/jobs/id/result"));
   }
 }

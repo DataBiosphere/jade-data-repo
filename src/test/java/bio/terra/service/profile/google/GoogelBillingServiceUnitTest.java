@@ -13,14 +13,12 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-public class GoogelBillingServiceUnitTest {
+class GoogelBillingServiceUnitTest {
   @Test
-  public void testGetIdpTokenFromJwtNotAJwt() {
+  void testGetIdpTokenFromJwtNotAJwt() {
     var user =
         AuthenticatedUserRequest.builder()
             .setToken("not a jwt")
@@ -31,7 +29,7 @@ public class GoogelBillingServiceUnitTest {
   }
 
   @Test
-  public void testGetIdpTokenFromJwtNoIdpAccessToken() {
+  void testGetIdpTokenFromJwtNoIdpAccessToken() {
     var jwt = new PlainJWT(new JWTClaimsSet.Builder().build());
     var user =
         AuthenticatedUserRequest.builder()
@@ -43,7 +41,7 @@ public class GoogelBillingServiceUnitTest {
   }
 
   @Test
-  public void testGetIdpTokenFromJwtWithIdpAccessToken() {
+  void testGetIdpTokenFromJwtWithIdpAccessToken() {
     var idpAccessToken = UUID.randomUUID().toString();
     var jwt =
         new PlainJWT(

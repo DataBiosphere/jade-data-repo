@@ -5,16 +5,15 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import bio.terra.common.category.Unit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
-@Tag("bio.terra.common.category.Unit")
-public class CloudResourceTest {
+@Tag(Unit.TAG)
+class CloudResourceTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

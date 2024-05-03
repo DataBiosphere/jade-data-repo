@@ -75,7 +75,7 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestResponse createSnapshotRequest(
       UUID id, SnapshotAccessRequest snapshotAccessRequest, String email) {
-    return snapshotRequestDao.create(id, snapshotAccessRequest, email);
+    return snapshotRequestDao.create_old(id, snapshotAccessRequest, email);
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -150,14 +150,14 @@ public class SnapshotBuilderService {
   }
 
   public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
-    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
+    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId_old(id));
   }
 
   public SnapshotBuilderGetConceptsResponse searchConcepts(
       UUID datasetId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+        snapshotBuilderSettingsDao.getByDatasetId(datasetId);
 
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
@@ -189,7 +189,7 @@ public class SnapshotBuilderService {
       AuthenticatedUserRequest userRequest) {
     Dataset dataset = datasetService.retrieve(datasetId);
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+        snapshotBuilderSettingsDao.getByDatasetId(datasetId);
 
     Query query =
         queryBuilderFactory
@@ -208,7 +208,7 @@ public class SnapshotBuilderService {
   private SnapshotBuilderDomainOption getDomainOptionFromSettingsByName(
       String domainId, UUID datasetId) {
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+        snapshotBuilderSettingsDao.getByDatasetId(datasetId);
 
     return snapshotBuilderSettings.getDomainOptions().stream()
         .filter(domainOption -> domainOption.getName().equals(domainId))

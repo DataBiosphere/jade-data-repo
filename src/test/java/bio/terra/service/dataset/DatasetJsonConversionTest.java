@@ -2,8 +2,8 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
@@ -31,18 +31,16 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
-public class DatasetJsonConversionTest {
+class DatasetJsonConversionTest {
   private AuthenticatedUserRequest testUser = AuthenticationFixtures.randomUserRequest();
 
   private static final UUID DATASET_PROFILE_ID = UUID.randomUUID();
@@ -67,8 +65,9 @@ public class DatasetJsonConversionTest {
   private DatasetModel datasetModel;
   private MetadataDataAccessUtils metadataDataAccessUtils;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() {
+    metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
     datasetJsonConversion =
         new DatasetJsonConversion(metadataDataAccessUtils, snapshotBuilderSettingsDao);
 
@@ -162,14 +161,10 @@ public class DatasetJsonConversionTest {
                                 .follow(Collections.emptyList()))))
             .snapshotBuilderSettings(new SnapshotBuilderSettings())
             .dataProject(DATASET_DATA_PROJECT);
-
-    metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
   }
 
   @Test
-  public void populateDatasetModelFromDataset() {
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(DATASET_ID))
-        .thenReturn(new SnapshotBuilderSettings());
+  void populateDatasetModelFromDataset() {
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
@@ -182,8 +177,8 @@ public class DatasetJsonConversionTest {
   }
 
   @Test
-  public void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
-    when(snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(DATASET_ID))
+  void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
+    when(snapshotBuilderSettingsDao.getByDatasetId(DATASET_ID))
         .thenReturn(new SnapshotBuilderSettings());
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
@@ -198,7 +193,7 @@ public class DatasetJsonConversionTest {
   }
 
   @Test
-  public void populateDatasetModelFromDatasetNone() {
+  void populateDatasetModelFromDatasetNone() {
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
@@ -214,7 +209,7 @@ public class DatasetJsonConversionTest {
   }
 
   @Test
-  public void populateDatasetModelFromDatasetAccessInfo() {
+  void populateDatasetModelFromDatasetAccessInfo() {
     String expectedDatasetName = "datarepo_" + DATASET_NAME;
     assertThat(
         datasetJsonConversion.populateDatasetModelFromDataset(
@@ -280,7 +275,7 @@ public class DatasetJsonConversionTest {
   }
 
   @Test
-  public void testRequiredColumns() {
+  void testRequiredColumns() {
     var defaultColumnName = "NOT_PRIMARY_KEY_COLUMN";
     var requiredColumnName = "REQUIRED_COLUMN";
     DatasetRequestModel datasetRequestModel =
@@ -319,8 +314,8 @@ public class DatasetJsonConversionTest {
     var defaultColumn = columnMap.get(defaultColumnName);
     var requiredColumn = columnMap.get(requiredColumnName);
 
-    assertTrue("Primary key columns are marked as required", pkColumn.isRequired());
-    assertFalse("Regular columns default to not required", defaultColumn.isRequired());
-    assertTrue("Required columns are marked as required", requiredColumn.isRequired());
+    assertTrue(pkColumn.isRequired(), "Primary key columns are marked as required");
+    assertFalse(defaultColumn.isRequired(), "Regular columns default to not required");
+    assertTrue(requiredColumn.isRequired(), "Required columns are marked as required");
   }
 }

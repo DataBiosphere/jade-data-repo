@@ -40,15 +40,15 @@ import org.springframework.test.web.servlet.MockMvc;
 @Tag(Unit.TAG)
 class AssetModelValidatorTest {
   @MockBean private JobService jobService;
-  @MockBean private DatasetRequestValidator datasetRequestValidator;
   @MockBean private DatasetService datasetService;
   @MockBean private IamService iamService;
   @MockBean private FileService fileService;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
   @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockBean private DatasetRequestValidator datasetRequestValidator;
 
   @Autowired private MockMvc mvc;
 

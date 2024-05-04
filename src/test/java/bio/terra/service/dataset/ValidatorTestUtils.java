@@ -13,6 +13,10 @@ import org.hamcrest.Matcher;
 public class ValidatorTestUtils {
 
   public static void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {
+    checkValidationErrorModel(errorModel, Arrays.asList(messageCodes));
+  }
+
+  public static void checkValidationErrorModel(ErrorModel errorModel, List<String> messageCodes) {
     List<String> details = errorModel.getErrorDetail();
     assertThat(
         "Main message is right",
@@ -26,7 +30,7 @@ public class ValidatorTestUtils {
      * We check to see if the code is wrapped in quotes to prevent matching on substrings.
      */
     List<Matcher<? super String>> expectedMatches =
-        Arrays.stream(messageCodes)
+        messageCodes.stream()
             .map(code -> containsString("'" + code + "'"))
             .collect(Collectors.toList());
     assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));

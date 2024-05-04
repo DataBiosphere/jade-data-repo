@@ -43,7 +43,9 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -52,7 +54,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.shaded.com.google.common.base.Charsets;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -354,5 +358,16 @@ public final class TestUtils {
   public static <T> T extractValueFromPrivateObject(Object object, String fieldName) {
     return objectMapper.convertValue(
         ReflectionTestUtils.getField(object, fieldName), new TypeReference<>() {});
+  }
+
+  public static String loadJson(final String resourcePath) {
+    try (InputStream stream = TestUtils.class.getClassLoader().getResourceAsStream(resourcePath)) {
+      if (stream == null) {
+        throw new FileNotFoundException(resourcePath);
+      }
+      return IOUtils.toString(stream, Charsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

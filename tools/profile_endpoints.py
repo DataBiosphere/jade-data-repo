@@ -1,3 +1,4 @@
+import argparse
 import subprocess
 import requests
 import time
@@ -26,8 +27,15 @@ with different domain IDs and search texts.
 """
 
 # Constants
-UUID = "c672c3c9-ab54-4e19-827c-f2af329da814" # Azure Synapse UUID
-DATAREPO_URL = "https://jade.datarepo-dev.broadinstitute.org"
+DATASETS = {
+    "gcp": "0f2d1f2f-0544-4aaf-ac2a-13f2bd538f09",
+    "azure":  "c672c3c9-ab54-4e19-827c-f2af329da814",
+}
+
+HOSTS = {
+    "local": "http://localhost:8080",
+    "datarepo_dev": "https://jade.datarepo-dev.broadinstitute.org",
+}
 
 
 def run_command(command):
@@ -126,7 +134,8 @@ def make_post_request(endpoint_url, token, body):
     url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
     headers = {
         "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",  # Indicating the request body is in JSON format
+        "Content-Type": "application/json",
+        # Indicating the request body is in JSON format
     }
     start_time = time.time()
     try:
@@ -274,7 +283,36 @@ def profile_get_concepts(token):
 
 # Main function
 if __name__ == "__main__":
-    authenticate()
+
+    # Create the parser
+    parser = argparse.ArgumentParser(
+        description="Profile endpoints for a specific host and dataset")
+
+    # Add the arguments
+    parser.add_argument('--host',
+                        type=str,
+                        choices=HOSTS.keys(),
+                        default='local',
+                        help='The host to profile')
+
+    parser.add_argument('--dataset',
+                        type=str,
+                        choices=DATASETS.keys(),
+                        default='gcp',
+                        help='The dataset to profile')
+
+    parser.add_argument('--authenticate',
+                        type=bool,
+                        default=False,
+                        help='If true, authenticate using gcloud auth login')
+
+    args = parser.parse_args()
+
+    UUID = DATASETS[args.dataset]
+    DATAREPO_URL = HOSTS[args.host]
+
+    if (args.authenticate):
+        authenticate()
 
     # Obtain access token
     access_token = get_access_token()

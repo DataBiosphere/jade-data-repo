@@ -370,4 +370,12 @@ public final class TestUtils {
       throw new RuntimeException(e);
     }
   }
+
+  public static <T> T loadObject(final String resourcePath, final Class<T> resourceClass) {
+    try {
+      return objectMapper.readerFor(resourceClass).readValue(loadJson(resourcePath));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

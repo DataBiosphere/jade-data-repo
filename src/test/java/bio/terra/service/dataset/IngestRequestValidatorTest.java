@@ -53,7 +53,7 @@ import org.springframework.test.web.servlet.MvcResult;
     })
 @WebMvcTest
 @Tag(Unit.TAG)
-class DatasetIngestRequestValidatorTest {
+class IngestRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
   @MockBean private JobService jobService;

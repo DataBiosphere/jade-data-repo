@@ -1,17 +1,24 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AccessInfoParquetModel;
@@ -21,73 +28,79 @@ import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.common.AssetUtils;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.exception.TableNotFoundException;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.tabulardata.WalkRelationship;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class AzureSynapsePdaoUnitTest {
-  private AuthenticatedUserRequest testUser =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AzureSynapsePdaoUnitTest {
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
   private SnapshotRequestAssetModel requestAssetModel;
   private AssetSpecification assetSpec;
   private WalkRelationship walkRelationship;
 
-  @Autowired AssetUtils assetUtils;
-  @SpyBean AzureSynapsePdao azureSynapsePdaoSpy;
+  private AzureSynapsePdao azureSynapsePdao;
 
-  @MockBean
-  @Qualifier("synapseJdbcTemplate")
-  NamedParameterJdbcTemplate synapseJdbcTemplate;
+  @Mock NamedParameterJdbcTemplate synapseJdbcTemplate;
+  @Mock AzureResourceConfiguration azureResourceConfiguration;
 
-  @Before
-  public void setup() throws IOException, SQLException {
-    when(synapseJdbcTemplate.update(any(), any(MapSqlParameterSource.class))).thenReturn(2);
-    assetSpec = assetUtils.buildTestAssetSpec();
-    walkRelationship = assetUtils.buildExampleWalkRelationship(assetSpec);
+  @BeforeEach
+  void setup() {
+    azureSynapsePdao =
+        new AzureSynapsePdao(
+            azureResourceConfiguration,
+            mock(ApplicationConfiguration.class),
+            mock(DrsIdService.class),
+            new ObjectMapper(),
+            synapseJdbcTemplate);
+    assetSpec = AssetUtils.buildTestAssetSpec();
+    walkRelationship = AssetUtils.buildExampleWalkRelationship(assetSpec);
+  }
+
+  private void mockSynapse() {
+    var synapse = mock(AzureResourceConfiguration.Synapse.class);
+    when(azureResourceConfiguration.synapse()).thenReturn(synapse);
+  }
+
+  private void mockUpdate(int value) {
+    when(synapseJdbcTemplate.update(any(), any(MapSqlParameterSource.class))).thenReturn(value);
   }
 
   @Test
-  public void createSnapshotParquetFilesByAsset() throws SQLException {
+  void createSnapshotParquetFilesByAsset() throws SQLException {
+    mockSynapse();
     requestAssetModel =
         new SnapshotRequestAssetModel()
             .assetName(assetSpec.getName())
             .addRootValuesItem("sample2")
             .addRootValuesItem("sample3");
+    mockUpdate(2);
 
     Map<String, Long> tableRowCounts =
-        azureSynapsePdaoSpy.createSnapshotParquetFilesByAsset(
+        azureSynapsePdao.createSnapshotParquetFilesByAsset(
             assetSpec,
             UUID.randomUUID(),
             "datasetDataSource1",
@@ -101,8 +114,9 @@ public class AzureSynapsePdaoUnitTest {
         equalTo(2L));
   }
 
-  @Test(expected = PdaoException.class)
-  public void createSnapshotParquetFilesByAssetNoRows() throws SQLException {
+  @Test
+  void createSnapshotParquetFilesByAssetNoRows() {
+    mockSynapse();
     when(synapseJdbcTemplate.update(any(), any(MapSqlParameterSource.class)))
         .thenThrow(new DataAccessException("...") {});
     requestAssetModel =
@@ -111,43 +125,55 @@ public class AzureSynapsePdaoUnitTest {
             .addRootValuesItem("sample2")
             .addRootValuesItem("sample3");
 
-    azureSynapsePdaoSpy.createSnapshotParquetFilesByAsset(
-        assetSpec,
-        UUID.randomUUID(),
-        "datasetDataSource1",
-        "snapshotDataSource1",
-        requestAssetModel,
-        false,
-        null);
+    UUID snapshotId = UUID.randomUUID();
+    assertThrows(
+        PdaoException.class,
+        () ->
+            azureSynapsePdao.createSnapshotParquetFilesByAsset(
+                assetSpec,
+                snapshotId,
+                "datasetDataSource1",
+                "snapshotDataSource1",
+                requestAssetModel,
+                false,
+                null));
   }
 
-  @Test(expected = PdaoException.class)
-  public void createSnapshotParquetFilesByAssetZeroRows() throws SQLException {
-    when(synapseJdbcTemplate.update(any(), any(MapSqlParameterSource.class))).thenReturn(0);
+  @Test
+  void createSnapshotParquetFilesByAssetZeroRows() {
+    mockSynapse();
+    mockUpdate(0);
     requestAssetModel =
         new SnapshotRequestAssetModel()
             .assetName(assetSpec.getName())
             .addRootValuesItem("sample2")
             .addRootValuesItem("sample3");
 
-    azureSynapsePdaoSpy.createSnapshotParquetFilesByAsset(
-        assetSpec,
-        UUID.randomUUID(),
-        "datasetDataSource1",
-        "snapshotDataSource1",
-        requestAssetModel,
-        false,
-        null);
+    UUID snapshotId = UUID.randomUUID();
+    assertThrows(
+        PdaoException.class,
+        () ->
+            azureSynapsePdao.createSnapshotParquetFilesByAsset(
+                assetSpec,
+                snapshotId,
+                "datasetDataSource1",
+                "snapshotDataSource1",
+                requestAssetModel,
+                false,
+                null));
   }
 
   @Test
-  public void createSnapshotParquetFilesByRelationship() throws SQLException {
+  void createSnapshotParquetFilesByRelationship() throws SQLException {
+    mockSynapse();
+
     Map<String, Long> tableRowCounts = new HashMap<>();
     // Pre-populate 'FROM' table's row count
-    tableRowCounts.put("participant", Long.valueOf(2));
-    doReturn(3).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
+    tableRowCounts.put("participant", 2L);
+    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
+    doReturn(3).when(azureSynapsePadoSpy).executeSynapseQuery(any());
 
-    azureSynapsePdaoSpy.createSnapshotParquetFilesByRelationship(
+    azureSynapsePadoSpy.createSnapshotParquetFilesByRelationship(
         UUID.randomUUID(),
         assetSpec,
         walkRelationship,
@@ -161,11 +187,10 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void createSnapshotParquetFilesByRelationshipNoFromTableRows() throws SQLException {
+  void createSnapshotParquetFilesByRelationshipNoFromTableRows() {
     Map<String, Long> tableRowCounts = new HashMap<>();
-    doReturn(3).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
 
-    azureSynapsePdaoSpy.createSnapshotParquetFilesByRelationship(
+    azureSynapsePdao.createSnapshotParquetFilesByRelationship(
         UUID.randomUUID(),
         assetSpec,
         walkRelationship,
@@ -181,9 +206,9 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void buildSnapshotByAssetQueryTemplateNoEntry() {
+  void buildSnapshotByAssetQueryTemplateNoEntry() {
     Map<String, Long> tableRowCounts = new HashMap<>();
-    ST query = azureSynapsePdaoSpy.buildSnapshotByAssetQueryTemplate(tableRowCounts, "table1");
+    ST query = azureSynapsePdao.buildSnapshotByAssetQueryTemplate(tableRowCounts, "table1");
     assertThat(
         "No existing entries in TableRowCounts, so the query should NOT include additional clause to avoid rows already added to snapshot",
         query.render(),
@@ -191,10 +216,10 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void buildSnapshotByAssetQueryTemplateZeroEntry() {
+  void buildSnapshotByAssetQueryTemplateZeroEntry() {
     Map<String, Long> tableRowCounts = new HashMap<>();
-    tableRowCounts.put("table1", Long.valueOf(0));
-    ST query = azureSynapsePdaoSpy.buildSnapshotByAssetQueryTemplate(tableRowCounts, "table1");
+    tableRowCounts.put("table1", 0L);
+    ST query = azureSynapsePdao.buildSnapshotByAssetQueryTemplate(tableRowCounts, "table1");
     assertThat(
         "Zero rows included in TableRowCounts, so the query should NOT include additional clause to avoid rows already added to snapshot",
         query.render(),
@@ -202,53 +227,82 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void buildSnapshotByAssetQueryTemplatePositiveEntry() {
+  void buildSnapshotByAssetQueryTemplatePositiveEntry() {
     Map<String, Long> tableRowCounts = new HashMap<>();
-    tableRowCounts.put("table1", Long.valueOf(2));
-    ST query = azureSynapsePdaoSpy.buildSnapshotByAssetQueryTemplate(tableRowCounts, "table1");
+    tableRowCounts.put("table1", 2L);
+    ST query = azureSynapsePdao.buildSnapshotByAssetQueryTemplate(tableRowCounts, "table1");
     assertThat(
         "There were already rows in the table, so the query should include additional clause to avoid rows already added to snapshot",
         query.render(),
         containsString("already_existing_to_rows"));
   }
 
-  @Test(expected = InvalidSnapshotException.class)
-  public void testCreateSnapshotRowIdsParquetFileNoRows() throws SQLException {
+  @Test
+  void testCreateSnapshotRowIdsParquetFileNoRows() {
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1");
     List<SnapshotTable> tables = List.of(snapshotTable1);
     Map<String, Long> tableRowCounts = new HashMap<>();
     // empty tableRowCounts, so should throw InvalidSnapshotException
-    azureSynapsePdaoSpy.createSnapshotRowIdsParquetFile(
-        tables, UUID.randomUUID(), "snapshotDataSourceName1", tableRowCounts);
+    UUID snapshotId = UUID.randomUUID();
+    assertThrows(
+        InvalidSnapshotException.class,
+        () ->
+            azureSynapsePdao.createSnapshotRowIdsParquetFile(
+                tables, snapshotId, "snapshotDataSourceName1", tableRowCounts));
   }
 
   @Test
-  public void testCreateSnapshotRowIdsParquetFile() throws SQLException {
-    SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
+  void testCreateSnapshotRowIdsParquetFile() throws SQLException {
+    mockSynapse();
+    UUID tableId = UUID.randomUUID();
+    SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(tableId);
     List<SnapshotTable> tables = List.of(snapshotTable1);
     Map<String, Long> tableRowCounts = new HashMap<>();
     tableRowCounts.put(snapshotTable1.getName(), 3L);
-    doReturn(3).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
-    azureSynapsePdaoSpy.createSnapshotRowIdsParquetFile(
-        tables, UUID.randomUUID(), "snapshotDataSourceName1", tableRowCounts);
-  }
-
-  @Test(expected = TableNotFoundException.class)
-  public void testCreateSnapshotParquetFilesByRowIdNoRequestTable() throws SQLException {
-    SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
-    List<SnapshotTable> tables = List.of(snapshotTable1);
-    azureSynapsePdaoSpy.createSnapshotParquetFilesByRowId(
-        tables,
-        UUID.randomUUID(),
-        "datasetDataSourceName1",
-        "snapshotDataSourceName1",
-        new SnapshotRequestRowIdModel(),
-        false,
-        null);
+    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
+    ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+    doReturn(3).when(azureSynapsePadoSpy).executeSynapseQuery(queryCaptor.capture());
+    UUID snapshotId = UUID.randomUUID();
+    azureSynapsePadoSpy.createSnapshotRowIdsParquetFile(
+        tables, snapshotId, "snapshotDataSourceName1", tableRowCounts);
+    var expected =
+        """
+        CREATE EXTERNAL TABLE [%s]
+            WITH (
+                LOCATION = 'metadata/parquet/datarepo_row_ids/datarepo_row_ids.parquet',
+                DATA_SOURCE = [snapshotDataSourceName1],
+                FILE_FORMAT = []) AS
+        SELECT '%s' as datarepo_table_id, datarepo_row_id
+        FROM OPENROWSET(
+                     BULK 'metadata/parquet/table1/*.parquet/*',
+                     DATA_SOURCE = 'snapshotDataSourceName1',
+                     FORMAT = 'parquet') AS rows;"""
+            .formatted(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE), tableId);
+    assertThat(queryCaptor.getValue(), equalToCompressingWhiteSpace(expected));
   }
 
   @Test
-  public void testCreateSnapshotParquetFilesByRowId() throws SQLException {
+  void testCreateSnapshotParquetFilesByRowIdNoRequestTable() {
+    SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
+    List<SnapshotTable> tables = List.of(snapshotTable1);
+    UUID snapshotId = UUID.randomUUID();
+    SnapshotRequestRowIdModel rowIdModel = new SnapshotRequestRowIdModel();
+    assertThrows(
+        TableNotFoundException.class,
+        () ->
+            azureSynapsePdao.createSnapshotParquetFilesByRowId(
+                tables,
+                snapshotId,
+                "datasetDataSourceName1",
+                "snapshotDataSourceName1",
+                rowIdModel,
+                false,
+                null));
+  }
+
+  @Test
+  void testCreateSnapshotParquetFilesByRowId() throws SQLException {
+    mockSynapse();
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
     List<SnapshotTable> tables = List.of(snapshotTable1);
     SnapshotRequestRowIdTableModel tableModel =
@@ -256,8 +310,10 @@ public class AzureSynapsePdaoUnitTest {
     SnapshotRequestRowIdModel requestRowIdModel =
         new SnapshotRequestRowIdModel().tables(List.of(tableModel));
 
+    mockUpdate(2);
+
     Map<String, Long> tableRowCounts =
-        azureSynapsePdaoSpy.createSnapshotParquetFilesByRowId(
+        azureSynapsePdao.createSnapshotParquetFilesByRowId(
             tables,
             UUID.randomUUID(),
             "datasetDataSourceName1",
@@ -269,7 +325,8 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void testCreateSnapshotParquetFilesByRowIdNoRows() throws SQLException {
+  void testCreateSnapshotParquetFilesByRowIdNoRows() throws SQLException {
+    mockSynapse();
     when(synapseJdbcTemplate.update(any(), any(MapSqlParameterSource.class)))
         .thenThrow(new DataAccessException("...") {});
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
@@ -280,7 +337,7 @@ public class AzureSynapsePdaoUnitTest {
         new SnapshotRequestRowIdModel().tables(List.of(tableModel));
 
     Map<String, Long> tableRowCounts =
-        azureSynapsePdaoSpy.createSnapshotParquetFilesByRowId(
+        azureSynapsePdao.createSnapshotParquetFilesByRowId(
             tables,
             UUID.randomUUID(),
             "datasetDataSourceName1",
@@ -295,13 +352,15 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void testCreateSnapshotParquetFiles() throws SQLException {
+  void testCreateSnapshotParquetFiles() throws SQLException {
+    mockSynapse();
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
     List<SnapshotTable> tables = List.of(snapshotTable1);
-    doReturn(3).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
+    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
+    doReturn(3).when(azureSynapsePadoSpy).executeSynapseQuery(any());
 
     Map<String, Long> tableRowCounts =
-        azureSynapsePdaoSpy.createSnapshotParquetFiles(
+        azureSynapsePadoSpy.createSnapshotParquetFiles(
             tables,
             UUID.randomUUID(),
             "datasetDataSourceName1",
@@ -312,13 +371,15 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void testCreateSnapshotParquetFilesNoRows() throws SQLException {
-    doThrow(SQLServerException.class).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
+  void testCreateSnapshotParquetFilesNoRows() throws SQLException {
+    mockSynapse();
+    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
+    doThrow(SQLServerException.class).when(azureSynapsePadoSpy).executeSynapseQuery(any());
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
     List<SnapshotTable> tables = List.of(snapshotTable1);
 
     Map<String, Long> tableRowCounts =
-        azureSynapsePdaoSpy.createSnapshotParquetFiles(
+        azureSynapsePadoSpy.createSnapshotParquetFiles(
             tables,
             UUID.randomUUID(),
             "datasetDataSourceName1",
@@ -329,7 +390,7 @@ public class AzureSynapsePdaoUnitTest {
   }
 
   @Test
-  public void getOrCreateExternalAzureDataSource() throws Exception {
+  void getOrCreateExternalAzureDataSource() throws Exception {
     UUID id = UUID.randomUUID();
     AccessInfoModel accessInfoModel =
         new AccessInfoModel()
@@ -338,9 +399,11 @@ public class AzureSynapsePdaoUnitTest {
                     .sasToken(
                         "sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&sr=b&sig=mysig")
                     .url("https://fake.url"));
-    doNothing().when(azureSynapsePdaoSpy).getOrCreateExternalDataSource(any(), any(), any());
+    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
+    doNothing().when(azureSynapsePadoSpy).getOrCreateExternalDataSource(any(), any(), any());
     assertThat(
-        azureSynapsePdaoSpy.getOrCreateExternalDataSourceForResource(accessInfoModel, id, testUser),
-        equalTo(String.format("ds-%s-%s", id, testUser.getEmail())));
+        azureSynapsePadoSpy.getOrCreateExternalDataSourceForResource(
+            accessInfoModel, id, TEST_USER),
+        equalTo(String.format("ds-%s-%s", id, TEST_USER.getEmail())));
   }
 }

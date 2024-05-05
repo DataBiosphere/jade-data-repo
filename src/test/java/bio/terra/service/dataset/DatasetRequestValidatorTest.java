@@ -11,13 +11,21 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.controller.ApiValidationExceptionHandler;
+import bio.terra.app.controller.DatasetsApiController;
+import bio.terra.app.controller.GlobalExceptionHandler;
+import bio.terra.app.controller.converters.EnumerateSortByParamConverter;
+import bio.terra.app.controller.converters.SqlSortDirectionAscDefaultConverter;
+import bio.terra.app.controller.converters.SqlSortDirectionDescDefaultConverter;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
@@ -29,32 +37,66 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.filedata.FileService;
+import bio.terra.service.job.JobService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class DatasetRequestValidatorTest {
+@ContextConfiguration(
+    classes = {
+      DatasetRequestValidator.class,
+      DatasetsApiController.class,
+      ApiValidationExceptionHandler.class,
+      GlobalExceptionHandler.class,
+      EnumerateSortByParamConverter.class,
+      SqlSortDirectionAscDefaultConverter.class,
+      SqlSortDirectionDescDefaultConverter.class
+    })
+@WebMvcTest
+@Tag(Unit.TAG)
+class DatasetRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
-  @Autowired private JsonLoader jsonLoader;
+
+  @MockBean private JobService jobService;
+  @MockBean private DatasetService datasetService;
+  @MockBean private IamService iamService;
+  @MockBean private FileService fileService;
+  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockBean private IngestRequestValidator ingestRequestValidator;
+  @MockBean private AssetModelValidator assetModelValidator;
+  @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+  @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
+
+  @Autowired private ObjectMapper objectMapper;
+
+  @BeforeEach
+  void setup() throws Exception {
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
+    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+  }
 
   private ErrorModel expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest)
       throws Exception {
@@ -71,8 +113,7 @@ public class DatasetRequestValidatorTest {
 
     assertThat("Error model was returned on failure", responseBody, containsString("message"));
 
-    ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
-    return errorModel;
+    return TestUtils.mapFromJson(responseBody, ErrorModel.class);
   }
 
   private void expectBadDatasetEnumerateRequest(
@@ -107,7 +148,7 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidDatasetRequest() throws Exception {
+  void testInvalidDatasetRequest() throws Exception {
     mvc.perform(
             post("/api/repository/v1/datasets")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -116,13 +157,17 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
-  public void testJsonParsingErrors() throws Exception {
+  void testJsonParsingErrors() throws Exception {
+    // Force the ObjectMapper to throw an exception when it encounters an unknown property,
+    // to match the configuration that the controller uses.
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     String invalidSchema =
-        "{\"name\":\"no_response\","
-            + "\"description\":\"Invalid dataset schema leads to no response body\","
-            + "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\","
-            + "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":"
-            + "[{\"name\":\"column\",\"datatype\":\"fileref\",\"is_array\":true}]}]}}";
+        """
+            {"name":"no_response",
+            "description":"Invalid dataset schema leads to no response body",
+            "defaultProfileId":"390e7a85-d47f-4531-b612-165fc977d3bd",
+            "schema":{"tables":[{"name":"table","columns":
+            [{"name":"column","datatype":"fileref","is_array":true}]}]}}""";
     MvcResult result =
         mvc.perform(
                 post("/api/repository/v1/datasets")
@@ -140,7 +185,7 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
-  public void testDuplicateTableNames() throws Exception {
+  void testDuplicateTableNames() throws Exception {
     ColumnModel column = new ColumnModel().name("id").datatype(TableDataType.STRING);
     TableModel table =
         new TableModel().name("duplicate").columns(Collections.singletonList(column));
@@ -150,15 +195,13 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel,
-        new String[] {
-          "DuplicateTableNames",
-          "InvalidRelationshipTermTable",
-          "InvalidRelationshipTermTable",
-          "InvalidAssetTable",
-          "InvalidAssetTableColumn",
-          "InvalidAssetTableColumn",
-          "InvalidRootColumn"
-        });
+        "DuplicateTableNames",
+        "InvalidRelationshipTermTable",
+        "InvalidRelationshipTermTable",
+        "InvalidAssetTable",
+        "InvalidAssetTableColumn",
+        "InvalidAssetTableColumn",
+        "InvalidRootColumn");
   }
 
   /**
@@ -174,23 +217,23 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidTableName() throws Exception {
+  void testInvalidTableName() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
 
     // Table names with leading underscores are invalid
     List<String> invalidPatternNames = List.of("_", "_a_column", "_1_column");
     for (String name : invalidPatternNames) {
       checkValidationErrorModel(
-          expectBadDatasetCreateRequest(withNamedTable(req, name)), new String[] {"Pattern"});
+          expectBadDatasetCreateRequest(withNamedTable(req, name)), "Pattern");
     }
 
     // Table names over 63 characters are invalid
     checkValidationErrorModel(
-        expectBadDatasetCreateRequest(withNamedTable(req, "a".repeat(64))), new String[] {"Size"});
+        expectBadDatasetCreateRequest(withNamedTable(req, "a".repeat(64))), "Size");
   }
 
   @Test
-  public void testDuplicateColumnNames() throws Exception {
+  void testDuplicateColumnNames() throws Exception {
     ColumnModel column = new ColumnModel().name("id").datatype(TableDataType.STRING);
     TableModel table = new TableModel().name("table").columns(Arrays.asList(column, column));
 
@@ -199,19 +242,17 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel,
-        new String[] {
-          "DuplicateColumnNames",
-          "InvalidRelationshipTermTable",
-          "InvalidRelationshipTermTable",
-          "InvalidAssetTable",
-          "InvalidAssetTableColumn",
-          "InvalidAssetTableColumn",
-          "InvalidRootColumn"
-        });
+        "DuplicateColumnNames",
+        "InvalidRelationshipTermTable",
+        "InvalidRelationshipTermTable",
+        "InvalidAssetTable",
+        "InvalidAssetTableColumn",
+        "InvalidAssetTableColumn",
+        "InvalidRootColumn");
   }
 
   @Test
-  public void testInvalidKeyType() throws Exception {
+  void testInvalidKeyType() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     TableModel testTable = req.getSchema().getTables().get(0);
     testTable.setPrimaryKey(List.of("id", "age"));
@@ -226,16 +267,14 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel,
-        new String[] {
-          "InvalidPrimaryKey",
-          "InvalidPrimaryKey",
-          "InvalidPrimaryKey",
-          "InvalidRelationshipColumnType"
-        });
+        "InvalidPrimaryKey",
+        "InvalidPrimaryKey",
+        "InvalidPrimaryKey",
+        "InvalidRelationshipColumnType");
   }
 
   @Test
-  public void testInvalidColumnMode() throws Exception {
+  void testInvalidColumnMode() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     TableModel testTable = req.getSchema().getTables().get(0);
     // Test that a required, array_of column causes a validation error
@@ -251,7 +290,7 @@ public class DatasetRequestValidatorTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidPrimaryKey", "InvalidColumnMode", "InvalidColumnMode"});
+        errorModel, "InvalidPrimaryKey", "InvalidColumnMode", "InvalidColumnMode");
   }
 
   /**
@@ -267,40 +306,40 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidColumnName() throws Exception {
+  void testInvalidColumnName() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
 
     // Table names with leading numbers or leading underscores are invalid
     List<String> invalidPatternNames = List.of("_", "_a_column", "_1_column", "1", "1_column");
     for (String name : invalidPatternNames) {
       checkValidationErrorModel(
-          expectBadDatasetCreateRequest(withNamedColumn(req, name)), new String[] {"Pattern"});
+          expectBadDatasetCreateRequest(withNamedColumn(req, name)), "Pattern");
     }
 
     // Column names over 63 characters are invalid
     checkValidationErrorModel(
-        expectBadDatasetCreateRequest(withNamedColumn(req, "a".repeat(64))), new String[] {"Size"});
+        expectBadDatasetCreateRequest(withNamedColumn(req, "a".repeat(64))), "Size");
   }
 
   @Test
-  public void testDuplicateAssetNames() throws Exception {
+  void testDuplicateAssetNames() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema().assets(Arrays.asList(buildAsset(), buildAsset()));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"DuplicateAssetNames"});
+    checkValidationErrorModel(errorModel, "DuplicateAssetNames");
   }
 
   @Test
-  public void testDuplicateRelationshipNames() throws Exception {
+  void testDuplicateRelationshipNames() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     RelationshipModel relationship = buildParticipantSampleRelationship();
     req.getSchema().relationships(Arrays.asList(relationship, relationship));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"DuplicateRelationshipNames"});
+    checkValidationErrorModel(errorModel, "DuplicateRelationshipNames");
   }
 
   @Test
-  public void testInvalidAssetTable() throws Exception {
+  void testInvalidAssetTable() throws Exception {
     AssetTableModel invalidAssetTable =
         new AssetTableModel().name("mismatched_table_name").columns(Collections.emptyList());
 
@@ -314,12 +353,11 @@ public class DatasetRequestValidatorTest {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema().assets(Collections.singletonList(asset));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(
-        errorModel, new String[] {"NotNull", "InvalidAssetTable", "InvalidRootColumn"});
+    checkValidationErrorModel(errorModel, "NotNull", "InvalidAssetTable", "InvalidRootColumn");
   }
 
   @Test
-  public void testInvalidAssetTableColumn() throws Exception {
+  void testInvalidAssetTableColumn() throws Exception {
     // participant is a valid table but date_collected is in the sample table
     AssetTableModel invalidAssetTable =
         new AssetTableModel()
@@ -337,12 +375,11 @@ public class DatasetRequestValidatorTest {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema().assets(Collections.singletonList(asset));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(
-        errorModel, new String[] {"InvalidAssetTableColumn", "InvalidRootColumn"});
+    checkValidationErrorModel(errorModel, "InvalidAssetTableColumn", "InvalidRootColumn");
   }
 
   @Test
-  public void testArrayAssetRootColumn() throws Exception {
+  void testArrayAssetRootColumn() throws Exception {
     ColumnModel arrayColumn =
         new ColumnModel().name("array_data").arrayOf(true).datatype(TableDataType.STRING);
 
@@ -370,11 +407,11 @@ public class DatasetRequestValidatorTest {
 
     req.getSchema().setAssets(Collections.singletonList(asset));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidArrayRootColumn"});
+    checkValidationErrorModel(errorModel, "InvalidArrayRootColumn");
   }
 
   @Test
-  public void testInvalidFollowsRelationship() throws Exception {
+  void testInvalidFollowsRelationship() throws Exception {
     AssetModel asset =
         new AssetModel()
             .name("bad_follows")
@@ -385,12 +422,11 @@ public class DatasetRequestValidatorTest {
     req.getSchema().assets(Collections.singletonList(asset));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel,
-        new String[] {"NotNull", "NotNull", "NoRootTable", "InvalidFollowsRelationship"});
+        errorModel, "NotNull", "NotNull", "NoRootTable", "InvalidFollowsRelationship");
   }
 
   @Test
-  public void testInvalidRelationshipTermTableColumn() throws Exception {
+  void testInvalidRelationshipTermTableColumn() throws Exception {
     // participant_id is part of the sample table, not participant
     RelationshipTermModel mismatchedTerm =
         new RelationshipTermModel().table("participant").column("participant_id");
@@ -404,11 +440,11 @@ public class DatasetRequestValidatorTest {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema().relationships(Collections.singletonList(mismatchedRelationship));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidRelationshipTermTableColumn"});
+    checkValidationErrorModel(errorModel, "InvalidRelationshipTermTableColumn");
   }
 
   @Test
-  public void testNoRootTable() throws Exception {
+  void testNoRootTable() throws Exception {
     AssetModel noRoot =
         new AssetModel()
             .name("bad")
@@ -418,12 +454,12 @@ public class DatasetRequestValidatorTest {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema().assets(Collections.singletonList(noRoot));
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"NotNull", "NotNull", "NoRootTable"});
+    checkValidationErrorModel(errorModel, "NotNull", "NotNull", "NoRootTable");
   }
 
   @Test
-  public void testTableSchemaInvalidDataType() throws Exception {
-    String invalidSchema = jsonLoader.loadJson("./dataset/create/invalid-schema.json");
+  void testTableSchemaInvalidDataType() throws Exception {
+    String invalidSchema = TestUtils.loadJson("./dataset/create/invalid-schema.json");
     MvcResult result =
         mvc.perform(
                 post("/api/repository/v1/datasets")
@@ -444,30 +480,30 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
-  public void testDatasetNameInvalid() throws Exception {
+  void testDatasetNameInvalid() throws Exception {
     ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no spaces"));
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
+    checkValidationErrorModel(errorModel, "Pattern");
 
     errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no-dashes"));
-    checkValidationErrorModel(errorModel, new String[] {"Pattern"});
+    checkValidationErrorModel(errorModel, "Pattern");
 
     errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(""));
-    checkValidationErrorModel(errorModel, new String[] {"Size", "Pattern"});
+    checkValidationErrorModel(errorModel, "Size", "Pattern");
 
     // Make a 512 character string, it should be considered too long by the validation.
     String tooLong = "a".repeat(512);
     errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(tooLong));
-    checkValidationErrorModel(errorModel, new String[] {"Size"});
+    checkValidationErrorModel(errorModel, "Size");
   }
 
   @Test
-  public void testDatasetNameMissing() throws Exception {
+  void testDatasetNameMissing() throws Exception {
     ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(null));
-    checkValidationErrorModel(errorModel, new String[] {"NotNull", "DatasetNameMissing"});
+    checkValidationErrorModel(errorModel, "NotNull", "DatasetNameMissing");
   }
 
   @Test
-  public void testDatasetEnumerateValidations() throws Exception {
+  void testDatasetEnumerateValidations() throws Exception {
     String expected = "Invalid enumerate parameter(s).";
     String expectedEnum = "Invalid enum parameter: %s.";
     expectBadDatasetEnumerateRequest(
@@ -510,7 +546,7 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
-  public void testMissingPrimaryKeyColumn() throws Exception {
+  void testMissingPrimaryKeyColumn() throws Exception {
     TableModel table =
         new TableModel()
             .name("table")
@@ -523,12 +559,11 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(
-        errorModel, new String[] {"MissingPrimaryKeyColumn", "IncompleteSchemaDefinition"});
+    checkValidationErrorModel(errorModel, "MissingPrimaryKeyColumn", "IncompleteSchemaDefinition");
   }
 
   @Test
-  public void testNonRequiredPrimaryKeyColumn() throws Exception {
+  void testNonRequiredPrimaryKeyColumn() throws Exception {
     TableModel table =
         new TableModel()
             .name("table")
@@ -547,11 +582,11 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"OptionalPrimaryKeyColumn"});
+    checkValidationErrorModel(errorModel, "OptionalPrimaryKeyColumn");
   }
 
   @Test
-  public void testDatePartitionWithBadOptions() throws Exception {
+  void testDatePartitionWithBadOptions() throws Exception {
     TableModel table =
         new TableModel()
             .name("table")
@@ -568,13 +603,13 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel,
-        new String[] {
-          "MissingDatePartitionOptions", "InvalidIntPartitionOptions", "IncompleteSchemaDefinition"
-        });
+        "MissingDatePartitionOptions",
+        "InvalidIntPartitionOptions",
+        "IncompleteSchemaDefinition");
   }
 
   @Test
-  public void testDatePartitionWithMissingColumn() throws Exception {
+  void testDatePartitionWithMissingColumn() throws Exception {
     TableModel table =
         new TableModel()
             .name("table")
@@ -589,11 +624,11 @@ public class DatasetRequestValidatorTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidDatePartitionColumnName", "IncompleteSchemaDefinition"});
+        errorModel, "InvalidDatePartitionColumnName", "IncompleteSchemaDefinition");
   }
 
   @Test
-  public void testDatePartitionWithMismatchedType() throws Exception {
+  void testDatePartitionWithMismatchedType() throws Exception {
     ColumnModel column = new ColumnModel().name("column").datatype(TableDataType.INT64);
     TableModel table =
         new TableModel()
@@ -608,11 +643,11 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidDatePartitionColumnType"});
+    checkValidationErrorModel(errorModel, "InvalidDatePartitionColumnType");
   }
 
   @Test
-  public void testIntPartitionWithBadOptions() throws Exception {
+  void testIntPartitionWithBadOptions() throws Exception {
     TableModel table =
         new TableModel()
             .name("table")
@@ -628,13 +663,13 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel,
-        new String[] {
-          "InvalidDatePartitionOptions", "MissingIntPartitionOptions", "IncompleteSchemaDefinition"
-        });
+        "InvalidDatePartitionOptions",
+        "MissingIntPartitionOptions",
+        "IncompleteSchemaDefinition");
   }
 
   @Test
-  public void testIntPartitionWithMissingColumn() throws Exception {
+  void testIntPartitionWithMissingColumn() throws Exception {
     TableModel table =
         new TableModel()
             .name("table")
@@ -650,11 +685,11 @@ public class DatasetRequestValidatorTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidIntPartitionColumnName", "IncompleteSchemaDefinition"});
+        errorModel, "InvalidIntPartitionColumnName", "IncompleteSchemaDefinition");
   }
 
   @Test
-  public void testIntPartitionWithMismatchedType() throws Exception {
+  void testIntPartitionWithMismatchedType() throws Exception {
     ColumnModel column = new ColumnModel().name("column").datatype(TableDataType.TIMESTAMP);
     TableModel table =
         new TableModel()
@@ -674,11 +709,11 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidIntPartitionColumnType"});
+    checkValidationErrorModel(errorModel, "InvalidIntPartitionColumnType");
   }
 
   @Test
-  public void testIntPartitionWithBadRange() throws Exception {
+  void testIntPartitionWithBadRange() throws Exception {
     ColumnModel column = new ColumnModel().name("column").datatype(TableDataType.INT64);
     TableModel table =
         new TableModel()
@@ -699,11 +734,11 @@ public class DatasetRequestValidatorTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidIntPartitionRange", "InvalidIntPartitionInterval"});
+        errorModel, "InvalidIntPartitionRange", "InvalidIntPartitionInterval");
   }
 
   @Test
-  public void testIntPartitionTooManyPartitions() throws Exception {
+  void testIntPartitionTooManyPartitions() throws Exception {
     ColumnModel column = new ColumnModel().name("column").datatype(TableDataType.INT64);
     TableModel table =
         new TableModel()
@@ -723,11 +758,11 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"TooManyIntPartitions"});
+    checkValidationErrorModel(errorModel, "TooManyIntPartitions");
   }
 
   @Test
-  public void testPartitionOptionsWithoutMode() throws Exception {
+  void testPartitionOptionsWithoutMode() throws Exception {
     TableModel table =
         new TableModel()
             .name("table")
@@ -744,13 +779,13 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel,
-        new String[] {
-          "InvalidDatePartitionOptions", "InvalidIntPartitionOptions", "IncompleteSchemaDefinition"
-        });
+        "InvalidDatePartitionOptions",
+        "InvalidIntPartitionOptions",
+        "IncompleteSchemaDefinition");
   }
 
   @Test
-  public void testNoTablesProvided() throws Exception {
+  void testNoTablesProvided() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema()
         .tables(Collections.emptyList())
@@ -758,11 +793,11 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"IncompleteSchemaDefinition"});
+    checkValidationErrorModel(errorModel, "IncompleteSchemaDefinition");
   }
 
   @Test
-  public void testNoColumnsProvided() throws Exception {
+  void testNoColumnsProvided() throws Exception {
     TableModel table = new TableModel().name("table").columns(Collections.emptyList());
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema()
@@ -771,6 +806,6 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"IncompleteSchemaDefinition"});
+    checkValidationErrorModel(errorModel, "IncompleteSchemaDefinition");
   }
 }

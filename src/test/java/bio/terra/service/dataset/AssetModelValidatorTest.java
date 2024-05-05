@@ -16,7 +16,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -77,13 +76,13 @@ class AssetModelValidatorTest {
   @Test
   void testInvalidAssetCreateRequest() throws Exception {
     ErrorModel errorModel = expectBadAssetCreateRequest("{}");
-    checkValidationErrorModel(errorModel, List.of("NotNull", "NotNull", "NotNull"));
+    checkValidationErrorModel(errorModel, "NotNull", "NotNull", "NotNull");
   }
 
   @Test
   void testDuplicateColumnAssetCreateRequest() throws Exception {
     String jsonModel = TestUtils.loadJson("dataset-asset-duplicate-column.json");
     ErrorModel errorModel = expectBadAssetCreateRequest(jsonModel);
-    checkValidationErrorModel(errorModel, List.of("DuplicateColumnNames"));
+    checkValidationErrorModel(errorModel, "DuplicateColumnNames");
   }
 }

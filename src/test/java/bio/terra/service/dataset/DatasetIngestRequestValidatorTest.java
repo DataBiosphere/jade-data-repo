@@ -3,48 +3,69 @@ package bio.terra.service.dataset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.controller.ApiValidationExceptionHandler;
+import bio.terra.app.controller.DatasetsApiController;
+import bio.terra.app.controller.GlobalExceptionHandler;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.filedata.FileService;
+import bio.terra.service.job.JobService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class DatasetIngestRequestValidatorTest {
+@ContextConfiguration(
+    classes = {
+      IngestRequestValidator.class,
+      DatasetsApiController.class,
+      ApiValidationExceptionHandler.class,
+      GlobalExceptionHandler.class
+    })
+@WebMvcTest
+@Tag(Unit.TAG)
+class DatasetIngestRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
+  @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;
+  @MockBean private IamService iamService;
+  @MockBean private FileService fileService;
+  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
+  @MockBean private AssetModelValidator assetModelValidator;
+  @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+  @MockBean private DatasetRequestValidator datasetRequestValidator;
 
   private ErrorModel expectBadPostRequest(String url, String content) throws Exception {
     MvcResult result =
@@ -54,12 +75,20 @@ public class DatasetIngestRequestValidatorTest {
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
     assertTrue(
-        "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
+        StringUtils.contains(responseBody, "message"), "Error model was returned on failure");
     return TestUtils.mapFromJson(responseBody, ErrorModel.class);
   }
 
+  @BeforeEach
+  void beforeEach() {
+    when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
+    when(datasetRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+  }
+
   @Test
-  public void testAzureIngestRequestParameters() throws Exception {
+  void testAzureIngestRequestParameters() throws Exception {
     Dataset dataset = mock(Dataset.class);
     DatasetSummary datasetSummary = mock(DatasetSummary.class);
     when(datasetSummary.getStorageCloudPlatform()).thenReturn(CloudPlatform.AZURE);
@@ -114,7 +143,7 @@ public class DatasetIngestRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidIngestByArray() throws Exception {
+  void testInvalidIngestByArray() throws Exception {
     var invalidIngest =
         new IngestRequestModel()
             .path("foo/bar")
@@ -140,7 +169,7 @@ public class DatasetIngestRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidIngestByPath() throws Exception {
+  void testInvalidIngestByPath() throws Exception {
     var invalidIngest =
         new IngestRequestModel()
             .table("myTable")
@@ -166,7 +195,7 @@ public class DatasetIngestRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidIngestWithNullIntFields() throws Exception {
+  void testInvalidIngestWithNullIntFields() throws Exception {
     var invalidIngest =
         new IngestRequestModel()
             .table("myTable")
@@ -187,7 +216,7 @@ public class DatasetIngestRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidBulkIngestWithNullIntFields() throws Exception {
+  void testInvalidBulkIngestWithNullIntFields() throws Exception {
     var invalidIngest =
         new BulkLoadRequestModel()
             .loadControlFile("gs://foo/bar.json")
@@ -210,7 +239,7 @@ public class DatasetIngestRequestValidatorTest {
   }
 
   @Test
-  public void testInvalidBulkArrayIngestWithNullIntFields() throws Exception {
+  void testInvalidBulkArrayIngestWithNullIntFields() throws Exception {
     var invalidIngest =
         new BulkLoadArrayRequestModel()
             .loadArray(
@@ -237,7 +266,7 @@ public class DatasetIngestRequestValidatorTest {
   }
 
   @Test
-  public void testBulkIngestRequiresLoadTag() throws Exception {
+  void testBulkIngestRequiresLoadTag() throws Exception {
     var invalidIngest =
         new BulkLoadRequestModel()
             .profileId(UUID.randomUUID())
@@ -253,7 +282,7 @@ public class DatasetIngestRequestValidatorTest {
   }
 
   @Test
-  public void testBulkArrayIngestRequiresLoadTag() throws Exception {
+  void testBulkArrayIngestRequiresLoadTag() throws Exception {
     var invalidIngest =
         new BulkLoadArrayRequestModel()
             .profileId(UUID.randomUUID())

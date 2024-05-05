@@ -118,6 +118,7 @@ class DataDeletionRequestValidatorTest {
         .andReturn();
   }
 
+  @Test
   void goodJsonArraySpecTest() throws Exception {
     mvc.perform(
             post("/api/repository/v1/datasets/{id}/deletes", UUID.randomUUID())

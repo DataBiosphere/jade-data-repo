@@ -33,9 +33,7 @@ class BatchOperationTest {
     ApplicationConfiguration appConfiguration = mock(ApplicationConfiguration.class);
     ConfigurationService configurationService =
         new ConfigurationService(
-            mock(SamConfiguration.class),
-            resourceConfiguration,
-            appConfiguration);
+            mock(SamConfiguration.class), resourceConfiguration, appConfiguration);
 
     fireStoreUtils = new FireStoreUtils(configurationService, appConfiguration);
   }

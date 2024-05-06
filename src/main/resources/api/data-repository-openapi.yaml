@@ -2756,13 +2756,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionModel'
         400:
-          description: Bad request - invalid query pameters
+          description: Bad request - invalid query parameters
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to read transaction from this datasset
+          description: No permission to read transaction from this dataset
           content:
             application/json:
               schema:
@@ -2813,13 +2813,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobModel'
         400:
-          description: Bad request - invalid transaction terminat request, badly formed or unrecognized state
+          description: Bad request - invalid transaction terminate request, badly formed or unrecognized state
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to terminate the transaction for this datasset
+          description: No permission to terminate the transaction for this dataset
           content:
             application/json:
               schema:
@@ -2835,7 +2835,7 @@ paths:
       tags:
         - datasets
         - repository
-      description: Add an asset definiion to a dataset
+      description: Add an asset definition to a dataset
       operationId: addDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -7226,6 +7226,7 @@ components:
         - domainOptions
         - programDataOptions
         - featureValueGroups
+        - datasetConceptSets
       properties:
         domainOptions:
           type: array
@@ -7342,6 +7343,8 @@ components:
         - type: object
           required:
             - root
+            - conceptCount
+            - participantCount
           properties:
             root:
               $ref: '#/components/schemas/SnapshotBuilderConcept'

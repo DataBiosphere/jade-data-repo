@@ -34,7 +34,7 @@ DATASETS = {
 
 HOSTS = {
     "local": "http://localhost:8080",
-    "datarepo_dev": "https://jade.datarepo-dev.broadinstitute.org",
+    "dev": "https://jade.datarepo-dev.broadinstitute.org",
 }
 
 

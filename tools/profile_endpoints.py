@@ -29,7 +29,7 @@ with different domain IDs and search texts.
 # Constants
 DATASETS = {
     "gcp": "0f2d1f2f-0544-4aaf-ac2a-13f2bd538f09",
-    "azure":  "c672c3c9-ab54-4e19-827c-f2af329da814",
+    "azure": "c672c3c9-ab54-4e19-827c-f2af329da814",
 }
 
 HOSTS = {
@@ -53,9 +53,10 @@ def run_command(command):
         if result.returncode == 0:
             return result.stdout.strip()
         else:
-            raise Exception(
-                f"Command failed with exit code {result.returncode}: {result.stderr}"
+            print(
+                f"Command '{command}' failed with exit code {result.returncode}: {result.stderr}"
             )
+            return None
     except Exception as e:
         print(f"Error executing command: {e}")
         return None
@@ -127,15 +128,12 @@ def make_post_request(endpoint_url, token, body):
         endpoint_url (str): The endpoint URL to request.
         token (str): The access token for authentication.
         body (dict): The request body to send in the POST request.
-
-    Returns:
-        tuple: A tuple containing the response object and the time taken for the request in seconds.
     """
     url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
     headers = {
         "Authorization": f"Bearer {token}",
+        # The request body is in JSON format
         "Content-Type": "application/json",
-        # Indicating the request body is in JSON format
     }
     start_time = time.time()
     try:
@@ -159,14 +157,11 @@ def profile_get_snapshot_builder_count(token):
 
     Args:
         token (str): The access token for authentication.
-
-    Returns:
-        str: A string indicating the average time taken for the request.
     """
     print("Profiling getSnapshotBuilderCount endpoint")
 
     # Define the bodies for the POST request
-    bodys = [
+    bodies = [
         {
             "cohorts": [
                 {
@@ -228,7 +223,7 @@ def profile_get_snapshot_builder_count(token):
         },
     ]
 
-    for body in bodys:
+    for body in bodies:
         make_post_request("count", token, body)
 
 
@@ -286,32 +281,39 @@ if __name__ == "__main__":
 
     # Create the parser
     parser = argparse.ArgumentParser(
-        description="Profile endpoints for a specific host and dataset")
+        description="Profile endpoints for a specific host and dataset"
+    )
 
     # Add the arguments
-    parser.add_argument('--host',
-                        type=str,
-                        choices=HOSTS.keys(),
-                        default='local',
-                        help='The host to profile')
+    parser.add_argument(
+        "--host",
+        type=str,
+        choices=HOSTS.keys(),
+        default="local",
+        help="The host to profile",
+    )
 
-    parser.add_argument('--dataset',
-                        type=str,
-                        choices=DATASETS.keys(),
-                        default='gcp',
-                        help='The dataset to profile')
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=DATASETS.keys(),
+        default="gcp",
+        help="The dataset to profile",
+    )
 
-    parser.add_argument('--authenticate',
-                        type=bool,
-                        default=False,
-                        help='If true, authenticate using gcloud auth login')
+    parser.add_argument(
+        "--authenticate",
+        type=bool,
+        default=False,
+        help="If true, authenticate using gcloud auth login",
+    )
 
     args = parser.parse_args()
 
     UUID = DATASETS[args.dataset]
     DATAREPO_URL = HOSTS[args.host]
 
-    if (args.authenticate):
+    if args.authenticate:
         authenticate()
 
     # Obtain access token

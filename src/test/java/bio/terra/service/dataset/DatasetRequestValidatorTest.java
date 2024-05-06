@@ -25,6 +25,7 @@ import bio.terra.app.controller.converters.SqlSortDirectionAscDefaultConverter;
 import bio.terra.app.controller.converters.SqlSortDirectionDescDefaultConverter;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.UnitTestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
@@ -41,8 +42,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -69,7 +68,8 @@ import org.springframework.test.web.servlet.MvcResult;
       GlobalExceptionHandler.class,
       EnumerateSortByParamConverter.class,
       SqlSortDirectionAscDefaultConverter.class,
-      SqlSortDirectionDescDefaultConverter.class
+      SqlSortDirectionDescDefaultConverter.class,
+      UnitTestConfiguration.class
     })
 @WebMvcTest
 @Tag(Unit.TAG)
@@ -87,8 +87,6 @@ class DatasetRequestValidatorTest {
   @MockBean private AssetModelValidator assetModelValidator;
   @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
   @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
-
-  @Autowired private ObjectMapper objectMapper;
 
   @BeforeEach
   void setup() throws Exception {
@@ -160,7 +158,6 @@ class DatasetRequestValidatorTest {
   void testJsonParsingErrors() throws Exception {
     // Force the ObjectMapper to throw an exception when it encounters an unknown property,
     // to match the configuration that the controller uses.
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     String invalidSchema =
         """
             {"name":"no_response",

@@ -15,14 +15,15 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.QueryBuilder;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import java.util.Objects;
@@ -108,15 +109,18 @@ public class CriteriaQueryBuilder {
                         occurrenceVariable)));
     return SubQueryFilterVariable.in(
         getFieldVariableForRootTable(Person.PERSON_ID),
-        new Query(
-            List.of(
-                new FieldVariable(
-                    new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
-                    occurrenceVariable)),
-            List.of(occurrenceVariable, conceptAncestor),
-            BinaryFilterVariable.equals(
-                conceptAncestor.ancestor_concept_id(),
-                new Literal(domainCriteria.getConceptId()))));
+        new QueryBuilder()
+            .addSelect(
+                List.of(
+                    new FieldVariable(
+                        new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
+                        occurrenceVariable)))
+            .addTables(List.of(occurrenceVariable, conceptAncestor))
+            .addWhere(
+                BinaryFilterVariable.equals(
+                    conceptAncestor.ancestor_concept_id(),
+                    new Literal(domainCriteria.getConceptId())))
+            .build());
   }
 
   FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
@@ -164,6 +168,10 @@ public class CriteriaQueryBuilder {
             BooleanAndOrFilterVariable.LogicalOperator.OR,
             criteriaGroupsList.stream().map(this::generateFilterForCriteriaGroups).toList());
 
-    return new Query(List.of(personId), List.of(rootTable), filterVariable);
+    return new QueryBuilder()
+        .addSelect(List.of(personId))
+        .addTables(List.of(rootTable))
+        .addWhere(filterVariable)
+        .build();
   }
 }

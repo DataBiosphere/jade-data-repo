@@ -15,10 +15,10 @@ import bio.terra.service.snapshotbuilder.query.QueryBuilder;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 
@@ -65,23 +65,25 @@ public class HierarchyQueryBuilder {
             Person.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
 
     return new QueryBuilder()
-        .addSelect(List.of(
-        new SelectAlias(childId, Concept.CONCEPT_ID),
-        conceptName,
-        conceptCode,
-        count,
-        hasChildrenExpression(childId)))
+        .addSelect(
+            List.of(
+                new SelectAlias(parentId, QueryBuilderFactory.PARENT_ID),
+                new SelectAlias(childId, Concept.CONCEPT_ID),
+                conceptName,
+                conceptCode,
+                count,
+                hasChildrenExpression(childId)))
         .addTables(List.of(conceptRelationship, child, parent, conceptAncestor, domainOccurrence))
-        .addWhere(BooleanAndOrFilterVariable.and(
-            SubQueryFilterVariable.in(parentId, selectAllParents(conceptId)),
-            BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
-            requireStandardConcept(parent),
-            requireStandardConcept(child)))
+        .addWhere(
+            BooleanAndOrFilterVariable.and(
+                SubQueryFilterVariable.in(parentId, selectAllParents(conceptId)),
+                BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
+                requireStandardConcept(parent),
+                requireStandardConcept(child)))
         .addGroupBy(List.of(conceptName, parentId, childId, conceptCode))
         .addOrderBy(List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING)))
         .build();
   }
-
   /**
    * Filter concept to only allow standard concepts. See <a
    * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,
@@ -105,12 +107,15 @@ public class HierarchyQueryBuilder {
     ConceptAncestor conceptAncestor = new ConceptAncestor();
     var conceptIdLiteral = new Literal(conceptId);
     FieldVariable ancestorConceptId = conceptAncestor.ancestor_concept_id();
-    return new Query(
-        List.of(ancestorConceptId),
-        List.of(conceptAncestor),
-        BooleanAndOrFilterVariable.and(
-            BinaryFilterVariable.equals(conceptAncestor.descendant_concept_id(), conceptIdLiteral),
-            BinaryFilterVariable.notEquals(ancestorConceptId, conceptIdLiteral)));
+    return new QueryBuilder()
+        .addSelect(List.of(ancestorConceptId))
+        .addTables(List.of(conceptAncestor))
+        .addWhere(
+            BooleanAndOrFilterVariable.and(
+                BinaryFilterVariable.equals(
+                    conceptAncestor.descendant_concept_id(), conceptIdLiteral),
+                BinaryFilterVariable.notEquals(ancestorConceptId, conceptIdLiteral)))
+        .build();
   }
 
   /**
@@ -136,15 +141,17 @@ public class HierarchyQueryBuilder {
     var innerConcept =
         new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(descendantConceptId));
     return new ExistsExpression(
-        new Query(
-            List.of(new Literal(1)),
-            List.of(conceptAncestor, innerConcept),
-            BooleanAndOrFilterVariable.and(
-                BinaryFilterVariable.equals(
-                    conceptAncestor.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID),
-                    conceptId),
-                BinaryFilterVariable.notEquals(descendantConceptId, conceptId),
-                requireStandardConcept(innerConcept))),
+        new QueryBuilder()
+            .addSelect(List.of(new Literal(1)))
+            .addTables(List.of(conceptAncestor, innerConcept))
+            .addWhere(
+                BooleanAndOrFilterVariable.and(
+                    BinaryFilterVariable.equals(
+                        conceptAncestor.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID),
+                        conceptId),
+                    BinaryFilterVariable.notEquals(descendantConceptId, conceptId),
+                    requireStandardConcept(innerConcept)))
+            .build(),
         QueryBuilderFactory.HAS_CHILDREN);
   }
 }

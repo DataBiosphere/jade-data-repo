@@ -10,13 +10,14 @@ import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.QueryBuilder;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
@@ -109,7 +110,14 @@ public class SearchConceptsQueryBuilder {
               BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
     }
 
-    return new Query(select, tables, where, groupBy, orderBy, 100);
+    return new QueryBuilder()
+        .addSelect(select)
+        .addTables(tables)
+        .addWhere(where)
+        .addGroupBy(groupBy)
+        .addOrderBy(orderBy)
+        .addLimit(100)
+        .build();
   }
 
   static FunctionFilterVariable createSearchConceptClause(

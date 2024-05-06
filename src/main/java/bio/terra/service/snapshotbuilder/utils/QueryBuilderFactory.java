@@ -14,7 +14,7 @@ public class QueryBuilderFactory {
       SnapshotBuilderSettings snapshotBuilderSettings) {
     return new CriteriaQueryBuilder(snapshotBuilderSettings);
   }
-gi
+
   public HierarchyQueryBuilder hierarchyQueryBuilder() {
     return new HierarchyQueryBuilder();
   }

@@ -10,13 +10,14 @@ import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.QueryBuilder;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 
@@ -84,7 +85,13 @@ public class ConceptChildrenQueryBuilder {
             SubQueryFilterVariable.in(conceptId, createSubQuery(parentConceptId)),
             BinaryFilterVariable.equals(concept.standard_concept(), new Literal("S")));
 
-    return new Query(select, tables, where, groupBy, orderBy);
+    return new QueryBuilder()
+        .addSelect(select)
+        .addTables(tables)
+        .addWhere(where)
+        .addGroupBy(groupBy)
+        .addOrderBy(orderBy)
+        .build();
   }
 
   /**
@@ -99,16 +106,18 @@ public class ConceptChildrenQueryBuilder {
     ConceptRelationship conceptRelationship = new ConceptRelationship();
     FieldVariable descendantConceptId = conceptRelationship.concept_id_2();
 
-    return new Query(
-        List.of(descendantConceptId),
-        List.of(conceptRelationship),
-        BooleanAndOrFilterVariable.and(
-            BinaryFilterVariable.equals(
-                conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1),
-                new Literal(conceptId)),
-            BinaryFilterVariable.equals(
-                conceptRelationship.makeFieldVariable(ConceptRelationship.RELATIONSHIP_ID),
-                new Literal("Subsumes"))));
+    return new QueryBuilder()
+        .addSelect(List.of(descendantConceptId))
+        .addTables(List.of(conceptRelationship))
+        .addWhere(
+            BooleanAndOrFilterVariable.and(
+                BinaryFilterVariable.equals(
+                    conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1),
+                    new Literal(conceptId)),
+                BinaryFilterVariable.equals(
+                    conceptRelationship.makeFieldVariable(ConceptRelationship.RELATIONSHIP_ID),
+                    new Literal("Subsumes"))))
+        .build();
   }
 
   /**
@@ -128,6 +137,6 @@ public class ConceptChildrenQueryBuilder {
     List<SelectExpression> select = List.of(domainIdField);
     List<TableVariable> table = List.of(concept);
 
-    return new Query(select, table, where);
+    return new QueryBuilder().addSelect(select).addTables(table).addWhere(where).build();
   }
 }

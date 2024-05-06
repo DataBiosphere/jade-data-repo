@@ -4,13 +4,15 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariab
 import java.util.List;
 
 public class QueryBuilder {
-  private List<SelectExpression> select;
-  private List<TableVariable> tables;
-  private FilterVariable where;
-  private List<FieldVariable> groupBy;
-  private HavingFilterVariable having;
-  private List<OrderByVariable> orderBy;
-  private Integer limit;
+  private List<SelectExpression> select = null;
+  private List<TableVariable> tables = null;
+  private FilterVariable where = null;
+  private List<FieldVariable> groupBy = null;
+  private HavingFilterVariable having = null;
+  private List<OrderByVariable> orderBy = null;
+  private Integer limit = null;
+
+  public QueryBuilder() {}
 
   public QueryBuilder addSelect(List<SelectExpression> select) {
     this.select = select;
@@ -48,7 +50,7 @@ public class QueryBuilder {
   }
 
   public Query build() {
-    return new Query(this.select, this.tables, this.where, this.groupBy, this.having, this.orderBy, this.limit);
+    return new Query(
+        this.select, this.tables, this.where, this.groupBy, this.having, this.orderBy, this.limit);
   }
-
 }

@@ -22,12 +22,9 @@ public record Query(
     if (tables.isEmpty()) {
       throw new IllegalArgumentException("Query must have at least one TableVariable");
     }
-    if (groupBy == null) {
-      groupBy = List.of();
-    }
-    if (orderBy == null) {
-      orderBy = List.of();
-    }
+    groupBy = groupBy != null ? groupBy : List.of();
+    orderBy = orderBy != null ? orderBy : List.of();
+
     long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
     if (primaryTables != 1) {
       throw new IllegalArgumentException(
@@ -35,49 +32,9 @@ public record Query(
     }
   }
 
-  public Query(List<SelectExpression> select, List<TableVariable> tables) {
-    this(select, tables, null, null, null, null, null);
-  }
-
-  public Query(
-      List<SelectExpression> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, groupBy, null, null, null);
-  }
-
-  public Query(List<SelectExpression> select, List<TableVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null, null, null);
-  }
-
-  public Query(
-      List<SelectExpression> select,
-      List<TableVariable> tables,
-      FilterVariable where,
-      Integer limit) {
-    this(select, tables, where, null, null, null, limit);
-  }
-
-  public Query(
-      List<SelectExpression> select,
-      List<TableVariable> tables,
-      FilterVariable where,
-      List<FieldVariable> groupBy,
-      List<OrderByVariable> orderBy,
-      Integer limit) {
-    this(select, tables, where, groupBy, null, orderBy, limit);
-  }
-
-  public Query(
-      List<SelectExpression> select,
-      List<TableVariable> tables,
-      FilterVariable where,
-      List<FieldVariable> groupBy,
-      List<OrderByVariable> orderBy) {
-    this(select, tables, where, groupBy, null, orderBy, null);
-  }
 
   @Override
   public String renderSQL(SqlRenderContext context) {
-
     // render each SELECT FieldVariable and join them into a single string
     String selectSQL =
         select.stream()

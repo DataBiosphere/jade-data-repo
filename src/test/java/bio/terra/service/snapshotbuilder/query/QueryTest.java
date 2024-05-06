@@ -21,23 +21,23 @@ public class QueryTest {
   @NotNull
   public static Query createQuery() {
     TableVariable tableVariable = makeTableVariable();
-    return new Query(
-        List.of(
-            new FieldVariable(
-                FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)),
-        List.of(tableVariable));
+    return new QueryBuilder().addSelect(List.of(
+        new FieldVariable(
+            FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable))).addTables(List.of(tableVariable)).build();
   }
 
   @NotNull
   public static Query createQueryWithLimit() {
     TableVariable tableVariable = makeTableVariable();
-    return new Query(
-        List.of(
-            new FieldVariable(
-                FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)),
-        List.of(tableVariable),
-        null,
-        25);
+    return new QueryBuilder()
+        .addSelect(
+            List.of(
+                new FieldVariable(
+                    FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
+        .addTables(List.of(tableVariable))
+        .addWhere(null)
+        .addLimit(25)
+        .build();
   }
 
   private static TableVariable makeTableVariable() {
@@ -67,7 +67,12 @@ public class QueryTest {
     TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
-    Query query = new Query(List.of(fieldVariable), List.of(tableVariable), List.of(fieldVariable));
+    Query query =
+        new QueryBuilder()
+            .addSelect(List.of(fieldVariable))
+            .addTables(List.of(tableVariable))
+            .addGroupBy(List.of(fieldVariable))
+            .build();
     assertThat(query.renderSQL(context), is("SELECT t.field FROM table AS t GROUP BY t.field"));
   }
 
@@ -96,56 +101,61 @@ public class QueryTest {
                 conditionOccurrenceVariable));
 
     Query query =
-        new Query(
-            List.of(
-                new FieldVariable(
-                    new FieldPointer(tablePointer, Person.PERSON_ID, "COUNT"),
-                    tableVariable,
-                    null,
-                    true)),
-            List.of(tableVariable, conditionOccurrenceVariable, conditionAncestorVariable),
-            new BooleanAndOrFilterVariable(
-                BooleanAndOrFilterVariable.LogicalOperator.AND,
+        new QueryBuilder()
+            .addSelect(
                 List.of(
-                    new BooleanAndOrFilterVariable(
-                        BooleanAndOrFilterVariable.LogicalOperator.OR,
-                        List.of(
-                            new BinaryFilterVariable(
-                                new FieldVariable(
-                                    new FieldPointer(
-                                        conditionOccurrencePointer,
-                                        ConditionOccurrence.CONDITION_CONCEPT_ID),
-                                    conditionOccurrenceVariable),
-                                BinaryFilterVariable.BinaryOperator.EQUALS,
-                                new Literal(316139)),
-                            new BinaryFilterVariable(
-                                new FieldVariable(
-                                    new FieldPointer(
-                                        conditionAncestorPointer, "ancestor_concept_id"),
-                                    conditionAncestorVariable),
-                                BinaryFilterVariable.BinaryOperator.EQUALS,
-                                new Literal(316139)),
-                            new BinaryFilterVariable(
-                                new FieldVariable(
-                                    new FieldPointer(
-                                        conditionOccurrencePointer,
-                                        ConditionOccurrence.CONDITION_CONCEPT_ID),
-                                    conditionOccurrenceVariable),
-                                BinaryFilterVariable.BinaryOperator.EQUALS,
-                                new Literal(4311280)),
-                            new BinaryFilterVariable(
-                                new FieldVariable(
-                                    new FieldPointer(
-                                        conditionAncestorPointer,
-                                        ConceptAncestor.ANCESTOR_CONCEPT_ID),
-                                    conditionAncestorVariable),
-                                BinaryFilterVariable.BinaryOperator.EQUALS,
-                                new Literal(4311280)))),
-                    new BinaryFilterVariable(
-                        new FieldVariable(
-                            new FieldPointer(tablePointer, Person.YEAR_OF_BIRTH), tableVariable),
-                        BinaryFilterVariable.BinaryOperator.LESS_THAN,
-                        new Literal(1983)))));
+                    new FieldVariable(
+                        new FieldPointer(tablePointer, Person.PERSON_ID, "COUNT"),
+                        tableVariable,
+                        null,
+                        true)))
+            .addTables(
+                List.of(tableVariable, conditionOccurrenceVariable, conditionAncestorVariable))
+            .addWhere(
+                new BooleanAndOrFilterVariable(
+                    BooleanAndOrFilterVariable.LogicalOperator.AND,
+                    List.of(
+                        new BooleanAndOrFilterVariable(
+                            BooleanAndOrFilterVariable.LogicalOperator.OR,
+                            List.of(
+                                new BinaryFilterVariable(
+                                    new FieldVariable(
+                                        new FieldPointer(
+                                            conditionOccurrencePointer,
+                                            ConditionOccurrence.CONDITION_CONCEPT_ID),
+                                        conditionOccurrenceVariable),
+                                    BinaryFilterVariable.BinaryOperator.EQUALS,
+                                    new Literal(316139)),
+                                new BinaryFilterVariable(
+                                    new FieldVariable(
+                                        new FieldPointer(
+                                            conditionAncestorPointer, "ancestor_concept_id"),
+                                        conditionAncestorVariable),
+                                    BinaryFilterVariable.BinaryOperator.EQUALS,
+                                    new Literal(316139)),
+                                new BinaryFilterVariable(
+                                    new FieldVariable(
+                                        new FieldPointer(
+                                            conditionOccurrencePointer,
+                                            ConditionOccurrence.CONDITION_CONCEPT_ID),
+                                        conditionOccurrenceVariable),
+                                    BinaryFilterVariable.BinaryOperator.EQUALS,
+                                    new Literal(4311280)),
+                                new BinaryFilterVariable(
+                                    new FieldVariable(
+                                        new FieldPointer(
+                                            conditionAncestorPointer,
+                                            ConceptAncestor.ANCESTOR_CONCEPT_ID),
+                                        conditionAncestorVariable),
+                                    BinaryFilterVariable.BinaryOperator.EQUALS,
+                                    new Literal(4311280)))),
+                        new BinaryFilterVariable(
+                            new FieldVariable(
+                                new FieldPointer(tablePointer, Person.YEAR_OF_BIRTH),
+                                tableVariable),
+                            BinaryFilterVariable.BinaryOperator.LESS_THAN,
+                            new Literal(1983)))))
+            .build();
     String querySQL = query.renderSQL(context);
     assertThat(
         querySQL,

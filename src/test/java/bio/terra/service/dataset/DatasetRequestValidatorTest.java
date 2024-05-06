@@ -156,8 +156,6 @@ class DatasetRequestValidatorTest {
 
   @Test
   void testJsonParsingErrors() throws Exception {
-    // Force the ObjectMapper to throw an exception when it encounters an unknown property,
-    // to match the configuration that the controller uses.
     String invalidSchema =
         """
             {"name":"no_response",

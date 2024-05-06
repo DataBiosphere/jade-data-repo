@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class AssetSpecification {
@@ -72,5 +73,22 @@ public class AssetSpecification {
         .filter(at -> at.getTable().getName().equals(tableName))
         .findFirst()
         .orElseThrow();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    AssetSpecification that = (AssetSpecification) o;
+    return Objects.equals(id, that.id)
+        && Objects.equals(name, that.name)
+        && Objects.equals(rootTable, that.rootTable)
+        && Objects.equals(rootColumn, that.rootColumn)
+        && Objects.equals(assetTables, that.assetTables)
+        && Objects.equals(assetRelationships, that.assetRelationships);
   }
 }

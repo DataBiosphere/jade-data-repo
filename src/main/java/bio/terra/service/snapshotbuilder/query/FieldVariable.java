@@ -28,10 +28,6 @@ public class FieldVariable implements SelectExpression {
     this.isDistinct = isDistinct;
   }
 
-  public TableVariable getTableVariable() {
-    return tableVariable;
-  }
-
   public String renderSqlForOrderOrGroupBy(boolean includedInSelect, SqlRenderContext context) {
     if (includedInSelect) {
       if (alias == null) {

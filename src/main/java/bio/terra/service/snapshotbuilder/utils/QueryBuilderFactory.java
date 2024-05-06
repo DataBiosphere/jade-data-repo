@@ -10,9 +10,8 @@ public class QueryBuilderFactory {
   public static final String COUNT = "count";
   public static final String PARENT_ID = "parent_id";
 
-  public CriteriaQueryBuilder criteriaQueryBuilder(
-      String rootTableName, SnapshotBuilderSettings snapshotBuilderSettings) {
-    return new CriteriaQueryBuilder(rootTableName, snapshotBuilderSettings);
+  public CriteriaQueryBuilder criteriaQueryBuilder(SnapshotBuilderSettings snapshotBuilderSettings) {
+    return new CriteriaQueryBuilder(snapshotBuilderSettings);
   }
 
   public HierarchyQueryBuilder hierarchyQueryBuilder() {

@@ -211,7 +211,7 @@ public class SnapshotBuilderService {
 
     Query query =
         queryBuilderFactory
-            .criteriaQueryBuilder("person", snapshotBuilderSettings)
+            .criteriaQueryBuilder( snapshotBuilderSettings)
             .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
 
     return runSnapshotBuilderQuery(

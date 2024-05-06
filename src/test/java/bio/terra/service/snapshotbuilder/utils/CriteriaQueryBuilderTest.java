@@ -35,7 +35,7 @@ class CriteriaQueryBuilderTest {
   @BeforeEach
   void setup() {
     criteriaQueryBuilder =
-        new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS);
+        new CriteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS);
   }
 
   @ParameterizedTest

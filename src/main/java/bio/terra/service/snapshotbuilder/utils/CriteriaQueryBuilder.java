@@ -32,10 +32,9 @@ public class CriteriaQueryBuilder {
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
-  protected CriteriaQueryBuilder(
-      String rootTableName, SnapshotBuilderSettings snapshotBuilderSettings) {
+  protected CriteriaQueryBuilder(SnapshotBuilderSettings snapshotBuilderSettings) {
     this.snapshotBuilderSettings = snapshotBuilderSettings;
-    rootTable = TableVariable.forPrimary(TablePointer.fromTableName(rootTableName));
+    rootTable = TableVariable.forPrimary(TablePointer.fromTableName("person"));
   }
 
   private TablePointer getRootTablePointer() {

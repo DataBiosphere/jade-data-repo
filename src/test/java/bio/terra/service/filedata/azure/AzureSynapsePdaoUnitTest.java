@@ -81,8 +81,8 @@ class AzureSynapsePdaoUnitTest {
   }
 
   private void mockSynapse() {
-    var synapse = mock(AzureResourceConfiguration.Synapse.class);
-    when(azureResourceConfiguration.synapse()).thenReturn(synapse);
+    when(azureResourceConfiguration.synapse())
+        .thenReturn(mock(AzureResourceConfiguration.Synapse.class));
   }
 
   private void mockUpdate(int value) {
@@ -170,10 +170,10 @@ class AzureSynapsePdaoUnitTest {
     Map<String, Long> tableRowCounts = new HashMap<>();
     // Pre-populate 'FROM' table's row count
     tableRowCounts.put("participant", 2L);
-    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
-    doReturn(3).when(azureSynapsePadoSpy).executeSynapseQuery(any());
+    AzureSynapsePdao azureSynapsePdaoSpy = spy(azureSynapsePdao);
+    doReturn(3).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
 
-    azureSynapsePadoSpy.createSnapshotParquetFilesByRelationship(
+    azureSynapsePdaoSpy.createSnapshotParquetFilesByRelationship(
         UUID.randomUUID(),
         assetSpec,
         walkRelationship,
@@ -259,11 +259,11 @@ class AzureSynapsePdaoUnitTest {
     List<SnapshotTable> tables = List.of(snapshotTable1);
     Map<String, Long> tableRowCounts = new HashMap<>();
     tableRowCounts.put(snapshotTable1.getName(), 3L);
-    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
+    AzureSynapsePdao azureSynapsePdaoSpy = spy(azureSynapsePdao);
     ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-    doReturn(3).when(azureSynapsePadoSpy).executeSynapseQuery(queryCaptor.capture());
+    doReturn(3).when(azureSynapsePdaoSpy).executeSynapseQuery(queryCaptor.capture());
     UUID snapshotId = UUID.randomUUID();
-    azureSynapsePadoSpy.createSnapshotRowIdsParquetFile(
+    azureSynapsePdaoSpy.createSnapshotRowIdsParquetFile(
         tables, snapshotId, "snapshotDataSourceName1", tableRowCounts);
     var expected =
         """
@@ -356,11 +356,11 @@ class AzureSynapsePdaoUnitTest {
     mockSynapse();
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
     List<SnapshotTable> tables = List.of(snapshotTable1);
-    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
-    doReturn(3).when(azureSynapsePadoSpy).executeSynapseQuery(any());
+    AzureSynapsePdao azureSynapsePdaoSpy = spy(azureSynapsePdao);
+    doReturn(3).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
 
     Map<String, Long> tableRowCounts =
-        azureSynapsePadoSpy.createSnapshotParquetFiles(
+        azureSynapsePdaoSpy.createSnapshotParquetFiles(
             tables,
             UUID.randomUUID(),
             "datasetDataSourceName1",
@@ -373,13 +373,13 @@ class AzureSynapsePdaoUnitTest {
   @Test
   void testCreateSnapshotParquetFilesNoRows() throws SQLException {
     mockSynapse();
-    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
-    doThrow(SQLServerException.class).when(azureSynapsePadoSpy).executeSynapseQuery(any());
+    AzureSynapsePdao azureSynapsePdaoSpy = spy(azureSynapsePdao);
+    doThrow(SQLServerException.class).when(azureSynapsePdaoSpy).executeSynapseQuery(any());
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
     List<SnapshotTable> tables = List.of(snapshotTable1);
 
     Map<String, Long> tableRowCounts =
-        azureSynapsePadoSpy.createSnapshotParquetFiles(
+        azureSynapsePdaoSpy.createSnapshotParquetFiles(
             tables,
             UUID.randomUUID(),
             "datasetDataSourceName1",
@@ -399,10 +399,10 @@ class AzureSynapsePdaoUnitTest {
                     .sasToken(
                         "sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&sr=b&sig=mysig")
                     .url("https://fake.url"));
-    AzureSynapsePdao azureSynapsePadoSpy = spy(azureSynapsePdao);
-    doNothing().when(azureSynapsePadoSpy).getOrCreateExternalDataSource(any(), any(), any());
+    AzureSynapsePdao azureSynapsePdaoSpy = spy(azureSynapsePdao);
+    doNothing().when(azureSynapsePdaoSpy).getOrCreateExternalDataSource(any(), any(), any());
     assertThat(
-        azureSynapsePadoSpy.getOrCreateExternalDataSourceForResource(
+        azureSynapsePdaoSpy.getOrCreateExternalDataSourceForResource(
             accessInfoModel, id, TEST_USER),
         equalTo(String.format("ds-%s-%s", id, TEST_USER.getEmail())));
   }

@@ -17,7 +17,6 @@ import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
-import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -34,8 +33,7 @@ class CriteriaQueryBuilderTest {
 
   @BeforeEach
   void setup() {
-    criteriaQueryBuilder =
-        new CriteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS);
+    criteriaQueryBuilder = new CriteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS);
   }
 
   @ParameterizedTest

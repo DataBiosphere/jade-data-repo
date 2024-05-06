@@ -3,13 +3,13 @@ package bio.terra.service.snapshotbuilder.query;
 import jakarta.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
-public final class TableVariable implements SqlExpression {
+public class TableVariable implements SqlExpression {
   private final TablePointer tablePointer;
   private final String joinField;
   private final FieldVariable joinFieldOnParent;
   private final boolean isLeftJoin;
 
-  private TableVariable(
+  public TableVariable(
       TablePointer tablePointer,
       @Nullable String joinField,
       @Nullable FieldVariable joinFieldOnParent,
@@ -49,8 +49,8 @@ public final class TableVariable implements SqlExpression {
 
   public FieldVariable makeFieldVariable(
       String fieldName, String sqlFunctionWrapper, String alias, boolean isDistinct) {
-    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName, sqlFunctionWrapper);
-    return new FieldVariable(fieldPointer, this, alias, isDistinct);
+    return new FieldVariable(
+        new FieldPointer(tablePointer, fieldName, sqlFunctionWrapper), this, alias, isDistinct);
   }
 
   @Override

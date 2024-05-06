@@ -2,6 +2,8 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.SelectAlias;
+import bio.terra.service.snapshotbuilder.query.Concept;
+import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -14,8 +16,6 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
@@ -41,10 +41,10 @@ public class SearchConceptsQueryBuilder {
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
-    var concept = TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
-    var nameField = concept.makeFieldVariable(Concept.CONCEPT_NAME);
-    var idField = concept.makeFieldVariable(Concept.CONCEPT_ID);
-    var conceptCode = concept.makeFieldVariable(Concept.CONCEPT_CODE);
+    Concept concept = new Concept();
+    var nameField = concept.name();
+    var idField = concept.id();
+    var conceptCode = concept.code();
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id

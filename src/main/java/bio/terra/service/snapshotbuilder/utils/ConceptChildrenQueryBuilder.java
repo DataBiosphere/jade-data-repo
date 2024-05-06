@@ -1,6 +1,9 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.service.snapshotbuilder.query.Concept;
+import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.ConceptRelationship;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -13,9 +16,6 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationship;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 
@@ -34,11 +34,10 @@ public class ConceptChildrenQueryBuilder {
       SnapshotBuilderDomainOption domainOption, int parentConceptId) {
 
     // concept table and its fields concept_name and concept_id
-    TableVariable concept =
-        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
-    FieldVariable conceptName = concept.makeFieldVariable(Concept.CONCEPT_NAME);
-    FieldVariable conceptId = concept.makeFieldVariable(Concept.CONCEPT_ID);
-    FieldVariable conceptCode = concept.makeFieldVariable(Concept.CONCEPT_CODE);
+    Concept concept = new Concept();
+    FieldVariable conceptName = concept.name();
+    FieldVariable conceptId = concept.id();
+    FieldVariable conceptCode = concept.code();
 
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id.
     // We use concept_ancestor for the rollup count because we want to include counts
@@ -83,8 +82,7 @@ public class ConceptChildrenQueryBuilder {
     FilterVariable where =
         BooleanAndOrFilterVariable.and(
             SubQueryFilterVariable.in(conceptId, createSubQuery(parentConceptId)),
-            BinaryFilterVariable.equals(
-                concept.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")));
+            BinaryFilterVariable.equals(concept.standard_concept(), new Literal("S")));
 
     return new Query(select, tables, where, groupBy, orderBy);
   }

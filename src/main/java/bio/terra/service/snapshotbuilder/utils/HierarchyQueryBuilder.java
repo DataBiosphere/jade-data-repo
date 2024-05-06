@@ -17,6 +17,7 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 
@@ -39,12 +40,8 @@ public class HierarchyQueryBuilder {
     var relationshipId = conceptRelationship.relationship_id();
     var parentId = conceptRelationship.concept_id_1();
     var childId = conceptRelationship.concept_id_2();
-    var child =
-        TableVariable.forJoined(
-            TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, childId);
-    var parent =
-        TableVariable.forJoined(
-            TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, parentId);
+    var child = new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(childId));
+    var parent = new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(parentId));
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
 
@@ -52,10 +49,8 @@ public class HierarchyQueryBuilder {
     // ancestor table to find all of its children. We don't need to use a left join here
     // because every concept has itself as an ancestor, so there will be at least one match.
     var conceptAncestor =
-        TableVariable.forJoined(
-            TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
-            ConceptAncestor.ANCESTOR_CONCEPT_ID,
-            childId);
+        new ConceptAncestor(
+            new TableVariableBuilder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(childId));
 
     TableVariable domainOccurrence =
         TableVariable.forLeftJoined(
@@ -138,10 +133,7 @@ public class HierarchyQueryBuilder {
     ConceptAncestor conceptAncestor = new ConceptAncestor();
     var descendantConceptId = conceptAncestor.descendant_concept_id();
     var innerConcept =
-        TableVariable.forJoined(
-            TablePointer.fromTableName(Concept.TABLE_NAME),
-            Concept.CONCEPT_ID,
-            descendantConceptId);
+        new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(descendantConceptId));
     return new ExistsExpression(
         new Query(
             List.of(new Literal(1)),

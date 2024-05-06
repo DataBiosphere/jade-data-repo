@@ -16,6 +16,7 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
@@ -43,19 +44,16 @@ public class SearchConceptsQueryBuilder {
       SnapshotBuilderDomainOption domainOption, String searchText) {
     Concept concept = new Concept();
     var nameField = concept.name();
-    var idField = concept.id();
+    var idField = concept.concept_id();
     var conceptCode = concept.code();
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
-    var conceptAncestor =
-        TableVariable.forJoined(
-            TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
-            ConceptAncestor.ANCESTOR_CONCEPT_ID,
-            idField);
+    ConceptAncestor conceptAncestor =
+        new ConceptAncestor(
+            new TableVariableBuilder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(idField));
 
-    var descendantIdFieldVariable =
-        conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
+    FieldVariable descendantId = conceptAncestor.descendant_concept_id();
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
@@ -63,7 +61,7 @@ public class SearchConceptsQueryBuilder {
         TableVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
-            descendantIdFieldVariable);
+            descendantId);
 
     // COUNT(DISTINCT co.person_id) AS count
     var countField = domainOccurrence.makeFieldVariable(Person.PERSON_ID, "COUNT", "count", true);
@@ -122,11 +120,9 @@ public class SearchConceptsQueryBuilder {
         new Literal(searchText));
   }
 
-  static FilterVariable createDomainClause(TableVariable conceptTableVariable, String domainId) {
+  static FilterVariable createDomainClause(Concept concept, String domainId) {
     return BooleanAndOrFilterVariable.and(
-        BinaryFilterVariable.equals(
-            conceptTableVariable.makeFieldVariable(Concept.DOMAIN_ID), new Literal(domainId)),
-        BinaryFilterVariable.equals(
-            conceptTableVariable.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")));
+        BinaryFilterVariable.equals(concept.domain_id(), new Literal(domainId)),
+        BinaryFilterVariable.equals(concept.standard_concept(), new Literal("S")));
   }
 }

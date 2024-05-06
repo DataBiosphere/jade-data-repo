@@ -21,9 +21,13 @@ public class QueryTest {
   @NotNull
   public static Query createQuery() {
     TableVariable tableVariable = makeTableVariable();
-    return new QueryBuilder().addSelect(List.of(
-        new FieldVariable(
-            FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable))).addTables(List.of(tableVariable)).build();
+    return new QueryBuilder()
+        .addSelect(
+            List.of(
+                new FieldVariable(
+                    FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
+        .addTables(List.of(tableVariable))
+        .build();
   }
 
   @NotNull

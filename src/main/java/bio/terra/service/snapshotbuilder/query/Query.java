@@ -32,7 +32,6 @@ public record Query(
     }
   }
 
-
   @Override
   public String renderSQL(SqlRenderContext context) {
     // render each SELECT FieldVariable and join them into a single string

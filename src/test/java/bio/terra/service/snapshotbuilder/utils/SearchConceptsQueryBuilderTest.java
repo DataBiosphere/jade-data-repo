@@ -175,13 +175,10 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
-
+    Concept concept = new Concept();
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(conceptTableVariable, "domain")
-            .renderSQL(context),
+        SearchConceptsQueryBuilder.createDomainClause(concept, "domain").renderSQL(context),
         is("(c.domain_id = 'domain' AND c.standard_concept = 'S')"));
   }
 }

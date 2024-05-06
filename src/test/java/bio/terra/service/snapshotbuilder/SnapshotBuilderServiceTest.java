@@ -38,8 +38,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
@@ -347,12 +345,8 @@ class SnapshotBuilderServiceTest {
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
 
     Dataset dataset = makeDataset(CloudPlatform.GCP);
-    Snapshot dataReleaseSnapshot =
-        new Snapshot()
-            .id(snapshotId)
-            .snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
 
-    when(snapshotBuilderSettingsDao.getBySnapshotId(snapshotId))
+    when(snapshotBuilderSettingsDao.getBySnapshotId(dataset.getId()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     Query query = mock(Query.class);
@@ -366,8 +360,7 @@ class SnapshotBuilderServiceTest {
     when(query.renderSQL(contextArgument.capture())).thenReturn("sql");
 
     assertEquals(
-        snapshotBuilderService.generateRowIdQuery(accessRequest, dataReleaseSnapshot, TEST_USER),
-        "sql");
+        "sql", snapshotBuilderService.generateRowIdQuery(accessRequest, dataset, TEST_USER));
     assertThat(
         contextArgument.getValue().getPlatform().getCloudPlatform(),
         is(dataset.getCloudPlatform()));

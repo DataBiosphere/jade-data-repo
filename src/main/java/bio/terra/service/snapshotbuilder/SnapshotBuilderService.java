@@ -22,7 +22,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
@@ -250,10 +249,9 @@ public class SnapshotBuilderService {
 
   public String generateRowIdQuery(
       SnapshotAccessRequestResponse accessRequest,
-      Snapshot dataReleaseSnapshot,
+      Dataset dataset,
       AuthenticatedUserRequest userReq) {
-    SnapshotBuilderSettings settings =
-        snapshotBuilderSettingsDao.getBySnapshotId(dataReleaseSnapshot.getId());
+    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getBySnapshotId(dataset.getId());
 
     List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
 
@@ -261,9 +259,7 @@ public class SnapshotBuilderService {
         queryBuilderFactory
             .criteriaQueryBuilder("person", settings)
             .generateRowIdQueryForCohortList(cohorts);
-    // change to just use dataReleaseSnapshot once Shelby's PR merges
-    return sqlQuery.renderSQL(
-        createContext(dataReleaseSnapshot.getSnapshotSources().get(0).getDataset(), userReq));
+    return sqlQuery.renderSQL(createContext(dataset, userReq));
   }
 
   record ParentQueryResult(

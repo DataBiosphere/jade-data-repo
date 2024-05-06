@@ -1,5 +1,7 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.service.snapshotbuilder.query.filtervariable.TableVariableBuilder;
+
 public class Concept extends TableVariable {
 
   public static final String TABLE_NAME = "concept";
@@ -8,17 +10,30 @@ public class Concept extends TableVariable {
   public static final String CONCEPT_ID = "concept_id";
   public static final String STANDARD_CONCEPT = "standard_concept";
   public static final String CONCEPT_CODE = "concept_code";
+  private static final TablePointer tablePointer = TablePointer.fromTableName(TABLE_NAME);
 
   public Concept() {
-    super(TablePointer.fromTableName(TABLE_NAME), null, null, false);
+    super(tablePointer, null, null, false);
+  }
+
+  public Concept(TableVariableBuilder tableVariableBuilder) {
+    super(
+        tablePointer,
+        tableVariableBuilder.getJoinField(),
+        tableVariableBuilder.getJoinFieldOnParent(),
+        tableVariableBuilder.isLeftJoin());
   }
 
   public FieldVariable name() {
     return this.makeFieldVariable(CONCEPT_NAME);
   }
 
-  public FieldVariable id() {
+  public FieldVariable concept_id() {
     return this.makeFieldVariable(CONCEPT_ID);
+  }
+
+  public FieldVariable domain_id() {
+    return this.makeFieldVariable(DOMAIN_ID);
   }
 
   public FieldVariable code() {

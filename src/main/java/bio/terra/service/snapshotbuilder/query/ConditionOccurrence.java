@@ -1,7 +1,6 @@
-package bio.terra.service.snapshotbuilder.utils.constants;
+package bio.terra.service.snapshotbuilder.query;
 
-public final class ConditionOccurrence {
-  private ConditionOccurrence() {}
+public class ConditionOccurrence {
 
   public static final String TABLE_NAME = "condition_occurrence";
   public static final String CONDITION_CONCEPT_ID = "condition_concept_id";

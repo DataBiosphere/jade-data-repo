@@ -1360,6 +1360,7 @@ paths:
               - steward
               - reader
               - discoverer
+              - aggregateDataReader
       requestBody:
         description: Snapshot to change the policy of
         content:
@@ -1412,6 +1413,7 @@ paths:
               - steward
               - reader
               - discoverer
+              - aggregateDataReader
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -6165,6 +6167,10 @@ components:
               type: array
               items:
                 type: string
+            aggregateDataReaders:
+              type: array
+              items:
+                type: string
         globalFileIds:
           type: boolean
           default: false
@@ -7984,7 +7990,7 @@ components:
         note:
           type: string
           description: A note about the journal entry
-    IamResourceTypeEnum:
+    IamResourceTypeEnumarry:
       type: string
       enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE, SNAPSHOT_BUILDER_REQUEST ]
       description: >
@@ -7998,28 +8004,6 @@ components:
       schema:
         type: string
         format: uuid
-    SnapshotPolicyName:
-      name: policyName
-      in: path
-      description: The relevant policy
-      required: true
-      schema:
-        type: string
-        enum:
-          - steward
-          - reader
-          - discoverer
-    DatasetPolicyName:
-      name: policyName
-      in: path
-      description: The relevant policy
-      required: true
-      schema:
-        type: string
-        enum:
-          - steward
-          - custodian
-          - snapshot_creator
     ProfilePolicyName:
       name: policyName
       in: path
@@ -8044,25 +8028,10 @@ components:
       required: true
       schema:
         type: string
-    Depth:
-      name: depth
-      in: query
-      description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-        1..N expands that many subdirectories
-      schema:
-        type: integer
-        default: 0
     LoadTag:
       name: loadtag
       in: path
       description: a load tag
-      required: true
-      schema:
-        type: string
-    AssetId:
-      name: assetid
-      in: path
-      description: An asset id
       required: true
       schema:
         type: string
@@ -8074,14 +8043,3 @@ components:
       schema:
         type: string
         format: uuid
-  securitySchemes:
-    oidc:
-      type: oauth2
-      flows:
-        authorizationCode:
-          authorizationUrl: /oauth2/authorize
-          tokenUrl: /oauth2/token
-          scopes:
-            openid: open id authorization
-            email: email authorization
-            profile: profile authorization

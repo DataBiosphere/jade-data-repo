@@ -1,9 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.common.Table;
-import org.jetbrains.annotations.Nullable;
-import java.lang.reflect.Field;
-
 public class ConceptRelationship extends TableVariable {
 
   public static final String TABLE_NAME = "concept_relationship";

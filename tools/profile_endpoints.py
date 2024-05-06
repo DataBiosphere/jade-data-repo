@@ -305,7 +305,8 @@ if __name__ == "__main__":
         "--authenticate",
         type=bool,
         default=False,
-        help="If true, authenticate using gcloud auth login",
+        help="If false, use current gcloud authentication. If true, authenticate with "
+             "gcloud auth login.",
     )
 
     args = parser.parse_args()

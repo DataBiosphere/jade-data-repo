@@ -1,7 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.service.snapshotbuilder.query.filtervariable.TableVariableBuilder;
-
 public class ConceptRelationship extends TableVariable {
 
   public static final String TABLE_NAME = "concept_relationship";

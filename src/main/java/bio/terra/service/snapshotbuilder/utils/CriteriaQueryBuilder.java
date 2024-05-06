@@ -22,7 +22,7 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.TableVariableBuilder;
+import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import java.util.Objects;

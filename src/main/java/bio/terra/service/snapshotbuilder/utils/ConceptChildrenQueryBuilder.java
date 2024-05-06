@@ -16,7 +16,7 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.TableVariableBuilder;
+import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 

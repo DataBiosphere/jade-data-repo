@@ -1,6 +1,4 @@
-package bio.terra.service.snapshotbuilder.query.filtervariable;
-
-import bio.terra.service.snapshotbuilder.query.FieldVariable;
+package bio.terra.service.snapshotbuilder.query;
 
 public class TableVariableBuilder {
   private String joinField;

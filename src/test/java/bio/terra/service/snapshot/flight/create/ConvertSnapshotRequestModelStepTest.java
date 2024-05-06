@@ -1,7 +1,8 @@
 package bio.terra.service.snapshot.flight.create;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -11,7 +12,7 @@ import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestQueryModel;
+import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -34,7 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class CreateByQuerySnapshotRequestModelStepTest {
+class ConvertSnapshotRequestModelStepTest {
   @Mock SnapshotRequestDao snapshotRequestDao;
   @Mock SnapshotDao snapshotDao;
   @Mock SnapshotBuilderService snapshotBuilderService;
@@ -45,10 +46,14 @@ class CreateByQuerySnapshotRequestModelStepTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     UUID sourceSnapshotId = UUID.randomUUID();
     UUID datasetProfileId = UUID.randomUUID();
+    UUID datasetId = UUID.randomUUID();
+    AssetSpecification asset = new AssetSpecification().name("person_visit");
 
     Dataset sourceDataset = new Dataset();
     sourceDataset.name("dataset_name");
+    sourceDataset.id(datasetId);
     sourceDataset.defaultProfileId(datasetProfileId);
+    sourceDataset.assetSpecifications(List.of(asset));
 
     Snapshot sourceSnapshot = new Snapshot();
     sourceSnapshot.snapshotSources(List.of(new SnapshotSource().dataset(sourceDataset)));
@@ -66,42 +71,41 @@ class CreateByQuerySnapshotRequestModelStepTest {
                 List.of(
                     new SnapshotRequestContentsModel()
                         .requestIdSpec(
-                            new SnapshotRequestIdModel().snapshotRequestId(UUID.randomUUID()))));
+                            new SnapshotRequestIdModel()
+                                .snapshotRequestId(snapshotAccessRequestId))));
     AuthenticatedUserRequest user = AuthenticationFixtures.randomUserRequest();
 
-    when(snapshotRequestDao.getById(any())).thenReturn(accessRequestResponse);
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     when(snapshotDao.retrieveSnapshot(sourceSnapshotId)).thenReturn(sourceSnapshot);
-    when(snapshotBuilderService.generateRowIdQuery(accessRequestResponse, sourceSnapshot, user))
+    when(snapshotBuilderService.generateRowIdQuery(accessRequestResponse, sourceDataset, user))
         .thenReturn("query");
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     Step step =
-        new CreateByQuerySnapshotRequestModelStep(
+        new ConvertSnapshotRequestModelStep(
             requestModel, snapshotDao, snapshotBuilderService, snapshotRequestDao, user);
     StepResult stepResult = step.doStep(flightContext);
 
     String expectedQuery = "query";
+    //    SnapshotRequestModel expected =
+    //        new SnapshotRequestModel()
+    //            .name(accessRequestResponse.getSnapshotName())
+    //            .globalFileIds(true)
+    //            .profileId(sourceDataset.getDefaultProfileId())
+    //            .contents(
+    //                List.of(
+    //                    new SnapshotRequestContentsModel()
+    //                        .datasetName(sourceDataset.getName())
+    //                        .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
+    //                        .querySpec(
+    //                            new SnapshotRequestQueryModel()
+    //                                .query(expectedQuery)
+    //                                .assetName("person_visit"))));
 
-    SnapshotRequestModel expected =
-        new SnapshotRequestModel()
-            .name(accessRequestResponse.getSnapshotName())
-            .globalFileIds(true)
-            .profileId(sourceDataset.getDefaultProfileId())
-            .contents(
-                List.of(
-                    new SnapshotRequestContentsModel()
-                        .datasetName(sourceDataset.getName())
-                        .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
-                        .querySpec(
-                            new SnapshotRequestQueryModel()
-                                .query(expectedQuery)
-                                .assetName("person_visit"))));
-
-    assertTrue(workingMap.containsKey(SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL));
-    assertEquals(
-        workingMap.get(
-            SnapshotWorkingMapKeys.BY_QUERY_SNAPSHOT_REQUEST_MODEL, SnapshotRequestModel.class),
-        expected);
+    assertTrue(workingMap.containsKey(SnapshotWorkingMapKeys.SQL_QUERY));
+    assertEquals(workingMap.get(SnapshotWorkingMapKeys.SQL_QUERY, String.class), expectedQuery);
+    assertTrue(workingMap.containsKey(SnapshotWorkingMapKeys.ASSET));
+    assertThat(workingMap.get(SnapshotWorkingMapKeys.ASSET, AssetSpecification.class), is(asset));
     assertEquals(stepResult, StepResult.getStepResultSuccess());
   }
 }

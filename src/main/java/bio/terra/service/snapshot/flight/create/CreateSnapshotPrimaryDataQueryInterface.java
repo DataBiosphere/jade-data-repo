@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.grammar.Query;
 import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.service.common.CommonFlightUtils;
@@ -10,6 +11,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.time.Instant;
@@ -23,16 +25,27 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       SnapshotRequestModel snapshotReq,
       DatasetService datasetService)
       throws InterruptedException {
-    SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
+    AssetSpecification assetSpecification;
+    String sqlQuery;
 
-    Query query = Query.parse(snapshotQuerySpec.getQuery());
-    String datasetName = query.getDatasetName();
-    Dataset dataset = datasetService.retrieveByName(datasetName);
-    AssetSpecification assetSpecification =
-        retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
-    validateRootTable(query, assetSpecification);
-    String sqlQuery = translateQuery(query, dataset);
+    if (snapshotReq
+        .getContents()
+        .get(0)
+        .getMode()
+        .equals(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)) {
+      assetSpecification =
+          context.getWorkingMap().get(SnapshotWorkingMapKeys.ASSET, AssetSpecification.class);
+      sqlQuery = context.getWorkingMap().get(SnapshotWorkingMapKeys.SQL_QUERY, String.class);
+    } else {
+      SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
 
+      Query query = Query.parse(snapshotQuerySpec.getQuery());
+      String datasetName = query.getDatasetName();
+      Dataset dataset = datasetService.retrieveByName(datasetName);
+      assetSpecification = retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
+      validateRootTable(query, assetSpecification);
+      sqlQuery = translateQuery(query, dataset);
+    }
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
     return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
   }

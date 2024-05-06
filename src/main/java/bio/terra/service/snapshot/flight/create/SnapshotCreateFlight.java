@@ -244,7 +244,7 @@ public class SnapshotCreateFlight extends Flight {
       case BYREQUESTID:
         // create byQuery snapshot request model from byRequestId snapshot request model
         addStep(
-            new CreateByQuerySnapshotRequestModelStep(
+            new ConvertSnapshotRequestModelStep(
                 snapshotReq, snapshotDao, snapshotBuilderService, snapshotRequestDao, userReq));
         // use the existing byQuery snapshot request model code to create the snapshot
         stepsForByQueryCreation(

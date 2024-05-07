@@ -7,6 +7,7 @@ public class TableVariableBuilder {
 
   public TableVariableBuilder leftJoin(String joinField) {
     this.isLeftJoin = true;
+    this.joinField = joinField;
     return this;
   }
 

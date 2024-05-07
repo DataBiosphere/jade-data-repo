@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.stringtemplate.v4.ST;
@@ -10,7 +9,6 @@ public record Query(
     List<TableVariable> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
-    HavingFilterVariable having,
     List<OrderByVariable> orderBy,
     Integer limit)
     implements SqlExpression {
@@ -80,10 +78,6 @@ public record Query(
                       .map(fv -> fv.renderSqlForOrderOrGroupBy(select.contains(fv), context))
                       .collect(Collectors.joining(", ")))
               .render();
-    }
-
-    if (having != null) {
-      sql += " " + having.renderSQL(context);
     }
 
     if (!orderBy.isEmpty()) {

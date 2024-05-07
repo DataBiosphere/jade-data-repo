@@ -13,16 +13,16 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobContainerProperties;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@Category(Unit.class)
-public class AzureContainerPdaoTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AzureContainerPdaoTest {
 
   @Mock private AzureAuthService authService;
   @Mock private BlobContainerClient blobContainerClient;
@@ -30,8 +30,8 @@ public class AzureContainerPdaoTest {
   private BillingProfileModel billingProfile;
   private AzureContainerPdao dao;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() {
 
     billingProfile = new BillingProfileModel();
     storageAccountResource =
@@ -46,7 +46,7 @@ public class AzureContainerPdaoTest {
   }
 
   @Test
-  public void testGetContainer() {
+  void testGetContainer() {
     BlobContainerProperties properties = mock(BlobContainerProperties.class);
     when(blobContainerClient.exists()).thenReturn(true);
     when(properties.getETag()).thenReturn("TAG");
@@ -61,7 +61,7 @@ public class AzureContainerPdaoTest {
   }
 
   @Test
-  public void testCreateContainer() {
+  void testCreateContainer() {
     BlobContainerProperties properties = mock(BlobContainerProperties.class);
     when(blobContainerClient.exists()).thenReturn(false);
     when(properties.getETag()).thenReturn("TAG");
@@ -76,7 +76,7 @@ public class AzureContainerPdaoTest {
   }
 
   @Test
-  public void testDeleteContainer() {
+  void testDeleteContainer() {
     dao.deleteContainer(billingProfile, storageAccountResource);
     verify(blobContainerClient).deleteIfExists();
   }

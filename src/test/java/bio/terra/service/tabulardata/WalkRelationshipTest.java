@@ -6,11 +6,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.common.AssetUtils;
 import bio.terra.service.dataset.AssetSpecification;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -21,14 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class WalkRelationshipTest {
-  private final AssetUtils assetUtils = new AssetUtils(new JsonLoader(new ObjectMapper()));
-
   private WalkRelationship walkRelationship;
 
   @BeforeEach
-  void setup() throws IOException {
-    AssetSpecification assetSpecification = assetUtils.buildTestAssetSpec();
-    walkRelationship = assetUtils.buildExampleWalkRelationship(assetSpecification);
+  void setup() {
+    AssetSpecification assetSpecification = AssetUtils.buildTestAssetSpec();
+    walkRelationship = AssetUtils.buildExampleWalkRelationship(assetSpecification);
   }
 
   @Test

@@ -43,7 +43,6 @@ public class QueryBuilder {
   }
 
   public Query build() {
-    return new Query(
-        this.select, this.tables, this.where, this.groupBy, this.orderBy, this.limit);
+    return new Query(this.select, this.tables, this.where, this.groupBy, this.orderBy, this.limit);
   }
 }

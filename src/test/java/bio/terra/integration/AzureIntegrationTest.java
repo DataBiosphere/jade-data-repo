@@ -399,9 +399,6 @@ public class AzureIntegrationTest extends UsersBase {
     ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.jsonl", 53);
     ingestTable("concept_relationship", "omop/concept-relationship-table-data.jsonl", 4);
 
-    // Add settings to dataset
-    dataRepoFixtures.updateSettings(steward, datasetId, "omop/settings.json");
-
     // Create a snapshot
     SnapshotRequestModel requestSnapshotRelease =
         jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
@@ -417,12 +414,13 @@ public class AzureIntegrationTest extends UsersBase {
         "Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestSnapshotRelease.getName()));
 
     // add settings to the snapshot
+    dataRepoFixtures.updateSettings(steward, releaseSnapshotId, "omop/settings.json");
   }
 
   private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
     String filename = "omop/snapshot-access-request.json";
     SnapshotAccessRequestResponse accessRequest =
-        dataRepoFixtures.createSnapshotAccessRequest(steward, datasetId, filename);
+        dataRepoFixtures.createSnapshotAccessRequest(steward, releaseSnapshotId, filename);
     assertThat("Snapshot access request exists", accessRequest, notNullValue());
     return accessRequest;
   }

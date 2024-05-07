@@ -1861,20 +1861,19 @@ public class DataRepoFixtures {
         user, "/api/repository/v1/jobs" + queryParams, new TypeReference<>() {});
   }
 
-  public DatasetModel updateSettings(
-      TestConfiguration.User user, UUID datasetId, String settingsFileName) throws Exception {
+  public void updateSettings(
+      TestConfiguration.User user, UUID snapshotId, String settingsFileName) throws Exception {
     SnapshotBuilderSettings settings =
         jsonLoader.loadObject(settingsFileName, SnapshotBuilderSettings.class);
-    DataRepoResponse<DatasetModel> response =
-        dataRepoClient.post(
+    DataRepoResponse<SnapshotBuilderSettings> response =
+        dataRepoClient.put(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/settings",
+            "/api/repository/v1/snapshots/" + snapshotId + "/snapshotBuilder/settings",
             TestUtils.mapToJson(settings),
             new TypeReference<>() {});
 
     assertThat("post settings job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("post settings response is present", response.getResponseObject().isPresent());
-    return response.getResponseObject().get();
   }
 
   public SnapshotBuilderGetConceptsResponse getConcepts(
@@ -1945,13 +1944,14 @@ public class DataRepoFixtures {
   }
 
   public SnapshotAccessRequestResponse createSnapshotAccessRequest(
-      TestConfiguration.User user, UUID datasetId, String filename) throws Exception {
+      TestConfiguration.User user, UUID snapshotId, String filename) throws Exception {
     SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
+    request.sourceSnapshotId(snapshotId);
 
     DataRepoResponse<SnapshotAccessRequestResponse> response =
         dataRepoClient.post(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/snapshotRequests",
+            "/api/repository/v1/snapshotAccessRequests",
             TestUtils.mapToJson(request),
             new TypeReference<>() {});
     assertThat(

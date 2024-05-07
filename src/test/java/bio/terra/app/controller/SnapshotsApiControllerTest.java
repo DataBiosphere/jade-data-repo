@@ -476,13 +476,13 @@ class SnapshotsApiControllerTest {
     mockValidators();
     mvc.perform(get(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)).andExpect(status().isOk());
     verify(snapshotService).getSnapshotBuilderSettings(SNAPSHOT_ID);
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+    verifyAuthorizationCall(IamAction.GET_SNAPSHOT_BUILDER_SETTINGS);
   }
 
   @Test
   void getSnapshotSnapshotBuilderSettingsForbidden() throws Exception {
     mockValidators();
-    IamAction iamAction = IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS;
+    IamAction iamAction = IamAction.GET_SNAPSHOT_BUILDER_SETTINGS;
     failValidation(iamAction);
 
     mvc.perform(get(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID))

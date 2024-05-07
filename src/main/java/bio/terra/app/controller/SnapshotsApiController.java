@@ -474,7 +474,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         getAuthenticatedInfo(),
         IamResourceType.DATASNAPSHOT,
         id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.GET_SNAPSHOT_BUILDER_SETTINGS);
     return ResponseEntity.ok(snapshotService.getSnapshotBuilderSettings(id));
   }
 

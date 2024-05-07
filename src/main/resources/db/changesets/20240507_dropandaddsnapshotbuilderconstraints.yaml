@@ -1,8 +1,14 @@
 databaseChangeLog:
   - changeSet:
-      id: add_snapshot_builder_settings_constraints
+      id: drop_and_add_snapshot_builder_settings_constraints
       author: sholden
       changes:
+        - dropForeignKeyConstraint:
+            baseTableName: snapshot_builder_settings
+            constraintName: fk_snapshot_snapshot_builder_settings
+        - dropForeignKeyConstraint:
+            baseTableName: snapshot_request
+            constraintName: fk_source_snapshot_snapshot_request
         - addForeignKeyConstraint:
             baseColumnNames: snapshot_id
             baseTableName: snapshot_builder_settings

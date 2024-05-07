@@ -43,8 +43,8 @@ public class HierarchyQueryBuilder {
     var childId = conceptRelationship.concept_id_2();
     var child = new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(childId));
     var parent = new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(parentId));
-    FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
-    FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
+    FieldVariable conceptName = child.name();
+    FieldVariable conceptCode = child.code();
 
     // To get the total occurrence count for a child concept, we need to join the child through the
     // ancestor table to find all of its children. We don't need to use a left join here

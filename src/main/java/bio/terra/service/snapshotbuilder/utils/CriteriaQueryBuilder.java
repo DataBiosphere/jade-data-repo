@@ -9,7 +9,7 @@ import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.query.ConditionOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;

@@ -1,4 +1,4 @@
-package bio.terra.service.snapshotbuilder.query;
+package bio.terra.service.snapshotbuilder.utils.constants;
 
 public class ConditionOccurrence {
 

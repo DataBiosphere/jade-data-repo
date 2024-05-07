@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.service.snapshotbuilder.query.ConditionOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import org.hamcrest.Matchers;

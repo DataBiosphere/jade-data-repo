@@ -305,7 +305,7 @@ if __name__ == "__main__":
         "--authenticate",
         type=bool,
         default=False,
-        help="If false, use current gcloud authentication. If true, authenticate with "
+        help="If False, use current gcloud authentication. If True, authenticate with "
              "gcloud auth login.",
     )
 

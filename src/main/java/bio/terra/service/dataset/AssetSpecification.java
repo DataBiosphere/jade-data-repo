@@ -91,4 +91,9 @@ public class AssetSpecification {
         && Objects.equals(assetTables, that.assetTables)
         && Objects.equals(assetRelationships, that.assetRelationships);
   }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, name, rootTable, rootColumn, assetTables, assetRelationships);
+  }
 }

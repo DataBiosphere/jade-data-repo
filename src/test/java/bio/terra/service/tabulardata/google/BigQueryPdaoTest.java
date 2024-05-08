@@ -133,6 +133,8 @@ public class BigQueryPdaoTest {
 
   private final List<BlobInfo> blobsToDelete = new ArrayList<>();
 
+  private DatasetSummaryModel datasetSummary;
+
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
@@ -355,6 +357,37 @@ public class BigQueryPdaoTest {
     }
     return dataset;
   }
+
+  //  private SnapshotAccessRequestResponse createSnapshotAccessRequest(UUID sourceSnapshotId)
+  //      throws IOException {
+  //    String filename = "omop/snapshot-access-request.json";
+  //    SnapshotAccessRequest request = jsonLoader.loadObject(filename,
+  // SnapshotAccessRequest.class);
+  //    request.sourceSnapshotId(sourceSnapshotId);
+  //    return snapshotBuilderService.createSnapshotAccessRequest(TEST_USER, request);
+  //  }
+  //
+  //  private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID
+  // snapshotAccessRequestId)
+  //      throws IOException {
+  //    String filename = "omop/snapshot-request-model-by-request-id.json";
+  //    SnapshotRequestModel request = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+  //    request.getContents().get(0).getRequestIdSpec().snapshotRequestId(snapshotAccessRequestId);
+  //    ;
+  //    return request;
+  //  }
+  //
+  //  @Test
+  //  public void createSnapshotByRequestId() throws Exception {
+  //    Snapshot sourceSnapshot = stageOmopDataset();
+  //    SnapshotAccessRequestResponse accessRequest =
+  //        createSnapshotAccessRequest(sourceSnapshot.getId());
+  //    SnapshotRequestModel requestModel =
+  //        createSnapshotRequestModelByRequestId(accessRequest.getId());
+  //    SnapshotSummaryModel snapshotSummary =
+  //        connectedOperations.createSnapshot(datasetSummary, requestModel, "");
+  //    Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
+  //  }
 
   @Test
   public void snapshotBuilderQuery() throws Exception {

@@ -5,9 +5,9 @@
   "contents": [
     {
       "datasetName": "it_dataset_omop",
-      "mode": "byRequest",
-      "requestSpec": {
-        "requestId": "willBeOverridden"
+      "mode": "byRequestId",
+      "requestIdSpec": {
+        "snapshotRequestId": "756693d8-c7f2-40a7-aeba-4fa98f67dda3"
     }
   }
   ]

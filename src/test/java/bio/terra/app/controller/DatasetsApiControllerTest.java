@@ -52,7 +52,6 @@ import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -88,8 +87,6 @@ class DatasetsApiControllerTest {
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
   @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
-  // TODO - can I remove this after phil's changes also are merged?
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();

@@ -27,7 +27,8 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     String tableName = getNameFromContext(ctx.table_name());
     return String.format(
         "%s AS `%s`",
-        generateDatasetTableName(dataset, datasetName, tableName),
+        String.format(
+            "`%s.%s.%s`", dataset.getDataProject(), prefixDatasetName(datasetName), tableName),
         generateAlias(bqDatasetName, tableName));
   }
 
@@ -41,18 +42,8 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
   }
 
   public static TableNameGenerator bqSnapshotTableName(SnapshotModel snapshot) {
-    return tableName -> generateSnapshotTableName(snapshot, snapshot.getName(), tableName);
-  }
-
-  private static String generateDatasetTableName(
-      DatasetModel dataset, String datasetName, String tableName) {
-    return String.format(
-        "`%s.%s.%s`", dataset.getDataProject(), prefixDatasetName(datasetName), tableName);
-  }
-
-  private static String generateSnapshotTableName(
-      SnapshotModel snapshot, String snapshotName, String tableName) {
-    return String.format("`%s.%s.%s`", snapshot.getDataProject(), snapshotName, tableName);
+    return tableName ->
+        String.format("`%s.%s.%s`", snapshot.getDataProject(), snapshot.getName(), tableName);
   }
 
   private static String prefixDatasetName(String datasetName) {

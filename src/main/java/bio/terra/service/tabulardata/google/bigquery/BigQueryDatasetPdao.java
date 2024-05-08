@@ -1425,8 +1425,4 @@ public class BigQueryDatasetPdao {
     }
     return null;
   }
-
-  public interface Converter<T> {
-    T convert(FieldValueList fieldValue);
-  }
 }

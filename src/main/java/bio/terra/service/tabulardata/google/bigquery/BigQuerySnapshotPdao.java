@@ -1412,9 +1412,12 @@ public class BigQuerySnapshotPdao {
         queryConfig.getNamedParameters());
   }
 
+  public interface Converter<T> {
+    T convert(FieldValueList fieldValue);
+  }
+
   // WARNING: SQL string must be sanitized before calling this method
-  public <T> List<T> runQuery(
-      String sql, Snapshot snapshot, BigQueryDatasetPdao.Converter<T> converter) {
+  public <T> List<T> runQuery(String sql, Snapshot snapshot, Converter<T> converter) {
     try {
       final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
       final TableResult result = bigQueryProject.query(sql);

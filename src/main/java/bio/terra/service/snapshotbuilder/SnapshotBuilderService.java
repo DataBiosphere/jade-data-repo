@@ -30,7 +30,6 @@ import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
@@ -99,7 +98,7 @@ public class SnapshotBuilderService {
       Query query,
       Snapshot snapshot,
       AuthenticatedUserRequest userRequest,
-      BigQueryDatasetPdao.Converter<T> bqConverter,
+      BigQuerySnapshotPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
     String sql = query.renderSQL(createContext(snapshot, userRequest));
     Instant start = Instant.now();

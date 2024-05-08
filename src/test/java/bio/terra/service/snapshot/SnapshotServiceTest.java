@@ -37,7 +37,6 @@ import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
-import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AddAuthDomainResponseModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
@@ -1203,13 +1202,6 @@ class SnapshotServiceTest {
               .totalCount(totalRowCount)
               .rowResult(new HashMap<>()));
     }
-    when(metadataDataAccessUtils.accessInfoFromSnapshot(any(), any(), any()))
-        .thenReturn(
-            new AccessInfoModel()
-                .parquet(
-                    new AccessInfoParquetModel()
-                        .url("test.parquet.url")
-                        .sasToken("test.sas.token")));
     when(azureSynapsePdao.getOrCreateExternalDataSourceForResource(any(), any(), any()))
         .thenReturn("");
     when(azureSynapsePdao.getTableData(

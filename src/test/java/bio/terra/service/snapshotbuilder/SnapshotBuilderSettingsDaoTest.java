@@ -134,4 +134,13 @@ class SnapshotBuilderSettingsDaoTest {
         () -> snapshotBuilderSettingsDao.getBySnapshotId(snapshotId),
         "There are no snapshot builder settings for the snapshot");
   }
+
+  @Test
+  void deleteSnapshotWithSnapshotBuilderSettings() {
+    daoOperations.deleteSnapshot(snapshot.getId());
+    assertThrows(
+        NotFoundException.class,
+        () -> snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId()),
+        "Snapshot delete should work and there are no snapshot builder settings for the snapshot");
+  }
 }

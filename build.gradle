@@ -188,7 +188,7 @@ dependencies {
     implementation 'org.apache.directory.studio:org.apache.commons.io:2.4'
     implementation 'org.apache.httpcomponents.client5:httpclient5'
 
-    implementation 'org.liquibase:liquibase-core'
+    implementation 'org.liquibase:liquibase-core:4.26.0'
 
     implementation 'org.codehaus.janino:janino'           // Provides if/else xml parsing for logback config
     implementation 'org.springframework.boot:spring-boot-starter-web'

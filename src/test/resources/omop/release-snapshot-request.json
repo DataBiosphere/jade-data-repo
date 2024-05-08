@@ -1,0 +1,10 @@
+{
+  "name":"it_snapshot_omop",
+  "description":"A full view snapshot of the OMOP integration test dataset ",
+  "contents":[
+    {
+      "datasetName": "it_dataset_omop",
+      "mode": "byFullView"
+    }
+  ]
+}

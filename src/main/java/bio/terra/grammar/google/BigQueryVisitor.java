@@ -27,9 +27,14 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     String tableName = getNameFromContext(ctx.table_name());
     return String.format(
         "%s AS `%s`",
-        String.format(
-            "`%s.%s.%s`", dataset.getDataProject(), prefixDatasetName(datasetName), tableName),
+        generateDatasetTableName(dataset, datasetName, tableName),
         generateAlias(bqDatasetName, tableName));
+  }
+
+  private static String generateDatasetTableName(
+      DatasetModel dataset, String datasetName, String tableName) {
+    return String.format(
+        "`%s.%s.%s`", dataset.getDataProject(), prefixDatasetName(datasetName), tableName);
   }
 
   @Override
@@ -39,6 +44,10 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     String alias = generateAlias(bqDatasetName, tableName);
     String columnName = getNameFromContext(ctx.column_name());
     return String.format("`%s`.%s", alias, columnName);
+  }
+
+  public static TableNameGenerator bqDatasetTableName(DatasetModel dataset) {
+    return (tableName) -> generateDatasetTableName(dataset, dataset.getName(), tableName);
   }
 
   public static TableNameGenerator bqSnapshotTableName(SnapshotModel snapshot) {

@@ -19,6 +19,8 @@ import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -53,6 +55,7 @@ public class SnapshotBuilderService {
 
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
+  private final DatasetService datasetService;
   private final IamService iamService;
   private final SnapshotService snapshotService;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
@@ -63,6 +66,7 @@ public class SnapshotBuilderService {
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
+      DatasetService datasetService,
       IamService iamService,
       SnapshotService snapshotService,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -70,6 +74,7 @@ public class SnapshotBuilderService {
       QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
+    this.datasetService = datasetService;
     this.iamService = iamService;
     this.snapshotService = snapshotService;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
@@ -144,6 +149,20 @@ public class SnapshotBuilderService {
                 () ->
                     SynapseVisitor.azureTableName(
                         snapshotService.getOrCreateExternalAzureDataSource(snapshot, userRequest)));
+    return new SqlRenderContext(tableNameGenerator, platform);
+  }
+
+  @VisibleForTesting
+  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    TableNameGenerator tableNameGenerator =
+        platform.choose(
+            () ->
+                BigQueryVisitor.bqDatasetTableName(
+                    datasetService.retrieveModel(dataset, userRequest)),
+            () ->
+                SynapseVisitor.azureTableName(
+                    datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
     return new SqlRenderContext(tableNameGenerator, platform);
   }
 

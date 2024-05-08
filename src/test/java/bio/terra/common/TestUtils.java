@@ -43,7 +43,10 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -52,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
@@ -354,5 +358,32 @@ public final class TestUtils {
   public static <T> T extractValueFromPrivateObject(Object object, String fieldName) {
     return objectMapper.convertValue(
         ReflectionTestUtils.getField(object, fieldName), new TypeReference<>() {});
+  }
+
+  public static String loadJson(final String resourcePath) {
+    try (InputStream stream = TestUtils.class.getClassLoader().getResourceAsStream(resourcePath)) {
+      if (stream == null) {
+        throw new FileNotFoundException(resourcePath);
+      }
+      return IOUtils.toString(stream, StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static <T> T loadObject(final String resourcePath, final Class<T> resourceClass) {
+    try {
+      return objectMapper.readerFor(resourceClass).readValue(loadJson(resourcePath));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static <T> T loadObject(final String resourcePath, final TypeReference<T> typeReference) {
+    try {
+      return objectMapper.readerFor(typeReference).readValue(loadJson(resourcePath));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

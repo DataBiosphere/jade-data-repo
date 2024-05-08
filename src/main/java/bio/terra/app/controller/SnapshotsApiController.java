@@ -19,6 +19,10 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCountResponse;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -42,6 +46,7 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -81,6 +86,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   private final FileService fileService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
+  private final SnapshotBuilderService snapshotBuilderService;
 
   public SnapshotsApiController(
       HttpServletRequest request,
@@ -91,7 +97,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       IngestRequestValidator ingestRequestValidator,
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-      AssetModelValidator assetModelValidator) {
+      AssetModelValidator assetModelValidator,
+      SnapshotBuilderService snapshotBuilderService) {
     this.request = request;
     this.jobService = jobService;
     this.snapshotRequestValidator = snapshotRequestValidator;
@@ -101,6 +108,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     this.fileService = fileService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
+    this.snapshotBuilderService = snapshotBuilderService;
   }
 
   @InitBinder
@@ -408,6 +416,41 @@ public class SnapshotsApiController implements SnapshotsApi {
     return ResponseEntity.ok(snapshotService.updateTags(id, tagUpdateRequest));
   }
 
+  @Override
+  public ResponseEntity<SnapshotBuilderConceptsResponse> getConceptChildren(
+      UUID id, Integer conceptId) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId, userRequest));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderConceptsResponse> enumerateConcepts(
+      UUID id, Integer domainId, String filterText) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(
+        snapshotBuilderService.enumerateConcepts(id, domainId, filterText, userRequest));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderGetConceptHierarchyResponse> getConceptHierarchy(
+      UUID id, Integer conceptId) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(
+        snapshotBuilderService.getConceptHierarchy(id, conceptId, userRequest));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderCountResponse> getSnapshotBuilderCount(
+      UUID id, SnapshotBuilderCountRequest body) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(
+        snapshotBuilderService.getCountResponse(id, body.getCohorts(), userRequest));
+  }
+
   private void verifySnapshotAuthorization(
       AuthenticatedUserRequest userReq, String resourceId, IamAction action) {
     IamResourceType resourceType = IamResourceType.DATASNAPSHOT;
@@ -431,7 +474,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         getAuthenticatedInfo(),
         IamResourceType.DATASNAPSHOT,
         id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.GET_SNAPSHOT_BUILDER_SETTINGS);
     return ResponseEntity.ok(snapshotService.getSnapshotBuilderSettings(id));
   }
 
@@ -442,7 +485,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         getAuthenticatedInfo(),
         IamResourceType.DATASNAPSHOT,
         id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.UPDATE_SNAPSHOT);
     snapshotService.updateSnapshotBuilderSettings(id, settings);
     return ResponseEntity.ok(settings);
   }
@@ -453,7 +496,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         getAuthenticatedInfo(),
         IamResourceType.DATASNAPSHOT,
         id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+        IamAction.UPDATE_SNAPSHOT);
     snapshotService.deleteSnapshotBuilderSettings(id);
     return ResponseEntity.ok().build();
   }

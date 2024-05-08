@@ -27,6 +27,7 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -73,6 +74,7 @@ class SnapshotValidationTest {
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private FileService fileService;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
   @SpyBean private ApplicationConfiguration applicationConfiguration;
 
   private SnapshotRequestModel snapshotByAssetRequest;

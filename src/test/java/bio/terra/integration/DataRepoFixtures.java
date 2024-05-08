@@ -58,12 +58,12 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
@@ -1861,8 +1861,8 @@ public class DataRepoFixtures {
         user, "/api/repository/v1/jobs" + queryParams, new TypeReference<>() {});
   }
 
-  public void updateSettings(
-      TestConfiguration.User user, UUID snapshotId, String settingsFileName) throws Exception {
+  public void updateSettings(TestConfiguration.User user, UUID snapshotId, String settingsFileName)
+      throws Exception {
     SnapshotBuilderSettings settings =
         jsonLoader.loadObject(settingsFileName, SnapshotBuilderSettings.class);
     DataRepoResponse<SnapshotBuilderSettings> response =
@@ -1876,31 +1876,32 @@ public class DataRepoFixtures {
     assertTrue("post settings response is present", response.getResponseObject().isPresent());
   }
 
-  public SnapshotBuilderGetConceptsResponse getConcepts(
-      TestConfiguration.User user, UUID datasetId, int conceptId) throws Exception {
-    DataRepoResponse<SnapshotBuilderGetConceptsResponse> response =
+  public SnapshotBuilderConceptsResponse getConceptChildren(
+      TestConfiguration.User user, UUID snapshotId, int conceptId) throws Exception {
+    DataRepoResponse<SnapshotBuilderConceptsResponse> response =
         dataRepoClient.get(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/concepts/" + conceptId,
+            "/api/repository/v1/snapshots/"
+                + snapshotId
+                + "/snapshotBuilder/concepts/"
+                + conceptId
+                + "/children",
             new TypeReference<>() {});
     assertThat("get concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 
-  public SnapshotBuilderGetConceptsResponse searchConcepts(
-      TestConfiguration.User user, UUID datasetId, int domainId, String searchText)
+  public SnapshotBuilderConceptsResponse enumerateConcepts(
+      TestConfiguration.User user, UUID snapshotId, int domainId, String filterText)
       throws Exception {
-    String queryParams = "?searchText=%s".formatted(searchText);
-
-    DataRepoResponse<SnapshotBuilderGetConceptsResponse> response =
+    String queryParams = "?domainId=%s&filterText=%s".formatted(domainId, filterText);
+    DataRepoResponse<SnapshotBuilderConceptsResponse> response =
         dataRepoClient.get(
             user,
-            "/api/repository/v1/datasets/"
-                + datasetId
-                + "/snapshotBuilder/concepts/"
-                + domainId
-                + "/search"
+            "/api/repository/v1/snapshots/"
+                + snapshotId
+                + "/snapshotBuilder/concepts"
                 + queryParams,
             new TypeReference<>() {});
     assertThat(
@@ -1910,14 +1911,15 @@ public class DataRepoFixtures {
   }
 
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
-      TestConfiguration.User user, UUID datasetId, int conceptId) throws Exception {
+      TestConfiguration.User user, UUID snapshotId, int conceptId) throws Exception {
     DataRepoResponse<SnapshotBuilderGetConceptHierarchyResponse> response =
         dataRepoClient.get(
             user,
-            "/api/repository/v1/datasets/"
-                + datasetId
-                + "/snapshotBuilder/conceptHierarchy/"
-                + conceptId,
+            "/api/repository/v1/snapshots/"
+                + snapshotId
+                + "/snapshotBuilder/concepts/"
+                + conceptId
+                + "/hierarchy",
             new TypeReference<>() {});
     assertThat(
         "get concept hierarchy call is successful",
@@ -1928,13 +1930,13 @@ public class DataRepoFixtures {
   }
 
   public SnapshotBuilderCountResponse getRollupCounts(
-      TestConfiguration.User user, UUID datasetId, SnapshotBuilderCountRequest request)
+      TestConfiguration.User user, UUID snapshotId, SnapshotBuilderCountRequest request)
       throws Exception {
     String json = TestUtils.mapToJson(request);
     DataRepoResponse<SnapshotBuilderCountResponse> response =
         dataRepoClient.post(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/count",
+            "/api/repository/v1/snapshots/" + snapshotId + "/snapshotBuilder/count",
             json,
             new TypeReference<>() {});
     assertThat(

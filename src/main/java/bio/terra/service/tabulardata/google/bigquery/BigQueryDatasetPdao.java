@@ -1425,21 +1425,4 @@ public class BigQueryDatasetPdao {
     }
     return null;
   }
-
-  public interface Converter<T> {
-    T convert(FieldValueList fieldValue);
-  }
-
-  // WARNING: SQL string must be sanitized before calling this method
-  public <T> List<T> runQuery(String sql, Dataset dataset, Converter<T> converter) {
-    try {
-      final BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
-      final TableResult result = bigQueryProject.query(sql);
-      return StreamSupport.stream(result.iterateAll().spliterator(), false)
-          .map(converter::convert)
-          .toList();
-    } catch (InterruptedException ex) {
-      throw new PdaoException("Snapshot builder query was interrupted", ex);
-    }
-  }
 }

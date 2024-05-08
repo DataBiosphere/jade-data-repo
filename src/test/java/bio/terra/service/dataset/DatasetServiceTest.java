@@ -671,7 +671,7 @@ public class DatasetServiceTest {
     assertThat(
         "When requesting SnapshotBuilderSettings require VIEW_SNAPSHOT_BUILDER_SETTINGS permission",
         actions,
-        containsInAnyOrder(IamAction.READ_DATASET, IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS));
+        containsInAnyOrder(IamAction.READ_DATASET, IamAction.GET_SNAPSHOT_BUILDER_SETTINGS));
   }
 
   @Test

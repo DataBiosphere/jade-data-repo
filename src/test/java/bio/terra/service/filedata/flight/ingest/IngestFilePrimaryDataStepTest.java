@@ -15,7 +15,6 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.filedata.FileIdService;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -28,20 +27,16 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import junit.framework.TestCase;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(SpringRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class IngestFilePrimaryDataStepTest extends TestCase {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class IngestFilePrimaryDataStepTest {
 
   private static final UUID RANDOM_FILE_ID = UUID.randomUUID();
 
@@ -51,20 +46,18 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
           .sourcePath("gs://bucket/path/file.txt")
           .targetPath("/foo/bar/baz.txt");
 
-  @MockBean private GcsPdao gcsPdao;
+  @Mock private GcsPdao gcsPdao;
 
-  @MockBean private Dataset dataset;
+  @Mock private Dataset dataset;
 
-  @MockBean private ConfigurationService configService;
-
-  @SpyBean private FileIdService fileIdService;
+  @Mock private ConfigurationService configService;
 
   private IngestFilePrimaryDataStep step;
 
   private FlightContext flightContext;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     step = new IngestFilePrimaryDataStep(dataset, gcsPdao, configService);
     flightContext = mock(FlightContext.class);
 
@@ -77,14 +70,14 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
     FlightMap workingMap = new FlightMap();
     workingMap.put(FileMapKeys.FILE_ID, RANDOM_FILE_ID.toString());
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-
-    GoogleProjectResource projectResource =
-        new GoogleProjectResource().googleProjectId("googleProjectId");
-    when(dataset.getProjectResource()).thenReturn(projectResource);
   }
 
   @Test
-  public void testDoStepSelfHostedRetryThenSucceed() {
+  void testDoStepSelfHostedRetryThenSucceed() {
+    GoogleProjectResource projectResource =
+        new GoogleProjectResource().googleProjectId("googleProjectId");
+    when(dataset.getProjectResource()).thenReturn(projectResource);
+
     // Dataset is self-hosted
     when(dataset.isSelfHosted()).thenReturn(true);
     // Step throws two retryable exceptions then succeeds
@@ -96,29 +89,29 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
 
     // 1 - throws retryable "InvalidUserProjectException" exception
     StepResult result = step.doStep(flightContext);
-    verify(gcsPdao, times(1)).linkSelfHostedFile(any(), any(), any());
+    verify(gcsPdao).linkSelfHostedFile(any(), any(), any());
     assertThat(
         "Step failed due to InvalidUserProjectException and should be retried",
-        StepStatus.STEP_RESULT_FAILURE_RETRY,
-        equalTo(result.getStepStatus()));
+        result.getStepStatus(),
+        equalTo(StepStatus.STEP_RESULT_FAILURE_RETRY));
 
     // 2 - throws retryable "GoogleInternalServerErrorException" exception
     result = step.doStep(flightContext);
     verify(gcsPdao, times(2)).linkSelfHostedFile(any(), any(), any());
     assertThat(
         "Step failed due to GoogleInternalServerErrorException and should be retried",
-        StepStatus.STEP_RESULT_FAILURE_RETRY,
-        equalTo(result.getStepStatus()));
+        result.getStepStatus(),
+        equalTo(StepStatus.STEP_RESULT_FAILURE_RETRY));
 
     // 3 - Succeeds
     result = step.doStep(flightContext);
     verify(gcsPdao, times(3)).linkSelfHostedFile(any(), any(), any());
     assertThat(
-        "Retried step succeeds", StepStatus.STEP_RESULT_SUCCESS, equalTo(result.getStepStatus()));
+        "Retried step succeeds", result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }
 
   @Test
-  public void testDoStepExternallyHostedRetryThenSucceed() {
+  void testDoStepExternallyHostedRetryThenSucceed() {
     // Dataset is externally hosted by default
     FSFileInfo fileInfo = mock(FSFileInfo.class);
     // Step throws two retryable exceptions then succeeds
@@ -129,29 +122,29 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
 
     // 1 - throws retryable "InvalidUserProjectException" exception
     StepResult result = step.doStep(flightContext);
-    verify(gcsPdao, times(1)).copyFile(any(), any(), any(), any());
+    verify(gcsPdao).copyFile(any(), any(), any(), any());
     assertThat(
         "Step failed due to InvalidUserProjectException and should be retried",
-        StepStatus.STEP_RESULT_FAILURE_RETRY,
-        equalTo(result.getStepStatus()));
+        result.getStepStatus(),
+        equalTo(StepStatus.STEP_RESULT_FAILURE_RETRY));
 
     // 2 - throws retryable "GoogleInternalServerErrorException" exception
     result = step.doStep(flightContext);
     verify(gcsPdao, times(2)).copyFile(any(), any(), any(), any());
     assertThat(
         "Step failed due to GoogleInternalServerErrorException and should be retried",
-        StepStatus.STEP_RESULT_FAILURE_RETRY,
-        equalTo(result.getStepStatus()));
+        result.getStepStatus(),
+        equalTo(StepStatus.STEP_RESULT_FAILURE_RETRY));
 
     // 3 - Succeeds
     result = step.doStep(flightContext);
     verify(gcsPdao, times(3)).copyFile(any(), any(), any(), any());
     assertThat(
-        "Retried step succeeds", StepStatus.STEP_RESULT_SUCCESS, equalTo(result.getStepStatus()));
+        "Retried step succeeds", result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }
 
   @Test
-  public void testDoStepExternallyHostedFailureThrows() {
+  void testDoStepExternallyHostedFailureThrows() {
     // Dataset is externally hosted by default
     String errorMessage = "failure";
     when(gcsPdao.copyFile(any(), any(), any(), any()))
@@ -162,12 +155,11 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
             PdaoFileCopyException.class,
             () -> step.doStep(flightContext),
             "Step throws unretryable exception");
-    verify(gcsPdao, times(1)).copyFile(any(), any(), any(), any());
     assertThat("Error message reflects cause", thrown.getMessage(), equalTo(errorMessage));
   }
 
   @Test
-  public void testThatFileIdIsProperlyCalculatedWhenPredictable() {
+  void testThatFileIdIsProperlyCalculatedWhenPredictable() {
     // This is an ID that is a function of size, checksum and path of the file
     UUID predictableFileId = UUID.fromString("762d37d3-dccc-3e61-a0fd-c3768f3a975a");
 
@@ -191,7 +183,7 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
   }
 
   @Test
-  public void testThatFileIdIsProperlyCalculatedWhenRandom() {
+  void testThatFileIdIsProperlyCalculatedWhenRandom() {
     // Dataset is externally hosted by default
     FSFileInfo fileInfo = mock(FSFileInfo.class);
     when(fileInfo.getSize()).thenReturn(123L);

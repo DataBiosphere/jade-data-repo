@@ -4,6 +4,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -72,10 +73,20 @@ public class SnapshotRequestValidator implements Validator {
               case BYROWID:
                 validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
                 break;
+              case BYREQUESTID:
+                validateSnapshotRequestIdSpec(contents.getRequestIdSpec(), errors);
+                break;
               default:
                 errors.rejectValue("contents", "SnapshotContentsModeInvalid");
             }
           });
+    }
+  }
+
+  private void validateSnapshotRequestIdSpec(SnapshotRequestIdModel requestIdSpec, Errors errors) {
+    UUID requestId = requestIdSpec.getSnapshotRequestId();
+    if (requestId == null) {
+      errors.rejectValue("contents", "SnapshotRequestIdMissing");
     }
   }
 

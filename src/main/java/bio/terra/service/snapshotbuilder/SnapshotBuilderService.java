@@ -272,7 +272,7 @@ public class SnapshotBuilderService {
       SnapshotAccessRequestResponse accessRequest,
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
-    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getBySnapshotId(dataset.getId());
+    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getByDatasetId(dataset.getId());
 
     List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
 

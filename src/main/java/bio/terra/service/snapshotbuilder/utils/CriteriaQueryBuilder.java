@@ -15,7 +15,6 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.QueryBuilder;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
@@ -109,8 +108,8 @@ public class CriteriaQueryBuilder {
                         occurrenceVariable)));
     return SubQueryFilterVariable.in(
         getFieldVariableForRootTable(Person.PERSON_ID),
-        new QueryBuilder()
-            .addSelect(
+        new Query.Builder()
+            .select(
                 List.of(
                     new FieldVariable(
                         new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
@@ -168,8 +167,8 @@ public class CriteriaQueryBuilder {
             BooleanAndOrFilterVariable.LogicalOperator.OR,
             criteriaGroupsList.stream().map(this::generateFilterForCriteriaGroups).toList());
 
-    return new QueryBuilder()
-        .addSelect(List.of(personId))
+    return new Query.Builder()
+        .select(List.of(personId))
         .addTables(List.of(rootTable))
         .addWhere(filterVariable)
         .build();

@@ -11,7 +11,6 @@ import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.QueryBuilder;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
@@ -64,8 +63,8 @@ public class HierarchyQueryBuilder {
         domainOccurrence.makeFieldVariable(
             Person.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
 
-    return new QueryBuilder()
-        .addSelect(
+    return new Query.Builder()
+        .select(
             List.of(
                 new SelectAlias(parentId, QueryBuilderFactory.PARENT_ID),
                 new SelectAlias(childId, Concept.CONCEPT_ID),
@@ -107,8 +106,8 @@ public class HierarchyQueryBuilder {
     ConceptAncestor conceptAncestor = new ConceptAncestor();
     var conceptIdLiteral = new Literal(conceptId);
     FieldVariable ancestorConceptId = conceptAncestor.ancestor_concept_id();
-    return new QueryBuilder()
-        .addSelect(List.of(ancestorConceptId))
+    return new Query.Builder()
+        .select(List.of(ancestorConceptId))
         .addTables(List.of(conceptAncestor))
         .addWhere(
             BooleanAndOrFilterVariable.and(
@@ -141,8 +140,8 @@ public class HierarchyQueryBuilder {
     var innerConcept =
         new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(descendantConceptId));
     return new ExistsExpression(
-        new QueryBuilder()
-            .addSelect(List.of(new Literal(1)))
+        new Query.Builder()
+            .select(List.of(new Literal(1)))
             .addTables(List.of(conceptAncestor, innerConcept))
             .addWhere(
                 BooleanAndOrFilterVariable.and(

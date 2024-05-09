@@ -104,4 +104,50 @@ public record Query(
   public TableVariable getPrimaryTable() {
     return tables.stream().filter(TableVariable::isPrimary).findFirst().orElseThrow();
   }
+
+  public static class Builder {
+    private List<SelectExpression> select;
+    private List<TableVariable> tables;
+    private FilterVariable where;
+    private List<FieldVariable> groupBy;
+    private List<OrderByVariable> orderBy;
+    private Integer limit;
+
+    public Builder() {
+    }
+
+    public Builder select(List<SelectExpression> select) {
+      this.select = select;
+      return this;
+    }
+
+    public Builder addTables(List<TableVariable> tables) {
+      this.tables = tables;
+      return this;
+    }
+
+    public Builder addWhere(FilterVariable where) {
+      this.where = where;
+      return this;
+    }
+
+    public Builder addGroupBy(List<FieldVariable> groupBy) {
+      this.groupBy = groupBy;
+      return this;
+    }
+
+    public Builder addOrderBy(List<OrderByVariable> orderBy) {
+      this.orderBy = orderBy;
+      return this;
+    }
+
+    public Builder addLimit(Integer limit) {
+      this.limit = limit;
+      return this;
+    }
+
+    public Query build() {
+      return new Query(this.select, this.tables, this.where, this.groupBy, this.orderBy, this.limit);
+    }
+  }
 }

@@ -21,8 +21,8 @@ public record TablePointer(String tableName, Filter filter) implements SqlExpres
     FilterVariable filterVar = filter.buildVariable(tableVar, List.of(tableVar));
 
     Query query =
-        new QueryBuilder()
-            .addSelect(List.of(fieldVar))
+        new Query.Builder()
+            .select(List.of(fieldVar))
             .addTables(List.of(tableVar))
             .addWhere(filterVar)
             .build();

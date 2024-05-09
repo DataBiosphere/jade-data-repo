@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.service.snapshotbuilder.query.Builder;
 import bio.terra.service.snapshotbuilder.query.Concept;
 import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.query.ConceptRelationship;
@@ -10,7 +11,6 @@ import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.QueryBuilder;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
@@ -85,8 +85,8 @@ public class ConceptChildrenQueryBuilder {
             SubQueryFilterVariable.in(conceptId, createSubQuery(parentConceptId)),
             BinaryFilterVariable.equals(concept.standard_concept(), new Literal("S")));
 
-    return new QueryBuilder()
-        .addSelect(select)
+    return new Query.Builder()
+        .select(select)
         .addTables(tables)
         .addWhere(where)
         .addGroupBy(groupBy)
@@ -106,8 +106,8 @@ public class ConceptChildrenQueryBuilder {
     ConceptRelationship conceptRelationship = new ConceptRelationship();
     FieldVariable descendantConceptId = conceptRelationship.concept_id_2();
 
-    return new QueryBuilder()
-        .addSelect(List.of(descendantConceptId))
+    return new Query.Builder()
+        .select(List.of(descendantConceptId))
         .addTables(List.of(conceptRelationship))
         .addWhere(
             BooleanAndOrFilterVariable.and(
@@ -137,6 +137,6 @@ public class ConceptChildrenQueryBuilder {
     List<SelectExpression> select = List.of(domainIdField);
     List<TableVariable> table = List.of(concept);
 
-    return new QueryBuilder().addSelect(select).addTables(table).addWhere(where).build();
+    return new Query.Builder().select(select).addTables(table).addWhere(where).build();
   }
 }

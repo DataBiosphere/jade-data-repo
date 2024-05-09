@@ -22,8 +22,8 @@ public class QueryTest {
   @NotNull
   public static Query createQuery() {
     TableVariable tableVariable = makeTableVariable();
-    return new QueryBuilder()
-        .addSelect(
+    return new Query.Builder()
+        .select(
             List.of(
                 new FieldVariable(
                     FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
@@ -34,8 +34,8 @@ public class QueryTest {
   @NotNull
   public static Query createQueryWithLimit() {
     TableVariable tableVariable = makeTableVariable();
-    return new QueryBuilder()
-        .addSelect(
+    return new Query.Builder()
+        .select(
             List.of(
                 new FieldVariable(
                     FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
@@ -73,8 +73,8 @@ public class QueryTest {
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
     FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
     Query query =
-        new QueryBuilder()
-            .addSelect(List.of(fieldVariable))
+        new Query.Builder()
+            .select(List.of(fieldVariable))
             .addTables(List.of(tableVariable))
             .addGroupBy(List.of(fieldVariable))
             .build();
@@ -106,8 +106,8 @@ public class QueryTest {
                 conditionOccurrenceVariable));
 
     Query query =
-        new QueryBuilder()
-            .addSelect(
+        new Query.Builder()
+            .select(
                 List.of(
                     new FieldVariable(
                         new FieldPointer(tablePointer, Person.PERSON_ID, "COUNT"),

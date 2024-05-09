@@ -2357,16 +2357,7 @@ paths:
       operationId: addDatasetPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - custodian
-              - snapshot_creator
+        - $ref: '#/components/parameters/DatasetPolicyName'
       requestBody:
         description: Dataset to change the policy of
         content:
@@ -2409,16 +2400,7 @@ paths:
       operationId: deleteDatasetPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - custodian
-              - snapshot_creator
+        - $ref: '#/components/parameters/DatasetPolicyName'
         - name: memberEmail
           in: path
           description: The email of the user to remove

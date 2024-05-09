@@ -411,15 +411,7 @@ paths:
       operationId: deleteProfilePolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - owner
-              - user
+        - $ref: '#/components/parameters/ProfilePolicyName'
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -1338,17 +1330,7 @@ paths:
       operationId: addSnapshotPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - reader
-              - discoverer
-              - aggregateDataReader
+        - $ref: '#/components/parameters/SnapshotPolicyName'
       requestBody:
         description: Snapshot to change the policy of
         content:
@@ -1391,17 +1373,7 @@ paths:
       operationId: deleteSnapshotPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - reader
-              - discoverer
-              - aggregateDataReader
+        - $ref: '#/components/parameters/SnapshotPolicyName'
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -2882,12 +2854,7 @@ paths:
       operationId: removeDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: assetid
-          in: path
-          description: An asset id
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/AssetId'
       responses:
         200:
           description: Redirect for ingest complete
@@ -7980,6 +7947,29 @@ components:
       schema:
         type: string
         format: uuid
+    SnapshotPolicyName:
+      name: policyName
+      in: path
+      description: The relevant policy
+      required: true
+      schema:
+        type: string
+        enum:
+          - steward
+          - custodian
+          - snapshot_creator
+          - aggregateDataReader
+    DatasetPolicyName:
+      name: policyName
+      in: path
+      description: The relevant policy
+      required: true
+      schema:
+        type: string
+        enum:
+          - steward
+          - custodian
+          - snapshot_creator
     ProfilePolicyName:
       name: policyName
       in: path
@@ -8022,7 +8012,7 @@ components:
     AssetId:
       name: assetid
       in: path
-      description: An asset id
+      description: An asset name
       required: true
       schema:
         type: string

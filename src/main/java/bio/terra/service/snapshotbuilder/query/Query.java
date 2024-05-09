@@ -113,8 +113,7 @@ public record Query(
     private List<OrderByVariable> orderBy;
     private Integer limit;
 
-    public Builder() {
-    }
+    public Builder() {}
 
     public Builder select(List<SelectExpression> select) {
       this.select = select;
@@ -147,7 +146,8 @@ public record Query(
     }
 
     public Query build() {
-      return new Query(this.select, this.tables, this.where, this.groupBy, this.orderBy, this.limit);
+      return new Query(
+          this.select, this.tables, this.where, this.groupBy, this.orderBy, this.limit);
     }
   }
 }

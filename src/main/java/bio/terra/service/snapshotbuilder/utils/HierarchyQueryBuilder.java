@@ -5,6 +5,7 @@ import bio.terra.service.snapshotbuilder.SelectAlias;
 import bio.terra.service.snapshotbuilder.query.Concept;
 import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.query.ConceptRelationship;
+import bio.terra.service.snapshotbuilder.query.DomainOccurrence;
 import bio.terra.service.snapshotbuilder.query.ExistsExpression;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -52,16 +53,18 @@ public class HierarchyQueryBuilder {
         new ConceptAncestor(
             new TableVariableBuilder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(childId));
 
-    TableVariable domainOccurrence =
-        TableVariable.forLeftJoined(
-            TablePointer.fromTableName(domainOption.getTableName()),
-            domainOption.getColumnName(),
-            conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID));
+    var descendantConceptId = conceptAncestor.descendant_concept_id();
+
+    DomainOccurrence domainOccurrence =
+        new DomainOccurrence(
+           new TableVariableBuilder()
+               .from(domainOption.getTableName())
+               .leftJoin(domainOption.getColumnName())
+               .on(descendantConceptId)
+        );
 
     // COUNT(DISTINCT person_id)
-    FieldVariable count =
-        domainOccurrence.makeFieldVariable(
-            Person.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
+    FieldVariable personCount = domainOccurrence.getCountPerson();
 
     return new Query.Builder()
         .select(
@@ -70,7 +73,7 @@ public class HierarchyQueryBuilder {
                 new SelectAlias(childId, Concept.CONCEPT_ID),
                 conceptName,
                 conceptCode,
-                count,
+                personCount,
                 hasChildrenExpression(childId)))
         .addTables(List.of(conceptRelationship, child, parent, conceptAncestor, domainOccurrence))
         .addWhere(

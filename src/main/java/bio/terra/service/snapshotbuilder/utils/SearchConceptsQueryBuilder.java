@@ -2,9 +2,9 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.SelectAlias;
-import bio.terra.service.snapshotbuilder.query.Builder;
 import bio.terra.service.snapshotbuilder.query.Concept;
 import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.DomainOccurrence;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -12,13 +12,11 @@ import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
-import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
@@ -58,14 +56,15 @@ public class SearchConceptsQueryBuilder {
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
-    var domainOccurrence =
-        TableVariable.forLeftJoined(
-            TablePointer.fromTableName(domainOption.getTableName()),
-            domainOption.getColumnName(),
-            descendantId);
+    DomainOccurrence domainOccurrence =
+        new DomainOccurrence(
+            new TableVariableBuilder()
+                .from(domainOption.getTableName())
+                .join(domainOption.getColumnName())
+                .on(descendantId));
 
     // COUNT(DISTINCT co.person_id) AS count
-    var countField = domainOccurrence.makeFieldVariable(Person.PERSON_ID, "COUNT", "count", true);
+    var countPerson = domainOccurrence.getCountPerson();
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
@@ -75,14 +74,14 @@ public class SearchConceptsQueryBuilder {
             nameField,
             idField,
             conceptCode,
-            countField,
+            countPerson,
             new SelectAlias(new Literal(true), QueryBuilderFactory.HAS_CHILDREN));
 
     List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
     // ORDER BY count DESC
     List<OrderByVariable> orderBy =
-        List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));
+        List.of(new OrderByVariable(countPerson, OrderByDirection.DESCENDING));
 
     // GROUP BY c.concept_name, c.concept_id, concept_code
     List<FieldVariable> groupBy = List.of(nameField, idField, conceptCode);

@@ -4,7 +4,7 @@ public class TableVariableBuilder {
   private String joinField;
   private FieldVariable joinFieldOnParent;
   private boolean isLeftJoin;
-  private String domainOptionTableName;
+  private TablePointer domainOptionTablePointer;
 
   public TableVariableBuilder leftJoin(String joinField) {
     this.isLeftJoin = true;
@@ -13,7 +13,7 @@ public class TableVariableBuilder {
   }
 
   public TableVariableBuilder from(String domainOptionTableName) {
-    this.domainOptionTableName = domainOptionTableName;
+    this.domainOptionTablePointer = TablePointer.fromTableName(domainOptionTableName);
     return this;
   }
 
@@ -28,7 +28,9 @@ public class TableVariableBuilder {
     return this;
   }
 
-  public String getDomainOptionTableName() { return this.domainOptionTableName; }
+  public TablePointer getDomainOptionTablePointer() {
+    return this.domainOptionTablePointer;
+  }
 
   public String getJoinField() {
     return this.joinField;

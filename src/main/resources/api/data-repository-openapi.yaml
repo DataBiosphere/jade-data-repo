@@ -1157,13 +1157,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1210,13 +1204,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3507,13 +3495,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3618,13 +3600,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -8028,10 +8004,25 @@ components:
       required: true
       schema:
         type: string
+    Depth:
+      name: depth
+      in: query
+      description: Enumeration depth; -1 means fully expand; 0 means no expansion;
+          1..N expands that many subdirectories
+      schema:
+          type: integer
+          default: 0
     LoadTag:
       name: loadtag
       in: path
       description: a load tag
+      required: true
+      schema:
+        type: string
+    AssetId:
+      name: assetid
+      in: path
+      description: An asset id
       required: true
       schema:
         type: string

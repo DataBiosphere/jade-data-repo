@@ -411,7 +411,15 @@ paths:
       operationId: deleteProfilePolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - $ref: '#/components/parameters/ProfilePolicyName'
+        - name: policyName
+          in: path
+          description: The relevant policy
+          required: true
+          schema:
+            type: string
+            enum:
+              - owner
+              - user
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -1149,7 +1157,13 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/Depth'
+        - name: depth
+          in: query
+          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
+            1..N expands that many subdirectories
+          schema:
+            type: integer
+            default: 0
       responses:
         200:
           description: File exists
@@ -1196,7 +1210,13 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/Depth'
+        - name: depth
+          in: query
+          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
+            1..N expands that many subdirectories
+          schema:
+            type: integer
+            default: 0
       responses:
         200:
           description: File exists
@@ -1702,22 +1722,22 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: >
-              Not found - TDR has no record of of a DUOS dataset with the specified ID.
+            Not found - TDR has no record of of a DUOS dataset with the specified ID.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         409:
           description: >
-              Conflict - Firecloud group contents may have been updated, but TDR encountered a
-              conflict when writing back to the database.
+            Conflict - Firecloud group contents may have been updated, but TDR encountered a
+            conflict when writing back to the database.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         500:
           description: >
-              An unexpected error occurred - Firecloud group contents may not have been updated.
+            An unexpected error occurred - Firecloud group contents may not have been updated.
           content:
             application/json:
               schema:
@@ -2700,13 +2720,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionModel'
         400:
-          description: Bad request - invalid query pameters
+          description: Bad request - invalid query parameters
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to read transaction from this datasset
+          description: No permission to read transaction from this dataset
           content:
             application/json:
               schema:
@@ -2757,13 +2777,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobModel'
         400:
-          description: Bad request - invalid transaction terminat request, badly formed or unrecognized state
+          description: Bad request - invalid transaction terminate request, badly formed or unrecognized state
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to terminate the transaction for this datasset
+          description: No permission to terminate the transaction for this dataset
           content:
             application/json:
               schema:
@@ -2779,7 +2799,7 @@ paths:
       tags:
         - datasets
         - repository
-      description: Add an asset definiion to a dataset
+      description: Add an asset definition to a dataset
       operationId: addDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2836,7 +2856,12 @@ paths:
       operationId: removeDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
-        - $ref: '#/components/parameters/AssetId'
+        - name: assetid
+          in: path
+          description: An asset id
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: Redirect for ingest complete
@@ -2968,7 +2993,7 @@ paths:
           content:
             application/json:
               schema:
-                  $ref: '#/components/schemas/EnumerateSnapshotAccessRequest'
+                $ref: '#/components/schemas/EnumerateSnapshotAccessRequest'
         400:
           description: Bad request - invalid id, or badly formed IamResourceType.
           content:
@@ -3444,7 +3469,13 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/Depth'
+        - name: depth
+          in: query
+          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
+            1..N expands that many subdirectories
+          schema:
+            type: integer
+            default: 0
       responses:
         200:
           description: File exists
@@ -3549,7 +3580,13 @@ paths:
           required: true
           schema:
             type: string
-        - $ref: '#/components/parameters/Depth'
+        - name: depth
+          in: query
+          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
+            1..N expands that many subdirectories
+          schema:
+            type: integer
+            default: 0
       responses:
         200:
           description: File exists
@@ -3910,9 +3947,9 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: upgrade
 
-##############################################################################
-## DRS STANDARD ENDPOINTS
-##############################################################################
+  ##############################################################################
+  ## DRS STANDARD ENDPOINTS
+  ##############################################################################
   /ga4gh/drs/v1/service-info:
     get:
       tags:
@@ -4298,9 +4335,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DRSError'
-#################################################################
-#####                  JOURNAL                              #####
-#################################################################
+  #################################################################
+  #####                  JOURNAL                              #####
+  #################################################################
   /api/repository/v1/journal/{resourceKey}:
     get:
       tags:
@@ -5177,7 +5214,7 @@ components:
           additionalProperties:
             type: array
             items:
-             type: string
+              type: string
       description: >
         The total number of datasets available that match the filter criteria and a page of summaries
     ColumnModel:
@@ -5682,7 +5719,7 @@ components:
         filteredRowCount:
           type: integer
       description: >
-       Data from a dataset table
+        Data from a dataset table
     SnapshotPreviewModel:
       type: object
       properties:
@@ -7157,6 +7194,7 @@ components:
         - domainOptions
         - programDataOptions
         - featureValueGroups
+        - datasetConceptSets
       properties:
         domainOptions:
           type: array
@@ -7273,6 +7311,8 @@ components:
         - type: object
           required:
             - root
+            - conceptCount
+            - participantCount
           properties:
             root:
               $ref: '#/components/schemas/SnapshotBuilderConcept'
@@ -7337,7 +7377,7 @@ components:
         result:
           type: array
           items:
-             $ref: '#/components/schemas/SnapshotBuilderParentConcept'
+            $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
     SnapshotBuilderFeatureValueGroup:
       type: object
@@ -7826,7 +7866,7 @@ components:
             included in the result.
 
             If true and the object_id refers to a bundle, then the entire set of objects
-            in the bundle is expanded. That is, if the bundle contains aother bundles,
+            in the bundle is expanded. That is, if the bundle contains other bundles,
             then those other bundles are recursively expanded and included in the result.
             Recursion continues through the entire sub-tree of the bundle.
 
@@ -7872,9 +7912,9 @@ components:
             which token to send via other means. It is strongly recommended that the caller
             validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
             by malicious DRS servers requesting credentials they should not have.
-#################################################################
-#####                  JOURNAL MODELS
-#################################################################
+    #################################################################
+    #####                  JOURNAL MODELS
+    #################################################################
     JournalEntryModel:
       required:
         - id
@@ -7938,8 +7978,8 @@ components:
         type: string
         enum:
           - steward
-          - custodian
-          - snapshot_creator
+          - reader
+          - discoverer
           - aggregateDataReader
     DatasetPolicyName:
       name: policyName
@@ -7980,10 +8020,10 @@ components:
       name: depth
       in: query
       description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-          1..N expands that many subdirectories
+        1..N expands that many subdirectories
       schema:
-          type: integer
-          default: 0
+        type: integer
+        default: 0
     LoadTag:
       name: loadtag
       in: path

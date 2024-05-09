@@ -2844,12 +2844,7 @@ paths:
       operationId: removeDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: assetid
-          in: path
-          description: An asset id
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/AssetId'
       responses:
         200:
           description: Redirect for ingest complete
@@ -3266,12 +3261,7 @@ paths:
       operationId: getLoadHistoryForLoadTag
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: loadTag
-          in: path
-          description: a load tag
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/LoadTag'
         - name: offset
           in: query
           description: The number of items to skip before starting to collect the result
@@ -3331,12 +3321,7 @@ paths:
       operationId: bulkFileResultsDelete
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: loadtag
-          in: path
-          description: a load tag
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/LoadTag'
         - name: jobId
           in: query
           description: The job id associated with the load
@@ -8001,7 +7986,7 @@ components:
         type: integer
         default: 0
     LoadTag:
-      name: loadtag
+      name: loadTag
       in: path
       description: a load tag
       required: true

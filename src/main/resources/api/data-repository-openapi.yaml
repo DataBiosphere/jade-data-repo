@@ -1157,13 +1157,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1210,13 +1204,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3469,13 +3457,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3580,13 +3562,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists

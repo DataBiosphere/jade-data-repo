@@ -34,6 +34,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -80,6 +81,7 @@ class SnapshotBuilderServiceTest {
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private IamService iamService;
   @Mock private SnapshotService snapshotService;
+  @Mock private DatasetService datasetService;
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
@@ -93,6 +95,7 @@ class SnapshotBuilderServiceTest {
         new SnapshotBuilderService(
             snapshotRequestDao,
             snapshotBuilderSettingsDao,
+            datasetService,
             iamService,
             snapshotService,
             bigQuerySnapshotPdao,
@@ -354,7 +357,7 @@ class SnapshotBuilderServiceTest {
 
     Dataset dataset = makeDataset(CloudPlatform.GCP);
 
-    when(snapshotBuilderSettingsDao.getBySnapshotId(dataset.getId()))
+    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     Query query = mock(Query.class);

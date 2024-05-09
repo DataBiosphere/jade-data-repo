@@ -1,7 +1,9 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
@@ -10,12 +12,15 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public interface CreateSnapshotPrimaryDataQueryInterface {
 
@@ -23,19 +28,37 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       FlightContext context,
       Snapshot snapshot,
       SnapshotRequestModel snapshotReq,
-      DatasetService datasetService)
+      DatasetService datasetService,
+      SnapshotBuilderService snapshotBuilderService,
+      SnapshotRequestDao snapshotRequestDao,
+      SnapshotDao snapshotDao,
+      AuthenticatedUserRequest userReq)
       throws InterruptedException {
     AssetSpecification assetSpecification;
     String sqlQuery;
+    Instant createdAt;
 
     if (snapshotReq
         .getContents()
         .get(0)
         .getMode()
         .equals(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)) {
-      assetSpecification =
-          context.getWorkingMap().get(SnapshotWorkingMapKeys.ASSET, AssetSpecification.class);
-      sqlQuery = context.getWorkingMap().get(SnapshotWorkingMapKeys.SQL_QUERY, String.class);
+      UUID accessRequestId =
+          snapshotReq.getContents().get(0).getRequestIdSpec().getSnapshotRequestId();
+      SnapshotAccessRequestResponse accessRequest = snapshotRequestDao.getById(accessRequestId);
+
+      UUID dataReleaseSnapshotId = accessRequest.getSourceSnapshotId();
+      Snapshot dataReleaseSnapshot = snapshotDao.retrieveSnapshot(dataReleaseSnapshotId);
+      // get the underlying dataset for the snapshot
+      if (dataReleaseSnapshot.getSnapshotSources().isEmpty()) {
+        throw new IllegalArgumentException("Snapshot does not have a source dataset");
+      }
+      Dataset dataset = dataReleaseSnapshot.getSnapshotSources().get(0).getDataset();
+      // gets pre-existing asset on the dataset
+      // TODO: create custom asset
+      assetSpecification = dataset.getAssetSpecificationByName("person_visit").orElseThrow();
+      sqlQuery = snapshotBuilderService.generateRowIdQuery(accessRequest, dataset, userReq);
+      createdAt = dataReleaseSnapshot.getCreatedDate();
     } else {
       SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
 
@@ -45,8 +68,9 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       assetSpecification = retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
       validateRootTable(query, assetSpecification);
       sqlQuery = translateQuery(query, dataset);
+      createdAt = CommonFlightUtils.getCreatedAt(context);
     }
-    Instant createdAt = CommonFlightUtils.getCreatedAt(context);
+
     return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
   }
 

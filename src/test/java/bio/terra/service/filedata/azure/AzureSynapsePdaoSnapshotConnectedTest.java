@@ -36,6 +36,8 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.flight.create.CreateSnapshotByQueryParquetFilesAzureStep;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -94,6 +96,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
   @Autowired SnapshotDao snapshotDao;
   @Autowired JsonLoader jsonLoader;
   @Autowired SnapshotService snapshotService;
+  @Autowired SnapshotRequestDao snapshotRequestDao;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
 
   @Before
   public void setup() throws Exception {
@@ -265,7 +269,13 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             datasetTables, assetName, rootTableName, rootColumnName, relationships);
     createSnapshotPrimaryDataQueryAzureStep =
         new CreateSnapshotByQueryParquetFilesAzureStep(
-            azureSynapsePdao, snapshotDao, snapshotService, datasetService, TEST_USER);
+            azureSynapsePdao,
+            snapshotDao,
+            snapshotService,
+            datasetService,
+            snapshotBuilderService,
+            snapshotRequestDao,
+            TEST_USER);
     createSnapshotPrimaryDataQueryAzureStep.validateRootTable(query, assetSpecification);
 
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);

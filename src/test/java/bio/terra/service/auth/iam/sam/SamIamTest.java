@@ -547,6 +547,7 @@ class SamIamTest {
                       .resourceTypeName(IamResourceType.DATASNAPSHOT.toString())
                       .resourceId(snapshotId.toString()))
               .resourceId(snapshotBuilderRequestId.toString())
+              .authDomain(List.of())
               .policies(
                   Map.of(
                       IamRole.OWNER.toString(),

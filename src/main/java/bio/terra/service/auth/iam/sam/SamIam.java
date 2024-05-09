@@ -355,6 +355,7 @@ public class SamIam implements IamProviderInterface {
         new CreateResourceRequestV2()
             .resourceId(snapshotBuilderRequestId.toString())
             .parent(parentId)
+            .authDomain(List.of())
             .policies(
                 initialRoles.entrySet().stream()
                     .collect(

@@ -22,22 +22,16 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
 import com.azure.resourcemanager.resources.models.GenericResources;
 import java.util.Map;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class AzureApplicationDeploymentServiceTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AzureApplicationDeploymentServiceTest {
 
   @Mock private AzureResourceDao resourceDao;
   @Mock private GenericResource genericResource;
@@ -47,15 +41,15 @@ public class AzureApplicationDeploymentServiceTest {
 
   private AzureApplicationDeploymentService service;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     service =
         new AzureApplicationDeploymentService(
             resourceDao, resourceConfiguration, new ApplicationConfiguration().objectMapper());
   }
 
   @Test
-  public void testGetOrRegisterApplicationDeployment() {
+  void testGetOrRegisterApplicationDeployment() {
     BillingProfileModel billingProfileModel = ProfileFixtures.randomAzureBillingProfile();
     when(genericResource.properties())
         .thenReturn(

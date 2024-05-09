@@ -18,6 +18,7 @@ import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AccessInfoParquetModel;
@@ -57,61 +58,73 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(SpringRunner.class)
-@ContextConfiguration(classes = {DatasetService.class})
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class DatasetServiceUnitTest {
-  private AuthenticatedUserRequest testUser;
-  private String datasetTableName;
-  @MockBean private DatasetDao datasetDao;
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class DatasetServiceUnitTest {
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
 
-  @Autowired private DatasetService datasetService;
+  private static final String DATASET_TABLE_NAME = "Table1";
 
-  @MockBean private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
-  @MockBean private DatasetJsonConversion datasetJsonConversion;
-  @MockBean private JobService jobService;
-  @MockBean private LoadService loadService;
-  @MockBean private ProfileDao profileDao;
-  @MockBean private StorageTableService storageTableService;
-  @MockBean private BigQueryTransactionPdao bigQueryTransactionPdao;
-  @MockBean private BigQueryDatasetPdao bigQueryDatasetPdao;
-  @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
-  @MockBean private ResourceService resourceService;
-  @MockBean private GcsPdao gcsPdao;
-  @MockBean private ObjectMapper objectMapper;
-  @MockBean private AzureBlobStorePdao azureBlobStorePdao;
-  @MockBean private ProfileService profileService;
-  @MockBean private UserLoggingMetrics loggingMetrics;
-  @MockBean private IamService iamService;
-  @MockBean private DatasetTableDao datasetTableDao;
-  @MockBean private AzureSynapsePdao azureSynapsePdao;
+  @Mock private DatasetDao datasetDao;
 
-  @Before
-  public void setup() {
-    testUser =
-        AuthenticatedUserRequest.builder()
-            .setSubjectId("DatasetUnit")
-            .setEmail("dataset@unit.com")
-            .setToken("token")
-            .build();
-    datasetTableName = "Table1";
+  private DatasetService datasetService;
+
+  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
+  @Mock private DatasetJsonConversion datasetJsonConversion;
+  @Mock private JobService jobService;
+  @Mock private LoadService loadService;
+  @Mock private ProfileDao profileDao;
+  @Mock private StorageTableService storageTableService;
+  @Mock private BigQueryTransactionPdao bigQueryTransactionPdao;
+  @Mock private BigQueryDatasetPdao bigQueryDatasetPdao;
+  @Mock private MetadataDataAccessUtils metadataDataAccessUtils;
+  @Mock private ResourceService resourceService;
+  @Mock private GcsPdao gcsPdao;
+  @Mock private ObjectMapper objectMapper;
+  @Mock private AzureBlobStorePdao azureBlobStorePdao;
+  @Mock private ProfileService profileService;
+  @Mock private UserLoggingMetrics loggingMetrics;
+  @Mock private IamService iamService;
+  @Mock private DatasetTableDao datasetTableDao;
+  @Mock private AzureSynapsePdao azureSynapsePdao;
+
+  @BeforeEach
+  void setup() {
+    datasetService =
+        new DatasetService(
+            datasetJsonConversion,
+            datasetDao,
+            jobService,
+            loadService,
+            profileDao,
+            storageTableService,
+            bigQueryTransactionPdao,
+            bigQueryDatasetPdao,
+            resourceService,
+            gcsPdao,
+            objectMapper,
+            azureBlobStorePdao,
+            profileService,
+            loggingMetrics,
+            iamService,
+            datasetTableDao,
+            azureSynapsePdao,
+            snapshotBuilderSettingsDao,
+            metadataDataAccessUtils);
   }
 
   @Test
-  public void enumerate() {
+  void enumerate() {
     UUID uuid = UUID.randomUUID();
     IamRole role = IamRole.DISCOVERER;
     Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(role));
@@ -128,7 +141,7 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
-  public void patchDatasetIamActions() {
+  void patchDatasetIamActions() {
     assertThat(
         "Patch without PHS ID update does not require passport identifier update permissions",
         datasetService.patchDatasetIamActions(new DatasetPatchRequestModel()),
@@ -152,7 +165,7 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
-  public void updatePredictableIdsFlag() {
+  void updatePredictableIdsFlag() {
     UUID datasetId = UUID.randomUUID();
     DatasetSummary summary = mock(DatasetSummary.class);
     when(summary.toModel()).thenReturn(new DatasetSummaryModel().id(datasetId));
@@ -163,7 +176,7 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
-  public void testTranslateData() {
+  void testTranslateData() {
     testRetrieveDataGCP(12, 0);
     testRetrieveDataGCP(0, 0);
     testRetrieveDataGCP(8, 4);
@@ -174,6 +187,7 @@ public class DatasetServiceUnitTest {
 
   private void testRetrieveDataGCP(int totalRowCount, int filteredRowCount) {
     mockDataset(CloudPlatform.GCP, TableDataType.STRING);
+    when(datasetTableDao.retrieveColumnNames(any(), anyBoolean())).thenReturn(List.of("column1"));
     List<BigQueryDataResultModel> values = new ArrayList<>();
     if (filteredRowCount > 0) {
       values.add(
@@ -199,17 +213,18 @@ public class DatasetServiceUnitTest {
   private void testRetrieveDataAzure(int totalRowCount, int filteredRowCount) {
     mockDataset(CloudPlatform.AZURE, TableDataType.STRING);
     List<SynapseDataResultModel> values = new ArrayList<>();
-    if (filteredRowCount > 0) {
+    if (filteredRowCount != 0) {
       values.add(
           new SynapseDataResultModel()
               .filteredCount(filteredRowCount)
               .totalCount(totalRowCount)
               .rowResult(new HashMap<>()));
+    } else {
+      when(azureSynapsePdao.getTableTotalRowCount(any(), any(), any())).thenReturn(totalRowCount);
     }
     when(azureSynapsePdao.getTableData(
             any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any()))
         .thenReturn(values);
-    when(azureSynapsePdao.getTableTotalRowCount(any(), any(), any())).thenReturn(totalRowCount);
     when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
         .thenReturn(
             new AccessInfoModel()
@@ -220,9 +235,9 @@ public class DatasetServiceUnitTest {
   private void retrieveDataAndValidate(int totalRowCount, int filteredRowCount) {
     DatasetDataModel datasetDataModel =
         datasetService.retrieveData(
-            testUser,
+            TEST_USER,
             UUID.randomUUID(),
-            datasetTableName,
+            DATASET_TABLE_NAME,
             100,
             0,
             PDAO_ROW_ID_COLUMN,
@@ -237,7 +252,7 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
-  public void testRetrieveColumnStatistics_GCP_TextColumn() {
+  void testRetrieveColumnStatistics_GCP_TextColumn() {
     mockDataset(CloudPlatform.GCP, TableDataType.STRING);
     ColumnStatisticsTextValue expectedValue =
         new ColumnStatisticsTextValue().value("val1").count(2);
@@ -248,13 +263,13 @@ public class DatasetServiceUnitTest {
       ColumnStatisticsTextModel statsModel =
           (ColumnStatisticsTextModel)
               datasetService.retrieveColumnStatistics(
-                  testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+                  TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
       assertThat("Correct stats value", statsModel.getValues(), containsInAnyOrder(expectedValue));
     }
   }
 
   @Test
-  public void testRetrieveColumnStatistics_Azure_TextColumn() {
+  void testRetrieveColumnStatistics_Azure_TextColumn() {
     mockDataset(CloudPlatform.AZURE, TableDataType.STRING);
     ColumnStatisticsTextValue expectedValue =
         new ColumnStatisticsTextValue().value("val1").count(2);
@@ -269,12 +284,12 @@ public class DatasetServiceUnitTest {
     ColumnStatisticsTextModel statsModel =
         (ColumnStatisticsTextModel)
             datasetService.retrieveColumnStatistics(
-                testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+                TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct stats value", statsModel.getValues(), containsInAnyOrder(expectedValue));
   }
 
   @Test
-  public void testRetrieveColumnStatistics_GCP_DoubleColumn() {
+  void testRetrieveColumnStatistics_GCP_DoubleColumn() {
     mockDataset(CloudPlatform.GCP, TableDataType.FLOAT);
     ColumnStatisticsDoubleModel expectedValue =
         new ColumnStatisticsDoubleModel().maxValue(2.0).minValue(1.0);
@@ -285,7 +300,7 @@ public class DatasetServiceUnitTest {
       ColumnStatisticsDoubleModel statsModel =
           (ColumnStatisticsDoubleModel)
               datasetService.retrieveColumnStatistics(
-                  testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+                  TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
       assertThat(
           "Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
       assertThat(
@@ -294,7 +309,7 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
-  public void testRetrieveColumnStatistics_Azure_DoubleColumn() {
+  void testRetrieveColumnStatistics_Azure_DoubleColumn() {
     mockDataset(CloudPlatform.AZURE, TableDataType.FLOAT);
     ColumnStatisticsDoubleModel expectedValue =
         new ColumnStatisticsDoubleModel().maxValue(2.0).minValue(1.0);
@@ -307,13 +322,13 @@ public class DatasetServiceUnitTest {
     ColumnStatisticsDoubleModel statsModel =
         (ColumnStatisticsDoubleModel)
             datasetService.retrieveColumnStatistics(
-                testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+                TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
 
   @Test
-  public void testRetrieveColumnStatistics_GCP_IntColumn() {
+  void testRetrieveColumnStatistics_GCP_IntColumn() {
     mockDataset(CloudPlatform.GCP, TableDataType.INTEGER);
     ColumnStatisticsIntModel expectedValue = new ColumnStatisticsIntModel().maxValue(2).minValue(1);
     try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
@@ -323,7 +338,7 @@ public class DatasetServiceUnitTest {
       ColumnStatisticsIntModel statsModel =
           (ColumnStatisticsIntModel)
               datasetService.retrieveColumnStatistics(
-                  testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+                  TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
       assertThat(
           "Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
       assertThat(
@@ -332,7 +347,7 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
-  public void testRetrieveColumnStatistics_Azure_IntColumn() {
+  void testRetrieveColumnStatistics_Azure_IntColumn() {
     mockDataset(CloudPlatform.AZURE, TableDataType.INTEGER);
     ColumnStatisticsIntModel expectedValue = new ColumnStatisticsIntModel().maxValue(3).minValue(1);
     when(azureSynapsePdao.getStatsForIntColumn(any(), any(), any(), any()))
@@ -344,13 +359,13 @@ public class DatasetServiceUnitTest {
     ColumnStatisticsIntModel statsModel =
         (ColumnStatisticsIntModel)
             datasetService.retrieveColumnStatistics(
-                testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+                TEST_USER, UUID.randomUUID(), DATASET_TABLE_NAME, "column1", "");
     assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
     assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {
-    List<DatasetTable> tables = List.of(new DatasetTable().name(datasetTableName));
+    List<DatasetTable> tables = List.of(new DatasetTable().name(DATASET_TABLE_NAME));
     UUID datasetId = UUID.randomUUID();
     Dataset mockDataset =
         new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))
@@ -359,9 +374,8 @@ public class DatasetServiceUnitTest {
             .tables(
                 List.of(
                     new DatasetTable()
-                        .name(datasetTableName)
+                        .name(DATASET_TABLE_NAME)
                         .columns(List.of(new Column().name("column1").type(columnDataType)))));
     when(datasetDao.retrieve(any())).thenReturn(mockDataset);
-    when(datasetTableDao.retrieveColumnNames(any(), anyBoolean())).thenReturn(List.of("column1"));
   }
 }

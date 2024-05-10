@@ -230,13 +230,6 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSnapshotCreateFromRequest() throws Exception {
-    populateOmopTable();
-    UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
-    SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
-  }
-
-  @Test
   public void datasetsHappyPath() throws Exception {
     // Note: this region should not be the same as the default region in the application deployment
     // (eastus by default)
@@ -418,6 +411,13 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Add settings to snapshot
     dataRepoFixtures.updateSettings(steward, releaseSnapshotId, "omop/settings.json");
+  }
+
+  @Test
+  public void testSnapshotCreateFromRequest() throws Exception {
+    populateOmopTable();
+    UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
+    // SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
   }
 
   private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {

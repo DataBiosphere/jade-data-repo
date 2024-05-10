@@ -356,8 +356,11 @@ class SnapshotBuilderServiceTest {
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
 
     Dataset dataset = makeDataset(CloudPlatform.GCP);
+    Snapshot snapshot =
+        makeSnapshot(CloudPlatform.GCP)
+            .snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
 
-    when(snapshotBuilderSettingsDao.getByDatasetId(dataset.getId()))
+    when(snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     Query query = mock(Query.class);
@@ -371,7 +374,7 @@ class SnapshotBuilderServiceTest {
     when(query.renderSQL(contextArgument.capture())).thenReturn("sql");
 
     assertEquals(
-        "sql", snapshotBuilderService.generateRowIdQuery(accessRequest, dataset, TEST_USER));
+        "sql", snapshotBuilderService.generateRowIdQuery(accessRequest, snapshot, TEST_USER));
     assertThat(
         contextArgument.getValue().getPlatform().getCloudPlatform(),
         is(dataset.getCloudPlatform()));

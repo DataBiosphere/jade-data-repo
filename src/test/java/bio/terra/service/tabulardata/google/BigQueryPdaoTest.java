@@ -361,7 +361,6 @@ public class BigQueryPdaoTest {
         connectedOperations.createSnapshot(
             datasetSummary, "omop/release-snapshot-request.json", "");
     var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
-    settingsDao.upsertByDatasetId(datasetSummary.getId(), settings);
     settingsDao.upsertBySnapshotId(snapshotSummary.getId(), settings);
     return snapshotService.retrieve(snapshotSummary.getId());
   }

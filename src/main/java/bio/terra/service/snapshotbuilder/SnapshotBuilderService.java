@@ -272,9 +272,11 @@ public class SnapshotBuilderService {
   // process from a snapshot access request
   public String generateRowIdQuery(
       SnapshotAccessRequestResponse accessRequest,
-      Dataset dataset,
+      Snapshot snapshot,
       AuthenticatedUserRequest userReq) {
-    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getByDatasetId(dataset.getId());
+
+    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId());
+    Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
 
     List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
 

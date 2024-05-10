@@ -81,7 +81,8 @@ class CreateSnapshotPrimaryDataQueryInterfaceTest {
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     when(snapshotDao.retrieveSnapshot(sourceSnapshotId)).thenReturn(sourceSnapshot);
-    when(snapshotBuilderService.generateRowIdQuery(accessRequestResponse, sourceDataset, TEST_USER))
+    when(snapshotBuilderService.generateRowIdQuery(
+            accessRequestResponse, sourceSnapshot, TEST_USER))
         .thenReturn(sqlQuery);
 
     // mock out call to createSnapshotPrimaryData

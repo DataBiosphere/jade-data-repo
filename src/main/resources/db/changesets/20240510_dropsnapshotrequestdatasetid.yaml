@@ -1,8 +1,0 @@
-databaseChangeLog:
-  - changeSet:
-      id: drop_snapshot_request_dataset_id_column
-      author: sholden
-      changes:
-        - dropColumn:
-            columnName: dataset_id
-            tableName: snapshot_request

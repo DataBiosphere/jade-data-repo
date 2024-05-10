@@ -1,13 +1,13 @@
-import uuid
-
-from data_repo_client import Configuration, ApiClient, ProfilesApi, DatasetsApi, SnapshotsApi, \
-  JobsApi, ApiException
 import argparse
-import subprocess
 import json
 import os
+import subprocess
 import time
-import requests
+import uuid
+
+from data_repo_client import Configuration, ApiClient, ProfilesApi, DatasetsApi, \
+    SnapshotsApi, \
+    JobsApi
 
 
 class Clients:
@@ -25,7 +25,7 @@ class Clients:
 
 
 def wait_for_job(clients, job_model):
-  result = job_model
+  result = clients.jobs_api.retrieve_job(job_model.id)
   while True:
     if result is None or result.job_status=="running":
       time.sleep(10)
@@ -35,11 +35,15 @@ def wait_for_job(clients, job_model):
       result = clients.jobs_api.retrieve_job_result(job_model.id)
       raise f"Could not complete job with id {job_model.id}, got result {result}"
     elif result.job_status=="succeeded":
-      print(f"Job {job_model.id} succeeded")
+      print(f"Job succeeded {job_model.id}: {job_model.description}")
       result = clients.jobs_api.retrieve_job_result(job_model.id)
       return result
     else:
       raise "Unrecognized job state %s" % result.job_status
+
+def wait_for_jobs(clients, jobs):
+    for job in jobs:
+        wait_for_job(clients, job)
 
 
 # For dataset_ingest requests, each line in file is a json object
@@ -52,6 +56,7 @@ def convert_to_json_array(table_csv):
 
 
 def dataset_ingest_array(clients, dataset_id, dataset_to_upload):
+  jobs = []
   for table in dataset_to_upload['tables']:
     with open(os.path.join("files", dataset_to_upload["schema"],
       f"{table}.json")) as table_csv:
@@ -63,10 +68,10 @@ def dataset_ingest_array(clients, dataset_id, dataset_to_upload):
           "table": table
         }
         print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
-        wait_for_job(clients,
-          clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request))
+        jobs.append(clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request))
       else:
         print(f"Skipping ingest of {dataset_to_upload['name']}/{table} because it is empty")
+  wait_for_jobs(clients, jobs)
 
 
 def find_billing_profile_by_application_deployment_name(managed_app_name):
@@ -114,8 +119,8 @@ def add_billing_profile_members(clients, profile_id):
     {
       'email': 'DataRepoTestResourceAccess@dev.test.firecloud.org'})
 
-
 def dataset_ingest_json(clients, dataset_id, dataset_to_upload):
+  jobs = []
   for table in dataset_to_upload['tables']:
     with open(os.path.join("files", dataset_to_upload["schema"],
       f"{table}.{dataset_to_upload['format']}")) as table_csv:
@@ -126,7 +131,8 @@ def dataset_ingest_json(clients, dataset_id, dataset_to_upload):
         "table": table
       }
       print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
-      wait_for_job(clients, clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request))
+      jobs.append(clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request))
+  wait_for_jobs(clients, jobs)
 
 
 def add_dataset_policy_members(clients, dataset_id, dataset_to_upload):

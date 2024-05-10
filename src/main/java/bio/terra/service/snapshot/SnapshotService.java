@@ -555,7 +555,8 @@ public class SnapshotService {
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
       }
-      case BYFULLVIEW -> conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
+      case BYFULLVIEW, BYREQUESTID -> conjureSnapshotTablesFromDatasetTables(
+          snapshot, snapshotSource);
       case BYQUERY -> {
         SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
         String assetName = queryModel.getAssetName();

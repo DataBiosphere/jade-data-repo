@@ -431,7 +431,7 @@ public class AzureIntegrationTest extends UsersBase {
   private SnapshotSummaryModel makeSnapshotFromRequest(UUID requestSnapshotId) throws Exception {
     SnapshotRequestModel requestSnapshot =
         jsonLoader.loadObject(
-            "omop/snapshot-request-model-by-request-id", SnapshotRequestModel.class);
+            "omop/snapshot-request-model-by-request-id.json", SnapshotRequestModel.class);
     requestSnapshot.getContents().get(0).datasetName(datasetName);
     requestSnapshot.getContents().get(0).getRequestIdSpec().snapshotRequestId(requestSnapshotId);
 

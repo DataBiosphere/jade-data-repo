@@ -268,6 +268,8 @@ public class SnapshotBuilderService {
     }
   }
 
+  // This method is used to generate the SQL query to get the rowIds for the snapshot creation
+  // process from a snapshot access request
   public String generateRowIdQuery(
       SnapshotAccessRequestResponse accessRequest,
       Dataset dataset,

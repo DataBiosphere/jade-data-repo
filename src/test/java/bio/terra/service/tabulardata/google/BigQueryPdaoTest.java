@@ -27,6 +27,8 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
@@ -37,6 +39,7 @@ import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
@@ -344,7 +347,6 @@ public class BigQueryPdaoTest {
     Dataset dataset = readDataset("omop/it-dataset-omop.jsonl");
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
-
     // Stage tabular data for ingest.
     var ingesters = TABLES.stream().map(Ingester::new).toList();
     for (Ingester ingester : ingesters) {
@@ -354,45 +356,43 @@ public class BigQueryPdaoTest {
       ingester.waitForCompletion(dataset);
     }
 
-    DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
+    datasetSummary = dataset.getDatasetSummary().toModel();
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(
             datasetSummary, "omop/release-snapshot-request.json", "");
     var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
+    settingsDao.upsertByDatasetId(datasetSummary.getId(), settings);
     settingsDao.upsertBySnapshotId(snapshotSummary.getId(), settings);
     return snapshotService.retrieve(snapshotSummary.getId());
   }
 
-  //  private SnapshotAccessRequestResponse createSnapshotAccessRequest(UUID sourceSnapshotId)
-  //      throws IOException {
-  //    String filename = "omop/snapshot-access-request.json";
-  //    SnapshotAccessRequest request = jsonLoader.loadObject(filename,
-  // SnapshotAccessRequest.class);
-  //    request.sourceSnapshotId(sourceSnapshotId);
-  //    return snapshotBuilderService.createSnapshotAccessRequest(TEST_USER, request);
-  //  }
-  //
-  //  private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID
-  // snapshotAccessRequestId)
-  //      throws IOException {
-  //    String filename = "omop/snapshot-request-model-by-request-id.json";
-  //    SnapshotRequestModel request = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
-  //    request.getContents().get(0).getRequestIdSpec().snapshotRequestId(snapshotAccessRequestId);
-  //    ;
-  //    return request;
-  //  }
-  //
-  //  @Test
-  //  public void createSnapshotByRequestId() throws Exception {
-  //    Snapshot sourceSnapshot = stageOmopDataset();
-  //    SnapshotAccessRequestResponse accessRequest =
-  //        createSnapshotAccessRequest(sourceSnapshot.getId());
-  //    SnapshotRequestModel requestModel =
-  //        createSnapshotRequestModelByRequestId(accessRequest.getId());
-  //    SnapshotSummaryModel snapshotSummary =
-  //        connectedOperations.createSnapshot(datasetSummary, requestModel, "");
-  //    Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
-  //  }
+  private SnapshotAccessRequestResponse createSnapshotAccessRequest(UUID sourceSnapshotId)
+      throws IOException {
+    String filename = "omop/snapshot-access-request.json";
+    SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
+    request.sourceSnapshotId(sourceSnapshotId);
+    return snapshotBuilderService.createSnapshotAccessRequest(TEST_USER, request);
+  }
+
+  private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID snapshotAccessRequestId)
+      throws IOException {
+    String filename = "omop/snapshot-request-model-by-request-id.json";
+    SnapshotRequestModel request = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+    request.getContents().get(0).getRequestIdSpec().snapshotRequestId(snapshotAccessRequestId);
+    return request;
+  }
+
+  @Test
+  public void createSnapshotByRequestId() throws Exception {
+    Snapshot sourceSnapshot = stageOmopData();
+    SnapshotAccessRequestResponse accessRequest =
+        createSnapshotAccessRequest(sourceSnapshot.getId());
+    SnapshotRequestModel requestModel =
+        createSnapshotRequestModelByRequestId(accessRequest.getId());
+
+    SnapshotSummaryModel snapshotSummary =
+        connectedOperations.createSnapshot(datasetSummary, requestModel, "");
+  }
 
   @Test
   public void snapshotBuilderQuery() throws Exception {

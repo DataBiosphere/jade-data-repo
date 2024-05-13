@@ -51,7 +51,7 @@ class CreateSnapshotPrimaryDataQueryInterfaceTest {
     UUID sourceSnapshotId = UUID.randomUUID();
     UUID datasetProfileId = UUID.randomUUID();
     UUID datasetId = UUID.randomUUID();
-    AssetSpecification asset = new AssetSpecification().name("person_visit");
+    AssetSpecification asset = new AssetSpecification().name("concept_asset");
     String sqlQuery = "query";
 
     Dataset sourceDataset = new Dataset();

@@ -1933,6 +1933,17 @@
             }
         ],
         "relationships": [
+          {
+            "name": "fpk_person_condition",
+            "from": {
+              "table": "person",
+              "column": "person_id"
+            },
+            "to": {
+              "table": "condition_occurrence",
+              "column": "person_id"
+            }
+          },
             {
                 "name": "fpk_concept_domain",
                 "from": {
@@ -3849,6 +3860,30 @@
             }
         ],
         "assets": [
+          {
+            "name": "concept_asset",
+            "tables": [
+              {
+                "name": "person",
+                "columns": []
+              },
+              {
+                "name": "condition_occurrence",
+                "columns": []
+              },
+              {
+                "name": "concept",
+                "columns": []
+              }
+
+            ],
+            "rootTable": "person",
+            "rootColumn": "person_id",
+            "follow": [
+              "fpk_person_condition",
+              "fpk_condition_concept"
+            ]
+          },
             {
                 "name": "person_visit",
                 "tables": [

@@ -7493,7 +7493,7 @@ components:
           type: string
         researchPurposeStatement:
           type: string
-        datasetRequest:
+        snapshotBuilderRequest:
           $ref: '#/components/schemas/SnapshotBuilderRequest'
       description: Request for access to a snapshot.
 

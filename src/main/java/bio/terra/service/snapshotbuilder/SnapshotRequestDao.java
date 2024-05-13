@@ -88,10 +88,10 @@ public class SnapshotRequestDao {
   }
 
   /**
-   * Return the list of Snapshot Requests associated with the given dataset id.
+   * Return the list of Snapshot Requests associated with the given snapshot id.
    *
    * @param authorizedResources snapshot requests that the user has permission to see.
-   * @return the list of snapshot requests, empty if none, or an exception if the dataset does not
+   * @return the list of snapshot requests, empty if none, or an exception if the snapshot does not
    *     exist.
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -120,7 +120,7 @@ public class SnapshotRequestDao {
   public SnapshotAccessRequestResponse create(SnapshotAccessRequest request, String email) {
     String jsonValue;
     try {
-      jsonValue = objectMapper.writeValueAsString(request.getDatasetRequest());
+      jsonValue = objectMapper.writeValueAsString(request.getSnapshotBuilderRequest());
     } catch (JsonProcessingException e) {
       throw new BadRequestException("Could not write snapshot access request to json", e);
     }

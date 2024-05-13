@@ -3845,17 +3845,28 @@
                     "column": "person_id"
                 }
             },
-            {
-                "name": "fpk_condition_era_concept",
-                "from": {
-                    "table": "condition_era",
-                    "column": "condition_concept_id"
-                },
-                "to": {
-                    "table": "concept",
-                    "column": "concept_id"
-                }
+          {
+            "name": "fpk_condition_era_concept",
+            "from": {
+              "table": "condition_era",
+              "column": "condition_concept_id"
+            },
+            "to": {
+              "table": "concept",
+              "column": "concept_id"
             }
+          },
+          {
+            "name": "fpk_person_condition",
+            "from": {
+              "table": "person",
+              "column": "person_id"
+            },
+            "to": {
+              "table": "condition_occurrence",
+              "column": "person_id"
+            }
+          }
         ],
         "assets": [
           {

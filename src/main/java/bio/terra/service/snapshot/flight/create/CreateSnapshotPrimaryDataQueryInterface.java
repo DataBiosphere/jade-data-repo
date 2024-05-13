@@ -56,8 +56,7 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       Dataset dataset = dataReleaseSnapshot.getSnapshotSources().get(0).getDataset();
       // gets pre-existing asset on the dataset
       // TODO: create custom asset
-      assetSpecification =
-          dataset.getAssetSpecificationByName("concept_asset").orElseThrow();
+      assetSpecification = dataset.getAssetSpecificationByName("concept_asset").orElseThrow();
       sqlQuery =
           snapshotBuilderService.generateRowIdQuery(accessRequest, dataReleaseSnapshot, userReq);
       createdAt = dataReleaseSnapshot.getCreatedDate();

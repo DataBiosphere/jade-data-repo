@@ -29,6 +29,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -67,6 +68,7 @@ class SnapshotsApiControllerTest {
   @MockBean private FileService fileService;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private AssetModelValidator assetModelValidator;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
 
   @PactBrokerConsumerVersionSelectors
   public static SelectorBuilder consumerVersionSelectors() {

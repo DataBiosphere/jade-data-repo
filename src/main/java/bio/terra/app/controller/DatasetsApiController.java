@@ -39,10 +39,6 @@ import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotBuilderCountRequest;
-import bio.terra.model.SnapshotBuilderCountResponse;
-import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
@@ -64,7 +60,6 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -94,7 +89,6 @@ public class DatasetsApiController implements DatasetsApi {
   private final DatasetService datasetService;
   private final IamService iamService;
   private final FileService fileService;
-  private final SnapshotBuilderService snapshotBuilderService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
   private final IngestRequestValidator ingestRequestValidator;
@@ -109,7 +103,6 @@ public class DatasetsApiController implements DatasetsApi {
       DatasetService datasetService,
       IamService iamService,
       FileService fileService,
-      SnapshotBuilderService snapshotBuilderService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
       IngestRequestValidator ingestRequestValidator,
@@ -121,7 +114,6 @@ public class DatasetsApiController implements DatasetsApi {
     this.datasetService = datasetService;
     this.iamService = iamService;
     this.fileService = fileService;
-    this.snapshotBuilderService = snapshotBuilderService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
     this.ingestRequestValidator = ingestRequestValidator;
@@ -186,28 +178,6 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(
         datasetService.retrieveDatasetModel(
             id, userRequest, List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(
-      UUID id, Integer conceptId) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId, userRequest));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderCountResponse> getSnapshotBuilderCount(
-      UUID id, SnapshotBuilderCountRequest body) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    verifyDatasetAuthorization(
-        userRequest, id.toString(), IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(
-        snapshotBuilderService.getCountResponse(id, body.getCohorts(), userRequest));
   }
 
   @Override
@@ -547,32 +517,6 @@ public class DatasetsApiController implements DatasetsApi {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> searchConcepts(
-      UUID id, Integer domainId, String searchText) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS); // TODO: change once SQL is sanitized
-    return ResponseEntity.ok(
-        snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderGetConceptHierarchyResponse> getConceptHierarchy(
-      UUID id, Integer conceptId) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(
-        snapshotBuilderService.getConceptHierarchy(id, conceptId, userRequest));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

@@ -4525,24 +4525,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{conceptId}:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts/{conceptId}/children:
     get:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
         Gets all concepts with the specified concept as their parent.
-      operationId: getConcepts
+      operationId: getConceptChildren
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
             type: string
             format: uuid
         - in: path
-          description: A dataset concept id.
+          description: A snapshot concept id.
           name: conceptId
           required: true
           schema:
@@ -4553,7 +4553,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderGetConceptsResponse'
+                $ref: '#/components/schemas/SnapshotBuilderConceptsResponse'
         400:
           description: Bad request - invalid id, badly formed IamResourceType.
           content:
@@ -4561,7 +4561,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+          description: Unauthorized - snapshot does not exist or missing permissions to view.
           content:
             application/json:
               schema:
@@ -4573,7 +4573,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset found that meets the request parameters.
+          description: No snapshot found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -4584,23 +4584,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{domainId}/search:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts:
     get:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
-        Searches concepts of the specified domain that match the given searchText.
-      operationId: searchConcepts
+        Retrieves concepts of the specified domain and enables filtering concepts given by the searchText.
+      operationId: enumerateConcepts
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
             type: string
             format: uuid
-        - in: path
+        - in: query
           description: The concept ID of the domain
           name: domainId
           required: true
@@ -4608,7 +4608,7 @@ paths:
             type: integer
         - in: query
           description: User specified text to search concepts for.
-          name: searchText
+          name: filterText
           schema:
             type: string
       responses:
@@ -4617,7 +4617,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderGetConceptsResponse'
+                $ref: '#/components/schemas/SnapshotBuilderConceptsResponse'
         400:
           description: Bad request - invalid id, badly formed IamResourceType.
           content:
@@ -4625,7 +4625,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+          description: Unauthorized - snapshot does not exist or missing permissions to view.
           content:
             application/json:
               schema:
@@ -4637,7 +4637,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset or domain found that meets the request parameters.
+          description: No snapshot or domain found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -4649,10 +4649,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /api/repository/v1/datasets/{id}/snapshotBuilder/conceptHierarchy/{conceptId}:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts/{conceptId}/hierarchy:
     get:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
         Given a concept ID, return the tree of concepts that contain this concept. A tree
@@ -4660,14 +4660,14 @@ paths:
       operationId: getConceptHierarchy
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
             type: string
             format: uuid
         - in: path
-          description: A dataset concept id.
+          description: A snapshot concept id.
           name: conceptId
           required: true
           schema:
@@ -4686,7 +4686,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+          description: Unauthorized - snapshot does not exist or missing permissions to view.
           content:
             application/json:
               schema:
@@ -4698,7 +4698,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset found that meets the request parameters.
+          description: No snapshot found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -4710,17 +4710,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /api/repository/v1/datasets/{id}/snapshotBuilder/count:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/count:
     post:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
-        Given a list of snapshot builder cohorts, return the unique participant count for this dataset.
+        Given a list of snapshot builder cohorts, return the unique participant count for this snapshot.
       operationId: getSnapshotBuilderCount
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
@@ -4753,7 +4753,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset found that meets the request parameters.
+          description: No snapshot found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -7284,7 +7284,7 @@ components:
       description: >
         ⚠️ An object describing high level information about a domain for use in the snapshot builder
 
-    SnapshotBuilderGetConceptsResponse:
+    SnapshotBuilderConceptsResponse:
       type: object
       description: >
         ⚠️ The response object for the getConcepts endpoint

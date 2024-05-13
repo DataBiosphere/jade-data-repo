@@ -298,10 +298,10 @@ class CriteriaQueryBuilderTest {
         """
     SELECT p.datarepo_row_id FROM person AS p WHERE p.person_id IN
       (SELECT p.person_id FROM person AS p WHERE
-        (((1=1 OR
+        (((1=1 AND
         p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co
           JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id
-          WHERE ca.ancestor_concept_id = 100) OR
+          WHERE ca.ancestor_concept_id = 100) AND
         (p.year_of_birth >= 1950 AND p.year_of_birth <= 2000)))))
     """;
     assertThat(

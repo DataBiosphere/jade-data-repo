@@ -201,6 +201,8 @@ public class SnapshotBuilderTestData {
         .name("cohort")
         .addCriteriaGroupsItem(
             new SnapshotBuilderCriteriaGroup()
+                .meetAll(true)
+                .mustMeet(true)
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataListCriteria()
                         .id(0)

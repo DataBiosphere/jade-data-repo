@@ -27,7 +27,7 @@ with different domain IDs and search texts.
 """
 
 # Constants
-DATASETS = {
+SNAPSHOTS = {
     "gcp": "db064d16-2cd2-4fd0-82c6-026be6f270c3",
     "azure": "c3eb4708-444f-4cbf-a32c-0d3bb93d4819",
 }
@@ -281,7 +281,7 @@ if __name__ == "__main__":
 
     # Create the parser
     parser = argparse.ArgumentParser(
-        description="Profile endpoints for a specific host and dataset"
+        description="Profile endpoints for a specific host and snapshot"
     )
 
     # Add the arguments
@@ -294,11 +294,11 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--dataset",
+        "--snapshot",
         type=str,
-        choices=DATASETS.keys(),
+        choices=SNAPSHOTS.keys(),
         default="gcp",
-        help="The dataset to profile",
+        help="The snapshot to profile",
     )
 
     parser.add_argument(
@@ -311,7 +311,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    UUID = DATASETS[args.dataset]
+    UUID = SNAPSHOTS[args.snapshot]
     DATAREPO_URL = HOSTS[args.host]
 
     if args.authenticate:

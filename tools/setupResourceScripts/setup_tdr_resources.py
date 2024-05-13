@@ -226,10 +226,9 @@ def delete_dataset_if_exists(name, clients):
     print(f"Deleted dataset {filtered_datasets[0].id}")
 
 
-def add_snapshot_builder_settings(clients, dataset_id, directory, snapshot_builder_settings_file):
-  with open(os.path.join("files", directory, snapshot_builder_settings_file)) as dataset_schema_json:
-    clients.datasets_api.update_dataset_snapshot_builder_settings(dataset_id, json.load(dataset_schema_json))
-  print(f"Snapshot builder settings were updated")
+def add_snapshot_builder_settings(clients, snapshot_id, directory, snapshot_builder_settings_file):
+  with open(os.path.join("files", directory, snapshot_builder_settings_file)) as snapshot_builder_settings_json:
+    clients.snapshots_api.update_snapshot_snapshot_builder_settings(snapshot_id, json.load(snapshot_builder_settings_json))
 
 
 def main():
@@ -258,6 +257,7 @@ def main():
 
   outputs = []
   for dataset_to_upload in get_datasets_to_upload(args.datasets):
+    snapshot_ids = []
     dataset_cloud_platform = dataset_to_upload['cloud_platform']
     if dataset_cloud_platform=='gcp':
       profile_id = gcp_profile_id
@@ -283,10 +283,11 @@ def main():
       outputs.append(output_ids)
     if dataset_to_upload.get('snapshotBuilderSettings'):
       print("Adding snapshot builder settings")
-      add_snapshot_builder_settings(clients,
-        created_dataset['id'], dataset_to_upload.get('schema'),
-        dataset_to_upload.get('snapshotBuilderSettings'))
-      print("Added snapshot builder settings")
+      for snapshot_id in snapshot_ids:
+          add_snapshot_builder_settings(clients,
+            snapshot_id, dataset_to_upload.get('schema'),
+            dataset_to_upload.get('snapshotBuilderSettings'))
+          print("Added snapshot builder settings for snapshot %s" % snapshot_id)
 
   output_filename = f"{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
   with open(output_filename, 'w') as f:

@@ -49,22 +49,20 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
-    String columnName = getProgramDataOptionColumnName(rangeCriteria.getId());
-    return new BooleanAndOrFilterVariable(
-        BooleanAndOrFilterVariable.LogicalOperator.AND,
-        List.of(
-            new BinaryFilterVariable(
-                getFieldVariableForRootTable(columnName),
-                BinaryFilterVariable.BinaryOperator.GREATER_THAN_OR_EQUAL,
-                new Literal(rangeCriteria.getLow())),
-            new BinaryFilterVariable(
-                getFieldVariableForRootTable(columnName),
-                BinaryFilterVariable.BinaryOperator.LESS_THAN_OR_EQUAL,
-                new Literal(rangeCriteria.getHigh()))));
+    FieldVariable rangeVariable =
+        getFieldVariableForRootTable(getProgramDataOptionColumnName(rangeCriteria.getId()));
+    return BooleanAndOrFilterVariable.and(
+        new BinaryFilterVariable(
+            rangeVariable,
+            BinaryFilterVariable.BinaryOperator.GREATER_THAN_OR_EQUAL,
+            new Literal(rangeCriteria.getLow())),
+        new BinaryFilterVariable(
+            rangeVariable,
+            BinaryFilterVariable.BinaryOperator.LESS_THAN_OR_EQUAL,
+            new Literal(rangeCriteria.getHigh())));
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataListCriteria listCriteria) {
-
     if (listCriteria.getValues().isEmpty()) {
       // select all values of list criteria
       return FilterVariable.alwaysTrueFilter();
@@ -135,7 +133,7 @@ public class CriteriaQueryBuilder {
 
   FilterVariable generateAndOrFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
     return new BooleanAndOrFilterVariable(
-        Objects.requireNonNullElse(criteriaGroup.isMeetAll(), false)
+        criteriaGroup.isMeetAll()
             ? BooleanAndOrFilterVariable.LogicalOperator.AND
             : BooleanAndOrFilterVariable.LogicalOperator.OR,
         criteriaGroup.getCriteria().stream().map(this::generateFilterForCriteria).toList());
@@ -143,7 +141,7 @@ public class CriteriaQueryBuilder {
 
   FilterVariable generateFilterForCriteriaGroup(SnapshotBuilderCriteriaGroup criteriaGroup) {
     FilterVariable andOrFilterVariable = generateAndOrFilterForCriteriaGroup(criteriaGroup);
-    return Objects.requireNonNullElse(criteriaGroup.isMustMeet(), true)
+    return criteriaGroup.isMustMeet()
         ? andOrFilterVariable
         : new NotFilterVariable(andOrFilterVariable);
   }

@@ -19,17 +19,17 @@ sending POST requests with different criteria.s
  - getConceptHierarchy: Profiles the performance of the getConceptHierarchy endpoint by sending
  GET requests with different concept IDs.
 
- - searchConcepts: Profiles the performance of the searchConcepts endpoint by sending GET requests
+ - enumerateConcepts: Profiles the performance of the enumerateConcepts endpoint by sending GET requests
 with different domain IDs and search texts.
 
- - getConcepts: Profiles the performance of the getConcepts endpoint by sending GET requests with
+ - getConceptChildren: Profiles the performance of the getConceptChildren endpoint by sending GET requests with
  different concept IDs.
 """
 
 # Constants
-DATASETS = {
-    "gcp": "0f2d1f2f-0544-4aaf-ac2a-13f2bd538f09",
-    "azure": "c672c3c9-ab54-4e19-827c-f2af329da814",
+SNAPSHOTS = {
+    "gcp": "db064d16-2cd2-4fd0-82c6-026be6f270c3",
+    "azure": "c3eb4708-444f-4cbf-a32c-0d3bb93d4819",
 }
 
 HOSTS = {
@@ -104,7 +104,7 @@ def make_get_request(endpoint_url, token):
         endpoint_url (str): The endpoint URL to request.
         token (str): The access token for authentication.
     """
-    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
+    url = f"{DATAREPO_URL}/api/repository/v1/snapshots/{UUID}/snapshotBuilder/{endpoint_url}"
     headers = {"Authorization": f"Bearer {token}"}
     start_time = time.time()
     try:
@@ -129,7 +129,7 @@ def make_post_request(endpoint_url, token, body):
         token (str): The access token for authentication.
         body (dict): The request body to send in the POST request.
     """
-    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
+    url = f"{DATAREPO_URL}/api/repository/v1/snapshots/{UUID}/snapshotBuilder/{endpoint_url}"
     headers = {
         "Authorization": f"Bearer {token}",
         # The request body is in JSON format
@@ -236,16 +236,16 @@ def profile_get_concept_hierarchy(token):
     print("Profiling getConceptHierarchy endpoint")
     concept_ids = [4180169, 4027384, 4029205]
     for concept_id in concept_ids:
-        make_get_request(f"conceptHierarchy/{concept_id}", token)
+        make_get_request(f"concepts/{concept_id}/hierarchy", token)
 
 
-def profile_search_concepts(token):
+def profile_enumerate_concepts(token):
     """
     Profiles the searchConcepts endpoint and logs the request and time taken
     Args:
         token (str): The access token for authentication.
     """
-    print("Profiling searchConcepts endpoint")
+    print("Profiling enumerateConcepts endpoint")
     params = [
         (19, None),
         (19, "cancer"),
@@ -256,24 +256,24 @@ def profile_search_concepts(token):
     ]
     for param in params:
         domain_id = param[0]
-        search_text = param[1]
-        if search_text is None:
-            url = f"concepts/{domain_id}/search?/searchText="
+        filter_text = param[1]
+        if filter_text is None:
+            url = f"concepts?domainId={domain_id}&filterText="
         else:
-            url = f"concepts/{domain_id}/search?/searchText={search_text}"
+            url = f"concepts?domainId={domain_id}&filterText={filter_text}"
         make_get_request(url, token)
 
 
-def profile_get_concepts(token):
+def profile_get_concept_children(token):
     """
-    Profiles the getConcepts endpoint and logs the request and time taken
+    Profiles the getConceptChildren endpoint and logs the request and time taken
     Args:
         token (str): The access token for authentication.
     """
-    print("Profiling getConcepts endpoint")
+    print("Profiling getConceptChildren endpoint")
     concept_ids = [443883, 4042140, 4103320]
     for concept_id in concept_ids:
-        make_get_request(f"concepts/{concept_id}", token)
+        make_get_request(f"concepts/{concept_id}/children", token)
 
 
 # Main function
@@ -281,7 +281,7 @@ if __name__ == "__main__":
 
     # Create the parser
     parser = argparse.ArgumentParser(
-        description="Profile endpoints for a specific host and dataset"
+        description="Profile endpoints for a specific host and snapshot"
     )
 
     # Add the arguments
@@ -294,11 +294,11 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--dataset",
+        "--snapshot",
         type=str,
-        choices=DATASETS.keys(),
+        choices=SNAPSHOTS.keys(),
         default="gcp",
-        help="The dataset to profile",
+        help="The snapshot to profile",
     )
 
     parser.add_argument(
@@ -311,7 +311,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    UUID = DATASETS[args.dataset]
+    UUID = SNAPSHOTS[args.snapshot]
     DATAREPO_URL = HOSTS[args.host]
 
     if args.authenticate:
@@ -324,16 +324,16 @@ if __name__ == "__main__":
     endpoint_handlers = {
         "getSnapshotBuilderCount": profile_get_snapshot_builder_count,
         "getConceptHierarchy": profile_get_concept_hierarchy,
-        "searchConcepts": profile_search_concepts,
-        "getConcepts": profile_get_concepts,
+        "enumerateConcepts": profile_enumerate_concepts,
+        "getConceptChildren": profile_get_concept_children,
     }
 
     # List of endpoints to process
     endpoints = [
         "getSnapshotBuilderCount",
         "getConceptHierarchy",
-        "searchConcepts",
-        "getConcepts",
+        "enumerateConcepts",
+        "getConceptChildren",
     ]
 
     # Iterate through the endpoints and call the corresponding function

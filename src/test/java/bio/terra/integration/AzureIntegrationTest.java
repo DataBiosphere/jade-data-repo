@@ -144,6 +144,7 @@ public class AzureIntegrationTest extends UsersBase {
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private SamFixtures samFixtures;
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
@@ -156,6 +157,8 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID releaseSnapshotId;
   private String datasetName;
   private List<UUID> snapshotIds;
+
+  private List<UUID> snapshotAccessRequestIds;
   private UUID profileId;
   private AzureBlobIOTestUtility azureBlobIOTestUtility;
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
@@ -185,6 +188,7 @@ public class AzureIntegrationTest extends UsersBase {
             retryOptions);
     gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
     snapshotIds = new ArrayList<>();
+    snapshotAccessRequestIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
   }
 
@@ -201,6 +205,11 @@ public class AzureIntegrationTest extends UsersBase {
 
     dataRepoFixtures.resetConfig(steward);
 
+    if (snapshotAccessRequestIds != null) {
+      for (UUID snapshotAccessRequestId : snapshotAccessRequestIds) {
+        samFixtures.deleteSnapshotAccessRequest(steward, snapshotAccessRequestId);
+      }
+    }
     if (snapshotIds != null) {
       for (UUID snapshotId : snapshotIds) {
         dataRepoFixtures.deleteSnapshot(steward, snapshotId);
@@ -417,7 +426,8 @@ public class AzureIntegrationTest extends UsersBase {
   public void testSnapshotCreateFromRequest() throws Exception {
     populateOmopTable();
     UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
-    // SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
+    SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
+    // add some checks for snapshot content
   }
 
   private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
@@ -425,6 +435,7 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotAccessRequestResponse accessRequest =
         dataRepoFixtures.createSnapshotAccessRequest(steward, releaseSnapshotId, filename);
     assertThat("Snapshot access request exists", accessRequest, notNullValue());
+    snapshotAccessRequestIds.add(accessRequest.getId());
     return accessRequest;
   }
 

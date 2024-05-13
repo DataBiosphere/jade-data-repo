@@ -84,8 +84,7 @@ public class SnapshotRequestValidator implements Validator {
   }
 
   private void validateSnapshotRequestIdSpec(SnapshotRequestIdModel requestIdSpec, Errors errors) {
-    UUID requestId = requestIdSpec.getSnapshotRequestId();
-    if (requestId == null) {
+    if (requestIdSpec.getSnapshotRequestId() == null) {
       errors.rejectValue("contents", "SnapshotRequestIdMissing");
     }
   }

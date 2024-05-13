@@ -54,6 +54,20 @@ class ConceptChildrenQueryBuilderTest {
       GROUP BY c.concept_name, c.concept_id, c.concept_code
       ORDER BY c.concept_name ASC""";
 
+  private static final String AZURE_EXPECTED_NEW =
+      """
+      SELECT c.concept_name, c.concept_id, c.concept_code,
+        COUNT(DISTINCT co.person_id) AS count,
+        count(ca.descendant_concept_id) AS has_children
+      FROM concept AS c
+        JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = c.concept_id
+        LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
+      WHERE (c.concept_id IN (SELECT cr.concept_id_2
+          FROM concept_relationship AS cr
+          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')
+      GROUP BY c.concept_name, c.concept_id, c.concept_code
+      ORDER BY c.concept_name ASC""";
+
   public static SnapshotBuilderDomainOption createDomainOption() {
     var option = new SnapshotBuilderDomainOption();
     option

@@ -1,9 +1,11 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import jakarta.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
 public final class TableVariable implements SqlExpression {
+  private final SubQueryPointer subQueryPointer;
   private final TablePointer tablePointer;
   private final String joinField;
   private final FieldVariable joinFieldOnParent;
@@ -15,6 +17,16 @@ public final class TableVariable implements SqlExpression {
       @Nullable FieldVariable joinFieldOnParent,
       boolean isLeftJoin) {
     this.tablePointer = tablePointer;
+    this.joinField = joinField;
+    this.joinFieldOnParent = joinFieldOnParent;
+    this.isLeftJoin = isLeftJoin;
+  }
+
+  private TablePointer(SubQueryPointer subQueryPointer,
+                       @Nullable String joinField,
+                       @Nullable FieldVariable joinFieldOnParent,
+                       boolean isLeftJoin) {
+    this.subQueryPointer = subQueryPointer;
     this.joinField = joinField;
     this.joinFieldOnParent = joinFieldOnParent;
     this.isLeftJoin = isLeftJoin;
@@ -34,12 +46,25 @@ public final class TableVariable implements SqlExpression {
     return forJoined(tablePointer, joinField, joinFieldOnParent, true);
   }
 
+  public static TableVariable forLeftJoined(
+      SubQueryPointer subQueryPointer, String joinField, FieldVariable joinFieldOnParent) {
+    return forJoined(subQueryPointer, joinField, joinFieldOnParent, true);
+  }
+
   private static TableVariable forJoined(
       TablePointer tablePointer,
       String joinField,
       FieldVariable joinFieldOnParent,
       boolean isLeftJoin) {
     return new TableVariable(tablePointer, joinField, joinFieldOnParent, isLeftJoin);
+  }
+
+  private static TableVariable forJoined(
+      SubQueryPointer subQueryPointer,
+      String joinField,
+      FieldVariable joinFieldOnParent,
+      boolean isLeftJoin) {
+    return new TableVariable(subQueryPointer, joinField, joinFieldOnParent, isLeftJoin);
   }
 
   public FieldVariable makeFieldVariable(String fieldName) {

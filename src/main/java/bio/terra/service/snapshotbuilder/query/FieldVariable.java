@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
-public class FieldVariable implements SelectExpression {
+public final class FieldVariable implements SelectExpression {
   private static final Logger LOGGER = LoggerFactory.getLogger(FieldVariable.class);
   private final FieldPointer fieldPointer;
   private final TableVariable tableVariable;

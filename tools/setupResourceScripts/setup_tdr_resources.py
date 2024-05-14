@@ -290,82 +290,117 @@ def find_dataset_by_name(name):
 
 
 def delete_dataset_if_exists(name, clients):
-  print(f"Checking if dataset {name} exists")
-  datasets = clients.datasets_api.enumerate_datasets()
-  filtered_datasets = list(filter(find_dataset_by_name(name), datasets.items))
-  if len(filtered_datasets) > 0:
-    print(f"Found dataset {name} with ID {filtered_datasets[0].id}")
-    wait_for_job(clients, clients.datasets_api.delete_dataset(filtered_datasets[0].id))
-    print(f"Deleted dataset {filtered_datasets[0].id}")
+    print(f"Checking if dataset {name} exists")
+    datasets = clients.datasets_api.enumerate_datasets()
+    filtered_datasets = list(filter(find_dataset_by_name(name), datasets.items))
+    if len(filtered_datasets) > 0:
+        print(f"Found dataset {name} with ID {filtered_datasets[0].id}")
+        wait_for_job(
+            clients, clients.datasets_api.delete_dataset(filtered_datasets[0].id)
+        )
+        print(f"Deleted dataset {filtered_datasets[0].id}")
 
 
-def add_snapshot_builder_settings(clients, snapshot_id, directory, snapshot_builder_settings_file):
-  with open(os.path.join("files", directory, snapshot_builder_settings_file)) as snapshot_builder_settings_json:
-    clients.snapshots_api.update_snapshot_snapshot_builder_settings(snapshot_id, json.load(snapshot_builder_settings_json))
+def add_snapshot_builder_settings(
+    clients, snapshot_id, directory, snapshot_builder_settings_file
+):
+    with open(
+        os.path.join("files", directory, snapshot_builder_settings_file)
+    ) as snapshot_builder_settings_json:
+        clients.snapshots_api.update_snapshot_snapshot_builder_settings(
+            snapshot_id, json.load(snapshot_builder_settings_json)
+        )
 
 
 def main():
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--host', required=True,
-    help='The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade-4.datarepo-integration.broadinstitute.org`')
-  parser.add_argument('--datasets', required=True,
-    help="A file pointer to the datarepo datasets to create. This is required flag. Available Options: " + ", ".join(os.listdir('./suites/')))
-  parser.add_argument('--gcp_profile_id',
-    help='The id of an existing gcp billing profile to use. Provide either this or a billing '
-         'profile file name.')
-  parser.add_argument('--azure_profile_id',
-    help='The id of an existing azure billing profile to use. Provide either this or a billing '
-         'profile file name.')
-  parser.add_argument('--azure_managed_app_name',
-    help='The name of your azure managed app. This should be provided if you are creating a new '
-         'azure billing project.')
-  parser.add_argument('--billing_profile_file_name',
-    help='A pointer to a file containing the billing profile to create or reuse. Provide either this or an existing profile ID.  Available Options: ' + ', '.join(os.listdir('./profiles/')))
-  args = parser.parse_args()
-  clients = Clients(args.host)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--host",
+        required=True,
+        help="The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade-4.datarepo-integration.broadinstitute.org`",
+    )
+    parser.add_argument(
+        "--datasets",
+        required=True,
+        help="A file pointer to the datarepo datasets to create. This is required flag. Available Options: "
+        + ", ".join(os.listdir("./suites/")),
+    )
+    parser.add_argument(
+        "--gcp_profile_id",
+        help="The id of an existing gcp billing profile to use. Provide either this or a billing "
+        "profile file name.",
+    )
+    parser.add_argument(
+        "--azure_profile_id",
+        help="The id of an existing azure billing profile to use. Provide either this or a billing "
+        "profile file name.",
+    )
+    parser.add_argument(
+        "--azure_managed_app_name",
+        help="The name of your azure managed app. This should be provided if you are creating a new "
+        "azure billing project.",
+    )
+    parser.add_argument(
+        "--billing_profile_file_name",
+        help="A pointer to a file containing the billing profile to create or reuse. Provide either this or an existing profile ID.  Available Options: "
+        + ", ".join(os.listdir("./profiles/")),
+    )
+    args = parser.parse_args()
+    clients = Clients(args.host)
 
-  add_jade_stewards = 'dev' in args.host or 'integration' in args.host
-  gcp_profile_id = args.gcp_profile_id
-  azure_profile_id = args.azure_profile_id
+    add_jade_stewards = "dev" in args.host or "integration" in args.host
+    gcp_profile_id = args.gcp_profile_id
+    azure_profile_id = args.azure_profile_id
 
-  outputs = []
-  for dataset_to_upload in get_datasets_to_upload(args.datasets):
-    snapshot_ids = []
-    dataset_cloud_platform = dataset_to_upload['cloud_platform']
-    if dataset_cloud_platform=='gcp':
-      profile_id = gcp_profile_id
-    elif dataset_cloud_platform=='azure':
-      profile_id = azure_profile_id
-    else:
-      raise Exception(
-        "Billing profile create not yet supported for cloud platform: " + dataset_cloud_platform)
-    if profile_id is None:
-      profile_id = create_billing_profile(clients, add_jade_stewards,
-        dataset_cloud_platform,
-        args.billing_profile_file_name,
-        args.azure_managed_app_name)
-    delete_dataset_if_exists(dataset_to_upload['name'], clients)
-    created_dataset = create_dataset(clients, dataset_to_upload, profile_id)
-    dataset_name = created_dataset['name']
-    output_ids = {dataset_name: {'dataset_id': created_dataset['id']}}
-    if dataset_to_upload.get('snapshots'):
-      snapshot_ids = create_snapshots(clients, dataset_to_upload['name'],
-        dataset_to_upload['snapshots'],
-        profile_id)
-      output_ids[dataset_name]['snapshot_ids'] = snapshot_ids
-      outputs.append(output_ids)
-    if dataset_to_upload.get('snapshotBuilderSettings'):
-      print("Adding snapshot builder settings")
-      for snapshot_id in snapshot_ids:
-          add_snapshot_builder_settings(clients,
-            snapshot_id, dataset_to_upload.get('schema'),
-            dataset_to_upload.get('snapshotBuilderSettings'))
-          print("Added snapshot builder settings for snapshot %s" % snapshot_id)
+    outputs = []
+    for dataset_to_upload in get_datasets_to_upload(args.datasets):
+        snapshot_ids = []
+        dataset_cloud_platform = dataset_to_upload["cloud_platform"]
+        if dataset_cloud_platform == "gcp":
+            profile_id = gcp_profile_id
+        elif dataset_cloud_platform == "azure":
+            profile_id = azure_profile_id
+        else:
+            raise Exception(
+                "Billing profile create not yet supported for cloud platform: "
+                + dataset_cloud_platform
+            )
+        if profile_id is None:
+            profile_id = create_billing_profile(
+                clients,
+                add_jade_stewards,
+                dataset_cloud_platform,
+                args.billing_profile_file_name,
+                args.azure_managed_app_name,
+            )
+        delete_dataset_if_exists(dataset_to_upload["name"], clients)
+        created_dataset = create_dataset(clients, dataset_to_upload, profile_id)
+        dataset_name = created_dataset["name"]
+        output_ids = {dataset_name: {"dataset_id": created_dataset["id"]}}
+        if dataset_to_upload.get("snapshots"):
+            snapshot_ids = create_snapshots(
+                clients,
+                dataset_to_upload["name"],
+                dataset_to_upload["snapshots"],
+                profile_id,
+            )
+            output_ids[dataset_name]["snapshot_ids"] = snapshot_ids
+            outputs.append(output_ids)
+        if dataset_to_upload.get("snapshotBuilderSettings"):
+            print("Adding snapshot builder settings")
+            for snapshot_id in snapshot_ids:
+                add_snapshot_builder_settings(
+                    clients,
+                    snapshot_id,
+                    dataset_to_upload.get("schema"),
+                    dataset_to_upload.get("snapshotBuilderSettings"),
+                )
+                print("Added snapshot builder settings for snapshot %s" % snapshot_id)
 
-  output_filename = f"{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
-  with open(output_filename, 'w') as f:
-    json.dump(outputs, f)
+    output_filename = f"{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
+    with open(output_filename, "w") as f:
+        json.dump(outputs, f)
 
 
-if __name__=="__main__":
-  main()
+if __name__ == "__main__":
+    main()

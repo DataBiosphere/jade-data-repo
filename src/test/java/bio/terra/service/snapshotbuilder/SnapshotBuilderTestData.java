@@ -210,7 +210,7 @@ public class SnapshotBuilderTestData {
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
                         .conceptId(100)
-                        .id(10)
+                        .id(19)
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataRangeCriteria()

@@ -2866,17 +2866,6 @@
                     "column": "concept_id"
                 }
             },
-          {
-            "name": "person_to_condition_occurrence",
-            "from": {
-              "table": "person",
-              "column": "person_id"
-            },
-            "to": {
-              "table": "condition_occurrence",
-              "column": "person_id"
-            }
-          },
             {
                 "name": "fpk_condition_type_concept",
                 "from": {

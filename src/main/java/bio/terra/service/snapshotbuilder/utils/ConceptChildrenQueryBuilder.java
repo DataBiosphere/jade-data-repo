@@ -1,10 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.service.snapshotbuilder.query.Concept;
-import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.query.ConceptRelationship;
-import bio.terra.service.snapshotbuilder.query.DomainOccurrence;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -17,6 +13,10 @@ import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
+import bio.terra.service.snapshotbuilder.query.tables.Concept;
+import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.tables.ConceptRelationship;
+import bio.terra.service.snapshotbuilder.query.tables.DomainOccurrence;
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
@@ -124,16 +124,18 @@ public class ConceptChildrenQueryBuilder {
    */
   public Query retrieveDomainId(int conceptId) {
     Concept concept = new Concept();
-    FieldVariable domainIdField = concept.domain_id();
-    FieldVariable conceptIdField = concept.concept_id();
+    FieldVariable domainId = concept.domain_id();
 
     BinaryFilterVariable where =
         new BinaryFilterVariable(
-            conceptIdField, BinaryFilterVariable.BinaryOperator.EQUALS, new Literal(conceptId));
+            concept.concept_id(),
+            BinaryFilterVariable.BinaryOperator.EQUALS,
+            new Literal(conceptId));
 
-    List<SelectExpression> select = List.of(domainIdField);
-    List<TableVariable> table = List.of(concept);
-
-    return new Query.Builder().select(select).addTables(table).addWhere(where).build();
+    return new Query.Builder()
+        .select(List.of(domainId))
+        .addTables(List.of(concept))
+        .addWhere(where)
+        .build();
   }
 }

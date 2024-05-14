@@ -4,7 +4,6 @@ import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
-
 import java.util.HashMap;
 import java.util.Map;
 

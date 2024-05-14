@@ -3,7 +3,7 @@ package bio.terra.service.snapshotbuilder.utils;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.query.Concept;
+import bio.terra.service.snapshotbuilder.query.tables.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 

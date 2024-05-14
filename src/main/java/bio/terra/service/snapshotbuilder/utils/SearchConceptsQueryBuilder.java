@@ -2,9 +2,6 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.SelectAlias;
-import bio.terra.service.snapshotbuilder.query.Concept;
-import bio.terra.service.snapshotbuilder.query.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.query.DomainOccurrence;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
@@ -17,6 +14,9 @@ import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
+import bio.terra.service.snapshotbuilder.query.tables.Concept;
+import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.tables.DomainOccurrence;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
@@ -42,15 +42,15 @@ public class SearchConceptsQueryBuilder {
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
     Concept concept = new Concept();
-    var nameField = concept.name();
-    var idField = concept.concept_id();
-    var conceptCode = concept.code();
+    FieldVariable nameField = concept.name();
+    FieldVariable conceptId = concept.concept_id();
+    FieldVariable conceptCode = concept.code();
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     ConceptAncestor conceptAncestor =
         new ConceptAncestor(
-            new TableVariableBuilder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(idField));
+            new TableVariableBuilder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(conceptId));
 
     FieldVariable descendantId = conceptAncestor.descendant_concept_id();
 
@@ -72,7 +72,7 @@ public class SearchConceptsQueryBuilder {
     List<SelectExpression> select =
         List.of(
             nameField,
-            idField,
+            conceptId,
             conceptCode,
             countPerson,
             new SelectAlias(new Literal(true), QueryBuilderFactory.HAS_CHILDREN));
@@ -84,7 +84,7 @@ public class SearchConceptsQueryBuilder {
         List.of(new OrderByVariable(countPerson, OrderByDirection.DESCENDING));
 
     // GROUP BY c.concept_name, c.concept_id, concept_code
-    List<FieldVariable> groupBy = List.of(nameField, idField, conceptCode);
+    List<FieldVariable> groupBy = List.of(nameField, conceptId, conceptCode);
 
     FilterVariable where;
     if (StringUtils.isEmpty(searchText)) {

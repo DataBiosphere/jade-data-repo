@@ -18,7 +18,7 @@ class FieldPointerTest {
   void buildVariable(SqlRenderContext context) {
     TablePointer table = TablePointer.fromTableName("table");
     var fieldPointer = FieldPointer.allFields(table);
-    TableVariable primaryTable = TableVariable.forPrimary(table);
+    SourceVariable primaryTable = SourceVariable.forPrimary(table);
     var fieldVariable = fieldPointer.buildVariable(primaryTable, null);
     assertThat(fieldVariable.renderSQL(context), is("t.*"));
   }
@@ -28,8 +28,8 @@ class FieldPointerTest {
   void buildVariableForeign(SqlRenderContext context) {
     TablePointer table = TablePointer.fromTableName("table");
     var fieldPointer = FieldPointer.foreignColumn(table, "column");
-    TableVariable primaryTable = TableVariable.forPrimary(table);
-    List<TableVariable> tables = new ArrayList<>();
+    SourceVariable primaryTable = SourceVariable.forPrimary(table);
+    List<SourceVariable> tables = new ArrayList<>();
     tables.add(primaryTable);
     var fieldVariable = fieldPointer.buildVariable(primaryTable, tables);
     assertThat(fieldVariable.renderSQL(context), is("t.column"));

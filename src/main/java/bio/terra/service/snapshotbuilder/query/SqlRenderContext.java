@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 public class SqlRenderContext {
   private final TableNameGenerator tableNameGenerator;
   private final CloudPlatformWrapper platform;
-  private final Map<TableVariable, String> aliases = new HashMap<>();
+  private final Map<SourceVariable, String> aliases = new HashMap<>();
 
   public SqlRenderContext(TableNameGenerator tableNameGenerator, CloudPlatformWrapper platform) {
     this.tableNameGenerator = tableNameGenerator;
@@ -38,17 +38,17 @@ public class SqlRenderContext {
   }
 
   /**
-   * Given a {@link TableVariable}, return an alias for a generated SQL query. Either an existing
+   * Given a {@link SourceVariable}, return an alias for a generated SQL query. Either an existing
    * alias is returned, or a new alias is generated based on the table name.
    */
-  public String getAlias(TableVariable tableVariable) {
+  public String getAlias(SourceVariable sourceVariable) {
     return aliases.computeIfAbsent(
-        tableVariable,
+        sourceVariable,
         key -> {
           // If no alias exists, find the next unused one using the default alias as a base. Append
           // successively higher integers until we find one that doesn't conflict with any other
           // table aliases.
-          String defaultAlias = getDefaultAlias(key.getTablePointer().tableName());
+          String defaultAlias = getDefaultAlias(key.getSourcePointer().getSourceName());
           String alias = defaultAlias;
           int suffix = 1;
           while (aliases.containsValue(alias)) {

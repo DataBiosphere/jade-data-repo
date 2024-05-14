@@ -22,29 +22,29 @@ public class QueryTest {
 
   @NotNull
   public static Query createQuery() {
-    TableVariable tableVariable = makeTableVariable();
+    SourceVariable sourceVariable = makeTableVariable();
     return new Query(
         List.of(
             new FieldVariable(
-                FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)),
-        List.of(tableVariable));
+                FieldPointer.allFields(sourceVariable.getSourcePointer()), sourceVariable)),
+        List.of(sourceVariable));
   }
 
   @NotNull
   public static Query createQueryWithLimit() {
-    TableVariable tableVariable = makeTableVariable();
+    SourceVariable sourceVariable = makeTableVariable();
     return new Query(
         List.of(
             new FieldVariable(
-                FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)),
-        List.of(tableVariable),
+                FieldPointer.allFields(sourceVariable.getSourcePointer()), sourceVariable)),
+        List.of(sourceVariable),
         null,
         25);
   }
 
-  private static TableVariable makeTableVariable() {
+  private static SourceVariable makeTableVariable() {
     TablePointer tablePointer = TablePointer.fromTableName("table");
-    return TableVariable.forPrimary(tablePointer);
+    return SourceVariable.forPrimary(tablePointer);
   }
 
   @ParameterizedTest
@@ -66,10 +66,11 @@ public class QueryTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSqlGroupBy(SqlRenderContext context) {
     TablePointer tablePointer = TablePointer.fromTableName("table");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    SourceVariable sourceVariable = SourceVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
-    FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
-    Query query = new Query(List.of(fieldVariable), List.of(tableVariable), List.of(fieldVariable));
+    FieldVariable fieldVariable = new FieldVariable(fieldPointer, sourceVariable);
+    Query query =
+        new Query(List.of(fieldVariable), List.of(sourceVariable), List.of(fieldVariable));
     assertThat(query.renderSQL(context), is("SELECT t.field FROM table AS t GROUP BY t.field"));
   }
 
@@ -77,19 +78,19 @@ public class QueryTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void renderComplexSQL(SqlRenderContext context) {
     TablePointer tablePointer = TablePointer.fromTableName(Person.TABLE_NAME);
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    SourceVariable sourceVariable = SourceVariable.forPrimary(tablePointer);
 
     TablePointer conditionOccurrencePointer =
         TablePointer.fromTableName(ConditionOccurrence.TABLE_NAME);
-    TableVariable conditionOccurrenceVariable =
-        TableVariable.forJoined(
+    SourceVariable conditionOccurrenceVariable =
+        SourceVariable.forJoined(
             conditionOccurrencePointer,
             Person.PERSON_ID,
-            new FieldVariable(new FieldPointer(tablePointer, Person.PERSON_ID), tableVariable));
+            new FieldVariable(new FieldPointer(tablePointer, Person.PERSON_ID), sourceVariable));
 
     TablePointer conditionAncestorPointer = TablePointer.fromTableName("condition_ancestor");
-    TableVariable conditionAncestorVariable =
-        TableVariable.forJoined(
+    SourceVariable conditionAncestorVariable =
+        SourceVariable.forJoined(
             conditionAncestorPointer,
             ConceptAncestor.ANCESTOR_CONCEPT_ID,
             new FieldVariable(
@@ -102,10 +103,10 @@ public class QueryTest {
             List.of(
                 new FieldVariable(
                     new FieldPointer(tablePointer, Person.PERSON_ID, "COUNT"),
-                    tableVariable,
+                    sourceVariable,
                     null,
                     true)),
-            List.of(tableVariable, conditionOccurrenceVariable, conditionAncestorVariable),
+            List.of(sourceVariable, conditionOccurrenceVariable, conditionAncestorVariable),
             new BooleanAndOrFilterVariable(
                 BooleanAndOrFilterVariable.LogicalOperator.AND,
                 List.of(
@@ -145,7 +146,7 @@ public class QueryTest {
                                 new Literal(4311280)))),
                     new BinaryFilterVariable(
                         new FieldVariable(
-                            new FieldPointer(tablePointer, Person.YEAR_OF_BIRTH), tableVariable),
+                            new FieldPointer(tablePointer, Person.YEAR_OF_BIRTH), sourceVariable),
                         BinaryFilterVariable.BinaryOperator.LESS_THAN,
                         new Literal(1983)))));
     String querySQL = query.renderSQL(context);

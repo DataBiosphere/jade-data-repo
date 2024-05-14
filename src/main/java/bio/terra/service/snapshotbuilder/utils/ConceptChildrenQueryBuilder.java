@@ -8,8 +8,8 @@ import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
@@ -46,7 +46,7 @@ public class ConceptChildrenQueryBuilder {
       SnapshotBuilderDomainOption domainOption, int parentConceptId) {
 
     // concept table and its fields concept_name and concept_id
-    TableVariable concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
+    SourceVariable concept = SourceVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
     FieldVariable conceptName = concept.makeFieldVariable(CONCEPT_NAME);
     FieldVariable conceptId = concept.makeFieldVariable(CONCEPT_ID);
     FieldVariable conceptCode = concept.makeFieldVariable(CONCEPT_CODE);
@@ -54,15 +54,15 @@ public class ConceptChildrenQueryBuilder {
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id.
     // We use concept_ancestor for the rollup count because we want to include counts
     // from all descendants, not just direct descendants.
-    TableVariable conceptAncestor =
-        TableVariable.forJoined(
+    SourceVariable conceptAncestor =
+        SourceVariable.forJoined(
             TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, conceptId);
     FieldVariable descendantConceptId = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
-    TableVariable domainOccurrence =
-        TableVariable.forLeftJoined(
+    SourceVariable domainOccurrence =
+        SourceVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
             descendantConceptId);
@@ -78,7 +78,7 @@ public class ConceptChildrenQueryBuilder {
             count,
             HierarchyQueryBuilder.hasChildrenExpression(conceptId));
 
-    List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
+    List<SourceVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
     List<FieldVariable> groupBy = List.of(conceptName, conceptId, conceptCode);
 
@@ -104,8 +104,8 @@ public class ConceptChildrenQueryBuilder {
    */
   Query createSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
-    TableVariable conceptRelationship =
-        TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
+    SourceVariable conceptRelationship =
+        SourceVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
     FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);
 
     return new Query(
@@ -124,7 +124,7 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
    */
   public Query retrieveDomainId(int conceptId) {
-    TableVariable concept = TableVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
+    SourceVariable concept = SourceVariable.forPrimary(TablePointer.fromTableName(CONCEPT));
     FieldVariable domainIdField = concept.makeFieldVariable(DOMAIN_ID);
 
     BinaryFilterVariable where =
@@ -134,7 +134,7 @@ public class ConceptChildrenQueryBuilder {
             new Literal(conceptId));
 
     List<SelectExpression> select = List.of(domainIdField);
-    List<TableVariable> table = List.of(concept);
+    List<SourceVariable> table = List.of(concept);
 
     return new Query(select, table, where);
   }

@@ -7,10 +7,10 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -147,10 +147,10 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
-    TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
+    SourceVariable conceptSourceVariable =
+        SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
     String actual =
-        createSearchConceptClause(conceptTableVariable, "cancer", Concept.CONCEPT_NAME)
+        createSearchConceptClause(conceptSourceVariable, "cancer", Concept.CONCEPT_NAME)
             .renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
@@ -162,12 +162,12 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
+    SourceVariable conceptSourceVariable =
+        SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
 
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(conceptTableVariable, "domain")
+        SearchConceptsQueryBuilder.createDomainClause(conceptSourceVariable, "domain")
             .renderSQL(context),
         is("(c.domain_id = 'domain' AND c.standard_concept = 'S')"));
   }

@@ -3,59 +3,59 @@ package bio.terra.service.snapshotbuilder.query;
 import jakarta.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
-public final class TableVariable implements SqlExpression {
-  private final TablePointer tablePointer;
+public final class SourceVariable implements SqlExpression {
+  private final SourcePointer sourcePointer;
   private final String joinField;
   private final FieldVariable joinFieldOnParent;
   private final boolean isLeftJoin;
 
-  private TableVariable(
-      TablePointer tablePointer,
+  private SourceVariable(
+      SourcePointer sourcePointer,
       @Nullable String joinField,
       @Nullable FieldVariable joinFieldOnParent,
       boolean isLeftJoin) {
-    this.tablePointer = tablePointer;
+    this.sourcePointer = sourcePointer;
     this.joinField = joinField;
     this.joinFieldOnParent = joinFieldOnParent;
     this.isLeftJoin = isLeftJoin;
   }
 
-  public static TableVariable forPrimary(TablePointer tablePointer) {
-    return new TableVariable(tablePointer, null, null, false);
+  public static SourceVariable forPrimary(SourcePointer sourcePointer) {
+    return new SourceVariable(sourcePointer, null, null, false);
   }
 
-  public static TableVariable forJoined(
-      TablePointer tablePointer, String joinField, FieldVariable joinFieldOnParent) {
-    return forJoined(tablePointer, joinField, joinFieldOnParent, false);
+  public static SourceVariable forJoined(
+      SourcePointer sourcePointer, String joinField, FieldVariable joinFieldOnParent) {
+    return forJoined(sourcePointer, joinField, joinFieldOnParent, false);
   }
 
-  public static TableVariable forLeftJoined(
-      TablePointer tablePointer, String joinField, FieldVariable joinFieldOnParent) {
-    return forJoined(tablePointer, joinField, joinFieldOnParent, true);
+  public static SourceVariable forLeftJoined(
+      SourcePointer sourcePointer, String joinField, FieldVariable joinFieldOnParent) {
+    return forJoined(sourcePointer, joinField, joinFieldOnParent, true);
   }
 
-  private static TableVariable forJoined(
-      TablePointer tablePointer,
+  private static SourceVariable forJoined(
+      SourcePointer sourcePointer,
       String joinField,
       FieldVariable joinFieldOnParent,
       boolean isLeftJoin) {
-    return new TableVariable(tablePointer, joinField, joinFieldOnParent, isLeftJoin);
+    return new SourceVariable(sourcePointer, joinField, joinFieldOnParent, isLeftJoin);
   }
 
   public FieldVariable makeFieldVariable(String fieldName) {
-    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName);
+    FieldPointer fieldPointer = new FieldPointer(sourcePointer, fieldName);
     return new FieldVariable(fieldPointer, this);
   }
 
   public FieldVariable makeFieldVariable(
       String fieldName, String sqlFunctionWrapper, String alias, boolean isDistinct) {
-    FieldPointer fieldPointer = new FieldPointer(tablePointer, fieldName, sqlFunctionWrapper);
+    FieldPointer fieldPointer = new FieldPointer(sourcePointer, fieldName, sqlFunctionWrapper);
     return new FieldVariable(fieldPointer, this, alias, isDistinct);
   }
 
   @Override
   public String renderSQL(SqlRenderContext context) {
-    String sql = tablePointer.renderSQL(context);
+    String sql = sourcePointer.renderSQL(context);
     String alias = context.getAlias(this);
 
     if (alias != null) {
@@ -75,8 +75,8 @@ public final class TableVariable implements SqlExpression {
     return sql;
   }
 
-  public TablePointer getTablePointer() {
-    return tablePointer;
+  public SourcePointer getSourcePointer() {
+    return sourcePointer;
   }
 
   public boolean isPrimary() {

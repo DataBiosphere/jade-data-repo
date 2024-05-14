@@ -2,10 +2,14 @@ package bio.terra.service.snapshotbuilder.query;
 
 import java.util.List;
 
-public record TablePointer(String tableName, Filter filter) implements SqlExpression {
+public record TablePointer(String tableName, Filter filter) implements SourcePointer {
 
   public static TablePointer fromTableName(String tableName) {
     return new TablePointer(tableName, null);
+  }
+
+  public String getSourceName() {
+    return tableName;
   }
 
   @Override
@@ -15,7 +19,7 @@ public record TablePointer(String tableName, Filter filter) implements SqlExpres
     }
 
     TablePointer tablePointerWithoutFilter = TablePointer.fromTableName(tableName);
-    TableVariable tableVar = TableVariable.forPrimary(tablePointerWithoutFilter);
+    SourceVariable tableVar = SourceVariable.forPrimary(tablePointerWithoutFilter);
     FieldVariable fieldVar =
         new FieldVariable(FieldPointer.allFields(tablePointerWithoutFilter), tableVar);
     FilterVariable filterVar = filter.buildVariable(tableVar, List.of(tableVar));

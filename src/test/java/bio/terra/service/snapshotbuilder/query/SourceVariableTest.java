@@ -9,28 +9,28 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
-class TableVariableTest {
+class SourceVariableTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLForPrimary(SqlRenderContext context) {
-    TableVariable tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
-    assertThat(tableVariable.renderSQL(context), equalToIgnoringCase("table as t"));
+    SourceVariable sourceVariable = SourceVariable.forPrimary(TablePointer.fromTableName("table"));
+    assertThat(sourceVariable.renderSQL(context), equalToIgnoringCase("table as t"));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLForJoined(SqlRenderContext context) {
     TablePointer parentTable = TablePointer.fromTableName("parentTable");
-    TableVariable parentTableVariable = TableVariable.forPrimary(parentTable);
+    SourceVariable parentSourceVariable = SourceVariable.forPrimary(parentTable);
     FieldVariable joinFieldOnParent =
         new FieldVariable(
-            new FieldPointer(parentTable, "parentJoinField"), parentTableVariable, null);
+            new FieldPointer(parentTable, "parentJoinField"), parentSourceVariable, null);
     TablePointer tablePointer = TablePointer.fromTableName("table");
-    TableVariable tableVariable =
-        TableVariable.forJoined(tablePointer, "joinField", joinFieldOnParent);
+    SourceVariable sourceVariable =
+        SourceVariable.forJoined(tablePointer, "joinField", joinFieldOnParent);
     assertThat(
-        tableVariable.renderSQL(context),
+        sourceVariable.renderSQL(context),
         equalToIgnoringCase("JOIN table AS t ON t.joinField = p.parentJoinField"));
   }
 }

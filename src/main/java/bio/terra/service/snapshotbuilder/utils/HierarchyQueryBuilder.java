@@ -9,8 +9,8 @@ import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
@@ -36,15 +36,15 @@ public class HierarchyQueryBuilder {
    */
   public Query generateQuery(SnapshotBuilderDomainOption domainOption, int conceptId) {
     var conceptRelationship =
-        TableVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
     var relationshipId = conceptRelationship.makeFieldVariable(ConceptRelationship.RELATIONSHIP_ID);
     var parentId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1);
     var childId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
     var child =
-        TableVariable.forJoined(
+        SourceVariable.forJoined(
             TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, childId);
     var parent =
-        TableVariable.forJoined(
+        SourceVariable.forJoined(
             TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, parentId);
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
@@ -53,13 +53,13 @@ public class HierarchyQueryBuilder {
     // ancestor table to find all of its children. We don't need to use a left join here
     // because every concept has itself as an ancestor, so there will be at least one match.
     var conceptAncestor =
-        TableVariable.forJoined(
+        SourceVariable.forJoined(
             TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
             ConceptAncestor.ANCESTOR_CONCEPT_ID,
             childId);
 
-    TableVariable domainOccurrence =
-        TableVariable.forLeftJoined(
+    SourceVariable domainOccurrence =
+        SourceVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
             conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID));
@@ -92,7 +92,7 @@ public class HierarchyQueryBuilder {
    * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,
    * Classification, and Source Concepts</a>
    */
-  private static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
+  private static BinaryFilterVariable requireStandardConcept(SourceVariable concept) {
     return BinaryFilterVariable.equals(
         concept.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S"));
   }
@@ -108,7 +108,7 @@ public class HierarchyQueryBuilder {
    */
   private Query selectAllParents(int conceptId) {
     var conceptAncestor =
-        TableVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
     var conceptIdLiteral = new Literal(conceptId);
     FieldVariable ancestorConceptId =
         conceptAncestor.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID);
@@ -141,11 +141,11 @@ public class HierarchyQueryBuilder {
    */
   static SelectExpression hasChildrenExpression(FieldVariable conceptId) {
     var conceptAncestor =
-        TableVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
     var descendantConceptId =
         conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
     var innerConcept =
-        TableVariable.forJoined(
+        SourceVariable.forJoined(
             TablePointer.fromTableName(Concept.TABLE_NAME),
             Concept.CONCEPT_ID,
             descendantConceptId);

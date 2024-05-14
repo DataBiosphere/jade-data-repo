@@ -366,7 +366,7 @@ public class DatasetIntegrationTest extends UsersBase {
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
     assertThat(
-        "Asset specification is as originally expected", originalAssetList.size(), equalTo(2));
+        "Asset specification is as originally expected", originalAssetList.size(), equalTo(3));
 
     // Test Asset Validation
     AssetModel invalidAssetModel =

@@ -233,7 +233,7 @@ class SamIamTest {
           req.getPolicies().keySet().stream().map(IamRole::fromValue).toList();
       assertThat(
           policyKeys,
-          containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER));
+          containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER, IamRole.AGGREGATE_DATA_READER));
 
       AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
       assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
@@ -280,7 +280,7 @@ class SamIamTest {
     List<IamRole> policyKeys = req.getPolicies().keySet().stream().map(IamRole::fromValue).toList();
     assertThat(
         policyKeys,
-        containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER));
+        containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER, IamRole.AGGREGATE_DATA_READER));
 
     AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
     assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));

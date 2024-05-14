@@ -236,7 +236,7 @@ public class SnapshotBuilderTestData {
         .sourceSnapshotId(sourceSnapshotId)
         .name("name")
         .researchPurposeStatement("purpose")
-        .datasetRequest(createSnapshotBuilderRequest());
+        .snapshotBuilderRequest(createSnapshotBuilderRequest());
   }
 
   public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse(UUID snapshotId) {
@@ -246,7 +246,7 @@ public class SnapshotBuilderTestData {
         .sourceSnapshotId(request.getSourceSnapshotId())
         .snapshotName(request.getName())
         .snapshotResearchPurpose(request.getResearchPurposeStatement())
-        .snapshotSpecification(request.getDatasetRequest())
+        .snapshotSpecification(request.getSnapshotBuilderRequest())
         .createdDate("date")
         .createdBy("user@gmail.com")
         .status(SnapshotAccessRequestStatus.SUBMITTED);

@@ -244,7 +244,7 @@ def add_snapshot_policy_members(clients, snapshot_id, snapshot_to_upload):
             snapshot_id, "discoverer", policy_member={"email": discoverer}
         )
     for aggregate_data_reader in snapshot_to_upload.get("aggregateDataReaders", []):
-        print(f"Adding {aggregate_data_reader} as an aggregate_data_reader")
+        print(f"Adding {aggregate_data_reader} as an aggregateDataReader")
         clients.snapshots_api.add_snapshot_policy_member(
             snapshot_id,
             "aggregate_data_reader",

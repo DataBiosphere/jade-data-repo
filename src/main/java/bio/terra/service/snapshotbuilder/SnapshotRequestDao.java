@@ -33,7 +33,6 @@ public class SnapshotRequestDao {
   private final ObjectMapper objectMapper;
   private static final String SOURCE_SNAPSHOT_ID = "source_snapshot_id";
   private static final String ID = "id";
-  private static final String DATASET_ID = "dataset_id";
   private static final String SNAPSHOT_NAME = "snapshot_name";
   private static final String SNAPSHOT_RESEARCH_PURPOSE = "snapshot_research_purpose";
   private static final String SNAPSHOT_SPECIFICATION = "snapshot_specification";
@@ -47,7 +46,6 @@ public class SnapshotRequestDao {
       (rs, rowNum) ->
           new SnapshotAccessRequestResponse()
               .id(rs.getObject(ID, UUID.class))
-              .datasetId(rs.getObject(DATASET_ID, UUID.class))
               .sourceSnapshotId(rs.getObject(SOURCE_SNAPSHOT_ID, UUID.class))
               .snapshotName(rs.getString(SNAPSHOT_NAME))
               .snapshotResearchPurpose(rs.getString(SNAPSHOT_RESEARCH_PURPOSE))
@@ -90,10 +88,10 @@ public class SnapshotRequestDao {
   }
 
   /**
-   * Return the list of Snapshot Requests associated with the given dataset id.
+   * Return the list of Snapshot Requests associated with the given snapshot id.
    *
    * @param authorizedResources snapshot requests that the user has permission to see.
-   * @return the list of snapshot requests, empty if none, or an exception if the dataset does not
+   * @return the list of snapshot requests, empty if none, or an exception if the snapshot does not
    *     exist.
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -122,7 +120,7 @@ public class SnapshotRequestDao {
   public SnapshotAccessRequestResponse create(SnapshotAccessRequest request, String email) {
     String jsonValue;
     try {
-      jsonValue = objectMapper.writeValueAsString(request.getDatasetRequest());
+      jsonValue = objectMapper.writeValueAsString(request.getSnapshotBuilderRequest());
     } catch (JsonProcessingException e) {
       throw new BadRequestException("Could not write snapshot access request to json", e);
     }

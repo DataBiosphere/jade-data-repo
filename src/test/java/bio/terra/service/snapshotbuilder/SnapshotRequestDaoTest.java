@@ -165,7 +165,7 @@ class SnapshotRequestDaoTest {
         "We can retrieve the snapshot request",
         snapshotRequestDao.getById(response.getId()),
         equalTo(response));
-    // delete the source dataset
+    // delete the source snapshot
     // This should also delete the snapshot request
     daoOperations.deleteSnapshot(snapshot.getId());
     assertThrows(NotFoundException.class, () -> snapshotRequestDao.getById(response.getId()));

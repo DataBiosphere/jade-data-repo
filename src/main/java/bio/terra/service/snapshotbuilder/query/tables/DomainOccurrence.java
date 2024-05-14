@@ -1,5 +1,8 @@
-package bio.terra.service.snapshotbuilder.query;
+package bio.terra.service.snapshotbuilder.query.tables;
 
+import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 

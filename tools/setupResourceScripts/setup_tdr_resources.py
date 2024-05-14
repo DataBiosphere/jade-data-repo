@@ -192,15 +192,6 @@ def add_dataset_policy_members(clients, dataset_id, dataset_to_upload):
             dataset_id, "snapshot_creator", policy_member={"email": snapshot_creator}
         )
 
-    for aggregate_data_reader in snapshot_to_upload.get("aggregateDataReaders", []):
-        print(f"Adding {aggregate_data_reader} as an aggregateDataReader")
-        clients.snapshots_api.add_snapshot_policy_member(
-            snapshot_id,
-            "aggregate_data_reader",
-            policy_member={"email": aggregate_data_reader},
-        )
-
-
 def create_dataset(clients, dataset_to_upload, profile_id):
     dataset_name = dataset_to_upload["name"]
 

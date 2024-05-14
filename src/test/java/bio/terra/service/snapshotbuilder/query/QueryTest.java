@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
+import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import jakarta.validation.constraints.NotNull;

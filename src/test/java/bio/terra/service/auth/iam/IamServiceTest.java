@@ -98,7 +98,7 @@ class IamServiceTest {
     String policyName = "policyName";
     String email = "email";
     when(iamProvider.deletePolicyMember(
-        TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
+            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
         .thenReturn(policyModel);
 
     PolicyModel result =

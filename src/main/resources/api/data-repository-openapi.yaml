@@ -7941,7 +7941,7 @@ components:
           - steward
           - reader
           - discoverer
-          - aggregate_data_reader
+          - aggregateDataReader
     DatasetPolicyName:
       name: policyName
       in: path

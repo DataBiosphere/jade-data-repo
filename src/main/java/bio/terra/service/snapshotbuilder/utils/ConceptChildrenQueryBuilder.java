@@ -33,7 +33,7 @@ public class ConceptChildrenQueryBuilder {
       SnapshotBuilderDomainOption domainOption, int parentConceptId) {
 
     // concept table and its fields concept_name and concept_id
-    Concept concept = new Concept();
+    Concept concept = new Concept.Builder().build();
     FieldVariable conceptName = concept.name();
     FieldVariable conceptId = concept.concept_id();
     FieldVariable conceptCode = concept.code();
@@ -43,19 +43,21 @@ public class ConceptChildrenQueryBuilder {
     // from all descendants, not just direct descendants.
 
     ConceptAncestor conceptAncestor =
-        new ConceptAncestor(
-            new TableVariable.Builder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(conceptId));
+        new ConceptAncestor.Builder()
+            .join(ConceptAncestor.ANCESTOR_CONCEPT_ID)
+            .on(conceptId)
+            .build();
 
     FieldVariable descendantConceptId = conceptAncestor.descendant_concept_id();
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
     DomainOccurrence domainOccurrence =
-        new DomainOccurrence(
-            new TableVariable.Builder()
-                .from(domainOption.getTableName())
-                .leftJoin(domainOption.getColumnName())
-                .on(descendantConceptId));
+        new DomainOccurrence.Builder()
+            .from(domainOption.getTableName())
+            .leftJoin(domainOption.getColumnName())
+            .on(descendantConceptId)
+            .build();
 
     // COUNT(DISTINCT person_id)
     FieldVariable countPerson = domainOccurrence.getCountPerson();
@@ -99,7 +101,7 @@ public class ConceptChildrenQueryBuilder {
    */
   Query createSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
-    ConceptRelationship conceptRelationship = new ConceptRelationship();
+    ConceptRelationship conceptRelationship = new ConceptRelationship.Builder().build();
     FieldVariable descendantConceptId = conceptRelationship.concept_id_2();
 
     return new Query.Builder()
@@ -122,7 +124,7 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
    */
   public Query retrieveDomainId(int conceptId) {
-    Concept concept = new Concept();
+    Concept concept = new Concept.Builder().build();
     FieldVariable domainId = concept.domain_id();
 
     BinaryFilterVariable where =

@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.query.tables;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,16 +19,12 @@ public class Concept extends TableVariable {
 
   private final Map<String, FieldVariable> fields = new HashMap<>();
 
-  public Concept() {
-    super(tablePointer, null, null, false);
-  }
-
-  public Concept(TableVariable.Builder tableVariableBuilder) {
-    super(
-        tablePointer,
-        tableVariableBuilder.getJoinField(),
-        tableVariableBuilder.getJoinFieldOnParent(),
-        tableVariableBuilder.isLeftJoin());
+  private Concept(
+      TablePointer tablePointer,
+      @Nullable String joinField,
+      @Nullable FieldVariable joinFieldOnParent,
+      boolean isLeftJoin) {
+    super(tablePointer, joinField, joinFieldOnParent, isLeftJoin);
   }
 
   private FieldVariable getFieldVariable(String fieldName) {
@@ -52,5 +49,11 @@ public class Concept extends TableVariable {
 
   public FieldVariable standard_concept() {
     return getFieldVariable(STANDARD_CONCEPT);
+  }
+
+  public static class Builder extends TableVariable.Builder<Concept> {
+    public Concept build() {
+      return new Concept(tablePointer, getJoinField(), getJoinFieldOnParent(), isLeftJoin());
+    }
   }
 }

@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.query.tables;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,16 +16,12 @@ public class ConceptRelationship extends TableVariable {
   private static final TablePointer tablePointer = TablePointer.fromTableName(TABLE_NAME);
   private final Map<String, FieldVariable> fields = new HashMap<>();
 
-  public ConceptRelationship() {
-    super(TablePointer.fromTableName(TABLE_NAME), null, null, false);
-  }
-
-  public ConceptRelationship(TableVariable.Builder tableVariableBuilder) {
-    super(
-        tablePointer,
-        tableVariableBuilder.getJoinField(),
-        tableVariableBuilder.getJoinFieldOnParent(),
-        tableVariableBuilder.isLeftJoin());
+  private ConceptRelationship(
+      TablePointer tablePointer,
+      @Nullable String joinField,
+      @Nullable FieldVariable joinFieldOnParent,
+      boolean isLeftJoin) {
+    super(tablePointer, joinField, joinFieldOnParent, isLeftJoin);
   }
 
   private FieldVariable getFieldVariable(String fieldName) {
@@ -41,5 +38,12 @@ public class ConceptRelationship extends TableVariable {
 
   public FieldVariable relationship_id() {
     return getFieldVariable(RELATIONSHIP_ID);
+  }
+
+  public static class Builder extends TableVariable.Builder<ConceptRelationship> {
+    public ConceptRelationship build() {
+      return new ConceptRelationship(
+          tablePointer, getJoinField(), getJoinFieldOnParent(), isLeftJoin());
+    }
   }
 }

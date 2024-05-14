@@ -34,12 +34,12 @@ public class HierarchyQueryBuilder {
    * }</pre>
    */
   public Query generateQuery(SnapshotBuilderDomainOption domainOption, int conceptId) {
-    ConceptRelationship conceptRelationship = new ConceptRelationship();
+    ConceptRelationship conceptRelationship = new ConceptRelationship.Builder().build();
     var relationshipId = conceptRelationship.relationship_id();
     var parentId = conceptRelationship.concept_id_1();
     var childId = conceptRelationship.concept_id_2();
-    var child = new Concept(new TableVariable.Builder().join(Concept.CONCEPT_ID).on(childId));
-    var parent = new Concept(new TableVariable.Builder().join(Concept.CONCEPT_ID).on(parentId));
+    var child = new Concept.Builder().join(Concept.CONCEPT_ID).on(childId).build();
+    var parent = new Concept.Builder().join(Concept.CONCEPT_ID).on(parentId).build();
     FieldVariable conceptName = child.name();
     FieldVariable conceptCode = child.code();
 
@@ -47,17 +47,16 @@ public class HierarchyQueryBuilder {
     // ancestor table to find all of its children. We don't need to use a left join here
     // because every concept has itself as an ancestor, so there will be at least one match.
     var conceptAncestor =
-        new ConceptAncestor(
-            new TableVariable.Builder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(childId));
+        new ConceptAncestor.Builder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(childId).build();
 
     var descendantConceptId = conceptAncestor.descendant_concept_id();
 
     DomainOccurrence domainOccurrence =
-        new DomainOccurrence(
-            new TableVariable.Builder()
-                .from(domainOption.getTableName())
-                .leftJoin(domainOption.getColumnName())
-                .on(descendantConceptId));
+        new DomainOccurrence.Builder()
+            .from(domainOption.getTableName())
+            .leftJoin(domainOption.getColumnName())
+            .on(descendantConceptId)
+            .build();
 
     // COUNT(DISTINCT person_id)
     FieldVariable personCount = domainOccurrence.getCountPerson();
@@ -102,7 +101,7 @@ public class HierarchyQueryBuilder {
    * </pre>
    */
   private Query selectAllParents(int conceptId) {
-    ConceptAncestor conceptAncestor = new ConceptAncestor();
+    ConceptAncestor conceptAncestor = new ConceptAncestor.Builder().build();
     var conceptIdLiteral = new Literal(conceptId);
     FieldVariable ancestorConceptId = conceptAncestor.ancestor_concept_id();
     return new Query.Builder()
@@ -134,10 +133,10 @@ public class HierarchyQueryBuilder {
    * }</pre>
    */
   static SelectExpression hasChildrenExpression(FieldVariable conceptId) {
-    ConceptAncestor conceptAncestor = new ConceptAncestor();
+    ConceptAncestor conceptAncestor = new ConceptAncestor.Builder().build();
     var descendantConceptId = conceptAncestor.descendant_concept_id();
     var innerConcept =
-        new Concept(new TableVariable.Builder().join(Concept.CONCEPT_ID).on(descendantConceptId));
+        new Concept.Builder().join(Concept.CONCEPT_ID).on(descendantConceptId).build();
     return new ExistsExpression(
         new Query.Builder()
             .select(List.of(new Literal(1)))

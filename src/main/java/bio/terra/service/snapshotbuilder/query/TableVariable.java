@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.common.exception.InternalServerErrorException;
 import jakarta.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
@@ -83,30 +84,30 @@ public class TableVariable implements SqlExpression {
     return joinField == null;
   }
 
-  public static class Builder {
+  public static class Builder<T extends TableVariable> {
     private String joinField;
     private FieldVariable joinFieldOnParent;
     private boolean isLeftJoin;
     private TablePointer domainOptionTablePointer;
 
-    public Builder leftJoin(String joinField) {
+    public Builder<T> leftJoin(String joinField) {
       this.isLeftJoin = true;
       this.joinField = joinField;
       return this;
     }
 
-    public Builder from(String domainOptionTableName) {
+    public Builder<T> from(String domainOptionTableName) {
       this.domainOptionTablePointer = TablePointer.fromTableName(domainOptionTableName);
       return this;
     }
 
-    public Builder join(String joinField) {
+    public Builder<T> join(String joinField) {
       this.isLeftJoin = false;
       this.joinField = joinField;
       return this;
     }
 
-    public Builder on(FieldVariable joinFieldOnParent) {
+    public Builder<T> on(FieldVariable joinFieldOnParent) {
       this.joinFieldOnParent = joinFieldOnParent;
       return this;
     }
@@ -125,6 +126,10 @@ public class TableVariable implements SqlExpression {
 
     public boolean isLeftJoin() {
       return this.isLeftJoin;
+    }
+
+    public T build() {
+      throw new InternalServerErrorException("Should not use Table Variable as is");
     }
   }
 }

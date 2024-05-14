@@ -292,7 +292,7 @@ class CriteriaQueryBuilderTest {
     Query query =
         criteriaQueryBuilder.generateRowIdQueryForCohortList(
             SnapshotBuilderTestData.createSnapshotAccessRequest(UUID.randomUUID())
-                .getDatasetRequest()
+                .getSnapshotBuilderRequest()
                 .getCohorts());
     String expectedSql =
         """

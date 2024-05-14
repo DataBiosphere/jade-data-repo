@@ -82,4 +82,49 @@ public class TableVariable implements SqlExpression {
   public boolean isPrimary() {
     return joinField == null;
   }
+
+  public static class Builder {
+    private String joinField;
+    private FieldVariable joinFieldOnParent;
+    private boolean isLeftJoin;
+    private TablePointer domainOptionTablePointer;
+
+    public Builder leftJoin(String joinField) {
+      this.isLeftJoin = true;
+      this.joinField = joinField;
+      return this;
+    }
+
+    public Builder from(String domainOptionTableName) {
+      this.domainOptionTablePointer = TablePointer.fromTableName(domainOptionTableName);
+      return this;
+    }
+
+    public Builder join(String joinField) {
+      this.isLeftJoin = false;
+      this.joinField = joinField;
+      return this;
+    }
+
+    public Builder on(FieldVariable joinFieldOnParent) {
+      this.joinFieldOnParent = joinFieldOnParent;
+      return this;
+    }
+
+    public TablePointer getDomainOptionTablePointer() {
+      return this.domainOptionTablePointer;
+    }
+
+    public String getJoinField() {
+      return this.joinField;
+    }
+
+    public FieldVariable getJoinFieldOnParent() {
+      return this.joinFieldOnParent;
+    }
+
+    public boolean isLeftJoin() {
+      return this.isLeftJoin;
+    }
+  }
 }

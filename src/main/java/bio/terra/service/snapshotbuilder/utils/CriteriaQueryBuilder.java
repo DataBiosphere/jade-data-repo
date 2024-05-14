@@ -15,7 +15,6 @@ import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
@@ -100,7 +99,7 @@ public class CriteriaQueryBuilder {
 
     ConceptAncestor conceptAncestor =
         new ConceptAncestor(
-            new TableVariableBuilder()
+            new TableVariable.Builder()
                 .join(ConceptAncestor.DESCENDANT_CONCEPT_ID)
                 .on(
                     new FieldVariable(

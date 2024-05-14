@@ -2,13 +2,12 @@ package bio.terra.service.snapshotbuilder.query.tables;
 
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 
 public class DomainOccurrence extends TableVariable {
 
-  public DomainOccurrence(TableVariableBuilder tableVariableBuilder) {
+  public DomainOccurrence(TableVariable.Builder tableVariableBuilder) {
     super(
         tableVariableBuilder.getDomainOptionTablePointer(),
         tableVariableBuilder.getJoinField(),

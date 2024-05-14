@@ -10,7 +10,6 @@ import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
@@ -39,8 +38,8 @@ public class HierarchyQueryBuilder {
     var relationshipId = conceptRelationship.relationship_id();
     var parentId = conceptRelationship.concept_id_1();
     var childId = conceptRelationship.concept_id_2();
-    var child = new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(childId));
-    var parent = new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(parentId));
+    var child = new Concept(new TableVariable.Builder().join(Concept.CONCEPT_ID).on(childId));
+    var parent = new Concept(new TableVariable.Builder().join(Concept.CONCEPT_ID).on(parentId));
     FieldVariable conceptName = child.name();
     FieldVariable conceptCode = child.code();
 
@@ -49,13 +48,13 @@ public class HierarchyQueryBuilder {
     // because every concept has itself as an ancestor, so there will be at least one match.
     var conceptAncestor =
         new ConceptAncestor(
-            new TableVariableBuilder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(childId));
+            new TableVariable.Builder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(childId));
 
     var descendantConceptId = conceptAncestor.descendant_concept_id();
 
     DomainOccurrence domainOccurrence =
         new DomainOccurrence(
-            new TableVariableBuilder()
+            new TableVariable.Builder()
                 .from(domainOption.getTableName())
                 .leftJoin(domainOption.getColumnName())
                 .on(descendantConceptId));
@@ -138,7 +137,7 @@ public class HierarchyQueryBuilder {
     ConceptAncestor conceptAncestor = new ConceptAncestor();
     var descendantConceptId = conceptAncestor.descendant_concept_id();
     var innerConcept =
-        new Concept(new TableVariableBuilder().join(Concept.CONCEPT_ID).on(descendantConceptId));
+        new Concept(new TableVariable.Builder().join(Concept.CONCEPT_ID).on(descendantConceptId));
     return new ExistsExpression(
         new Query.Builder()
             .select(List.of(new Literal(1)))

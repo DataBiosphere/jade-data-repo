@@ -10,7 +10,6 @@ import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
@@ -50,7 +49,7 @@ public class SearchConceptsQueryBuilder {
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     ConceptAncestor conceptAncestor =
         new ConceptAncestor(
-            new TableVariableBuilder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(conceptId));
+            new TableVariable.Builder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(conceptId));
 
     FieldVariable descendantId = conceptAncestor.descendant_concept_id();
 
@@ -58,7 +57,7 @@ public class SearchConceptsQueryBuilder {
     // concept_ancestor.descendant_concept_id
     DomainOccurrence domainOccurrence =
         new DomainOccurrence(
-            new TableVariableBuilder()
+            new TableVariable.Builder()
                 .from(domainOption.getTableName())
                 .join(domainOption.getColumnName())
                 .on(descendantId));

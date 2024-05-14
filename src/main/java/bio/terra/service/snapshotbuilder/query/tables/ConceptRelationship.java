@@ -3,7 +3,6 @@ package bio.terra.service.snapshotbuilder.query.tables;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
-import bio.terra.service.snapshotbuilder.query.TableVariableBuilder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +19,7 @@ public class ConceptRelationship extends TableVariable {
     super(TablePointer.fromTableName(TABLE_NAME), null, null, false);
   }
 
-  public ConceptRelationship(TableVariableBuilder tableVariableBuilder) {
+  public ConceptRelationship(TableVariable.Builder tableVariableBuilder) {
     super(
         tablePointer,
         tableVariableBuilder.getJoinField(),

@@ -28,7 +28,7 @@ public class QueryTest {
             List.of(
                 new FieldVariable(
                     FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
-        .addTables(List.of(tableVariable))
+        .tables(List.of(tableVariable))
         .build();
   }
 
@@ -76,8 +76,8 @@ public class QueryTest {
     Query query =
         new Query.Builder()
             .select(List.of(fieldVariable))
-            .addTables(List.of(tableVariable))
-            .addGroupBy(List.of(fieldVariable))
+            .tables(List.of(tableVariable))
+            .groupBy(List.of(fieldVariable))
             .build();
     assertThat(query.renderSQL(context), is("SELECT t.field FROM table AS t GROUP BY t.field"));
   }

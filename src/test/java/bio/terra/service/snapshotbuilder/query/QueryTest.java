@@ -115,8 +115,7 @@ public class QueryTest {
                         tableVariable,
                         null,
                         true)))
-            .tables(
-                List.of(tableVariable, conditionOccurrenceVariable, conditionAncestorVariable))
+            .tables(List.of(tableVariable, conditionOccurrenceVariable, conditionAncestorVariable))
             .where(
                 new BooleanAndOrFilterVariable(
                     BooleanAndOrFilterVariable.LogicalOperator.AND,

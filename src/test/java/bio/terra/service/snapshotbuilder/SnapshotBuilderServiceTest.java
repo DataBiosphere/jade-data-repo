@@ -318,8 +318,7 @@ class SnapshotBuilderServiceTest {
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
 
     when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
-    when(queryBuilderFactory.criteriaQueryBuilder(settings))
-        .thenReturn(criteriaQueryBuilderMock);
+    when(queryBuilderFactory.criteriaQueryBuilder(settings)).thenReturn(criteriaQueryBuilderMock);
     var criteriaGroups = List.of(List.of(new SnapshotBuilderCriteriaGroup()));
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups))
         .thenReturn(query);

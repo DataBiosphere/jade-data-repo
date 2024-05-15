@@ -1,0 +1,5 @@
+{"sourceSnapshotId": "76aa1dfa-9475-4cee-b4b0-a954a27761be",
+  "name": "simple_snapshot_access_request",
+  "researchPurposeStatement": "purpose",
+  "datasetRequest": {"cohorts": [{"name": "test", "criteriaGroups": [{"name": "Group 1", "meetAll": false, "criteria": [], "mustMeet": true}]}], "valueSets": [{"name": "Condition", "values": ["Condition Column 1", "Condition Column 2"]}], "conceptSets": [{"name": "Condition", "concept": {"id": 19, "code": null, "name": "Condition", "hasChildren": false}, "featureValueGroupName": "Condition"}]}
+}

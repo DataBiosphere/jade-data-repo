@@ -60,7 +60,7 @@ public class SearchConceptsQueryBuilder {
     DomainOccurrence domainOccurrence =
         new DomainOccurrence.Builder()
             .from(domainOption.getTableName())
-            .join(domainOption.getColumnName())
+            .leftJoin(domainOption.getColumnName())
             .on(descendantId)
             .build();
 

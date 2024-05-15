@@ -30,7 +30,6 @@ import bio.terra.service.snapshotbuilder.query.tables.Concept;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;

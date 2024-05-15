@@ -40,7 +40,7 @@ public class SearchConceptsQueryBuilder {
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
-    Concept concept = new Concept();
+    Concept concept = new Concept.Builder().build();
     FieldVariable nameField = concept.name();
     FieldVariable conceptId = concept.concept_id();
     FieldVariable conceptCode = concept.code();
@@ -48,19 +48,21 @@ public class SearchConceptsQueryBuilder {
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     ConceptAncestor conceptAncestor =
-        new ConceptAncestor(
-            new TableVariable.Builder().join(ConceptAncestor.ANCESTOR_CONCEPT_ID).on(conceptId));
+        new ConceptAncestor.Builder()
+            .join(ConceptAncestor.ANCESTOR_CONCEPT_ID)
+            .on(conceptId)
+            .build();
 
     FieldVariable descendantId = conceptAncestor.descendant_concept_id();
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
     DomainOccurrence domainOccurrence =
-        new DomainOccurrence(
-            new TableVariable.Builder()
-                .from(domainOption.getTableName())
-                .join(domainOption.getColumnName())
-                .on(descendantId));
+        new DomainOccurrence.Builder()
+            .from(domainOption.getTableName())
+            .join(domainOption.getColumnName())
+            .on(descendantId)
+            .build();
 
     // COUNT(DISTINCT co.person_id) AS count
     var countPerson = domainOccurrence.getCountPerson();

@@ -6,8 +6,12 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import jakarta.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DomainOccurrence extends TableVariable {
+
+  private final Map<String, FieldVariable> fields = new HashMap<>();
 
   private DomainOccurrence(
       TablePointer tablePointer,
@@ -17,8 +21,14 @@ public class DomainOccurrence extends TableVariable {
     super(tablePointer, joinField, joinFieldOnParent, isLeftJoin);
   }
 
+  public FieldVariable getFieldVariable(String fieldName) {
+    return fields.computeIfAbsent(
+        fieldName,
+        _key -> this.makeFieldVariable(fieldName, "COUNT", QueryBuilderFactory.COUNT, true));
+  }
+
   public FieldVariable getCountPerson() {
-    return this.makeFieldVariable(Person.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
+    return getFieldVariable(Person.PERSON_ID);
   }
 
   public static class Builder extends TableVariable.Builder<DomainOccurrence> {

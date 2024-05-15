@@ -175,7 +175,7 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    Concept concept = new Concept();
+    Concept concept = new Concept.Builder().build();
     assertThat(
         "generated sql is as expected",
         SearchConceptsQueryBuilder.createDomainClause(concept, "domain").renderSQL(context),

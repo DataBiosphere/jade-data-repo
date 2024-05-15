@@ -15,6 +15,6 @@
           "readers": []
         }
       ],
-      "snapshotBuilderSettings": "dataset_snapshot_builder_settings.json"
+      "snapshotBuilderSettings": "snapshot_builder_settings.json"
     }
 ]

@@ -39,6 +39,8 @@ public class SnapshotBuilderTestData {
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
     domainOption
         .root(root)
+        .conceptCount(100)
+        .participantCount(100)
         .id(id)
         .tableName(tableName)
         .columnName(columnName)
@@ -232,7 +234,7 @@ public class SnapshotBuilderTestData {
         .sourceSnapshotId(sourceSnapshotId)
         .name("name")
         .researchPurposeStatement("purpose")
-        .datasetRequest(createSnapshotBuilderRequest());
+        .snapshotBuilderRequest(createSnapshotBuilderRequest());
   }
 
   public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse(UUID snapshotId) {
@@ -242,7 +244,7 @@ public class SnapshotBuilderTestData {
         .sourceSnapshotId(request.getSourceSnapshotId())
         .snapshotName(request.getName())
         .snapshotResearchPurpose(request.getResearchPurposeStatement())
-        .snapshotSpecification(request.getDatasetRequest())
+        .snapshotSpecification(request.getSnapshotBuilderRequest())
         .createdDate("date")
         .createdBy("user@gmail.com")
         .status(SnapshotAccessRequestStatus.SUBMITTED);

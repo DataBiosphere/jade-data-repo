@@ -1,3 +1,4 @@
+import argparse
 import subprocess
 import requests
 import time
@@ -18,16 +19,23 @@ sending POST requests with different criteria.s
  - getConceptHierarchy: Profiles the performance of the getConceptHierarchy endpoint by sending
  GET requests with different concept IDs.
 
- - searchConcepts: Profiles the performance of the searchConcepts endpoint by sending GET requests
+ - enumerateConcepts: Profiles the performance of the enumerateConcepts endpoint by sending GET requests
 with different domain IDs and search texts.
 
- - getConcepts: Profiles the performance of the getConcepts endpoint by sending GET requests with
+ - getConceptChildren: Profiles the performance of the getConceptChildren endpoint by sending GET requests with
  different concept IDs.
 """
 
 # Constants
-UUID = "c672c3c9-ab54-4e19-827c-f2af329da814" # Azure Synapse UUID
-DATAREPO_URL = "https://jade.datarepo-dev.broadinstitute.org"
+SNAPSHOTS = {
+    "gcp": "db064d16-2cd2-4fd0-82c6-026be6f270c3",
+    "azure": "c3eb4708-444f-4cbf-a32c-0d3bb93d4819",
+}
+
+HOSTS = {
+    "local": "http://localhost:8080",
+    "dev": "https://jade.datarepo-dev.broadinstitute.org",
+}
 
 
 def run_command(command):
@@ -45,9 +53,10 @@ def run_command(command):
         if result.returncode == 0:
             return result.stdout.strip()
         else:
-            raise Exception(
-                f"Command failed with exit code {result.returncode}: {result.stderr}"
+            print(
+                f"Command '{command}' failed with exit code {result.returncode}: {result.stderr}"
             )
+            return None
     except Exception as e:
         print(f"Error executing command: {e}")
         return None
@@ -95,7 +104,7 @@ def make_get_request(endpoint_url, token):
         endpoint_url (str): The endpoint URL to request.
         token (str): The access token for authentication.
     """
-    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
+    url = f"{DATAREPO_URL}/api/repository/v1/snapshots/{UUID}/snapshotBuilder/{endpoint_url}"
     headers = {"Authorization": f"Bearer {token}"}
     start_time = time.time()
     try:
@@ -119,14 +128,12 @@ def make_post_request(endpoint_url, token, body):
         endpoint_url (str): The endpoint URL to request.
         token (str): The access token for authentication.
         body (dict): The request body to send in the POST request.
-
-    Returns:
-        tuple: A tuple containing the response object and the time taken for the request in seconds.
     """
-    url = f"{DATAREPO_URL}/api/repository/v1/datasets/{UUID}/snapshotBuilder/{endpoint_url}"
+    url = f"{DATAREPO_URL}/api/repository/v1/snapshots/{UUID}/snapshotBuilder/{endpoint_url}"
     headers = {
         "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",  # Indicating the request body is in JSON format
+        # The request body is in JSON format
+        "Content-Type": "application/json",
     }
     start_time = time.time()
     try:
@@ -150,14 +157,11 @@ def profile_get_snapshot_builder_count(token):
 
     Args:
         token (str): The access token for authentication.
-
-    Returns:
-        str: A string indicating the average time taken for the request.
     """
     print("Profiling getSnapshotBuilderCount endpoint")
 
     # Define the bodies for the POST request
-    bodys = [
+    bodies = [
         {
             "cohorts": [
                 {
@@ -219,7 +223,7 @@ def profile_get_snapshot_builder_count(token):
         },
     ]
 
-    for body in bodys:
+    for body in bodies:
         make_post_request("count", token, body)
 
 
@@ -232,16 +236,16 @@ def profile_get_concept_hierarchy(token):
     print("Profiling getConceptHierarchy endpoint")
     concept_ids = [4180169, 4027384, 4029205]
     for concept_id in concept_ids:
-        make_get_request(f"conceptHierarchy/{concept_id}", token)
+        make_get_request(f"concepts/{concept_id}/hierarchy", token)
 
 
-def profile_search_concepts(token):
+def profile_enumerate_concepts(token):
     """
     Profiles the searchConcepts endpoint and logs the request and time taken
     Args:
         token (str): The access token for authentication.
     """
-    print("Profiling searchConcepts endpoint")
+    print("Profiling enumerateConcepts endpoint")
     params = [
         (19, None),
         (19, "cancer"),
@@ -252,29 +256,66 @@ def profile_search_concepts(token):
     ]
     for param in params:
         domain_id = param[0]
-        search_text = param[1]
-        if search_text is None:
-            url = f"concepts/{domain_id}/search?/searchText="
+        filter_text = param[1]
+        if filter_text is None:
+            url = f"concepts?domainId={domain_id}&filterText="
         else:
-            url = f"concepts/{domain_id}/search?/searchText={search_text}"
+            url = f"concepts?domainId={domain_id}&filterText={filter_text}"
         make_get_request(url, token)
 
 
-def profile_get_concepts(token):
+def profile_get_concept_children(token):
     """
-    Profiles the getConcepts endpoint and logs the request and time taken
+    Profiles the getConceptChildren endpoint and logs the request and time taken
     Args:
         token (str): The access token for authentication.
     """
-    print("Profiling getConcepts endpoint")
+    print("Profiling getConceptChildren endpoint")
     concept_ids = [443883, 4042140, 4103320]
     for concept_id in concept_ids:
-        make_get_request(f"concepts/{concept_id}", token)
+        make_get_request(f"concepts/{concept_id}/children", token)
 
 
 # Main function
 if __name__ == "__main__":
-    authenticate()
+
+    # Create the parser
+    parser = argparse.ArgumentParser(
+        description="Profile endpoints for a specific host and snapshot"
+    )
+
+    # Add the arguments
+    parser.add_argument(
+        "--host",
+        type=str,
+        choices=HOSTS.keys(),
+        default="local",
+        help="The host to profile",
+    )
+
+    parser.add_argument(
+        "--snapshot",
+        type=str,
+        choices=SNAPSHOTS.keys(),
+        default="gcp",
+        help="The snapshot to profile",
+    )
+
+    parser.add_argument(
+        "--authenticate",
+        type=bool,
+        default=False,
+        help="If False, use current gcloud authentication. If True, authenticate with "
+             "gcloud auth login.",
+    )
+
+    args = parser.parse_args()
+
+    UUID = SNAPSHOTS[args.snapshot]
+    DATAREPO_URL = HOSTS[args.host]
+
+    if args.authenticate:
+        authenticate()
 
     # Obtain access token
     access_token = get_access_token()
@@ -283,16 +324,16 @@ if __name__ == "__main__":
     endpoint_handlers = {
         "getSnapshotBuilderCount": profile_get_snapshot_builder_count,
         "getConceptHierarchy": profile_get_concept_hierarchy,
-        "searchConcepts": profile_search_concepts,
-        "getConcepts": profile_get_concepts,
+        "enumerateConcepts": profile_enumerate_concepts,
+        "getConceptChildren": profile_get_concept_children,
     }
 
     # List of endpoints to process
     endpoints = [
         "getSnapshotBuilderCount",
         "getConceptHierarchy",
-        "searchConcepts",
-        "getConcepts",
+        "enumerateConcepts",
+        "getConceptChildren",
     ]
 
     # Iterate through the endpoints and call the corresponding function

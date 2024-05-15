@@ -79,4 +79,6 @@
     <include file="changesets/20231129_snapshotrequests.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240419_addsnapshotidtosettings.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240426_addsnapshotidtorequest.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20240507_dropandaddsnapshotbuilderconstraints.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20240510_dropsnapshotrequestdatasetidaddconstraint.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

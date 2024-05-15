@@ -108,4 +108,8 @@ public class DaoOperations {
         createSnapshotFromSnapshotRequest(snapshotRequest, dataset.getProjectResourceId());
     return ingestSnapshot(snapshot);
   }
+
+  public void deleteSnapshot(UUID snapshotId) {
+    snapshotDao.delete(snapshotId);
+  }
 }

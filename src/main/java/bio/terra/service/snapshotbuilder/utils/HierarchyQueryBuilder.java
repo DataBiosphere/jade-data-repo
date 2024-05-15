@@ -70,15 +70,15 @@ public class HierarchyQueryBuilder {
                 conceptCode,
                 personCount,
                 hasChildrenExpression(childId)))
-        .addTables(List.of(conceptRelationship, child, parent, conceptAncestor, domainOccurrence))
-        .addWhere(
+        .tables(List.of(conceptRelationship, child, parent, conceptAncestor, domainOccurrence))
+        .where(
             BooleanAndOrFilterVariable.and(
                 SubQueryFilterVariable.in(parentId, selectAllParents(conceptId)),
                 BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
                 requireStandardConcept(parent),
                 requireStandardConcept(child)))
-        .addGroupBy(List.of(conceptName, parentId, childId, conceptCode))
-        .addOrderBy(List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING)))
+        .groupBy(List.of(conceptName, parentId, childId, conceptCode))
+        .orderBy(List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING)))
         .build();
   }
   /**
@@ -106,8 +106,8 @@ public class HierarchyQueryBuilder {
     FieldVariable ancestorConceptId = conceptAncestor.ancestor_concept_id();
     return new Query.Builder()
         .select(List.of(ancestorConceptId))
-        .addTables(List.of(conceptAncestor))
-        .addWhere(
+        .tables(List.of(conceptAncestor))
+        .where(
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(
                     conceptAncestor.descendant_concept_id(), conceptIdLiteral),
@@ -140,8 +140,8 @@ public class HierarchyQueryBuilder {
     return new ExistsExpression(
         new Query.Builder()
             .select(List.of(new Literal(1)))
-            .addTables(List.of(conceptAncestor, innerConcept))
-            .addWhere(
+            .tables(List.of(conceptAncestor, innerConcept))
+            .where(
                 BooleanAndOrFilterVariable.and(
                     BinaryFilterVariable.equals(
                         conceptAncestor.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID),

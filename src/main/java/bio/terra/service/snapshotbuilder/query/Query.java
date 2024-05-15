@@ -120,27 +120,27 @@ public record Query(
       return this;
     }
 
-    public Builder addTables(List<TableVariable> tables) {
+    public Builder tables(List<TableVariable> tables) {
       this.tables = tables;
       return this;
     }
 
-    public Builder addWhere(FilterVariable where) {
+    public Builder where(FilterVariable where) {
       this.where = where;
       return this;
     }
 
-    public Builder addGroupBy(List<FieldVariable> groupBy) {
+    public Builder groupBy(List<FieldVariable> groupBy) {
       this.groupBy = groupBy;
       return this;
     }
 
-    public Builder addOrderBy(List<OrderByVariable> orderBy) {
+    public Builder orderBy(List<OrderByVariable> orderBy) {
       this.orderBy = orderBy;
       return this;
     }
 
-    public Builder addLimit(Integer limit) {
+    public Builder limit(Integer limit) {
       this.limit = limit;
       return this;
     }

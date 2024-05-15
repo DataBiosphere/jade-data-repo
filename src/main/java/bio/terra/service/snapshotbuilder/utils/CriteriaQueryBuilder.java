@@ -113,8 +113,8 @@ public class CriteriaQueryBuilder {
                     new FieldVariable(
                         new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
                         occurrenceVariable)))
-            .addTables(List.of(occurrenceVariable, conceptAncestor))
-            .addWhere(
+            .tables(List.of(occurrenceVariable, conceptAncestor))
+            .where(
                 BinaryFilterVariable.equals(
                     conceptAncestor.ancestor_concept_id(),
                     new Literal(domainCriteria.getConceptId())))
@@ -168,8 +168,8 @@ public class CriteriaQueryBuilder {
 
     return new Query.Builder()
         .select(List.of(personId))
-        .addTables(List.of(rootTable))
-        .addWhere(filterVariable)
+        .tables(List.of(rootTable))
+        .where(filterVariable)
         .build();
   }
 }

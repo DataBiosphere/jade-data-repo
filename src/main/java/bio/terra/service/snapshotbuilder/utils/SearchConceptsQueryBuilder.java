@@ -112,11 +112,11 @@ public class SearchConceptsQueryBuilder {
 
     return new Query.Builder()
         .select(select)
-        .addTables(tables)
-        .addWhere(where)
-        .addGroupBy(groupBy)
-        .addOrderBy(orderBy)
-        .addLimit(100)
+        .tables(tables)
+        .where(where)
+        .groupBy(groupBy)
+        .orderBy(orderBy)
+        .limit(100)
         .build();
   }
 

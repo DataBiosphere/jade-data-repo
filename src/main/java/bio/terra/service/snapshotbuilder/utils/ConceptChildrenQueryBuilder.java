@@ -85,10 +85,10 @@ public class ConceptChildrenQueryBuilder {
 
     return new Query.Builder()
         .select(select)
-        .addTables(tables)
-        .addWhere(where)
-        .addGroupBy(groupBy)
-        .addOrderBy(orderBy)
+        .tables(tables)
+        .where(where)
+        .groupBy(groupBy)
+        .orderBy(orderBy)
         .build();
   }
 
@@ -106,8 +106,8 @@ public class ConceptChildrenQueryBuilder {
 
     return new Query.Builder()
         .select(List.of(descendantConceptId))
-        .addTables(List.of(conceptRelationship))
-        .addWhere(
+        .tables(List.of(conceptRelationship))
+        .where(
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(
                     conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1),
@@ -135,8 +135,8 @@ public class ConceptChildrenQueryBuilder {
 
     return new Query.Builder()
         .select(List.of(domainId))
-        .addTables(List.of(concept))
-        .addWhere(where)
+        .tables(List.of(concept))
+        .where(where)
         .build();
   }
 }

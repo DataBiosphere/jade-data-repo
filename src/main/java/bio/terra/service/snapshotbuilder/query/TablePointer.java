@@ -23,8 +23,8 @@ public record TablePointer(String tableName, Filter filter) implements SqlExpres
     Query query =
         new Query.Builder()
             .select(List.of(fieldVar))
-            .addTables(List.of(tableVar))
-            .addWhere(filterVar)
+            .tables(List.of(tableVar))
+            .where(filterVar)
             .build();
     return "(" + query.renderSQL(context) + ")";
   }

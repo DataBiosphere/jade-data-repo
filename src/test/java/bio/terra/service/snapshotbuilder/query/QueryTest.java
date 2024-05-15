@@ -40,9 +40,9 @@ public class QueryTest {
             List.of(
                 new FieldVariable(
                     FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
-        .addTables(List.of(tableVariable))
-        .addWhere(null)
-        .addLimit(25)
+        .tables(List.of(tableVariable))
+        .where(null)
+        .limit(25)
         .build();
   }
 
@@ -115,9 +115,9 @@ public class QueryTest {
                         tableVariable,
                         null,
                         true)))
-            .addTables(
+            .tables(
                 List.of(tableVariable, conditionOccurrenceVariable, conditionAncestorVariable))
-            .addWhere(
+            .where(
                 new BooleanAndOrFilterVariable(
                     BooleanAndOrFilterVariable.LogicalOperator.AND,
                     List.of(

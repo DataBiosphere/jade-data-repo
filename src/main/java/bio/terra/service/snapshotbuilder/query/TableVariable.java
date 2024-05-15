@@ -4,7 +4,7 @@ import bio.terra.common.exception.InternalServerErrorException;
 import jakarta.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
-public class TableVariable implements SqlExpression {
+public final class TableVariable implements SqlExpression {
   private final TablePointer tablePointer;
   private final String joinField;
   private final FieldVariable joinFieldOnParent;

@@ -28,7 +28,7 @@ public class FieldVariable implements SelectExpression {
     this.isDistinct = isDistinct;
   }
 
-  public SourceVariable getTableVariable() {
+  public SourceVariable getSourceVariable() {
     return sourceVariable;
   }
 

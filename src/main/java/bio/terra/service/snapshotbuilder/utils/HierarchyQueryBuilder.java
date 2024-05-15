@@ -10,6 +10,7 @@ import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.SourceVariable;
+import bio.terra.service.snapshotbuilder.query.SubQueryPointer;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
@@ -49,6 +50,36 @@ public class HierarchyQueryBuilder {
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
 
+    //    LEFT JOIN (SELECT ca.ancestor_concept_id, ca.descendant_concept_id
+    //    FROM concept_ancestor AS ca JOIN concept AS c1 ON  c1.concept_id =
+    // ca.descendant_concept_id
+    //    WHERE c1.standard_concept = 'S') AS ca
+    //    ON ca.ancestor_concept_id = cr.concept_id_2
+    //    AND ca.descendant_concept_id != cr.concept_id_2  TODO - is this a AND join clause?
+
+    // Subquery
+    var conceptAncestorTable =
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
+    var ancestorConceptId =
+        conceptAncestorTable.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID);
+    var descendantConceptId =
+        conceptAncestorTable.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
+    var conceptAncestorJoin =
+        SourceVariable.forJoined(
+            TablePointer.fromTableName(Concept.TABLE_NAME),
+            Concept.CONCEPT_ID,
+            descendantConceptId);
+    var subquery =
+        new Query(
+            List.of(ancestorConceptId, descendantConceptId),
+            List.of(conceptAncestorTable, conceptAncestorJoin),
+            BinaryFilterVariable.equals(
+                conceptAncestorJoin.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")),
+            null);
+    var subQueryPointer = new SubQueryPointer(subquery, "has_children");
+    var hasChildrenJoin =
+        SourceVariable.forLeftJoined(subQueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, childId);
+
     // To get the total occurrence count for a child concept, we need to join the child through the
     // ancestor table to find all of its children. We don't need to use a left join here
     // because every concept has itself as an ancestor, so there will be at least one match.
@@ -69,6 +100,11 @@ public class HierarchyQueryBuilder {
         domainOccurrence.makeFieldVariable(
             Person.PERSON_ID, "COUNT", QueryBuilderFactory.COUNT, true);
 
+    // COUNT(ca.descendant_concept_id) AS has_children
+    FieldVariable hasChildren =
+        conceptAncestorTable.makeFieldVariable(
+            ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", true);
+
     return new Query(
         List.of(
             new SelectAlias(parentId, QueryBuilderFactory.PARENT_ID),
@@ -76,8 +112,9 @@ public class HierarchyQueryBuilder {
             conceptName,
             conceptCode,
             count,
-            hasChildrenExpression(childId)),
-        List.of(conceptRelationship, child, parent, conceptAncestor, domainOccurrence),
+            hasChildren),
+        List.of(
+            conceptRelationship, child, parent, hasChildrenJoin, conceptAncestor, domainOccurrence),
         BooleanAndOrFilterVariable.and(
             SubQueryFilterVariable.in(parentId, selectAllParents(conceptId)),
             BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),

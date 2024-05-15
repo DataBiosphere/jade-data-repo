@@ -1,27 +1,34 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import jakarta.annotation.Nullable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
+import java.util.ArrayList;
+import java.util.List;
 import org.stringtemplate.v4.ST;
 
 public final class SourceVariable implements SqlExpression {
   private final SourcePointer sourcePointer;
-  private final String joinField;
-  private final FieldVariable joinFieldOnParent;
+  private final List<FilterVariable> joinClauses = new ArrayList<>();
   private final boolean isLeftJoin;
 
-  private SourceVariable(
-      SourcePointer sourcePointer,
-      @Nullable String joinField,
-      @Nullable FieldVariable joinFieldOnParent,
-      boolean isLeftJoin) {
+  private SourceVariable(SourcePointer sourcePointer, boolean isLeftJoin) {
     this.sourcePointer = sourcePointer;
-    this.joinField = joinField;
-    this.joinFieldOnParent = joinFieldOnParent;
     this.isLeftJoin = isLeftJoin;
   }
 
   public static SourceVariable forPrimary(SourcePointer sourcePointer) {
-    return new SourceVariable(sourcePointer, null, null, false);
+    return new SourceVariable(sourcePointer, false);
+  }
+
+  public void addJoinClause(
+      String joinField, FieldVariable fieldVariable, BinaryFilterVariable.BinaryOperator operator) {
+    var joinClause =
+        new BinaryFilterVariable(makeFieldVariable(joinField), operator, fieldVariable);
+    joinClauses.add(joinClause);
+  }
+
+  public void addJoinClause(String joinField, FieldVariable fieldVariable) {
+    addJoinClause(joinField, fieldVariable, BinaryFilterVariable.BinaryOperator.EQUALS);
   }
 
   public static SourceVariable forJoined(
@@ -37,9 +44,11 @@ public final class SourceVariable implements SqlExpression {
   private static SourceVariable forJoined(
       SourcePointer sourcePointer,
       String joinField,
-      FieldVariable joinFieldOnParent,
+      FieldVariable fieldVariable,
       boolean isLeftJoin) {
-    return new SourceVariable(sourcePointer, joinField, joinFieldOnParent, isLeftJoin);
+    var sourceVariable = new SourceVariable(sourcePointer, isLeftJoin);
+    sourceVariable.addJoinClause(joinField, fieldVariable);
+    return sourceVariable;
   }
 
   public FieldVariable makeFieldVariable(String fieldName) {
@@ -62,14 +71,18 @@ public final class SourceVariable implements SqlExpression {
       sql = new ST("<sql> AS <tableAlias>").add("sql", sql).add("tableAlias", alias).render();
     }
 
-    if (joinField != null && joinFieldOnParent != null && alias != null) {
+    if (!joinClauses.isEmpty() && alias != null) {
+      var joinClause =
+          joinClauses.size() > 1
+              ? new BooleanAndOrFilterVariable(
+                  BooleanAndOrFilterVariable.LogicalOperator.AND, joinClauses)
+              : joinClauses.get(0);
+
       sql =
-          new ST("<joinType> <tableReference> ON <tableAlias>.<joinField> = <joinFieldOnParent>")
+          new ST("<joinType> <tableReference> ON <joinClause>")
               .add("joinType", isLeftJoin ? "LEFT JOIN" : "JOIN")
               .add("tableReference", sql)
-              .add("tableAlias", alias)
-              .add("joinField", joinField)
-              .add("joinFieldOnParent", joinFieldOnParent.renderSQL(context))
+              .add("joinClause", joinClause.renderSQL(context))
               .render();
     }
     return sql;
@@ -80,6 +93,6 @@ public final class SourceVariable implements SqlExpression {
   }
 
   public boolean isPrimary() {
-    return joinField == null;
+    return joinClauses.isEmpty();
   }
 }

@@ -25,7 +25,8 @@ class HierarchyQueryBuilderTest {
                             FROM concept_ancestor AS ca
                             JOIN concept AS c2 ON c2.concept_id = ca.descendant_concept_id
                             WHERE c2.standard_concept = 'S') AS hc
-                  ON hc.ancestor_concept_id = cr.concept_id_2
+                  ON (hc.ancestor_concept_id = cr.concept_id_2
+                  AND hc.descendant_concept_id != cr.concept_id_2)
                JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = cr.concept_id_2
                LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
       WHERE (cr.concept_id_1 IN (SELECT ca2.ancestor_concept_id
@@ -49,7 +50,8 @@ class HierarchyQueryBuilderTest {
                   FROM concept_ancestor AS ca
                   JOIN concept AS c2 ON c2.concept_id = ca.descendant_concept_id
                   WHERE c2.standard_concept = 'S') AS hc
-                    ON hc.ancestor_concept_id = cr.concept_id_2
+                    ON (hc.ancestor_concept_id = cr.concept_id_2
+                    AND hc.descendant_concept_id != cr.concept_id_2)
                JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = cr.concept_id_2
                LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
       WHERE (cr.concept_id_1 IN (SELECT ca2.ancestor_concept_id

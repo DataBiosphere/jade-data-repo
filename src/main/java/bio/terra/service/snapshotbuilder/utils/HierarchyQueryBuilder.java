@@ -50,14 +50,8 @@ public class HierarchyQueryBuilder {
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
 
-    //    LEFT JOIN (SELECT ca.ancestor_concept_id, ca.descendant_concept_id
-    //    FROM concept_ancestor AS ca JOIN concept AS c1 ON  c1.concept_id =
-    // ca.descendant_concept_id
-    //    WHERE c1.standard_concept = 'S') AS ca
-    //    ON ca.ancestor_concept_id = cr.concept_id_2
-    //    AND ca.descendant_concept_id != cr.concept_id_2  TODO - is this a AND join clause?
 
-    // Subquery
+    // has_children
     var conceptAncestorTable =
         SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
     var ancestorConceptId =
@@ -79,6 +73,10 @@ public class HierarchyQueryBuilder {
     var subQueryPointer = new SubQueryPointer(subquery, "has_children");
     var hasChildrenJoin =
         SourceVariable.forLeftJoined(subQueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, childId);
+    hasChildrenJoin.addJoinClause(
+        ConceptAncestor.DESCENDANT_CONCEPT_ID,
+        childId,
+        BinaryFilterVariable.BinaryOperator.NOT_EQUALS);
 
     // To get the total occurrence count for a child concept, we need to join the child through the
     // ancestor table to find all of its children. We don't need to use a left join here

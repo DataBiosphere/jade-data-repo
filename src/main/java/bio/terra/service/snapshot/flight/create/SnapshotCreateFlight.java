@@ -218,8 +218,9 @@ public class SnapshotCreateFlight extends Flight {
         }
         break;
       case BYQUERY:
-        addStep(new CreateSnapshotValidateQueryStep(datasetService));
+        addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
         stepsForByQueryCreation(
+            snapshotReq,
             datasetService,
             platform,
             bigQuerySnapshotPdao,
@@ -246,6 +247,7 @@ public class SnapshotCreateFlight extends Flight {
       case BYREQUESTID:
         // use the existing byQuery snapshot request model code to create the snapshot
         stepsForByQueryCreation(
+            snapshotReq,
             datasetService,
             platform,
             bigQuerySnapshotPdao,
@@ -376,6 +378,7 @@ public class SnapshotCreateFlight extends Flight {
   }
 
   private void stepsForByQueryCreation(
+      SnapshotRequestModel snapshotReq,
       DatasetService datasetService,
       CloudPlatformWrapper platform,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -388,6 +391,7 @@ public class SnapshotCreateFlight extends Flight {
     if (platform.isGcp()) {
       addStep(
           new CreateSnapshotPrimaryDataQueryGcpStep(
+              snapshotReq,
               bigQuerySnapshotPdao,
               snapshotService,
               datasetService,
@@ -398,6 +402,7 @@ public class SnapshotCreateFlight extends Flight {
     } else if (platform.isAzure()) {
       addStep(
           new CreateSnapshotByQueryParquetFilesAzureStep(
+              snapshotReq,
               azureSynapsePdao,
               snapshotDao,
               snapshotService,

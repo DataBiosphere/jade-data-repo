@@ -30,6 +30,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
     implements CreateSnapshotPrimaryDataQueryInterface {
 
   private final SnapshotDao snapshotDao;
+  private final SnapshotRequestModel snapshotReq;
   private final SnapshotRequestDao snapshotRequestDao;
   private final DatasetService datasetService;
   private final SnapshotBuilderService snapshotBuilderService;
@@ -38,6 +39,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
   private String targetDataSourceName;
 
   public CreateSnapshotByQueryParquetFilesAzureStep(
+      SnapshotRequestModel snapshotReq,
       AzureSynapsePdao azureSynapsePdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
@@ -46,6 +48,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
       SnapshotRequestDao snapshotRequestDao,
       AuthenticatedUserRequest userRequest) {
     super(azureSynapsePdao, snapshotService);
+    this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
     this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
@@ -55,7 +58,6 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     sourceDatasetDataSourceName = IngestUtils.getSourceDatasetDataSourceName(context.getFlightId());
     targetDataSourceName = IngestUtils.getTargetDataSourceName(context.getFlightId());
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
@@ -78,7 +80,6 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
       String sqlQuery,
       Instant filterBefore) {
     FlightMap workingMap = context.getWorkingMap();
-    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     try {
       Map<String, Long> tableRowCounts =
           azureSynapsePdao.createSnapshotParquetFilesByQuery(

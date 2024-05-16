@@ -15,22 +15,25 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 
-public class CreateSnapshotPrimaryDataQueryGcpStep extends DefaultByQueryStep
-    implements CreateSnapshotPrimaryDataQueryInterface {
+public class CreateSnapshotPrimaryDataQueryGcpStep
+    implements CreateSnapshotPrimaryDataQueryInterface, Step {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final DatasetService datasetService;
   private final SnapshotBuilderService snapshotBuilderService;
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotDao snapshotDao;
+  private final SnapshotRequestModel snapshotReq;
   private final AuthenticatedUserRequest userRequest;
 
   public CreateSnapshotPrimaryDataQueryGcpStep(
+      SnapshotRequestModel snapshotReq,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       DatasetService datasetService,
@@ -44,12 +47,12 @@ public class CreateSnapshotPrimaryDataQueryGcpStep extends DefaultByQueryStep
     this.snapshotBuilderService = snapshotBuilderService;
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotDao = snapshotDao;
+    this.snapshotReq = snapshotReq;
     this.userRequest = userRequest;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     return prepareQueryAndCreateSnapshot(
         context,
@@ -92,7 +95,6 @@ public class CreateSnapshotPrimaryDataQueryGcpStep extends DefaultByQueryStep
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    SnapshotRequestModel snapshotReq = getByQueryRequestModel(context);
     snapshotService.undoCreateSnapshot(snapshotReq.getName());
     return StepResult.getStepResultSuccess();
   }

@@ -54,6 +54,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountRequest;
@@ -360,21 +361,43 @@ public class AzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
-  private void ingestTable(String tableName, String ingestFile, long expectedRowCount)
-      throws Exception {
-    List<Map<String, Object>> data;
-    try {
-      data = jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
-    } catch (Exception e) {
-      throw new RuntimeException("Error building ingest request", e);
+  record IngestSource(String tableName, String ingestFile, int expectedRowCount) {}
+
+  static final List<IngestSource> TABLES =
+      List.of(
+          new IngestSource("concept", "omop/concept-table-data.jsonl", 7),
+          new IngestSource("person", "omop/person-table-data.jsonl", 23),
+          new IngestSource("relationship", "omop/relationship.jsonl", 2),
+          new IngestSource("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10),
+          new IngestSource(
+              "condition_occurrence", "omop/condition-occurrence-table-data.jsonl", 53),
+          new IngestSource(
+              "concept_relationship", "omop/concept-relationship-table-data.jsonl", 4));
+
+  class Ingester {
+    private final IngestSource source;
+    private DataRepoResponse<JobModel> result;
+
+    Ingester(IngestSource source) {
+      this.source = source;
     }
-    var ingestRequestArray =
-        dataRepoFixtures
-            .buildSimpleIngest(tableName, data)
-            .profileId(profileId)
-            .ignoreUnknownValues(true);
-    var ingestResult = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestArray);
-    assertThat("row count matches", ingestResult.getRowCount(), equalTo(expectedRowCount));
+
+    void ingest() throws Exception {
+      String tableName = source.tableName();
+      List<Map<String, Object>> data =
+          jsonLoader.loadObjectAsStream(source.ingestFile(), new TypeReference<>() { });
+      var ingestRequestArray =
+          dataRepoFixtures
+              .buildSimpleIngest(tableName, data)
+              .profileId(profileId)
+              .ignoreUnknownValues(true);
+      result = dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, ingestRequestArray);
+    }
+
+    void waitForCompletion() throws Exception {
+      var ingestResult = dataRepoFixtures.waitForIngestResponse(steward, result).getResponseObject().orElseThrow();
+      assertThat("row count matches", ingestResult.getRowCount(), equalTo(source.expectedRowCount));
+    }
   }
 
   private void populateOmopTable() throws Exception {
@@ -385,12 +408,13 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestTable("person", "omop/person-table-data.jsonl", 23);
-    ingestTable("concept", "omop/concept-table-data.jsonl", 7);
-    ingestTable("relationship", "omop/relationship.jsonl", 2);
-    ingestTable("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10);
-    ingestTable("condition_occurrence", "omop/condition-occurrence-table-data.jsonl", 53);
-    ingestTable("concept_relationship", "omop/concept-relationship-table-data.jsonl", 4);
+    var ingesters = TABLES.stream().map(Ingester::new).toList();
+    for (Ingester ingester : ingesters) {
+      ingester.ingest();
+    }
+    for (Ingester ingester : ingesters) {
+      ingester.waitForCompletion();
+    }
 
     // Create a snapshot
     SnapshotRequestModel requestSnapshotRelease =

@@ -555,31 +555,23 @@ public class SnapshotService {
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
       }
-      case BYFULLVIEW, BYREQUESTID -> conjureSnapshotTablesFromDatasetTables(
-          snapshot, snapshotSource);
+      case BYFULLVIEW -> conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
       case BYQUERY -> {
         SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
         String assetName = queryModel.getAssetName();
         String snapshotQuery = queryModel.getQuery();
         Query query = Query.parse(snapshotQuery);
         String datasetName = query.getDatasetName();
-        Dataset queryDataset = datasetService.retrieveByName(datasetName);
-        AssetSpecification queryAssetSpecification =
-            queryDataset
-                .getAssetSpecificationByName(assetName)
-                .orElseThrow(
-                    () ->
-                        new AssetNotFoundException(
-                            "This dataset does not have an asset specification with name: "
-                                + assetName));
-        snapshotSource.assetSpecification(queryAssetSpecification);
-        // TODO this is wrong? why don't we just pass the assetSpecification?
-        conjureSnapshotTablesFromAsset(
-            snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
+        getTablesByQueryAsset(datasetName, assetName, snapshotSource, snapshot);
       }
       case BYROWID -> {
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
+      }
+      case BYREQUESTID -> {
+        String assetName = "concept_asset";
+        String datasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
+        getTablesByQueryAsset(datasetName, assetName, snapshotSource, snapshot);
       }
     }
 
@@ -595,6 +587,23 @@ public class SnapshotService {
         .globalFileIds(snapshotRequestModel.isGlobalFileIds())
         .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix())
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
+  }
+
+  private void getTablesByQueryAsset(
+      String datasetName, String assetName, SnapshotSource snapshotSource, Snapshot snapshot) {
+    Dataset queryDataset = datasetService.retrieveByName(datasetName);
+    AssetSpecification queryAssetSpecification =
+        queryDataset
+            .getAssetSpecificationByName(assetName)
+            .orElseThrow(
+                () ->
+                    new AssetNotFoundException(
+                        "This dataset does not have an asset specification with name: "
+                            + assetName));
+    snapshotSource.assetSpecification(queryAssetSpecification);
+    // TODO this is wrong? why don't we just pass the assetSpecification?
+    conjureSnapshotTablesFromAsset(
+        snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(

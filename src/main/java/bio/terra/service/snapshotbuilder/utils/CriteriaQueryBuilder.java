@@ -164,7 +164,8 @@ public class CriteriaQueryBuilder {
             null,
             true);
 
-    return new Query(List.of(personId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
+    return new Query(
+        List.of(personId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
   }
 
   public Query generateRowIdQueryForCohortList(List<SnapshotBuilderCohort> cohorts) {

@@ -219,17 +219,29 @@ public class SnapshotCreateFlight extends Flight {
         break;
       case BYQUERY:
         addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
-        stepsForByQueryCreation(
-            snapshotReq,
-            datasetService,
-            platform,
-            bigQuerySnapshotPdao,
-            snapshotService,
-            snapshotBuilderService,
-            snapshotRequestDao,
-            snapshotDao,
-            userReq,
-            azureSynapsePdao);
+        if (platform.isGcp()) {
+          addStep(
+              new CreateSnapshotPrimaryDataQueryGcpStep(
+                  snapshotReq,
+                  bigQuerySnapshotPdao,
+                  snapshotService,
+                  datasetService,
+                  snapshotBuilderService,
+                  snapshotRequestDao,
+                  snapshotDao,
+                  userReq));
+        } else if (platform.isAzure()) {
+          addStep(
+              new CreateSnapshotByQueryParquetFilesAzureStep(
+                  snapshotReq,
+                  azureSynapsePdao,
+                  snapshotDao,
+                  snapshotService,
+                  datasetService,
+                  snapshotBuilderService,
+                  snapshotRequestDao,
+                  userReq));
+        }
         break;
       case BYROWID:
         if (platform.isGcp()) {
@@ -245,18 +257,27 @@ public class SnapshotCreateFlight extends Flight {
         break;
 
       case BYREQUESTID:
-        // use the existing byQuery snapshot request model code to create the snapshot
-        stepsForByQueryCreation(
-            snapshotReq,
-            datasetService,
-            platform,
-            bigQuerySnapshotPdao,
-            snapshotService,
-            snapshotBuilderService,
-            snapshotRequestDao,
-            snapshotDao,
-            userReq,
-            azureSynapsePdao);
+        if (platform.isGcp()) {
+          addStep(
+              new CreateSnapshotByRequestIdGcpStep(
+                  snapshotReq,
+                  snapshotService,
+                  snapshotBuilderService,
+                  snapshotRequestDao,
+                  snapshotDao,
+                  userReq,
+                  bigQuerySnapshotPdao));
+        } else if (platform.isAzure()) {
+          addStep(
+              new CreateSnapshotByRequestIdAzureStep(
+                  snapshotReq,
+                  snapshotBuilderService,
+                  snapshotService,
+                  snapshotRequestDao,
+                  snapshotDao,
+                  userReq,
+                  azureSynapsePdao));
+        }
         break;
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
@@ -375,41 +396,5 @@ public class SnapshotCreateFlight extends Flight {
             datasetId,
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
-  }
-
-  private void stepsForByQueryCreation(
-      SnapshotRequestModel snapshotReq,
-      DatasetService datasetService,
-      CloudPlatformWrapper platform,
-      BigQuerySnapshotPdao bigQuerySnapshotPdao,
-      SnapshotService snapshotService,
-      SnapshotBuilderService snapshotBuilderService,
-      SnapshotRequestDao snapshotRequestDao,
-      SnapshotDao snapshotDao,
-      AuthenticatedUserRequest userReq,
-      AzureSynapsePdao azureSynapsePdao) {
-    if (platform.isGcp()) {
-      addStep(
-          new CreateSnapshotPrimaryDataQueryGcpStep(
-              snapshotReq,
-              bigQuerySnapshotPdao,
-              snapshotService,
-              datasetService,
-              snapshotBuilderService,
-              snapshotRequestDao,
-              snapshotDao,
-              userReq));
-    } else if (platform.isAzure()) {
-      addStep(
-          new CreateSnapshotByQueryParquetFilesAzureStep(
-              snapshotReq,
-              azureSynapsePdao,
-              snapshotDao,
-              snapshotService,
-              datasetService,
-              snapshotBuilderService,
-              snapshotRequestDao,
-              userReq));
-    }
   }
 }

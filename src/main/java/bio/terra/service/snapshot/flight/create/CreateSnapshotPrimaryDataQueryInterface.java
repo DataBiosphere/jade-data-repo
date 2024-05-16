@@ -47,10 +47,16 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       UUID dataReleaseSnapshotId = accessRequest.getSourceSnapshotId();
       Snapshot dataReleaseSnapshot = snapshotDao.retrieveSnapshot(dataReleaseSnapshotId);
       // get the underlying dataset for the snapshot
-      Dataset dataset = dataReleaseSnapshot.getSnapshotSources().stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Snapshot does not have a source dataset")).getDataset();
+      Dataset dataset =
+          dataReleaseSnapshot.getSnapshotSources().stream()
+              .findFirst()
+              .orElseThrow(
+                  () -> new IllegalArgumentException("Snapshot does not have a source dataset"))
+              .getDataset();
       // gets pre-existing asset on the dataset
       // TODO: create custom asset DC-1016
-      AssetSpecification assetSpecification = dataset.getAssetSpecificationByName("concept_asset").orElseThrow();
+      AssetSpecification assetSpecification =
+          dataset.getAssetSpecificationByName("concept_asset").orElseThrow();
       String sqlQuery =
           snapshotBuilderService.generateRowIdQuery(accessRequest, dataReleaseSnapshot, userReq);
       Instant createdAt = dataReleaseSnapshot.getCreatedDate();
@@ -61,7 +67,8 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       Query query = Query.parse(snapshotQuerySpec.getQuery());
       String datasetName = query.getDatasetName();
       Dataset dataset = datasetService.retrieveByName(datasetName);
-      AssetSpecification assetSpecification = retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
+      AssetSpecification assetSpecification =
+          retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
       validateRootTable(query, assetSpecification);
       String sqlQuery = translateQuery(query, dataset);
       Instant createdAt = CommonFlightUtils.getCreatedAt(context);

@@ -299,6 +299,10 @@ public class SamIam implements IamProviderInterface {
         IamRole.DISCOVERER.toString(),
         createAccessPolicy(IamRole.DISCOVERER, policies.getDiscoverers()));
 
+    req.putPoliciesItem(
+        IamRole.AGGREGATE_DATA_READER.toString(),
+        createAccessPolicy(IamRole.AGGREGATE_DATA_READER, policies.getAggregateDataReaders()));
+
     req.authDomain(List.of());
     logger.debug("SAM request: " + req);
     return req;

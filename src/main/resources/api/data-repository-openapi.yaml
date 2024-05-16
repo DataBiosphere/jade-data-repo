@@ -1157,13 +1157,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1210,13 +1204,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1350,16 +1338,7 @@ paths:
       operationId: addSnapshotPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - reader
-              - discoverer
+        - $ref: '#/components/parameters/SnapshotPolicyName'
       requestBody:
         description: Snapshot to change the policy of
         content:
@@ -1402,16 +1381,7 @@ paths:
       operationId: deleteSnapshotPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - reader
-              - discoverer
+        - $ref: '#/components/parameters/SnapshotPolicyName'
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -1740,22 +1710,22 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: >
-              Not found - TDR has no record of of a DUOS dataset with the specified ID.
+            Not found - TDR has no record of of a DUOS dataset with the specified ID.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         409:
           description: >
-              Conflict - Firecloud group contents may have been updated, but TDR encountered a
-              conflict when writing back to the database.
+            Conflict - Firecloud group contents may have been updated, but TDR encountered a
+            conflict when writing back to the database.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         500:
           description: >
-              An unexpected error occurred - Firecloud group contents may not have been updated.
+            An unexpected error occurred - Firecloud group contents may not have been updated.
           content:
             application/json:
               schema:
@@ -2395,16 +2365,7 @@ paths:
       operationId: addDatasetPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - custodian
-              - snapshot_creator
+        - $ref: '#/components/parameters/DatasetPolicyName'
       requestBody:
         description: Dataset to change the policy of
         content:
@@ -2447,16 +2408,7 @@ paths:
       operationId: deleteDatasetPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - custodian
-              - snapshot_creator
+        - $ref: '#/components/parameters/DatasetPolicyName'
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -2892,12 +2844,7 @@ paths:
       operationId: removeDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: assetid
-          in: path
-          description: An asset id
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/AssetId'
       responses:
         200:
           description: Redirect for ingest complete
@@ -3029,7 +2976,7 @@ paths:
           content:
             application/json:
               schema:
-                  $ref: '#/components/schemas/EnumerateSnapshotAccessRequest'
+                $ref: '#/components/schemas/EnumerateSnapshotAccessRequest'
         400:
           description: Bad request - invalid id, or badly formed IamResourceType.
           content:
@@ -3314,12 +3261,7 @@ paths:
       operationId: getLoadHistoryForLoadTag
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: loadTag
-          in: path
-          description: a load tag
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/LoadTag'
         - name: offset
           in: query
           description: The number of items to skip before starting to collect the result
@@ -3379,12 +3321,7 @@ paths:
       operationId: bulkFileResultsDelete
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: loadtag
-          in: path
-          description: a load tag
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/LoadTag'
         - name: jobId
           in: query
           description: The job id associated with the load
@@ -3505,13 +3442,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3616,13 +3547,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3983,9 +3908,9 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: upgrade
 
-##############################################################################
-## DRS STANDARD ENDPOINTS
-##############################################################################
+  ##############################################################################
+  ## DRS STANDARD ENDPOINTS
+  ##############################################################################
   /ga4gh/drs/v1/service-info:
     get:
       tags:
@@ -4371,9 +4296,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DRSError'
-#################################################################
-#####                  JOURNAL                              #####
-#################################################################
+  #################################################################
+  #####                  JOURNAL                              #####
+  #################################################################
   /api/repository/v1/journal/{resourceKey}:
     get:
       tags:
@@ -5250,7 +5175,7 @@ components:
           additionalProperties:
             type: array
             items:
-             type: string
+              type: string
       description: >
         The total number of datasets available that match the filter criteria and a page of summaries
     ColumnModel:
@@ -5755,7 +5680,7 @@ components:
         filteredRowCount:
           type: integer
       description: >
-       Data from a dataset table
+        Data from a dataset table
     SnapshotPreviewModel:
       type: object
       properties:
@@ -6162,6 +6087,10 @@ components:
               items:
                 type: string
             discoverers:
+              type: array
+              items:
+                type: string
+            aggregateDataReaders:
               type: array
               items:
                 type: string
@@ -7409,7 +7338,7 @@ components:
         result:
           type: array
           items:
-             $ref: '#/components/schemas/SnapshotBuilderParentConcept'
+            $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
     SnapshotBuilderFeatureValueGroup:
       type: object
@@ -7493,7 +7422,7 @@ components:
           type: string
         researchPurposeStatement:
           type: string
-        datasetRequest:
+        snapshotBuilderRequest:
           $ref: '#/components/schemas/SnapshotBuilderRequest'
       description: Request for access to a snapshot.
 
@@ -7516,6 +7445,7 @@ components:
 
     SnapshotBuilderCohort:
       type: object
+      required: [ criteriaGroups ]
       properties:
         name:
           type: string
@@ -7527,6 +7457,7 @@ components:
 
     SnapshotBuilderCriteriaGroup:
       type: object
+      required: [ criteria, mustMeet, meetAll ]
       properties:
         name:
           type: string
@@ -7538,8 +7469,6 @@ components:
           type: boolean
         meetAll:
           type: boolean
-        count:
-          type: number
       description: Criteria Group specifying a Cohort.
 
     SnapshotBuilderCriteria:
@@ -7898,7 +7827,7 @@ components:
             included in the result.
 
             If true and the object_id refers to a bundle, then the entire set of objects
-            in the bundle is expanded. That is, if the bundle contains aother bundles,
+            in the bundle is expanded. That is, if the bundle contains other bundles,
             then those other bundles are recursively expanded and included in the result.
             Recursion continues through the entire sub-tree of the bundle.
 
@@ -7944,9 +7873,9 @@ components:
             which token to send via other means. It is strongly recommended that the caller
             validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
             by malicious DRS servers requesting credentials they should not have.
-#################################################################
-#####                  JOURNAL MODELS
-#################################################################
+    #################################################################
+    #####                  JOURNAL MODELS
+    #################################################################
     JournalEntryModel:
       required:
         - id
@@ -8012,6 +7941,7 @@ components:
           - steward
           - reader
           - discoverer
+          - aggregateDataReader
     DatasetPolicyName:
       name: policyName
       in: path
@@ -8056,7 +7986,7 @@ components:
         type: integer
         default: 0
     LoadTag:
-      name: loadtag
+      name: loadTag
       in: path
       description: a load tag
       required: true
@@ -8065,7 +7995,7 @@ components:
     AssetId:
       name: assetid
       in: path
-      description: An asset id
+      description: An asset name
       required: true
       schema:
         type: string

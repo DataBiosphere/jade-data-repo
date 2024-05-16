@@ -21,6 +21,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetRelationship;
@@ -269,6 +270,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             datasetTables, assetName, rootTableName, rootColumnName, relationships);
     createSnapshotPrimaryDataQueryAzureStep =
         new CreateSnapshotByQueryParquetFilesAzureStep(
+            new SnapshotRequestModel(),
             azureSynapsePdao,
             snapshotDao,
             snapshotService,

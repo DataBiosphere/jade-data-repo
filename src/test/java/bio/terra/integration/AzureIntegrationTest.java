@@ -205,15 +205,12 @@ public class AzureIntegrationTest extends UsersBase {
 
     dataRepoFixtures.resetConfig(steward);
 
-    if (snapshotAccessRequestIds != null) {
-      for (UUID snapshotAccessRequestId : snapshotAccessRequestIds) {
-        samFixtures.deleteSnapshotAccessRequest(steward, snapshotAccessRequestId);
-      }
+    for (UUID snapshotAccessRequestId : snapshotAccessRequestIds) {
+      samFixtures.deleteSnapshotAccessRequest(steward, snapshotAccessRequestId);
     }
-    if (snapshotIds != null) {
-      for (UUID snapshotId : snapshotIds) {
-        dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-      }
+
+    for (UUID snapshotId : snapshotIds) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
     }
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);

@@ -34,9 +34,6 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq)
       throws InterruptedException {
-    AssetSpecification assetSpecification;
-    String sqlQuery;
-    Instant createdAt;
 
     if (snapshotReq
         .getContents()
@@ -50,29 +47,26 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       UUID dataReleaseSnapshotId = accessRequest.getSourceSnapshotId();
       Snapshot dataReleaseSnapshot = snapshotDao.retrieveSnapshot(dataReleaseSnapshotId);
       // get the underlying dataset for the snapshot
-      if (dataReleaseSnapshot.getSnapshotSources().isEmpty()) {
-        throw new IllegalArgumentException("Snapshot does not have a source dataset");
-      }
-      Dataset dataset = dataReleaseSnapshot.getSnapshotSources().get(0).getDataset();
+      Dataset dataset = dataReleaseSnapshot.getSnapshotSources().stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Snapshot does not have a source dataset")).getDataset();
       // gets pre-existing asset on the dataset
-      // TODO: create custom asset
-      assetSpecification = dataset.getAssetSpecificationByName("concept_asset").orElseThrow();
-      sqlQuery =
+      // TODO: create custom asset DC-1016
+      AssetSpecification assetSpecification = dataset.getAssetSpecificationByName("concept_asset").orElseThrow();
+      String sqlQuery =
           snapshotBuilderService.generateRowIdQuery(accessRequest, dataReleaseSnapshot, userReq);
-      createdAt = dataReleaseSnapshot.getCreatedDate();
+      Instant createdAt = dataReleaseSnapshot.getCreatedDate();
+      return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
     } else {
       SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
 
       Query query = Query.parse(snapshotQuerySpec.getQuery());
       String datasetName = query.getDatasetName();
       Dataset dataset = datasetService.retrieveByName(datasetName);
-      assetSpecification = retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
+      AssetSpecification assetSpecification = retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
       validateRootTable(query, assetSpecification);
-      sqlQuery = translateQuery(query, dataset);
-      createdAt = CommonFlightUtils.getCreatedAt(context);
+      String sqlQuery = translateQuery(query, dataset);
+      Instant createdAt = CommonFlightUtils.getCreatedAt(context);
+      return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
     }
-
-    return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
   }
 
   StepResult createSnapshotPrimaryData(

@@ -276,7 +276,7 @@ public class SnapshotBuilderService {
       AuthenticatedUserRequest userReq) {
 
     SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId());
-    Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
+    Dataset dataset = snapshot.getSnapshotSources().stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Snapshot does not have a source dataset")).getDataset();
 
     List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
 

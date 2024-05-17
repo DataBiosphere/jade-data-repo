@@ -20,8 +20,8 @@ public record Query(
     if (tables.isEmpty()) {
       throw new IllegalArgumentException("Query must have at least one TableVariable");
     }
-    groupBy = groupBy != null ? groupBy : List.of();
-    orderBy = orderBy != null ? orderBy : List.of();
+    groupBy = Objects.requireNonNullElse(groupBy, List.of());
+    orderBy = Objects.requireNonNullElse(orderBy, List.of());
 
     long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
     if (primaryTables != 1) {

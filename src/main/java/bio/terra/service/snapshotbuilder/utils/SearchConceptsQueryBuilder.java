@@ -131,6 +131,6 @@ public class SearchConceptsQueryBuilder {
   static FilterVariable createDomainClause(Concept concept, String domainId) {
     return BooleanAndOrFilterVariable.and(
         BinaryFilterVariable.equals(concept.domain_id(), new Literal(domainId)),
-        BinaryFilterVariable.equals(concept.standard_concept(), new Literal("S")));
+        BinaryFilterVariable.equals(concept.standardConcept(), new Literal("S")));
   }
 }

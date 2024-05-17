@@ -42,7 +42,7 @@ class CriteriaQueryBuilderTest {
     return toBeStripped.replaceAll("\\s+", " ").trim();
   }
 
-  public static void assertSameQuery(String expectedSql, String actualSql) {
+  public static void assertQueryEquals(String expectedSql, String actualSql) {
     assertEquals(stripSpaces(expectedSql), stripSpaces(actualSql), "The sql generated is correct");
   }
 
@@ -52,7 +52,7 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateYearOfBirthRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(rangeCriteria);
 
-    assertSameQuery(
+    assertQueryEquals(
         "(p.year_of_birth >= 0 AND p.year_of_birth <= 100)", filterVariable.renderSQL(context));
   }
 
@@ -63,7 +63,7 @@ class CriteriaQueryBuilderTest {
         generateEthnicityListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
-    assertSameQuery("p.ethnicity_concept_id IN (0,1,2)", filterVariable.renderSQL(context));
+    assertQueryEquals("p.ethnicity_concept_id IN (0,1,2)", filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -72,7 +72,7 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateEthnicityListCriteria(List.of());
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
-    assertSameQuery("1=1", filterVariable.renderSQL(context));
+    assertQueryEquals("1=1", filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -84,7 +84,7 @@ class CriteriaQueryBuilderTest {
 
     String expectedSql =
         "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co  JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE ca.ancestor_concept_id = 0)";
-    assertSameQuery(expectedSql, filterVariable.renderSQL(context));
+    assertQueryEquals(expectedSql, filterVariable.renderSQL(context));
   }
 
   @Test
@@ -103,7 +103,7 @@ class CriteriaQueryBuilderTest {
         generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
-    assertSameQuery(
+    assertQueryEquals(
         "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE ca.ancestor_concept_id = 0)",
         filterVariable.renderSQL(context));
   }
@@ -145,7 +145,7 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
 
-    assertSameQuery(
+    assertQueryEquals(
         "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))",
         filterVariable.renderSQL(context));
   }
@@ -162,7 +162,7 @@ class CriteriaQueryBuilderTest {
             .meetAll(false);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
-    assertSameQuery(
+    assertQueryEquals(
         "(p.ethnicity_concept_id IN (0,1,2) OR (p.year_of_birth >= 0 AND p.year_of_birth <= 100))",
         filterVariable.renderSQL(context));
   }
@@ -181,7 +181,7 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
-    assertSameQuery(
+    assertQueryEquals(
         "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))",
         filterVariable.renderSQL(context));
   }
@@ -200,7 +200,7 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
-    assertSameQuery(
+    assertQueryEquals(
         "(NOT (p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)))",
         filterVariable.renderSQL(context));
   }
@@ -220,7 +220,7 @@ class CriteriaQueryBuilderTest {
                     .meetAll(true)
                     .mustMeet(true)));
 
-    assertSameQuery(
+    assertQueryEquals(
         "(((p.year_of_birth >= 0 AND p.year_of_birth <= 100)) AND (p.ethnicity_concept_id IN (0,1,2)))",
         filterVariable.renderSQL(context));
   }
@@ -259,7 +259,7 @@ class CriteriaQueryBuilderTest {
                 JOIN concept_ancestor AS ca1
                 ON ca1.descendant_concept_id = po.procedure_concept_id
               WHERE ca1.ancestor_concept_id = 0))))""";
-    assertSameQuery(expectedSql, query.renderSQL(context));
+    assertQueryEquals(expectedSql, query.renderSQL(context));
   }
 
   private static SnapshotBuilderDomainCriteria generateDomainCriteria(int domainId) {

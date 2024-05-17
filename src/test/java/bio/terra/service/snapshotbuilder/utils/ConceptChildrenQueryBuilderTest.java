@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertSameQuery;
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
@@ -71,7 +71,7 @@ class ConceptChildrenQueryBuilderTest {
             .buildConceptChildrenQuery(createDomainOption(), 101)
             .renderSQL(context);
 
-    assertSameQuery(context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED), sql);
+    assertQueryEquals(context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED), sql);
   }
 
   @ParameterizedTest
@@ -87,6 +87,6 @@ class ConceptChildrenQueryBuilderTest {
         SELECT c.domain_id
         FROM concept AS c
         WHERE c.concept_id = 101""";
-    assertSameQuery(expected, sql);
+    assertQueryEquals(expected, sql);
   }
 }

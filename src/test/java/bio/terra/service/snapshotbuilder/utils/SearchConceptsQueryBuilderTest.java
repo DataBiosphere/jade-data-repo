@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertSameQuery;
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -107,7 +107,7 @@ class SearchConceptsQueryBuilderTest {
             .buildSearchConceptsQuery(domainOption, "cancer")
             .renderSQL(context);
 
-    assertSameQuery(context.getPlatform().choose(expectedGcp, expectedAzure), actual);
+    assertQueryEquals(context.getPlatform().choose(expectedGcp, expectedAzure), actual);
   }
 
   @ParameterizedTest
@@ -141,7 +141,7 @@ class SearchConceptsQueryBuilderTest {
         GROUP BY c.concept_name, c.concept_id, c.concept_code
         ORDER BY count DESC""";
 
-    assertSameQuery(context.getPlatform().choose(gcpExpected, azureExpected), actual);
+    assertQueryEquals(context.getPlatform().choose(gcpExpected, azureExpected), actual);
   }
 
   @ParameterizedTest
@@ -156,7 +156,7 @@ class SearchConceptsQueryBuilderTest {
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
     var expectedAzureQuery = "CHARINDEX('cancer', c.concept_name) > 0";
 
-    assertSameQuery(context.getPlatform().choose(expectedGCPQuery, expectedAzureQuery), actual);
+    assertQueryEquals(context.getPlatform().choose(expectedGCPQuery, expectedAzureQuery), actual);
   }
 
   @ParameterizedTest

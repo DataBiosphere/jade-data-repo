@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertSameQuery;
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
@@ -66,7 +66,7 @@ class HierarchyQueryBuilderTest {
     var query =
         new HierarchyQueryBuilder()
             .generateQuery(ConceptChildrenQueryBuilderTest.createDomainOption(), 1);
-    assertSameQuery(
+    assertQueryEquals(
         context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED), query.renderSQL(context));
   }
 }

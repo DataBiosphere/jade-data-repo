@@ -57,6 +57,17 @@ public final class SourceVariable implements SqlExpression {
   }
 
   public FieldVariable makeFieldVariable(
+      String fieldName,
+      String sqlFunctionWrapper,
+      String alias,
+      String comparator,
+      boolean isDistinct) {
+    FieldPointer fieldPointer =
+        new FieldPointer(sourcePointer, fieldName, sqlFunctionWrapper, comparator);
+    return new FieldVariable(fieldPointer, this, alias, isDistinct);
+  }
+
+  public FieldVariable makeFieldVariable(
       String fieldName, String sqlFunctionWrapper, String alias, boolean isDistinct) {
     FieldPointer fieldPointer = new FieldPointer(sourcePointer, fieldName, sqlFunctionWrapper);
     return new FieldVariable(fieldPointer, this, alias, isDistinct);

@@ -13,6 +13,8 @@ public class FieldPointer {
   private final boolean joinCanBeEmpty;
   private final String sqlFunctionWrapper;
 
+  private final String comparator;
+
   private FieldPointer(
       SourcePointer sourcePointer,
       String columnName,
@@ -20,7 +22,8 @@ public class FieldPointer {
       String foreignKeyColumnName,
       String foreignColumnName,
       boolean joinCanBeEmpty,
-      String sqlFunctionWrapper) {
+      String sqlFunctionWrapper,
+      String comparator) {
     this.sourcePointer = sourcePointer;
     this.columnName = columnName;
     this.foreignSourcePointer = foreignSourcePointer;
@@ -28,10 +31,19 @@ public class FieldPointer {
     this.foreignColumnName = foreignColumnName;
     this.joinCanBeEmpty = joinCanBeEmpty;
     this.sqlFunctionWrapper = sqlFunctionWrapper;
+    this.comparator = comparator;
+  }
+
+  public FieldPointer(
+      SourcePointer sourcePointer,
+      String columnName,
+      String sqlFunctionWrapper,
+      String comparator) {
+    this(sourcePointer, columnName, null, null, null, false, sqlFunctionWrapper, comparator);
   }
 
   public FieldPointer(SourcePointer sourcePointer, String columnName, String sqlFunctionWrapper) {
-    this(sourcePointer, columnName, null, null, null, false, sqlFunctionWrapper);
+    this(sourcePointer, columnName, null, null, null, false, sqlFunctionWrapper, null);
   }
 
   public FieldPointer(SourcePointer sourcePointer, String columnName) {
@@ -44,7 +56,8 @@ public class FieldPointer {
 
   public static FieldPointer foreignColumn(
       SourcePointer foreignSourcePointer, String foreignColumnName) {
-    return new FieldPointer(null, null, foreignSourcePointer, null, foreignColumnName, false, null);
+    return new FieldPointer(
+        null, null, foreignSourcePointer, null, foreignColumnName, false, null, null);
   }
 
   public FieldVariable buildVariable(
@@ -67,7 +80,7 @@ public class FieldPointer {
       // JOIN the same table for each field we need from it.
       sourceVariables.add(foreignTable);
       return new FieldVariable(
-          new FieldPointer(foreignSourcePointer, foreignColumnName, sqlFunctionWrapper),
+          new FieldPointer(foreignSourcePointer, foreignColumnName, sqlFunctionWrapper, comparator),
           foreignTable,
           alias);
     } else {
@@ -93,5 +106,13 @@ public class FieldPointer {
 
   public String getSqlFunctionWrapper() {
     return sqlFunctionWrapper;
+  }
+
+  public boolean hasComparator() {
+    return comparator != null;
+  }
+
+  public String getComparator() {
+    return comparator;
   }
 }

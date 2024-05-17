@@ -70,6 +70,10 @@ public class FieldVariable implements SelectExpression {
       }
     }
 
+    if (fieldPointer.hasComparator()) {
+      sql = sql + " " + fieldPointer.getComparator();
+    }
+
     if (alias != null) {
       return "%s AS %s".formatted(sql, alias);
     }

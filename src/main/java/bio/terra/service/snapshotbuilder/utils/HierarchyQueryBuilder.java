@@ -50,7 +50,6 @@ public class HierarchyQueryBuilder {
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
 
-
     // has_children
     var conceptAncestorTable =
         SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
@@ -81,11 +80,24 @@ public class HierarchyQueryBuilder {
     // To get the total occurrence count for a child concept, we need to join the child through the
     // ancestor table to find all of its children. We don't need to use a left join here
     // because every concept has itself as an ancestor, so there will be at least one match.
+    var conceptAncestorTable_ca1 =
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
+    var ancestorConceptId_ca1 =
+        conceptAncestorTable_ca1.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID);
+    var descendantConceptId_ca1 =
+        conceptAncestorTable_ca1.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
+    var subquery_ca1 =
+        new Query(
+            List.of(ancestorConceptId_ca1, descendantConceptId_ca1),
+            List.of(conceptAncestorTable_ca1),
+            BooleanAndOrFilterVariable.and(
+                BinaryFilterVariable.equals(descendantConceptId_ca1, new Literal(conceptId)),
+                BinaryFilterVariable.notEquals(ancestorConceptId_ca1, new Literal(conceptId))),
+            null);
+    var subQueryPointer_ca1 = new SubQueryPointer(subquery_ca1, "join_filter");
     var conceptAncestor =
         SourceVariable.forJoined(
-            TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
-            ConceptAncestor.ANCESTOR_CONCEPT_ID,
-            childId);
+            subQueryPointer_ca1, ConceptAncestor.ANCESTOR_CONCEPT_ID, parentId);
 
     SourceVariable domainOccurrence =
         SourceVariable.forLeftJoined(
@@ -100,8 +112,8 @@ public class HierarchyQueryBuilder {
 
     // COUNT(ca.descendant_concept_id) AS has_children
     FieldVariable hasChildren =
-        conceptAncestorTable.makeFieldVariable(
-            ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", true);
+        hasChildrenJoin.makeFieldVariable(
+            ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", "> 0", true);
 
     return new Query(
         List.of(

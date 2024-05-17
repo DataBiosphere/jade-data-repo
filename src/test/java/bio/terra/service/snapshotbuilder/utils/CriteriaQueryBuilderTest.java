@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.utils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
@@ -275,10 +276,15 @@ class CriteriaQueryBuilderTest {
                 JOIN concept_ancestor AS ca1
                 ON ca1.descendant_concept_id = po.procedure_concept_id
               WHERE ca1.ancestor_concept_id = 0))))""";
-    assertThat(
-        "The sql generated is correct",
-        query.renderSQL(context),
-        equalToCompressingWhiteSpace(expectedSql));
+    assertSameQuery(expectedSql, query.renderSQL(context));
+  }
+
+  public static String stripSpaces(String toBeStripped) {
+    return toBeStripped.replaceAll("\\s+", " ").trim();
+  }
+
+  public static void assertSameQuery(String expectedSql, String actualSql) {
+    assertEquals(stripSpaces(expectedSql), stripSpaces(actualSql), "The sql generated is correct");
   }
 
   private static SnapshotBuilderDomainCriteria generateDomainCriteria(int domainId) {

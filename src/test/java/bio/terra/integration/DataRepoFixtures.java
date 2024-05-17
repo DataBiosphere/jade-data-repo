@@ -1328,7 +1328,8 @@ public class DataRepoFixtures {
     return waitForIngestResponse(user, launchResp);
   }
 
-  public DataRepoResponse<IngestResponseModel> waitForIngestResponse(TestConfiguration.User user, DataRepoResponse<JobModel> launchResp) throws Exception {
+  public DataRepoResponse<IngestResponseModel> waitForIngestResponse(
+      TestConfiguration.User user, DataRepoResponse<JobModel> launchResp) throws Exception {
     assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
     assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
     return dataRepoClient.waitForResponse(user, launchResp, new TypeReference<>() {});

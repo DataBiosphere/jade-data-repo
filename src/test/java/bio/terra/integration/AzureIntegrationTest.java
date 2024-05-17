@@ -385,7 +385,7 @@ public class AzureIntegrationTest extends UsersBase {
     void ingest() throws Exception {
       String tableName = source.tableName();
       List<Map<String, Object>> data =
-          jsonLoader.loadObjectAsStream(source.ingestFile(), new TypeReference<>() { });
+          jsonLoader.loadObjectAsStream(source.ingestFile(), new TypeReference<>() {});
       var ingestRequestArray =
           dataRepoFixtures
               .buildSimpleIngest(tableName, data)
@@ -395,7 +395,8 @@ public class AzureIntegrationTest extends UsersBase {
     }
 
     void waitForCompletion() throws Exception {
-      var ingestResult = dataRepoFixtures.waitForIngestResponse(steward, result).getResponseObject().orElseThrow();
+      var ingestResult =
+          dataRepoFixtures.waitForIngestResponse(steward, result).getResponseObject().orElseThrow();
       assertThat("row count matches", ingestResult.getRowCount(), equalTo(source.expectedRowCount));
     }
   }

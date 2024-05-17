@@ -361,7 +361,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
-  record IngestSource(String tableName, String ingestFile, int expectedRowCount) {}
+  record IngestSource(String tableName, String ingestFile, long expectedRowCount) {}
 
   static final List<IngestSource> TABLES =
       List.of(

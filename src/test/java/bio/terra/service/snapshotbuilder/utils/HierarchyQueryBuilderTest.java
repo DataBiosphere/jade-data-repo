@@ -1,7 +1,6 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertSameQuery;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
@@ -67,8 +66,7 @@ class HierarchyQueryBuilderTest {
     var query =
         new HierarchyQueryBuilder()
             .generateQuery(ConceptChildrenQueryBuilderTest.createDomainOption(), 1);
-    assertThat(
-        query.renderSQL(context),
-        equalToCompressingWhiteSpace(context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED)));
+    assertSameQuery(
+        context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED), query.renderSQL(context));
   }
 }

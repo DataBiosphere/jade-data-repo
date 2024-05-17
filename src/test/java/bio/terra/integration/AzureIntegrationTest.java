@@ -424,7 +424,33 @@ public class AzureIntegrationTest extends UsersBase {
     populateOmopTable();
     UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
     SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
-    // add some checks for snapshot content
+    String columnName = "datarepo_row_id";
+    List<Object> personSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotSummaryByRequest.getId(), "person", 0, 100, null, columnName)
+            .getResult();
+    List<Object> conditionOccurrenceSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward,
+                snapshotSummaryByRequest.getId(),
+                "condition_occurrence",
+                0,
+                100,
+                null,
+                columnName)
+            .getResult();
+    List<Object> conceptSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotSummaryByRequest.getId(), "concept", 0, 100, null, columnName)
+            .getResult();
+    assertThat(personSnapshotRows.size(), is(23));
+    // full table has 53 rows but only 49 map to existing person ids
+    assertThat(conditionOccurrenceSnapshotRows.size(), is(49));
+    // full table has 7 rows but only 5 are in the condition_occurrence table
+    assertThat(conceptSnapshotRows.size(), is(5));
   }
 
   private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {

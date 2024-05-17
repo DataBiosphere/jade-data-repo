@@ -70,8 +70,8 @@ public class FieldVariable implements SelectExpression {
       }
     }
 
-    if (fieldPointer.hasComparator()) {
-      sql = sql + " " + fieldPointer.getComparator();
+    if (fieldPointer.hasHasCountClause() && context.getPlatform().isGcp()) {
+      sql = sql + " " + fieldPointer.getHasCountClause();
     }
 
     if (alias != null) {

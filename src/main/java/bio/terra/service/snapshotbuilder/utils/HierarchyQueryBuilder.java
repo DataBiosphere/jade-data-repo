@@ -14,7 +14,6 @@ import bio.terra.service.snapshotbuilder.query.SubQueryPointer;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationship;
@@ -126,7 +125,6 @@ public class HierarchyQueryBuilder {
         List.of(
             conceptRelationship, child, parent, hasChildrenJoin, conceptAncestor, domainOccurrence),
         BooleanAndOrFilterVariable.and(
-            SubQueryFilterVariable.in(parentId, selectAllParents(conceptId)),
             BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
             requireStandardConcept(parent),
             requireStandardConcept(child)),

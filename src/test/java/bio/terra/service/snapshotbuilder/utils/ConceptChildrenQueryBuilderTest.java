@@ -26,10 +26,11 @@ class ConceptChildrenQueryBuilderTest {
         AS has_children
       FROM concept AS c
         JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = c.concept_id
+        JOIN (SELECT concept_id_2 FROM concept_relationship AS cr
+          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS jf
+          ON jf.concept_id_2 = c.concept_id
         LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
-      WHERE (c.concept_id IN (SELECT cr.concept_id_2
-          FROM concept_relationship AS cr
-          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')
+      WHERE c.standard_concept = 'S'
       GROUP BY c.concept_name, c.concept_id, c.concept_code
       ORDER BY c.concept_name ASC""";
 
@@ -45,10 +46,11 @@ class ConceptChildrenQueryBuilderTest {
         THEN 1 ELSE 0 END AS has_children
       FROM concept AS c
         JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = c.concept_id
+        JOIN (SELECT concept_id_2 FROM concept_relationship AS cr
+              WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS jf
+              ON jf.concept_id_2 = c.concept_id
         LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
-      WHERE (c.concept_id IN (SELECT cr.concept_id_2
-          FROM concept_relationship AS cr
-          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')
+      WHERE c.standard_concept = 'S'
       GROUP BY c.concept_name, c.concept_id, c.concept_code
       ORDER BY c.concept_name ASC""";
 

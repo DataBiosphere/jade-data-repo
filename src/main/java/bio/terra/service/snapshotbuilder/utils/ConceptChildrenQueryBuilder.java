@@ -9,10 +9,11 @@ import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.SourceVariable;
+import bio.terra.service.snapshotbuilder.query.SubQueryPointer;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
+import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationship;
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
@@ -34,13 +35,6 @@ public class ConceptChildrenQueryBuilder {
 
   /**
    * Generate a query that retrieves the descendants of the given concept and their roll-up counts.
-   *
-   * <p>SELECT cc.concept_id, cc.concept_name, COUNT(DISTINCT co.person_id) as count FROM `concept`
-   * AS cc JOIN `concept_ancestor` AS ca ON cc.concept_id = ca.ancestor_concept_id JOIN
-   * `'domain'_occurrence` AS co ON co.'domain'_concept_id = ca.descendant_concept_id WHERE
-   * (c.concept_id IN (SELECT c.concept_id_2 FROM concept_relationship AS c WHERE (c.concept_id_1 =
-   * 101 AND * c.relationship_id = 'Subsumes')) AND c.standard_concept = 'S') GROUP BY
-   * cc.concept_id, cc.concept_name ORDER BY cc.concept_name ASC
    */
   public Query buildConceptChildrenQuery(
       SnapshotBuilderDomainOption domainOption, int parentConceptId) {
@@ -58,6 +52,15 @@ public class ConceptChildrenQueryBuilder {
         SourceVariable.forJoined(
             TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, conceptId);
     FieldVariable descendantConceptId = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
+
+    // Filter the concept by joining on the concept_relationship table
+    //    JOIN (SELECT concept_id_2 FROM concept_relationship AS cr
+    //        WHERE (cr.concept_id_1 = <concept_id> AND cr.relationship_id = 'Subsumes')) AS cr1
+    //    ON c.concept_id = cr1.concept_id_2
+    var subQuery = createSubQuery(parentConceptId);
+    var subQueryPointer = new SubQueryPointer(subQuery, "join_filter");
+    var conceptRelationship =
+        SourceVariable.forJoined(subQueryPointer, ConceptRelationship.CONCEPT_ID_2, conceptId);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
@@ -78,19 +81,17 @@ public class ConceptChildrenQueryBuilder {
             count,
             HierarchyQueryBuilder.hasChildrenExpression(conceptId));
 
-    List<SourceVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
+    List<SourceVariable> tables =
+        List.of(concept, conceptAncestor, conceptRelationship, domainOccurrence);
 
     List<FieldVariable> groupBy = List.of(conceptName, conceptId, conceptCode);
 
     List<OrderByVariable> orderBy =
         List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING));
 
-    // WHERE c.concept_id IN ({createSubQuery()}) AND c.standard_concept = 'S'
+    // c.standard_concept = 'S'
     FilterVariable where =
-        BooleanAndOrFilterVariable.and(
-            SubQueryFilterVariable.in(conceptId, createSubQuery(parentConceptId)),
-            BinaryFilterVariable.equals(
-                concept.makeFieldVariable(STANDARD_CONCEPT), new Literal("S")));
+        BinaryFilterVariable.equals(concept.makeFieldVariable(STANDARD_CONCEPT), new Literal("S"));
 
     return new Query(select, tables, where, groupBy, orderBy);
   }

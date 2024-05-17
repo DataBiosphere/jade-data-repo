@@ -71,8 +71,7 @@ class SnapshotAccessRequestApiControllerTest {
 
     SnapshotAccessRequestResponse expectedResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(SNAPSHOT_ID);
-    when(snapshotBuilderService.createSnapshotAccessRequest(any(), eq(request)))
-        .thenReturn(expectedResponse);
+    when(snapshotBuilderService.createRequest(any(), eq(request))).thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
                 post(ENDPOINT)
@@ -106,7 +105,7 @@ class SnapshotAccessRequestApiControllerTest {
     expectedResponse.items(List.of(expectedResponseItem, secondExpectedResponseItem));
     when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.SNAPSHOT_BUILDER_REQUEST))
         .thenReturn(authResponse);
-    when(snapshotBuilderService.enumerateSnapshotAccessRequests(authResponse.keySet()))
+    when(snapshotBuilderService.enumerateRequests(authResponse.keySet()))
         .thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(get(ENDPOINT))
@@ -123,7 +122,7 @@ class SnapshotAccessRequestApiControllerTest {
   void testRejecteSnapshotRequest() throws Exception {
     UUID id = UUID.randomUUID();
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse().id(id);
-    when(snapshotBuilderService.rejectSnapshotAccessRequest(id)).thenReturn(response);
+    when(snapshotBuilderService.rejectRequest(id)).thenReturn(response);
     String actualJson =
         mvc.perform(put(REJECT_ENDPOINT, id))
             .andExpect(status().isOk())

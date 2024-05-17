@@ -50,7 +50,7 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
         snapshotAccessRequest.getSourceSnapshotId().toString(),
         IamAction.CREATE_SNAPSHOT_REQUEST);
     return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotAccessRequest(userRequest, snapshotAccessRequest));
+        snapshotBuilderService.createRequest(userRequest, snapshotAccessRequest));
   }
 
   @Override
@@ -59,7 +59,7 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     Map<UUID, Set<IamRole>> authorizedResources =
         iamService.listAuthorizedResources(userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST);
     return ResponseEntity.ok(
-        snapshotBuilderService.enumerateSnapshotAccessRequests(authorizedResources.keySet()));
+        snapshotBuilderService.enumerateRequests(authorizedResources.keySet()));
   }
 
   @Override
@@ -67,7 +67,7 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
-    return ResponseEntity.ok(snapshotBuilderService.rejectSnapshotAccessRequest(id));
+    return ResponseEntity.ok(snapshotBuilderService.rejectRequest(id));
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {

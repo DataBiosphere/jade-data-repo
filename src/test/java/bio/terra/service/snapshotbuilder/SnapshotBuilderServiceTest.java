@@ -112,7 +112,7 @@ class SnapshotBuilderServiceTest {
         .thenReturn(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail())));
     assertThat(
         "createSnapshotRequest returns the expected response",
-        snapshotBuilderService.createSnapshotAccessRequest(
+        snapshotBuilderService.createRequest(
             TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)),
         equalTo(response));
   }
@@ -132,7 +132,7 @@ class SnapshotBuilderServiceTest {
     assertThrows(
         InternalServerErrorException.class,
         () ->
-            snapshotBuilderService.createSnapshotAccessRequest(
+            snapshotBuilderService.createRequest(
                 TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)));
   }
 
@@ -148,7 +148,7 @@ class SnapshotBuilderServiceTest {
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",
-        snapshotBuilderService.enumerateSnapshotAccessRequests(Set.of(responseItem.getId())),
+        snapshotBuilderService.enumerateRequests(Set.of(responseItem.getId())),
         equalTo(expected));
   }
 
@@ -396,7 +396,7 @@ class SnapshotBuilderServiceTest {
   @Test
   void testRejectSnapshotAccessRequest() {
     UUID id = UUID.randomUUID();
-    snapshotBuilderService.rejectSnapshotAccessRequest(id);
+    snapshotBuilderService.rejectRequest(id);
     verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.REJECTED);
   }
 

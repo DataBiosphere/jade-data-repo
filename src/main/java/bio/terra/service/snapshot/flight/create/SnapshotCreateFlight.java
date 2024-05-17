@@ -252,7 +252,6 @@ public class SnapshotCreateFlight extends Flight {
                   azureSynapsePdao, snapshotService, snapshotReq));
         }
         break;
-
       case BYREQUESTID:
         if (platform.isGcp()) {
           addStep(

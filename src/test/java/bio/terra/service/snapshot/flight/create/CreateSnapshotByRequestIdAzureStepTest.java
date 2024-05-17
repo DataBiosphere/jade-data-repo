@@ -8,8 +8,6 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.SnapshotRequestContentsModel;
-import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -18,6 +16,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -25,7 +24,6 @@ import bio.terra.stairway.StepResult;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,15 +52,7 @@ class CreateSnapshotByRequestIdAzureStepTest {
   @BeforeEach
   void setUp() {
     snapshotReq =
-        new SnapshotRequestModel()
-            .name("snapshotRequestName")
-            .contents(
-                List.of(
-                    new SnapshotRequestContentsModel()
-                        .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
-                        .requestIdSpec(
-                            new SnapshotRequestIdModel()
-                                .snapshotRequestId(SNAPSHOT_ACCESS_REQUEST_ID))));
+        SnapshotBuilderTestData.createSnapshotRequestByRequestId(SNAPSHOT_ACCESS_REQUEST_ID);
     createSnapshotByRequestIdAzureStep =
         spy(
             new CreateSnapshotByRequestIdAzureStep(

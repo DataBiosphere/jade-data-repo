@@ -10,8 +10,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotRequestContentsModel;
-import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
@@ -69,14 +67,7 @@ class CreateSnapshotByRequestIdInterfaceTest {
     accessRequestResponse.id(snapshotAccessRequestId);
 
     SnapshotRequestModel requestModel =
-        new SnapshotRequestModel()
-            .contents(
-                List.of(
-                    new SnapshotRequestContentsModel()
-                        .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
-                        .requestIdSpec(
-                            new SnapshotRequestIdModel()
-                                .snapshotRequestId(snapshotAccessRequestId))));
+        SnapshotBuilderTestData.createSnapshotRequestByRequestId(snapshotAccessRequestId);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     when(snapshotDao.retrieveSnapshot(sourceSnapshotId)).thenReturn(sourceSnapshot);

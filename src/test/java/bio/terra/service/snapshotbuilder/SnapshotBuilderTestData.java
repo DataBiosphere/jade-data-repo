@@ -21,6 +21,9 @@ import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestIdModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
@@ -250,5 +253,17 @@ public class SnapshotBuilderTestData {
         .createdDate("date")
         .createdBy("user@gmail.com")
         .status(SnapshotAccessRequestStatus.SUBMITTED);
+  }
+
+  public static SnapshotRequestModel createSnapshotRequestByRequestId(
+      UUID snapshotAccessRequestId) {
+    return new SnapshotRequestModel()
+        .name("snapshotRequestName")
+        .contents(
+            List.of(
+                new SnapshotRequestContentsModel()
+                    .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+                    .requestIdSpec(
+                        new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId))));
   }
 }

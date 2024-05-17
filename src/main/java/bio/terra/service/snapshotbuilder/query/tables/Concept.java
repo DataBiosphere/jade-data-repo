@@ -47,7 +47,7 @@ public class Concept extends TableVariable {
     return getFieldVariable(CONCEPT_CODE);
   }
 
-  public FieldVariable standard_concept() {
+  public FieldVariable standardConcept() {
     return getFieldVariable(STANDARD_CONCEPT);
   }
 

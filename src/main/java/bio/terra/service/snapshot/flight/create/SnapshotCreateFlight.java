@@ -222,27 +222,24 @@ public class SnapshotCreateFlight extends Flight {
         if (platform.isGcp()) {
           addStep(
               new CreateSnapshotPrimaryDataQueryGcpStep(
-                  snapshotReq,
                   bigQuerySnapshotPdao,
                   snapshotService,
                   datasetService,
-                  snapshotBuilderService,
-                  snapshotRequestDao,
                   snapshotDao,
+                  snapshotReq,
                   userReq));
+          break;
         } else if (platform.isAzure()) {
           addStep(
               new CreateSnapshotByQueryParquetFilesAzureStep(
-                  snapshotReq,
                   azureSynapsePdao,
                   snapshotDao,
                   snapshotService,
+                  snapshotReq,
                   datasetService,
-                  snapshotBuilderService,
-                  snapshotRequestDao,
                   userReq));
+          break;
         }
-        break;
       case BYROWID:
         if (platform.isGcp()) {
           addStep(

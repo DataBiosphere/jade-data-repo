@@ -15,8 +15,6 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -31,28 +29,22 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
 
   private final SnapshotDao snapshotDao;
   private final SnapshotRequestModel snapshotReq;
-  private final SnapshotRequestDao snapshotRequestDao;
   private final DatasetService datasetService;
-  private final SnapshotBuilderService snapshotBuilderService;
   private final AuthenticatedUserRequest userRequest;
   private String sourceDatasetDataSourceName;
   private String targetDataSourceName;
 
   public CreateSnapshotByQueryParquetFilesAzureStep(
-      SnapshotRequestModel snapshotReq,
       AzureSynapsePdao azureSynapsePdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
+      SnapshotRequestModel snapshotReq,
       DatasetService datasetService,
-      SnapshotBuilderService snapshotBuilderService,
-      SnapshotRequestDao snapshotRequestDao,
       AuthenticatedUserRequest userRequest) {
     super(azureSynapsePdao, snapshotService);
     this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
-    this.snapshotRequestDao = snapshotRequestDao;
     this.datasetService = datasetService;
-    this.snapshotBuilderService = snapshotBuilderService;
     this.userRequest = userRequest;
   }
 
@@ -61,15 +53,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
     sourceDatasetDataSourceName = IngestUtils.getSourceDatasetDataSourceName(context.getFlightId());
     targetDataSourceName = IngestUtils.getTargetDataSourceName(context.getFlightId());
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    return prepareQueryAndCreateSnapshot(
-        context,
-        snapshot,
-        snapshotReq,
-        datasetService,
-        snapshotBuilderService,
-        snapshotRequestDao,
-        snapshotDao,
-        userRequest);
+    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
   }
 
   @Override

@@ -90,19 +90,12 @@ class CreateSnapshotPrimaryDataQueryInterfaceTest {
             eq(flightContext), eq(asset), eq(snapshot), eq(sqlQuery), any()))
         .thenReturn(StepResult.getStepResultSuccess());
     when(createSnapshotPrimaryDataQueryInterface.prepareQueryAndCreateSnapshot(
-            any(), any(), any(), any(), any(), any(), any(), any()))
+            any(), any(), any(), any()))
         .thenCallRealMethod();
 
     assertThat(
         createSnapshotPrimaryDataQueryInterface.prepareQueryAndCreateSnapshot(
-            flightContext,
-            snapshot,
-            requestModel,
-            datasetService,
-            snapshotBuilderService,
-            snapshotRequestDao,
-            snapshotDao,
-            TEST_USER),
+            flightContext, snapshot, requestModel, datasetService),
         is(StepResult.getStepResultSuccess()));
   }
 }

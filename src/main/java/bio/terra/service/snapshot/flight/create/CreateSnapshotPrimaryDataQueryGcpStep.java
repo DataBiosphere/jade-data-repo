@@ -11,8 +11,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -26,26 +24,20 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final DatasetService datasetService;
-  private final SnapshotBuilderService snapshotBuilderService;
-  private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotDao snapshotDao;
   private final SnapshotRequestModel snapshotReq;
   private final AuthenticatedUserRequest userRequest;
 
   public CreateSnapshotPrimaryDataQueryGcpStep(
-      SnapshotRequestModel snapshotReq,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       DatasetService datasetService,
-      SnapshotBuilderService snapshotBuilderService,
-      SnapshotRequestDao snapshotRequestDao,
       SnapshotDao snapshotDao,
+      SnapshotRequestModel snapshotReq,
       AuthenticatedUserRequest userRequest) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.datasetService = datasetService;
-    this.snapshotBuilderService = snapshotBuilderService;
-    this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotDao = snapshotDao;
     this.snapshotReq = snapshotReq;
     this.userRequest = userRequest;
@@ -54,15 +46,7 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    return prepareQueryAndCreateSnapshot(
-        context,
-        snapshot,
-        snapshotReq,
-        datasetService,
-        snapshotBuilderService,
-        snapshotRequestDao,
-        snapshotDao,
-        userRequest);
+    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
   }
 
   @Override

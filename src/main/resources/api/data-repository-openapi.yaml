@@ -3057,7 +3057,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshotAccessRequests/{id}/reject:
-    post:
+    put:
       tags:
         - SnapshotAccessRequest
       description: As a custodian, reject a snapshot access request. Approve should be done via 'createSnapshot'.

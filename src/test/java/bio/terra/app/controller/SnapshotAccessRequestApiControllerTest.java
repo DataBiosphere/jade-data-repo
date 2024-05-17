@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.common.TestUtils;
@@ -50,6 +51,8 @@ class SnapshotAccessRequestApiControllerTest {
   @MockBean private IamService iamService;
 
   private static final String ENDPOINT = "/api/repository/v1/snapshotAccessRequests";
+
+  private static final String REJECT_ENDPOINT = ENDPOINT + "/{id}/reject";
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -114,5 +117,24 @@ class SnapshotAccessRequestApiControllerTest {
     EnumerateSnapshotAccessRequest actual =
         TestUtils.mapFromJson(actualJson, EnumerateSnapshotAccessRequest.class);
     assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
+  }
+
+  @Test
+  void testRejecteSnapshotRequest() throws Exception {
+    UUID id = UUID.randomUUID();
+    SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse().id(id);
+    when(snapshotBuilderService.rejectSnapshotAccessRequest(id)).thenReturn(response);
+    String actualJson =
+        mvc.perform(put(REJECT_ENDPOINT, id))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotAccessRequestResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
+    assertThat("The updated response is returned", actual, equalTo(response));
+    verify(iamService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
   }
 }

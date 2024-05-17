@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
@@ -395,9 +396,8 @@ class SnapshotBuilderServiceTest {
   @Test
   void testRejectSnapshotAccessRequest() {
     UUID id = UUID.randomUUID();
-    when(snapshotRequestDao.update(id, SnapshotAccessRequestStatus.REJECTED))
-        .thenReturn(new SnapshotAccessRequestResponse());
     snapshotBuilderService.rejectSnapshotAccessRequest(id);
+    verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {

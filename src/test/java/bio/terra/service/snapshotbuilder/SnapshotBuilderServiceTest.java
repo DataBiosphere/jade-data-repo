@@ -23,6 +23,7 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
@@ -389,6 +390,14 @@ class SnapshotBuilderServiceTest {
             Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL));
 
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
+  }
+
+  @Test
+  void testRejectSnapshotAccessRequest() {
+    UUID id = UUID.randomUUID();
+    when(snapshotRequestDao.update(id, SnapshotAccessRequestStatus.REJECTED))
+        .thenReturn(new SnapshotAccessRequestResponse());
+    snapshotBuilderService.rejectSnapshotAccessRequest(id);
   }
 
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {

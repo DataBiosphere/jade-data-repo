@@ -62,6 +62,14 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
         snapshotBuilderService.enumerateSnapshotAccessRequests(authorizedResources.keySet()));
   }
 
+  @Override
+  public ResponseEntity<SnapshotAccessRequestResponse> rejectSnapshotAccessRequest(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
+    return ResponseEntity.ok(snapshotBuilderService.rejectSnapshotAccessRequest(id));
+  }
+
   private AuthenticatedUserRequest getAuthenticatedInfo() {
     return authenticatedUserRequestFactory.from(request);
   }

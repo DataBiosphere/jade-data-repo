@@ -9,6 +9,7 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderConceptsResponse;
@@ -314,6 +315,10 @@ public class SnapshotBuilderService {
     }
 
     return new SnapshotBuilderGetConceptHierarchyResponse().result(List.copyOf(parents.values()));
+  }
+
+  public SnapshotAccessRequestResponse rejectSnapshotAccessRequest(UUID id) {
+    return snapshotRequestDao.update(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   private SnapshotBuilderDomainOption getDomainOption(

@@ -224,7 +224,7 @@ def create_dataset(clients, dataset_to_upload, profile_id):
     return dataset
 
 
-def get_datasets_to_upload(filename):
+def load_file(filename):
     with open(os.path.join("suites", filename)) as f:
         return json.load(f)
 
@@ -277,15 +277,11 @@ def create_snapshots(clients, dataset_name, snapshots, profile_id):
 
 
 def create_snapshot_request(clients, snapshot_id):
-    snapshot_access_request = get_file_to_upload("snapshot-access-request.json")
+    snapshot_access_request = load_file("snapshot-access-request.json")
     snapshot_access_request['sourceSnapshotId'] = snapshot_id
     request = clients.snapshot_request_api.create_snapshot_access_request(
         snapshot_access_request=snapshot_access_request)
-    print(request)
-    print(type(request))
     dict_request = vars(request)
-    print(dict_request)
-    print(type(dict_request))
     return dict_request['_id']
 
 def find_dataset_by_name(name):
@@ -359,7 +355,7 @@ def main():
     azure_profile_id = args.azure_profile_id
 
     outputs = []
-    for dataset_to_upload in get_datasets_to_upload(args.datasets):
+    for dataset_to_upload in load_file(args.datasets):
         snapshot_ids = []
         dataset_cloud_platform = dataset_to_upload["cloud_platform"]
         if dataset_cloud_platform == "gcp":
@@ -403,14 +399,15 @@ def main():
                 )
                 print("Added snapshot builder settings for snapshot %s" % snapshot_id)
 
-print("Creating snapshot access requests on snapshots")
-snapshot_access_request_ids = []
-for snapshot_id in snapshot_ids:
-    snapshot_access_request_id = create_snapshot_request(clients,
+    print("Creating snapshot access requests on snapshots")
+    snapshot_access_request_ids = []
+    for snapshot_id in snapshot_ids:
+        snapshot_access_request_id = create_snapshot_request(clients,
                                                          snapshot_id)
-    snapshot_access_request_ids.append(snapshot_access_request_id)
-    print(
-        f"Created snapshot access request {snapshot_access_request_id} on snapshot {snapshot_id}")
+        snapshot_access_request_ids.append(snapshot_access_request_id)
+        print(
+            f"Created snapshot access request {snapshot_access_request_id} on snapshot {snapshot_id}")
+
     output_filename = f"{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
     with open(output_filename, "w") as f:
         json.dump(outputs, f)

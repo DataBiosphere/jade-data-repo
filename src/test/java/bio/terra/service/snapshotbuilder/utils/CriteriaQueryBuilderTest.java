@@ -1,8 +1,8 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
@@ -32,12 +32,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class CriteriaQueryBuilderTest {
-  CriteriaQueryBuilder criteriaQueryBuilder;
+  private CriteriaQueryBuilder criteriaQueryBuilder;
 
   @BeforeEach
   void setup() {
     criteriaQueryBuilder =
         new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS);
+  }
+
+  public static String stripSpaces(String toBeStripped) {
+    return toBeStripped.replaceAll("\\s+", " ").trim();
+  }
+
+  public static void assertQueryEquals(String expectedSql, String actualSql) {
+    assertEquals(stripSpaces(expectedSql), stripSpaces(actualSql), "The sql generated is correct");
   }
 
   @ParameterizedTest
@@ -46,10 +54,8 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateYearOfBirthRangeCriteria();
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(rangeCriteria);
 
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace("(p.year_of_birth >= 0 AND p.year_of_birth <= 100)"));
+    assertQueryEquals(
+        "(p.year_of_birth >= 0 AND p.year_of_birth <= 100)", filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -59,10 +65,7 @@ class CriteriaQueryBuilderTest {
         generateEthnicityListCriteria(List.of(0, 1, 2));
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace("p.ethnicity_concept_id IN (0,1,2)"));
+    assertQueryEquals("p.ethnicity_concept_id IN (0,1,2)", filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -71,10 +74,7 @@ class CriteriaQueryBuilderTest {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateEthnicityListCriteria(List.of());
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(listCriteria);
 
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace("1=1"));
+    assertQueryEquals("1=1", filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -86,10 +86,7 @@ class CriteriaQueryBuilderTest {
 
     String expectedSql =
         "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co  JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE ca.ancestor_concept_id = 0)";
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(expectedSql));
+    assertQueryEquals(expectedSql, filterVariable.renderSQL(context));
   }
 
   @Test
@@ -108,12 +105,9 @@ class CriteriaQueryBuilderTest {
         generateDomainCriteria(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID);
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
-    String sql = filterVariable.renderSQL(context);
-    assertThat(
-        "The sql generated is correct",
-        sql,
-        equalToCompressingWhiteSpace(
-            "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE ca.ancestor_concept_id = 0)"));
+    assertQueryEquals(
+        "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE ca.ancestor_concept_id = 0)",
+        filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -153,11 +147,9 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
 
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
+    assertQueryEquals(
+        "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))",
+        filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -172,11 +164,9 @@ class CriteriaQueryBuilderTest {
             .meetAll(false);
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateAndOrFilterForCriteriaGroup(criteriaGroup);
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            "(p.ethnicity_concept_id IN (0,1,2) OR (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
+    assertQueryEquals(
+        "(p.ethnicity_concept_id IN (0,1,2) OR (p.year_of_birth >= 0 AND p.year_of_birth <= 100))",
+        filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -193,11 +183,9 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))"));
+    assertQueryEquals(
+        "(p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100))",
+        filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -214,11 +202,9 @@ class CriteriaQueryBuilderTest {
     FilterVariable filterVariable =
         criteriaQueryBuilder.generateFilterForCriteriaGroup(criteriaGroup);
 
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            "(NOT (p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)))"));
+    assertQueryEquals(
+        "(NOT (p.ethnicity_concept_id IN (0,1,2) AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)))",
+        filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -236,11 +222,9 @@ class CriteriaQueryBuilderTest {
                     .meetAll(true)
                     .mustMeet(true)));
 
-    assertThat(
-        "The sql generated is correct",
-        filterVariable.renderSQL(context),
-        equalToCompressingWhiteSpace(
-            "(((p.year_of_birth >= 0 AND p.year_of_birth <= 100)) AND (p.ethnicity_concept_id IN (0,1,2)))"));
+    assertQueryEquals(
+        "(((p.year_of_birth >= 0 AND p.year_of_birth <= 100)) AND (p.ethnicity_concept_id IN (0,1,2)))",
+        filterVariable.renderSQL(context));
   }
 
   @ParameterizedTest
@@ -280,10 +264,7 @@ class CriteriaQueryBuilderTest {
                 JOIN concept_ancestor AS ca1
                 ON ca1.descendant_concept_id = po.procedure_concept_id
               WHERE ca1.ancestor_concept_id = 0))))""";
-    assertThat(
-        "The sql generated is correct",
-        query.renderSQL(context),
-        equalToCompressingWhiteSpace(expectedSql));
+    assertQueryEquals(expectedSql, query.renderSQL(context));
   }
 
   @ParameterizedTest

@@ -1,14 +1,12 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -72,9 +70,8 @@ class ConceptChildrenQueryBuilderTest {
             .conceptChildrenQueryBuilder()
             .buildConceptChildrenQuery(createDomainOption(), 101)
             .renderSQL(context);
-    assertThat(
-        sql,
-        equalToCompressingWhiteSpace(context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED)));
+
+    assertQueryEquals(context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED), sql);
   }
 
   @ParameterizedTest
@@ -90,6 +87,6 @@ class ConceptChildrenQueryBuilderTest {
         SELECT c.domain_id
         FROM concept AS c
         WHERE c.concept_id = 101""";
-    assertThat(sql, Matchers.equalToCompressingWhiteSpace(expected));
+    assertQueryEquals(expected, sql);
   }
 }

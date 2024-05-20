@@ -295,7 +295,7 @@ class CriteriaQueryBuilderTest {
                 .getSnapshotBuilderRequest()
                 .getCohorts());
     String expectedSql =
-    """
+        """
     SELECT p.datarepo_row_id FROM person AS p WHERE
         (((1=1 AND p.person_id IN
             (SELECT co.person_id FROM condition_occurrence AS co

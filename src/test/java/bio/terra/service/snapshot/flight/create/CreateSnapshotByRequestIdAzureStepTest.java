@@ -84,10 +84,10 @@ class CreateSnapshotByRequestIdAzureStepTest {
 
     assertEquals(StepResult.getStepResultSuccess(), result);
     assertEquals(
-        createSnapshotByRequestIdAzureStep.targetDataSourceName, "target_data_source_null");
+        "target_data_source_null", createSnapshotByRequestIdAzureStep.targetDataSourceName);
     assertEquals(
-        createSnapshotByRequestIdAzureStep.sourceDatasetDataSourceName,
-        "source_dataset_data_source_null");
+        "source_dataset_data_source_null",
+        createSnapshotByRequestIdAzureStep.sourceDatasetDataSourceName);
   }
 
   @Test

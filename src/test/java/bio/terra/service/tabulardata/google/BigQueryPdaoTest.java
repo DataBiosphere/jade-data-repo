@@ -136,7 +136,7 @@ public class BigQueryPdaoTest {
 
   private final List<BlobInfo> blobsToDelete = new ArrayList<>();
 
-  private DatasetSummaryModel datasetSummary;
+  private DatasetSummaryModel datasetSummaryModel;
 
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
   private static final AuthenticatedUserRequest TEST_USER =
@@ -356,10 +356,10 @@ public class BigQueryPdaoTest {
       ingester.waitForCompletion(dataset);
     }
 
-    datasetSummary = dataset.getDatasetSummary().toModel();
+    datasetSummaryModel = dataset.getDatasetSummary().toModel();
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(
-            datasetSummary, "omop/release-snapshot-request.json", "");
+            datasetSummaryModel, "omop/release-snapshot-request.json", "");
     var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
     settingsDao.upsertBySnapshotId(snapshotSummary.getId(), settings);
     return snapshotService.retrieve(snapshotSummary.getId());
@@ -390,7 +390,23 @@ public class BigQueryPdaoTest {
         createSnapshotRequestModelByRequestId(accessRequest.getId());
 
     SnapshotSummaryModel snapshotSummary =
-        connectedOperations.createSnapshot(datasetSummary, requestModel, "");
+        connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");
+    Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
+    assertThat(snapshot.getName(), is(requestModel.getName()));
+    assertThat(snapshot.getTables().size(), is(equalTo(3)));
+    BigQueryProject bigQuerySnapshotProject =
+        TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
+    String rowId = "datarepo_row_id";
+    List<String> personIds =
+        queryForIds(snapshot.getName(), "person", rowId, bigQuerySnapshotProject, rowId);
+    assertThat(personIds.size(), is(23));
+    List<String> conditionOccurrenceIds =
+        queryForIds(
+            snapshot.getName(), "condition_occurrence", rowId, bigQuerySnapshotProject, rowId);
+    assertThat(conditionOccurrenceIds.size(), is(49));
+    List<String> conceptIds =
+        queryForIds(snapshot.getName(), "concept", rowId, bigQuerySnapshotProject, rowId);
+    assertThat(conceptIds.size(), is(5));
   }
 
   @Test
@@ -713,19 +729,22 @@ public class BigQueryPdaoTest {
   private List<String> readIds(Dataset dataset) throws Exception {
     BigQueryProject bigQueryDatasetProject =
         TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
+    Column fileColumn = new Column().name("file");
     List<String> ids =
         new ArrayList<>(
             queryForColumn(
                 BigQueryPdao.prefixName(dataset.getName()),
                 getTable(dataset, "file").getName(),
-                new Column().name("file"),
-                bigQueryDatasetProject));
+                fileColumn,
+                bigQueryDatasetProject,
+                fileColumn));
     List<List<String>> idsFromArray =
         queryForColumn(
             BigQueryPdao.prefixName(dataset.getName()),
             getTable(dataset, "file").getName(),
             new Column().name("file_a").arrayOf(true),
-            bigQueryDatasetProject);
+            bigQueryDatasetProject,
+            fileColumn);
     ids.addAll(idsFromArray.stream().flatMap(Collection::stream).toList());
     return ids;
   }
@@ -755,11 +774,15 @@ public class BigQueryPdaoTest {
   }
 
   private static final String queryForColumnTemplate =
-      "SELECT <column> FROM `<project>.<container>.<table>` ORDER BY id";
+      "SELECT <column> FROM `<project>.<container>.<table>` ORDER BY <order_by>";
 
   // Query for a table / column's value.
   static <T> List<T> queryForColumn(
-      String containerName, String tableName, Column column, BigQueryProject bigQueryProject)
+      String containerName,
+      String tableName,
+      Column column,
+      BigQueryProject bigQueryProject,
+      Column orderBy)
       throws Exception {
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();
@@ -769,6 +792,7 @@ public class BigQueryPdaoTest {
     sqlTemplate.add("container", containerName);
     sqlTemplate.add("table", tableName);
     sqlTemplate.add("column", column.getName());
+    sqlTemplate.add("order_by", orderBy.getName());
 
     QueryJobConfiguration queryConfig =
         QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
@@ -794,7 +818,22 @@ public class BigQueryPdaoTest {
 
   static List<String> queryForIds(
       String snapshotName, String tableName, BigQueryProject bigQueryProject) throws Exception {
-    return queryForColumn(snapshotName, tableName, new Column().name("id"), bigQueryProject);
+    return queryForIds(snapshotName, tableName, "id", bigQueryProject, "id");
+  }
+
+  static List<String> queryForIds(
+      String snapshotName,
+      String tableName,
+      String columnName,
+      BigQueryProject bigQueryProject,
+      String orderBy)
+      throws Exception {
+    return queryForColumn(
+        snapshotName,
+        tableName,
+        new Column().name(columnName),
+        bigQueryProject,
+        new Column().name(orderBy));
   }
 
   /* BigQuery Legacy SQL supports querying a "meta-table" about partitions

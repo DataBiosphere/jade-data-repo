@@ -54,7 +54,7 @@ class SnapshotRequestValidatorTest {
   @MockBean private AssetModelValidator assetModelValidator;
 
   @BeforeEach
-  void setup() throws Exception {
+  void setup() {
     when(ingestRequestValidator.supports(any())).thenReturn(true);
     when(assetModelValidator.supports(any())).thenReturn(true);
   }

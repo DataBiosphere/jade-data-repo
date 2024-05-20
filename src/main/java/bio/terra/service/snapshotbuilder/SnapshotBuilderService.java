@@ -9,6 +9,7 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderConceptsResponse;
@@ -82,7 +83,7 @@ public class SnapshotBuilderService {
     this.queryBuilderFactory = queryBuilderFactory;
   }
 
-  public SnapshotAccessRequestResponse createSnapshotAccessRequest(
+  public SnapshotAccessRequestResponse createRequest(
       AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
         snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
@@ -180,8 +181,7 @@ public class SnapshotBuilderService {
     return rollupCount == 0 ? rollupCount : Math.max(rollupCount, 19);
   }
 
-  public EnumerateSnapshotAccessRequest enumerateSnapshotAccessRequests(
-      Collection<UUID> authorizedResources) {
+  public EnumerateSnapshotAccessRequest enumerateRequests(Collection<UUID> authorizedResources) {
     return new EnumerateSnapshotAccessRequest()
         .items(snapshotRequestDao.enumerate(authorizedResources));
   }
@@ -350,6 +350,10 @@ public class SnapshotBuilderService {
     }
 
     return new SnapshotBuilderGetConceptHierarchyResponse().result(List.copyOf(parents.values()));
+  }
+
+  public SnapshotAccessRequestResponse rejectRequest(UUID id) {
+    return snapshotRequestDao.update(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   private SnapshotBuilderDomainOption getDomainOption(

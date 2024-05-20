@@ -9,13 +9,13 @@ import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.tables.Concept;
 import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.query.tables.DomainOccurrence;
+import bio.terra.service.snapshotbuilder.query.tables.Table;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
@@ -40,29 +40,22 @@ public class SearchConceptsQueryBuilder {
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
-    Concept concept = new Concept.Builder().build();
+    Concept concept = Concept.asPrimary();
     FieldVariable nameField = concept.name();
     FieldVariable conceptId = concept.concept_id();
     FieldVariable conceptCode = concept.code();
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
-    ConceptAncestor conceptAncestor =
-        new ConceptAncestor.Builder()
-            .join(ConceptAncestor.ANCESTOR_CONCEPT_ID)
-            .on(conceptId)
-            .build();
+    ConceptAncestor conceptAncestor = ConceptAncestor.joinAncestor(conceptId);
 
     FieldVariable descendantId = conceptAncestor.descendant_concept_id();
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
     DomainOccurrence domainOccurrence =
-        new DomainOccurrence.Builder()
-            .from(domainOption.getTableName())
-            .leftJoin(domainOption.getColumnName())
-            .on(descendantId)
-            .build();
+        DomainOccurrence.leftJoinOnDescendantConcept(
+            domainOption.getTableName(), domainOption.getColumnName());
 
     // COUNT(DISTINCT co.person_id) AS count
     var countPerson = domainOccurrence.getCountPerson();
@@ -78,7 +71,7 @@ public class SearchConceptsQueryBuilder {
             countPerson,
             new SelectAlias(new Literal(true), QueryBuilderFactory.HAS_CHILDREN));
 
-    List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
+    List<Table> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
     // ORDER BY count DESC
     List<OrderByVariable> orderBy =
@@ -92,10 +85,10 @@ public class SearchConceptsQueryBuilder {
       where = domainClause;
     } else {
       // search concept name clause filters for the search text based on field concept_name
-      var searchNameClause = createSearchConceptClause(concept, searchText, Concept.CONCEPT_NAME);
+      var searchNameClause = createSearchConceptClause(searchText, concept.name());
 
       // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause = createSearchConceptClause(concept, searchText, Concept.CONCEPT_CODE);
+      var searchCodeClause = createSearchConceptClause(searchText, concept.code());
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
@@ -121,10 +114,10 @@ public class SearchConceptsQueryBuilder {
   }
 
   static FunctionFilterVariable createSearchConceptClause(
-      TableVariable conceptTableVariable, String searchText, String columnName) {
+      String searchText, FieldVariable fieldVariable) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-        conceptTableVariable.makeFieldVariable(columnName),
+        fieldVariable,
         new Literal(searchText));
   }
 

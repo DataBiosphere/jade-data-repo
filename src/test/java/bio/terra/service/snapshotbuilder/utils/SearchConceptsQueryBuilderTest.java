@@ -10,8 +10,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.tables.Concept;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -155,11 +153,8 @@ class SearchConceptsQueryBuilderTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
     CloudPlatformWrapper platformWrapper = context.getPlatform();
-    TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
-    String actual =
-        createSearchConceptClause(conceptTableVariable, "cancer", Concept.CONCEPT_NAME)
-            .renderSQL(context);
+    Concept concept = Concept.asPrimary();
+    String actual = createSearchConceptClause("cancer", concept.name()).renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
     var expectedAzureQuery = "CHARINDEX('cancer', c.concept_name) > 0";
@@ -175,7 +170,7 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    Concept concept = new Concept.Builder().build();
+    Concept concept = Concept.asPrimary();
     assertThat(
         "generated sql is as expected",
         SearchConceptsQueryBuilder.createDomainClause(concept, "domain").renderSQL(context),

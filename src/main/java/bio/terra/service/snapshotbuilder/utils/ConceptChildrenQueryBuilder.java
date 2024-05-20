@@ -8,7 +8,6 @@ import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
@@ -16,6 +15,7 @@ import bio.terra.service.snapshotbuilder.query.tables.Concept;
 import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.query.tables.ConceptRelationship;
 import bio.terra.service.snapshotbuilder.query.tables.DomainOccurrence;
+import bio.terra.service.snapshotbuilder.query.tables.Table;
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {
@@ -33,7 +33,7 @@ public class ConceptChildrenQueryBuilder {
       SnapshotBuilderDomainOption domainOption, int parentConceptId) {
 
     // concept table and its fields concept_name and concept_id
-    Concept concept = new Concept.Builder().build();
+    Concept concept = Concept.asPrimary();
     FieldVariable conceptName = concept.name();
     FieldVariable conceptId = concept.concept_id();
     FieldVariable conceptCode = concept.code();
@@ -41,23 +41,13 @@ public class ConceptChildrenQueryBuilder {
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id.
     // We use concept_ancestor for the rollup count because we want to include counts
     // from all descendants, not just direct descendants.
-
-    ConceptAncestor conceptAncestor =
-        new ConceptAncestor.Builder()
-            .join(ConceptAncestor.ANCESTOR_CONCEPT_ID)
-            .on(conceptId)
-            .build();
-
-    FieldVariable descendantConceptId = conceptAncestor.descendant_concept_id();
+    ConceptAncestor conceptAncestor = ConceptAncestor.joinAncestor(conceptId);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
     DomainOccurrence domainOccurrence =
-        new DomainOccurrence.Builder()
-            .from(domainOption.getTableName())
-            .leftJoin(domainOption.getColumnName())
-            .on(descendantConceptId)
-            .build();
+        DomainOccurrence.leftJoinOnDescendantConcept(
+            domainOption.getTableName(), domainOption.getColumnName());
 
     // COUNT(DISTINCT person_id)
     FieldVariable countPerson = domainOccurrence.getCountPerson();
@@ -70,7 +60,7 @@ public class ConceptChildrenQueryBuilder {
             countPerson,
             HierarchyQueryBuilder.hasChildrenExpression(conceptId));
 
-    List<TableVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
+    List<Table> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
     List<FieldVariable> groupBy = List.of(conceptName, conceptId, conceptCode);
 
@@ -81,7 +71,7 @@ public class ConceptChildrenQueryBuilder {
     FilterVariable where =
         BooleanAndOrFilterVariable.and(
             SubQueryFilterVariable.in(conceptId, createSubQuery(parentConceptId)),
-            BinaryFilterVariable.equals(concept.standard_concept(), new Literal("S")));
+            BinaryFilterVariable.equals(concept.standardConcept(), new Literal("S")));
 
     return new Query.Builder()
         .select(select)
@@ -101,7 +91,7 @@ public class ConceptChildrenQueryBuilder {
    */
   Query createSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
-    ConceptRelationship conceptRelationship = new ConceptRelationship.Builder().build();
+    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
     FieldVariable descendantConceptId = conceptRelationship.concept_id_2();
 
     return new Query.Builder()
@@ -110,11 +100,9 @@ public class ConceptChildrenQueryBuilder {
         .where(
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(
-                    conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1),
-                    new Literal(conceptId)),
+                    conceptRelationship.concept_id_1(), new Literal(conceptId)),
                 BinaryFilterVariable.equals(
-                    conceptRelationship.makeFieldVariable(ConceptRelationship.RELATIONSHIP_ID),
-                    new Literal("Subsumes"))))
+                    conceptRelationship.relationship_id(), new Literal("Subsumes"))))
         .build();
   }
 
@@ -124,7 +112,7 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.domain_id FROM concept AS c WHERE c.concept_id = conceptId
    */
   public Query retrieveDomainId(int conceptId) {
-    Concept concept = new Concept.Builder().build();
+    Concept concept = Concept.asPrimary();
     FieldVariable domainId = concept.domain_id();
 
     BinaryFilterVariable where =

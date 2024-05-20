@@ -96,13 +96,10 @@ public class CriteriaQueryBuilder {
     TableVariable occurrenceVariable = TableVariable.forPrimary(occurrencePointer);
 
     ConceptAncestor conceptAncestor =
-        new ConceptAncestor.Builder()
-            .join(ConceptAncestor.DESCENDANT_CONCEPT_ID)
-            .on(
-                new FieldVariable(
-                    new FieldPointer(occurrencePointer, domainOption.getColumnName()),
-                    occurrenceVariable))
-            .build();
+        ConceptAncestor.joinDescendant(
+            new FieldVariable(
+                new FieldPointer(occurrencePointer, domainOption.getColumnName()),
+                occurrenceVariable));
     return SubQueryFilterVariable.in(
         getFieldVariableForRootTable(Person.PERSON_ID),
         new Query.Builder()

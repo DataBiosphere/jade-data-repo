@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.service.snapshotbuilder.query.tables.Table;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -7,7 +8,7 @@ import org.stringtemplate.v4.ST;
 
 public record Query(
     List<SelectExpression> select,
-    List<TableVariable> tables,
+    List<Table> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
     List<OrderByVariable> orderBy,
@@ -24,7 +25,7 @@ public record Query(
     groupBy = Objects.requireNonNullElse(groupBy, List.of());
     orderBy = Objects.requireNonNullElse(orderBy, List.of());
 
-    long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
+    long primaryTables = tables.stream().filter(Table::isPrimary).count();
     if (primaryTables != 1) {
       throw new IllegalArgumentException(
           "Query can only have one primary table, but found " + primaryTables);
@@ -102,13 +103,13 @@ public record Query(
     return "SELECT " + sql;
   }
 
-  public TableVariable getPrimaryTable() {
-    return tables.stream().filter(TableVariable::isPrimary).findFirst().orElseThrow();
+  public Table getPrimaryTable() {
+    return tables.stream().filter(Table::isPrimary).findFirst().orElseThrow();
   }
 
   public static class Builder {
     private List<SelectExpression> select;
-    private List<TableVariable> tables;
+    private List<Table> tables;
     private FilterVariable where;
     private List<FieldVariable> groupBy;
     private List<OrderByVariable> orderBy;
@@ -121,7 +122,7 @@ public record Query(
       return this;
     }
 
-    public Builder tables(List<TableVariable> tables) {
+    public Builder tables(List<Table> tables) {
       this.tables = tables;
       return this;
     }

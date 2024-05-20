@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
@@ -23,6 +24,7 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
@@ -110,7 +112,7 @@ class SnapshotBuilderServiceTest {
         .thenReturn(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail())));
     assertThat(
         "createSnapshotRequest returns the expected response",
-        snapshotBuilderService.createSnapshotAccessRequest(
+        snapshotBuilderService.createRequest(
             TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)),
         equalTo(response));
   }
@@ -130,7 +132,7 @@ class SnapshotBuilderServiceTest {
     assertThrows(
         InternalServerErrorException.class,
         () ->
-            snapshotBuilderService.createSnapshotAccessRequest(
+            snapshotBuilderService.createRequest(
                 TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)));
   }
 
@@ -146,7 +148,7 @@ class SnapshotBuilderServiceTest {
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",
-        snapshotBuilderService.enumerateSnapshotAccessRequests(Set.of(responseItem.getId())),
+        snapshotBuilderService.enumerateRequests(Set.of(responseItem.getId())),
         equalTo(expected));
   }
 
@@ -389,6 +391,13 @@ class SnapshotBuilderServiceTest {
             Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL));
 
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
+  }
+
+  @Test
+  void testRejectSnapshotAccessRequest() {
+    UUID id = UUID.randomUUID();
+    snapshotBuilderService.rejectRequest(id);
+    verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {

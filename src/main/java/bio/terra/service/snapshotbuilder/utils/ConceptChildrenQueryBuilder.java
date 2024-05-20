@@ -1,5 +1,8 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.hasChildrenJoin;
+import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.hasChildrenSelect;
+
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
@@ -53,14 +56,12 @@ public class ConceptChildrenQueryBuilder {
             TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, conceptId);
     FieldVariable descendantConceptId = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
-    // Filter the concept by joining on the concept_relationship table
-    //    JOIN (SELECT concept_id_2 FROM concept_relationship AS cr
-    //        WHERE (cr.concept_id_1 = <concept_id> AND cr.relationship_id = 'Subsumes')) AS cr1
-    //    ON c.concept_id = cr1.concept_id_2
     var subQuery = createSubQuery(parentConceptId);
     var subQueryPointer = new SubQueryPointer(subQuery, "join_filter");
     var conceptRelationship =
         SourceVariable.forJoined(subQueryPointer, ConceptRelationship.CONCEPT_ID_2, conceptId);
+
+    var hasChildrenJoin = hasChildrenJoin(conceptId);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
@@ -74,15 +75,10 @@ public class ConceptChildrenQueryBuilder {
     FieldVariable count = domainOccurrence.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
 
     List<SelectExpression> select =
-        List.of(
-            conceptName,
-            conceptId,
-            conceptCode,
-            count,
-            HierarchyQueryBuilder.hasChildrenExpression(conceptId));
+        List.of(conceptName, conceptId, conceptCode, count, hasChildrenSelect(hasChildrenJoin));
 
     List<SourceVariable> tables =
-        List.of(concept, conceptAncestor, conceptRelationship, domainOccurrence);
+        List.of(concept, conceptAncestor, conceptRelationship, hasChildrenJoin, domainOccurrence);
 
     List<FieldVariable> groupBy = List.of(conceptName, conceptId, conceptCode);
 

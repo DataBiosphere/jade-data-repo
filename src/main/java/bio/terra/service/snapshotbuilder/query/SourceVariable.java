@@ -21,14 +21,23 @@ public final class SourceVariable implements SqlExpression {
   }
 
   public void addJoinClause(
-      String joinField, FieldVariable fieldVariable, BinaryFilterVariable.BinaryOperator operator) {
+      String joinField, Literal joinFieldOnParent, BinaryFilterVariable.BinaryOperator operator) {
     var joinClause =
-        new BinaryFilterVariable(makeFieldVariable(joinField), operator, fieldVariable);
+        new BinaryFilterVariable(makeFieldVariable(joinField), operator, joinFieldOnParent);
     joinClauses.add(joinClause);
   }
 
-  public void addJoinClause(String joinField, FieldVariable fieldVariable) {
-    addJoinClause(joinField, fieldVariable, BinaryFilterVariable.BinaryOperator.EQUALS);
+  public void addJoinClause(
+      String joinField,
+      FieldVariable joinFieldOnParent,
+      BinaryFilterVariable.BinaryOperator operator) {
+    var joinClause =
+        new BinaryFilterVariable(makeFieldVariable(joinField), operator, joinFieldOnParent);
+    joinClauses.add(joinClause);
+  }
+
+  public void addJoinClause(String joinField, FieldVariable joinFieldOnParent) {
+    addJoinClause(joinField, joinFieldOnParent, BinaryFilterVariable.BinaryOperator.EQUALS);
   }
 
   public static SourceVariable forJoined(

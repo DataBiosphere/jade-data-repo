@@ -61,23 +61,14 @@ public class SnapshotRequestValidator implements Validator {
             }
 
             switch (contents.getMode()) {
-              case BYASSET:
-                validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
-                break;
-              case BYFULLVIEW:
+              case BYASSET -> validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
+              case BYFULLVIEW -> {
                 // no additional validation necessary
-                break;
-              case BYQUERY:
-                validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
-                break;
-              case BYROWID:
-                validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
-                break;
-              case BYREQUESTID:
-                validateSnapshotRequestIdSpec(contents.getRequestIdSpec(), errors);
-                break;
-              default:
-                errors.rejectValue("contents", "SnapshotContentsModeInvalid");
+              }
+              case BYQUERY -> validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
+              case BYROWID -> validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
+              case BYREQUESTID -> validateSnapshotRequestIdSpec(
+                  contents.getRequestIdSpec(), errors);
             }
           });
     }

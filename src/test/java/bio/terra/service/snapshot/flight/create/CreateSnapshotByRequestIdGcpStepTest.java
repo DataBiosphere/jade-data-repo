@@ -70,7 +70,7 @@ class CreateSnapshotByRequestIdGcpStepTest {
         createSnapshotByRequestIdGcpStep.createSnapshot(
             flightContext, assetSpecification, snapshot, sqlQuery, filterBefore);
     verify(bigQuerySnapshotPdao)
-        .queryForRowIds(assetSpecification, snapshot, sqlQuery, filterBefore);
+        .createSnapshotByQuery(assetSpecification, snapshot, sqlQuery, filterBefore);
     assertEquals(result, StepResult.getStepResultSuccess());
   }
 

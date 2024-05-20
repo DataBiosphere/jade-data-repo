@@ -247,7 +247,7 @@ class CriteriaQueryBuilderTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void generateRollupCountsQueryForCohortList(SqlRenderContext context) {
     Query query =
-        criteriaQueryBuilder.generateRollupCountsQueryForCohortList(
+        criteriaQueryBuilder.generateRollupCountsQueryForCohorts(
             List.of(
                 new SnapshotBuilderCohort()
                     .criteriaGroups(

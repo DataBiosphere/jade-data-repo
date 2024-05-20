@@ -34,8 +34,8 @@ public class CreateSnapshotByRequestIdAzureStep extends CreateSnapshotParquetFil
 
   public CreateSnapshotByRequestIdAzureStep(
       SnapshotRequestModel snapshotReq,
-      SnapshotBuilderService snapshotBuilderService,
       SnapshotService snapshotService,
+      SnapshotBuilderService snapshotBuilderService,
       SnapshotRequestDao snapshotRequestDao,
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq,

@@ -153,7 +153,7 @@ public class CriteriaQueryBuilder {
         criteriaGroups.stream().map(this::generateFilterForCriteriaGroup).toList());
   }
 
-  public Query generateRollupCountsQueryForCohortList(List<SnapshotBuilderCohort> cohorts) {
+  public Query generateRollupCountsQueryForCohorts(List<SnapshotBuilderCohort> cohorts) {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
         cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
 

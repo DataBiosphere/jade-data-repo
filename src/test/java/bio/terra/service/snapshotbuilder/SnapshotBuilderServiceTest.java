@@ -325,8 +325,7 @@ class SnapshotBuilderServiceTest {
     when(queryBuilderFactory.criteriaQueryBuilder("person", settings))
         .thenReturn(criteriaQueryBuilderMock);
     var cohorts = List.of(new SnapshotBuilderCohort());
-    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCohortList(cohorts))
-        .thenReturn(query);
+    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCohorts(cohorts)).thenReturn(query);
     String sql = "sql";
     // Use a captor to verify that the context was created using the dataset's cloud platform.
     var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);

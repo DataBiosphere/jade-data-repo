@@ -7,6 +7,7 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
@@ -28,22 +29,14 @@ public interface CreateSnapshotByRequestIdInterface {
         snapshotReq.getContents().get(0).getRequestIdSpec().getSnapshotRequestId();
     SnapshotAccessRequestResponse accessRequest = snapshotRequestDao.getById(accessRequestId);
 
-    UUID dataReleaseSnapshotId = accessRequest.getSourceSnapshotId();
-    Snapshot dataReleaseSnapshot = snapshotDao.retrieveSnapshot(dataReleaseSnapshotId);
-    // get the underlying dataset for the snapshot
-    Dataset dataset =
-        dataReleaseSnapshot.getSnapshotSources().stream()
-            .findFirst()
-            .orElseThrow(
-                () -> new IllegalArgumentException("Snapshot does not have a source dataset"))
-            .getDataset();
-    // gets pre-existing asset on the dataset
-    // TODO: create custom asset DC-1016
+    UUID sourceSnapshotId = accessRequest.getSourceSnapshotId();
+    Snapshot sourceSnapshot = snapshotDao.retrieveSnapshot(sourceSnapshotId);
+    Dataset dataset = sourceSnapshot.getSourceDataset();
     AssetSpecification assetSpecification =
-        dataset.getAssetSpecificationByName("concept_asset").orElseThrow();
+        SnapshotService.getAssetByNameFromDataset(dataset, SnapshotService.ASSET_NAME);
     String sqlQuery =
-        snapshotBuilderService.generateRowIdQuery(accessRequest, dataReleaseSnapshot, userReq);
-    Instant createdAt = dataReleaseSnapshot.getCreatedDate();
+        snapshotBuilderService.generateRowIdQuery(accessRequest, sourceSnapshot, userReq);
+    Instant createdAt = sourceSnapshot.getCreatedDate();
     return createSnapshot(context, assetSpecification, snapshot, sqlQuery, createdAt);
   }
 

@@ -1,5 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils.constants;
 
+import bio.terra.common.PdaoConstant;
+
 public final class Person {
   private Person() {}
 
@@ -9,5 +11,5 @@ public final class Person {
   public static final String GENDER_CONCEPT_ID = "gender_concept_id";
   public static final String RACE_CONCEPT_ID = "race_concept_id";
   public static final String ETHNICITY_CONCEPT_ID = "ethnicity_concept_id";
-  public static final String ROW_ID = "datarepo_row_id";
+  public static final String ROW_ID = PdaoConstant.PDAO_ROW_ID_COLUMN;
 }

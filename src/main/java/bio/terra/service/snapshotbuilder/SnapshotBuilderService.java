@@ -225,7 +225,7 @@ public class SnapshotBuilderService {
     Query query =
         queryBuilderFactory
             .criteriaQueryBuilder("person", snapshotBuilderSettings)
-            .generateRollupCountsQueryForCohortList(cohorts);
+            .generateRollupCountsQueryForCohorts(cohorts);
 
     return runSnapshotBuilderQuery(
             query,
@@ -276,12 +276,7 @@ public class SnapshotBuilderService {
       AuthenticatedUserRequest userReq) {
 
     SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId());
-    Dataset dataset =
-        snapshot.getSnapshotSources().stream()
-            .findFirst()
-            .orElseThrow(
-                () -> new IllegalArgumentException("Snapshot does not have a source dataset"))
-            .getDataset();
+    Dataset dataset = snapshot.getSourceDataset();
 
     List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
 

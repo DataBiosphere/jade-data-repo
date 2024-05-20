@@ -57,8 +57,8 @@ class CreateSnapshotByRequestIdAzureStepTest {
         spy(
             new CreateSnapshotByRequestIdAzureStep(
                 snapshotReq,
-                snapshotBuilderService,
                 snapshotService,
+                snapshotBuilderService,
                 snapshotRequestDao,
                 snapshotDao,
                 TEST_USER,

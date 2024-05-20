@@ -370,7 +370,7 @@ public class BigQueryPdaoTest {
     String filename = "omop/snapshot-access-request.json";
     SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
     request.sourceSnapshotId(sourceSnapshotId);
-    return snapshotBuilderService.createSnapshotAccessRequest(TEST_USER, request);
+    return snapshotBuilderService.createRequest(TEST_USER, request);
   }
 
   private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID snapshotAccessRequestId)

@@ -1,11 +1,10 @@
 package bio.terra.service.snapshotbuilder.utils;
 
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
@@ -106,10 +105,7 @@ class SearchConceptsQueryBuilderTest {
             .buildSearchConceptsQuery(domainOption, "cancer")
             .renderSQL(context);
 
-    assertThat(
-        "generated SQL is correct",
-        actual,
-        equalToCompressingWhiteSpace(context.getPlatform().choose(expectedGcp, expectedAzure)));
+    assertQueryEquals(context.getPlatform().choose(expectedGcp, expectedAzure), actual);
   }
 
   @ParameterizedTest
@@ -143,10 +139,7 @@ class SearchConceptsQueryBuilderTest {
         GROUP BY c.concept_name, c.concept_id, c.concept_code
         ORDER BY count DESC""";
 
-    assertThat(
-        "generated SQL for GCP and Azure empty search string is correct",
-        actual,
-        equalToCompressingWhiteSpace(context.getPlatform().choose(gcpExpected, azureExpected)));
+    assertQueryEquals(context.getPlatform().choose(gcpExpected, azureExpected), actual);
   }
 
   @ParameterizedTest
@@ -159,12 +152,7 @@ class SearchConceptsQueryBuilderTest {
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
     var expectedAzureQuery = "CHARINDEX('cancer', c.concept_name) > 0";
 
-    assertThat(
-        "generated sql is as expected",
-        actual,
-        // table name is added when the Query is created
-        equalToCompressingWhiteSpace(
-            platformWrapper.choose(() -> expectedGCPQuery, () -> expectedAzureQuery)));
+    assertQueryEquals(context.getPlatform().choose(expectedGCPQuery, expectedAzureQuery), actual);
   }
 
   @ParameterizedTest

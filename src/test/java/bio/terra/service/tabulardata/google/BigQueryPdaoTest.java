@@ -240,10 +240,10 @@ public class BigQueryPdaoTest {
         datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
 
     // Create a snapshot!
-    DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
+    DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(
-            datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
+            datasetSummary, "ingest-test-snapshot-by-date.json", "");
     SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
     BigQueryProject bigQuerySnapshotProject =

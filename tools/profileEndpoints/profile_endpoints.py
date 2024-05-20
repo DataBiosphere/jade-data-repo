@@ -2,6 +2,8 @@ import argparse
 import subprocess
 import requests
 import time
+import csv
+from datetime import datetime
 
 """This script is designed for measuring the performance and response times of different
 'snapshotbuilder' endpoints in the process of various performance optimizations for Azure Synapse.
@@ -81,6 +83,11 @@ def get_access_token():
     token_command = "gcloud auth print-access-token"
     return run_command(token_command)
 
+def get_test_concept_ids():
+    with open('concept_ids.csv', newline='') as csvfile:
+        concept_reader = csv.reader(csvfile)
+        concept_ids_inner = [int(row[0]) for row in concept_reader]
+    return concept_ids_inner
 
 def handle_response(response):
     if response.status_code == 200:
@@ -96,7 +103,7 @@ def handle_response(response):
 
 
 # HTTP Request Functions
-def make_get_request(endpoint_url, token):
+def make_get_request(endpoint_url, token, concept_id):
     """
     Makes a GET request to the specified endpoint with the given access token and endpoint_url.
 
@@ -113,6 +120,10 @@ def make_get_request(endpoint_url, token):
         handle_response(response)
         print(f"GET request made to {url}")
         print(f"Time taken: {end_time - start_time:.2f} seconds")
+        if response.status_code == 200:
+            f = open(RESULTS_FILE_NAME, "a")
+            f.write(f"{url},{concept_id},{end_time - start_time:.2f} seconds\n")
+            f.close()
     except requests.exceptions.RequestException as e:
         print(f"An error occurred during the request: {e}")
 
@@ -234,9 +245,8 @@ def profile_get_concept_hierarchy(token):
         token (str): The access token for authentication.
     """
     print("Profiling getConceptHierarchy endpoint")
-    concept_ids = [4180169, 4027384, 4029205]
-    for concept_id in concept_ids:
-        make_get_request(f"concepts/{concept_id}/hierarchy", token)
+    for concept_id in CONCEPT_IDS:
+        make_get_request(f"concepts/{concept_id}/hierarchy", token, concept_id)
 
 
 def profile_enumerate_concepts(token):
@@ -261,7 +271,7 @@ def profile_enumerate_concepts(token):
             url = f"concepts?domainId={domain_id}&filterText="
         else:
             url = f"concepts?domainId={domain_id}&filterText={filter_text}"
-        make_get_request(url, token)
+        make_get_request(url, token,1)
 
 
 def profile_get_concept_children(token):
@@ -271,9 +281,8 @@ def profile_get_concept_children(token):
         token (str): The access token for authentication.
     """
     print("Profiling getConceptChildren endpoint")
-    concept_ids = [443883, 4042140, 4103320]
-    for concept_id in concept_ids:
-        make_get_request(f"concepts/{concept_id}/children", token)
+    for concept_id in CONCEPT_IDS:
+        make_get_request(f"concepts/{concept_id}/children", token, concept_id)
 
 
 # Main function
@@ -313,6 +322,11 @@ if __name__ == "__main__":
 
     UUID = SNAPSHOTS[args.snapshot]
     DATAREPO_URL = HOSTS[args.host]
+    CONCEPT_IDS = get_test_concept_ids()
+
+    # Create new file to write results
+    RESULTS_FILE_NAME = f"results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+    f = open(RESULTS_FILE_NAME, "x")
 
     if args.authenticate:
         authenticate()

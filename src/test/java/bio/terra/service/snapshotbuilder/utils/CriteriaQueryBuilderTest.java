@@ -284,10 +284,7 @@ class CriteriaQueryBuilderTest {
             WHERE ca.ancestor_concept_id = 100)
             AND (p.year_of_birth >= 1950 AND p.year_of_birth <= 2000))))
     """;
-    assertThat(
-        "The sql generated is correct",
-        query.renderSQL(context),
-        equalToCompressingWhiteSpace(expectedSql));
+    assertQueryEquals(expectedSql, query.renderSQL(context));
   }
 
   private static SnapshotBuilderDomainCriteria generateDomainCriteria(int domainId) {

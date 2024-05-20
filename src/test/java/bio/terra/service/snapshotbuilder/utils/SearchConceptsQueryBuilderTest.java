@@ -145,7 +145,6 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
-    CloudPlatformWrapper platformWrapper = context.getPlatform();
     Concept concept = Concept.asPrimary();
     String actual = createSearchConceptClause("cancer", concept.name()).renderSQL(context);
 

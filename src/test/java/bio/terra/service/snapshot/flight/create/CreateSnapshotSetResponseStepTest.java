@@ -39,12 +39,13 @@ class CreateSnapshotSetResponseStepTest {
     workingMap = new FlightMap();
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(new FlightMap());
 
     when(snapshotService.retrieveSnapshotSummary(SNAPSHOT_ID)).thenReturn(SNAPSHOT_SUMMARY);
   }
 
   @Test
-  void testDoStep() {
+  void testDoStep() throws InterruptedException {
     step = new CreateSnapshotSetResponseStep(snapshotService);
 
     StepResult doResult = step.doStep(flightContext);

@@ -1,18 +1,16 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.http.HttpStatus;
 
-public class DeleteSnapshotMetadataStep implements Step {
+public class DeleteSnapshotMetadataStep extends BaseStep {
 
   private final SnapshotDao snapshotDao;
   private final UUID snapshotId;
@@ -23,7 +21,7 @@ public class DeleteSnapshotMetadataStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  public StepResult perform() {
     DeleteResponseModel.ObjectStateEnum stateEnum;
     try {
       stateEnum =
@@ -37,12 +35,12 @@ public class DeleteSnapshotMetadataStep implements Step {
     }
 
     DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
-    FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
+    setResponse(deleteResponseModel, HttpStatus.OK);
     return StepResult.getStepResultSuccess();
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undo() {
     // This step is not undoable. We only get here when the
     // do method has a dismal failure.
     return new StepResult(

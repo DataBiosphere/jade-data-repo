@@ -226,8 +226,7 @@ public class DatasetServiceTest {
             .follow(Collections.singletonList("participant_sample"));
 
     // add asset to dataset
-    String jobId =
-        datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
+    String jobId = datasetService.addDatasetAssetSpecifications(datasetId, assetModel, testUser);
     flightIdsList.add(jobId);
 
     TestUtils.eventualExpect(
@@ -290,8 +289,7 @@ public class DatasetServiceTest {
             .follow(Collections.singletonList("participant_sample"));
 
     // add first asset to the dataset
-    String jobId1 =
-        datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel1, testUser);
+    String jobId1 = datasetService.addDatasetAssetSpecifications(datasetId, assetModel1, testUser);
     flightIdsList.add(jobId1);
 
     boolean assetAdd1 =
@@ -320,8 +318,7 @@ public class DatasetServiceTest {
         equalTo(true));
 
     // add second asset to dataset, this should fail because it has the same name as the first
-    String jobId2 =
-        datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel2, testUser);
+    String jobId2 = datasetService.addDatasetAssetSpecifications(datasetId, assetModel2, testUser);
     flightIdsList.add(jobId2);
 
     boolean assetAdd2 =
@@ -373,8 +370,7 @@ public class DatasetServiceTest {
             .follow(Collections.singletonList("participant_sample"));
 
     // add first asset to the dataset
-    String jobId1 =
-        datasetService.addDatasetAssetSpecifications(datasetId1.toString(), assetModel, testUser);
+    String jobId1 = datasetService.addDatasetAssetSpecifications(datasetId1, assetModel, testUser);
     flightIdsList.add(jobId1);
 
     boolean assetAdd1 =
@@ -403,8 +399,7 @@ public class DatasetServiceTest {
         equalTo(true));
 
     // add asset tp second dataset
-    String jobId2 =
-        datasetService.addDatasetAssetSpecifications(datasetId2.toString(), assetModel, testUser);
+    String jobId2 = datasetService.addDatasetAssetSpecifications(datasetId2, assetModel, testUser);
     flightIdsList.add(jobId2);
 
     boolean assetAdd2 =
@@ -458,8 +453,7 @@ public class DatasetServiceTest {
             .follow(Collections.singletonList("participant_sample"));
 
     // add asset to dataset
-    String jobId =
-        datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
+    String jobId = datasetService.addDatasetAssetSpecifications(datasetId, assetModel, testUser);
     flightIdsList.add(jobId);
 
     TestUtils.eventualExpect(

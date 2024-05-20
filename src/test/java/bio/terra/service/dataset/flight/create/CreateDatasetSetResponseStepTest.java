@@ -39,12 +39,13 @@ class CreateDatasetSetResponseStepTest {
     workingMap = new FlightMap();
     workingMap.put(DatasetWorkingMapKeys.DATASET_ID, DATASET_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(new FlightMap());
 
     when(datasetService.retrieveDatasetSummary(DATASET_ID)).thenReturn(DATASET_SUMMARY);
   }
 
   @Test
-  void testDoStep() {
+  void testDoStep() throws InterruptedException {
     step = new CreateDatasetSetResponseStep(datasetService);
 
     StepResult doResult = step.doStep(flightContext);

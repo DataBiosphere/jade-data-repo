@@ -314,7 +314,7 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id, @Valid @RequestBody AssetModel asset) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     verifyDatasetAuthorization(userReq, id.toString(), IamAction.MANAGE_SCHEMA);
-    String jobId = datasetService.addDatasetAssetSpecifications(id.toString(), asset, userReq);
+    String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 

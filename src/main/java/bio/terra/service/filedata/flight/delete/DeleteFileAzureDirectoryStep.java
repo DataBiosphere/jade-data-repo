@@ -1,8 +1,8 @@
 package bio.terra.service.filedata.flight.delete;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
+import bio.terra.common.StepInput;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -11,10 +11,12 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.*;
 import org.springframework.http.HttpStatus;
 
-public class DeleteFileAzureDirectoryStep implements Step {
+public class DeleteFileAzureDirectoryStep extends BaseStep {
   private final TableDao tableDao;
   private final String fileId;
   private final Dataset dataset;
+
+  @StepInput AzureStorageAuthInfo datasetStorageAuthInfo;
 
   public DeleteFileAzureDirectoryStep(TableDao tableDao, String fileId, Dataset dataset) {
     this.tableDao = tableDao;
@@ -23,15 +25,12 @@ public class DeleteFileAzureDirectoryStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    AzureStorageAuthInfo storageAuthInfo =
-        workingMap.get(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+  public StepResult perform() throws InterruptedException {
     try {
       boolean found =
           tableDao.deleteDirectoryEntry(
               fileId,
-              storageAuthInfo,
+              datasetStorageAuthInfo,
               dataset.getId(),
               StorageTableName.DATASET.toTableName(dataset.getId()));
       DeleteResponseModel.ObjectStateEnum state =
@@ -39,16 +38,10 @@ public class DeleteFileAzureDirectoryStep implements Step {
               ? DeleteResponseModel.ObjectStateEnum.DELETED
               : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
       DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(state);
-      FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
+      setResponse(deleteResponseModel, HttpStatus.OK);
     } catch (FileSystemAbortTransactionException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    // No undo is possible
     return StepResult.getStepResultSuccess();
   }
 }

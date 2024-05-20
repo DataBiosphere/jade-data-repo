@@ -39,7 +39,7 @@ class AddSnapshotAuthDomainSetResponseStepTest {
   private static final List<String> userGroups = List.of("group1", "group2");
 
   @Test
-  void testDoAndUndoStepSucceeds() {
+  void testDoAndUndoStepSucceeds() throws InterruptedException {
     AddSnapshotAuthDomainSetResponseStep step =
         new AddSnapshotAuthDomainSetResponseStep(iamService, TEST_USER, SNAPSHOT_ID);
     when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))

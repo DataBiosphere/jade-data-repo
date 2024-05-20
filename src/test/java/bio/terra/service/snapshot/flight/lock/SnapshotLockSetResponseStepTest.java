@@ -28,7 +28,7 @@ class SnapshotLockSetResponseStepTest {
   @Mock private FlightContext flightContext;
 
   @Test
-  void doStep() {
+  void doStep() throws InterruptedException {
     // Setup
     step = new SnapshotLockSetResponseStep(snapshotService, SNAPSHOT_ID);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());

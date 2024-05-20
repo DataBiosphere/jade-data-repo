@@ -56,6 +56,8 @@ class CreateSnapshotMetadataStepTest {
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, PROJECT_RESOURCE_ID);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(new FlightMap());
 
     snapshotRequestModel = new SnapshotRequestModel();
     snapshot = new Snapshot();
@@ -65,7 +67,7 @@ class CreateSnapshotMetadataStepTest {
 
   @Test
   void testDoAndUndoStep() throws InterruptedException {
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, null);
     step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
@@ -82,7 +84,6 @@ class CreateSnapshotMetadataStepTest {
   @Test
   void testDoAndUndoStepWithDUOS() throws InterruptedException {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     snapshotRequestModel.duosId(DUOS_ID);
 
     step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);

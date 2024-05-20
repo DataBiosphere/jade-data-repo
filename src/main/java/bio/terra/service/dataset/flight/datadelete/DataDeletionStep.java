@@ -1,9 +1,7 @@
 package bio.terra.service.dataset.flight.datadelete;
 
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
-
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
+import bio.terra.common.StepInput;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -13,12 +11,8 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.dataset.flight.transactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
-public class DataDeletionStep implements Step {
+public class DataDeletionStep extends BaseStep {
   private static Logger logger = LoggerFactory.getLogger(DataDeletionStep.class);
 
   private final BigQueryTransactionPdao bigQueryTransactionPdao;
@@ -37,6 +31,10 @@ public class DataDeletionStep implements Step {
   private final ConfigurationService configService;
   private final AuthenticatedUserRequest userRequest;
   private final boolean autocommit;
+
+  @StepInput private UUID datasetId;
+  @StepInput private DataDeletionRequest request;
+  @StepInput private UUID transactionId;
 
   public DataDeletionStep(
       BigQueryTransactionPdao bigQueryTransactionPdao,
@@ -54,17 +52,15 @@ public class DataDeletionStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
-    Dataset dataset = getDataset(context, datasetService);
-    String suffix = BigQueryUtils.getSuffix(context);
-    DataDeletionRequest dataDeletionRequest = getRequest(context);
+  public StepResult perform() throws InterruptedException {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    String suffix = BigQueryUtils.getSuffix(getFlightId());
     List<String> tableNames =
-        dataDeletionRequest.getTables().stream()
+        request.getTables().stream()
             .map(DataDeletionTableModel::getTableName)
             .collect(Collectors.toList());
-    UUID transactionId = TransactionUtils.getTransactionId(context);
 
-    bigQueryDatasetPdao.validateDeleteRequest(dataset, dataDeletionRequest.getTables(), suffix);
+    bigQueryDatasetPdao.validateDeleteRequest(dataset, request.getTables(), suffix);
 
     if (configService.testInsertFault(ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
       logger.info("SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT");
@@ -76,26 +72,24 @@ public class DataDeletionStep implements Step {
     }
 
     bigQueryDatasetPdao.applySoftDeletes(
-        dataset, tableNames, suffix, context.getFlightId(), transactionId, userRequest);
+        dataset, tableNames, suffix, getFlightId(), transactionId, userRequest);
 
     // TODO<DR-2407>: this can be more informative, something like # rows deleted per table, or
     // mismatched
     // row ids
     DeleteResponseModel deleteResponseModel =
         new DeleteResponseModel().objectState(DeleteResponseModel.ObjectStateEnum.DELETED);
-    FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
+    setResponse(deleteResponseModel, HttpStatus.OK);
 
     return StepResult.getStepResultSuccess();
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undo() {
     if (autocommit) {
-      Dataset dataset = IngestUtils.getDataset(context, datasetService);
-      UUID transactionId = TransactionUtils.getTransactionId(context);
-      DataDeletionRequest dataDeletionRequest = getRequest(context);
+      Dataset dataset = datasetService.retrieve(datasetId);
       List<String> tableNames =
-          dataDeletionRequest.getTables().stream()
+          request.getTables().stream()
               .map(DataDeletionTableModel::getTableName)
               .collect(Collectors.toList());
       dataset.getTables().stream()

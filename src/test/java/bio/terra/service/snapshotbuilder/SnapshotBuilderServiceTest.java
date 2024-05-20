@@ -368,7 +368,7 @@ class SnapshotBuilderServiceTest {
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(queryBuilderFactory.criteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS))
         .thenReturn(criteriaQueryBuilderMock);
-    when(criteriaQueryBuilderMock.generateRowIdQueryForCohortList(
+    when(criteriaQueryBuilderMock.generateRowIdQueryForCohorts(
             accessRequest.getSnapshotSpecification().getCohorts()))
         .thenReturn(query);
     var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);

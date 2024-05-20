@@ -168,26 +168,15 @@ public class CriteriaQueryBuilder {
         List.of(personId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
   }
 
-  public Query generateRowIdQueryForCohortList(List<SnapshotBuilderCohort> cohorts) {
+  public Query generateRowIdQueryForCohorts(List<SnapshotBuilderCohort> cohorts) {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
         cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
-
-    FieldVariable personId =
-        new FieldVariable(
-            new FieldPointer(getRootTablePointer(), Person.PERSON_ID), rootTable, null, false);
     FieldVariable rowId =
         new FieldVariable(new FieldPointer(getRootTablePointer(), Person.ROW_ID), rootTable);
 
-    FilterVariable filterVariable = generateFilterVariable(criteriaGroupsList);
-
-    FilterVariable subQuery =
-        new SubQueryFilterVariable(
-            personId,
-            SubQueryFilterVariable.Operator.IN,
-            new Query(List.of(personId), List.of(rootTable), filterVariable));
-
-    // select row_id from person where person_id is in the cohort specification
-    return new Query(List.of(rowId), List.of(rootTable), subQuery);
+    // select row_id from person where the row is in the cohort specification
+    return new Query(
+        List.of(rowId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
   }
 
   @NotNull

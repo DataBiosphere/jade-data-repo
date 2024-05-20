@@ -563,7 +563,7 @@ public class SnapshotService {
         String snapshotQuery = queryModel.getQuery();
         Query query = Query.parse(snapshotQuery);
         String datasetName = query.getDatasetName();
-        getTablesByQueryAsset(datasetName, assetName, snapshotSource, snapshot);
+        createSnapshotTablesFromDatasetAsset(datasetName, assetName, snapshotSource, snapshot);
       }
       case BYROWID -> {
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
@@ -571,7 +571,7 @@ public class SnapshotService {
       }
       case BYREQUESTID -> {
         String datasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
-        getTablesByQueryAsset(datasetName, ASSET_NAME, snapshotSource, snapshot);
+        createSnapshotTablesFromDatasetAsset(datasetName, ASSET_NAME, snapshotSource, snapshot);
       }
     }
 
@@ -589,7 +589,7 @@ public class SnapshotService {
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
-  private void getTablesByQueryAsset(
+  private void createSnapshotTablesFromDatasetAsset(
       String datasetName, String assetName, SnapshotSource snapshotSource, Snapshot snapshot) {
     Dataset queryDataset = datasetService.retrieveByName(datasetName);
     AssetSpecification queryAssetSpecification = getAssetByNameFromDataset(queryDataset, assetName);

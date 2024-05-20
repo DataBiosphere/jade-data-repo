@@ -283,7 +283,7 @@ public class SnapshotBuilderService {
     Query sqlQuery =
         queryBuilderFactory
             .criteriaQueryBuilder("person", settings)
-            .generateRowIdQueryForCohortList(cohorts);
+            .generateRowIdQueryForCohorts(cohorts);
     return sqlQuery.renderSQL(createContext(dataset, userReq));
   }
 

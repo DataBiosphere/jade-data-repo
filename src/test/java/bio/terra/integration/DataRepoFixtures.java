@@ -1327,6 +1327,11 @@ public class DataRepoFixtures {
   public DataRepoResponse<IngestResponseModel> ingestJsonDataRaw(
       TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
     DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, request);
+    return waitForIngestResponse(user, launchResp);
+  }
+
+  public DataRepoResponse<IngestResponseModel> waitForIngestResponse(
+      TestConfiguration.User user, DataRepoResponse<JobModel> launchResp) throws Exception {
     assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
     assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
     return dataRepoClient.waitForResponse(user, launchResp, new TypeReference<>() {});

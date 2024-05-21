@@ -49,13 +49,21 @@ public class HierarchyQueryBuilder {
 
     var hasChildrenJoin = hasChildrenJoin(childId);
 
-    var joinFilter = joinToFilterConcepts(parentId, conceptId);
-
+    // To get the total occurrence count for a child concept, we need to join the child through the
+    // ancestor table to find all of its children. We don't need to use a left join here
+    // because every concept has itself as an ancestor, so there will be at least one match.
+    var conceptAncestor =
+        SourceVariable.forJoined(
+            TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
+            ConceptAncestor.ANCESTOR_CONCEPT_ID,
+            childId);
     SourceVariable domainOccurrence =
         SourceVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
-            joinFilter.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID));
+            conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID));
+
+    var joinFilter = joinToFilterConcepts(parentId, conceptId);
 
     // COUNT(DISTINCT person_id)
     FieldVariable count =
@@ -70,7 +78,14 @@ public class HierarchyQueryBuilder {
             conceptCode,
             count,
             hasChildrenSelect(hasChildrenJoin)),
-        List.of(conceptRelationship, child, parent, hasChildrenJoin, joinFilter, domainOccurrence),
+        List.of(
+            conceptRelationship,
+            child,
+            parent,
+            hasChildrenJoin,
+            conceptAncestor,
+            domainOccurrence,
+            joinFilter),
         BooleanAndOrFilterVariable.and(
             BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
             requireStandardConcept(parent),
@@ -142,10 +157,11 @@ public class HierarchyQueryBuilder {
         ConceptAncestor.DESCENDANT_CONCEPT_ID,
         childId,
         BinaryFilterVariable.BinaryOperator.NOT_EQUALS);
+    // Ancestors can have children at a minimum of 0 OR 1 levels of separation
     hasChildrenJoin.addJoinClause(
         ConceptAncestor.MIN_LEVELS_OF_SEPARATION,
         new Literal(1),
-        BinaryFilterVariable.BinaryOperator.EQUALS);
+        BinaryFilterVariable.BinaryOperator.LESS_THAN_OR_EQUAL);
     return hasChildrenJoin;
   }
 }

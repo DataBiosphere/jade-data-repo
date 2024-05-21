@@ -1,10 +1,10 @@
-{"descendant_concept_id": 1, "ancestor_concept_id": 2}
-{"descendant_concept_id": 3, "ancestor_concept_id": 2}
-{"descendant_concept_id": 4, "ancestor_concept_id": 2}
-{"descendant_concept_id": 5, "ancestor_concept_id": 2}
-{"descendant_concept_id": 2, "ancestor_concept_id": 2}
-{"descendant_concept_id": 1, "ancestor_concept_id": 1}
-{"descendant_concept_id": 3, "ancestor_concept_id": 3}
-{"descendant_concept_id": 4, "ancestor_concept_id": 3}
-{"descendant_concept_id": 4, "ancestor_concept_id": 4}
-{"descendant_concept_id": 5, "ancestor_concept_id": 5}
+{"descendant_concept_id": 1, "ancestor_concept_id": 2, "min_levels_of_separation": 0}
+{"descendant_concept_id": 3, "ancestor_concept_id": 2, "min_levels_of_separation": 1}
+{"descendant_concept_id": 4, "ancestor_concept_id": 2, "min_levels_of_separation": 2}
+{"descendant_concept_id": 5, "ancestor_concept_id": 2, "min_levels_of_separation": 1}
+{"descendant_concept_id": 2, "ancestor_concept_id": 2, "min_levels_of_separation": 0}
+{"descendant_concept_id": 1, "ancestor_concept_id": 1, "min_levels_of_separation": 0}
+{"descendant_concept_id": 3, "ancestor_concept_id": 3, "min_levels_of_separation": 0}
+{"descendant_concept_id": 4, "ancestor_concept_id": 3, "min_levels_of_separation": 1}
+{"descendant_concept_id": 4, "ancestor_concept_id": 4, "min_levels_of_separation": 0}
+{"descendant_concept_id": 5, "ancestor_concept_id": 5, "min_levels_of_separation": 0}

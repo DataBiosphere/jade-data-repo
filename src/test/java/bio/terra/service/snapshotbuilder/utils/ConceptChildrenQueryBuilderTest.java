@@ -30,7 +30,7 @@ class ConceptChildrenQueryBuilderTest {
           WHERE c1.standard_concept = 'S') AS hc
             ON (hc.ancestor_concept_id = c.concept_id
             AND hc.descendant_concept_id != c.concept_id
-            AND hc.min_levels_of_separation = 1)
+            AND hc.min_levels_of_separation <= 1)
         LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id
       WHERE c.standard_concept = 'S'
       GROUP BY c.concept_name, c.concept_id, c.concept_code
@@ -52,7 +52,7 @@ class ConceptChildrenQueryBuilderTest {
           WHERE c1.standard_concept = 'S') AS hc
             ON (hc.ancestor_concept_id = c.concept_id
             AND hc.descendant_concept_id != c.concept_id
-            AND hc.min_levels_of_separation = 1)
+            AND hc.min_levels_of_separation <= 1)
         LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id
       WHERE c.standard_concept = 'S'
       GROUP BY c.concept_name, c.concept_id, c.concept_code

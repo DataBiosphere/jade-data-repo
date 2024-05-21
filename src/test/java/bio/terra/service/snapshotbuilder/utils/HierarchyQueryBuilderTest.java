@@ -27,13 +27,14 @@ class HierarchyQueryBuilderTest {
                             WHERE c2.standard_concept = 'S') AS hc
                   ON (hc.ancestor_concept_id = cr.concept_id_2
                   AND hc.descendant_concept_id != cr.concept_id_2
-                  AND hc.min_levels_of_separation = 1)
-               JOIN (SELECT ca1.ancestor_concept_id, ca1.descendant_concept_id
-                      FROM concept_ancestor AS ca1
-                      WHERE (ca1.descendant_concept_id = 1 AND
-                      ca1.ancestor_concept_id != 1)) AS jf
+                  AND hc.min_levels_of_separation <= 1)
+               JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = cr.concept_id_2
+               LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
+               JOIN (SELECT ca2.ancestor_concept_id, ca2.descendant_concept_id
+                      FROM concept_ancestor AS ca2
+                      WHERE (ca2.descendant_concept_id = 1 AND
+                      ca2.ancestor_concept_id != 1)) AS jf
                       ON jf.ancestor_concept_id = cr.concept_id_1
-               LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = jf.descendant_concept_id
         WHERE (cr.relationship_id = 'Subsumes' AND c1.standard_concept = 'S' AND c.standard_concept = 'S')
         GROUP BY c.concept_name, cr.concept_id_1, cr.concept_id_2, c.concept_code
         ORDER BY c.concept_name ASC""";
@@ -53,13 +54,14 @@ class HierarchyQueryBuilderTest {
                   WHERE c2.standard_concept = 'S') AS hc
                     ON (hc.ancestor_concept_id = cr.concept_id_2
                     AND hc.descendant_concept_id != cr.concept_id_2
-                    AND hc.min_levels_of_separation = 1)
-               JOIN (SELECT ca1.ancestor_concept_id, ca1.descendant_concept_id
-                    FROM concept_ancestor AS ca1
-                      WHERE (ca1.descendant_concept_id = 1 AND
-                      ca1.ancestor_concept_id != 1)) AS jf
+                    AND hc.min_levels_of_separation <= 1)
+               JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = cr.concept_id_2
+               LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
+               JOIN (SELECT ca2.ancestor_concept_id, ca2.descendant_concept_id
+                    FROM concept_ancestor AS ca2
+                      WHERE (ca2.descendant_concept_id = 1 AND
+                      ca2.ancestor_concept_id != 1)) AS jf
                       ON jf.ancestor_concept_id = cr.concept_id_1
-               LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = jf.descendant_concept_id
         WHERE (cr.relationship_id = 'Subsumes' AND c1.standard_concept = 'S' AND c.standard_concept = 'S')
         GROUP BY c.concept_name, cr.concept_id_1, cr.concept_id_2, c.concept_code
         ORDER BY c.concept_name ASC""";

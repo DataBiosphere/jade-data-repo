@@ -366,8 +366,7 @@ public class DatasetIntegrationTest extends UsersBase {
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
-    assertThat(
-        "Asset specification is as originally expected", originalAssetList, hasSize(3));
+    assertThat("Asset specification is as originally expected", originalAssetList, hasSize(3));
 
     // Test Asset Validation
     AssetModel invalidAssetModel =

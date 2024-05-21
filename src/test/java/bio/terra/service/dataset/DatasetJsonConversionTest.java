@@ -67,8 +67,7 @@ class DatasetJsonConversionTest {
   @BeforeEach
   void setUp() {
     metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
-    datasetJsonConversion =
-        new DatasetJsonConversion(metadataDataAccessUtils);
+    datasetJsonConversion = new DatasetJsonConversion(metadataDataAccessUtils);
 
     Column datasetColumn =
         new Column()

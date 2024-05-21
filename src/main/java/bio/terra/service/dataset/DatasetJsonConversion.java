@@ -19,7 +19,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,8 +36,7 @@ public final class DatasetJsonConversion {
 
   private final MetadataDataAccessUtils metadataDataAccessUtils;
 
-  public DatasetJsonConversion(
-      MetadataDataAccessUtils metadataDataAccessUtils) {
+  public DatasetJsonConversion(MetadataDataAccessUtils metadataDataAccessUtils) {
     this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 

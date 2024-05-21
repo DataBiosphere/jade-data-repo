@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -69,7 +68,7 @@ class DatasetJsonConversionTest {
   void setUp() {
     metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
     datasetJsonConversion =
-        new DatasetJsonConversion(metadataDataAccessUtils, snapshotBuilderSettingsDao);
+        new DatasetJsonConversion(metadataDataAccessUtils);
 
     Column datasetColumn =
         new Column()
@@ -174,22 +173,6 @@ class DatasetJsonConversionTest {
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
             testUser),
         equalTo(datasetModel.snapshotBuilderSettings(null)));
-  }
-
-  @Test
-  void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
-    when(snapshotBuilderSettingsDao.getByDatasetId(DATASET_ID))
-        .thenReturn(new SnapshotBuilderSettings());
-    assertThat(
-        datasetJsonConversion.populateDatasetModelFromDataset(
-            dataset,
-            List.of(
-                DatasetRequestAccessIncludeModel.SCHEMA,
-                DatasetRequestAccessIncludeModel.PROFILE,
-                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS,
-                DatasetRequestAccessIncludeModel.DATA_PROJECT),
-            testUser),
-        equalTo(datasetModel));
   }
 
   @Test

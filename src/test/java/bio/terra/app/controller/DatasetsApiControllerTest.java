@@ -1,6 +1,5 @@
 package bio.terra.app.controller;
 
-import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SETTINGS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -101,8 +100,6 @@ class DatasetsApiControllerTest {
       QUERY_DATA_ENDPOINT + "/statistics/{column}";
 
   private static final String SNAPSHOT_BUILDER_ENDPOINT = DATASET_ID_ENDPOINT + "/snapshotBuilder";
-  private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/settings";
 
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
@@ -360,27 +357,6 @@ class DatasetsApiControllerTest {
     return Stream.of(
         arguments(postRequest("bad_table", "good_column")),
         arguments(getRequest("bad_table", "good_column")));
-  }
-
-  @Test
-  void testUpdateSnapshotBuilderSettings() throws Exception {
-    when(datasetService.retrieveDatasetModel(
-            DATASET_ID,
-            TEST_USER,
-            List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
-        .thenReturn(new DatasetModel());
-
-    mockValidators();
-
-    mvc.perform(
-            post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(SETTINGS)))
-        .andExpect(status().is2xxSuccessful())
-        .andReturn();
-
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    verify(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
   static Stream<Arguments> testCreateCriteriaData() {

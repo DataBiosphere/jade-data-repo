@@ -58,7 +58,6 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import com.azure.resourcemanager.loganalytics.models.Workspace;
 import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.storage.blob.BlobClient;
@@ -127,7 +126,6 @@ public class DatasetServiceTest {
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private AzureMonitoringService azureMonitoringService;
   @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
-  @MockBean private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   @MockBean private AzureSynapsePdao azureSynapsePdao;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
@@ -672,15 +670,6 @@ public class DatasetServiceTest {
         "When requesting SnapshotBuilderSettings require VIEW_SNAPSHOT_BUILDER_SETTINGS permission",
         actions,
         containsInAnyOrder(IamAction.READ_DATASET, IamAction.GET_SNAPSHOT_BUILDER_SETTINGS));
-  }
-
-  @Test
-  public void testUpdateSnapshotBuilderSettings() {
-    UUID datasetId = UUID.randomUUID();
-    datasetService.updateDatasetSnapshotBuilderSettings(
-        datasetId, SnapshotBuilderTestData.SETTINGS);
-    verify(snapshotBuilderSettingsDao)
-        .upsertByDatasetId(datasetId, SnapshotBuilderTestData.SETTINGS);
   }
 
   @Test

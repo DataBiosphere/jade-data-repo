@@ -39,7 +39,6 @@ import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -163,21 +162,6 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     verifyDatasetAuthorization(userRequest, id.toString(), null);
     return ResponseEntity.ok(datasetService.retrieveDatasetSummary(id));
-  }
-
-  @Override
-  public ResponseEntity<DatasetModel> updateDatasetSnapshotBuilderSettings(
-      @PathVariable("id") UUID id, @Valid @RequestBody SnapshotBuilderSettings settings) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    datasetService.updateDatasetSnapshotBuilderSettings(id, settings);
-    return ResponseEntity.ok(
-        datasetService.retrieveDatasetModel(
-            id, userRequest, List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)));
   }
 
   @Override

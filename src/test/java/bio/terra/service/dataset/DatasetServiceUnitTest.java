@@ -78,8 +78,6 @@ class DatasetServiceUnitTest {
   @Mock private DatasetDao datasetDao;
 
   private DatasetService datasetService;
-
-  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   @Mock private DatasetJsonConversion datasetJsonConversion;
   @Mock private JobService jobService;
   @Mock private LoadService loadService;
@@ -119,7 +117,6 @@ class DatasetServiceUnitTest {
             iamService,
             datasetTableDao,
             azureSynapsePdao,
-            snapshotBuilderSettingsDao,
             metadataDataAccessUtils);
   }
 

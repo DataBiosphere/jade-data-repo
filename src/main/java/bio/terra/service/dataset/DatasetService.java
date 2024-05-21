@@ -29,7 +29,6 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.ResourceLocks;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -119,7 +118,6 @@ public class DatasetService {
   private final IamService iamService;
   private final DatasetTableDao datasetTableDao;
   private final AzureSynapsePdao azureSynapsePdao;
-  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
@@ -141,7 +139,6 @@ public class DatasetService {
       IamService iamService,
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       MetadataDataAccessUtils metadataDataAccessUtils) {
     this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
@@ -160,7 +157,6 @@ public class DatasetService {
     this.iamService = iamService;
     this.datasetTableDao = datasetTableDao;
     this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
@@ -762,11 +758,6 @@ public class DatasetService {
       throw new RuntimeException("Dataset tags were not updated");
     }
     return datasetDao.retrieveSummaryById(id).toModel();
-  }
-
-  public void updateDatasetSnapshotBuilderSettings(
-      UUID datasetId, SnapshotBuilderSettings snapshotBuilderSettings) {
-    snapshotBuilderSettingsDao.upsertByDatasetId(datasetId, snapshotBuilderSettings);
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

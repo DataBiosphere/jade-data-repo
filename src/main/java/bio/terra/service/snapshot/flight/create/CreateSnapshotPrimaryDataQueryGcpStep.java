@@ -57,7 +57,8 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
       String sqlQuery,
       Instant filterBefore)
       throws InterruptedException {
-    bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, sqlQuery, filterBefore);
+    bigQuerySnapshotPdao.createSnapshotByQuery(
+        assetSpecification, snapshot, sqlQuery, filterBefore);
     return StepResult.getStepResultSuccess();
   }
 

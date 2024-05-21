@@ -58,6 +58,8 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderConceptsResponse;
 import bio.terra.model.SnapshotBuilderCountRequest;
 import bio.terra.model.SnapshotBuilderCountResponse;
@@ -1945,6 +1947,25 @@ public class DataRepoFixtures {
     assertThat(
         "get rollup counts job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("rollup counts response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  public SnapshotAccessRequestResponse createSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotId, String filename) throws Exception {
+    SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
+    request.sourceSnapshotId(snapshotId);
+
+    DataRepoResponse<SnapshotAccessRequestResponse> response =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/snapshotAccessRequests",
+            TestUtils.mapToJson(request),
+            new TypeReference<>() {});
+    assertThat(
+        "create Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 }

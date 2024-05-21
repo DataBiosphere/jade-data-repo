@@ -3834,20 +3834,44 @@
                     "column": "person_id"
                 }
             },
-            {
-                "name": "fpk_condition_era_concept",
-                "from": {
-                    "table": "condition_era",
-                    "column": "condition_concept_id"
-                },
-                "to": {
-                    "table": "concept",
-                    "column": "concept_id"
-                }
+          {
+            "name": "fpk_condition_era_concept",
+            "from": {
+              "table": "condition_era",
+              "column": "condition_concept_id"
+            },
+            "to": {
+              "table": "concept",
+              "column": "concept_id"
             }
+          }
         ],
         "assets": [
-            {
+          {
+            "name": "concept_asset",
+            "tables": [
+              {
+                "name": "person",
+                "columns": []
+              },
+              {
+                "name": "condition_occurrence",
+                "columns": []
+              },
+              {
+                "name": "concept",
+                "columns": []
+              }
+
+            ],
+            "rootTable": "person",
+            "rootColumn": "person_id",
+            "follow": [
+              "fpk_condition_person",
+              "fpk_condition_concept"
+            ]
+          },
+          {
                 "name": "person_visit",
                 "tables": [
                     {

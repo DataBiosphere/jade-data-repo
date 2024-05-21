@@ -15,8 +15,8 @@ import java.util.Optional;
 
 public class CreateSnapshotValidateQueryStep implements Step {
 
-  private DatasetService datasetService;
-  private SnapshotRequestModel snapshotReq;
+  private final DatasetService datasetService;
+  private final SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotValidateQueryStep(
       DatasetService datasetService, SnapshotRequestModel snapshotReq) {

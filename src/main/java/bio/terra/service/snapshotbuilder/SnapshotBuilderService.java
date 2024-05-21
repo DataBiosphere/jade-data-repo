@@ -15,12 +15,13 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderConceptsResponse;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
-import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -55,6 +56,7 @@ public class SnapshotBuilderService {
 
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
+  private final DatasetService datasetService;
   private final IamService iamService;
   private final SnapshotService snapshotService;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
@@ -65,6 +67,7 @@ public class SnapshotBuilderService {
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
+      DatasetService datasetService,
       IamService iamService,
       SnapshotService snapshotService,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -72,6 +75,7 @@ public class SnapshotBuilderService {
       QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
+    this.datasetService = datasetService;
     this.iamService = iamService;
     this.snapshotService = snapshotService;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
@@ -149,13 +153,23 @@ public class SnapshotBuilderService {
     return new SqlRenderContext(tableNameGenerator, platform);
   }
 
+  @VisibleForTesting
+  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    TableNameGenerator tableNameGenerator =
+        platform.choose(
+            () ->
+                BigQueryVisitor.bqDatasetTableName(
+                    datasetService.retrieveModel(dataset, userRequest)),
+            () ->
+                SynapseVisitor.azureTableName(
+                    datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
+    return new SqlRenderContext(tableNameGenerator, platform);
+  }
+
   public SnapshotBuilderCountResponse getCountResponse(
       UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
-    int rollupCount =
-        getRollupCountForCriteriaGroups(
-            id,
-            cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
-            userRequest);
+    int rollupCount = getRollupCountForCohorts(id, cohorts, userRequest);
     return new SnapshotBuilderCountResponse()
         .result(new SnapshotBuilderCountResponseResult().total(fuzzyLowCount(rollupCount)));
   }
@@ -202,10 +216,8 @@ public class SnapshotBuilderService {
     return new SnapshotBuilderConceptsResponse().result(concepts);
   }
 
-  public int getRollupCountForCriteriaGroups(
-      UUID snapshotId,
-      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
-      AuthenticatedUserRequest userRequest) {
+  public int getRollupCountForCohorts(
+      UUID snapshotId, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
@@ -213,7 +225,7 @@ public class SnapshotBuilderService {
     Query query =
         queryBuilderFactory
             .criteriaQueryBuilder("person", snapshotBuilderSettings)
-            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
+            .generateRollupCountsQueryForCohorts(cohorts);
 
     return runSnapshotBuilderQuery(
             query,
@@ -254,6 +266,25 @@ public class SnapshotBuilderService {
     } else {
       throw new IllegalStateException("Multiple domains found for concept: " + conceptId);
     }
+  }
+
+  // This method is used to generate the SQL query to get the rowIds for the snapshot creation
+  // process from a snapshot access request
+  public String generateRowIdQuery(
+      SnapshotAccessRequestResponse accessRequest,
+      Snapshot snapshot,
+      AuthenticatedUserRequest userReq) {
+
+    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId());
+    Dataset dataset = snapshot.getSourceDataset();
+
+    List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
+
+    Query sqlQuery =
+        queryBuilderFactory
+            .criteriaQueryBuilder("person", settings)
+            .generateRowIdQueryForCohorts(cohorts);
+    return sqlQuery.renderSQL(createContext(dataset, userReq));
   }
 
   record ParentQueryResult(

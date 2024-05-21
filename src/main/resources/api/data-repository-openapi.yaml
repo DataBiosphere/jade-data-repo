@@ -6173,12 +6173,15 @@ components:
             - byFullView
             - byQuery
             - byRowId
+            - byRequestId
         assetSpec:
           $ref: '#/components/schemas/SnapshotRequestAssetModel'
         querySpec:
           $ref: '#/components/schemas/SnapshotRequestQueryModel'
         rowIdSpec:
           $ref: '#/components/schemas/SnapshotRequestRowIdModel'
+        requestIdSpec:
+          $ref: '#/components/schemas/SnapshotRequestIdModel'
       description: >
         The contents specifies the source of the data (dataset and asset)
         and the rows to include (field and rootValues).
@@ -6239,6 +6242,15 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotRequestIdModel:
+      required:
+        - snapshotRequestId
+      type: object
+      properties:
+        snapshotRequestId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+      description: >
+        A reference to a SnapshotAccessRequest which contains a snapshot specification.
     SnapshotPatchRequestModel:
       type: object
       properties:

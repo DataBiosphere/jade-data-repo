@@ -129,6 +129,8 @@ public class SnapshotService {
   private final DuosClient duosClient;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
+  public static final String ASSET_NAME = "concept_asset";
+
   public SnapshotService(
       JobService jobService,
       DatasetService datasetService,
@@ -552,8 +554,7 @@ public class SnapshotService {
         // allowed in a snapshot.
         AssetSpecification assetSpecification = getAssetSpecificationFromRequest(requestContents);
         snapshotSource.assetSpecification(assetSpecification);
-        conjureSnapshotTablesFromAsset(
-            snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
+        conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
       }
       case BYFULLVIEW -> conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
       case BYQUERY -> {
@@ -562,23 +563,15 @@ public class SnapshotService {
         String snapshotQuery = queryModel.getQuery();
         Query query = Query.parse(snapshotQuery);
         String datasetName = query.getDatasetName();
-        Dataset queryDataset = datasetService.retrieveByName(datasetName);
-        AssetSpecification queryAssetSpecification =
-            queryDataset
-                .getAssetSpecificationByName(assetName)
-                .orElseThrow(
-                    () ->
-                        new AssetNotFoundException(
-                            "This dataset does not have an asset specification with name: "
-                                + assetName));
-        snapshotSource.assetSpecification(queryAssetSpecification);
-        // TODO this is wrong? why don't we just pass the assetSpecification?
-        conjureSnapshotTablesFromAsset(
-            snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
+        createSnapshotTablesFromDatasetAsset(datasetName, assetName, snapshotSource, snapshot);
       }
       case BYROWID -> {
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
+      }
+      case BYREQUESTID -> {
+        String datasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
+        createSnapshotTablesFromDatasetAsset(datasetName, ASSET_NAME, snapshotSource, snapshot);
       }
     }
 
@@ -594,6 +587,23 @@ public class SnapshotService {
         .globalFileIds(snapshotRequestModel.isGlobalFileIds())
         .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix())
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
+  }
+
+  private void createSnapshotTablesFromDatasetAsset(
+      String datasetName, String assetName, SnapshotSource snapshotSource, Snapshot snapshot) {
+    Dataset queryDataset = datasetService.retrieveByName(datasetName);
+    AssetSpecification queryAssetSpecification = getAssetByNameFromDataset(queryDataset, assetName);
+    snapshotSource.assetSpecification(queryAssetSpecification);
+    conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
+  }
+
+  public static AssetSpecification getAssetByNameFromDataset(Dataset dataset, String assetName) {
+    return dataset
+        .getAssetSpecificationByName(assetName)
+        .orElseThrow(
+            () ->
+                new AssetNotFoundException(
+                    "This dataset does not have an asset specification with name: " + assetName));
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
@@ -896,12 +906,11 @@ public class SnapshotService {
    * Magic up the snapshot tables and snapshot map from the asset tables and columns. This method
    * sets the table lists into snapshot and snapshotSource.
    *
-   * @param asset the one and only asset specification for this snapshot
    * @param snapshot snapshot to point back to and fill in
    * @param snapshotSource snapshotSource to point back to and fill in
    */
-  private void conjureSnapshotTablesFromAsset(
-      AssetSpecification asset, Snapshot snapshot, SnapshotSource snapshotSource) {
+  private void conjureSnapshotTablesFromAsset(Snapshot snapshot, SnapshotSource snapshotSource) {
+    AssetSpecification asset = snapshotSource.getAssetSpecification();
 
     List<SnapshotTable> tableList = new ArrayList<>();
     List<SnapshotMapTable> mapTableList = new ArrayList<>();

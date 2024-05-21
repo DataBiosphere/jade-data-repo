@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
@@ -19,6 +20,7 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -227,22 +229,25 @@ class CriteriaQueryBuilderTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void generateRollupCountsQueryForCriteriaGroupsList(SqlRenderContext context) {
+  void generateRollupCountsQueryForCohorts(SqlRenderContext context) {
     Query query =
-        criteriaQueryBuilder.generateRollupCountsQueryForCriteriaGroupsList(
+        criteriaQueryBuilder.generateRollupCountsQueryForCohorts(
             List.of(
-                List.of(
-                    new SnapshotBuilderCriteriaGroup()
-                        .criteria(
-                            List.of(
-                                generateDomainCriteria(
-                                    SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID),
-                                generateEthnicityListCriteria(List.of(0, 1, 2)),
-                                generateYearOfBirthRangeCriteria(),
-                                generateDomainCriteria(
-                                    SnapshotBuilderTestData.PROCEDURE_OCCURRENCE_DOMAIN_ID)))
-                        .meetAll(true)
-                        .mustMeet(true))));
+                new SnapshotBuilderCohort()
+                    .criteriaGroups(
+                        List.of(
+                            new SnapshotBuilderCriteriaGroup()
+                                .criteria(
+                                    List.of(
+                                        generateDomainCriteria(
+                                            SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID),
+                                        generateEthnicityListCriteria(List.of(0, 1, 2)),
+                                        generateYearOfBirthRangeCriteria(),
+                                        generateDomainCriteria(
+                                            SnapshotBuilderTestData
+                                                .PROCEDURE_OCCURRENCE_DOMAIN_ID)))
+                                .meetAll(true)
+                                .mustMeet(true)))));
     String expectedSql =
         """
         SELECT COUNT(DISTINCT p.person_id)
@@ -259,6 +264,26 @@ class CriteriaQueryBuilderTest {
                 JOIN concept_ancestor AS ca1
                 ON ca1.descendant_concept_id = po.procedure_concept_id
               WHERE ca1.ancestor_concept_id = 0))))""";
+    assertQueryEquals(expectedSql, query.renderSQL(context));
+  }
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void generateRowIdQueryForCohorts(SqlRenderContext context) {
+    Query query =
+        criteriaQueryBuilder.generateRowIdQueryForCohorts(
+            SnapshotBuilderTestData.createSnapshotAccessRequest(UUID.randomUUID())
+                .getSnapshotBuilderRequest()
+                .getCohorts());
+    String expectedSql =
+        """
+    SELECT p.datarepo_row_id FROM person AS p WHERE
+        (((1=1 AND p.person_id IN
+            (SELECT co.person_id FROM condition_occurrence AS co
+            JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id
+            WHERE ca.ancestor_concept_id = 100)
+            AND (p.year_of_birth >= 1950 AND p.year_of_birth <= 2000))))
+    """;
     assertQueryEquals(expectedSql, query.renderSQL(context));
   }
 

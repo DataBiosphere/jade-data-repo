@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,8 +26,8 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
@@ -35,6 +36,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -81,6 +83,7 @@ class SnapshotBuilderServiceTest {
   private SnapshotBuilderService snapshotBuilderService;
   @Mock private IamService iamService;
   @Mock private SnapshotService snapshotService;
+  @Mock private DatasetService datasetService;
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
@@ -94,6 +97,7 @@ class SnapshotBuilderServiceTest {
         new SnapshotBuilderService(
             snapshotRequestDao,
             snapshotBuilderSettingsDao,
+            datasetService,
             iamService,
             snapshotService,
             bigQuerySnapshotPdao,
@@ -320,9 +324,8 @@ class SnapshotBuilderServiceTest {
     when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
     when(queryBuilderFactory.criteriaQueryBuilder("person", settings))
         .thenReturn(criteriaQueryBuilderMock);
-    var criteriaGroups = List.of(List.of(new SnapshotBuilderCriteriaGroup()));
-    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups))
-        .thenReturn(query);
+    var cohorts = List.of(new SnapshotBuilderCohort());
+    when(criteriaQueryBuilderMock.generateRollupCountsQueryForCohorts(cohorts)).thenReturn(query);
     String sql = "sql";
     // Use a captor to verify that the context was created using the dataset's cloud platform.
     var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);
@@ -330,8 +333,7 @@ class SnapshotBuilderServiceTest {
     var count = 5;
     when(azureSynapsePdao.runQuery(eq(sql), any())).thenReturn(List.of(count));
     int rollupCount =
-        snapshotBuilderService.getRollupCountForCriteriaGroups(
-            snapshot.getId(), criteriaGroups, TEST_USER);
+        snapshotBuilderService.getRollupCountForCohorts(snapshot.getId(), cohorts, TEST_USER);
     assertThat(
         "rollup count should be response from stubbed query runner", rollupCount, equalTo(count));
     assertThat(
@@ -346,6 +348,37 @@ class SnapshotBuilderServiceTest {
         "fuzzyLowCount should match rollup count unless rollup count is between 1 and 19, inclusive. Then, it should return 19.",
         SnapshotBuilderService.fuzzyLowCount(rollupCount),
         equalTo(expectedFuzzyLowCount));
+  }
+
+  @Test
+  void generateRowIdQuery() {
+    UUID snapshotId = UUID.randomUUID();
+    SnapshotAccessRequestResponse accessRequest =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
+
+    Dataset dataset = makeDataset(CloudPlatform.GCP);
+    Snapshot snapshot =
+        makeSnapshot(CloudPlatform.GCP)
+            .snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
+
+    when(snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
+
+    Query query = mock(Query.class);
+    var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
+    when(queryBuilderFactory.criteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS))
+        .thenReturn(criteriaQueryBuilderMock);
+    when(criteriaQueryBuilderMock.generateRowIdQueryForCohorts(
+            accessRequest.getSnapshotSpecification().getCohorts()))
+        .thenReturn(query);
+    var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);
+    when(query.renderSQL(contextArgument.capture())).thenReturn("sql");
+
+    assertEquals(
+        "sql", snapshotBuilderService.generateRowIdQuery(accessRequest, snapshot, TEST_USER));
+    assertThat(
+        contextArgument.getValue().getPlatform().getCloudPlatform(),
+        is(dataset.getCloudPlatform()));
   }
 
   private static Stream<Arguments> fuzzyLowCount() {

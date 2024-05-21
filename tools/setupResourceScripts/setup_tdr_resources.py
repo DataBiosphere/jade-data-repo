@@ -7,8 +7,10 @@ from data_repo_client import (
     DatasetsApi,
     SnapshotsApi,
     JobsApi,
+    SnapshotAccessRequestApi,
 )
 import argparse
+import subprocess
 import json
 import os
 import subprocess
@@ -29,6 +31,7 @@ class Clients:
         self.datasets_api = DatasetsApi(api_client=self.api_client)
         self.snapshots_api = SnapshotsApi(api_client=self.api_client)
         self.jobs_api = JobsApi(api_client=self.api_client)
+        self.snapshot_request_api = SnapshotAccessRequestApi(api_client=self.api_client)
 
 
 def wait_for_job(clients, job_model):
@@ -120,9 +123,9 @@ def create_billing_profile(
         )
 
         if azure_managed_app_name:
-            billing_profile_request["applicationDeploymentName"] = (
-                azure_managed_app_name
-            )
+            billing_profile_request[
+                "applicationDeploymentName"
+            ] = azure_managed_app_name
             print(
                 f"Checking if billing profile with managed app name {azure_managed_app_name} already exists"
             )
@@ -227,6 +230,11 @@ def get_datasets_to_upload(filename):
         return json.load(f)
 
 
+def upload_file(filename):
+    with open(os.path.join("files", "OMOPDataset", filename)) as f:
+        return json.load(f)
+
+
 def add_snapshot_policy_members(clients, snapshot_id, snapshot_to_upload):
     for steward in snapshot_to_upload.get("stewards", []):
         print(f"Adding {steward} as a steward")
@@ -272,6 +280,16 @@ def create_snapshots(clients, dataset_name, snapshots, profile_id):
             add_snapshot_policy_members(clients, snapshot["id"], snapshot_to_upload)
             snapshot_ids.append(snapshot["id"])
     return snapshot_ids
+
+
+def create_snapshot_request(clients, snapshot_id):
+    snapshot_access_request = upload_file("snapshot-access-request.json")
+    snapshot_access_request["sourceSnapshotId"] = snapshot_id
+    request = clients.snapshot_request_api.create_snapshot_access_request(
+        snapshot_access_request=snapshot_access_request
+    )
+    dict_request = vars(request)
+    return dict_request["_id"]
 
 
 def find_dataset_by_name(name):
@@ -388,6 +406,16 @@ def main():
                     dataset_to_upload.get("snapshotBuilderSettings"),
                 )
                 print("Added snapshot builder settings for snapshot %s" % snapshot_id)
+            print("Creating snapshot access requests on snapshots")
+            snapshot_access_request_ids = []
+            for snapshot_id in snapshot_ids:
+                snapshot_access_request_id = create_snapshot_request(
+                    clients, snapshot_id
+                )
+                snapshot_access_request_ids.append(snapshot_access_request_id)
+                print(
+                    f"Created snapshot access request {snapshot_access_request_id} on snapshot {snapshot_id}"
+                )
 
     output_filename = f"{os.path.basename(args.datasets).split('.')[0]}_outputs.json"
     with open(output_filename, "w") as f:

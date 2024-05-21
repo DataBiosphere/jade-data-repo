@@ -1,0 +1,5 @@
+{"sourceSnapshotId": "00000000-0000-0000-0000-000000000000",
+  "name": "simple_snapshot_access_request",
+  "researchPurposeStatement": "purpose",
+  "snapshotBuilderRequest": {"cohorts": [{"name": "test", "criteriaGroups": [{"name": "Group 1", "meetAll": false, "criteria": [], "mustMeet": true}]}], "valueSets": [{"name": "Condition", "values": ["Condition Column 1", "Condition Column 2"]}], "conceptSets": [{"name": "Condition", "concept": {"id": 19, "code": null, "name": "Condition", "hasChildren": false}, "featureValueGroupName": "Condition"}]}
+}

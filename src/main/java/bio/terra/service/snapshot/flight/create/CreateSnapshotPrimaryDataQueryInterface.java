@@ -23,8 +23,8 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       SnapshotRequestModel snapshotReq,
       DatasetService datasetService)
       throws InterruptedException {
-    SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
 
+    SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
     Query query = Query.parse(snapshotQuerySpec.getQuery());
     String datasetName = query.getDatasetName();
     Dataset dataset = datasetService.retrieveByName(datasetName);
@@ -32,8 +32,8 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
         retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
     validateRootTable(query, assetSpecification);
     String sqlQuery = translateQuery(query, dataset);
-
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
+
     return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
   }
 

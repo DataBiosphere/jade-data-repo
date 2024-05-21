@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
@@ -25,6 +26,7 @@ import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public class CriteriaQueryBuilder {
   final TableVariable rootTable;
@@ -151,8 +153,9 @@ public class CriteriaQueryBuilder {
         criteriaGroups.stream().map(this::generateFilterForCriteriaGroup).toList());
   }
 
-  public Query generateRollupCountsQueryForCriteriaGroupsList(
-      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
+  public Query generateRollupCountsQueryForCohorts(List<SnapshotBuilderCohort> cohorts) {
+    List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
+        cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
 
     FieldVariable personId =
         new FieldVariable(
@@ -161,11 +164,26 @@ public class CriteriaQueryBuilder {
             null,
             true);
 
-    FilterVariable filterVariable =
-        new BooleanAndOrFilterVariable(
-            BooleanAndOrFilterVariable.LogicalOperator.OR,
-            criteriaGroupsList.stream().map(this::generateFilterForCriteriaGroups).toList());
+    return new Query(
+        List.of(personId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
+  }
 
-    return new Query(List.of(personId), List.of(rootTable), filterVariable);
+  public Query generateRowIdQueryForCohorts(List<SnapshotBuilderCohort> cohorts) {
+    List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
+        cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
+    FieldVariable rowId =
+        new FieldVariable(new FieldPointer(getRootTablePointer(), Person.ROW_ID), rootTable);
+
+    // select row_id from person where the row is in the cohort specification
+    return new Query(
+        List.of(rowId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
+  }
+
+  @NotNull
+  private FilterVariable generateFilterVariable(
+      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
+    return new BooleanAndOrFilterVariable(
+        BooleanAndOrFilterVariable.LogicalOperator.OR,
+        criteriaGroupsList.stream().map(this::generateFilterForCriteriaGroups).toList());
   }
 }

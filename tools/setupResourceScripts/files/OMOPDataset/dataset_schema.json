@@ -3844,17 +3844,6 @@
               "table": "concept",
               "column": "concept_id"
             }
-          },
-          {
-            "name": "fpk_person_condition",
-            "from": {
-              "table": "person",
-              "column": "person_id"
-            },
-            "to": {
-              "table": "condition_occurrence",
-              "column": "person_id"
-            }
           }
         ],
         "assets": [
@@ -3878,7 +3867,7 @@
             "rootTable": "person",
             "rootColumn": "person_id",
             "follow": [
-              "fpk_person_condition",
+              "fpk_condition_person",
               "fpk_condition_concept"
             ]
           },

@@ -471,11 +471,11 @@ public class AzureIntegrationTest extends UsersBase {
             .retrieveSnapshotPreviewById(
                 steward, snapshotSummaryByRequest.getId(), "concept", 0, 100, null, columnName)
             .getResult();
-    assertThat(personSnapshotRows.size(), is(23));
+    assertThat(personSnapshotRows, hasSize(23));
     // full table has 53 rows but only 49 map to existing person ids
-    assertThat(conditionOccurrenceSnapshotRows.size(), is(49));
+    assertThat(conditionOccurrenceSnapshotRows, hasSize(49));
     // full table has 7 rows but only 5 are in the condition_occurrence table
-    assertThat(conceptSnapshotRows.size(), is(5));
+    assertThat(conceptSnapshotRows, hasSize(5));
   }
 
   private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
@@ -491,8 +491,8 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotRequestModel requestSnapshot =
         jsonLoader.loadObject(
             "omop/snapshot-request-model-by-request-id.json", SnapshotRequestModel.class);
-    requestSnapshot.getContents().get(0).datasetName(datasetName);
-    requestSnapshot.getContents().get(0).getRequestIdSpec().snapshotRequestId(requestSnapshotId);
+    requestSnapshot.getContents().get(0).setDatasetName(datasetName);
+    requestSnapshot.getContents().get(0).getRequestIdSpec().setSnapshotRequestId(requestSnapshotId);
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(

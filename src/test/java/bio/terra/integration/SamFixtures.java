@@ -46,14 +46,7 @@ public class SamFixtures {
     try {
       // Get the user ID to delete
       HttpHeaders authedHeader = getHeaders(user);
-      String accessToken =
-          Optional.ofNullable(
-                  Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
-                      .orElse(List.of())
-                      .iterator()
-                      .next())
-              .map(h -> h.replaceAll("Bearer ", ""))
-              .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
+      String accessToken = getAccessToken(authedHeader);
       AdminApi samAdminApi = new AdminApi(getApiClient(accessToken));
       UserStatus userStatus = samAdminApi.adminGetUserByEmail(serviceAccount);
 
@@ -85,17 +78,10 @@ public class SamFixtures {
   }
 
   public void deleteSnapshotAccessRequest(
-      TestConfiguration.User steward, UUID snapshotAccessRequestId) {
+      TestConfiguration.User user, UUID snapshotAccessRequestId) {
     try {
-      HttpHeaders authedHeader = getHeaders(steward);
-      String accessToken =
-          Optional.ofNullable(
-                  Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
-                      .orElse(List.of())
-                      .iterator()
-                      .next())
-              .map(h -> h.replaceAll("Bearer ", ""))
-              .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
       ResourcesApi samResourcesApi = new ResourcesApi(getApiClient(accessToken));
       samResourcesApi.deleteResourceV2(
           "snapshot-builder-request", snapshotAccessRequestId.toString());
@@ -103,6 +89,16 @@ public class SamFixtures {
     } catch (ApiException e) {
       throw new RuntimeException("Error deleting snapshot access request: %s", e);
     }
+  }
+
+  private String getAccessToken(HttpHeaders authedHeader) {
+    return Optional.ofNullable(
+            Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
+                .orElse(List.of())
+                .iterator()
+                .next())
+        .map(h -> h.replaceAll("Bearer ", ""))
+        .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
   }
 
   private ApiClient getApiClient(String accessToken) {

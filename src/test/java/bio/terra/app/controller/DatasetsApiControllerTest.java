@@ -99,8 +99,6 @@ class DatasetsApiControllerTest {
   private static final String QUERY_COLUMN_STATISTICS_ENDPOINT =
       QUERY_DATA_ENDPOINT + "/statistics/{column}";
 
-  private static final String SNAPSHOT_BUILDER_ENDPOINT = DATASET_ID_ENDPOINT + "/snapshotBuilder";
-
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final DatasetPatchRequestModel DATASET_PATCH_REQUEST =

@@ -25,7 +25,6 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,8 +55,6 @@ class DatasetJsonConversionTest {
   private static final UUID DATASET_ASSET_ID = UUID.randomUUID();
 
   private DatasetJsonConversion datasetJsonConversion;
-
-  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
   private Dataset dataset;
   private DatasetModel datasetModel;

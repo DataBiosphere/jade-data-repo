@@ -7446,8 +7446,7 @@ components:
         updatedDate:
           type: string
         jobId:
-          type: string
-          description: The id for the job to create the snapshot once approved
+          $ref: '#/components/schemas/ShortIdProperty'
         createdSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
 

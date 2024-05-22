@@ -1,7 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.tables;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
@@ -29,7 +28,8 @@ public class DomainOccurrence extends Table {
     return new DomainOccurrence(tablePointer);
   }
 
-  public static DomainOccurrence leftJoinOnDescendantConcept(SnapshotBuilderDomainOption domainOption) {
+  public static DomainOccurrence leftJoinOnDescendantConcept(
+      SnapshotBuilderDomainOption domainOption) {
     return new DomainOccurrence(
         TablePointer.fromTableName(domainOption.getTableName()),
         domainOption.getColumnName(),

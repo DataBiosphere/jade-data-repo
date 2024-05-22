@@ -40,6 +40,8 @@ public class SnapshotRequestDao {
   private static final String CREATED_DATE = "created_date";
   private static final String UPDATED_DATE = "updated_date";
   private static final String STATUS = "status";
+  private static final String JOB_ID = "job_id";
+  private static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
   private static final String AUTHORIZED_RESOURCES = "authorized_resources";
 
   private final RowMapper<SnapshotAccessRequestResponse> responseMapper =
@@ -53,7 +55,9 @@ public class SnapshotRequestDao {
               .createdDate(getInstantString(rs, CREATED_DATE))
               .updatedDate(getInstantString(rs, UPDATED_DATE))
               .createdBy(rs.getString(CREATED_BY))
-              .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)));
+              .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)))
+              .jobId(rs.getString(JOB_ID))
+              .createdSnapshotId(rs.getObject(CREATED_SNAPSHOT_ID, UUID.class));
 
   public SnapshotRequestDao(
       NamedParameterJdbcTemplate jdbcTemplate,

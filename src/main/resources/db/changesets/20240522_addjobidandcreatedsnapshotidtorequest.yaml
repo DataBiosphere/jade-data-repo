@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_job_id_and_created_snapshot_id_to_request
+      author: srubenstein
+      changes:
+        - addColumn:
+            tableName: snapshot_request
+            columns:
+              - column:
+                  name: created_snapshot_id
+                  type: ${uuid_type}
+                  constraints:
+                    foreignKeyName: fk_created_snapshot_snapshot_request
+                    references: snapshot(id)
+                    deleteCascade: true
+              - column:
+                  name: job_id
+                  type: varchar(36)

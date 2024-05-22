@@ -53,9 +53,7 @@ public class SearchConceptsQueryBuilder {
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
-    DomainOccurrence domainOccurrence =
-        DomainOccurrence.leftJoinOnDescendantConcept(
-            domainOption.getTableName(), domainOption.getColumnName());
+    DomainOccurrence domainOccurrence = DomainOccurrence.leftJoinOnDescendantConcept(domainOption);
 
     // COUNT(DISTINCT co.person_id) AS count
     var countPerson = domainOccurrence.getCountPerson();

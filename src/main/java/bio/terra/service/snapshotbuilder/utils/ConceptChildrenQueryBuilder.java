@@ -47,7 +47,7 @@ public class ConceptChildrenQueryBuilder {
     // 'domain'_concept_id
     DomainOccurrence domainOccurrence =
         DomainOccurrence.leftJoinOnDescendantConcept(
-            domainOption.getTableName(), domainOption.getColumnName());
+            domainOption);
 
     // COUNT(DISTINCT person_id)
     FieldVariable countPerson = domainOccurrence.getCountPerson();

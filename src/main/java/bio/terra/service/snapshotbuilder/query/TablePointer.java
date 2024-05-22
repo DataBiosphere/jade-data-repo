@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.service.snapshotbuilder.query.tables.Table;
 import java.util.List;
 
 public record TablePointer(String tableName, Filter filter) implements SqlExpression {
@@ -23,7 +24,7 @@ public record TablePointer(String tableName, Filter filter) implements SqlExpres
     Query query =
         new Query.Builder()
             .select(List.of(fieldVar))
-            .tables(List.of(tableVar))
+            .tables(List.of(new Table(tableVar)))
             .where(filterVar)
             .build();
     return "(" + query.renderSQL(context) + ")";

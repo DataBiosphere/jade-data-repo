@@ -8,40 +8,31 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
-import bio.terra.service.snapshotbuilder.utils.constants.Person;
+import bio.terra.service.snapshotbuilder.query.tables.DomainOccurrence;
+import bio.terra.service.snapshotbuilder.query.tables.Person;
 import java.util.List;
 import java.util.Objects;
 
 public class CriteriaQueryBuilder {
-  final TableVariable rootTable;
-
+  final Person rootTable = Person.asPrimary();
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
   protected CriteriaQueryBuilder(SnapshotBuilderSettings snapshotBuilderSettings) {
     this.snapshotBuilderSettings = snapshotBuilderSettings;
-    rootTable = TableVariable.forPrimary(TablePointer.fromTableName("person"));
-  }
-
-  private TablePointer getRootTablePointer() {
-    return rootTable.getTablePointer();
   }
 
   private FieldVariable getFieldVariableForRootTable(String columnName) {
-    return new FieldVariable(new FieldPointer(getRootTablePointer(), columnName), rootTable);
+    return rootTable.fromColumn(columnName);
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
@@ -92,23 +83,15 @@ public class CriteriaQueryBuilder {
                             "Domain %d not configured for use in Snapshot Builder",
                             domainCriteria.getId())));
 
-    TablePointer occurrencePointer = TablePointer.fromTableName(domainOption.getTableName());
-    TableVariable occurrenceVariable = TableVariable.forPrimary(occurrencePointer);
+    DomainOccurrence domainOccurrence = new DomainOccurrence(domainOption);
 
     ConceptAncestor conceptAncestor =
-        ConceptAncestor.joinDescendant(
-            new FieldVariable(
-                new FieldPointer(occurrencePointer, domainOption.getColumnName()),
-                occurrenceVariable));
+        ConceptAncestor.joinDescendant(domainOccurrence.getJoinColumn());
     return SubQueryFilterVariable.in(
-        getFieldVariableForRootTable(Person.PERSON_ID),
+        rootTable.personId(),
         new Query.Builder()
-            .select(
-                List.of(
-                    new FieldVariable(
-                        new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
-                        occurrenceVariable)))
-            .tables(List.of(occurrenceVariable, conceptAncestor))
+            .select(List.of(domainOccurrence.getPerson()))
+            .tables(List.of(domainOccurrence, conceptAncestor))
             .where(
                 BinaryFilterVariable.equals(
                     conceptAncestor.ancestor_concept_id(),
@@ -148,14 +131,7 @@ public class CriteriaQueryBuilder {
 
   public Query generateRollupCountsQueryForCriteriaGroupsList(
       List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList) {
-
-    FieldVariable personId =
-        new FieldVariable(
-            new FieldPointer(getRootTablePointer(), Person.PERSON_ID, "COUNT"),
-            rootTable,
-            null,
-            true);
-
+    FieldVariable personId = rootTable.countPersonId();
     FilterVariable filterVariable =
         new BooleanAndOrFilterVariable(
             BooleanAndOrFilterVariable.LogicalOperator.OR,

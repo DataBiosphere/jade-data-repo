@@ -1,7 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
-import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.hasChildrenJoin;
-import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.hasChildrenSelect;
+import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.makeHasChildrenJoin;
+import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.selectHChildren;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -61,7 +61,7 @@ public class ConceptChildrenQueryBuilder {
     var conceptRelationship =
         SourceVariable.forJoined(subQueryPointer, ConceptRelationship.CONCEPT_ID_2, conceptId);
 
-    var hasChildrenJoin = hasChildrenJoin(conceptId);
+    var joinHasChildren = makeHasChildrenJoin(conceptId);
 
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
@@ -75,10 +75,10 @@ public class ConceptChildrenQueryBuilder {
     FieldVariable count = domainOccurrence.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
 
     List<SelectExpression> select =
-        List.of(conceptName, conceptId, conceptCode, count, hasChildrenSelect(hasChildrenJoin));
+        List.of(conceptName, conceptId, conceptCode, count, selectHChildren(joinHasChildren));
 
     List<SourceVariable> tables =
-        List.of(concept, conceptAncestor, conceptRelationship, hasChildrenJoin, domainOccurrence);
+        List.of(concept, conceptAncestor, conceptRelationship, joinHasChildren, domainOccurrence);
 
     List<FieldVariable> groupBy = List.of(conceptName, conceptId, conceptCode);
 

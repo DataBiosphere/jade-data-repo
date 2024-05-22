@@ -88,7 +88,7 @@ public final class SourceVariable implements SqlExpression {
     String alias = context.getAlias(this);
 
     if (alias != null) {
-      sql = new ST("<sql> AS <tableAlias>").add("sql", sql).add("tableAlias", alias).render();
+      sql = new ST("<sql> AS <alias>").add("sql", sql).add("alias", alias).render();
     }
 
     if (!joinClauses.isEmpty() && alias != null) {

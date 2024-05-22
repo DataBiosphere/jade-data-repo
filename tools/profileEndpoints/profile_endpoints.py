@@ -271,7 +271,7 @@ def profile_enumerate_concepts(token):
             url = f"concepts?domainId={domain_id}&filterText="
         else:
             url = f"concepts?domainId={domain_id}&filterText={filter_text}"
-        make_get_request(url, token,1)
+        make_get_request(url, token, 1)
 
 
 def profile_get_concept_children(token):

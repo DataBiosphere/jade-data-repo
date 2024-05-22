@@ -147,11 +147,10 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
-    SourceVariable conceptSourceVariable =
+    SourceVariable conceptTable =
         SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
     String actual =
-        createSearchConceptClause(conceptSourceVariable, "cancer", Concept.CONCEPT_NAME)
-            .renderSQL(context);
+        createSearchConceptClause(conceptTable, "cancer", Concept.CONCEPT_NAME).renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
     var expectedAzureQuery = "CHARINDEX('cancer', c.concept_name) > 0";
@@ -162,13 +161,12 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    SourceVariable conceptSourceVariable =
+    SourceVariable conceptTable =
         SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
 
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(conceptSourceVariable, "domain")
-            .renderSQL(context),
+        SearchConceptsQueryBuilder.createDomainClause(conceptTable, "domain").renderSQL(context),
         is("(c.domain_id = 'domain' AND c.standard_concept = 'S')"));
   }
 }

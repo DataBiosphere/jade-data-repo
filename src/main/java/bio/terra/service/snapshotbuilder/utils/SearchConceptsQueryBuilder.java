@@ -115,18 +115,18 @@ public class SearchConceptsQueryBuilder {
   }
 
   static FunctionFilterVariable createSearchConceptClause(
-      SourceVariable conceptSourceVariable, String searchText, String columnName) {
+      SourceVariable conceptTable, String searchText, String columnName) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-        conceptSourceVariable.makeFieldVariable(columnName),
+        conceptTable.makeFieldVariable(columnName),
         new Literal(searchText));
   }
 
-  static FilterVariable createDomainClause(SourceVariable conceptSourceVariable, String domainId) {
+  static FilterVariable createDomainClause(SourceVariable conceptTable, String domainId) {
     return BooleanAndOrFilterVariable.and(
         BinaryFilterVariable.equals(
-            conceptSourceVariable.makeFieldVariable(Concept.DOMAIN_ID), new Literal(domainId)),
+            conceptTable.makeFieldVariable(Concept.DOMAIN_ID), new Literal(domainId)),
         BinaryFilterVariable.equals(
-            conceptSourceVariable.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")));
+            conceptTable.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")));
   }
 }

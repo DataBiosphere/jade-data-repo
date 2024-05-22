@@ -47,7 +47,7 @@ public class HierarchyQueryBuilder {
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
 
-    var hasChildrenJoin = hasChildrenJoin(childId);
+    var joinHasChildren = makeHasChildrenJoin(childId);
 
     // To get the total occurrence count for a child concept, we need to join the child through the
     // ancestor table to find all of its children. We don't need to use a left join here
@@ -77,12 +77,12 @@ public class HierarchyQueryBuilder {
             conceptName,
             conceptCode,
             count,
-            hasChildrenSelect(hasChildrenJoin)),
+            selectHChildren(joinHasChildren)),
         List.of(
             conceptRelationship,
             child,
             parent,
-            hasChildrenJoin,
+            joinHasChildren,
             conceptAncestor,
             domainOccurrence,
             joinFilter),
@@ -123,13 +123,13 @@ public class HierarchyQueryBuilder {
     return SourceVariable.forJoined(subQueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, parentId);
   }
 
-  static FieldVariable hasChildrenSelect(SourceVariable hasChildrenJoin) {
-    return hasChildrenJoin.makeFieldVariable(
+  static FieldVariable selectHChildren(SourceVariable joinHasChildren) {
+    return joinHasChildren.makeFieldVariable(
         ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", "> 0", true);
   }
 
   /** Generate a join clause that is used to determine if the outerConcept has any children. */
-  static SourceVariable hasChildrenJoin(FieldVariable childId) {
+  static SourceVariable makeHasChildrenJoin(FieldVariable childId) {
     var conceptAncestorTable =
         SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
     var ancestorConceptId =
@@ -151,17 +151,17 @@ public class HierarchyQueryBuilder {
                 conceptAncestorJoin.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")),
             null);
     var subQueryPointer = new SubQueryPointer(subquery, "has_children");
-    var hasChildrenJoin =
+    var joinHasChildren =
         SourceVariable.forLeftJoined(subQueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, childId);
-    hasChildrenJoin.addJoinClause(
+    joinHasChildren.addJoinClause(
         ConceptAncestor.DESCENDANT_CONCEPT_ID,
         childId,
         BinaryFilterVariable.BinaryOperator.NOT_EQUALS);
     // Ancestors can have children at a minimum of 0 OR 1 levels of separation
-    hasChildrenJoin.addJoinClause(
+    joinHasChildren.addJoinClause(
         ConceptAncestor.MIN_LEVELS_OF_SEPARATION,
         new Literal(1),
         BinaryFilterVariable.BinaryOperator.LESS_THAN_OR_EQUAL);
-    return hasChildrenJoin;
+    return joinHasChildren;
   }
 }

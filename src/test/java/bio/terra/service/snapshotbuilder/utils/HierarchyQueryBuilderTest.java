@@ -33,8 +33,8 @@ class HierarchyQueryBuilderTest {
                JOIN (SELECT ca2.ancestor_concept_id, ca2.descendant_concept_id
                       FROM concept_ancestor AS ca2
                       WHERE (ca2.descendant_concept_id = 1 AND
-                      ca2.ancestor_concept_id != 1)) AS jf
-                      ON jf.ancestor_concept_id = cr.concept_id_1
+                      ca2.ancestor_concept_id != 1)) AS cas
+                      ON cas.ancestor_concept_id = cr.concept_id_1
         WHERE (cr.relationship_id = 'Subsumes' AND c1.standard_concept = 'S' AND c.standard_concept = 'S')
         GROUP BY c.concept_name, cr.concept_id_1, cr.concept_id_2, c.concept_code
         ORDER BY c.concept_name ASC""";
@@ -60,8 +60,8 @@ class HierarchyQueryBuilderTest {
                JOIN (SELECT ca2.ancestor_concept_id, ca2.descendant_concept_id
                     FROM concept_ancestor AS ca2
                       WHERE (ca2.descendant_concept_id = 1 AND
-                      ca2.ancestor_concept_id != 1)) AS jf
-                      ON jf.ancestor_concept_id = cr.concept_id_1
+                      ca2.ancestor_concept_id != 1)) AS cas
+                      ON cas.ancestor_concept_id = cr.concept_id_1
         WHERE (cr.relationship_id = 'Subsumes' AND c1.standard_concept = 'S' AND c.standard_concept = 'S')
         GROUP BY c.concept_name, cr.concept_id_1, cr.concept_id_2, c.concept_code
         ORDER BY c.concept_name ASC""";

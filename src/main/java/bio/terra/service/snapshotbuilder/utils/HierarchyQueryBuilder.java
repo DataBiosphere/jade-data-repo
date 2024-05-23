@@ -111,7 +111,7 @@ public class HierarchyQueryBuilder {
         conceptAncestorTable.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID);
     var descendantConceptId =
         conceptAncestorTable.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
-    var subquery =
+    var conceptAncestorSubquery =
         new Query(
             List.of(ancestorConceptId, descendantConceptId),
             List.of(conceptAncestorTable),
@@ -119,8 +119,10 @@ public class HierarchyQueryBuilder {
                 BinaryFilterVariable.equals(descendantConceptId, new Literal(conceptId)),
                 BinaryFilterVariable.notEquals(ancestorConceptId, new Literal(conceptId))),
             null);
-    var subQueryPointer = new SubQueryPointer(subquery, "join_filter");
-    return SourceVariable.forJoined(subQueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, parentId);
+    var conceptAncestorSubqueryPointer =
+        new SubQueryPointer(conceptAncestorSubquery, "concept_ancestor_subquery");
+    return SourceVariable.forJoined(
+        conceptAncestorSubqueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, parentId);
   }
 
   static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {

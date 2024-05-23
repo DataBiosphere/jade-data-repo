@@ -22,8 +22,8 @@ class ConceptChildrenQueryBuilderTest {
       FROM concept AS c
         JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
         JOIN (SELECT cr.concept_id_2 FROM concept_relationship AS cr
-          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS jf
-          ON jf.concept_id_2 = c.concept_id
+          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS crs
+          ON crs.concept_id_2 = c.concept_id
         LEFT JOIN (SELECT ca1.ancestor_concept_id, ca1.descendant_concept_id, ca1.min_levels_of_separation
           FROM concept_ancestor AS ca1
           JOIN concept AS c1 ON c1.concept_id = ca1.descendant_concept_id
@@ -44,8 +44,8 @@ class ConceptChildrenQueryBuilderTest {
           FROM concept AS c
             JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
         JOIN (SELECT cr.concept_id_2 FROM concept_relationship AS cr
-              WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS jf
-              ON jf.concept_id_2 = c.concept_id
+              WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS crs
+              ON crs.concept_id_2 = c.concept_id
         LEFT JOIN (SELECT ca1.ancestor_concept_id, ca1.descendant_concept_id, ca1.min_levels_of_separation
           FROM concept_ancestor AS ca1
           JOIN concept AS c1 ON c1.concept_id = ca1.descendant_concept_id

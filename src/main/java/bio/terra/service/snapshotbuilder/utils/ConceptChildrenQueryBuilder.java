@@ -56,10 +56,12 @@ public class ConceptChildrenQueryBuilder {
             TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, conceptId);
     FieldVariable descendantConceptId = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
-    var subQuery = createSubQuery(parentConceptId);
-    var subQueryPointer = new SubQueryPointer(subQuery, "join_filter");
+    var conceptRelationshipSubQuery = createConceptRelationshipSubQuery(parentConceptId);
+    var conceptRelationshipSubqueryPointer =
+        new SubQueryPointer(conceptRelationshipSubQuery, "concept_relationship_subquery");
     var conceptRelationship =
-        SourceVariable.forJoined(subQueryPointer, ConceptRelationship.CONCEPT_ID_2, conceptId);
+        SourceVariable.forJoined(
+            conceptRelationshipSubqueryPointer, ConceptRelationship.CONCEPT_ID_2, conceptId);
 
     var joinHasChildren = makeHasChildrenJoin(conceptId);
 
@@ -99,7 +101,7 @@ public class ConceptChildrenQueryBuilder {
    * <p>SELECT c.concept_id_2 FROM concept_relationship AS c WHERE (c.concept_id_1 = 101 AND
    * c.relationship_id = 'Subsumes'))
    */
-  Query createSubQuery(int conceptId) {
+  Query createConceptRelationshipSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
     SourceVariable conceptRelationship =
         SourceVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));

@@ -47,10 +47,11 @@ public class HierarchyQueryBuilder {
     // because every concept has itself as an ancestor, so there will be at least one match.
     var conceptAncestor = ConceptAncestor.joinAncestor(childId);
 
-    DomainOccurrence domainOccurrence = DomainOccurrence.leftJoinOnDescendantConcept(domainOption);
+    DomainOccurrence domainOccurrence =
+        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendant_concept_id());
 
     // COUNT(DISTINCT person_id)
-    FieldVariable personCount = domainOccurrence.getCountPerson();
+    FieldVariable personCount = domainOccurrence.countPersonId();
 
     return new Query.Builder()
         .select(

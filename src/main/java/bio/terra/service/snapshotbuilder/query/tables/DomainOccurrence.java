@@ -1,17 +1,25 @@
 package bio.terra.service.snapshotbuilder.query.tables;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 
+import static bio.terra.service.snapshotbuilder.query.tables.Person.PERSON_ID;
+
 public class DomainOccurrence extends Table {
 
   private SnapshotBuilderDomainOption domainOption;
+  private TablePointer tablePointer;
+
+  private TableVariable tableVariable;
 
   private DomainOccurrence(TablePointer tablePointer) {
     super(TableVariable.forPrimary(tablePointer));
+    this.tablePointer = tablePointer;
+    this.tableVariable = TableVariable.forPrimary(tablePointer);
   }
 
   public DomainOccurrence(SnapshotBuilderDomainOption domainOption) {
@@ -38,7 +46,7 @@ public class DomainOccurrence extends Table {
 
   public static DomainOccurrence joinOnPersonId(String tableName, FieldVariable joinFieldOnParent) {
     return new DomainOccurrence(
-        TablePointer.fromTableName(tableName), Person.PERSON_ID, joinFieldOnParent);
+        TablePointer.fromTableName(tableName), PERSON_ID, joinFieldOnParent);
   }
 
   public FieldVariable getJoinColumn() {
@@ -50,10 +58,15 @@ public class DomainOccurrence extends Table {
   }
 
   public FieldVariable getPerson() {
-    return getFieldVariable(Person.PERSON_ID);
+    return getFieldVariable(PERSON_ID);
   }
 
   public FieldVariable getCountPerson() {
-    return getFieldVariable(Person.PERSON_ID);
+    return getFieldVariable(PERSON_ID);
+  }
+
+  public FieldVariable countPersonId() {
+    return new FieldVariable(
+        new FieldPointer(tablePointer, PERSON_ID, "COUNT"), tableVariable, "count", true);
   }
 }

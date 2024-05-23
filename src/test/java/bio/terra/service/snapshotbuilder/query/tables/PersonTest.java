@@ -1,37 +1,43 @@
-package bio.terra.service.snapshotbuilder.table;
+package bio.terra.service.snapshotbuilder.query.tables;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 
 import bio.terra.common.category.Unit;
-import java.util.ArrayList;
-import java.util.List;
+import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
-class Person {
+class PersonTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void buildVariable(SqlRenderContext context) {
-    TablePointer table = TablePointer.fromTableName("table");
-    var fieldPointer = FieldPointer.allFields(table);
-    TableVariable primaryTable = TableVariable.forPrimary(table);
-    var fieldVariable = fieldPointer.buildVariable(primaryTable, null);
-    assertThat(fieldVariable.renderSQL(context), is("t.*"));
+  void testAsPrimary(SqlRenderContext context) {
+    Person person = Person.asPrimary();
+    assertQueryEquals("person AS p", person.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void buildVariableForeign(SqlRenderContext context) {
-    TablePointer table = TablePointer.fromTableName("table");
-    var fieldPointer = FieldPointer.foreignColumn(table, "column");
-    TableVariable primaryTable = TableVariable.forPrimary(table);
-    List<TableVariable> tables = new ArrayList<>();
-    tables.add(primaryTable);
-    var fieldVariable = fieldPointer.buildVariable(primaryTable, tables);
-    assertThat(fieldVariable.renderSQL(context), is("t.column"));
+  void testFromColumn(SqlRenderContext context) {
+    FieldVariable fieldVariable = Person.asPrimary().fromColumn("column");
+    assertQueryEquals("p.column", fieldVariable.renderSQL(context));
+  }
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void testPersonId(SqlRenderContext context) {
+    FieldVariable fieldVariable = Person.asPrimary().personId();
+    assertQueryEquals("p.person_id", fieldVariable.renderSQL(context));
+  }
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void testCountPersonId(SqlRenderContext context) {
+    FieldVariable fieldVariable = Person.asPrimary().countPersonId();
+    assertQueryEquals("COUNT(DISTINCT p.person_id)", fieldVariable.renderSQL(context));
   }
 }

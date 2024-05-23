@@ -31,11 +31,11 @@ public class ConceptAncestor extends Table {
     return new ConceptAncestor(ANCESTOR_CONCEPT_ID, onParent);
   }
 
-  public FieldVariable ancestor_concept_id() {
+  public FieldVariable ancestorConceptId() {
     return getFieldVariable(ANCESTOR_CONCEPT_ID);
   }
 
-  public FieldVariable descendant_concept_id() {
+  public FieldVariable descendantConceptId() {
     return getFieldVariable(DESCENDANT_CONCEPT_ID);
   }
 }

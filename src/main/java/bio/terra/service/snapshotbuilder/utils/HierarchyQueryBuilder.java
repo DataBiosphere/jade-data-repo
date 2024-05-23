@@ -34,9 +34,9 @@ public class HierarchyQueryBuilder {
    */
   public Query generateQuery(SnapshotBuilderDomainOption domainOption, int conceptId) {
     ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
-    var relationshipId = conceptRelationship.relationship_id();
-    var parentId = conceptRelationship.concept_id_1();
-    var childId = conceptRelationship.concept_id_2();
+    var relationshipId = conceptRelationship.relationshipId();
+    var parentId = conceptRelationship.conceptId1();
+    var childId = conceptRelationship.conceptId2();
     Concept child = Concept.conceptId(childId);
     var parent = Concept.conceptId(parentId);
     FieldVariable conceptName = child.name();
@@ -48,7 +48,7 @@ public class HierarchyQueryBuilder {
     var conceptAncestor = ConceptAncestor.joinAncestor(childId);
 
     DomainOccurrence domainOccurrence =
-        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendant_concept_id());
+        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
 
     // COUNT(DISTINCT person_id)
     FieldVariable personCount = domainOccurrence.countPersonId();
@@ -94,14 +94,14 @@ public class HierarchyQueryBuilder {
   private Query selectAllParents(int conceptId) {
     ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
     var conceptIdLiteral = new Literal(conceptId);
-    FieldVariable ancestorConceptId = conceptAncestor.ancestor_concept_id();
+    FieldVariable ancestorConceptId = conceptAncestor.ancestorConceptId();
     return new Query.Builder()
         .select(List.of(ancestorConceptId))
         .tables(List.of(conceptAncestor))
         .where(
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(
-                    conceptAncestor.descendant_concept_id(), conceptIdLiteral),
+                    conceptAncestor.descendantConceptId(), conceptIdLiteral),
                 BinaryFilterVariable.notEquals(ancestorConceptId, conceptIdLiteral)))
         .build();
   }
@@ -125,7 +125,7 @@ public class HierarchyQueryBuilder {
    */
   static SelectExpression hasChildrenExpression(FieldVariable conceptId) {
     ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
-    FieldVariable descendantConceptId = conceptAncestor.descendant_concept_id();
+    FieldVariable descendantConceptId = conceptAncestor.descendantConceptId();
     Concept innerConcept = Concept.conceptId(descendantConceptId);
     return new ExistsExpression(
         new Query.Builder()
@@ -133,7 +133,7 @@ public class HierarchyQueryBuilder {
             .tables(List.of(conceptAncestor, innerConcept))
             .where(
                 BooleanAndOrFilterVariable.and(
-                    BinaryFilterVariable.equals(conceptAncestor.ancestor_concept_id(), conceptId),
+                    BinaryFilterVariable.equals(conceptAncestor.ancestorConceptId(), conceptId),
                     BinaryFilterVariable.notEquals(descendantConceptId, conceptId),
                     requireStandardConcept(innerConcept.standardConcept())))
             .build(),

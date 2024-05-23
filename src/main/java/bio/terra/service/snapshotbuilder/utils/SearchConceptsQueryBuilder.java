@@ -42,19 +42,19 @@ public class SearchConceptsQueryBuilder {
       SnapshotBuilderDomainOption domainOption, String searchText) {
     Concept concept = Concept.asPrimary();
     FieldVariable nameField = concept.name();
-    FieldVariable conceptId = concept.concept_id();
+    FieldVariable conceptId = concept.conceptId();
     FieldVariable conceptCode = concept.code();
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     ConceptAncestor conceptAncestor = ConceptAncestor.joinAncestor(conceptId);
 
-    FieldVariable descendantId = conceptAncestor.descendant_concept_id();
+    FieldVariable descendantId = conceptAncestor.descendantConceptId();
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
     DomainOccurrence domainOccurrence =
-        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendant_concept_id());
+        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
 
     // COUNT(DISTINCT co.person_id) AS count
     FieldVariable countPerson = domainOccurrence.countPersonId();
@@ -122,7 +122,7 @@ public class SearchConceptsQueryBuilder {
 
   static FilterVariable createDomainClause(Concept concept, String domainId) {
     return BooleanAndOrFilterVariable.and(
-        BinaryFilterVariable.equals(concept.domain_id(), new Literal(domainId)),
+        BinaryFilterVariable.equals(concept.domainId(), new Literal(domainId)),
         BinaryFilterVariable.equals(concept.standardConcept(), new Literal("S")));
   }
 }

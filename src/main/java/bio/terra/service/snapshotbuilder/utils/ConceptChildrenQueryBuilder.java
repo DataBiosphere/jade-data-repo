@@ -35,7 +35,7 @@ public class ConceptChildrenQueryBuilder {
     // concept table and its fields concept_name and concept_id
     Concept concept = Concept.asPrimary();
     FieldVariable conceptName = concept.name();
-    FieldVariable conceptId = concept.concept_id();
+    FieldVariable conceptId = concept.conceptId();
     FieldVariable conceptCode = concept.code();
 
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id.
@@ -46,7 +46,7 @@ public class ConceptChildrenQueryBuilder {
     // domain specific occurrence table joined on concept_ancestor.descendant_concept_id =
     // 'domain'_concept_id
     DomainOccurrence domainOccurrence =
-        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendant_concept_id());
+        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
 
     // COUNT(DISTINCT person_id)
     FieldVariable countPerson = domainOccurrence.countPersonId();
@@ -91,7 +91,7 @@ public class ConceptChildrenQueryBuilder {
   Query createSubQuery(int conceptId) {
     // concept_relationship is primary table for the subquery
     ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
-    FieldVariable descendantConceptId = conceptRelationship.concept_id_2();
+    FieldVariable descendantConceptId = conceptRelationship.conceptId2();
 
     return new Query.Builder()
         .select(List.of(descendantConceptId))
@@ -99,9 +99,9 @@ public class ConceptChildrenQueryBuilder {
         .where(
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(
-                    conceptRelationship.concept_id_1(), new Literal(conceptId)),
+                    conceptRelationship.conceptId1(), new Literal(conceptId)),
                 BinaryFilterVariable.equals(
-                    conceptRelationship.relationship_id(), new Literal("Subsumes"))))
+                    conceptRelationship.relationshipId(), new Literal("Subsumes"))))
         .build();
   }
 
@@ -112,11 +112,11 @@ public class ConceptChildrenQueryBuilder {
    */
   public Query retrieveDomainId(int conceptId) {
     Concept concept = Concept.asPrimary();
-    FieldVariable domainId = concept.domain_id();
+    FieldVariable domainId = concept.domainId();
 
     BinaryFilterVariable where =
         new BinaryFilterVariable(
-            concept.concept_id(),
+            concept.conceptId(),
             BinaryFilterVariable.BinaryOperator.EQUALS,
             new Literal(conceptId));
 

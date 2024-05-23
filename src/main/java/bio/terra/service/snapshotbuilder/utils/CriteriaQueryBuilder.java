@@ -94,7 +94,7 @@ public class CriteriaQueryBuilder {
             .tables(List.of(domainOccurrence, conceptAncestor))
             .where(
                 BinaryFilterVariable.equals(
-                    conceptAncestor.ancestor_concept_id(),
+                    conceptAncestor.ancestorConceptId(),
                     new Literal(domainCriteria.getConceptId())))
             .build());
   }

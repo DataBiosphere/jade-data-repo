@@ -20,15 +20,15 @@ public class ConceptRelationship extends Table {
     return new ConceptRelationship();
   }
 
-  public FieldVariable concept_id_1() {
+  public FieldVariable conceptId1() {
     return getFieldVariable(CONCEPT_ID_1);
   }
 
-  public FieldVariable concept_id_2() {
+  public FieldVariable conceptId2() {
     return getFieldVariable(CONCEPT_ID_2);
   }
 
-  public FieldVariable relationship_id() {
+  public FieldVariable relationshipId() {
     return getFieldVariable(RELATIONSHIP_ID);
   }
 }

@@ -34,11 +34,11 @@ public class Concept extends Table {
     return getFieldVariable(CONCEPT_NAME);
   }
 
-  public FieldVariable concept_id() {
+  public FieldVariable conceptId() {
     return getFieldVariable(CONCEPT_ID);
   }
 
-  public FieldVariable domain_id() {
+  public FieldVariable domainId() {
     return getFieldVariable(DOMAIN_ID);
   }
 

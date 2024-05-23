@@ -24,7 +24,7 @@ class ConceptTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testConceptId(SqlRenderContext context) {
     ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
-    Concept concept = Concept.conceptId(conceptAncestor.ancestor_concept_id());
+    Concept concept = Concept.conceptId(conceptAncestor.ancestorConceptId());
     assertQueryEquals(
         "JOIN concept AS c ON c.concept_id = ca.ancestor_concept_id", concept.renderSQL(context));
   }
@@ -37,8 +37,8 @@ class ConceptTest {
     Map<FieldVariable, String> fieldVariablesToResult =
         Map.ofEntries(
             Map.entry(concept.name(), "c.concept_name"),
-            Map.entry(concept.concept_id(), "c.concept_id"),
-            Map.entry(concept.domain_id(), "c.domain_id"),
+            Map.entry(concept.conceptId(), "c.concept_id"),
+            Map.entry(concept.domainId(), "c.domain_id"),
             Map.entry(concept.code(), "c.concept_code"),
             Map.entry(concept.standardConcept(), "c.standard_concept"));
 

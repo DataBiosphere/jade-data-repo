@@ -26,9 +26,9 @@ public class ConceptRelationshipTest {
     ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
     Map<FieldVariable, String> fieldVariablesToResult =
         Map.ofEntries(
-            Map.entry(conceptRelationship.concept_id_1(), "cr.concept_id_1"),
-            Map.entry(conceptRelationship.concept_id_2(), "cr.concept_id_2"),
-            Map.entry(conceptRelationship.relationship_id(), "cr.relationship_id"));
+            Map.entry(conceptRelationship.conceptId1(), "cr.concept_id_1"),
+            Map.entry(conceptRelationship.conceptId2(), "cr.concept_id_2"),
+            Map.entry(conceptRelationship.relationshipId(), "cr.relationship_id"));
 
     fieldVariablesToResult.forEach(
         (fieldVariable, result) -> {

@@ -3,41 +3,59 @@ package bio.terra.service.snapshotbuilder.query.tables;
 import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
+import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
-class PersonTest {
+class DomainOccurrenceTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void testAsPrimary(SqlRenderContext context) {
-    Person person = Person.asPrimary();
-    assertQueryEquals("person AS p", person.renderSQL(context));
+  void testDomainOccurrence(SqlRenderContext context) {
+    SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
+    domainOption.root(new SnapshotBuilderConcept()).tableName("table");
+
+    DomainOccurrence domainOccurrence = DomainOccurrence.forPrimary(domainOption);
+
+    assertQueryEquals("table AS t", domainOccurrence.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void testFromColumn(SqlRenderContext context) {
-    FieldVariable fieldVariable = Person.asPrimary().fromColumn("column");
-    assertQueryEquals("p.column", fieldVariable.renderSQL(context));
-  }
+  void testLeftJoinOn(SqlRenderContext context) {
+    SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
+    domainOption
+        .root(new SnapshotBuilderConcept())
+        .tableName(ConditionOccurrence.TABLE_NAME)
+        .columnName(ConditionOccurrence.CONDITION_CONCEPT_ID);
 
-  @ParameterizedTest
-  @ArgumentsSource(SqlRenderContextProvider.class)
-  void testPersonId(SqlRenderContext context) {
-    FieldVariable fieldVariable = Person.asPrimary().personId();
-    assertQueryEquals("p.person_id", fieldVariable.renderSQL(context));
+    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    DomainOccurrence domainOccurrence =
+        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendant_concept_id());
+    assertQueryEquals(
+        "LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id",
+        domainOccurrence.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCountPersonId(SqlRenderContext context) {
-    FieldVariable fieldVariable = Person.asPrimary().countPersonId();
-    assertQueryEquals("COUNT(DISTINCT p.person_id)", fieldVariable.renderSQL(context));
+    SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
+    domainOption
+        .root(new SnapshotBuilderConcept())
+        .tableName(ConditionOccurrence.TABLE_NAME)
+        .columnName(ConditionOccurrence.CONDITION_CONCEPT_ID);
+    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    DomainOccurrence domainOccurrence =
+        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendant_concept_id());
+    FieldVariable countPersonId = domainOccurrence.countPersonId();
+    assertQueryEquals("COUNT(DISTINCT co.person_id) AS count", countPersonId.renderSQL(context));
   }
 }

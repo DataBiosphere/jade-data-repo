@@ -351,6 +351,10 @@ public class SnapshotBuilderService {
     return snapshotRequestDao.update(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
+  public SnapshotAccessRequestResponse approveRequest(UUID id) {
+    return snapshotRequestDao.update(id, SnapshotAccessRequestStatus.APPROVED);
+  }
+
   private SnapshotBuilderDomainOption getDomainOption(
       int conceptId, Snapshot snapshot, AuthenticatedUserRequest userRequest) {
     // domain is needed to join with the domain specific occurrence table

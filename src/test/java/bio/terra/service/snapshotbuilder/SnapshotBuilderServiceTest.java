@@ -106,7 +106,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @Test
-  void createSnapshotRequest() {
+  void createRequest() {
     UUID snapshotId = UUID.randomUUID();
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
     when(snapshotRequestDao.create(
@@ -122,7 +122,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @Test
-  void createSnapshotRequestRollsBackIfSamFails() {
+  void createRequestRollsBackIfSamFails() {
     UUID snapshotId = UUID.randomUUID();
     UUID snapshotRequestId = UUID.randomUUID();
     SnapshotAccessRequestResponse response =
@@ -141,7 +141,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @Test
-  void enumerateSnapshotRequests() {
+  void enumerateRequests() {
     SnapshotAccessRequestResponse responseItem =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(UUID.randomUUID());
     List<SnapshotAccessRequestResponse> response = List.of(responseItem);
@@ -427,10 +427,17 @@ class SnapshotBuilderServiceTest {
   }
 
   @Test
-  void testRejectSnapshotAccessRequest() {
+  void testRejectRequest() {
     UUID id = UUID.randomUUID();
     snapshotBuilderService.rejectRequest(id);
     verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.REJECTED);
+  }
+
+  @Test
+  void testApproveRequest() {
+    UUID id = UUID.randomUUID();
+    snapshotBuilderService.approveRequest(id);
+    verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.APPROVED);
   }
 
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {

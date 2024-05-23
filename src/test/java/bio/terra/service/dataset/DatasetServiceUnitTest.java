@@ -44,7 +44,6 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -78,8 +77,6 @@ class DatasetServiceUnitTest {
   @Mock private DatasetDao datasetDao;
 
   private DatasetService datasetService;
-
-  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   @Mock private DatasetJsonConversion datasetJsonConversion;
   @Mock private JobService jobService;
   @Mock private LoadService loadService;
@@ -119,7 +116,6 @@ class DatasetServiceUnitTest {
             iamService,
             datasetTableDao,
             azureSynapsePdao,
-            snapshotBuilderSettingsDao,
             metadataDataAccessUtils);
   }
 

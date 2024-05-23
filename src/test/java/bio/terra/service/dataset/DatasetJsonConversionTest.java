@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -26,7 +25,6 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +33,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,8 +56,6 @@ class DatasetJsonConversionTest {
 
   private DatasetJsonConversion datasetJsonConversion;
 
-  @Mock private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
-
   private Dataset dataset;
   private DatasetModel datasetModel;
   private MetadataDataAccessUtils metadataDataAccessUtils;
@@ -68,8 +63,7 @@ class DatasetJsonConversionTest {
   @BeforeEach
   void setUp() {
     metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
-    datasetJsonConversion =
-        new DatasetJsonConversion(metadataDataAccessUtils, snapshotBuilderSettingsDao);
+    datasetJsonConversion = new DatasetJsonConversion(metadataDataAccessUtils);
 
     Column datasetColumn =
         new Column()
@@ -174,22 +168,6 @@ class DatasetJsonConversionTest {
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
             testUser),
         equalTo(datasetModel.snapshotBuilderSettings(null)));
-  }
-
-  @Test
-  void populateDatasetModelFromDatasetIncludingSnapshotBuilderSettings() {
-    when(snapshotBuilderSettingsDao.getByDatasetId(DATASET_ID))
-        .thenReturn(new SnapshotBuilderSettings());
-    assertThat(
-        datasetJsonConversion.populateDatasetModelFromDataset(
-            dataset,
-            List.of(
-                DatasetRequestAccessIncludeModel.SCHEMA,
-                DatasetRequestAccessIncludeModel.PROFILE,
-                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS,
-                DatasetRequestAccessIncludeModel.DATA_PROJECT),
-            testUser),
-        equalTo(datasetModel));
   }
 
   @Test

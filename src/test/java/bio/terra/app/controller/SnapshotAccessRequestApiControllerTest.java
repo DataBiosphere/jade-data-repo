@@ -53,6 +53,7 @@ class SnapshotAccessRequestApiControllerTest {
   private static final String ENDPOINT = "/api/repository/v1/snapshotAccessRequests";
 
   private static final String REJECT_ENDPOINT = ENDPOINT + "/{id}/reject";
+  private static final String APPROVE_ENDPOINT = ENDPOINT + "/{id}/approve";
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -119,12 +120,25 @@ class SnapshotAccessRequestApiControllerTest {
   }
 
   @Test
-  void testRejecteSnapshotRequest() throws Exception {
+  void testApproveAndRejectSnapshotRequest() throws Exception {
     UUID id = UUID.randomUUID();
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse().id(id);
     when(snapshotBuilderService.rejectRequest(id)).thenReturn(response);
+    testUpdateStatus(id, response, REJECT_ENDPOINT);
+  }
+
+  @Test
+  void testApproveSnapshotRequest() throws Exception {
+    UUID id = UUID.randomUUID();
+    SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse().id(id);
+    when(snapshotBuilderService.approveRequest(id)).thenReturn(response);
+    testUpdateStatus(id, response, APPROVE_ENDPOINT);
+  }
+
+  private void testUpdateStatus(UUID id, SnapshotAccessRequestResponse response, String endpoint)
+      throws Exception {
     String actualJson =
-        mvc.perform(put(REJECT_ENDPOINT, id))
+        mvc.perform(put(endpoint, id))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

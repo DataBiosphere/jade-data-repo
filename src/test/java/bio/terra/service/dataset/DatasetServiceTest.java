@@ -2,8 +2,6 @@ package bio.terra.service.dataset;
 
 import static bio.terra.common.TestUtils.assertError;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
@@ -37,7 +35,6 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
-import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
@@ -57,8 +54,6 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import com.azure.resourcemanager.loganalytics.models.Workspace;
 import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.storage.blob.BlobClient;
@@ -127,7 +122,6 @@ public class DatasetServiceTest {
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private AzureMonitoringService azureMonitoringService;
   @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
-  @MockBean private SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   @MockBean private AzureSynapsePdao azureSynapsePdao;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
@@ -645,42 +639,6 @@ public class DatasetServiceTest {
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
-  }
-
-  @Test
-  public void getRetrieveDatasetRequiredActionsWithDefaults() {
-    List<IamAction> actions =
-        DatasetService.getRetrieveDatasetRequiredActions(
-            List.of(
-                DatasetRequestAccessIncludeModel.SCHEMA,
-                DatasetRequestAccessIncludeModel.PROFILE,
-                DatasetRequestAccessIncludeModel.DATA_PROJECT,
-                DatasetRequestAccessIncludeModel.STORAGE));
-    assertThat("The only required action is reader", actions, contains(IamAction.READ_DATASET));
-  }
-
-  @Test
-  public void getRetrieveDatasetRequiredActionsWithSnapshotBuilderConfig() {
-    List<IamAction> actions =
-        DatasetService.getRetrieveDatasetRequiredActions(
-            List.of(
-                DatasetRequestAccessIncludeModel.SCHEMA,
-                DatasetRequestAccessIncludeModel.PROFILE,
-                DatasetRequestAccessIncludeModel.DATA_PROJECT,
-                DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS));
-    assertThat(
-        "When requesting SnapshotBuilderSettings require VIEW_SNAPSHOT_BUILDER_SETTINGS permission",
-        actions,
-        containsInAnyOrder(IamAction.READ_DATASET, IamAction.GET_SNAPSHOT_BUILDER_SETTINGS));
-  }
-
-  @Test
-  public void testUpdateSnapshotBuilderSettings() {
-    UUID datasetId = UUID.randomUUID();
-    datasetService.updateDatasetSnapshotBuilderSettings(
-        datasetId, SnapshotBuilderTestData.SETTINGS);
-    verify(snapshotBuilderSettingsDao)
-        .upsertByDatasetId(datasetId, SnapshotBuilderTestData.SETTINGS);
   }
 
   @Test

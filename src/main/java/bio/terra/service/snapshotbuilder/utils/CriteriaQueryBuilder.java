@@ -83,7 +83,7 @@ public class CriteriaQueryBuilder {
                             "Domain %d not configured for use in Snapshot Builder",
                             domainCriteria.getId())));
 
-    DomainOccurrence domainOccurrence = new DomainOccurrence(domainOption);
+    DomainOccurrence domainOccurrence = DomainOccurrence.forPrimary(domainOption);
 
     ConceptAncestor conceptAncestor =
         ConceptAncestor.joinDescendant(domainOccurrence.getJoinColumn());

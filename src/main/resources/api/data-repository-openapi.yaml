@@ -3060,13 +3060,13 @@ paths:
     put:
       tags:
         - SnapshotAccessRequest
-      description: As a custodian, reject a snapshot access request. Approve should be done via 'createSnapshot'.
+      description: As a custodian, reject a snapshot access request.
       operationId: rejectSnapshotAccessRequest
       parameters:
         - $ref: '#/components/parameters/Id'
       responses:
         200:
-          description: The request has been made.
+          description: The request has been rejected.
           content:
             application/json:
               schema:
@@ -3085,6 +3085,51 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         403:
           description: Unauthorized - missing permissions to reject snapshot request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No snapshot request found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/approve:
+    put:
+      tags:
+        - SnapshotAccessRequest
+      description: As a custodian, approve a snapshot access request.
+      operationId: approveSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request has been approved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
+        400:
+          description: Bad request - invalid id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to approve snapshot request.
           content:
             application/json:
               schema:

@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.common.exception.InternalServerErrorException;
 import jakarta.annotation.Nullable;
 import org.stringtemplate.v4.ST;
 
@@ -35,7 +34,7 @@ public class TableVariable implements SqlExpression {
     return forJoined(tablePointer, joinField, joinFieldOnParent, true);
   }
 
-  private static TableVariable forJoined(
+  public static TableVariable forJoined(
       TablePointer tablePointer,
       String joinField,
       FieldVariable joinFieldOnParent,
@@ -82,54 +81,5 @@ public class TableVariable implements SqlExpression {
 
   public boolean isPrimary() {
     return joinField == null;
-  }
-
-  public static class Builder<T extends TableVariable> {
-    private String joinField;
-    private FieldVariable joinFieldOnParent;
-    private boolean isLeftJoin;
-    private TablePointer domainOptionTablePointer;
-
-    public Builder<T> leftJoin(String joinField) {
-      this.isLeftJoin = true;
-      this.joinField = joinField;
-      return this;
-    }
-
-    public Builder<T> from(String domainOptionTableName) {
-      this.domainOptionTablePointer = TablePointer.fromTableName(domainOptionTableName);
-      return this;
-    }
-
-    public Builder<T> join(String joinField) {
-      this.isLeftJoin = false;
-      this.joinField = joinField;
-      return this;
-    }
-
-    public Builder<T> on(FieldVariable joinFieldOnParent) {
-      this.joinFieldOnParent = joinFieldOnParent;
-      return this;
-    }
-
-    public TablePointer getDomainOptionTablePointer() {
-      return this.domainOptionTablePointer;
-    }
-
-    public String getJoinField() {
-      return this.joinField;
-    }
-
-    public FieldVariable getJoinFieldOnParent() {
-      return this.joinFieldOnParent;
-    }
-
-    public boolean isLeftJoin() {
-      return this.isLeftJoin;
-    }
-
-    public T build() {
-      throw new InternalServerErrorException("Should not use Table Variable as is");
-    }
   }
 }

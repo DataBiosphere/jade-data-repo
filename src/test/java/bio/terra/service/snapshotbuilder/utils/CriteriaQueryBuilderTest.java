@@ -28,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class CriteriaQueryBuilderTest {
+public class CriteriaQueryBuilderTest {
   private CriteriaQueryBuilder criteriaQueryBuilder;
 
   @BeforeEach

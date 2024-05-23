@@ -14,5 +14,5 @@ databaseChangeLog:
                     references: snapshot(id)
                     deleteCascade: true
               - column:
-                  name: job_id
+                  name: flightid
                   type: varchar(36)

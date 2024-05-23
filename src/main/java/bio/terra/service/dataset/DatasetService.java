@@ -29,7 +29,6 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.ResourceLocks;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -75,7 +74,6 @@ import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -119,7 +117,6 @@ public class DatasetService {
   private final IamService iamService;
   private final DatasetTableDao datasetTableDao;
   private final AzureSynapsePdao azureSynapsePdao;
-  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
@@ -141,7 +138,6 @@ public class DatasetService {
       IamService iamService,
       DatasetTableDao datasetTableDao,
       AzureSynapsePdao azureSynapsePdao,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       MetadataDataAccessUtils metadataDataAccessUtils) {
     this.datasetJsonConversion = datasetJsonConversion;
     this.datasetDao = datasetDao;
@@ -160,7 +156,6 @@ public class DatasetService {
     this.iamService = iamService;
     this.datasetTableDao = datasetTableDao;
     this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
@@ -215,18 +210,6 @@ public class DatasetService {
 
   public DatasetModel retrieveDatasetModel(UUID id, AuthenticatedUserRequest userRequest) {
     return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
-  }
-  /**
-   * Helper method to retrieve the required actions to view the dataset's requested fields
-   *
-   * @param include the list of dataset fields being requested
-   * @return a List<IamAction> = The list of required actions to read these dataset fields
-   */
-  public static List<IamAction> getRetrieveDatasetRequiredActions(
-      List<DatasetRequestAccessIncludeModel> include) {
-    return include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)
-        ? List.of(IamAction.READ_DATASET, IamAction.GET_SNAPSHOT_BUILDER_SETTINGS)
-        : List.of(IamAction.READ_DATASET);
   }
 
   /**
@@ -762,11 +745,6 @@ public class DatasetService {
       throw new RuntimeException("Dataset tags were not updated");
     }
     return datasetDao.retrieveSummaryById(id).toModel();
-  }
-
-  public void updateDatasetSnapshotBuilderSettings(
-      UUID datasetId, SnapshotBuilderSettings snapshotBuilderSettings) {
-    snapshotBuilderSettingsDao.upsertByDatasetId(datasetId, snapshotBuilderSettings);
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

@@ -58,6 +58,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.context.ApplicationContext;
@@ -365,6 +366,12 @@ public class SnapshotCreateFlight extends Flight {
     }
 
     addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
+
+    // starts a flight to add data access control groups to the snapshot
+    List<String> dataAccessControlGroups = snapshotReq.getDataAccessControlGroups();
+    if (Objects.nonNull(dataAccessControlGroups) && !dataAccessControlGroups.isEmpty()) {
+      addStep(new AddDataAccessControlsStep(snapshotService, userReq, dataAccessControlGroups));
+    }
 
     // unlock the resource metadata rows
     addStep(new UnlockSnapshotStep(snapshotDao, null));

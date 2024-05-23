@@ -1,7 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.makeHasChildrenJoin;
-import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.selectHChildren;
+import static bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder.selectHasChildren;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -75,7 +75,7 @@ public class ConceptChildrenQueryBuilder {
     FieldVariable count = domainOccurrence.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
 
     List<SelectExpression> select =
-        List.of(conceptName, conceptId, conceptCode, count, selectHChildren(joinHasChildren));
+        List.of(conceptName, conceptId, conceptCode, count, selectHasChildren(joinHasChildren));
 
     List<SourceVariable> tables =
         List.of(concept, conceptAncestor, conceptRelationship, joinHasChildren, domainOccurrence);

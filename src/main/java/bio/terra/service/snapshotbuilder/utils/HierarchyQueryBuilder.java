@@ -77,7 +77,7 @@ public class HierarchyQueryBuilder {
             conceptName,
             conceptCode,
             count,
-            selectHChildren(joinHasChildren)),
+            selectHasChildren(joinHasChildren)),
         List.of(
             conceptRelationship,
             child,
@@ -123,7 +123,7 @@ public class HierarchyQueryBuilder {
     return SourceVariable.forJoined(subQueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, parentId);
   }
 
-  static FieldVariable selectHChildren(SourceVariable joinHasChildren) {
+  static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {
     return joinHasChildren.makeFieldVariable(
         ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", "> 0", true);
   }

@@ -40,7 +40,7 @@ public class SnapshotRequestDao {
   private static final String CREATED_DATE = "created_date";
   private static final String UPDATED_DATE = "updated_date";
   private static final String STATUS = "status";
-  private static final String JOB_ID = "job_id";
+  private static final String FLIGHT_ID = "flightid";
   private static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
   private static final String AUTHORIZED_RESOURCES = "authorized_resources";
 
@@ -56,7 +56,7 @@ public class SnapshotRequestDao {
               .updatedDate(getInstantString(rs, UPDATED_DATE))
               .createdBy(rs.getString(CREATED_BY))
               .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)))
-              .jobId(rs.getString(JOB_ID))
+              .flightid(rs.getString(FLIGHT_ID))
               .createdSnapshotId(rs.getObject(CREATED_SNAPSHOT_ID, UUID.class));
 
   public SnapshotRequestDao(

@@ -9,36 +9,30 @@ import bio.terra.service.snapshotbuilder.query.TableVariable;
 
 public class DomainOccurrence extends Table {
 
-  private SnapshotBuilderDomainOption domainOption;
+  private final FieldVariable personCount;
+  private final SnapshotBuilderDomainOption domainOption;
 
-  private DomainOccurrence(TablePointer tablePointer) {
-    super(TableVariable.forPrimary(tablePointer));
-  }
-
-  public DomainOccurrence(SnapshotBuilderDomainOption domainOption) {
-    super(TableVariable.forPrimary(TablePointer.fromTableName(domainOption.getTableName())));
+  private DomainOccurrence(SnapshotBuilderDomainOption domainOption, TableVariable tableVariable) {
+    super(tableVariable);
     this.domainOption = domainOption;
+    this.personCount = tableVariable.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
   }
 
-  private DomainOccurrence(
-      TablePointer tablePointer,
-      String joinField,
-      FieldVariable joinFieldOnParent,
-      boolean leftJoin) {
-    super(TableVariable.forJoined(tablePointer, joinField, joinFieldOnParent, leftJoin));
-  }
-
-  public static DomainOccurrence asPrimary(TablePointer tablePointer) {
-    return new DomainOccurrence(tablePointer);
-  }
-
-  public static DomainOccurrence leftJoinOnDescendantConcept(
-      SnapshotBuilderDomainOption domainOption, ConceptAncestor conceptAncestor) {
+  public static DomainOccurrence leftJoinOn(
+      SnapshotBuilderDomainOption domainOption, FieldVariable fieldVariable) {
     return new DomainOccurrence(
-        TablePointer.fromTableName(domainOption.getTableName()),
-        domainOption.getColumnName(),
-        conceptAncestor.descendant_concept_id(),
-        true);
+        domainOption,
+        TableVariable.forJoined(
+            TablePointer.fromTableName(domainOption.getTableName()),
+            domainOption.getColumnName(),
+            fieldVariable,
+            true));
+  }
+
+  public static DomainOccurrence forPrimary(SnapshotBuilderDomainOption domainOption) {
+    return new DomainOccurrence(
+        domainOption,
+        TableVariable.forPrimary(TablePointer.fromTableName(domainOption.getTableName())));
   }
 
   public FieldVariable getJoinColumn() {
@@ -50,6 +44,6 @@ public class DomainOccurrence extends Table {
   }
 
   public FieldVariable countPersonId() {
-    return getFieldVariable(PERSON_ID, "COUNT", "count", true);
+    return personCount;
   }
 }

@@ -49,8 +49,6 @@ public class SearchConceptsQueryBuilder {
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
     ConceptAncestor conceptAncestor = ConceptAncestor.joinAncestor(conceptId);
 
-    FieldVariable descendantId = conceptAncestor.descendantConceptId();
-
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
     DomainOccurrence domainOccurrence =

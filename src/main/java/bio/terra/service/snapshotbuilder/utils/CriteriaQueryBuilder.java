@@ -36,7 +36,8 @@ public class CriteriaQueryBuilder {
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
-    FieldVariable rangeVariable = person.variableForOption(getProgramDataOptionColumnName(rangeCriteria.getId()));
+    FieldVariable rangeVariable =
+        person.variableForOption(getProgramDataOptionColumnName(rangeCriteria.getId()));
     return BooleanAndOrFilterVariable.and(
         new BinaryFilterVariable(
             rangeVariable,
@@ -65,7 +66,6 @@ public class CriteriaQueryBuilder {
         .findFirst()
         .orElseThrow(
             () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)));
-
   }
 
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {

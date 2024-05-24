@@ -101,4 +101,64 @@ class HierarchyQueryBuilderTest {
     assertQueryEquals(
         "COUNT(DISTINCT hc.descendant_concept_id) AS has_children", query.renderSQL(context));
   }
+
+  private static final String EXPECTED_JOIN_TO_FILTER =
+      """
+      JOIN (SELECT ca.ancestor_concept_id, ca.descendant_concept_id
+            FROM concept_ancestor AS ca
+            WHERE (ca.descendant_concept_id = 1 AND ca.ancestor_concept_id != 1))
+      AS cas ON cas.ancestor_concept_id = cr.concept_id_1
+      """;
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void joinToFilterConcepts(SqlRenderContext context) {
+    var conceptRelationship =
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
+    var parentId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1);
+    var query = HierarchyQueryBuilder.joinToFilterConcepts(parentId, 1);
+    assertQueryEquals(EXPECTED_JOIN_TO_FILTER, query.renderSQL(context));
+  }
+
+  private static final String EXPECTED_HAS_CHILDREN_JOIN =
+      """
+      LEFT JOIN (SELECT ca.ancestor_concept_id, ca.descendant_concept_id, ca.min_levels_of_separation
+            FROM concept_ancestor AS ca
+            JOIN concept AS c ON c.concept_id = ca.descendant_concept_id
+            WHERE c.standard_concept = 'S') AS hc
+      ON (hc.ancestor_concept_id = cr.concept_id_2
+        AND hc.descendant_concept_id != cr.concept_id_2
+        AND hc.min_levels_of_separation <= 1)
+      """;
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void makeHasChildrenJoin(SqlRenderContext context) {
+    var conceptRelationship =
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
+    var childId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
+    var query = HierarchyQueryBuilder.makeHasChildrenJoin(childId);
+    assertQueryEquals(EXPECTED_HAS_CHILDREN_JOIN, query.renderSQL(context));
+  }
+
+  private static final String GCP_EXPECTED_SELECT_HAS_CHILDREN =
+      "COUNT(DISTINCT hc.descendant_concept_id) > 0 AS has_children";
+
+  private static final String AZURE_EXPECTED_SELECT_HAS_CHILDREN =
+      "COUNT(DISTINCT hc.descendant_concept_id) AS has_children";
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void selectHasChildren(SqlRenderContext context) {
+    var conceptRelationship =
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
+    var childId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
+    var joinHasChildren = HierarchyQueryBuilder.makeHasChildrenJoin(childId);
+    var query = HierarchyQueryBuilder.selectHasChildren(joinHasChildren);
+    assertQueryEquals(
+        context
+            .getPlatform()
+            .choose(GCP_EXPECTED_SELECT_HAS_CHILDREN, AZURE_EXPECTED_SELECT_HAS_CHILDREN),
+        query.renderSQL(context));
+  }
 }

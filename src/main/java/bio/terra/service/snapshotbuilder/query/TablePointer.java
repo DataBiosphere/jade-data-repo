@@ -8,6 +8,7 @@ public record TablePointer(String tableName, Filter filter) implements SourcePoi
     return new TablePointer(tableName, null);
   }
 
+  @Override
   public String getSourceName() {
     return tableName;
   }

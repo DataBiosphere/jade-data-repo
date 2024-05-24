@@ -128,7 +128,7 @@ public class HierarchyQueryBuilder {
 
   static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {
     return joinHasChildren.makeFieldVariable(
-        ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", "> 0", true);
+        ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", true);
   }
 
   /** Generate a join clause that is used to determine if the outerConcept has any children. */

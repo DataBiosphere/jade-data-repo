@@ -18,7 +18,7 @@ class ConceptChildrenQueryBuilderTest {
       """
       SELECT c.concept_name, c.concept_id, c.concept_code,
         COUNT(DISTINCT co.person_id) AS count,
-        COUNT(DISTINCT hc.descendant_concept_id) > 0 AS has_children
+        COUNT(DISTINCT hc.descendant_concept_id) AS has_children
       FROM concept AS c
         JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
         JOIN (SELECT cr.concept_id_2 FROM concept_relationship AS cr

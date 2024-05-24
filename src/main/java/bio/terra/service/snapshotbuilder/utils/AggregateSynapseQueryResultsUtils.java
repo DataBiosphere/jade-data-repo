@@ -25,7 +25,7 @@ public class AggregateSynapseQueryResultsUtils {
     return new SnapshotBuilderConcept()
         .name(getField(rs::getString, Concept.CONCEPT_NAME))
         .id(getField(rs::getLong, Concept.CONCEPT_ID).intValue())
-        .hasChildren(getField(rs::getBoolean, QueryBuilderFactory.HAS_CHILDREN))
+        .hasChildren(getField(rs::getLong, QueryBuilderFactory.HAS_CHILDREN) > 0)
         .code(getField(rs::getString, Concept.CONCEPT_CODE))
         .count(
             SnapshotBuilderService.fuzzyLowCount(

@@ -77,7 +77,7 @@ public class SearchConceptsQueryBuilder {
             idField,
             conceptCode,
             countField,
-            new SelectAlias(new Literal(true), QueryBuilderFactory.HAS_CHILDREN));
+            new SelectAlias(new Literal(1), QueryBuilderFactory.HAS_CHILDREN));
 
     List<SourceVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
 

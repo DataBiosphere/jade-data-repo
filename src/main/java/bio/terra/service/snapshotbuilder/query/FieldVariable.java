@@ -70,10 +70,6 @@ public class FieldVariable implements SelectExpression {
       }
     }
 
-    if (fieldPointer.hasHasCountClause()) {
-      sql = context.getPlatform().choose(sql + " " + fieldPointer.getHasCountClause(), sql);
-    }
-
     if (alias != null) {
       return "%s AS %s".formatted(sql, alias);
     }

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query.tables;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
@@ -13,6 +14,7 @@ public class Person extends Table {
   public static final String GENDER_CONCEPT_ID = "gender_concept_id";
   public static final String RACE_CONCEPT_ID = "race_concept_id";
   public static final String ETHNICITY_CONCEPT_ID = "ethnicity_concept_id";
+  public static final String ROW_ID = PdaoConstant.PDAO_ROW_ID_COLUMN;
   private static final TablePointer tablePointer = TablePointer.fromTableName(TABLE_NAME);
   private static final TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
 
@@ -30,6 +32,10 @@ public class Person extends Table {
 
   public FieldVariable personId() {
     return getFieldVariable(PERSON_ID);
+  }
+
+  public FieldVariable rowId() {
+    return getFieldVariable(ROW_ID);
   }
 
   public FieldVariable countPersonId() {

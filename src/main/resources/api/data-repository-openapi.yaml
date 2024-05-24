@@ -3060,13 +3060,13 @@ paths:
     put:
       tags:
         - SnapshotAccessRequest
-      description: As a custodian, reject a snapshot access request. Approve should be done via 'createSnapshot'.
+      description: As a custodian, reject a snapshot access request.
       operationId: rejectSnapshotAccessRequest
       parameters:
         - $ref: '#/components/parameters/Id'
       responses:
         200:
-          description: The request has been made.
+          description: The request has been rejected.
           content:
             application/json:
               schema:
@@ -3085,6 +3085,51 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         403:
           description: Unauthorized - missing permissions to reject snapshot request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No snapshot request found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/approve:
+    put:
+      tags:
+        - SnapshotAccessRequest
+      description: As a custodian, approve a snapshot access request.
+      operationId: approveSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request has been approved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
+        400:
+          description: Bad request - invalid id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to approve snapshot request.
           content:
             application/json:
               schema:
@@ -4506,66 +4551,6 @@ paths:
           description: Settings were deleted
         default:
           description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotBuilder/settings:
-    post:
-      tags:
-        - datasets
-        - repository
-      description: >
-        Updates the settings for using the dataset in the snapshot builder.
-      operationId: updateDatasetSnapshotBuilderSettings
-      parameters:
-        - in: path
-          description: The UUID of the dataset.
-          name: id
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        description: New settings for the dataset to use for snapshot building
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SnapshotBuilderSettings'
-        required: true
-      responses:
-        200:
-          description: The updated Dataset
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DatasetModel'
-        400:
-          description: Bad request - invalid id, badly formed IamResourceType.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: Unauthorized - missing permissions to update snapshot builder settings.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: No dataset found that meets the request parameters.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        500:
-          description: An unexpected error occurred.
           content:
             application/json:
               schema:
@@ -6173,12 +6158,15 @@ components:
             - byFullView
             - byQuery
             - byRowId
+            - byRequestId
         assetSpec:
           $ref: '#/components/schemas/SnapshotRequestAssetModel'
         querySpec:
           $ref: '#/components/schemas/SnapshotRequestQueryModel'
         rowIdSpec:
           $ref: '#/components/schemas/SnapshotRequestRowIdModel'
+        requestIdSpec:
+          $ref: '#/components/schemas/SnapshotRequestIdModel'
       description: >
         The contents specifies the source of the data (dataset and asset)
         and the rows to include (field and rootValues).
@@ -6239,6 +6227,15 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotRequestIdModel:
+      required:
+        - snapshotRequestId
+      type: object
+      properties:
+        snapshotRequestId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+      description: >
+        A reference to a SnapshotAccessRequest which contains a snapshot specification.
     SnapshotPatchRequestModel:
       type: object
       properties:

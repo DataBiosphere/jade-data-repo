@@ -574,7 +574,7 @@ public class BigQuerySnapshotPdao {
   // insert the rowIds into the snapshot row ids table and then kick off the rest of the
   // relationship walking
   // once we have the row ids in addition to the asset spec, this should look familiar to wAsset
-  public void queryForRowIds(
+  public void createSnapshotByQuery(
       AssetSpecification assetSpecification,
       Snapshot snapshot,
       String sqlQuery,

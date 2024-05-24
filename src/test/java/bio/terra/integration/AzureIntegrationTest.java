@@ -55,6 +55,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountRequest;
@@ -144,6 +145,7 @@ public class AzureIntegrationTest extends UsersBase {
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private SamFixtures samFixtures;
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
@@ -154,7 +156,10 @@ public class AzureIntegrationTest extends UsersBase {
   private User admin;
   private UUID datasetId;
   private UUID releaseSnapshotId;
+  private String datasetName;
   private List<UUID> snapshotIds;
+
+  private List<UUID> snapshotAccessRequestIds;
   private UUID profileId;
   private AzureBlobIOTestUtility azureBlobIOTestUtility;
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
@@ -184,6 +189,7 @@ public class AzureIntegrationTest extends UsersBase {
             retryOptions);
     gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
     snapshotIds = new ArrayList<>();
+    snapshotAccessRequestIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
   }
 
@@ -200,10 +206,12 @@ public class AzureIntegrationTest extends UsersBase {
 
     dataRepoFixtures.resetConfig(steward);
 
-    if (snapshotIds != null) {
-      for (UUID snapshotId : snapshotIds) {
-        dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-      }
+    for (UUID snapshotAccessRequestId : snapshotAccessRequestIds) {
+      samFixtures.deleteSnapshotAccessRequest(steward, snapshotAccessRequestId);
+    }
+
+    for (UUID snapshotId : snapshotIds) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
     }
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);
@@ -406,6 +414,7 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    datasetName = summaryModel.getName();
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
@@ -433,6 +442,66 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Add settings to snapshot
     dataRepoFixtures.updateSettings(steward, releaseSnapshotId, "omop/settings.json");
+  }
+
+  @Test
+  public void testSnapshotCreateFromRequest() throws Exception {
+    populateOmopTable();
+    UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
+    SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
+    String columnName = "datarepo_row_id";
+    List<Object> personSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotSummaryByRequest.getId(), "person", 0, 100, null, columnName)
+            .getResult();
+    List<Object> conditionOccurrenceSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward,
+                snapshotSummaryByRequest.getId(),
+                "condition_occurrence",
+                0,
+                100,
+                null,
+                columnName)
+            .getResult();
+    List<Object> conceptSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotSummaryByRequest.getId(), "concept", 0, 100, null, columnName)
+            .getResult();
+    assertThat(personSnapshotRows, hasSize(23));
+    // full table has 53 rows but only 49 map to existing person ids
+    assertThat(conditionOccurrenceSnapshotRows, hasSize(49));
+    // full table has 7 rows but only 5 are in the condition_occurrence table
+    assertThat(conceptSnapshotRows, hasSize(5));
+  }
+
+  private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
+    String filename = "omop/snapshot-access-request.json";
+    SnapshotAccessRequestResponse accessRequest =
+        dataRepoFixtures.createSnapshotAccessRequest(steward, releaseSnapshotId, filename);
+    assertThat("Snapshot access request exists", accessRequest, notNullValue());
+    snapshotAccessRequestIds.add(accessRequest.getId());
+    return accessRequest;
+  }
+
+  private SnapshotSummaryModel makeSnapshotFromRequest(UUID requestSnapshotId) throws Exception {
+    SnapshotRequestModel requestSnapshot =
+        jsonLoader.loadObject(
+            "omop/snapshot-request-model-by-request-id.json", SnapshotRequestModel.class);
+    requestSnapshot.getContents().get(0).setDatasetName(datasetName);
+    requestSnapshot.getContents().get(0).getRequestIdSpec().setSnapshotRequestId(requestSnapshotId);
+
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward, datasetName, profileId, requestSnapshot);
+    UUID snapshotByRequestId = snapshotSummary.getId();
+    snapshotIds.add(snapshotByRequestId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
+    assertThat("Snapshot exists", snapshotSummary.getName(), equalTo(requestSnapshot.getName()));
+    return snapshotSummary;
   }
 
   @Test

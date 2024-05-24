@@ -736,7 +736,7 @@ class BigQueryPdaoUnitTest {
     AssetSpecification assetSpecification =
         snapshot.getFirstSnapshotSource().getAssetSpecification();
     AssetTable rootTable = assetSpecification.getRootTable();
-    bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, query, CREATED_AT);
+    bigQuerySnapshotPdao.createSnapshotByQuery(assetSpecification, snapshot, query, CREATED_AT);
 
     verify(bigQueryProjectSnapshot)
         .query(
@@ -792,7 +792,9 @@ class BigQueryPdaoUnitTest {
         snapshot.getFirstSnapshotSource().getAssetSpecification();
     assertThrows(
         InvalidQueryException.class,
-        () -> bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, query, CREATED_AT),
+        () ->
+            bigQuerySnapshotPdao.createSnapshotByQuery(
+                assetSpecification, snapshot, query, CREATED_AT),
         "Query returned 0 results");
   }
 
@@ -849,7 +851,9 @@ class BigQueryPdaoUnitTest {
         snapshot.getFirstSnapshotSource().getAssetSpecification();
     assertThrows(
         MismatchedValueException.class,
-        () -> bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, query, CREATED_AT),
+        () ->
+            bigQuerySnapshotPdao.createSnapshotByQuery(
+                assetSpecification, snapshot, query, CREATED_AT),
         "Query results did not match dataset root row ids");
   }
 

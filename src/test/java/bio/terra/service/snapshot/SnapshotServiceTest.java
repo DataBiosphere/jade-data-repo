@@ -52,6 +52,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
@@ -68,6 +69,7 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
+import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -1171,6 +1173,34 @@ class SnapshotServiceTest {
     assertThat(
         flightMapCaptor.getValue().get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class),
         equalTo(snapshotId.toString()));
+  }
+
+  @Test
+  void makeSnapshotFromSnapshotRequestByRequestId() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
+    snapshotRequestModel.name("name");
+    SnapshotRequestContentsModel contentsModel = new SnapshotRequestContentsModel();
+    contentsModel.datasetName("datasetName");
+    contentsModel.mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
+    SnapshotRequestIdModel requestIdModel = new SnapshotRequestIdModel();
+    requestIdModel.snapshotRequestId(snapshotAccessRequestId);
+    contentsModel.requestIdSpec(requestIdModel);
+    snapshotRequestModel.contents(List.of(contentsModel));
+
+    AssetSpecification asset = new AssetSpecification().name("concept_asset");
+    Dataset dataset = new Dataset().name("datasetName").assetSpecifications(List.of(asset));
+    when(datasetService.retrieveByName("datasetName")).thenReturn(dataset);
+
+    Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
+    SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset).assetSpecification(asset);
+
+    assertThat(actual.getTables().size(), is(0));
+    assertThat(actual.getName(), is(snapshotRequestModel.getName()));
+    assertThat(actual.getDescription(), is(snapshotRequestModel.getDescription()));
+    assertThat(actual.getRelationships().size(), is(0));
+    assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
+    assertThat(actual.getCreationInformation(), is(contentsModel));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

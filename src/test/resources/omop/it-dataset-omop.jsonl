@@ -3849,6 +3849,30 @@
             }
         ],
         "assets": [
+          {
+            "name": "concept_asset",
+            "tables": [
+              {
+                "name": "person",
+                "columns": []
+              },
+              {
+                "name": "condition_occurrence",
+                "columns": []
+              },
+              {
+                "name": "concept",
+                "columns": []
+              }
+
+            ],
+            "rootTable": "person",
+            "rootColumn": "person_id",
+            "follow": [
+              "fpk_condition_person",
+              "fpk_condition_concept"
+            ]
+          },
             {
                 "name": "person_visit",
                 "tables": [

@@ -5,9 +5,11 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,14 +46,7 @@ public class SamFixtures {
     try {
       // Get the user ID to delete
       HttpHeaders authedHeader = getHeaders(user);
-      String accessToken =
-          Optional.ofNullable(
-                  Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
-                      .orElse(List.of())
-                      .iterator()
-                      .next())
-              .map(h -> h.replaceAll("Bearer ", ""))
-              .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
+      String accessToken = getAccessToken(authedHeader);
       AdminApi samAdminApi = new AdminApi(getApiClient(accessToken));
       UserStatus userStatus = samAdminApi.adminGetUserByEmail(serviceAccount);
 
@@ -80,6 +75,30 @@ public class SamFixtures {
       throw new RuntimeException(
           "Error deleting account %s from Terra".formatted(serviceAccount), e);
     }
+  }
+
+  public void deleteSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotAccessRequestId) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      ResourcesApi samResourcesApi = new ResourcesApi(getApiClient(accessToken));
+      samResourcesApi.deleteResourceV2(
+          "snapshot-builder-request", snapshotAccessRequestId.toString());
+      logger.info("Deleted snapshot access request {}", snapshotAccessRequestId);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error deleting snapshot access request: %s", e);
+    }
+  }
+
+  private String getAccessToken(HttpHeaders authedHeader) {
+    return Optional.ofNullable(
+            Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
+                .orElse(List.of())
+                .iterator()
+                .next())
+        .map(h -> h.replaceAll("Bearer ", ""))
+        .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
   }
 
   private ApiClient getApiClient(String accessToken) {

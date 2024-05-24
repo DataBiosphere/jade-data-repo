@@ -21,6 +21,7 @@ import bio.terra.stairway.exception.RetryException;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 public class CreateSnapshotByRequestIdAzureStep extends CreateSnapshotParquetFilesAzureStep
     implements CreateSnapshotByRequestIdInterface, Step {
@@ -39,9 +40,9 @@ public class CreateSnapshotByRequestIdAzureStep extends CreateSnapshotParquetFil
       SnapshotRequestDao snapshotRequestDao,
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq,
-      AzureSynapsePdao azureSynapsePdao) {
-    super(azureSynapsePdao, snapshotService);
-    this.azureSynapsePdao = azureSynapsePdao;
+      AzureSynapsePdao azureSynapsePdao,
+      UUID snapshotId) {
+    super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotReq = snapshotReq;
     this.snapshotBuilderService = snapshotBuilderService;
     this.snapshotRequestDao = snapshotRequestDao;

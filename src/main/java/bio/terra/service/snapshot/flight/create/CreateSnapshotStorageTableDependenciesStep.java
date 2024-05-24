@@ -8,9 +8,7 @@ import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.azure.data.tables.TableServiceClient;
@@ -23,30 +21,31 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
   private final AzureSynapsePdao azureSynapsePdao;
   private final UUID datasetId;
   private final SnapshotService snapshotService;
+  private final UUID snapshotId;
 
   public CreateSnapshotStorageTableDependenciesStep(
       TableDependencyDao tableDependencyDao,
       AzureAuthService azureAuthService,
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
-      UUID datasetId) {
+      UUID datasetId,
+      UUID snapshotId) {
     this.tableDependencyDao = tableDependencyDao;
     this.azureAuthService = azureAuthService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotService = snapshotService;
     this.datasetId = datasetId;
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
     AzureStorageAuthInfo datasetStorageAuthInfo =
         FlightUtils.getContextValue(
             context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     TableServiceClient datasetTableServiceClient =
         azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
 
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
@@ -58,8 +57,6 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     AzureStorageAuthInfo datasetStorageAuthInfo =
         FlightUtils.getContextValue(
             context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);

@@ -45,7 +45,7 @@ class CreateSnapshotSetResponseStepTest {
 
   @Test
   void testDoStep() {
-    step = new CreateSnapshotSetResponseStep(snapshotService);
+    step = new CreateSnapshotSetResponseStep(snapshotService, SNAPSHOT_ID);
 
     StepResult doResult = step.doStep(flightContext);
 

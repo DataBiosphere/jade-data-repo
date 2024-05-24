@@ -64,7 +64,9 @@ class SnapshotAuthzIamStepTest {
   @Test
   void testDoAndUndoStep() throws InterruptedException {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    step = new SnapshotAuthzIamStep(iamService, snapshotService, snapshotRequestModel, TEST_USER);
+    step =
+        new SnapshotAuthzIamStep(
+            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
@@ -85,7 +87,9 @@ class SnapshotAuthzIamStepTest {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     snapshotRequestModel.duosId(DUOS_ID);
-    step = new SnapshotAuthzIamStep(iamService, snapshotService, snapshotRequestModel, TEST_USER);
+    step =
+        new SnapshotAuthzIamStep(
+            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 

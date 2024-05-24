@@ -1,10 +1,13 @@
 package bio.terra.service.snapshotbuilder.query.tables;
 
 import bio.terra.common.PdaoConstant;
+import bio.terra.model.SnapshotBuilderProgramDataOption;
+import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.TableVariable;
+import java.lang.reflect.Field;
 
 public class Person extends Table {
 
@@ -36,6 +39,11 @@ public class Person extends Table {
 
   public FieldVariable rowId() {
     return getFieldVariable(ROW_ID);
+  }
+
+
+  public FieldVariable variableForOption(SnapshotBuilderProgramDataOption rangeCriteria) {
+    return getFieldVariable(rangeCriteria.getColumnName());
   }
 
   public FieldVariable countPersonId() {

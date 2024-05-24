@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
@@ -88,6 +89,43 @@ public class SamFixtures {
       logger.info("Deleted snapshot access request {}", snapshotAccessRequestId);
     } catch (ApiException e) {
       throw new RuntimeException("Error deleting snapshot access request: %s", e);
+    }
+  }
+
+  public void addGroup(TestConfiguration.User user, String groupName) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
+      // what is supposed to be in the body?
+      samGroupApi.postGroup(groupName, new Object());
+      logger.info("Created Sam Group {}", groupName);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error creating Sam Group: %s", e);
+    }
+  }
+
+  public void addUserToGroup(TestConfiguration.User user, String groupName, String policyName) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
+      samGroupApi.addEmailToGroup(groupName, policyName, user.getEmail(), new Object());
+      logger.info("Added User {} to Sam Group {} with policy name {} ", user.getEmail(), groupName, policyName);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error adding user to Sam Group: %s", e);
+    }
+  }
+
+  public List<String> getDataAccessControlsForResource(
+      TestConfiguration.User user, String resourceType, String resourceId) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      ResourcesApi samResourcesApi = new ResourcesApi(getApiClient(accessToken));
+      return samResourcesApi.getAuthDomainV2(resourceType, resourceId);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error retrieving Data Access Controls: %s", e);
     }
   }
 

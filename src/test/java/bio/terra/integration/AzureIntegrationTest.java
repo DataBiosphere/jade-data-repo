@@ -52,6 +52,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
+import bio.terra.model.IamResourceTypeEnum;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -1037,6 +1038,10 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotByRowIdModel.setContents(List.of(contentsModel));
 
     // -------- Create Snapshot by full view ------
+    // create Sam Group
+    samFixtures.addGroup(steward, "test-dac");
+    // Add test user to group
+    samFixtures.addUserToGroup(steward, "test-dac", "admin");
     SnapshotRequestModel requestModelAll =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
     requestModelAll.getContents().get(0).datasetName(summaryModel.getName());
@@ -1048,6 +1053,8 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotIds.add(snapshotByFullViewId);
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
+    List<String> dacs = samFixtures.getDataAccessControlsForResource(steward, String.valueOf(IamResourceTypeEnum.DATASNAPSHOT), String.valueOf(snapshotByFullViewId));
+    assertThat("Snapshot has the expected DAC", dacs, containsInAnyOrder("test-dac"));
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =

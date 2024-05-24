@@ -1,6 +1,7 @@
 {
   "name":"demo",
   "description":"desc",
+  "dataAccessControlGroups": ["test-dac"],
   "contents":[
     {
       "datasetName": "IngestTest",

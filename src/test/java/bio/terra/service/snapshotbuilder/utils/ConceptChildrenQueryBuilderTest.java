@@ -95,4 +95,18 @@ class ConceptChildrenQueryBuilderTest {
         WHERE c.concept_id = 101""";
     assertQueryEquals(expected, sql);
   }
+
+  private static final String EXPECTED_CONCEPT_RELATIONSHIP_SUBQUERY =
+      """
+      SELECT cr.concept_id_2
+      FROM concept_relationship AS cr
+      WHERE (cr.concept_id_1 = 1 AND cr.relationship_id = 'Subsumes')
+      """;
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void createConceptRelationshipSubQuery(SqlRenderContext context) {
+    var query = ConceptChildrenQueryBuilder.createConceptRelationshipSubQuery(1);
+    assertQueryEquals(EXPECTED_CONCEPT_RELATIONSHIP_SUBQUERY, query.renderSQL(context));
+  }
 }

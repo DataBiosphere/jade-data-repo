@@ -7,6 +7,7 @@ import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
@@ -26,7 +27,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
 public class CriteriaQueryBuilder {
-  final Person rootTable = Person.asPrimary();
+  final Person person = Person.asPrimary();
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
@@ -34,13 +35,8 @@ public class CriteriaQueryBuilder {
     this.snapshotBuilderSettings = snapshotBuilderSettings;
   }
 
-  private FieldVariable getFieldVariableForRootTable(String columnName) {
-    return rootTable.fromColumn(columnName);
-  }
-
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
-    FieldVariable rangeVariable =
-        getFieldVariableForRootTable(getProgramDataOptionColumnName(rangeCriteria.getId()));
+    FieldVariable rangeVariable = person.variableForOption(getProgramDataOptionColumnName(rangeCriteria.getId()));
     return BooleanAndOrFilterVariable.and(
         new BinaryFilterVariable(
             rangeVariable,
@@ -59,17 +55,17 @@ public class CriteriaQueryBuilder {
     }
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
-        getFieldVariableForRootTable(getProgramDataOptionColumnName(listCriteria.getId())),
+        person.variableForOption(getProgramDataOptionColumnName(listCriteria.getId())),
         listCriteria.getValues().stream().map(Literal::new).toArray(Literal[]::new));
   }
 
-  String getProgramDataOptionColumnName(int id) {
+  SnapshotBuilderProgramDataOption getProgramDataOptionColumnName(int id) {
     return snapshotBuilderSettings.getProgramDataOptions().stream()
         .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
         .findFirst()
         .orElseThrow(
-            () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)))
-        .getColumnName();
+            () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)));
+
   }
 
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {
@@ -91,7 +87,7 @@ public class CriteriaQueryBuilder {
     ConceptAncestor conceptAncestor =
         ConceptAncestor.joinDescendant(domainOccurrence.getJoinColumn());
     return SubQueryFilterVariable.in(
-        rootTable.personId(),
+        person.personId(),
         new Query.Builder()
             .select(List.of(domainOccurrence.getPerson()))
             .tables(List.of(domainOccurrence, conceptAncestor))
@@ -136,11 +132,11 @@ public class CriteriaQueryBuilder {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
         cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
 
-    FieldVariable personId = rootTable.countPersonId();
+    FieldVariable personId = person.countPersonId();
 
     return new Query.Builder()
         .select(List.of(personId))
-        .tables(List.of(rootTable))
+        .tables(List.of(person))
         .where(generateFilterVariable(criteriaGroupsList))
         .build();
   }
@@ -148,12 +144,12 @@ public class CriteriaQueryBuilder {
   public Query generateRowIdQueryForCohorts(List<SnapshotBuilderCohort> cohorts) {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
         cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
-    FieldVariable rowId = rootTable.rowId();
+    FieldVariable rowId = person.rowId();
 
     // select row_id from person where the row is in the cohort specification
     return new Query.Builder()
         .select(List.of(rowId))
-        .tables(List.of(rootTable))
+        .tables(List.of(person))
         .where(generateFilterVariable(criteriaGroupsList))
         .build();
   }

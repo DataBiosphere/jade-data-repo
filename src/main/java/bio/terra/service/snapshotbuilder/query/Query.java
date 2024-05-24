@@ -115,7 +115,9 @@ public record Query(
     private List<OrderByVariable> orderBy;
     private Integer limit;
 
-    public Builder() {}
+    public Builder() {
+      // Constructor intentionally left empty to allow for custom initialization via setter methods
+    }
 
     public Builder select(List<SelectExpression> select) {
       this.select = select;

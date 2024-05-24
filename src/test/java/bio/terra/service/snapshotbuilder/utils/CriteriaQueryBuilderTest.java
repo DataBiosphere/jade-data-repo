@@ -35,7 +35,8 @@ public class CriteriaQueryBuilderTest {
 
   @BeforeEach
   void setup() {
-    criteriaQueryBuilder = new CriteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS);
+    criteriaQueryBuilder =
+        new QueryBuilderFactory().criteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS);
   }
 
   public static String stripSpaces(String toBeStripped) {

@@ -64,7 +64,8 @@ class HierarchyQueryBuilderTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void generateQuery(SqlRenderContext context) {
     var query =
-        new HierarchyQueryBuilder()
+        new QueryBuilderFactory()
+            .hierarchyQueryBuilder()
             .generateQuery(ConceptChildrenQueryBuilderTest.createDomainOption(), 1);
     assertQueryEquals(
         context.getPlatform().choose(GCP_EXPECTED, AZURE_EXPECTED), query.renderSQL(context));

@@ -12,7 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
-public class ConceptRelationshipTest {
+class ConceptRelationshipTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testAsPrimary(SqlRenderContext context) {

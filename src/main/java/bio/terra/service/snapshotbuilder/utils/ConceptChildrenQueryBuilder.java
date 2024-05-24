@@ -56,6 +56,7 @@ public class ConceptChildrenQueryBuilder {
             TablePointer.fromTableName(CONCEPT_ANCESTOR), ANCESTOR_CONCEPT_ID, conceptId);
     FieldVariable descendantConceptId = conceptAncestor.makeFieldVariable(DESCENDANT_CONCEPT_ID);
 
+    // Join with concept relationship table to get the direct children of the given concept id
     var conceptRelationshipSubQuery = createConceptRelationshipSubQuery(parentConceptId);
     var conceptRelationshipSubqueryPointer =
         new SubQueryPointer(conceptRelationshipSubQuery, "concept_relationship_subquery");
@@ -97,12 +98,8 @@ public class ConceptChildrenQueryBuilder {
   /**
    * Generate a query that retrieves the descendants of the given concept. We use concept
    * relationship here because it includes only the direct descendants.
-   *
-   * <p>SELECT c.concept_id_2 FROM concept_relationship AS c WHERE (c.concept_id_1 = 101 AND
-   * c.relationship_id = 'Subsumes'))
    */
-  Query createConceptRelationshipSubQuery(int conceptId) {
-    // concept_relationship is primary table for the subquery
+  static Query createConceptRelationshipSubQuery(int conceptId) {
     SourceVariable conceptRelationship =
         SourceVariable.forPrimary(TablePointer.fromTableName(CONCEPT_RELATIONSHIP));
     FieldVariable descendantConceptId = conceptRelationship.makeFieldVariable(CONCEPT_ID_2);

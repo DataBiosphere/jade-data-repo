@@ -63,6 +63,7 @@ public class HierarchyQueryBuilder {
             domainOption.getColumnName(),
             conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID));
 
+    // Filter concepts to only return direct children of the given concept
     var joinFilter = joinToFilterConcepts(parentId, conceptId);
 
     // COUNT(DISTINCT person_id)

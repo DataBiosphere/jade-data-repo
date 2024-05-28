@@ -282,12 +282,12 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
-   * Create a managed resource group in Azure that is associated with a billing profile.
+   * Associate billing profile with an Azure managed resource group.
    *
-   * @param userReq
-   * @param billingProfileId
-   * @param managedResourceGroupCoordinates
-   * @throws InterruptedException
+   * @param userReq authenticated user
+   * @param billingProfileId billing profile id
+   * @param managedResourceGroupCoordinates details of the managed resource group
+   * @throws InterruptedException throws if sam retry fails due to interruption
    */
   void azureCreateManagedResourceGroup(
       AuthenticatedUserRequest userReq,

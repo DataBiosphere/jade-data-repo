@@ -168,7 +168,6 @@ public class SnapshotService {
    */
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-    String description = "Create snapshot " + snapshotRequestModel.getName();
     String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
     Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
     if (snapshotRequestModel.getProfileId() == null) {
@@ -186,6 +185,7 @@ public class SnapshotService {
     }
 
     UUID snapshotId = UUID.randomUUID();
+    String description = "Create snapshot %s with ID %s".formatted(snapshotRequestModel.getName(), snapshotId);
 
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)

@@ -8,6 +8,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
+import org.broadinstitute.dsde.workbench.client.sam.api.AzureApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
@@ -46,6 +47,10 @@ public class SamApiService {
 
   public StatusApi statusApi() {
     return new StatusApi(createUnauthApiClient());
+  }
+
+  public AzureApi azureApi(String accessToken) {
+    return new AzureApi(createApiClient(accessToken));
   }
 
   public GoogleApi googleApi(String accessToken) {

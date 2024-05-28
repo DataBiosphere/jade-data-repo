@@ -53,6 +53,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
@@ -749,6 +750,16 @@ public class SamIam implements IamProviderInterface {
             .duration(BigDecimal.valueOf(duration.toMinutes()))
             .requesterPaysProject(project);
     return samApiService.googleApi(userReq.getToken()).getRequesterPaysSignedUrlForBlob(request);
+  }
+
+  public void azureCreateManagedResourceGroup(
+      AuthenticatedUserRequest userReq,
+      String billingProfileId,
+      ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
+      throws ApiException {
+    samApiService
+        .azureApi(userReq.getToken())
+        .createManagedResourceGroup(billingProfileId, managedResourceGroupCoordinates);
   }
 
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {

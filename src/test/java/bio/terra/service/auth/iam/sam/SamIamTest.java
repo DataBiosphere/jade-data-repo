@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.api.AzureApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
@@ -56,6 +57,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SubsystemStatus;
@@ -76,6 +78,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SamIamTest {
 
   @Mock private SamApiService samApiService;
+  @Mock private AzureApi samAzureApi;
   @Mock private GoogleApi samGoogleApi;
   @Mock private UsersApi samUsersApi;
 
@@ -96,6 +99,10 @@ class SamIamTest {
             new ConfigurationService(
                 samConfig, resourceConfiguration, new ApplicationConfiguration()),
             samApiService);
+  }
+
+  private void mockSamAzureApi() {
+    when(samApiService.azureApi(TEST_USER.getToken())).thenReturn(samAzureApi);
   }
 
   private void mockSamGoogleApi() {
@@ -380,6 +387,21 @@ class SamIamTest {
                 .gsPath(path)
                 .duration(BigDecimal.valueOf(15))
                 .requesterPaysProject(project));
+  }
+
+  @Test
+  void testAzureBillingProfileCreateManagedResourceGroup() throws ApiException {
+    mockSamAzureApi();
+    String billingProfileName = "billingProfileName";
+    ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
+        new ManagedResourceGroupCoordinates()
+            .tenantId("tenantId")
+            .subscriptionId("subscriptionId")
+            .managedResourceGroupName("managedResourceGroupName");
+    samIam.azureCreateManagedResourceGroup(
+        TEST_USER, billingProfileName, managedResourceGroupCoordinates);
+    verify(samAzureApi)
+        .createManagedResourceGroup(billingProfileName, managedResourceGroupCoordinates);
   }
 
   @Nested

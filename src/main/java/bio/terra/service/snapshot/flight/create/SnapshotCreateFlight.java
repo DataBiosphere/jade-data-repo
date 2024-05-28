@@ -58,6 +58,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.context.ApplicationContext;
@@ -113,7 +114,7 @@ public class SnapshotCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    UUID snapshotId = inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.class);
+    UUID snapshotId = Objects.requireNonNull(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.class));
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -379,7 +380,9 @@ public class SnapshotCreateFlight extends Flight {
           new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService, snapshotId));
     }
 
-    addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
+    addStep(
+        new CreateSnapshotPolicyStep(
+            policyService, sourceDataset.isSecureMonitoringEnabled(), snapshotId));
 
     // unlock the resource metadata rows
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));

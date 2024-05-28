@@ -185,7 +185,8 @@ public class SnapshotService {
     }
 
     UUID snapshotId = UUID.randomUUID();
-    String description = "Create snapshot %s with ID %s".formatted(snapshotRequestModel.getName(), snapshotId);
+    String description =
+        "Create snapshot %s with ID %s".formatted(snapshotRequestModel.getName(), snapshotId);
 
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)

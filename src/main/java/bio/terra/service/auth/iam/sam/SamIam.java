@@ -752,7 +752,20 @@ public class SamIam implements IamProviderInterface {
     return samApiService.googleApi(userReq.getToken()).getRequesterPaysSignedUrlForBlob(request);
   }
 
+  @Override
   public void azureCreateManagedResourceGroup(
+      AuthenticatedUserRequest userReq,
+      String billingProfileId,
+      ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () ->
+            azureCreateManagedResourceGroupInner(
+                userReq, billingProfileId, managedResourceGroupCoordinates));
+  }
+
+  private void azureCreateManagedResourceGroupInner(
       AuthenticatedUserRequest userReq,
       String billingProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates)

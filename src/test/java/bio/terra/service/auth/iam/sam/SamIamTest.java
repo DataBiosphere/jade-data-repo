@@ -390,7 +390,8 @@ class SamIamTest {
   }
 
   @Test
-  void testAzureBillingProfileCreateManagedResourceGroup() throws ApiException {
+  void testAzureBillingProfileCreateManagedResourcieGroup()
+      throws ApiException, InterruptedException {
     mockSamAzureApi();
     String billingProfileName = "billingProfileName";
     ManagedResourceGroupCoordinates managedResourceGroupCoordinates =

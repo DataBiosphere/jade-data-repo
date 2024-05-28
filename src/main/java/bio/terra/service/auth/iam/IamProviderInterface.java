@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -278,5 +279,19 @@ public interface IamProviderInterface {
    */
   String signUrlForBlob(
       AuthenticatedUserRequest userReq, String project, String path, Duration duration)
+      throws InterruptedException;
+
+  /**
+   * Create a managed resource group in Azure that is associated with a billing profile.
+   *
+   * @param userReq
+   * @param billingProfileId
+   * @param managedResourceGroupCoordinates
+   * @throws InterruptedException
+   */
+  void azureCreateManagedResourceGroup(
+      AuthenticatedUserRequest userReq,
+      String billingProfileId,
+      ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
       throws InterruptedException;
 }

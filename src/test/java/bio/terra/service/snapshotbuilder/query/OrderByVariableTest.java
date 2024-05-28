@@ -15,8 +15,8 @@ class OrderByVariableTest {
   @NotNull
   private static FieldVariable createVariable() {
     TablePointer table = TablePointer.fromTableName("table");
-    TableVariable tableVariable = TableVariable.forPrimary(table);
-    return new FieldVariable(new FieldPointer(table, "column"), tableVariable);
+    SourceVariable sourceVariable = SourceVariable.forPrimary(table);
+    return new FieldVariable(new FieldPointer(table, "column"), sourceVariable);
   }
 
   @ParameterizedTest

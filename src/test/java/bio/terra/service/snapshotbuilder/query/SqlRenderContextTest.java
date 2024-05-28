@@ -34,11 +34,11 @@ class SqlRenderContextTest {
   @Test
   void getAlias() {
     var context = new SqlRenderContext(x -> x, null);
-    var tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
+    var tableVariable = SourceVariable.forPrimary(TablePointer.fromTableName("table"));
     assertThat("first call generates a new alias", context.getAlias(tableVariable), is("t"));
     assertThat(
         "second call should find the alias in the cache", context.getAlias(tableVariable), is("t"));
-    var tableVariable2 = TableVariable.forPrimary(TablePointer.fromTableName("table2"));
+    var tableVariable2 = SourceVariable.forPrimary(TablePointer.fromTableName("table2"));
     assertThat(
         "table with the same prefix generates a new alias",
         context.getAlias(tableVariable2),

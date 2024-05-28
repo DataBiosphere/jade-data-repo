@@ -19,7 +19,6 @@ public class CreateSnapshotByFullViewParquetFilesAzureStep
     extends CreateSnapshotParquetFilesAzureStep {
 
   private final SnapshotRequestModel snapshotReq;
-  private final UUID snapshotId;
 
   public CreateSnapshotByFullViewParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
@@ -28,7 +27,6 @@ public class CreateSnapshotByFullViewParquetFilesAzureStep
       UUID snapshotId) {
     super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotReq = snapshotReq;
-    this.snapshotId = snapshotId;
   }
 
   @Override

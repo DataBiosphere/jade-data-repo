@@ -21,7 +21,6 @@ import java.util.UUID;
 public class CreateSnapshotByRowIdParquetFilesAzureStep
     extends CreateSnapshotParquetFilesAzureStep {
   private final SnapshotRequestModel snapshotRequestModel;
-  private final UUID snapshotId;
 
   public CreateSnapshotByRowIdParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
@@ -30,7 +29,6 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
       UUID snapshotId) {
     super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotRequestModel = snapshotRequestModel;
-    this.snapshotId = snapshotId;
   }
 
   @Override

@@ -264,7 +264,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
     AssetSpecification assetSpecification =
         buildAssetSpecification(
             datasetTables, assetName, rootTableName, rootColumnName, relationships);
-    UUID snapshotId = UUID.randomUUID();
+
     createSnapshotPrimaryDataQueryAzureStep =
         new CreateSnapshotByQueryParquetFilesAzureStep(
             azureSynapsePdao,

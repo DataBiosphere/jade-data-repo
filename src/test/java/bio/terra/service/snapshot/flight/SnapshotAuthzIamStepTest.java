@@ -55,7 +55,6 @@ class SnapshotAuthzIamStepTest {
   @BeforeEach
   void setup() {
     workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     snapshotRequestModel = new SnapshotRequestModel();
     when(iamService.deriveSnapshotPolicies(snapshotRequestModel))
         .thenReturn(new SnapshotRequestModelPolicies().readers(new ArrayList<>()));

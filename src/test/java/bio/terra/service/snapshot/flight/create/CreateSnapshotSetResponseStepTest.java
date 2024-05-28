@@ -8,7 +8,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -37,7 +36,6 @@ class CreateSnapshotSetResponseStepTest {
   @BeforeEach
   void setup() {
     workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     when(snapshotService.retrieveSnapshotSummary(SNAPSHOT_ID)).thenReturn(SNAPSHOT_SUMMARY);

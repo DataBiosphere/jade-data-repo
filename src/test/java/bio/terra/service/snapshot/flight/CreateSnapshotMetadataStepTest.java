@@ -53,7 +53,6 @@ class CreateSnapshotMetadataStepTest {
   @BeforeEach
   void setup() {
     workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, PROJECT_RESOURCE_ID);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
 

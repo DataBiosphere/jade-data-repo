@@ -114,7 +114,9 @@ public class SnapshotCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    UUID snapshotId = Objects.requireNonNull(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.class));
+    UUID snapshotId =
+        Objects.requireNonNull(
+            inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.class));
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());

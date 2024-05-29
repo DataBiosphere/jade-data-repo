@@ -26,14 +26,19 @@ public class CreateSnapshotMetadataStep implements Step {
   private final SnapshotDao snapshotDao;
   private final SnapshotService snapshotService;
   private final SnapshotRequestModel snapshotReq;
+  private final UUID snapshotId;
 
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
   public CreateSnapshotMetadataStep(
-      SnapshotDao snapshotDao, SnapshotService snapshotService, SnapshotRequestModel snapshotReq) {
+      SnapshotDao snapshotDao,
+      SnapshotService snapshotService,
+      SnapshotRequestModel snapshotReq,
+      UUID snapshotId) {
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
+    this.snapshotId = snapshotId;
   }
 
   @Override
@@ -43,7 +48,6 @@ public class CreateSnapshotMetadataStep implements Step {
       // fill in the ideas that we made in previous steps
       UUID projectResourceId =
           workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
-      UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
       Snapshot snapshot =
           snapshotService
               .makeSnapshotFromSnapshotRequest(snapshotReq)
@@ -72,8 +76,6 @@ public class CreateSnapshotMetadataStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     logger.debug("Snapshot creation failed. Deleting metadata.");
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     snapshotDao.delete(snapshotId);
     return StepResult.getStepResultSuccess();
   }

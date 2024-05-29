@@ -18,18 +18,21 @@ class ConceptChildrenQueryBuilderTest {
       """
       SELECT c.concept_name, c.concept_id, c.concept_code,
         COUNT(DISTINCT co.person_id) AS count,
-        EXISTS (SELECT 1
-          FROM concept_ancestor AS ca
-                   JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
-          WHERE (ca.ancestor_concept_id = c.concept_id AND
-                 ca.descendant_concept_id != c.concept_id AND c1.standard_concept = 'S'))
-        AS has_children
+        COUNT(DISTINCT hc.descendant_concept_id) AS has_children
       FROM concept AS c
-        JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = c.concept_id
-        LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
-      WHERE (c.concept_id IN (SELECT cr.concept_id_2
-          FROM concept_relationship AS cr
-          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')
+        JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
+        JOIN (SELECT cr.concept_id_2 FROM concept_relationship AS cr
+          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS crs
+          ON crs.concept_id_2 = c.concept_id
+        LEFT JOIN (SELECT ca1.ancestor_concept_id, ca1.descendant_concept_id, ca1.min_levels_of_separation
+          FROM concept_ancestor AS ca1
+          JOIN concept AS c1 ON c1.concept_id = ca1.descendant_concept_id
+          WHERE c1.standard_concept = 'S') AS hc
+            ON (hc.ancestor_concept_id = c.concept_id
+            AND hc.descendant_concept_id != c.concept_id
+            AND hc.min_levels_of_separation <= 1)
+        LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id
+      WHERE c.standard_concept = 'S'
       GROUP BY c.concept_name, c.concept_id, c.concept_code
       ORDER BY c.concept_name ASC""";
 
@@ -37,18 +40,21 @@ class ConceptChildrenQueryBuilderTest {
       """
       SELECT c.concept_name, c.concept_id, c.concept_code,
         COUNT(DISTINCT co.person_id) AS count,
-        CASE WHEN EXISTS (SELECT 1
-          FROM concept_ancestor AS ca
-                   JOIN concept AS c1 ON c1.concept_id = ca.descendant_concept_id
-          WHERE (ca.ancestor_concept_id = c.concept_id AND
-                 ca.descendant_concept_id != c.concept_id AND c1.standard_concept = 'S'))
-        THEN 1 ELSE 0 END AS has_children
-      FROM concept AS c
-        JOIN concept_ancestor AS ca1 ON ca1.ancestor_concept_id = c.concept_id
-        LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca1.descendant_concept_id
-      WHERE (c.concept_id IN (SELECT cr.concept_id_2
-          FROM concept_relationship AS cr
-          WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AND c.standard_concept = 'S')
+        COUNT(DISTINCT hc.descendant_concept_id) AS has_children
+          FROM concept AS c
+            JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
+        JOIN (SELECT cr.concept_id_2 FROM concept_relationship AS cr
+              WHERE (cr.concept_id_1 = 101 AND cr.relationship_id = 'Subsumes')) AS crs
+              ON crs.concept_id_2 = c.concept_id
+        LEFT JOIN (SELECT ca1.ancestor_concept_id, ca1.descendant_concept_id, ca1.min_levels_of_separation
+          FROM concept_ancestor AS ca1
+          JOIN concept AS c1 ON c1.concept_id = ca1.descendant_concept_id
+          WHERE c1.standard_concept = 'S') AS hc
+            ON (hc.ancestor_concept_id = c.concept_id
+            AND hc.descendant_concept_id != c.concept_id
+            AND hc.min_levels_of_separation <= 1)
+        LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id
+      WHERE c.standard_concept = 'S'
       GROUP BY c.concept_name, c.concept_id, c.concept_code
       ORDER BY c.concept_name ASC""";
 
@@ -88,5 +94,19 @@ class ConceptChildrenQueryBuilderTest {
         FROM concept AS c
         WHERE c.concept_id = 101""";
     assertQueryEquals(expected, sql);
+  }
+
+  private static final String EXPECTED_CONCEPT_RELATIONSHIP_SUBQUERY =
+      """
+      SELECT cr.concept_id_2
+      FROM concept_relationship AS cr
+      WHERE (cr.concept_id_1 = 1 AND cr.relationship_id = 'Subsumes')
+      """;
+
+  @ParameterizedTest
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void createConceptRelationshipSubQuery(SqlRenderContext context) {
+    var query = ConceptChildrenQueryBuilder.createConceptRelationshipSubQuery(1);
+    assertQueryEquals(EXPECTED_CONCEPT_RELATIONSHIP_SUBQUERY, query.renderSQL(context));
   }
 }

@@ -7,10 +7,10 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +42,7 @@ class SearchConceptsQueryBuilderTest {
               c.concept_id,
               c.concept_code,
               COUNT(DISTINCT o.person_id) AS count,
-              true AS has_children
+              1 AS has_children
             FROM
               concept AS c
             JOIN
@@ -122,7 +122,7 @@ class SearchConceptsQueryBuilderTest {
             .renderSQL(context);
     String gcpExpected =
         """
-        SELECT c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT co.person_id) AS count, true AS has_children
+        SELECT c.concept_name, c.concept_id, c.concept_code, COUNT(DISTINCT co.person_id) AS count, 1 AS has_children
         FROM concept AS c
           JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = c.concept_id
           LEFT JOIN condition_occurrence AS co ON co.condition_concept_id = ca.descendant_concept_id
@@ -147,11 +147,10 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
-    TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
+    SourceVariable conceptTable =
+        SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
     String actual =
-        createSearchConceptClause(conceptTableVariable, "cancer", Concept.CONCEPT_NAME)
-            .renderSQL(context);
+        createSearchConceptClause(conceptTable, "cancer", Concept.CONCEPT_NAME).renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
     var expectedAzureQuery = "CHARINDEX('cancer', c.concept_name) > 0";
@@ -162,13 +161,12 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    TableVariable conceptTableVariable =
-        TableVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
+    SourceVariable conceptTable =
+        SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
 
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(conceptTableVariable, "domain")
-            .renderSQL(context),
+        SearchConceptsQueryBuilder.createDomainClause(conceptTable, "domain").renderSQL(context),
         is("(c.domain_id = 'domain' AND c.standard_concept = 'S')"));
   }
 }

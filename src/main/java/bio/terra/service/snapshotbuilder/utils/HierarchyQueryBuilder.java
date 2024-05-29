@@ -2,18 +2,16 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.SelectAlias;
-import bio.terra.service.snapshotbuilder.query.ExistsExpression;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.SelectExpression;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
+import bio.terra.service.snapshotbuilder.query.SubQueryPointer;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
-import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
 import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
 import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationship;
@@ -36,33 +34,37 @@ public class HierarchyQueryBuilder {
    */
   public Query generateQuery(SnapshotBuilderDomainOption domainOption, int conceptId) {
     var conceptRelationship =
-        TableVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
     var relationshipId = conceptRelationship.makeFieldVariable(ConceptRelationship.RELATIONSHIP_ID);
     var parentId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1);
     var childId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
     var child =
-        TableVariable.forJoined(
+        SourceVariable.forJoined(
             TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, childId);
     var parent =
-        TableVariable.forJoined(
+        SourceVariable.forJoined(
             TablePointer.fromTableName(Concept.TABLE_NAME), Concept.CONCEPT_ID, parentId);
     FieldVariable conceptName = child.makeFieldVariable(Concept.CONCEPT_NAME);
     FieldVariable conceptCode = child.makeFieldVariable(Concept.CONCEPT_CODE);
+
+    var joinHasChildren = makeHasChildrenJoin(childId);
 
     // To get the total occurrence count for a child concept, we need to join the child through the
     // ancestor table to find all of its children. We don't need to use a left join here
     // because every concept has itself as an ancestor, so there will be at least one match.
     var conceptAncestor =
-        TableVariable.forJoined(
+        SourceVariable.forJoined(
             TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
             ConceptAncestor.ANCESTOR_CONCEPT_ID,
             childId);
-
-    TableVariable domainOccurrence =
-        TableVariable.forLeftJoined(
+    SourceVariable domainOccurrence =
+        SourceVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
             conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID));
+
+    // Filter concepts to only return direct children of the given concept
+    var joinFilter = joinToFilterConcepts(parentId, conceptId);
 
     // COUNT(DISTINCT person_id)
     FieldVariable count =
@@ -76,10 +78,16 @@ public class HierarchyQueryBuilder {
             conceptName,
             conceptCode,
             count,
-            hasChildrenExpression(childId)),
-        List.of(conceptRelationship, child, parent, conceptAncestor, domainOccurrence),
+            selectHasChildren(joinHasChildren)),
+        List.of(
+            conceptRelationship,
+            child,
+            parent,
+            joinHasChildren,
+            conceptAncestor,
+            domainOccurrence,
+            joinFilter),
         BooleanAndOrFilterVariable.and(
-            SubQueryFilterVariable.in(parentId, selectAllParents(conceptId)),
             BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
             requireStandardConcept(parent),
             requireStandardConcept(child)),
@@ -92,73 +100,71 @@ public class HierarchyQueryBuilder {
    * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,
    * Classification, and Source Concepts</a>
    */
-  private static BinaryFilterVariable requireStandardConcept(TableVariable concept) {
+  private static BinaryFilterVariable requireStandardConcept(SourceVariable concept) {
     return BinaryFilterVariable.equals(
         concept.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S"));
   }
 
-  /**
-   * Given a concept ID, select all of its parent concept IDs. Note that a concept may be its own
-   * ancestor so that case must be excluded.
-   *
-   * <pre>
-   * {@code SELECT ancestor_concept_id FROM concept_ancestor
-   * WHERE descendant_concept_id = :conceptId: AND ancestor_concept_id != :conceptId:;}
-   * </pre>
-   */
-  private Query selectAllParents(int conceptId) {
-    var conceptAncestor =
-        TableVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
-    var conceptIdLiteral = new Literal(conceptId);
-    FieldVariable ancestorConceptId =
-        conceptAncestor.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID);
-    return new Query(
-        List.of(ancestorConceptId),
-        List.of(conceptAncestor),
-        BooleanAndOrFilterVariable.and(
-            BinaryFilterVariable.equals(
-                conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID),
-                conceptIdLiteral),
-            BinaryFilterVariable.notEquals(ancestorConceptId, conceptIdLiteral)));
+  static SourceVariable joinToFilterConcepts(FieldVariable parentId, int conceptId) {
+    var conceptAncestorTable =
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
+    var ancestorConceptId =
+        conceptAncestorTable.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID);
+    var descendantConceptId =
+        conceptAncestorTable.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
+    var conceptAncestorSubquery =
+        new Query(
+            List.of(ancestorConceptId, descendantConceptId),
+            List.of(conceptAncestorTable),
+            BooleanAndOrFilterVariable.and(
+                BinaryFilterVariable.equals(descendantConceptId, new Literal(conceptId)),
+                BinaryFilterVariable.notEquals(ancestorConceptId, new Literal(conceptId))),
+            null);
+    var conceptAncestorSubqueryPointer =
+        new SubQueryPointer(conceptAncestorSubquery, "concept_ancestor_subquery");
+    return SourceVariable.forJoined(
+        conceptAncestorSubqueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, parentId);
   }
 
-  /**
-   * Generate a subquery that returns true if the outerConcept has any children.
-   *
-   * <pre>{@code
-   * EXISTS (SELECT
-   *     1
-   *   FROM
-   *     concept_ancestor ca
-   *   JOIN
-   *     concept c2
-   *   ON
-   *     c2.concept_id = ca.descendant_concept_id
-   *     AND ca.ancestor_concept_id = c.concept_id
-   *     AND ca.descendant_concept_id != c.concept_id
-   *     AND c2.standard_concept = 'S') AS has_children
-   * }</pre>
-   */
-  static SelectExpression hasChildrenExpression(FieldVariable conceptId) {
-    var conceptAncestor =
-        TableVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
+  static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {
+    return joinHasChildren.makeFieldVariable(
+        ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", true);
+  }
+
+  /** Generate a join clause that is used to determine if the outerConcept has any children. */
+  static SourceVariable makeHasChildrenJoin(FieldVariable childId) {
+    var conceptAncestorTable =
+        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptAncestor.TABLE_NAME));
+    var ancestorConceptId =
+        conceptAncestorTable.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID);
     var descendantConceptId =
-        conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
-    var innerConcept =
-        TableVariable.forJoined(
+        conceptAncestorTable.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
+    var minLevelsSeparation =
+        conceptAncestorTable.makeFieldVariable(ConceptAncestor.MIN_LEVELS_OF_SEPARATION);
+    var conceptAncestorJoin =
+        SourceVariable.forJoined(
             TablePointer.fromTableName(Concept.TABLE_NAME),
             Concept.CONCEPT_ID,
             descendantConceptId);
-    return new ExistsExpression(
+    var subquery =
         new Query(
-            List.of(new Literal(1)),
-            List.of(conceptAncestor, innerConcept),
-            BooleanAndOrFilterVariable.and(
-                BinaryFilterVariable.equals(
-                    conceptAncestor.makeFieldVariable(ConceptAncestor.ANCESTOR_CONCEPT_ID),
-                    conceptId),
-                BinaryFilterVariable.notEquals(descendantConceptId, conceptId),
-                requireStandardConcept(innerConcept))),
-        QueryBuilderFactory.HAS_CHILDREN);
+            List.of(ancestorConceptId, descendantConceptId, minLevelsSeparation),
+            List.of(conceptAncestorTable, conceptAncestorJoin),
+            BinaryFilterVariable.equals(
+                conceptAncestorJoin.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")),
+            null);
+    var subQueryPointer = new SubQueryPointer(subquery, "has_children");
+    var joinHasChildren =
+        SourceVariable.forLeftJoined(subQueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, childId);
+    joinHasChildren.addJoinClause(
+        ConceptAncestor.DESCENDANT_CONCEPT_ID,
+        childId,
+        BinaryFilterVariable.BinaryOperator.NOT_EQUALS);
+    // Ancestors can have children at a minimum of 0 OR 1 levels of separation
+    joinHasChildren.addJoinClause(
+        ConceptAncestor.MIN_LEVELS_OF_SEPARATION,
+        new Literal(1),
+        BinaryFilterVariable.BinaryOperator.LESS_THAN_OR_EQUAL);
+    return joinHasChildren;
   }
 }

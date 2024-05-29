@@ -23,15 +23,15 @@ public class CreateSnapshotByFullViewParquetFilesAzureStep
   public CreateSnapshotByFullViewParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
-    super(azureSynapsePdao, snapshotService);
+      SnapshotRequestModel snapshotReq,
+      UUID snapshotId) {
+    super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotReq = snapshotReq;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
     try {

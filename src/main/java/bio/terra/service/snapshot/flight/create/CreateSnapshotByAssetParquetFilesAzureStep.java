@@ -17,6 +17,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.UUID;
 
 public class CreateSnapshotByAssetParquetFilesAzureStep
     extends CreateSnapshotParquetFilesAzureStep {
@@ -25,8 +26,9 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
   public CreateSnapshotByAssetParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
-    super(azureSynapsePdao, snapshotService);
+      SnapshotRequestModel snapshotReq,
+      UUID snapshotId) {
+    super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotReq = snapshotReq;
   }
 

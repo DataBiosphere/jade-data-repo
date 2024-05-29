@@ -21,7 +21,7 @@ class FieldVariableTest {
     var table = TablePointer.fromTableName("table");
 
     var fieldPointer = new FieldPointer(table, "field");
-    var tableVariable = TableVariable.forPrimary(table);
+    var tableVariable = SourceVariable.forPrimary(table);
     assertThat(new FieldVariable(fieldPointer, tableVariable).renderSQL(context), is("t.field"));
 
     assertThat(
@@ -48,7 +48,7 @@ class FieldVariableTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSQLForAliasAndDistinct(SqlRenderContext context) {
     var table = TablePointer.fromTableName("table");
-    var tableVariable = TableVariable.forPrimary(table);
+    var tableVariable = SourceVariable.forPrimary(table);
 
     var fieldVariable =
         new FieldVariable(
@@ -63,7 +63,7 @@ class FieldVariableTest {
   @Test
   void renderSqlForOrderBy() {
     var table = TablePointer.fromTableName("table");
-    var tableVariable = TableVariable.forPrimary(table);
+    var tableVariable = SourceVariable.forPrimary(table);
     var fieldVariableFunctionWrapper =
         new FieldVariable(new FieldPointer(table, "field", "foo"), tableVariable, "alias");
     assertThat(

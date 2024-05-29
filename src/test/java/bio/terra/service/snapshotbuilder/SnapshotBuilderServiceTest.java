@@ -24,6 +24,7 @@ import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -127,17 +128,14 @@ class SnapshotBuilderServiceTest {
     UUID snapshotRequestId = UUID.randomUUID();
     SnapshotAccessRequestResponse response =
         new SnapshotAccessRequestResponse().id(snapshotRequestId);
-    when(snapshotRequestDao.create(
-            SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
-        .thenReturn(response);
+    SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId);
+    when(snapshotRequestDao.create(request, TEST_USER.getEmail())).thenReturn(response);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
         .thenThrow(new ApiException("Error"));
     doNothing().when(snapshotRequestDao).delete(snapshotRequestId);
     assertThrows(
         InternalServerErrorException.class,
-        () ->
-            snapshotBuilderService.createRequest(
-                TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)));
+        () -> snapshotBuilderService.createRequest(TEST_USER, request));
   }
 
   @Test
@@ -267,11 +265,7 @@ class SnapshotBuilderServiceTest {
   private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Snapshot snapshot) {
     return CloudPlatformWrapper.of(snapshot.getCloudPlatform())
         .choose(
-            () -> {
-              // Not sure if we need this mock?
-              // when(snapshotService.retrieve(snapshot, TEST_USER)).thenReturn(makeDatasetModel());
-              return when(bigQuerySnapshotPdao.runQuery(any(), any(), any()));
-            },
+            () -> when(bigQuerySnapshotPdao.runQuery(any(), any(), any())),
             () -> {
               when(snapshotService.getOrCreateExternalAzureDataSource(snapshot, TEST_USER))
                   .thenReturn("dataSource");
@@ -400,28 +394,33 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void testParentQueryResult() throws Exception {
+    var expected = new SnapshotBuilderService.ParentQueryResult(1, 2, "name", "100", 99, true);
+
     var resultSet = mock(ResultSet.class);
-    when(resultSet.getInt(QueryBuilderFactory.PARENT_ID)).thenReturn(1);
-    when(resultSet.getInt(Concept.CONCEPT_ID)).thenReturn(2);
-    when(resultSet.getString(Concept.CONCEPT_NAME)).thenReturn("name");
-    when(resultSet.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(true);
+    when(resultSet.getInt(QueryBuilderFactory.PARENT_ID)).thenReturn(expected.parentId());
+    when(resultSet.getInt(Concept.CONCEPT_ID)).thenReturn(expected.childId());
+    when(resultSet.getString(Concept.CONCEPT_NAME)).thenReturn(expected.childName());
+    when(resultSet.getString(Concept.CONCEPT_CODE)).thenReturn(expected.code());
+    when(resultSet.getInt(QueryBuilderFactory.COUNT)).thenReturn(expected.count());
+    when(resultSet.getInt(QueryBuilderFactory.HAS_CHILDREN))
+        .thenReturn(expected.hasChildren() ? 1 : 0);
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(resultSet));
 
     var fieldValueList =
         FieldValueList.of(
             List.of(
-                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "1"),
-                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "2"),
-                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "name"),
-                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "100"),
-                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "99"),
-                FieldValue.of(FieldValue.Attribute.PRIMITIVE, "true")),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.parentId())),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.childId())),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, expected.childName()),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, expected.code()),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.count())),
+                FieldValue.of(FieldValue.Attribute.PRIMITIVE, expected.hasChildren() ? "1" : "0")),
             Field.of(QueryBuilderFactory.PARENT_ID, StandardSQLTypeName.NUMERIC),
             Field.of(Concept.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
             Field.of(Concept.CONCEPT_NAME, StandardSQLTypeName.STRING),
             Field.of(Concept.CONCEPT_CODE, StandardSQLTypeName.STRING),
             Field.of(QueryBuilderFactory.COUNT, StandardSQLTypeName.NUMERIC),
-            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL));
+            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.NUMERIC));
 
     assertParentQueryResult(new SnapshotBuilderService.ParentQueryResult(fieldValueList));
   }

@@ -7,7 +7,7 @@ import org.stringtemplate.v4.ST;
 
 public record Query(
     List<SelectExpression> select,
-    List<TableVariable> tables,
+    List<SourceVariable> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
     HavingFilterVariable having,
@@ -28,29 +28,29 @@ public record Query(
     if (orderBy == null) {
       orderBy = List.of();
     }
-    long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
+    long primaryTables = tables.stream().filter(SourceVariable::isPrimary).count();
     if (primaryTables != 1) {
       throw new IllegalArgumentException(
           "Query can only have one primary table, but found " + primaryTables);
     }
   }
 
-  public Query(List<SelectExpression> select, List<TableVariable> tables) {
+  public Query(List<SelectExpression> select, List<SourceVariable> tables) {
     this(select, tables, null, null, null, null, null);
   }
 
   public Query(
-      List<SelectExpression> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
+      List<SelectExpression> select, List<SourceVariable> tables, List<FieldVariable> groupBy) {
     this(select, tables, null, groupBy, null, null, null);
   }
 
-  public Query(List<SelectExpression> select, List<TableVariable> tables, FilterVariable where) {
+  public Query(List<SelectExpression> select, List<SourceVariable> tables, FilterVariable where) {
     this(select, tables, where, null, null, null, null);
   }
 
   public Query(
       List<SelectExpression> select,
-      List<TableVariable> tables,
+      List<SourceVariable> tables,
       FilterVariable where,
       Integer limit) {
     this(select, tables, where, null, null, null, limit);
@@ -58,7 +58,7 @@ public record Query(
 
   public Query(
       List<SelectExpression> select,
-      List<TableVariable> tables,
+      List<SourceVariable> tables,
       FilterVariable where,
       List<FieldVariable> groupBy,
       List<OrderByVariable> orderBy,
@@ -68,7 +68,7 @@ public record Query(
 
   public Query(
       List<SelectExpression> select,
-      List<TableVariable> tables,
+      List<SourceVariable> tables,
       FilterVariable where,
       List<FieldVariable> groupBy,
       List<OrderByVariable> orderBy) {
@@ -151,7 +151,7 @@ public record Query(
     return "SELECT " + sql;
   }
 
-  public TableVariable getPrimaryTable() {
-    return tables.stream().filter(TableVariable::isPrimary).findFirst().orElseThrow();
+  public SourceVariable getPrimaryTable() {
+    return tables.stream().filter(SourceVariable::isPrimary).findFirst().orElseThrow();
   }
 }

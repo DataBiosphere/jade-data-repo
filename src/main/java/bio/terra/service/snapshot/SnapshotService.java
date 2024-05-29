@@ -168,7 +168,6 @@ public class SnapshotService {
    */
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-    String description = "Create snapshot " + snapshotRequestModel.getName();
     String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
     Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
     if (snapshotRequestModel.getProfileId() == null) {
@@ -184,12 +183,18 @@ public class SnapshotService {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
+
+    UUID snapshotId = UUID.randomUUID();
+    String description =
+        "Create snapshot %s with ID %s".formatted(snapshotRequestModel.getName(), snapshotId);
+
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK_SNAPSHOT)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submit();
   }
 

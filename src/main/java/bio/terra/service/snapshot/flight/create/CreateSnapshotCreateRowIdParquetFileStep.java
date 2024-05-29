@@ -26,18 +26,19 @@ public class CreateSnapshotCreateRowIdParquetFileStep implements Step {
 
   private final AzureSynapsePdao azureSynapsePdao;
   private final SnapshotService snapshotService;
+  private final UUID snapshotId;
 
   public CreateSnapshotCreateRowIdParquetFileStep(
-      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
+      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService, UUID snapshotId) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotService = snapshotService;
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     FlightMap workingMap = flightContext.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Map<String, Long> tableRowCounts =
         workingMap.get(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, HashMap.class);
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
@@ -55,8 +56,6 @@ public class CreateSnapshotCreateRowIdParquetFileStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
-    FlightMap workingMap = flightContext.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     azureSynapsePdao.dropTables(
         List.of(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     return StepResult.getStepResultSuccess();

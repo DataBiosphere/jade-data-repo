@@ -5,17 +5,14 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.policy.exception.PolicyConflictException;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.create.CreateSnapshotPolicyStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -37,16 +34,9 @@ class CreateSnapshotPolicyStepTest {
   private static final TpsPolicyInputs policies =
       new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
 
-  private void mockFlightMap() {
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
-  }
-
   @Test
   void testProtectedDataPolicyDoUndo() throws Exception {
-    mockFlightMap();
-    CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, true);
+    CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, true, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
@@ -57,8 +47,7 @@ class CreateSnapshotPolicyStepTest {
 
   @Test
   void testProtectedDataPolicyAlreadyExists() throws Exception {
-    mockFlightMap();
-    CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, true);
+    CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, true, SNAPSHOT_ID);
     var exception = new PolicyConflictException("Policy access object already exists");
     doThrow(exception).when(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
     StepResult doResult = step.doStep(flightContext);
@@ -68,7 +57,7 @@ class CreateSnapshotPolicyStepTest {
 
   @Test
   void testNoPolicyDoUndo() throws Exception {
-    CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, false);
+    CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, false, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(policyService, never()).createSnapshotPao(SNAPSHOT_ID, policies);

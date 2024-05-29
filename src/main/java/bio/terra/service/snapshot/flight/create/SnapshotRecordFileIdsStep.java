@@ -5,9 +5,7 @@ import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
@@ -23,16 +21,19 @@ public abstract class SnapshotRecordFileIdsStep implements Step {
   private final DatasetService datasetService;
   private final DrsIdService drsIdService;
   private final DrsService drsService;
+  private final UUID snapshotId;
 
   public SnapshotRecordFileIdsStep(
       SnapshotService snapshotService,
       DatasetService datasetService,
       DrsIdService drsIdService,
-      DrsService drsService) {
+      DrsService drsService,
+      UUID snapshotId) {
     this.snapshotService = snapshotService;
     this.datasetService = datasetService;
     this.drsIdService = drsIdService;
     this.drsService = drsService;
+    this.snapshotId = snapshotId;
   }
 
   //  abstract List<String> getFileIds(FlightContext context, Dataset dataset, UUID snapshotId)
@@ -42,8 +43,6 @@ public abstract class SnapshotRecordFileIdsStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     List<String> fileIds = getFileIds(context, snapshot);
 
@@ -57,8 +56,6 @@ public abstract class SnapshotRecordFileIdsStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     logger.info("Deleted {} rows", drsService.deleteDrsIdToSnapshotsBySnapshot(snapshotId));
 
     return StepResult.getStepResultSuccess();

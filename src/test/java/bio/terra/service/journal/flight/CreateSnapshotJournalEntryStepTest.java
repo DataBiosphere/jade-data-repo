@@ -11,10 +11,8 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.journal.JournalService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.create.CreateSnapshotJournalEntryStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -40,10 +38,7 @@ class CreateSnapshotJournalEntryStepTest {
 
   @BeforeEach
   void setup() {
-    step = new CreateSnapshotJournalEntryStep(journalService, TEST_USER);
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    step = new CreateSnapshotJournalEntryStep(journalService, TEST_USER, SNAPSHOT_ID);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
   }
 

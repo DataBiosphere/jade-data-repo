@@ -25,8 +25,9 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
   public CreateSnapshotByRowIdParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
-      SnapshotRequestModel snapshotRequestModel) {
-    super(azureSynapsePdao, snapshotService);
+      SnapshotRequestModel snapshotRequestModel,
+      UUID snapshotId) {
+    super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotRequestModel = snapshotRequestModel;
   }
 
@@ -35,7 +36,6 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
     SnapshotRequestContentsModel contentsModel = snapshotRequestModel.getContents().get(0);
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
     FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
 
     try {

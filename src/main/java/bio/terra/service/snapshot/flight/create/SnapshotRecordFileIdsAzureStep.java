@@ -13,6 +13,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import com.azure.data.tables.TableServiceClient;
 import java.util.List;
+import java.util.UUID;
 
 public class SnapshotRecordFileIdsAzureStep extends SnapshotRecordFileIdsStep {
 
@@ -25,8 +26,9 @@ public class SnapshotRecordFileIdsAzureStep extends SnapshotRecordFileIdsStep {
       DrsIdService drsIdService,
       DrsService drsService,
       TableDao tableDao,
-      AzureAuthService azureAuthService) {
-    super(snapshotService, datasetService, drsIdService, drsService);
+      AzureAuthService azureAuthService,
+      UUID snapshotId) {
+    super(snapshotService, datasetService, drsIdService, drsService, snapshotId);
     this.tableDao = tableDao;
     this.azureAuthService = azureAuthService;
   }

@@ -58,6 +58,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.context.ApplicationContext;
@@ -113,6 +114,10 @@ public class SnapshotCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
+    UUID snapshotId =
+        Objects.requireNonNull(
+            inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.class));
+
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
@@ -134,9 +139,6 @@ public class SnapshotCreateFlight extends Flight {
     addStep(
         new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
-    // mint a snapshot id and put it in the working map
-    addStep(new CreateSnapshotIdStep(snapshotReq));
-
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
@@ -150,7 +152,8 @@ public class SnapshotCreateFlight extends Flight {
 
       // Get or initialize the project where the snapshot resources will be created
       addStep(
-          new CreateSnapshotInitializeProjectStep(resourceService, sourceDatasets, snapshotName),
+          new CreateSnapshotInitializeProjectStep(
+              resourceService, sourceDatasets, snapshotName, snapshotId),
           getDefaultExponentialBackoffRetryRule());
     }
 
@@ -168,11 +171,13 @@ public class SnapshotCreateFlight extends Flight {
 
     // create the snapshot metadata object in postgres and lock it
     addStep(
-        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq),
+        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq, snapshotId),
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
-      addStep(new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
+      addStep(
+          new CreateSnapshotCreateAzureStorageAccountStep(
+              resourceService, sourceDataset, snapshotId));
       addStep(new CreateSnapshotCreateAzureContainerStep(resourceService, azureContainerPdao));
 
       // Turn on logging and monitoring for the storage account associated with the snapshot
@@ -202,7 +207,7 @@ public class SnapshotCreateFlight extends Flight {
                         bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
                 () ->
                     new CreateSnapshotByAssetParquetFilesAzureStep(
-                        azureSynapsePdao, snapshotService, snapshotReq)));
+                        azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
       }
       case BYFULLVIEW -> addStep(
           platform.choose(
@@ -215,7 +220,7 @@ public class SnapshotCreateFlight extends Flight {
                       snapshotReq),
               () ->
                   new CreateSnapshotByFullViewParquetFilesAzureStep(
-                      azureSynapsePdao, snapshotService, snapshotReq)));
+                      azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
       case BYQUERY -> {
         addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
         addStep(
@@ -235,7 +240,8 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotService,
                         snapshotReq,
                         datasetService,
-                        userReq)));
+                        userReq,
+                        snapshotId)));
       }
       case BYROWID -> addStep(
           platform.choose(
@@ -244,7 +250,7 @@ public class SnapshotCreateFlight extends Flight {
                       bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq),
               () ->
                   new CreateSnapshotByRowIdParquetFilesAzureStep(
-                      azureSynapsePdao, snapshotService, snapshotReq)));
+                      azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
       case BYREQUESTID -> addStep(
           platform.choose(
               () ->
@@ -264,10 +270,13 @@ public class SnapshotCreateFlight extends Flight {
                       snapshotRequestDao,
                       snapshotDao,
                       userReq,
-                      azureSynapsePdao)));
+                      azureSynapsePdao,
+                      snapshotId)));
     }
     if (platform.isAzure()) {
-      addStep(new CreateSnapshotCreateRowIdParquetFileStep(azureSynapsePdao, snapshotService));
+      addStep(
+          new CreateSnapshotCreateRowIdParquetFileStep(
+              azureSynapsePdao, snapshotService, snapshotId));
       addStep(
           new CreateSnapshotCountTableRowsAzureStep(snapshotDao, snapshotReq), randomBackoffRetry);
     }
@@ -281,7 +290,7 @@ public class SnapshotCreateFlight extends Flight {
 
     // Create the IAM resource and readers for the snapshot
     // The IAM code contains retries, so we don't make a retry rule here.
-    addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
+    addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq, snapshotId));
 
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot
@@ -309,14 +318,15 @@ public class SnapshotCreateFlight extends Flight {
 
       // Apply the IAM readers to the BQ dataset
       addStep(
-          new SnapshotAuthzTabularAclStep(bigQuerySnapshotPdao, snapshotService, configService),
+          new SnapshotAuthzTabularAclStep(
+              bigQuerySnapshotPdao, snapshotService, configService, snapshotId),
           pdaoAclRetryRule);
 
       // Apply the IAM readers to the GCS files
       if (!sourceDataset.isSelfHosted()) {
         addStep(
             new SnapshotAuthzFileAclStep(
-                dependencyDao, snapshotService, gcsPdao, datasetService, configService),
+                dependencyDao, snapshotService, gcsPdao, datasetService, configService, snapshotId),
             pdaoAclRetryRule);
       }
 
@@ -328,7 +338,7 @@ public class SnapshotCreateFlight extends Flight {
       if (snapshotReq.isGlobalFileIds()) {
         addStep(
             new SnapshotRecordFileIdsGcpStep(
-                snapshotService, datasetService, drsIdService, drsService, fileDao));
+                snapshotService, datasetService, drsIdService, drsService, fileDao, snapshotId));
       }
     } else if (platform.isAzure()) {
       addStep(
@@ -338,11 +348,17 @@ public class SnapshotCreateFlight extends Flight {
               azureSynapsePdao,
               snapshotService,
               datasetId,
-              datasetName));
+              datasetName,
+              snapshotId));
 
       addStep(
           new CreateSnapshotStorageTableDependenciesStep(
-              tableDependencyDao, azureAuthService, azureSynapsePdao, snapshotService, datasetId));
+              tableDependencyDao,
+              azureAuthService,
+              azureSynapsePdao,
+              snapshotService,
+              datasetId,
+              snapshotId));
       // Calculate checksums and sizes for all directories in the snapshot
       addStep(
           new CreateSnapshotStorageTableComputeStep(
@@ -357,22 +373,26 @@ public class SnapshotCreateFlight extends Flight {
                 drsIdService,
                 drsService,
                 tableDao,
-                azureAuthService));
+                azureAuthService,
+                snapshotId));
       }
       // cannot clean up azure synapse tables until after gathered refIds in
       // CreateSnapshotStorageTableDataStep
-      addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService));
+      addStep(
+          new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService, snapshotId));
     }
 
-    addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
+    addStep(
+        new CreateSnapshotPolicyStep(
+            policyService, sourceDataset.isSecureMonitoringEnabled(), snapshotId));
 
     // unlock the resource metadata rows
-    addStep(new UnlockSnapshotStep(snapshotDao, null));
+    addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
     addStep(new UnlockDatasetStep(datasetService, datasetId, true));
     // once unlocked, the snapshot summary can be written as the job response
-    addStep(new CreateSnapshotSetResponseStep(snapshotService));
+    addStep(new CreateSnapshotSetResponseStep(snapshotService, snapshotId));
 
-    addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
+    addStep(new CreateSnapshotJournalEntryStep(journalService, userReq, snapshotId));
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService,

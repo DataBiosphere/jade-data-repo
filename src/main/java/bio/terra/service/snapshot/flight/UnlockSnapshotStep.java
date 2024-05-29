@@ -35,25 +35,14 @@ public class UnlockSnapshotStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    // In the create case, we won't have the snapshot id at step creation. We'll expect it to be in
-    // the working map.
-    UUID id = snapshotId;
-    if (id == null) {
-      if (!context.getWorkingMap().containsKey(SnapshotWorkingMapKeys.SNAPSHOT_ID)) {
-        return new StepResult(
-            StepStatus.STEP_RESULT_FAILURE_FATAL,
-            new SnapshotLockException("Expected snapshot id in working map."));
-      }
-      id = context.getWorkingMap().get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-    }
     if (lockName == null) {
       lockName = context.getFlightId();
     }
-    boolean rowUpdated = snapshotDao.unlock(id, lockName);
+    boolean rowUpdated = snapshotDao.unlock(snapshotId, lockName);
     if (throwLockException && !rowUpdated) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new SnapshotLockException("Failed to unlock snapshot " + id));
+          new SnapshotLockException("Failed to unlock snapshot " + snapshotId));
     }
     logger.debug("rowUpdated on unlock = " + rowUpdated);
 

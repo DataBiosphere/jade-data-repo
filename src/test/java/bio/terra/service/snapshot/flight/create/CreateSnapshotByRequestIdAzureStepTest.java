@@ -47,6 +47,7 @@ class CreateSnapshotByRequestIdAzureStepTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final UUID SNAPSHOT_ACCESS_REQUEST_ID = UUID.randomUUID();
+  private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private CreateSnapshotByRequestIdAzureStep createSnapshotByRequestIdAzureStep;
 
   @BeforeEach
@@ -62,7 +63,8 @@ class CreateSnapshotByRequestIdAzureStepTest {
                 snapshotRequestDao,
                 snapshotDao,
                 TEST_USER,
-                azureSynapsePdao));
+                azureSynapsePdao,
+                SNAPSHOT_ID));
   }
 
   @Test

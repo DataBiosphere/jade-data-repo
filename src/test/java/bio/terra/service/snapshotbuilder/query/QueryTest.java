@@ -16,33 +16,33 @@ public class QueryTest {
 
   @NotNull
   public static Query createQuery() {
-    TableVariable tableVariable = makeTableVariable();
+    SourceVariable sourceVariable = makeTableVariable();
     return new Query.Builder()
         .select(
             List.of(
                 new FieldVariable(
-                    FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
-        .tables(List.of(new Table(tableVariable)))
+                    FieldPointer.allFields(sourceVariable.getSourcePointer()), sourceVariable)))
+        .tables(List.of(new Table(sourceVariable)))
         .build();
   }
 
   @NotNull
   public static Query createQueryWithLimit() {
-    TableVariable tableVariable = makeTableVariable();
+    SourceVariable sourceVariable = makeTableVariable();
     return new Query.Builder()
         .select(
             List.of(
                 new FieldVariable(
-                    FieldPointer.allFields(tableVariable.getTablePointer()), tableVariable)))
-        .tables(List.of(new Table(tableVariable)))
+                    FieldPointer.allFields(sourceVariable.getSourcePointer()), sourceVariable)))
+        .tables(List.of(new Table(sourceVariable)))
         .where(null)
         .limit(25)
         .build();
   }
 
-  private static TableVariable makeTableVariable() {
+  private static SourceVariable makeTableVariable() {
     TablePointer tablePointer = TablePointer.fromTableName("table");
-    return TableVariable.forPrimary(tablePointer);
+    return SourceVariable.forPrimary(tablePointer);
   }
 
   @ParameterizedTest
@@ -64,13 +64,13 @@ public class QueryTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void renderSqlGroupBy(SqlRenderContext context) {
     TablePointer tablePointer = TablePointer.fromTableName("table");
-    TableVariable tableVariable = TableVariable.forPrimary(tablePointer);
+    SourceVariable sourceVariable = SourceVariable.forPrimary(tablePointer);
     FieldPointer fieldPointer = new FieldPointer(tablePointer, "field");
-    FieldVariable fieldVariable = new FieldVariable(fieldPointer, tableVariable);
+    FieldVariable fieldVariable = new FieldVariable(fieldPointer, sourceVariable);
     Query query =
         new Query.Builder()
             .select(List.of(fieldVariable))
-            .tables(List.of(new Table(tableVariable)))
+            .tables(List.of(new Table(sourceVariable)))
             .groupBy(List.of(fieldVariable))
             .build();
     assertThat(query.renderSQL(context), is("SELECT t.field FROM table AS t GROUP BY t.field"));

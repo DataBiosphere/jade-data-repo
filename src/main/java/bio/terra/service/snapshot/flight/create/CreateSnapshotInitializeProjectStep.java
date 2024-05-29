@@ -18,12 +18,17 @@ public class CreateSnapshotInitializeProjectStep implements Step {
   private final ResourceService resourceService;
   private final List<Dataset> sourceDatasets;
   private final String snapshotName;
+  private final UUID snapshotId;
 
   public CreateSnapshotInitializeProjectStep(
-      ResourceService resourceService, List<Dataset> sourceDatasets, String snapshotName) {
+      ResourceService resourceService,
+      List<Dataset> sourceDatasets,
+      String snapshotName,
+      UUID snapshotId) {
     this.resourceService = resourceService;
     this.sourceDatasets = sourceDatasets;
     this.snapshotName = snapshotName;
+    this.snapshotId = snapshotId;
   }
 
   @Override
@@ -32,8 +37,6 @@ public class CreateSnapshotInitializeProjectStep implements Step {
     BillingProfileModel profileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String projectId = workingMap.get(SnapshotWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
-
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
     // Either the project will have been created and we will find it, or we will create.

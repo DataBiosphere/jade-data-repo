@@ -45,6 +45,7 @@ class SamApiServiceTest {
     authorizedApiClients =
         Map.of(
             "ResourcesApi", samApiService.resourcesApi(TOKEN).getApiClient(),
+            "AzureApi", samApiService.azureApi(TOKEN).getApiClient(),
             "GoogleApi", samApiService.googleApi(TOKEN).getApiClient(),
             "UsersApi", samApiService.usersApi(TOKEN).getApiClient(),
             "TermsOfServiceApi", samApiService.termsOfServiceApi(TOKEN).getApiClient(),

@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 
 public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotParquetFilesAzureStep
     implements CreateSnapshotPrimaryDataQueryInterface {
@@ -40,8 +41,9 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq,
       DatasetService datasetService,
-      AuthenticatedUserRequest userRequest) {
-    super(azureSynapsePdao, snapshotService);
+      AuthenticatedUserRequest userRequest,
+      UUID snapshotId) {
+    super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
     this.datasetService = datasetService;

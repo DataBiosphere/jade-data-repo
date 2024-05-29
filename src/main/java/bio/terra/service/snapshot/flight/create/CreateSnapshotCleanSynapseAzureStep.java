@@ -5,9 +5,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.Arrays;
@@ -17,20 +15,19 @@ import java.util.stream.Collectors;
 
 public class CreateSnapshotCleanSynapseAzureStep implements Step {
 
-  private AzureSynapsePdao azureSynapsePdao;
-  private SnapshotService snapshotService;
+  private final AzureSynapsePdao azureSynapsePdao;
+  private final SnapshotService snapshotService;
+  private final UUID snapshotId;
 
   public CreateSnapshotCleanSynapseAzureStep(
-      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
+      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService, UUID snapshotId) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotService = snapshotService;
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-
     azureSynapsePdao.dropTables(
         snapshotService.retrieveTables(snapshotId).stream()
             .filter(table -> table.getRowCount() > 0)

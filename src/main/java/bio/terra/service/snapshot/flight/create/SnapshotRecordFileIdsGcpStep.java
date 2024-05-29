@@ -8,6 +8,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import java.util.List;
+import java.util.UUID;
 
 public class SnapshotRecordFileIdsGcpStep extends SnapshotRecordFileIdsStep {
 
@@ -18,8 +19,9 @@ public class SnapshotRecordFileIdsGcpStep extends SnapshotRecordFileIdsStep {
       DatasetService datasetService,
       DrsIdService drsIdService,
       DrsService drsService,
-      FireStoreDao fireStoreDao) {
-    super(snapshotService, datasetService, drsIdService, drsService);
+      FireStoreDao fireStoreDao,
+      UUID snapshotId) {
+    super(snapshotService, datasetService, drsIdService, drsService, snapshotId);
     this.fireStoreDao = fireStoreDao;
   }
 

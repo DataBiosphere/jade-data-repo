@@ -24,7 +24,7 @@ class ConceptTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testConceptId(SqlRenderContext context) {
     ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
-    Concept concept = Concept.conceptId(conceptAncestor.ancestorConceptId());
+    Concept concept = Concept.joinConceptId(conceptAncestor.ancestorConceptId());
     assertQueryEquals(
         "JOIN concept AS c ON c.concept_id = ca.ancestor_concept_id", concept.renderSQL(context));
   }

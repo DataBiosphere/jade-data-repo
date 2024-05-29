@@ -7,25 +7,29 @@ import org.stringtemplate.v4.ST;
 public class FieldVariable implements SelectExpression {
   private static final Logger LOGGER = LoggerFactory.getLogger(FieldVariable.class);
   private final FieldPointer fieldPointer;
-  private final TableVariable tableVariable;
+  private final SourceVariable sourceVariable;
   private final String alias;
 
   private final boolean isDistinct;
 
-  public FieldVariable(FieldPointer fieldPointer, TableVariable tableVariable) {
-    this(fieldPointer, tableVariable, null, false);
+  public FieldVariable(FieldPointer fieldPointer, SourceVariable sourceVariable) {
+    this(fieldPointer, sourceVariable, null, false);
   }
 
-  public FieldVariable(FieldPointer fieldPointer, TableVariable tableVariable, String alias) {
-    this(fieldPointer, tableVariable, alias, false);
+  public FieldVariable(FieldPointer fieldPointer, SourceVariable sourceVariable, String alias) {
+    this(fieldPointer, sourceVariable, alias, false);
   }
 
   public FieldVariable(
-      FieldPointer fieldPointer, TableVariable tableVariable, String alias, boolean isDistinct) {
+      FieldPointer fieldPointer, SourceVariable sourceVariable, String alias, boolean isDistinct) {
     this.fieldPointer = fieldPointer;
-    this.tableVariable = tableVariable;
+    this.sourceVariable = sourceVariable;
     this.alias = alias;
     this.isDistinct = isDistinct;
+  }
+
+  public SourceVariable getSourceVariable() {
+    return sourceVariable;
   }
 
   public String renderSqlForOrderOrGroupBy(boolean includedInSelect, SqlRenderContext context) {
@@ -48,7 +52,7 @@ public class FieldVariable implements SelectExpression {
         "%s%s.%s"
             .formatted(
                 isDistinct ? "DISTINCT " : "",
-                context.getAlias(tableVariable),
+                context.getAlias(sourceVariable),
                 fieldPointer.getColumnName());
 
     if (fieldPointer.isForeignKey()) {

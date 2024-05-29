@@ -11,7 +11,7 @@ public class AggregateBQQueryResultsUtils {
         .id((int) (row.get(Concept.CONCEPT_ID).getLongValue()))
         .name(row.get(Concept.CONCEPT_NAME).getStringValue())
         .code(row.get(Concept.CONCEPT_CODE).getStringValue())
-        .hasChildren(row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue())
+        .hasChildren(row.get(QueryBuilderFactory.HAS_CHILDREN).getLongValue() > 0)
         .count(
             SnapshotBuilderService.fuzzyLowCount(
                 (int) row.get(QueryBuilderFactory.COUNT).getLongValue()));

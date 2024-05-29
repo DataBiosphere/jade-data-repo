@@ -294,7 +294,7 @@ public class SnapshotBuilderService {
           rs.getString(Concept.CONCEPT_NAME),
           rs.getString(Concept.CONCEPT_CODE),
           rs.getInt(QueryBuilderFactory.COUNT),
-          rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN));
+          rs.getInt(QueryBuilderFactory.HAS_CHILDREN) > 0);
     }
 
     ParentQueryResult(FieldValueList row) {
@@ -304,7 +304,7 @@ public class SnapshotBuilderService {
           row.get(Concept.CONCEPT_NAME).getStringValue(),
           row.get(Concept.CONCEPT_CODE).getStringValue(),
           (int) row.get(QueryBuilderFactory.COUNT).getLongValue(),
-          row.get(QueryBuilderFactory.HAS_CHILDREN).getBooleanValue());
+          row.get(QueryBuilderFactory.HAS_CHILDREN).getLongValue() > 0);
     }
 
     SnapshotBuilderConcept toConcept() {

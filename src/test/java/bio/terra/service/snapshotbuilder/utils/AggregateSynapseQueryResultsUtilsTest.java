@@ -76,7 +76,8 @@ class AggregateSynapseQueryResultsUtilsTest {
     when(rs.getString(Concept.CONCEPT_NAME)).thenReturn(expected.getName());
     when(rs.getLong(Concept.CONCEPT_ID)).thenReturn((long) expected.getId());
     when(rs.getString(Concept.CONCEPT_CODE)).thenReturn(expected.getCode());
-    when(rs.getBoolean(QueryBuilderFactory.HAS_CHILDREN)).thenReturn(expected.isHasChildren());
+    when(rs.getLong(QueryBuilderFactory.HAS_CHILDREN))
+        .thenReturn(expected.isHasChildren() ? 1L : 0);
 
     assertThat(
         "toConcept converts table result to SnapshotBuilderConcept",

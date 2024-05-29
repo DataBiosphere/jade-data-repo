@@ -21,6 +21,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,7 @@ class SnapshotCreateFlightTest {
                 new SnapshotRequestContentsModel()
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+    inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
   }
 
   @Test

@@ -7,9 +7,9 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 class BinaryFilterVariableTest {
 
   private static FieldVariable createField() {
-    TableVariable tableVariable = TableVariable.forPrimary(TablePointer.fromTableName("table"));
-    return tableVariable.makeFieldVariable("column");
+    SourceVariable sourceVariable = SourceVariable.forPrimary(TablePointer.fromTableName("table"));
+    return sourceVariable.makeFieldVariable("column");
   }
 
   @Test

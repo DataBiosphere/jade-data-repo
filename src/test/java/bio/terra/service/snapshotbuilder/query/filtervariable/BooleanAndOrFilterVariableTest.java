@@ -5,10 +5,10 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -19,8 +19,8 @@ class BooleanAndOrFilterVariableTest {
   private final BooleanAndOrFilterVariable variable;
 
   BooleanAndOrFilterVariableTest() {
-    TableVariable table1 = TableVariable.forPrimary(TablePointer.fromTableName("table1"));
-    TableVariable table2 = TableVariable.forPrimary(TablePointer.fromTableName("table2"));
+    SourceVariable table1 = SourceVariable.forPrimary(TablePointer.fromTableName("table1"));
+    SourceVariable table2 = SourceVariable.forPrimary(TablePointer.fromTableName("table2"));
     variable =
         BooleanAndOrFilterVariable.and(
             new BinaryFilterVariable(

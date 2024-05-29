@@ -1,8 +1,8 @@
 package bio.terra.service.snapshotbuilder.query.tables;
 
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
 
 public class Concept extends Table {
 
@@ -15,18 +15,18 @@ public class Concept extends Table {
   private static final TablePointer tablePointer = TablePointer.fromTableName(TABLE_NAME);
 
   private Concept() {
-    super(TableVariable.forPrimary(tablePointer));
+    super(SourceVariable.forPrimary(tablePointer));
   }
 
   private Concept(String joinField, FieldVariable joinFieldOnParent) {
-    super(TableVariable.forJoined(tablePointer, joinField, joinFieldOnParent));
+    super(SourceVariable.forJoined(tablePointer, joinField, joinFieldOnParent));
   }
 
   public static Concept asPrimary() {
     return new Concept();
   }
 
-  public static Concept conceptId(FieldVariable joinFieldOnParent) {
+  public static Concept joinConceptId(FieldVariable joinFieldOnParent) {
     return new Concept(CONCEPT_ID, joinFieldOnParent);
   }
 

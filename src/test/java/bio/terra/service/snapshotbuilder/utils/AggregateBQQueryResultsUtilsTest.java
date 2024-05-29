@@ -55,12 +55,13 @@ class AggregateBQQueryResultsUtilsTest {
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, expected.getName()),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, expected.getCode()),
                 FieldValue.of(
-                    FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.isHasChildren())),
+                    FieldValue.Attribute.PRIMITIVE,
+                    String.valueOf(expected.isHasChildren() ? 1 : 0)),
                 FieldValue.of(FieldValue.Attribute.PRIMITIVE, String.valueOf(expected.getCount()))),
             Field.of(Concept.CONCEPT_ID, StandardSQLTypeName.NUMERIC),
             Field.of(Concept.CONCEPT_NAME, StandardSQLTypeName.STRING),
             Field.of(Concept.CONCEPT_CODE, StandardSQLTypeName.STRING),
-            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.BOOL),
+            Field.of(QueryBuilderFactory.HAS_CHILDREN, StandardSQLTypeName.NUMERIC),
             Field.of(QueryBuilderFactory.COUNT, StandardSQLTypeName.NUMERIC));
     assertThat(AggregateBQQueryResultsUtils.toConcept(row), is(expected));
   }

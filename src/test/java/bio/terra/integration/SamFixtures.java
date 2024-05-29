@@ -111,7 +111,11 @@ public class SamFixtures {
       String accessToken = getAccessToken(authedHeader);
       GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
       samGroupApi.addEmailToGroup(groupName, policyName, user.getEmail(), new Object());
-      logger.info("Added User {} to Sam Group {} with policy name {} ", user.getEmail(), groupName, policyName);
+      logger.info(
+          "Added User {} to Sam Group {} with policy name {} ",
+          user.getEmail(),
+          groupName,
+          policyName);
     } catch (ApiException e) {
       throw new RuntimeException("Error adding user to Sam Group: %s", e);
     }

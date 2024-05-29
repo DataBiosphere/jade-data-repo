@@ -1053,7 +1053,11 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotIds.add(snapshotByFullViewId);
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
-    List<String> dacs = samFixtures.getDataAccessControlsForResource(steward, String.valueOf(IamResourceTypeEnum.DATASNAPSHOT), String.valueOf(snapshotByFullViewId));
+    List<String> dacs =
+        samFixtures.getDataAccessControlsForResource(
+            steward,
+            String.valueOf(IamResourceTypeEnum.DATASNAPSHOT),
+            String.valueOf(snapshotByFullViewId));
     assertThat("Snapshot has the expected DAC", dacs, containsInAnyOrder("test-dac"));
 
     // Ensure that export works

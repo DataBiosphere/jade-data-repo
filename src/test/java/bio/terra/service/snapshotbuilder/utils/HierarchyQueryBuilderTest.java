@@ -64,8 +64,8 @@ class HierarchyQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void joinToFilterConcepts(SqlRenderContext context) {
-    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
-    FieldVariable parentId = conceptRelationship.conceptId1();
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
+    FieldVariable parentId = conceptRelationship.getConceptId1();
     SourceVariable query = HierarchyQueryBuilder.joinToFilterConcepts(parentId, 1);
     assertQueryEquals(EXPECTED_JOIN_TO_FILTER, query.renderSQL(context));
   }
@@ -84,8 +84,8 @@ class HierarchyQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void makeHasChildrenJoin(SqlRenderContext context) {
-    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
-    FieldVariable childId = conceptRelationship.conceptId2();
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
+    FieldVariable childId = conceptRelationship.getConceptId2();
     SourceVariable query = HierarchyQueryBuilder.makeHasChildrenJoin(childId);
     assertQueryEquals(EXPECTED_HAS_CHILDREN_JOIN, query.renderSQL(context));
   }
@@ -93,8 +93,8 @@ class HierarchyQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void selectHasChildren(SqlRenderContext context) {
-    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
-    FieldVariable childId = conceptRelationship.conceptId2();
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
+    FieldVariable childId = conceptRelationship.getConceptId2();
     var joinHasChildren = HierarchyQueryBuilder.makeHasChildrenJoin(childId);
     var query = ConceptAncestor.selectHasChildren(joinHasChildren);
     assertQueryEquals(

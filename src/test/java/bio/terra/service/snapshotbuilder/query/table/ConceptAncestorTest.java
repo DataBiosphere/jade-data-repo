@@ -16,7 +16,7 @@ class ConceptAncestorTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testAsPrimary(SqlRenderContext context) {
-    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    ConceptAncestor conceptAncestor = ConceptAncestor.forPrimary();
     assertQueryEquals("concept_ancestor AS ca", conceptAncestor.renderSQL(context));
   }
 
@@ -24,7 +24,7 @@ class ConceptAncestorTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testJoinDescendant(SqlRenderContext context) {
     ConceptAncestor conceptAncestor =
-        ConceptAncestor.joinDescendant(ConceptRelationship.asPrimary().relationshipId());
+        ConceptAncestor.joinDescendant(ConceptRelationship.forPrimary().relationshipId());
     assertQueryEquals(
         "JOIN concept_ancestor AS ca ON ca.descendant_concept_id = cr.relationship_id",
         conceptAncestor.renderSQL(context));
@@ -34,7 +34,7 @@ class ConceptAncestorTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testJoinAncestor(SqlRenderContext context) {
     ConceptAncestor conceptAncestor =
-        ConceptAncestor.joinAncestor(ConceptRelationship.asPrimary().relationshipId());
+        ConceptAncestor.joinAncestor(ConceptRelationship.forPrimary().relationshipId());
 
     assertQueryEquals(
         "JOIN concept_ancestor AS ca ON ca.ancestor_concept_id = cr.relationship_id",
@@ -44,7 +44,7 @@ class ConceptAncestorTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testFieldVariables(SqlRenderContext context) {
-    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    ConceptAncestor conceptAncestor = ConceptAncestor.forPrimary();
     Map<FieldVariable, String> fieldVariablesToResult =
         Map.ofEntries(
             Map.entry(conceptAncestor.ancestorConceptId(), "ca.ancestor_concept_id"),

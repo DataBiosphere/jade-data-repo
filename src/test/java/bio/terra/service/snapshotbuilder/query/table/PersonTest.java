@@ -16,28 +16,28 @@ class PersonTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testAsPrimary(SqlRenderContext context) {
-    Person person = Person.asPrimary();
+    Person person = Person.forPrimary();
     assertQueryEquals("person AS p", person.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testFromColumn(SqlRenderContext context) {
-    FieldVariable fieldVariable = Person.asPrimary().fromColumn("column");
+    FieldVariable fieldVariable = Person.forPrimary().getColumn("column");
     assertQueryEquals("p.column", fieldVariable.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testPersonId(SqlRenderContext context) {
-    FieldVariable fieldVariable = Person.asPrimary().personId();
+    FieldVariable fieldVariable = Person.forPrimary().personId();
     assertQueryEquals("p.person_id", fieldVariable.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCountPersonId(SqlRenderContext context) {
-    FieldVariable fieldVariable = Person.asPrimary().countPerson();
+    FieldVariable fieldVariable = Person.forPrimary().countPerson();
     assertQueryEquals("COUNT(DISTINCT p.person_id)", fieldVariable.renderSQL(context));
   }
 }

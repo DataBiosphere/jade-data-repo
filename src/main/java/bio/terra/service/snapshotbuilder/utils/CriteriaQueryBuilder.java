@@ -27,7 +27,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
 public class CriteriaQueryBuilder {
-  final Person person = Person.asPrimary();
+  final Person person = Person.forPrimary();
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 

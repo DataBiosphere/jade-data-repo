@@ -32,7 +32,7 @@ public class ConceptChildrenQueryBuilder {
     Concept concept = Concept.asPrimary();
     FieldVariable conceptName = concept.name();
     FieldVariable conceptId = concept.conceptId();
-    FieldVariable conceptCode = concept.code();
+    FieldVariable conceptCode = concept.conceptCode();
 
     // concept_ancestor joined on concept.concept_id = ancestor_concept_id.
     // We use concept_ancestor for the rollup count because we want to include counts
@@ -95,8 +95,8 @@ public class ConceptChildrenQueryBuilder {
    * relationship here because it includes only the direct descendants.
    */
   static Query createConceptRelationshipSubQuery(int conceptId) {
-    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
-    FieldVariable descendantConceptId = conceptRelationship.conceptId2();
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
+    FieldVariable descendantConceptId = conceptRelationship.getConceptId2();
 
     return new Query.Builder()
         .select(List.of(descendantConceptId))
@@ -104,7 +104,7 @@ public class ConceptChildrenQueryBuilder {
         .where(
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(
-                    conceptRelationship.conceptId1(), new Literal(conceptId)),
+                    conceptRelationship.getConceptId1(), new Literal(conceptId)),
                 BinaryFilterVariable.equals(
                     conceptRelationship.relationshipId(), new Literal("Subsumes"))))
         .build();

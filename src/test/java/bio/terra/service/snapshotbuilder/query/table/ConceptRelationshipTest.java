@@ -16,18 +16,18 @@ class ConceptRelationshipTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testAsPrimary(SqlRenderContext context) {
-    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
     assertQueryEquals("concept_relationship AS cr", conceptRelationship.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testFieldVariables(SqlRenderContext context) {
-    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
     Map<FieldVariable, String> fieldVariablesToResult =
         Map.ofEntries(
-            Map.entry(conceptRelationship.conceptId1(), "cr.concept_id_1"),
-            Map.entry(conceptRelationship.conceptId2(), "cr.concept_id_2"),
+            Map.entry(conceptRelationship.getConceptId1(), "cr.concept_id_1"),
+            Map.entry(conceptRelationship.getConceptId2(), "cr.concept_id_2"),
             Map.entry(conceptRelationship.relationshipId(), "cr.relationship_id"));
 
     fieldVariablesToResult.forEach(

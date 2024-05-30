@@ -36,7 +36,7 @@ class DomainOccurrenceTest {
         .tableName(ConditionOccurrence.TABLE_NAME)
         .columnName(ConditionOccurrence.CONDITION_CONCEPT_ID);
 
-    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    ConceptAncestor conceptAncestor = ConceptAncestor.forPrimary();
     DomainOccurrence domainOccurrence =
         DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
     assertQueryEquals(
@@ -52,7 +52,7 @@ class DomainOccurrenceTest {
         .root(new SnapshotBuilderConcept())
         .tableName(ConditionOccurrence.TABLE_NAME)
         .columnName(ConditionOccurrence.CONDITION_CONCEPT_ID);
-    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    ConceptAncestor conceptAncestor = ConceptAncestor.forPrimary();
     DomainOccurrence domainOccurrence =
         DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
     FieldVariable countPersonId = domainOccurrence.countPerson();

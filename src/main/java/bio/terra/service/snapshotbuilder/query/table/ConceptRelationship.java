@@ -16,7 +16,7 @@ public class ConceptRelationship extends Table {
     super(SourceVariable.forPrimary(tablePointer));
   }
 
-  public static ConceptRelationship asPrimary() {
+  public static ConceptRelationship forPrimary() {
     return new ConceptRelationship();
   }
 
@@ -24,7 +24,7 @@ public class ConceptRelationship extends Table {
     return getFieldVariable(CONCEPT_ID_1);
   }
 
-  public FieldVariable conceptId2() {
+  public FieldVariable getConceptId2() {
     return getFieldVariable(CONCEPT_ID_2);
   }
 

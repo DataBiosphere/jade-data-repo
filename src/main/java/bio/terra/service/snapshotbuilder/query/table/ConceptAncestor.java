@@ -3,6 +3,7 @@ package bio.terra.service.snapshotbuilder.query.table;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 
 public class ConceptAncestor extends Table {
 
@@ -21,7 +22,7 @@ public class ConceptAncestor extends Table {
     super(SourceVariable.forJoined(tablePointer, joinField, joinFieldOnParent));
   }
 
-  public static ConceptAncestor asPrimary() {
+  public static ConceptAncestor forPrimary() {
     return new ConceptAncestor();
   }
 
@@ -46,6 +47,7 @@ public class ConceptAncestor extends Table {
   }
 
   public static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {
-    return joinHasChildren.makeFieldVariable(DESCENDANT_CONCEPT_ID, "COUNT", QueryBuilderFactory.HAS_CHILDREN`, true);
+    return joinHasChildren.makeFieldVariable(
+        DESCENDANT_CONCEPT_ID, "COUNT", QueryBuilderFactory.HAS_CHILDREN, true);
   }
 }

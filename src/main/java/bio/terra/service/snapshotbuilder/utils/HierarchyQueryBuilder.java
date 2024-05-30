@@ -33,14 +33,14 @@ public class HierarchyQueryBuilder {
    * }</pre>
    */
   public Query generateQuery(SnapshotBuilderDomainOption domainOption, int conceptId) {
-    ConceptRelationship conceptRelationship = ConceptRelationship.asPrimary();
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
     FieldVariable relationshipId = conceptRelationship.relationshipId();
-    FieldVariable parentId = conceptRelationship.conceptId1();
-    FieldVariable childId = conceptRelationship.conceptId2();
+    FieldVariable parentId = conceptRelationship.getConceptId1();
+    FieldVariable childId = conceptRelationship.getConceptId2();
     Concept child = Concept.joinConceptId(childId);
     Concept parent = Concept.joinConceptId(parentId);
     FieldVariable conceptName = child.name();
-    FieldVariable conceptCode = child.code();
+    FieldVariable conceptCode = child.conceptCode();
 
     SourceVariable joinHasChildren = makeHasChildrenJoin(childId);
 
@@ -91,7 +91,7 @@ public class HierarchyQueryBuilder {
    * Classification, and Source Concepts</a>
    */
   static SourceVariable joinToFilterConcepts(FieldVariable parentId, int conceptId) {
-    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    ConceptAncestor conceptAncestor = ConceptAncestor.forPrimary();
     FieldVariable ancestorConceptId = conceptAncestor.ancestorConceptId();
     FieldVariable descendantConceptId = conceptAncestor.descendantConceptId();
     var conceptAncestorSubquery =
@@ -111,7 +111,7 @@ public class HierarchyQueryBuilder {
 
   /** Generate a join clause that is used to determine if the outerConcept has any children. */
   static SourceVariable makeHasChildrenJoin(FieldVariable childId) {
-    ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
+    ConceptAncestor conceptAncestor = ConceptAncestor.forPrimary();
     FieldVariable ancestorConceptId = conceptAncestor.ancestorConceptId();
     FieldVariable descendantConceptId = conceptAncestor.descendantConceptId();
     var minLevelsSeparation = conceptAncestor.minLevelsOfSeparation();

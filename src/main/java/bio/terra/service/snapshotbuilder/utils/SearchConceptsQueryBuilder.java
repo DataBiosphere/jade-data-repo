@@ -43,7 +43,7 @@ public class SearchConceptsQueryBuilder {
     Concept concept = Concept.asPrimary();
     FieldVariable nameField = concept.name();
     FieldVariable conceptId = concept.conceptId();
-    FieldVariable conceptCode = concept.code();
+    FieldVariable conceptCode = concept.conceptCode();
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
@@ -85,7 +85,7 @@ public class SearchConceptsQueryBuilder {
       var searchNameClause = createSearchConceptClause(searchText, concept.name());
 
       // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause = createSearchConceptClause(searchText, concept.code());
+      var searchCodeClause = createSearchConceptClause(searchText, concept.conceptCode());
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);

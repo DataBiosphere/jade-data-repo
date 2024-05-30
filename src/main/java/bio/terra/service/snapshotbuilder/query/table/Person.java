@@ -23,7 +23,7 @@ public class Person extends Table {
     this.countPerson = sourceVariable.makeFieldVariable(PERSON_ID, "COUNT", null, true);
   }
 
-  public static Person asPrimary() {
+  public static Person forPrimary() {
     return new Person(SourceVariable.forPrimary(tablePointer));
   }
 

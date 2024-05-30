@@ -27,7 +27,7 @@ public class Person extends Table {
     return new Person(SourceVariable.forPrimary(tablePointer));
   }
 
-  public FieldVariable fromColumn(String columnName) {
+  public FieldVariable getColumn(String columnName) {
     return getFieldVariable(columnName);
   }
 

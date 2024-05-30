@@ -93,7 +93,7 @@ class IamServiceTest {
   }
 
   @Test
-  void testDeletePolicyMemberAggregateDataREader() throws InterruptedException {
+  void testDeletePolicyMemberAggregateDataReader() throws InterruptedException {
     var policyModel = new PolicyModel();
     String policyName = "policyName";
     String email = "email";

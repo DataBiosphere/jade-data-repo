@@ -97,7 +97,6 @@ public class SamFixtures {
       HttpHeaders authedHeader = getHeaders(user);
       String accessToken = getAccessToken(authedHeader);
       GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
-      // what is supposed to be in the body?
       samGroupApi.postGroup(groupName, null);
       logger.info("Created Sam Group {}", groupName);
     } catch (ApiException e) {

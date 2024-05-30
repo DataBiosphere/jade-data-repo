@@ -37,7 +37,7 @@ class PersonTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCountPersonId(SqlRenderContext context) {
-    FieldVariable fieldVariable = Person.asPrimary().countPersonId();
+    FieldVariable fieldVariable = Person.asPrimary().countPerson();
     assertQueryEquals("COUNT(DISTINCT p.person_id)", fieldVariable.renderSQL(context));
   }
 }

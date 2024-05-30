@@ -20,7 +20,7 @@ public class ConceptRelationship extends Table {
     return new ConceptRelationship();
   }
 
-  public FieldVariable conceptId1() {
+  public FieldVariable getConceptId1() {
     return getFieldVariable(CONCEPT_ID_1);
   }
 

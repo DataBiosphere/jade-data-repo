@@ -9,13 +9,13 @@ import bio.terra.service.snapshotbuilder.query.TablePointer;
 
 public class DomainOccurrence extends Table {
 
-  private final FieldVariable personCount;
+  private final FieldVariable countPerson;
   private final SnapshotBuilderDomainOption domainOption;
 
   private DomainOccurrence(SnapshotBuilderDomainOption domainOption, SourceVariable tableVariable) {
     super(tableVariable);
     this.domainOption = domainOption;
-    this.personCount = tableVariable.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
+    this.countPerson = tableVariable.makeFieldVariable(PERSON_ID, "COUNT", "count", true);
   }
 
   public static DomainOccurrence leftJoinOn(
@@ -39,11 +39,11 @@ public class DomainOccurrence extends Table {
     return getFieldVariable(this.domainOption.getColumnName());
   }
 
-  public FieldVariable getPerson() {
+  public FieldVariable personId() {
     return getFieldVariable(PERSON_ID);
   }
 
-  public FieldVariable countPersonId() {
-    return personCount;
+  public FieldVariable countPerson() {
+    return this.countPerson;
   }
 }

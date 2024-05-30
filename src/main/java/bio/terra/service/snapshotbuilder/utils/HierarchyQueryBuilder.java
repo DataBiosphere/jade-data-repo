@@ -56,7 +56,7 @@ public class HierarchyQueryBuilder {
     SourceVariable joinFilter = joinToFilterConcepts(parentId, conceptId);
 
     // COUNT(DISTINCT person_id)
-    FieldVariable personCount = domainOccurrence.countPersonId();
+    FieldVariable personCount = domainOccurrence.countPerson();
 
     return new Query.Builder()
         .select(

@@ -55,7 +55,7 @@ public class ConceptChildrenQueryBuilder {
         DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
 
     // COUNT(DISTINCT person_id)
-    FieldVariable countPerson = domainOccurrence.countPersonId();
+    FieldVariable countPerson = domainOccurrence.countPerson();
 
     List<SelectExpression> select =
         List.of(

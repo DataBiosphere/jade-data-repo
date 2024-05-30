@@ -55,7 +55,7 @@ class DomainOccurrenceTest {
     ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
     DomainOccurrence domainOccurrence =
         DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
-    FieldVariable countPersonId = domainOccurrence.countPersonId();
+    FieldVariable countPersonId = domainOccurrence.countPerson();
     assertQueryEquals("COUNT(DISTINCT co.person_id) AS count", countPersonId.renderSQL(context));
   }
 }

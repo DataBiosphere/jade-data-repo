@@ -89,7 +89,7 @@ public class CriteriaQueryBuilder {
     return SubQueryFilterVariable.in(
         person.personId(),
         new Query.Builder()
-            .select(List.of(domainOccurrence.getPerson()))
+            .select(List.of(domainOccurrence.personId()))
             .tables(List.of(domainOccurrence, conceptAncestor))
             .where(
                 BinaryFilterVariable.equals(
@@ -132,7 +132,7 @@ public class CriteriaQueryBuilder {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
         cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
 
-    FieldVariable personId = person.countPersonId();
+    FieldVariable personId = person.countPerson();
 
     return new Query.Builder()
         .select(List.of(personId))

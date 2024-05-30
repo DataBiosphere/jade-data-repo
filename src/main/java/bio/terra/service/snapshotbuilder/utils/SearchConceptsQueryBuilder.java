@@ -55,7 +55,7 @@ public class SearchConceptsQueryBuilder {
         DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
 
     // COUNT(DISTINCT co.person_id) AS count
-    FieldVariable countPerson = domainOccurrence.countPersonId();
+    FieldVariable countPerson = domainOccurrence.countPerson();
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 

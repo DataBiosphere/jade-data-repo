@@ -52,7 +52,6 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
-import bio.terra.model.IamResourceTypeEnum;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -80,6 +79,7 @@ import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
@@ -159,6 +159,7 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID releaseSnapshotId;
   private String datasetName;
   private List<UUID> snapshotIds;
+  private String dac;
 
   private List<UUID> snapshotAccessRequestIds;
   private UUID profileId;
@@ -235,6 +236,10 @@ public class AzureIntegrationTest extends UsersBase {
     }
     azureBlobIOTestUtility.teardown();
     gcsBlobIOTestUtility.teardown();
+
+    if (dac != null) {
+      samFixtures.deleteGroup(steward, dac);
+    }
   }
 
   @Test
@@ -1038,13 +1043,18 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotByRowIdModel.setContents(List.of(contentsModel));
 
     // -------- Create Snapshot by full view ------
+
     // create Sam Group
-    samFixtures.addGroup(steward, "test-dac");
+    String groupName = UUID.randomUUID().toString();
+    samFixtures.addGroup(steward, groupName);
+    dac = groupName;
     // Add test user to group
-    samFixtures.addUserToGroup(steward, "test-dac", "admin");
+    samFixtures.addUserToGroup(steward, groupName, "admin");
+
     SnapshotRequestModel requestModelAll =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
     requestModelAll.getContents().get(0).datasetName(summaryModel.getName());
+    requestModelAll.dataAccessControlGroups(List.of(groupName));
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -1056,9 +1066,9 @@ public class AzureIntegrationTest extends UsersBase {
     List<String> dacs =
         samFixtures.getDataAccessControlsForResource(
             steward,
-            String.valueOf(IamResourceTypeEnum.DATASNAPSHOT),
+            IamResourceType.DATASNAPSHOT.getSamResourceName(),
             String.valueOf(snapshotByFullViewId));
-    assertThat("Snapshot has the expected DAC", dacs, containsInAnyOrder("test-dac"));
+    assertThat("Snapshot has the expected DAC", dacs, containsInAnyOrder(groupName));
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =

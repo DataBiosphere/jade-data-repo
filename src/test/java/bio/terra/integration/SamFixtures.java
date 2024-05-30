@@ -98,7 +98,7 @@ public class SamFixtures {
       String accessToken = getAccessToken(authedHeader);
       GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
       // what is supposed to be in the body?
-      samGroupApi.postGroup(groupName, new Object());
+      samGroupApi.postGroup(groupName, null);
       logger.info("Created Sam Group {}", groupName);
     } catch (ApiException e) {
       throw new RuntimeException("Error creating Sam Group: %s", e);
@@ -130,6 +130,18 @@ public class SamFixtures {
       return samResourcesApi.getAuthDomainV2(resourceType, resourceId);
     } catch (ApiException e) {
       throw new RuntimeException("Error retrieving Data Access Controls: %s", e);
+    }
+  }
+
+  public void deleteGroup(TestConfiguration.User user, String groupName) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
+      samGroupApi.deleteGroup(groupName);
+      logger.info("Deleted Sam Group {}", groupName);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error deleting Sam Group: %s", e);
     }
   }
 

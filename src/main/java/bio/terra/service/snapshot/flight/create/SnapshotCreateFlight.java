@@ -295,6 +295,16 @@ public class SnapshotCreateFlight extends Flight {
     // The IAM code contains retries, so we don't make a retry rule here.
     addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq, snapshotId));
 
+    // add data access control groups to the snapshot
+    List<String> dataAccessControlGroups = snapshotReq.getDataAccessControlGroups();
+    if (Objects.nonNull(dataAccessControlGroups) && !dataAccessControlGroups.isEmpty()) {
+      addStep(
+          new CreateSnapshotGroupConstraintPolicyStep(
+              policyService, snapshotId, dataAccessControlGroups));
+      addStep(
+          new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, dataAccessControlGroups));
+    }
+
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot
       addStep(
@@ -388,17 +398,6 @@ public class SnapshotCreateFlight extends Flight {
     addStep(
         new CreateSnapshotPolicyStep(
             policyService, sourceDataset.isSecureMonitoringEnabled(), snapshotId));
-
-    // starts a flight to add data access control groups to the snapshot
-    List<String> dataAccessControlGroups = snapshotReq.getDataAccessControlGroups();
-    if (Objects.nonNull(dataAccessControlGroups) && !dataAccessControlGroups.isEmpty()) {
-      addStep(
-          new CreateSnapshotGroupConstraintPolicyStep(
-              policyService, snapshotId, dataAccessControlGroups));
-
-      addStep(
-          new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, dataAccessControlGroups));
-    }
 
     // unlock the resource metadata rows
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));

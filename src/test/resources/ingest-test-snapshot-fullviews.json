@@ -1,7 +1,7 @@
 {
   "name":"demo",
   "description":"desc",
-  "dataAccessControlGroups": ["test-dac"],
+  "dataAccessControlGroups": ["willBeOverridden"],
   "contents":[
     {
       "datasetName": "IngestTest",

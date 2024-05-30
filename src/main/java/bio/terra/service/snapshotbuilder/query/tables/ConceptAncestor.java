@@ -46,6 +46,6 @@ public class ConceptAncestor extends Table {
   }
 
   public static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {
-    return joinHasChildren.makeFieldVariable(DESCENDANT_CONCEPT_ID, "COUNT", "has_children", true);
+    return joinHasChildren.makeFieldVariable(DESCENDANT_CONCEPT_ID, "COUNT", QueryBuilderFactory.HAS_CHILDREN`, true);
   }
 }

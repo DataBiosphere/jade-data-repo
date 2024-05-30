@@ -44,4 +44,8 @@ public class ConceptAncestor extends Table {
   public FieldVariable minLevelsOfSeparation() {
     return getFieldVariable(MIN_LEVELS_OF_SEPARATION);
   }
+
+  public static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {
+    return joinHasChildren.makeFieldVariable(DESCENDANT_CONCEPT_ID, "COUNT", "has_children", true);
+  }
 }

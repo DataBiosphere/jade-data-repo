@@ -66,7 +66,7 @@ public class HierarchyQueryBuilder {
                 conceptName,
                 conceptCode,
                 personCount,
-                selectHasChildren(joinHasChildren)))
+                ConceptAncestor.selectHasChildren(joinHasChildren)))
         .tables(
             List.of(
                 conceptRelationship,
@@ -79,8 +79,8 @@ public class HierarchyQueryBuilder {
         .where(
             BooleanAndOrFilterVariable.and(
                 BinaryFilterVariable.equals(relationshipId, new Literal("Subsumes")),
-                requireStandardConcept(parent),
-                requireStandardConcept(child)))
+                parent.requireStandardConcept(),
+                child.requireStandardConcept()))
         .groupBy(List.of(conceptName, parentId, childId, conceptCode))
         .orderBy(List.of(new OrderByVariable(conceptName, OrderByDirection.ASCENDING)))
         .build();
@@ -90,11 +90,6 @@ public class HierarchyQueryBuilder {
    * href="https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:standard_classification_and_source_concepts">Standard,
    * Classification, and Source Concepts</a>
    */
-  // TODO add in to Concept
-  private static BinaryFilterVariable requireStandardConcept(Concept concept) {
-    return BinaryFilterVariable.equals(concept.standardConcept(), new Literal("S"));
-  }
-
   static SourceVariable joinToFilterConcepts(FieldVariable parentId, int conceptId) {
     ConceptAncestor conceptAncestor = ConceptAncestor.asPrimary();
     FieldVariable ancestorConceptId = conceptAncestor.ancestorConceptId();
@@ -112,12 +107,6 @@ public class HierarchyQueryBuilder {
         new SubQueryPointer(conceptAncestorSubquery, "concept_ancestor_subquery");
     return SourceVariable.forJoined(
         conceptAncestorSubqueryPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID, parentId);
-  }
-
-  // TODO put this in ConceptAncestor
-  static FieldVariable selectHasChildren(SourceVariable joinHasChildren) {
-    return joinHasChildren.makeFieldVariable(
-        ConceptAncestor.DESCENDANT_CONCEPT_ID, "COUNT", "has_children", true);
   }
 
   /** Generate a join clause that is used to determine if the outerConcept has any children. */

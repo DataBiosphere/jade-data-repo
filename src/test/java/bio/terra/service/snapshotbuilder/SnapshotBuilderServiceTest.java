@@ -425,7 +425,7 @@ class SnapshotBuilderServiceTest {
   }
 
   @Test
-  void testRejectSnapshotAccessRequest() {
+  void testRejectRequest() {
     UUID id = UUID.randomUUID();
     snapshotBuilderService.rejectRequest(id);
     verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.REJECTED);

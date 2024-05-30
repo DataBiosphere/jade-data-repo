@@ -44,7 +44,7 @@ public class Concept extends Table {
     return getFieldVariable(DOMAIN_ID);
   }
 
-  public FieldVariable code() {
+  public FieldVariable conceptCode() {
     return getFieldVariable(CONCEPT_CODE);
   }
 

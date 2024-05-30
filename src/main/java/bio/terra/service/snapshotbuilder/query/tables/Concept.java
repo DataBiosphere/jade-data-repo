@@ -1,8 +1,10 @@
 package bio.terra.service.snapshotbuilder.query.tables;
 
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
+import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
+import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 
 public class Concept extends Table {
 
@@ -48,5 +50,9 @@ public class Concept extends Table {
 
   public FieldVariable standardConcept() {
     return getFieldVariable(STANDARD_CONCEPT);
+  }
+
+  public BinaryFilterVariable requireStandardConcept() {
+    return BinaryFilterVariable.equals(this.standardConcept(), new Literal("S"));
   }
 }

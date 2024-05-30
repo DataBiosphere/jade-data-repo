@@ -22,11 +22,10 @@ public class DomainOccurrence extends Table {
       SnapshotBuilderDomainOption domainOption, FieldVariable fieldVariable) {
     return new DomainOccurrence(
         domainOption,
-        SourceVariable.forJoined(
+        SourceVariable.forLeftJoined(
             TablePointer.fromTableName(domainOption.getTableName()),
             domainOption.getColumnName(),
-            fieldVariable,
-            true));
+            fieldVariable));
   }
 
   public static DomainOccurrence forPrimary(SnapshotBuilderDomainOption domainOption) {

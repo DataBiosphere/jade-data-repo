@@ -150,8 +150,7 @@ public record Query(
     }
 
     public Query build() {
-      return new Query(
-          select, tables, where, groupBy, orderBy, limit);
+      return new Query(select, tables, where, groupBy, orderBy, limit);
     }
   }
 }

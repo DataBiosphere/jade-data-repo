@@ -151,7 +151,7 @@ public record Query(
 
     public Query build() {
       return new Query(
-          this.select, this.tables, this.where, this.groupBy, this.orderBy, this.limit);
+          select, tables, where, groupBy, orderBy, limit);
     }
   }
 }

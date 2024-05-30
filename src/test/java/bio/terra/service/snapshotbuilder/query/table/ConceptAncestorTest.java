@@ -1,4 +1,4 @@
-package bio.terra.service.snapshotbuilder.query.tables;
+package bio.terra.service.snapshotbuilder.query.table;
 
 import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 

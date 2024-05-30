@@ -28,7 +28,7 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.snapshotbuilder.query.tables.Person;
+import bio.terra.service.snapshotbuilder.query.table.Person;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.ObservationOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;

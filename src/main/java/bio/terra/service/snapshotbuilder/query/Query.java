@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.service.snapshotbuilder.query.tables.Table;
+import bio.terra.service.snapshotbuilder.query.table.Table;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;

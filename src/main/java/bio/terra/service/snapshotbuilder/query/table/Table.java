@@ -1,4 +1,4 @@
-package bio.terra.service.snapshotbuilder.query.tables;
+package bio.terra.service.snapshotbuilder.query.table;
 
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.SourceVariable;

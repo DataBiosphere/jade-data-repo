@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
-import bio.terra.service.snapshotbuilder.query.tables.Concept;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Tag;

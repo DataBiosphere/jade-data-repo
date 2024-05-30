@@ -1,6 +1,6 @@
-package bio.terra.service.snapshotbuilder.query.tables;
+package bio.terra.service.snapshotbuilder.query.table;
 
-import static bio.terra.service.snapshotbuilder.query.tables.Person.PERSON_ID;
+import static bio.terra.service.snapshotbuilder.query.table.Person.PERSON_ID;
 
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;

@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.service.snapshotbuilder.query.tables.Concept;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;

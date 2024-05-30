@@ -14,11 +14,11 @@ import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SubQueryPointer;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
-import bio.terra.service.snapshotbuilder.query.tables.Concept;
-import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.query.tables.ConceptRelationship;
-import bio.terra.service.snapshotbuilder.query.tables.DomainOccurrence;
-import bio.terra.service.snapshotbuilder.query.tables.Table;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
+import bio.terra.service.snapshotbuilder.query.table.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.table.ConceptRelationship;
+import bio.terra.service.snapshotbuilder.query.table.DomainOccurrence;
+import bio.terra.service.snapshotbuilder.query.table.Table;
 import java.util.List;
 
 public class ConceptChildrenQueryBuilder {

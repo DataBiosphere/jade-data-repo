@@ -19,9 +19,9 @@ import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilter
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.query.tables.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.query.tables.DomainOccurrence;
-import bio.terra.service.snapshotbuilder.query.tables.Person;
+import bio.terra.service.snapshotbuilder.query.table.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.table.DomainOccurrence;
+import bio.terra.service.snapshotbuilder.query.table.Person;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;

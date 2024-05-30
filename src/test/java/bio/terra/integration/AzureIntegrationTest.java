@@ -1048,8 +1048,6 @@ public class AzureIntegrationTest extends UsersBase {
     String groupName = UUID.randomUUID().toString();
     samFixtures.addGroup(steward, groupName);
     dac = groupName;
-    // Add test user to group
-    samFixtures.addUserToGroup(steward, groupName, "admin");
 
     SnapshotRequestModel requestModelAll =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);

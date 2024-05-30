@@ -25,10 +25,10 @@ class ConceptRelationshipTest {
   void testFieldVariables(SqlRenderContext context) {
     ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
     Map<FieldVariable, String> fieldVariablesToResult =
-        Map.ofEntries(
-            Map.entry(conceptRelationship.getConceptId1(), "cr.concept_id_1"),
-            Map.entry(conceptRelationship.getConceptId2(), "cr.concept_id_2"),
-            Map.entry(conceptRelationship.relationshipId(), "cr.relationship_id"));
+        Map.of(
+            conceptRelationship.getConceptId1(), "cr.concept_id_1",
+            conceptRelationship.getConceptId2(), "cr.concept_id_2",
+            conceptRelationship.relationshipId(), "cr.relationship_id");
 
     fieldVariablesToResult.forEach(
         (fieldVariable, result) -> {

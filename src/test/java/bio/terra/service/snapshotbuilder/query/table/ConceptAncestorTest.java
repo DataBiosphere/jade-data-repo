@@ -46,9 +46,9 @@ class ConceptAncestorTest {
   void testFieldVariables(SqlRenderContext context) {
     ConceptAncestor conceptAncestor = ConceptAncestor.forPrimary();
     Map<FieldVariable, String> fieldVariablesToResult =
-        Map.ofEntries(
-            Map.entry(conceptAncestor.ancestorConceptId(), "ca.ancestor_concept_id"),
-            Map.entry(conceptAncestor.descendantConceptId(), "ca.descendant_concept_id"));
+        Map.of(
+            conceptAncestor.ancestorConceptId(), "ca.ancestor_concept_id",
+            conceptAncestor.descendantConceptId(), "ca.descendant_concept_id");
 
     fieldVariablesToResult.forEach(
         (fieldVariable, result) -> {

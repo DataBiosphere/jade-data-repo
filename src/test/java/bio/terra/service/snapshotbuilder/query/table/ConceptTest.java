@@ -35,12 +35,12 @@ class ConceptTest {
     Concept concept = Concept.asPrimary();
 
     Map<FieldVariable, String> fieldVariablesToResult =
-        Map.ofEntries(
-            Map.entry(concept.name(), "c.concept_name"),
-            Map.entry(concept.conceptId(), "c.concept_id"),
-            Map.entry(concept.domainId(), "c.domain_id"),
-            Map.entry(concept.conceptCode(), "c.concept_code"),
-            Map.entry(concept.standardConcept(), "c.standard_concept"));
+        Map.of(
+            concept.name(), "c.concept_name",
+            concept.conceptId(), "c.concept_id",
+            concept.domainId(), "c.domain_id",
+            concept.conceptCode(), "c.concept_code",
+            concept.standardConcept(), "c.standard_concept");
 
     fieldVariablesToResult.forEach(
         (fieldVariable, result) -> {

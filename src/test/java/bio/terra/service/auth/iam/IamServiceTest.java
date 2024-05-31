@@ -92,7 +92,6 @@ class IamServiceTest {
     assertEquals(policyModel, result);
   }
 
-
   @Test
   void testVerifyAuthorization() throws Exception {
     IamResourceType resourceType = IamResourceType.DATASET;

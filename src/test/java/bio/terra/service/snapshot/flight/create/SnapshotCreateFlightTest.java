@@ -36,6 +36,7 @@ class SnapshotCreateFlightTest {
 
   @Mock private ApplicationContext context;
   private FlightMap inputParameters;
+  private static final List<String> DATA_ACCESS_CONTROL_GROUPS = List.of("group1", "group2");
 
   @BeforeEach
   void beforeEach() {
@@ -57,6 +58,7 @@ class SnapshotCreateFlightTest {
     inputParameters = new FlightMap();
     SnapshotRequestModel request =
         new SnapshotRequestModel()
+            .dataAccessControlGroups(DATA_ACCESS_CONTROL_GROUPS)
             .addContentsItem(
                 new SnapshotRequestContentsModel()
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
@@ -74,6 +76,8 @@ class SnapshotCreateFlightTest {
         containsInRelativeOrder(
             "LockDatasetStep",
             "CreateSnapshotMetadataStep", // Also locks the snapshot
+            "CreateSnapshotGroupConstraintPolicyStep",
+            "AddSnapshotAuthDomainStep",
             "UnlockSnapshotStep",
             "UnlockDatasetStep",
             "CreateSnapshotSetResponseStep"));

@@ -39,6 +39,7 @@ class IamServiceTest {
   private static final UUID ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
+  private static final List<String> AUTH_DOMAIN = List.of("group1", "group2");
 
   @Mock private IamProviderInterface iamProvider;
 
@@ -57,6 +58,23 @@ class IamServiceTest {
             configurationService,
             mock(JournalService.class),
             mock(GoogleCredentialsService.class));
+  }
+
+  @Test
+  void testRetrieveAuthDomain() throws InterruptedException {
+    when(iamProvider.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID))
+        .thenReturn(AUTH_DOMAIN);
+
+    List<String> result =
+        iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+    verify(iamProvider).retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+    assertEquals(AUTH_DOMAIN, result);
+  }
+
+  @Test
+  void testPathAuthDomain() throws InterruptedException {
+    iamService.patchAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID, AUTH_DOMAIN);
+    verify(iamProvider).patchAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID, AUTH_DOMAIN);
   }
 
   @Test

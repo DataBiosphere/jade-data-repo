@@ -92,22 +92,6 @@ class IamServiceTest {
     assertEquals(policyModel, result);
   }
 
-  @Test
-  void testDeletePolicyMemberAggregateDataReader() throws InterruptedException {
-    var policyModel = new PolicyModel();
-    String policyName = "policyName";
-    String email = "email";
-    when(iamProvider.deletePolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
-        .thenReturn(policyModel);
-
-    PolicyModel result =
-        iamService.deletePolicyMember(
-            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    verify(iamProvider)
-        .deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    assertEquals(policyModel, result);
-  }
 
   @Test
   void testVerifyAuthorization() throws Exception {

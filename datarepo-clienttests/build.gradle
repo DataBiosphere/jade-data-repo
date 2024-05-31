@@ -32,7 +32,7 @@ dependencies {
         jersey = "3.1.3"
 
         datarepoClient = "1.343.0-SNAPSHOT"
-        samClient = "0.1-c53306a-SNAP"
+        samClient = "v0.0.204"
     }
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junit}")

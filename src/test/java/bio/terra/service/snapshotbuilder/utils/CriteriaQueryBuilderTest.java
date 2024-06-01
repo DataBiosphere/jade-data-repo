@@ -18,7 +18,6 @@ import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
-import bio.terra.service.snapshotbuilder.utils.constants.Person;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,13 +30,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class CriteriaQueryBuilderTest {
+public class CriteriaQueryBuilderTest {
   private CriteriaQueryBuilder criteriaQueryBuilder;
 
   @BeforeEach
   void setup() {
     criteriaQueryBuilder =
-        new CriteriaQueryBuilder(Person.TABLE_NAME, SnapshotBuilderTestData.SETTINGS);
+        new QueryBuilderFactory().criteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS);
   }
 
   public static String stripSpaces(String toBeStripped) {

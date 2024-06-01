@@ -1,16 +1,16 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
+import bio.terra.service.snapshotbuilder.query.table.Table;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.stringtemplate.v4.ST;
 
 public record Query(
     List<SelectExpression> select,
-    List<SourceVariable> tables,
+    List<Table> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
-    HavingFilterVariable having,
     List<OrderByVariable> orderBy,
     Integer limit)
     implements SqlExpression {
@@ -22,62 +22,18 @@ public record Query(
     if (tables.isEmpty()) {
       throw new IllegalArgumentException("Query must have at least one TableVariable");
     }
-    if (groupBy == null) {
-      groupBy = List.of();
-    }
-    if (orderBy == null) {
-      orderBy = List.of();
-    }
-    long primaryTables = tables.stream().filter(SourceVariable::isPrimary).count();
+    groupBy = Objects.requireNonNullElse(groupBy, List.of());
+    orderBy = Objects.requireNonNullElse(orderBy, List.of());
+
+    long primaryTables = tables.stream().filter(Table::isPrimary).count();
     if (primaryTables != 1) {
       throw new IllegalArgumentException(
           "Query can only have one primary table, but found " + primaryTables);
     }
   }
 
-  public Query(List<SelectExpression> select, List<SourceVariable> tables) {
-    this(select, tables, null, null, null, null, null);
-  }
-
-  public Query(
-      List<SelectExpression> select, List<SourceVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, groupBy, null, null, null);
-  }
-
-  public Query(List<SelectExpression> select, List<SourceVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null, null, null);
-  }
-
-  public Query(
-      List<SelectExpression> select,
-      List<SourceVariable> tables,
-      FilterVariable where,
-      Integer limit) {
-    this(select, tables, where, null, null, null, limit);
-  }
-
-  public Query(
-      List<SelectExpression> select,
-      List<SourceVariable> tables,
-      FilterVariable where,
-      List<FieldVariable> groupBy,
-      List<OrderByVariable> orderBy,
-      Integer limit) {
-    this(select, tables, where, groupBy, null, orderBy, limit);
-  }
-
-  public Query(
-      List<SelectExpression> select,
-      List<SourceVariable> tables,
-      FilterVariable where,
-      List<FieldVariable> groupBy,
-      List<OrderByVariable> orderBy) {
-    this(select, tables, where, groupBy, null, orderBy, null);
-  }
-
   @Override
   public String renderSQL(SqlRenderContext context) {
-
     // render each SELECT FieldVariable and join them into a single string
     String selectSQL =
         select.stream()
@@ -126,10 +82,6 @@ public record Query(
               .render();
     }
 
-    if (having != null) {
-      sql += " " + having.renderSQL(context);
-    }
-
     if (!orderBy.isEmpty()) {
       sql =
           new ST("<sql> ORDER BY <orderBySQL>")
@@ -151,7 +103,54 @@ public record Query(
     return "SELECT " + sql;
   }
 
-  public SourceVariable getPrimaryTable() {
-    return tables.stream().filter(SourceVariable::isPrimary).findFirst().orElseThrow();
+  public Table getPrimaryTable() {
+    return tables.stream().filter(Table::isPrimary).findFirst().orElseThrow();
+  }
+
+  public static class Builder {
+    private List<SelectExpression> select;
+    private List<Table> tables;
+    private FilterVariable where;
+    private List<FieldVariable> groupBy;
+    private List<OrderByVariable> orderBy;
+    private Integer limit;
+
+    public Builder() {
+      // Constructor intentionally left empty to allow for custom initialization via setter methods
+    }
+
+    public Builder select(List<SelectExpression> select) {
+      this.select = select;
+      return this;
+    }
+
+    public Builder tables(List<Table> tables) {
+      this.tables = tables;
+      return this;
+    }
+
+    public Builder where(FilterVariable where) {
+      this.where = where;
+      return this;
+    }
+
+    public Builder groupBy(List<FieldVariable> groupBy) {
+      this.groupBy = groupBy;
+      return this;
+    }
+
+    public Builder orderBy(List<OrderByVariable> orderBy) {
+      this.orderBy = orderBy;
+      return this;
+    }
+
+    public Builder limit(Integer limit) {
+      this.limit = limit;
+      return this;
+    }
+
+    public Query build() {
+      return new Query(select, tables, where, groupBy, orderBy, limit);
+    }
   }
 }

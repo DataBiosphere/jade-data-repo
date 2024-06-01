@@ -46,12 +46,12 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -316,8 +316,7 @@ class SnapshotBuilderServiceTest {
     Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
     when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
-    when(queryBuilderFactory.criteriaQueryBuilder("person", settings))
-        .thenReturn(criteriaQueryBuilderMock);
+    when(queryBuilderFactory.criteriaQueryBuilder(settings)).thenReturn(criteriaQueryBuilderMock);
     var cohorts = List.of(new SnapshotBuilderCohort());
     when(criteriaQueryBuilderMock.generateRollupCountsQueryForCohorts(cohorts)).thenReturn(query);
     String sql = "sql";
@@ -360,7 +359,7 @@ class SnapshotBuilderServiceTest {
 
     Query query = mock(Query.class);
     var criteriaQueryBuilderMock = mock(CriteriaQueryBuilder.class);
-    when(queryBuilderFactory.criteriaQueryBuilder("person", SnapshotBuilderTestData.SETTINGS))
+    when(queryBuilderFactory.criteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS))
         .thenReturn(criteriaQueryBuilderMock);
     when(criteriaQueryBuilderMock.generateRowIdQueryForCohorts(
             accessRequest.getSnapshotSpecification().getCohorts()))

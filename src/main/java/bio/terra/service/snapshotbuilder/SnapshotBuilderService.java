@@ -28,10 +28,10 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
@@ -224,7 +224,7 @@ public class SnapshotBuilderService {
 
     Query query =
         queryBuilderFactory
-            .criteriaQueryBuilder("person", snapshotBuilderSettings)
+            .criteriaQueryBuilder(snapshotBuilderSettings)
             .generateRollupCountsQueryForCohorts(cohorts);
 
     return runSnapshotBuilderQuery(
@@ -281,9 +281,7 @@ public class SnapshotBuilderService {
     List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
 
     Query sqlQuery =
-        queryBuilderFactory
-            .criteriaQueryBuilder("person", settings)
-            .generateRowIdQueryForCohorts(cohorts);
+        queryBuilderFactory.criteriaQueryBuilder(settings).generateRowIdQueryForCohorts(cohorts);
     return sqlQuery.renderSQL(createContext(dataset, userReq));
   }
 

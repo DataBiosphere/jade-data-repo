@@ -2,7 +2,7 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import com.google.cloud.bigquery.FieldValueList;
 
 public class AggregateBQQueryResultsUtils {

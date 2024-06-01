@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
+import bio.terra.service.snapshotbuilder.query.table.Table;
 import java.util.List;
 
 public record TablePointer(String tableName, Filter filter) implements SourcePointer {
@@ -25,7 +26,12 @@ public record TablePointer(String tableName, Filter filter) implements SourcePoi
         new FieldVariable(FieldPointer.allFields(tablePointerWithoutFilter), tableVar);
     FilterVariable filterVar = filter.buildVariable(tableVar, List.of(tableVar));
 
-    Query query = new Query(List.of(fieldVar), List.of(tableVar), filterVar);
+    Query query =
+        new Query.Builder()
+            .select(List.of(fieldVar))
+            .tables(List.of(new Table(tableVar)))
+            .where(filterVar)
+            .build();
     return "(" + query.renderSQL(context) + ")";
   }
 }

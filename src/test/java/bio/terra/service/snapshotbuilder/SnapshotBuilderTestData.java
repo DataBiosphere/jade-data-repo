@@ -28,9 +28,9 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.snapshotbuilder.query.table.Person;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
-import bio.terra.service.snapshotbuilder.utils.constants.Observation;
-import bio.terra.service.snapshotbuilder.utils.constants.Person;
+import bio.terra.service.snapshotbuilder.utils.constants.ObservationOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;
 import java.util.List;
 import java.util.UUID;
@@ -118,8 +118,8 @@ public class SnapshotBuilderTestData {
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       OBSERVATION_DOMAIN_ID,
-                      Observation.TABLE_NAME,
-                      Observation.OBSERVATION_CONCEPT_ID,
+                      ObservationOccurrence.TABLE_NAME,
+                      ObservationOccurrence.OBSERVATION_CONCEPT_ID,
                       "Observation",
                       new SnapshotBuilderConcept()
                           .id(300)

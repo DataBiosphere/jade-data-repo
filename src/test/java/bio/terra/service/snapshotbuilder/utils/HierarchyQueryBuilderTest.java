@@ -3,11 +3,12 @@ package bio.terra.service.snapshotbuilder.utils;
 import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptRelationship;
+import bio.terra.service.snapshotbuilder.query.table.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.table.ConceptRelationship;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -46,7 +47,8 @@ class HierarchyQueryBuilderTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void generateQuery(SqlRenderContext context) {
     var query =
-        new HierarchyQueryBuilder()
+        new QueryBuilderFactory()
+            .hierarchyQueryBuilder()
             .generateQuery(ConceptChildrenQueryBuilderTest.createDomainOption(), 1);
     assertQueryEquals(EXPECTED, query.renderSQL(context));
   }
@@ -62,10 +64,9 @@ class HierarchyQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void joinToFilterConcepts(SqlRenderContext context) {
-    var conceptRelationship =
-        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
-    var parentId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_1);
-    var query = HierarchyQueryBuilder.joinToFilterConcepts(parentId, 1);
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
+    FieldVariable parentId = conceptRelationship.getConceptId1();
+    SourceVariable query = HierarchyQueryBuilder.joinToFilterConcepts(parentId, 1);
     assertQueryEquals(EXPECTED_JOIN_TO_FILTER, query.renderSQL(context));
   }
 
@@ -83,21 +84,19 @@ class HierarchyQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void makeHasChildrenJoin(SqlRenderContext context) {
-    var conceptRelationship =
-        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
-    var childId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
-    var query = HierarchyQueryBuilder.makeHasChildrenJoin(childId);
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
+    FieldVariable childId = conceptRelationship.getConceptId2();
+    SourceVariable query = HierarchyQueryBuilder.makeHasChildrenJoin(childId);
     assertQueryEquals(EXPECTED_HAS_CHILDREN_JOIN, query.renderSQL(context));
   }
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void selectHasChildren(SqlRenderContext context) {
-    var conceptRelationship =
-        SourceVariable.forPrimary(TablePointer.fromTableName(ConceptRelationship.TABLE_NAME));
-    var childId = conceptRelationship.makeFieldVariable(ConceptRelationship.CONCEPT_ID_2);
+    ConceptRelationship conceptRelationship = ConceptRelationship.forPrimary();
+    FieldVariable childId = conceptRelationship.getConceptId2();
     var joinHasChildren = HierarchyQueryBuilder.makeHasChildrenJoin(childId);
-    var query = HierarchyQueryBuilder.selectHasChildren(joinHasChildren);
+    var query = ConceptAncestor.selectHasChildren(joinHasChildren);
     assertQueryEquals(
         "COUNT(DISTINCT hc.descendant_concept_id) AS has_children", query.renderSQL(context));
   }

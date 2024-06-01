@@ -9,14 +9,13 @@ import bio.terra.service.snapshotbuilder.query.OrderByDirection;
 import bio.terra.service.snapshotbuilder.query.OrderByVariable;
 import bio.terra.service.snapshotbuilder.query.Query;
 import bio.terra.service.snapshotbuilder.query.SelectExpression;
-import bio.terra.service.snapshotbuilder.query.SourceVariable;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.utils.constants.Person;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
+import bio.terra.service.snapshotbuilder.query.table.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.table.DomainOccurrence;
+import bio.terra.service.snapshotbuilder.query.table.Table;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
@@ -41,32 +40,22 @@ public class SearchConceptsQueryBuilder {
    */
   public Query buildSearchConceptsQuery(
       SnapshotBuilderDomainOption domainOption, String searchText) {
-    var concept = SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
-    var nameField = concept.makeFieldVariable(Concept.CONCEPT_NAME);
-    var idField = concept.makeFieldVariable(Concept.CONCEPT_ID);
-    var conceptCode = concept.makeFieldVariable(Concept.CONCEPT_CODE);
+    Concept concept = Concept.asPrimary();
+    FieldVariable nameField = concept.name();
+    FieldVariable conceptId = concept.conceptId();
+    FieldVariable conceptCode = concept.conceptCode();
 
     // FROM 'concept' as c
     // JOIN concept_ancestor as c0 ON c0.ancestor_concept_id = c.concept_id
-    var conceptAncestor =
-        SourceVariable.forJoined(
-            TablePointer.fromTableName(ConceptAncestor.TABLE_NAME),
-            ConceptAncestor.ANCESTOR_CONCEPT_ID,
-            idField);
-
-    var descendantIdFieldVariable =
-        conceptAncestor.makeFieldVariable(ConceptAncestor.DESCENDANT_CONCEPT_ID);
+    ConceptAncestor conceptAncestor = ConceptAncestor.joinAncestor(conceptId);
 
     // LEFT JOIN `'domain'_occurrence as co ON 'domain_occurrence'.concept_id =
     // concept_ancestor.descendant_concept_id
-    var domainOccurrence =
-        SourceVariable.forLeftJoined(
-            TablePointer.fromTableName(domainOption.getTableName()),
-            domainOption.getColumnName(),
-            descendantIdFieldVariable);
+    DomainOccurrence domainOccurrence =
+        DomainOccurrence.leftJoinOn(domainOption, conceptAncestor.descendantConceptId());
 
     // COUNT(DISTINCT co.person_id) AS count
-    var countField = domainOccurrence.makeFieldVariable(Person.PERSON_ID, "COUNT", "count", true);
+    FieldVariable countPerson = domainOccurrence.countPerson();
 
     var domainClause = createDomainClause(concept, domainOption.getName());
 
@@ -74,29 +63,29 @@ public class SearchConceptsQueryBuilder {
     List<SelectExpression> select =
         List.of(
             nameField,
-            idField,
+            conceptId,
             conceptCode,
-            countField,
+            countPerson,
             new SelectAlias(new Literal(1), QueryBuilderFactory.HAS_CHILDREN));
 
-    List<SourceVariable> tables = List.of(concept, conceptAncestor, domainOccurrence);
+    List<Table> tables = List.of(concept, conceptAncestor, domainOccurrence);
 
     // ORDER BY count DESC
     List<OrderByVariable> orderBy =
-        List.of(new OrderByVariable(countField, OrderByDirection.DESCENDING));
+        List.of(new OrderByVariable(countPerson, OrderByDirection.DESCENDING));
 
     // GROUP BY c.concept_name, c.concept_id, concept_code
-    List<FieldVariable> groupBy = List.of(nameField, idField, conceptCode);
+    List<FieldVariable> groupBy = List.of(nameField, conceptId, conceptCode);
 
     FilterVariable where;
     if (StringUtils.isEmpty(searchText)) {
       where = domainClause;
     } else {
       // search concept name clause filters for the search text based on field concept_name
-      var searchNameClause = createSearchConceptClause(concept, searchText, Concept.CONCEPT_NAME);
+      var searchNameClause = createSearchConceptClause(searchText, concept.name());
 
       // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause = createSearchConceptClause(concept, searchText, Concept.CONCEPT_CODE);
+      var searchCodeClause = createSearchConceptClause(searchText, concept.conceptCode());
 
       // (searchNameClause OR searchCodeClause)
       List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
@@ -111,22 +100,27 @@ public class SearchConceptsQueryBuilder {
               BooleanAndOrFilterVariable.LogicalOperator.AND, allFilters);
     }
 
-    return new Query(select, tables, where, groupBy, orderBy, 100);
+    return new Query.Builder()
+        .select(select)
+        .tables(tables)
+        .where(where)
+        .groupBy(groupBy)
+        .orderBy(orderBy)
+        .limit(100)
+        .build();
   }
 
   static FunctionFilterVariable createSearchConceptClause(
-      SourceVariable conceptTable, String searchText, String columnName) {
+      String searchText, FieldVariable fieldVariable) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-        conceptTable.makeFieldVariable(columnName),
+        fieldVariable,
         new Literal(searchText));
   }
 
-  static FilterVariable createDomainClause(SourceVariable conceptTable, String domainId) {
+  static FilterVariable createDomainClause(Concept concept, String domainId) {
     return BooleanAndOrFilterVariable.and(
-        BinaryFilterVariable.equals(
-            conceptTable.makeFieldVariable(Concept.DOMAIN_ID), new Literal(domainId)),
-        BinaryFilterVariable.equals(
-            conceptTable.makeFieldVariable(Concept.STANDARD_CONCEPT), new Literal("S")));
+        BinaryFilterVariable.equals(concept.domainId(), new Literal(domainId)),
+        BinaryFilterVariable.equals(concept.standardConcept(), new Literal("S")));
   }
 }

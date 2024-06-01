@@ -7,11 +7,9 @@ import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
-import bio.terra.service.snapshotbuilder.utils.constants.Concept;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -147,10 +145,8 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
-    SourceVariable conceptTable =
-        SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
-    String actual =
-        createSearchConceptClause(conceptTable, "cancer", Concept.CONCEPT_NAME).renderSQL(context);
+    Concept concept = Concept.asPrimary();
+    String actual = createSearchConceptClause("cancer", concept.name()).renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
     var expectedAzureQuery = "CHARINDEX('cancer', c.concept_name) > 0";
@@ -161,12 +157,10 @@ class SearchConceptsQueryBuilderTest {
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateDomainClause(SqlRenderContext context) {
-    SourceVariable conceptTable =
-        SourceVariable.forPrimary(TablePointer.fromTableName(Concept.TABLE_NAME));
-
+    Concept concept = Concept.asPrimary();
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(conceptTable, "domain").renderSQL(context),
+        SearchConceptsQueryBuilder.createDomainClause(concept, "domain").renderSQL(context),
         is("(c.domain_id = 'domain' AND c.standard_concept = 'S')"));
   }
 }

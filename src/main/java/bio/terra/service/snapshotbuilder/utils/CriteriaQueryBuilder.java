@@ -7,51 +7,37 @@ import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderSettings;
-import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
 import bio.terra.service.snapshotbuilder.query.Literal;
 import bio.terra.service.snapshotbuilder.query.Query;
-import bio.terra.service.snapshotbuilder.query.SourcePointer;
-import bio.terra.service.snapshotbuilder.query.SourceVariable;
-import bio.terra.service.snapshotbuilder.query.TablePointer;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BooleanAndOrFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.FunctionFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.NotFilterVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.SubQueryFilterVariable;
-import bio.terra.service.snapshotbuilder.utils.constants.ConceptAncestor;
-import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
-import bio.terra.service.snapshotbuilder.utils.constants.Person;
+import bio.terra.service.snapshotbuilder.query.table.ConceptAncestor;
+import bio.terra.service.snapshotbuilder.query.table.DomainOccurrence;
+import bio.terra.service.snapshotbuilder.query.table.Person;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
 public class CriteriaQueryBuilder {
-  final SourceVariable rootTable;
+  final Person person = Person.forPrimary();
 
   final SnapshotBuilderSettings snapshotBuilderSettings;
 
-  protected CriteriaQueryBuilder(
-      String rootTableName, SnapshotBuilderSettings snapshotBuilderSettings) {
+  protected CriteriaQueryBuilder(SnapshotBuilderSettings snapshotBuilderSettings) {
     this.snapshotBuilderSettings = snapshotBuilderSettings;
-    TablePointer tablePointer = TablePointer.fromTableName(rootTableName);
-    rootTable = SourceVariable.forPrimary(tablePointer);
-  }
-
-  private SourcePointer getRootTablePointer() {
-    return rootTable.getSourcePointer();
-  }
-
-  private FieldVariable getFieldVariableForRootTable(String columnName) {
-    return new FieldVariable(new FieldPointer(getRootTablePointer(), columnName), rootTable);
   }
 
   FilterVariable generateFilter(SnapshotBuilderProgramDataRangeCriteria rangeCriteria) {
     FieldVariable rangeVariable =
-        getFieldVariableForRootTable(getProgramDataOptionColumnName(rangeCriteria.getId()));
+        person.variableForOption(getProgramDataOptionColumnName(rangeCriteria.getId()));
     return BooleanAndOrFilterVariable.and(
         new BinaryFilterVariable(
             rangeVariable,
@@ -70,17 +56,16 @@ public class CriteriaQueryBuilder {
     }
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.IN,
-        getFieldVariableForRootTable(getProgramDataOptionColumnName(listCriteria.getId())),
+        person.variableForOption(getProgramDataOptionColumnName(listCriteria.getId())),
         listCriteria.getValues().stream().map(Literal::new).toArray(Literal[]::new));
   }
 
-  String getProgramDataOptionColumnName(int id) {
+  SnapshotBuilderProgramDataOption getProgramDataOptionColumnName(int id) {
     return snapshotBuilderSettings.getProgramDataOptions().stream()
         .filter(programDataOption -> Objects.equals(programDataOption.getId(), id))
         .findFirst()
         .orElseThrow(
-            () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)))
-        .getColumnName();
+            () -> new BadRequestException(String.format("Invalid program data ID given: %d", id)));
   }
 
   FilterVariable generateFilter(SnapshotBuilderDomainCriteria domainCriteria) {
@@ -97,31 +82,20 @@ public class CriteriaQueryBuilder {
                             "Domain %d not configured for use in Snapshot Builder",
                             domainCriteria.getId())));
 
-    TablePointer occurrencePointer = TablePointer.fromTableName(domainOption.getTableName());
-    SourceVariable occurrenceVariable = SourceVariable.forPrimary(occurrencePointer);
+    DomainOccurrence domainOccurrence = DomainOccurrence.forPrimary(domainOption);
 
-    TablePointer ancestorPointer = TablePointer.fromTableName(ConceptAncestor.TABLE_NAME);
-    SourceVariable ancestorVariable =
-        SourceVariable.forJoined(
-            ancestorPointer,
-            ConceptAncestor.DESCENDANT_CONCEPT_ID,
-            new FieldVariable(
-                new FieldPointer(occurrencePointer, domainOption.getColumnName()),
-                occurrenceVariable));
-
+    ConceptAncestor conceptAncestor =
+        ConceptAncestor.joinDescendant(domainOccurrence.getJoinColumn());
     return SubQueryFilterVariable.in(
-        getFieldVariableForRootTable(Person.PERSON_ID),
-        new Query(
-            List.of(
-                new FieldVariable(
-                    new FieldPointer(occurrencePointer, ConditionOccurrence.PERSON_ID),
-                    occurrenceVariable)),
-            List.of(occurrenceVariable, ancestorVariable),
-            BinaryFilterVariable.equals(
-                new FieldVariable(
-                    new FieldPointer(ancestorPointer, ConceptAncestor.ANCESTOR_CONCEPT_ID),
-                    ancestorVariable),
-                new Literal(domainCriteria.getConceptId()))));
+        person.personId(),
+        new Query.Builder()
+            .select(List.of(domainOccurrence.personId()))
+            .tables(List.of(domainOccurrence, conceptAncestor))
+            .where(
+                BinaryFilterVariable.equals(
+                    conceptAncestor.ancestorConceptId(),
+                    new Literal(domainCriteria.getConceptId())))
+            .build());
   }
 
   FilterVariable generateFilterForCriteria(SnapshotBuilderCriteria criteria) {
@@ -158,26 +132,26 @@ public class CriteriaQueryBuilder {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
         cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
 
-    FieldVariable personId =
-        new FieldVariable(
-            new FieldPointer(getRootTablePointer(), Person.PERSON_ID, "COUNT"),
-            rootTable,
-            null,
-            true);
+    FieldVariable personId = person.countPerson();
 
-    return new Query(
-        List.of(personId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
+    return new Query.Builder()
+        .select(List.of(personId))
+        .tables(List.of(person))
+        .where(generateFilterVariable(criteriaGroupsList))
+        .build();
   }
 
   public Query generateRowIdQueryForCohorts(List<SnapshotBuilderCohort> cohorts) {
     List<List<SnapshotBuilderCriteriaGroup>> criteriaGroupsList =
         cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList();
-    FieldVariable rowId =
-        new FieldVariable(new FieldPointer(getRootTablePointer(), Person.ROW_ID), rootTable);
+    FieldVariable rowId = person.rowId();
 
     // select row_id from person where the row is in the cohort specification
-    return new Query(
-        List.of(rowId), List.of(rootTable), generateFilterVariable(criteriaGroupsList));
+    return new Query.Builder()
+        .select(List.of(rowId))
+        .tables(List.of(person))
+        .where(generateFilterVariable(criteriaGroupsList))
+        .build();
   }
 
   @NotNull

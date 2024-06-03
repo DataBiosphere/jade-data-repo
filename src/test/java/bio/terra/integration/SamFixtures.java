@@ -104,7 +104,7 @@ public class SamFixtures {
     }
   }
 
-  public List<String> getDataAccessControlsForResource(
+  public List<String> getAuthDomainForResource(
       TestConfiguration.User user, String resourceType, String resourceId) {
     try {
       HttpHeaders authedHeader = getHeaders(user);

@@ -1,7 +1,6 @@
 {
   "name":"demo",
   "description":"desc",
-  "dataAccessControlGroups": ["willBeOverridden"],
   "contents":[
     {
       "datasetName": "IngestTest",

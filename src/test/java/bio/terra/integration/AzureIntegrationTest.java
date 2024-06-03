@@ -1062,7 +1062,7 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
     List<String> dacs =
-        samFixtures.getDataAccessControlsForResource(
+        samFixtures.getAuthDomainForResource(
             steward,
             IamResourceType.DATASNAPSHOT.getSamResourceName(),
             String.valueOf(snapshotByFullViewId));

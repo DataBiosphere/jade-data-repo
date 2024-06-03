@@ -30,6 +30,8 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -87,6 +89,7 @@ import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -128,6 +131,7 @@ public class SnapshotService {
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
+  private final SnapshotRequestDao snapshotRequestDao;
 
   public static final String ASSET_NAME = "concept_asset";
 
@@ -144,7 +148,8 @@ public class SnapshotService {
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
       DuosClient duosClient,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
+      SnapshotRequestDao snapshotRequestDao) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -158,6 +163,7 @@ public class SnapshotService {
     this.rawlsService = rawlsService;
     this.duosClient = duosClient;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
+    this.snapshotRequestDao = snapshotRequestDao;
   }
 
   /**
@@ -183,6 +189,8 @@ public class SnapshotService {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
+    // validate the request is approved, but the snapshot has not been created from the request
+    validateForByRequestIdMode(snapshotRequestModel);
 
     UUID snapshotId = UUID.randomUUID();
     String description =
@@ -196,6 +204,26 @@ public class SnapshotService {
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK_SNAPSHOT)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submit();
+  }
+
+  /**
+   * If the snapshot request is byRequestId, verify that the request has been approved and that a
+   * snapshot has not yet been successfully created from the request.
+   * Note: If the flightId is populated but the createdSnapshotId is not, then the previous flight
+   * failed and the snapshot creation should be allowed to continue.
+   * @param snapshotRequestModel to validate
+   */
+  private void validateForByRequestIdMode(SnapshotRequestModel snapshotRequestModel) {
+    SnapshotRequestContentsModel requestContents = snapshotRequestModel.getContents().get(0);
+    if (requestContents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      SnapshotAccessRequestResponse snapshotAccessRequest = snapshotRequestDao.getById(requestContents.getRequestIdSpec().getSnapshotRequestId());
+      if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
+        throw new ValidationException("Snapshot request must be approved before creating a snapshot.");
+      }
+      if (snapshotAccessRequest.getFlightid() != null && snapshotAccessRequest.getCreatedSnapshotId() != null) {
+        throw new ValidationException("Snapshot with id %s is already created from request with id %s".formatted(snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
+      }
+    }
   }
 
   public void undoCreateSnapshot(String snapshotName) throws InterruptedException {

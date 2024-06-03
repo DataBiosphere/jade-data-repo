@@ -390,7 +390,7 @@ class SamIamTest {
   }
 
   @Test
-  void testAzureBillingProfileCreateManagedResourcieGroup()
+  void testAzureBillingProfileCreateManagedResourceGroup()
       throws ApiException, InterruptedException {
     mockSamAzureApi();
     String billingProfileName = "billingProfileName";

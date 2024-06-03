@@ -11,8 +11,6 @@ import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -157,14 +155,11 @@ public class SnapshotRequestDao {
     String sql =
         """
         UPDATE snapshot_request SET
-        status = :status, updated_date = :updated_date
+        status = :status, updated_date = now()
         WHERE id = :id
         """;
     MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue(STATUS, status.toString())
-            .addValue(UPDATED_DATE, Timestamp.from(Instant.now()))
-            .addValue(ID, requestId);
+        new MapSqlParameterSource().addValue(STATUS, status.toString()).addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException("Snapshot Access Request with given id does not exist.");
     }
@@ -176,14 +171,11 @@ public class SnapshotRequestDao {
     String sql =
         """
         UPDATE snapshot_request SET
-        flightid = :flightid, updated_date = :updated_date
+        flightid = :flightid
         WHERE id = :id
         """;
     MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue(FLIGHT_ID, flightId)
-            .addValue(UPDATED_DATE, Timestamp.from(Instant.now()))
-            .addValue(ID, requestId);
+        new MapSqlParameterSource().addValue(FLIGHT_ID, flightId).addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException("Snapshot Access Request with given id does not exist.");
     }
@@ -195,13 +187,12 @@ public class SnapshotRequestDao {
     String sql =
         """
         UPDATE snapshot_request SET
-        created_snapshot_id = :created_snapshot_id, updated_date = :updated_date
+        created_snapshot_id = :created_snapshot_id
         WHERE id = :id
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(CREATED_SNAPSHOT_ID, snapshotId)
-            .addValue(UPDATED_DATE, Timestamp.from(Instant.now()))
             .addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException("Snapshot Access Request with given id does not exist.");

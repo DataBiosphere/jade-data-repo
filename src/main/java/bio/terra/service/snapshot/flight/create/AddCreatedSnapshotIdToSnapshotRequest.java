@@ -22,13 +22,13 @@ public class AddCreatedSnapshotIdToSnapshotRequest implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     snapshotRequestDao.updateCreatedSnapshotId(snapshotRequestId, snapshotId);
-    return null;
+    return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     // remove the created snapshot id if the flight fails
     snapshotRequestDao.updateCreatedSnapshotId(snapshotRequestId, null);
-    return null;
+    return StepResult.getStepResultSuccess();
   }
 }

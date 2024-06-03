@@ -94,6 +94,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.service.tags.TagUtils;
+import bio.terra.stairway.FlightStatus;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
@@ -223,12 +224,18 @@ public class SnapshotService {
         throw new ValidationException(
             "Snapshot request must be approved before creating a snapshot.");
       }
-      if (snapshotAccessRequest.getFlightid() != null
-          && snapshotAccessRequest.getCreatedSnapshotId() != null) {
+      if (snapshotAccessRequest.getCreatedSnapshotId() != null) {
         throw new ValidationException(
             "Snapshot with id %s is already created from request with id %s"
                 .formatted(
                     snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
+      }
+      if (snapshotAccessRequest.getFlightid() != null
+          && jobService.unauthRetrieveJobState(snapshotAccessRequest.getFlightid())
+              != FlightStatus.ERROR) {
+        throw new ValidationException(
+            "Snapshot Create Flight with id %s is still running"
+                .formatted(snapshotAccessRequest.getFlightid()));
       }
     }
   }

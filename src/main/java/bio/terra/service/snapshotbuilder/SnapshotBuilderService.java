@@ -346,11 +346,11 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotAccessRequestResponse rejectRequest(UUID id) {
-    return snapshotRequestDao.update(id, SnapshotAccessRequestStatus.REJECTED);
+    return snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
-    return snapshotRequestDao.update(id, SnapshotAccessRequestStatus.APPROVED);
+    return snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
   }
 
   private SnapshotBuilderDomainOption getDomainOption(

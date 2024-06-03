@@ -152,7 +152,7 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotAccessRequestResponse update(UUID requestId, SnapshotAccessRequestStatus status) {
+  public SnapshotAccessRequestResponse updateStatus(UUID requestId, SnapshotAccessRequestStatus status) {
     String sql =
         """
         UPDATE snapshot_request SET
@@ -162,6 +162,25 @@ public class SnapshotRequestDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(STATUS, status.toString())
+            .addValue(UPDATED_DATE, Timestamp.from(Instant.now()))
+            .addValue(ID, requestId);
+    if (jdbcTemplate.update(sql, params) == 0) {
+      throw new NotFoundException("Snapshot Access Request with given id does not exist.");
+    }
+    return getById(requestId);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public SnapshotAccessRequestResponse updateFlightId(UUID requestId, String flightId) {
+    String sql =
+        """
+        UPDATE snapshot_request SET
+        flightid = :flightid, updated_date = :updated_date
+        WHERE id = :id
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue(FLIGHT_ID, flightId)
             .addValue(UPDATED_DATE, Timestamp.from(Instant.now()))
             .addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {

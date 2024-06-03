@@ -133,13 +133,13 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void update() {
+  void updateStatus() {
     SnapshotAccessRequestResponse response = createRequest();
     assertNull(response.getUpdatedDate(), "Response was never updated.");
     verifyResponseContents(response);
 
     SnapshotAccessRequestResponse updatedResponse =
-        snapshotRequestDao.update(response.getId(), SnapshotAccessRequestStatus.APPROVED);
+        snapshotRequestDao.updateStatus(response.getId(), SnapshotAccessRequestStatus.APPROVED);
 
     assertThat(
         "Updated Snapshot Access Request Response should have approved status",
@@ -151,11 +151,11 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void updateIdNotFound() {
+  void updateStatusIdNotFound() {
     System.out.println(TestUtils.mapToJson(SnapshotBuilderTestData.SETTINGS));
     assertThrows(
         NotFoundException.class,
-        () -> snapshotRequestDao.update(UUID.randomUUID(), SnapshotAccessRequestStatus.APPROVED));
+        () -> snapshotRequestDao.updateStatus(UUID.randomUUID(), SnapshotAccessRequestStatus.APPROVED));
   }
 
   @Test

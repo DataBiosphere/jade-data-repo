@@ -428,14 +428,14 @@ class SnapshotBuilderServiceTest {
   void testRejectRequest() {
     UUID id = UUID.randomUUID();
     snapshotBuilderService.rejectRequest(id);
-    verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.REJECTED);
+    verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   @Test
   void testApproveRequest() {
     UUID id = UUID.randomUUID();
     snapshotBuilderService.approveRequest(id);
-    verify(snapshotRequestDao).update(id, SnapshotAccessRequestStatus.APPROVED);
+    verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
   }
 
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {

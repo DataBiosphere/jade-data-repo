@@ -8,6 +8,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -113,6 +114,13 @@ public class SnapshotCreateFlight extends Flight {
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
     String snapshotName = snapshotReq.getName();
+    SnapshotRequestContentsModel contents = snapshotReq.getContents().get(0);
+    SnapshotRequestContentsModel.ModeEnum mode = contents.getMode();
+
+    // at start of flight, store the flight id in the snapshot request
+    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      addStep(new AddFlightIdToSnapshotRequest(snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId());
+    }
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -200,7 +208,7 @@ public class SnapshotCreateFlight extends Flight {
     // Make the big query dataset with views and populate row id filtering tables.
     // Depending on the type of snapshot, the primary data step will differ:
     // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
-    switch (snapshotReq.getContents().get(0).getMode()) {
+    switch (mode) {
       case BYASSET -> {
         addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
         addStep(

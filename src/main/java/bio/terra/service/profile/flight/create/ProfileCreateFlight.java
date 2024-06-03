@@ -33,6 +33,7 @@ public class ProfileCreateFlight extends Flight {
       addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
     }
     if (platform.isAzure()) {
+      addStep(new CreateProfileManagedResourceGroup(profileService, request, user));
       addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
     }
     addStep(new CreateProfileAuthzIamStep(profileService, request, user));

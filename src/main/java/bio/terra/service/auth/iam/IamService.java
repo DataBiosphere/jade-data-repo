@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -441,5 +442,15 @@ public class IamService {
   public String signUrlForBlob(
       AuthenticatedUserRequest userReq, String project, String path, Duration duration) {
     return callProvider(() -> iamProvider.signUrlForBlob(userReq, project, path, duration));
+  }
+
+  public void registerManagedResourceGroup(
+      AuthenticatedUserRequest userReq,
+      String billingProfileId,
+      ManagedResourceGroupCoordinates managedResourceGroupCoordinates) {
+    callProvider(
+        () ->
+            iamProvider.azureCreateManagedResourceGroup(
+                userReq, billingProfileId, managedResourceGroupCoordinates));
   }
 }

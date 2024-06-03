@@ -45,6 +45,8 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.snapshot.flight.authDomain.AddSnapshotAuthDomainStep;
+import bio.terra.service.snapshot.flight.authDomain.CreateSnapshotGroupConstraintPolicyStep;
 import bio.terra.service.snapshot.flight.duos.CreateDuosFirecloudGroupStep;
 import bio.terra.service.snapshot.flight.duos.IfNoGroupRetrievedStep;
 import bio.terra.service.snapshot.flight.duos.RecordDuosFirecloudGroupStep;
@@ -106,6 +108,7 @@ public class SnapshotCreateFlight extends Flight {
     SnapshotRequestDao snapshotRequestDao = appContext.getBean(SnapshotRequestDao.class);
     SnapshotBuilderService snapshotBuilderService =
         appContext.getBean(SnapshotBuilderService.class);
+    IamService iamService = appContext.getBean(IamService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -291,6 +294,16 @@ public class SnapshotCreateFlight extends Flight {
     // Create the IAM resource and readers for the snapshot
     // The IAM code contains retries, so we don't make a retry rule here.
     addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq, snapshotId));
+
+    // Now that the snapshot exists in Sam, we can add data access control groups to the snapshot
+    List<String> dataAccessControlGroups = snapshotReq.getDataAccessControlGroups();
+    if (Objects.nonNull(dataAccessControlGroups) && !dataAccessControlGroups.isEmpty()) {
+      addStep(
+          new CreateSnapshotGroupConstraintPolicyStep(
+              policyService, snapshotId, dataAccessControlGroups));
+      addStep(
+          new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, dataAccessControlGroups));
+    }
 
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot

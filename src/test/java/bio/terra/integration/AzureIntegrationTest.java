@@ -79,6 +79,7 @@ import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
@@ -158,6 +159,7 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID releaseSnapshotId;
   private String datasetName;
   private List<UUID> snapshotIds;
+  private String dac;
 
   private List<UUID> snapshotAccessRequestIds;
   private UUID profileId;
@@ -234,6 +236,10 @@ public class AzureIntegrationTest extends UsersBase {
     }
     azureBlobIOTestUtility.teardown();
     gcsBlobIOTestUtility.teardown();
+
+    if (dac != null) {
+      samFixtures.deleteGroup(steward, dac);
+    }
   }
 
   @Test
@@ -1037,9 +1043,16 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotByRowIdModel.setContents(List.of(contentsModel));
 
     // -------- Create Snapshot by full view ------
+
+    // create Sam Group
+    String groupName = UUID.randomUUID().toString();
+    samFixtures.addGroup(steward, groupName);
+    dac = groupName;
+
     SnapshotRequestModel requestModelAll =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
     requestModelAll.getContents().get(0).datasetName(summaryModel.getName());
+    requestModelAll.dataAccessControlGroups(List.of(groupName));
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -1048,6 +1061,12 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotIds.add(snapshotByFullViewId);
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
+    List<String> dacs =
+        samFixtures.getAuthDomainForResource(
+            steward,
+            IamResourceType.DATASNAPSHOT.getSamResourceName(),
+            String.valueOf(snapshotByFullViewId));
+    assertThat("Snapshot has the expected DAC", dacs, containsInAnyOrder(groupName));
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =

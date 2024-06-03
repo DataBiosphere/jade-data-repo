@@ -7,25 +7,28 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class AddFlightIdToSnapshotRequest implements Step {
+public class AddCreatedSnapshotIdToSnapshotRequest implements Step {
   private final SnapshotRequestDao snapshotRequestDao;
   private final UUID snapshotRequestId;
+  private final UUID snapshotId;
 
-  public AddFlightIdToSnapshotRequest(
-      SnapshotRequestDao snapshotRequestDao, UUID snapshotRequestId) {
+  public AddCreatedSnapshotIdToSnapshotRequest(
+      SnapshotRequestDao snapshotRequestDao, UUID snapshotRequestId, UUID snapshotId) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotRequestId = snapshotRequestId;
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    snapshotRequestDao.updateFlightId(snapshotRequestId, context.getFlightId());
-    return StepResult.getStepResultSuccess();
+    snapshotRequestDao.updateCreatedSnapshotId(snapshotRequestId, snapshotId);
+    return null;
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // we don't want to remove the flightId if the flight fails
-    return StepResult.getStepResultSuccess();
+    // remove the created snapshot id if the flight fails
+    snapshotRequestDao.updateCreatedSnapshotId(snapshotRequestId, null);
+    return null;
   }
 }

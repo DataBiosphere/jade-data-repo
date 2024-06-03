@@ -208,20 +208,27 @@ public class SnapshotService {
 
   /**
    * If the snapshot request is byRequestId, verify that the request has been approved and that a
-   * snapshot has not yet been successfully created from the request.
-   * Note: If the flightId is populated but the createdSnapshotId is not, then the previous flight
-   * failed and the snapshot creation should be allowed to continue.
+   * snapshot has not yet been successfully created from the request. Note: If the flightId is
+   * populated but the createdSnapshotId is not, then the previous flight failed and the snapshot
+   * creation should be allowed to continue.
+   *
    * @param snapshotRequestModel to validate
    */
   private void validateForByRequestIdMode(SnapshotRequestModel snapshotRequestModel) {
     SnapshotRequestContentsModel requestContents = snapshotRequestModel.getContents().get(0);
     if (requestContents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      SnapshotAccessRequestResponse snapshotAccessRequest = snapshotRequestDao.getById(requestContents.getRequestIdSpec().getSnapshotRequestId());
+      SnapshotAccessRequestResponse snapshotAccessRequest =
+          snapshotRequestDao.getById(requestContents.getRequestIdSpec().getSnapshotRequestId());
       if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
-        throw new ValidationException("Snapshot request must be approved before creating a snapshot.");
+        throw new ValidationException(
+            "Snapshot request must be approved before creating a snapshot.");
       }
-      if (snapshotAccessRequest.getFlightid() != null && snapshotAccessRequest.getCreatedSnapshotId() != null) {
-        throw new ValidationException("Snapshot with id %s is already created from request with id %s".formatted(snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
+      if (snapshotAccessRequest.getFlightid() != null
+          && snapshotAccessRequest.getCreatedSnapshotId() != null) {
+        throw new ValidationException(
+            "Snapshot with id %s is already created from request with id %s"
+                .formatted(
+                    snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
       }
     }
   }

@@ -119,7 +119,9 @@ public class SnapshotCreateFlight extends Flight {
 
     // at start of flight, store the flight id in the snapshot request
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      addStep(new AddFlightIdToSnapshotRequest(snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId());
+      addStep(
+          new AddFlightIdToSnapshotRequest(
+              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId()));
     }
 
     AuthenticatedUserRequest userReq =
@@ -421,5 +423,12 @@ public class SnapshotCreateFlight extends Flight {
             datasetId,
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
+
+    // at end of flight, add created snapshot id to the snapshot request
+    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      addStep(
+          new AddCreatedSnapshotIdToSnapshotRequest(
+              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId(), snapshotId));
+    }
   }
 }

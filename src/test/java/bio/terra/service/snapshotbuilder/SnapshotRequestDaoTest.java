@@ -155,7 +155,9 @@ class SnapshotRequestDaoTest {
     System.out.println(TestUtils.mapToJson(SnapshotBuilderTestData.SETTINGS));
     assertThrows(
         NotFoundException.class,
-        () -> snapshotRequestDao.updateStatus(UUID.randomUUID(), SnapshotAccessRequestStatus.APPROVED));
+        () ->
+            snapshotRequestDao.updateStatus(
+                UUID.randomUUID(), SnapshotAccessRequestStatus.APPROVED));
   }
 
   @Test

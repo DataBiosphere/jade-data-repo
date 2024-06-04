@@ -41,6 +41,7 @@ public class SnapshotRequestDao {
   private static final String FLIGHT_ID = "flightid";
   private static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
   private static final String AUTHORIZED_RESOURCES = "authorized_resources";
+  private static final String NOT_FOUND_MESSAGE = "Snapshot Access Request with given id does not exist.";
 
   private final RowMapper<SnapshotAccessRequestResponse> responseMapper =
       (rs, rowNum) ->
@@ -161,7 +162,7 @@ public class SnapshotRequestDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue(STATUS, status.toString()).addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
-      throw new NotFoundException("Snapshot Access Request with given id does not exist.");
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
     return getById(requestId);
   }
@@ -177,7 +178,7 @@ public class SnapshotRequestDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue(FLIGHT_ID, flightId).addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
-      throw new NotFoundException("Snapshot Access Request with given id does not exist.");
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
     return getById(requestId);
   }
@@ -195,7 +196,7 @@ public class SnapshotRequestDao {
             .addValue(CREATED_SNAPSHOT_ID, snapshotId)
             .addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
-      throw new NotFoundException("Snapshot Access Request with given id does not exist.");
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
     return getById(requestId);
   }

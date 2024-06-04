@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
@@ -46,6 +47,8 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -96,6 +99,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.FlightStatus;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.time.Instant;
@@ -600,6 +604,64 @@ class SnapshotServiceTest {
         InvalidAuthorizationMethod.class,
         () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
     verifyNoInteractions(ecmService);
+  }
+
+  @Test
+  void validateForByRequestIdModeNotApproved() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestModel snapshotRequestModel = makeByRequestIdModel(snapshotAccessRequestId);
+    SnapshotAccessRequestResponse accessRequestResponse =
+        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.SUBMITTED);
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+
+    assertThrows(
+        ValidationException.class, () -> service.validateForByRequestIdMode(snapshotRequestModel));
+  }
+
+  @Test
+  void validateForByRequestIdModeAlreadyCreated() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestModel snapshotRequestModel = makeByRequestIdModel(snapshotAccessRequestId);
+
+    SnapshotAccessRequestResponse accessRequestResponse =
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdSnapshotId(UUID.randomUUID());
+
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+
+    assertThrows(
+        ValidationException.class, () -> service.validateForByRequestIdMode(snapshotRequestModel));
+  }
+
+  @Test
+  void validateForByRequestIdModeJobRunning() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    String flightId = "flightId";
+    SnapshotRequestModel snapshotRequestModel = makeByRequestIdModel(snapshotAccessRequestId);
+    SnapshotAccessRequestResponse accessRequestResponse =
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .flightid(flightId);
+
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+    // any flight status that isn't error or fatal
+    when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.READY);
+    assertThrows(
+        ValidationException.class, () -> service.validateForByRequestIdMode(snapshotRequestModel));
+  }
+
+  private SnapshotRequestModel makeByRequestIdModel(UUID snapshotAccessRequestId) {
+    SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
+    snapshotRequestModel.name("name");
+    SnapshotRequestContentsModel contentsModel = new SnapshotRequestContentsModel();
+    contentsModel.datasetName("datasetName");
+    contentsModel.mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
+    SnapshotRequestIdModel requestIdModel = new SnapshotRequestIdModel();
+    requestIdModel.snapshotRequestId(snapshotAccessRequestId);
+    contentsModel.requestIdSpec(requestIdModel);
+    snapshotRequestModel.contents(List.of(contentsModel));
+    return snapshotRequestModel;
   }
 
   private void mockSnapshotSummary() {

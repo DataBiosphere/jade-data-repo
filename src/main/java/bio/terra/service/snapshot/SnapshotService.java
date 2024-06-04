@@ -215,7 +215,8 @@ public class SnapshotService {
    *
    * @param snapshotRequestModel to validate
    */
-  private void validateForByRequestIdMode(SnapshotRequestModel snapshotRequestModel) {
+  @VisibleForTesting
+  void validateForByRequestIdMode(SnapshotRequestModel snapshotRequestModel) {
     SnapshotRequestContentsModel requestContents = snapshotRequestModel.getContents().get(0);
     if (requestContents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       SnapshotAccessRequestResponse snapshotAccessRequest =

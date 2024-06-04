@@ -231,7 +231,7 @@ public class SnapshotBuilderTestData {
                 .name("conceptSet")
                 .featureValueGroupName("featureValueGroupName"))
         .addValueSetsItem(
-            new SnapshotBuilderFeatureValueGroup().name("valueGroup").addValuesItem("value"));
+            new SnapshotBuilderFeatureValueGroup().name("Drug").addValuesItem("value"));
   }
 
   public static SnapshotAccessRequest createSnapshotAccessRequest(UUID sourceSnapshotId) {

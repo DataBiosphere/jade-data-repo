@@ -7406,6 +7406,25 @@ components:
           items:
             type: string
 
+    SnapshotBuilderTable:
+      type: object
+      description: >
+        ⚠️ Describes the underlying table for a concept/value set
+      required:
+        - datasetTableName
+        - columns
+      properties:
+        datasetTableName:
+          type: string
+        columns:
+          type: array
+          items:
+            type: string
+        relationships:
+          type: array
+          items:
+            type: string
+
     EnumerateSnapshotAccessRequest:
       type: object
       description: The model for enumerated SnapshotAccessRequests.

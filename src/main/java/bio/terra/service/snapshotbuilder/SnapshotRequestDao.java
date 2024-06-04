@@ -36,7 +36,7 @@ public class SnapshotRequestDao {
   private static final String SNAPSHOT_SPECIFICATION = "snapshot_specification";
   private static final String CREATED_BY = "created_by";
   private static final String CREATED_DATE = "created_date";
-  private static final String UPDATED_DATE = "updated_date";
+  private static final String STATUS_UPDATED_DATE = "status_updated_date";
   private static final String STATUS = "status";
   private static final String FLIGHT_ID = "flightid";
   private static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
@@ -51,7 +51,7 @@ public class SnapshotRequestDao {
               .snapshotResearchPurpose(rs.getString(SNAPSHOT_RESEARCH_PURPOSE))
               .snapshotSpecification(mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)))
               .createdDate(getInstantString(rs, CREATED_DATE))
-              .statusUpdatedDate(getInstantString(rs, UPDATED_DATE))
+              .statusUpdatedDate(getInstantString(rs, STATUS_UPDATED_DATE))
               .createdBy(rs.getString(CREATED_BY))
               .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)))
               .flightid(rs.getString(FLIGHT_ID))
@@ -155,7 +155,7 @@ public class SnapshotRequestDao {
     String sql =
         """
         UPDATE snapshot_request SET
-        status = :status, updated_date = now()
+        status = :status, status_updated_date = now()
         WHERE id = :id
         """;
     MapSqlParameterSource params =

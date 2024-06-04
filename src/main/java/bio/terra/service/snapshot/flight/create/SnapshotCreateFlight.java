@@ -120,7 +120,7 @@ public class SnapshotCreateFlight extends Flight {
     // at start of flight, store the flight id in the snapshot request
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       addStep(
-          new AddFlightIdToSnapshotRequest(
+          new AddFlightIdToSnapshotRequestStep(
               snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId()));
     }
 
@@ -427,7 +427,7 @@ public class SnapshotCreateFlight extends Flight {
     // at end of flight, add created snapshot id to the snapshot request
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       addStep(
-          new AddCreatedSnapshotIdToSnapshotRequest(
+          new AddCreatedSnapshotIdToSnapshotRequestStep(
               snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId(), snapshotId));
     }
   }

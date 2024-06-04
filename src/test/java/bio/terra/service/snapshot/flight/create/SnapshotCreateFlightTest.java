@@ -12,6 +12,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
@@ -56,6 +57,11 @@ class SnapshotCreateFlightTest {
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
 
     inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
+  }
+
+  @Test
+  void testSnapshotCreateFlightByFullView() {
     SnapshotRequestModel request =
         new SnapshotRequestModel()
             .dataAccessControlGroups(DATA_ACCESS_CONTROL_GROUPS)
@@ -63,11 +69,6 @@ class SnapshotCreateFlightTest {
                 new SnapshotRequestContentsModel()
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
-    inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
-  }
-
-  @Test
-  void testSnapshotCreateFlight() {
     var flight = new SnapshotCreateFlight(inputParameters, context);
 
     assertThat(
@@ -99,5 +100,50 @@ class SnapshotCreateFlightTest {
         "Snapshot creation flight removes shared dataset lock",
         unlockDatasetStep.isSharedLock(),
         is(true));
+  }
+
+  @Test
+  void testSnapshotCreateFlightByRequestId() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestModel request =
+        new SnapshotRequestModel()
+            .dataAccessControlGroups(DATA_ACCESS_CONTROL_GROUPS)
+            .addContentsItem(
+                new SnapshotRequestContentsModel()
+                    .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+                    .requestIdSpec(
+                        new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId)));
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+    var flight = new SnapshotCreateFlight(inputParameters, context);
+
+    assertThat(
+        "Snapshot creation flight locks resources, then unlocks them, then writes response",
+        FlightTestUtils.getStepNames(flight),
+        containsInRelativeOrder(
+            "AddFlightIdToSnapshotRequestStep",
+            "LockDatasetStep",
+            "AuthorizeBillingProfileUseStep",
+            "VerifyBillingAccountAccessStep", // platform defaults to GCP
+            "GetResourceBufferProjectStep",
+            "CreateSnapshotInitializeProjectStep",
+            "CreateSnapshotMetadataStep",
+            "CreateSnapshotByRequestIdGcpStep",
+            "CountSnapshotTableRowsStep",
+            "SnapshotAuthzIamStep",
+            "CreateSnapshotGroupConstraintPolicyStep",
+            "AddSnapshotAuthDomainStep",
+            "CreateSnapshotFireStoreDataStep",
+            "CreateSnapshotFireStoreComputeStep",
+            "SnapshotAuthzTabularAclStep",
+            "SnapshotAuthzFileAclStep", // included if not self-hosted
+            "SnapshotAuthzBqJobUserStep",
+            "SnapshotAuthzServiceAccountConsumerStep",
+            "CreateSnapshotPolicyStep",
+            "UnlockSnapshotStep",
+            "UnlockDatasetStep",
+            "CreateSnapshotSetResponseStep",
+            "CreateSnapshotJournalEntryStep",
+            "JournalRecordUpdateEntryStep",
+            "AddCreatedSnapshotIdToSnapshotRequestStep"));
   }
 }

@@ -2,6 +2,7 @@ package bio.terra.service.profile.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Mockito.verify;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
@@ -31,11 +32,12 @@ public class CreateProfileManagedResourceGroupStepTest {
 
   private static final UUID BILLING_PROFILE_ID = UUID.randomUUID();
 
+  private BillingProfileRequestModel request;
   private CreateProfileManagedResourceGroup step;
 
   @BeforeEach
   void setup() {
-    BillingProfileRequestModel request = new BillingProfileRequestModel().id(BILLING_PROFILE_ID);
+    request = new BillingProfileRequestModel().id(BILLING_PROFILE_ID);
     step = new CreateProfileManagedResourceGroup(profileService, request, TEST_USER);
   }
 
@@ -43,6 +45,7 @@ public class CreateProfileManagedResourceGroupStepTest {
   void testDoAndUndoStep() throws InterruptedException {
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(profileService).registerManagedResourceGroup(request, TEST_USER);
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }

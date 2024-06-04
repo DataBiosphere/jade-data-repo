@@ -26,7 +26,7 @@ public class CreateProfileManagedResourceGroup implements Step {
   @Override
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
-
+    profileService.registerManagedResourceGroup(request, user);
     return StepResult.getStepResultSuccess();
   }
 

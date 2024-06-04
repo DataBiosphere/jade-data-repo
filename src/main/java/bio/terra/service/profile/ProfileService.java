@@ -30,6 +30,7 @@ import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccount
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -302,5 +303,18 @@ public class ProfileService {
               + "' to perform the requested "
               + "operation");
     }
+  }
+
+  public void registerManagedResourceGroup(
+      BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+    String billingProfileId = request.getBillingAccountId();
+    ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
+        new ManagedResourceGroupCoordinates()
+            .tenantId(request.getTenantId().toString())
+            .subscriptionId(request.getSubscriptionId().toString())
+            .managedResourceGroupName(request.getResourceGroupName());
+
+    iamService.registerManagedResourceGroup(
+        user, billingProfileId, managedResourceGroupCoordinates);
   }
 }

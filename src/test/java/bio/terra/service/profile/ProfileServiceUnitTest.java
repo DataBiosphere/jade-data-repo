@@ -30,6 +30,7 @@ import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -166,5 +167,31 @@ class ProfileServiceUnitTest {
     assertThrows(
         InaccessibleBillingAccountException.class,
         () -> profileService.verifyGoogleBillingAccount(id, user));
+  }
+
+  @Test
+  void testRegisterManagedResourceGroup() {
+    String billingProfileId = "billingProfileId";
+    UUID tenantId = UUID.fromString("bbbbbbbb-cccc-dddd-eeee-aaaaaaaaaaaa");
+    UUID subscriptionId = UUID.fromString("cccccccc-dddd-eeee-aaaa-bbbbbbbbbbbb");
+    String resourceGroupName = "resourceGroupName";
+
+    var billingProfileRequestModel = new BillingProfileRequestModel();
+    billingProfileRequestModel.setBillingAccountId(billingProfileId);
+    billingProfileRequestModel.setId(PROFILE_ID);
+    billingProfileRequestModel.setTenantId(tenantId);
+    billingProfileRequestModel.setSubscriptionId(subscriptionId);
+    billingProfileRequestModel.setResourceGroupName(resourceGroupName);
+
+    ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
+        new ManagedResourceGroupCoordinates()
+            .tenantId(tenantId.toString())
+            .subscriptionId(subscriptionId.toString())
+            .managedResourceGroupName(resourceGroupName);
+
+    profileService.registerManagedResourceGroup(billingProfileRequestModel, user);
+
+    verify(iamService, times(1))
+        .registerManagedResourceGroup(user, billingProfileId, managedResourceGroupCoordinates);
   }
 }

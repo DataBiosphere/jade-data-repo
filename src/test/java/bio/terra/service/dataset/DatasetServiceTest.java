@@ -4,7 +4,10 @@ import static bio.terra.common.TestUtils.assertError;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -66,12 +69,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -82,15 +83,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class DatasetServiceTest {
+class DatasetServiceTest {
   private AuthenticatedUserRequest testUser =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
@@ -133,7 +132,7 @@ public class DatasetServiceTest {
   private ArrayList<UUID> datasetIdList;
 
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
-      throws IOException, SQLException {
+      throws IOException {
     datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
     Dataset dataset =
         DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
@@ -162,8 +161,8 @@ public class DatasetServiceTest {
     return datasetId;
   }
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeEach
+  void setup() throws Exception {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "hi@hi.hi");
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
@@ -176,8 +175,8 @@ public class DatasetServiceTest {
     datasetIdList = new ArrayList<>();
   }
 
-  @After
-  public void teardown() {
+  @AfterEach
+  void teardown() {
     for (UUID datasetId : datasetIdList) {
       datasetDao.delete(datasetId);
     }
@@ -186,19 +185,19 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void datasetOmopTest() throws IOException, SQLException {
-    createDataset("omop/it-dataset-omop.jsonl");
-  }
-
-  @Test(expected = DatasetNotFoundException.class)
-  public void datasetDeleteTest() throws IOException, SQLException {
-    UUID datasetId = createDataset("dataset-create-test.json");
-    assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
-    datasetDao.retrieve(datasetId);
+  void datasetOmopTest() throws IOException, SQLException {
+    assertNotNull(createDataset("omop/it-dataset-omop.jsonl"));
   }
 
   @Test
-  public void addDatasetAssetSpecifications() throws Exception {
+  void datasetDeleteTest() throws IOException, SQLException {
+    UUID datasetId = createDataset("dataset-create-test.json");
+    assertThat("dataset delete signals success", datasetDao.delete(datasetId));
+    assertThrows(DatasetNotFoundException.class, () -> datasetDao.retrieve(datasetId));
+  }
+
+  @Test
+  void addDatasetAssetSpecifications() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json");
     String assetName = "assetName";
     // get created dataset
@@ -229,10 +228,8 @@ public class DatasetServiceTest {
         60,
         true,
         () ->
-            jobService
-                .retrieveJob(jobId, testUser)
-                .getJobStatus()
-                .equals(JobModel.JobStatusEnum.SUCCEEDED));
+            jobService.retrieveJob(jobId, testUser).getJobStatus()
+                == JobModel.JobStatusEnum.SUCCEEDED);
 
     // get dataset
     Dataset dataset = datasetDao.retrieve(datasetId);
@@ -251,7 +248,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void addMultipleDatasetAssetSpecificationsShouldFail() throws Exception {
+  void addMultipleDatasetAssetSpecificationsShouldFail() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json");
     String assetName = "assetName";
     // get created dataset
@@ -294,11 +291,9 @@ public class DatasetServiceTest {
             60,
             true,
             () ->
-                jobService
-                    .retrieveJob(jobId1, testUser)
-                    .getJobStatus()
-                    .equals(JobModel.JobStatusEnum.SUCCEEDED));
-    Assert.assertTrue(assetAdd1);
+                jobService.retrieveJob(jobId1, testUser).getJobStatus()
+                    == JobModel.JobStatusEnum.SUCCEEDED);
+    assertTrue(assetAdd1);
 
     // get dataset
     Dataset dataset = datasetDao.retrieve(datasetId);
@@ -324,11 +319,9 @@ public class DatasetServiceTest {
             60,
             true,
             () ->
-                jobService
-                    .retrieveJob(jobId2, testUser)
-                    .getJobStatus()
-                    .equals(JobModel.JobStatusEnum.FAILED));
-    Assert.assertTrue(assetAdd2);
+                jobService.retrieveJob(jobId2, testUser).getJobStatus()
+                    == JobModel.JobStatusEnum.FAILED);
+    assertTrue(assetAdd2);
 
     // make sure the first asset we created hasn't been deleted during the undo step
     assertThat(
@@ -344,7 +337,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void addAssetSpecWithSameNameToMultipleDatasetsShouldPass() throws Exception {
+  void addAssetSpecWithSameNameToMultipleDatasetsShouldPass() throws Exception {
     UUID datasetId1 = createDataset("dataset-create-test.json");
     UUID datasetId2 = createDataset("dataset-create-test.json");
     String assetName = "assetName";
@@ -377,11 +370,9 @@ public class DatasetServiceTest {
             60,
             true,
             () ->
-                jobService
-                    .retrieveJob(jobId1, testUser)
-                    .getJobStatus()
-                    .equals(JobModel.JobStatusEnum.SUCCEEDED));
-    Assert.assertTrue(assetAdd1);
+                jobService.retrieveJob(jobId1, testUser).getJobStatus()
+                    == JobModel.JobStatusEnum.SUCCEEDED);
+    assertTrue(assetAdd1);
 
     // get dataset 1
     Dataset dataset = datasetDao.retrieve(datasetId1);
@@ -407,11 +398,9 @@ public class DatasetServiceTest {
             60,
             true,
             () ->
-                jobService
-                    .retrieveJob(jobId2, testUser)
-                    .getJobStatus()
-                    .equals(JobModel.JobStatusEnum.SUCCEEDED));
-    Assert.assertTrue(assetAdd2);
+                jobService.retrieveJob(jobId2, testUser).getJobStatus()
+                    == JobModel.JobStatusEnum.SUCCEEDED);
+    assertTrue(assetAdd2);
 
     Dataset dataset2 = datasetDao.retrieve(datasetId2);
 
@@ -430,7 +419,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void addDatasetBadAssetSpecification() throws Exception {
+  void addDatasetBadAssetSpecification() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json");
     String assetName = "sample"; // This asset name already exists
     // get created dataset
@@ -461,10 +450,8 @@ public class DatasetServiceTest {
         60,
         true,
         () ->
-            jobService
-                .retrieveJob(jobId, testUser)
-                .getJobStatus()
-                .equals(JobModel.JobStatusEnum.FAILED));
+            jobService.retrieveJob(jobId, testUser).getJobStatus()
+                == JobModel.JobStatusEnum.FAILED);
 
     try {
       try {
@@ -490,7 +477,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void removeDatasetAssetSpecifications() throws Exception {
+  void removeDatasetAssetSpecifications() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json");
     String assetName = "sample";
 
@@ -517,10 +504,8 @@ public class DatasetServiceTest {
         60,
         true,
         () ->
-            jobService
-                .retrieveJob(jobId, testUser)
-                .getJobStatus()
-                .equals(JobModel.JobStatusEnum.SUCCEEDED));
+            jobService.retrieveJob(jobId, testUser).getJobStatus()
+                == JobModel.JobStatusEnum.SUCCEEDED);
 
     // get dataset
     Dataset dataset = datasetDao.retrieve(datasetId);
@@ -533,7 +518,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void retrieveDatasetDefault() throws SQLException, IOException {
+  void retrieveDatasetDefault() throws SQLException, IOException {
     UUID datasetId = createDataset("dataset-create-test.json");
     Dataset dataset = datasetDao.retrieve(datasetId);
     assertThat(
@@ -551,7 +536,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void ingestPayloadDataGcp() throws Exception {
+  void ingestPayloadDataGcp() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json", CloudPlatform.GCP);
     String bucketName = "mybucket";
     GoogleBucketResource bucket = mock(GoogleBucketResource.class);
@@ -575,9 +560,10 @@ public class DatasetServiceTest {
     JSONAssert.assertEquals(
         "correct lines were written",
         String.join("\n", listCaptor.getValue()),
-        "{\"id\":\"1\",\"age\":12,\"gender\":\"F\"}\n"
-            + "{\"id\":\"2\",\"age\":24,\"gender\":\"N\"}\n"
-            + "{\"id\":\"3\",\"age\":36,\"gender\":\"M\"}",
+        """
+            {"id":"1","age":12,"gender":"F"}
+            {"id":"2","age":24,"gender":"N"}
+            {"id":"3","age":36,"gender":"M"}""",
         false);
 
     verify(jobService, times(1))
@@ -588,7 +574,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void ingestPayloadDataAzure() throws Exception {
+  void ingestPayloadDataAzure() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json", CloudPlatform.AZURE);
     String filePath = "foopath";
     String signedPath = "foopathsigned";
@@ -629,9 +615,10 @@ public class DatasetServiceTest {
     JSONAssert.assertEquals(
         "correct lines were written",
         String.join("\n", listCaptor.getValue()),
-        "{\"id\":\"1\",\"age\":12,\"gender\":\"F\"}\n"
-            + "{\"id\":\"2\",\"age\":24,\"gender\":\"N\"}\n"
-            + "{\"id\":\"3\",\"age\":36,\"gender\":\"M\"}",
+        """
+            {"id":"1","age":12,"gender":"F"}
+            {"id":"2","age":24,"gender":"N"}
+            {"id":"3","age":36,"gender":"M"}""",
         false);
 
     verify(jobService, times(1))
@@ -642,7 +629,7 @@ public class DatasetServiceTest {
   }
 
   @Test
-  public void getOrCreateExternalAzureDataSourceHidesExceptionInformation() throws Exception {
+  void getOrCreateExternalAzureDataSourceHidesExceptionInformation() throws Exception {
     UUID datasetId = UUID.randomUUID();
     Dataset dataset = new Dataset().id(datasetId);
     when(metadataDataAccessUtils.accessInfoFromDataset(dataset, testUser))

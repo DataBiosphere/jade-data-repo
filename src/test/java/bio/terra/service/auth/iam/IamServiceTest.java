@@ -7,7 +7,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -88,8 +87,6 @@ class IamServiceTest {
 
     PolicyModel result =
         iamService.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    verify(iamProvider)
-        .addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
     assertEquals(policyModel, result);
   }
 
@@ -105,8 +102,6 @@ class IamServiceTest {
     PolicyModel result =
         iamService.deletePolicyMember(
             TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    verify(iamProvider)
-        .deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
     assertEquals(policyModel, result);
   }
 

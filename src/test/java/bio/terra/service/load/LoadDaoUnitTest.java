@@ -2,8 +2,8 @@ package bio.terra.service.load;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -14,26 +14,24 @@ import bio.terra.service.load.exception.LoadLockedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import java.util.stream.IntStream;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class LoadDaoUnitTest {
+class LoadDaoUnitTest {
   private final Logger logger = LoggerFactory.getLogger(LoadDaoUnitTest.class);
 
   @Autowired private LoadDao loadDao;
@@ -45,7 +43,7 @@ public class LoadDaoUnitTest {
     LOADTAG_SERIAL("serialLoadTag"),
     LOADTAG_CONCURRENT("concurrentLoadTag"),
     LOADTAG_CONFLICT("conflictLoadTag");
-    private String tag;
+    private final String tag;
 
     public String getTag() {
       return tag;
@@ -69,7 +67,7 @@ public class LoadDaoUnitTest {
     FLIGHT_H("flightIdH"),
     FLIGHT_X("flightIdX"),
     FLIGHT_Y("flightIdY");
-    private String id;
+    private final String id;
 
     public String getId() {
       return id;
@@ -90,8 +88,8 @@ public class LoadDaoUnitTest {
    * method to not worry about lock cleanup, and not worry about interactions with other test
    * methods.
    */
-  @Before
-  public void setup() throws Exception {
+  @BeforeEach
+  void setup() {
     // try to unlock all load tags in the enum
     for (LoadTagsUsedByTest loadTag : LoadTagsUsedByTest.values()) {
       // loop through all flight ids in the enum, since any one could have successfully locked the
@@ -113,8 +111,8 @@ public class LoadDaoUnitTest {
    * we try to clear all the files for each load id in the list. This is to prevent leftover state
    * from impacting test results, so that the tests are repeatable.
    */
-  @After
-  public void teardown() {
+  @AfterEach
+  void teardown() {
     // try to clean files for all load ids in the list
     for (UUID loadId : loadIdsWithFilesUsedByTest) {
       try {
@@ -126,7 +124,7 @@ public class LoadDaoUnitTest {
   }
 
   @Test
-  public void loadFilesTest() throws Exception {
+  void loadFilesTest() throws Exception {
     UUID loadId = populateFiles(8);
 
     // First set of candidates
@@ -188,24 +186,24 @@ public class LoadDaoUnitTest {
   }
 
   @Test
-  public void serialLockTest() throws Exception {
+  void serialLockTest() throws Exception {
     final String loadTag = LoadTagsUsedByTest.LOADTAG_SERIAL.getTag();
     final String flightX = FlightIdsUsedByTest.FLIGHT_X.getId();
     final String flightY = FlightIdsUsedByTest.FLIGHT_Y.getId();
 
     boolean xlocks = tryLockLoad(loadTag, flightX);
-    assertTrue("x gets lock", xlocks);
+    assertThat("x gets lock", xlocks);
 
     xlocks = tryLockLoad(loadTag, flightX);
-    assertTrue("x gets lock again", xlocks);
+    assertThat("x gets lock again", xlocks);
 
     boolean ylocks = tryLockLoad(loadTag, flightY);
-    assertFalse("y does not get lock", ylocks);
+    assertFalse(ylocks, "y does not get lock");
 
     loadDao.unlockLoad(loadTag, flightX);
 
     ylocks = tryLockLoad(loadTag, flightY);
-    assertTrue("y gets lock", ylocks);
+    assertThat("y gets lock", ylocks);
 
     // No errors unlocking X again
     loadDao.unlockLoad(loadTag, flightX);
@@ -223,7 +221,7 @@ public class LoadDaoUnitTest {
   }
 
   @Test
-  public void conflictLockTest() throws Exception {
+  void conflictLockTest() throws Exception {
     final String loadTag = LoadTagsUsedByTest.LOADTAG_CONFLICT.getTag();
 
     loadDao.lockLoad(loadTag, FlightIdsUsedByTest.FLIGHT_INIT.getId());
@@ -242,8 +240,8 @@ public class LoadDaoUnitTest {
     threadA.join();
     threadB.join();
 
-    logger.info("A conflicts: " + looperA.getConflicts());
-    logger.info("B conflicts: " + looperB.getConflicts());
+    assertThat(looperA.getConflicts(), is(0));
+    assertThat(looperB.getConflicts(), is(0));
   }
 
   private void testLoadCandidates(
@@ -258,18 +256,18 @@ public class LoadDaoUnitTest {
     Load load =
         loadDao.lockLoad(
             LoadTagsUsedByTest.LOADTAG_MY.getTag(), FlightIdsUsedByTest.FLIGHT_MY.getId());
-    loadIdsWithFilesUsedByTest.add(
-        load.getId()); // add load id to test class list, for cleanup afterwards
+    // add load id to test class list, for cleanup afterward
+    loadIdsWithFilesUsedByTest.add(load.getId());
 
-    List<BulkLoadFileModel> loadList = new ArrayList<>();
-
-    for (int i = 0; i < n; i++) {
-      loadList.add(
-          new BulkLoadFileModel()
-              .sourcePath("gs://path" + i)
-              .targetPath("/target/path" + i)
-              .description("number " + i));
-    }
+    List<BulkLoadFileModel> loadList =
+        IntStream.range(0, n)
+            .mapToObj(
+                i ->
+                    new BulkLoadFileModel()
+                        .sourcePath("gs://path" + i)
+                        .targetPath("/target/path" + i)
+                        .description("number " + i))
+            .toList();
 
     loadDao.populateFiles(load.getId(), loadList);
     return load.getId();

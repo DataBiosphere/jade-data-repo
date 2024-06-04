@@ -27,10 +27,9 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,15 +37,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class TableDependencyDaoTest {
+class TableDependencyDaoTest {
   @MockBean private AzureAuthService authService;
   @MockBean private TableServiceClient tableServiceClient;
   @MockBean private TableClient tableClient;
@@ -54,8 +51,8 @@ public class TableDependencyDaoTest {
 
   @Captor private ArgumentCaptor<ListEntitiesOptions> queryOptionsCaptor;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     dao = spy(dao);
     when(authService.getTableServiceClient(any(), any(), any())).thenReturn(tableServiceClient);
     when(authService.getTableServiceClient(any())).thenReturn(tableServiceClient);
@@ -70,7 +67,7 @@ public class TableDependencyDaoTest {
   }
 
   @Test
-  public void testAddSnapshotFileDependencies() {
+  void testAddSnapshotFileDependencies() {
     PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
     Iterator<TableEntity> mockIterator = mock(Iterator.class);
     when(mockIterator.hasNext()).thenReturn(false);
@@ -85,7 +82,7 @@ public class TableDependencyDaoTest {
   }
 
   @Test
-  public void testAddSnapshotFileDependenciesExisting() {
+  void testAddSnapshotFileDependenciesExisting() {
     UUID datasetId = UUID.randomUUID();
     UUID snapshotId = UUID.randomUUID();
     String refId = UUID.randomUUID().toString();
@@ -109,7 +106,7 @@ public class TableDependencyDaoTest {
   }
 
   @Test
-  public void testReadSnapshotFileDependencies() {
+  void testReadSnapshotFileDependencies() {
     UUID datasetId = UUID.randomUUID();
     UUID snapshotId = UUID.randomUUID();
     String refId1 = UUID.randomUUID().toString();

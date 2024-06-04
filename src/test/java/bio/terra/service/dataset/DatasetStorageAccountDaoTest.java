@@ -9,7 +9,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
@@ -24,27 +23,25 @@ import bio.terra.stairway.ShortUUID;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class DatasetStorageAccountDaoTest {
+class DatasetStorageAccountDaoTest {
   private static final Logger logger = LoggerFactory.getLogger(DatasetStorageAccountDaoTest.class);
+
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DatasetDao datasetDao;
@@ -57,24 +54,17 @@ public class DatasetStorageAccountDaoTest {
 
   @Autowired private AzureResourceDao azureResourceDao;
 
-  private List<UUID> billingProfileIds = new ArrayList<>();
-  private List<UUID> datasetIds = new ArrayList<>();
-  private List<UUID> storageAccountResourceIds = new ArrayList<>();
+  private final List<UUID> billingProfileIds = new ArrayList<>();
+  private final List<UUID> datasetIds = new ArrayList<>();
+  private final List<UUID> storageAccountResourceIds = new ArrayList<>();
 
   private UUID applicationId;
   private UUID projectId;
-  private Dataset dataset;
   private BillingProfileModel billingProfile;
   private AzureApplicationDeploymentResource applicationResource;
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() {
     BillingProfileRequestModel profileRequest =
         ProfileFixtures.randomizeAzureBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
@@ -88,8 +78,8 @@ public class DatasetStorageAccountDaoTest {
     applicationResource.id(applicationId);
   }
 
-  @After
-  public void teardown() {
+  @AfterEach
+  void teardown() {
     for (UUID datasetId : datasetIds) {
       datasetStorageAccountDao.deleteDatasetStorageAccountLink(
           datasetId, storageAccountResourceIds.get(0));
@@ -97,11 +87,20 @@ public class DatasetStorageAccountDaoTest {
       datasetDao.delete(datasetId);
     }
 
+    billingProfileIds.forEach(
+        billingProfileId -> {
+          try {
+            profileDao.deleteBillingProfileById(billingProfileId);
+          } catch (Exception ex) {
+            logger.error("[CLEANUP] Unable to billing profile {}", billingProfileId);
+          }
+        });
+
     azureResourceDao.deleteApplicationDeploymentMetadata(List.of(applicationId));
   }
 
   @Test
-  public void testCreateEntry() throws Exception {
+  void testCreateEntry() throws Exception {
     UUID datasetId = createDataset("dataset-minimal.json");
     datasetIds.add(datasetId);
 
@@ -130,7 +129,7 @@ public class DatasetStorageAccountDaoTest {
         .name(newName)
         .defaultProfileId(billingProfile.getId())
         .cloudPlatform(CloudPlatform.AZURE);
-    dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+    Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.projectResourceId(projectId);
     dataset.applicationDeploymentResourceId(applicationId);
     String createFlightId = UUID.randomUUID().toString();

@@ -3,9 +3,8 @@ package bio.terra.service.resourcemanagement.google;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -25,26 +24,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class GoogleResourceDaoUnitTest {
+class GoogleResourceDaoUnitTest {
 
   @Autowired private ProfileDao profileDao;
 
@@ -62,8 +58,8 @@ public class GoogleResourceDaoUnitTest {
   private List<UUID> projectResourceIds;
   private List<UUID> datasetIds;
 
-  @Before
-  public void setup() throws IOException, InterruptedException, SQLException {
+  @BeforeEach
+  void setup() throws SQLException {
     googleResourceDao =
         new GoogleResourceDao(
             jdbcTemplate, gcsConfiguration, googleResourceConfiguration, TDR_SERVICE_ACCOUNT_EMAIL);
@@ -86,8 +82,8 @@ public class GoogleResourceDaoUnitTest {
             });
   }
 
-  @After
-  public void teardown() {
+  @AfterEach
+  void teardown() {
     for (UUID datasetId : datasetIds) {
       datasetDao.delete(datasetId);
     }
@@ -98,16 +94,15 @@ public class GoogleResourceDaoUnitTest {
   }
 
   /* Helper method to create a minimal dataset and register its ID for cleanup */
-  private Dataset createDataset(UUID projectResourceId) throws IOException {
+  private void createDataset(UUID projectResourceId) throws IOException {
     Dataset dataset =
         daoOperations.createDataset(
             billingProfile.getId(), projectResourceId, DaoOperations.DATASET_MINIMAL);
     datasetIds.add(dataset.getId());
-    return dataset;
   }
 
   @Test
-  public void twoDatasetsTwoBillingProfilesTwoBuckets() {
+  void twoDatasetsTwoBillingProfilesTwoBuckets() {
     List<GoogleProjectResource> retrievedProjects =
         googleResourceDao.retrieveProjectsByBillingProfileId(billingProfile.getId());
 
@@ -115,28 +110,28 @@ public class GoogleResourceDaoUnitTest {
     retrievedProjects.forEach(
         project ->
             assertFalse(
-                "Projects by default use the general TDR SA",
-                project.hasDedicatedServiceAccount()));
+                project.hasDedicatedServiceAccount(),
+                "Projects by default use the general TDR SA"));
 
     UUID projectId1 = projectResourceIds.get(0);
     UUID projectId2 = projectResourceIds.get(1);
     String dedicatedSa = "dedicated-sa@gmail.com";
     googleResourceDao.updateProjectResourceServiceAccount(projectId1, dedicatedSa);
-    assertTrue(
+    assertThat(
         "Dedicated service account is detected",
         googleResourceDao.retrieveProjectById(projectId1).hasDedicatedServiceAccount());
-    assertFalse(
+    assertThat(
         "Unaltered project still uses the general TDR SA",
-        googleResourceDao.retrieveProjectById(projectId2).hasDedicatedServiceAccount());
+        !googleResourceDao.retrieveProjectById(projectId2).hasDedicatedServiceAccount());
 
     googleResourceDao.updateProjectResourceServiceAccount(projectId1, TDR_SERVICE_ACCOUNT_EMAIL);
-    assertFalse(
+    assertThat(
         "Project explicitly using general TDR SA is registered as such",
-        googleResourceDao.retrieveProjectById(projectId1).hasDedicatedServiceAccount());
+        !googleResourceDao.retrieveProjectById(projectId1).hasDedicatedServiceAccount());
   }
 
   @Test
-  public void testMarkForDelete() {
+  void testMarkForDelete() {
     projectResourceIds.forEach(this::confirmNotFoundByDelete);
 
     // mark the projects for delete
@@ -152,7 +147,7 @@ public class GoogleResourceDaoUnitTest {
   }
 
   @Test
-  public void testMarkForDeleteWhenProjectInUse() throws IOException {
+  void testMarkForDeleteWhenProjectInUse() throws IOException {
     createDataset(projectResourceIds.get(0));
     googleResourceDao.markUnusedProjectsForDelete(projectResourceIds);
 
@@ -167,8 +162,8 @@ public class GoogleResourceDaoUnitTest {
 
   private void confirmNotFoundByDelete(UUID projectResourceId) {
     assertThrows(
-        "Should not be able to retrieve project 'for delete' b/c it hasn't been marked for delete",
         GoogleResourceNotFoundException.class,
-        () -> googleResourceDao.retrieveProjectByIdForDelete(projectResourceId));
+        () -> googleResourceDao.retrieveProjectByIdForDelete(projectResourceId),
+        "Should not be able to retrieve project 'for delete' b/c it hasn't been marked for delete");
   }
 }

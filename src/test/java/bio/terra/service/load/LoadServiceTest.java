@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -20,29 +21,26 @@ import bio.terra.stairway.FlightMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class LoadServiceTest {
+class LoadServiceTest {
   @Autowired private LoadService loadService;
 
   private enum LoadTagsUsedByTest {
     LOADTAG_1("myLoadTag1"),
     LOADTAG_2("myLoadTag2");
-    private String tag;
+    private final String tag;
 
     public String getTag() {
       return tag;
@@ -56,7 +54,7 @@ public class LoadServiceTest {
   private enum FlightIdsUsedByTest {
     FLIGHT_1("myFlightId1"),
     FLIGHT_2("myFlightId2");
-    private String id;
+    private final String id;
 
     public String getId() {
       return id;
@@ -75,8 +73,8 @@ public class LoadServiceTest {
    * method to not worry about lock cleanup, and not worry about interactions with other test
    * methods.
    */
-  @Before
-  public void setup() throws Exception {
+  @BeforeEach
+  void setup() {
     // try to unlock all load tags in the enum
     for (LoadTagsUsedByTest loadTag : LoadTagsUsedByTest.values()) {
       // loop through all flight ids in the enum, since any one could have successfully locked the
@@ -91,7 +89,7 @@ public class LoadServiceTest {
   }
 
   @Test
-  public void loadLocKTest() throws Exception {
+  void loadLocKTest() throws Exception {
     loadService.lockLoad(
         LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
     // Relock of the same (tag, flight) should work
@@ -108,16 +106,16 @@ public class LoadServiceTest {
         LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
   }
 
-  @Test(expected = LoadLockedException.class)
-  public void alreadyLockedTest() throws Exception {
-    loadService.lockLoad(
-        LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
-    loadService.lockLoad(
-        LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_2.getId());
+  @Test
+  void alreadyLockedTest() throws Exception {
+    String tag = LoadTagsUsedByTest.LOADTAG_1.getTag();
+    loadService.lockLoad(tag, FlightIdsUsedByTest.FLIGHT_1.getId());
+    String flight2 = FlightIdsUsedByTest.FLIGHT_2.getId();
+    assertThrows(LoadLockedException.class, () -> loadService.lockLoad(tag, flight2));
   }
 
   @Test
-  public void cannotUnlockTest() throws Exception {
+  void cannotUnlockTest() throws Exception {
     // Unlock with the wrong flight succeeds. That is because there is a valid case:
     // flight2 had the lock and did an unlock, but failed before the step completed.
     // Flight1 gets the lock. Flight2 recovers and re-runs the unlock.
@@ -128,7 +126,7 @@ public class LoadServiceTest {
   }
 
   @Test
-  public void computeLoadTagTest() throws Exception {
+  void computeLoadTagTest() {
     String loadTag = loadService.computeLoadTag(null);
     assertThat("generated load tag", loadTag, startsWith("load-at-"));
     loadTag = loadService.computeLoadTag(LoadTagsUsedByTest.LOADTAG_1.getTag());
@@ -136,7 +134,7 @@ public class LoadServiceTest {
   }
 
   @Test
-  public void getLoadTagTest() throws Exception {
+  void getLoadTagTest() {
     // Should get tag from working map
     FlightContext flightContext = mock(FlightContext.class);
     FlightMap inputParams = new FlightMap();
@@ -159,18 +157,18 @@ public class LoadServiceTest {
     assertThat("input params load tag", loadTag, equalTo(LoadTagsUsedByTest.LOADTAG_1.getTag()));
   }
 
-  @Test(expected = LoadLockFailureException.class)
-  public void getLoadTagFailTest() throws Exception {
+  @Test
+  void getLoadTagFailTest() {
     FlightMap inputParams = new FlightMap();
     FlightMap workingMap = new FlightMap();
     FlightContext flightContext = mock(FlightContext.class);
     when(flightContext.getInputParameters()).thenReturn(inputParams);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    loadService.getLoadTag(flightContext);
+    assertThrows(LoadLockFailureException.class, () -> loadService.getLoadTag(flightContext));
   }
 
   @Test
-  public void getLoadHistoryIteratorFromDao() throws InterruptedException {
+  void getLoadHistoryIteratorFromDao() throws InterruptedException {
     UUID loadId =
         loadService.lockLoad(
             LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
@@ -195,7 +193,7 @@ public class LoadServiceTest {
   }
 
   @Test
-  public void getLoadHistoryIteratorFromFlightContext() throws InterruptedException {
+  void getLoadHistoryIteratorFromFlightContext() {
 
     List<BulkLoadHistoryModel> loadHistoryInputs =
         List.of(

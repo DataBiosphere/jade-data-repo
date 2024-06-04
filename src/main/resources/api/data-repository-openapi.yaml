@@ -7437,7 +7437,7 @@ components:
           $ref: '#/components/schemas/SnapshotAccessRequestStatus'
         createdDate:
           type: string
-        updatedDate:
+        statusUpdatedDate:
           type: string
         flightid:
           $ref: '#/components/schemas/ShortIdProperty'

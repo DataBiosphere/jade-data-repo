@@ -51,7 +51,7 @@ public class SnapshotRequestDao {
               .snapshotResearchPurpose(rs.getString(SNAPSHOT_RESEARCH_PURPOSE))
               .snapshotSpecification(mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)))
               .createdDate(getInstantString(rs, CREATED_DATE))
-              .updatedDate(getInstantString(rs, UPDATED_DATE))
+              .statusUpdatedDate(getInstantString(rs, UPDATED_DATE))
               .createdBy(rs.getString(CREATED_BY))
               .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)))
               .flightid(rs.getString(FLIGHT_ID))

@@ -135,7 +135,7 @@ class SnapshotRequestDaoTest {
   @Test
   void updateStatus() {
     SnapshotAccessRequestResponse response = createRequest();
-    assertNull(response.getUpdatedDate(), "Response was never updated.");
+    assertNull(response.getStatusUpdatedDate(), "Status was never updated.");
     verifyResponseContents(response);
 
     SnapshotAccessRequestResponse updatedResponse =
@@ -146,8 +146,8 @@ class SnapshotRequestDaoTest {
         updatedResponse.getStatus(),
         equalTo(SnapshotAccessRequestStatus.APPROVED));
     assertNotNull(
-        updatedResponse.getUpdatedDate(),
-        "Updated Snapshot Access Request Response should have an update date");
+        updatedResponse.getStatusUpdatedDate(),
+        "Updated Snapshot Access Request Response should have a status update date");
   }
 
   @Test

@@ -1210,45 +1210,46 @@ class SnapshotServiceTest {
   @Test
   void getSourceDatasetsFromSnapshotRequestHandlesByRequestId() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
-    SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
-    SnapshotRequestContentsModel contentsModel = new SnapshotRequestContentsModel();
-    contentsModel.datasetName("datasetName");
-    contentsModel.mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
-    SnapshotRequestIdModel requestIdModel = new SnapshotRequestIdModel();
-    requestIdModel.snapshotRequestId(snapshotAccessRequestId);
-    contentsModel.requestIdSpec(requestIdModel);
-    snapshotRequestModel.contents(List.of(contentsModel));
+    SnapshotRequestIdModel requestIdModel =
+        new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId);
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .datasetName("datasetName")
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+            .requestIdSpec(requestIdModel);
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().contents(List.of(contentsModel));
 
     SnapshotAccessRequestResponse snapshotAccessRequest =
         new SnapshotAccessRequestResponse().sourceSnapshotId(snapshotId);
-
+    Dataset dataset = new Dataset().id(datasetId);
     Snapshot snapshot =
-        new Snapshot()
-            .snapshotSources(List.of(new SnapshotSource().dataset(new Dataset().id(datasetId))));
+        new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
     when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
 
     List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
 
-    assertThat(datasets.get(0).getId(), is(datasetId));
+    assertThat(datasets.get(0), is(dataset));
   }
 
   @Test
   void getSourceDatasetsFromSnapshotRequestHandlesNonByRequestId() {
     String datasetName = "datasetName";
 
-    SnapshotRequestContentsModel contentsModel = new SnapshotRequestContentsModel();
-    contentsModel.datasetName(datasetName);
-    contentsModel.mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
-    SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel();
-    snapshotRequestModel.contents(List.of(contentsModel));
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .datasetName(datasetName)
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().contents(List.of(contentsModel));
     Dataset dataset = new Dataset().id(datasetId);
     when(datasetService.retrieveByName(datasetName)).thenReturn(dataset);
 
     List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
 
-    assertThat(datasets.get(0).getId(), is(datasetId));
+    assertThat(datasets.get(0), is(dataset));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

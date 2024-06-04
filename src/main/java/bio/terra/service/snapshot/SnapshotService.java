@@ -628,8 +628,7 @@ public class SnapshotService {
         .map(
             c ->
                 c.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID
-                    ? snapshotDao
-                        .retrieveSnapshot(
+                    ? retrieve(
                             snapshotRequestDao
                                 .getById(c.getRequestIdSpec().getSnapshotRequestId())
                                 .getSourceSnapshotId())

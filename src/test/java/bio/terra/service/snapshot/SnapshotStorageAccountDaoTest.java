@@ -77,14 +77,14 @@ class SnapshotStorageAccountDaoTest {
                 .id(azureApplicationDeploymentResourceId)
                 .profileId(billingProfileId)
                 .storageAccountPrefix("tdr"));
-    AzureStorageAccountResource storageAccountResource = new AzureStorageAccountResource()
-        .region(AzureRegion.DEFAULT_AZURE_REGION)
-        .name("name")
-        .profileId(billingProfileId)
-        .resourceId(azureStorageAccountResourceId);
+    AzureStorageAccountResource storageAccountResource =
+        new AzureStorageAccountResource()
+            .region(AzureRegion.DEFAULT_AZURE_REGION)
+            .name("name")
+            .profileId(billingProfileId)
+            .resourceId(azureStorageAccountResourceId);
     when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any(), any()))
-        .thenReturn(
-            storageAccountResource);
+        .thenReturn(storageAccountResource);
 
     AzureStorageAccountResource azureStorageAccountResource =
         resourceService.createSnapshotStorageAccount(
@@ -95,6 +95,8 @@ class SnapshotStorageAccountDaoTest {
             dataset.isSecureMonitoringEnabled());
 
     assertThat(
-        "Returns the new storage account resource", azureStorageAccountResource, is(storageAccountResource));
+        "Returns the new storage account resource",
+        azureStorageAccountResource,
+        is(storageAccountResource));
   }
 }

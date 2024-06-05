@@ -11,14 +11,17 @@ import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -172,21 +175,22 @@ class SnapshotServiceTest {
   @BeforeEach
   void beforeEach() {
     service =
-        new SnapshotService(
-            jobService,
-            datasetService,
-            mock(FireStoreDependencyDao.class),
-            mock(BigQuerySnapshotPdao.class),
-            snapshotDao,
-            snapshotTableDao,
-            metadataDataAccessUtils,
-            iamService,
-            ecmService,
-            azureSynapsePdao,
-            rawlsService,
-            duosClient,
-            mock(SnapshotBuilderSettingsDao.class),
-            snapshotRequestDao);
+        spy(
+            new SnapshotService(
+                jobService,
+                datasetService,
+                mock(FireStoreDependencyDao.class),
+                mock(BigQuerySnapshotPdao.class),
+                snapshotDao,
+                snapshotTableDao,
+                metadataDataAccessUtils,
+                iamService,
+                ecmService,
+                azureSynapsePdao,
+                rawlsService,
+                duosClient,
+                mock(SnapshotBuilderSettingsDao.class),
+                snapshotRequestDao));
   }
 
   @Test
@@ -607,6 +611,32 @@ class SnapshotServiceTest {
   }
 
   @Test
+  void validateForByRequestIdModeApproved() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestModel snapshotRequestModel = makeByRequestIdModel(snapshotAccessRequestId);
+    SnapshotAccessRequestResponse accessRequestResponse =
+        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+
+    assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestModel));
+  }
+
+  @Test
+  void validateForByRequestIdModeJobFailed() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    String flightId = "flightId";
+    SnapshotRequestModel snapshotRequestModel = makeByRequestIdModel(snapshotAccessRequestId);
+    SnapshotAccessRequestResponse accessRequestResponse =
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .flightid(flightId);
+
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+    when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.ERROR);
+    assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestModel));
+  }
+
+  @Test
   void validateForByRequestIdModeNotApproved() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestModel snapshotRequestModel = makeByRequestIdModel(snapshotAccessRequestId);
@@ -1010,16 +1040,21 @@ class SnapshotServiceTest {
   void testCreateSnapshotWithDuosDataset() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     JobBuilder jobBuilder = mock(JobBuilder.class);
-    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
-        .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
-    String jobId = String.valueOf(UUID.randomUUID());
-    when(jobBuilder.submit()).thenReturn(jobId);
+    String jobId = mockJobService(request, jobBuilder);
 
     String result = service.createSnapshot(request, TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
     verify(duosClient).getDataset(DUOS_ID, TEST_USER);
     verify(jobBuilder).submit();
+  }
+
+  private String mockJobService(SnapshotRequestModel request, JobBuilder jobBuilder) {
+    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    String jobId = String.valueOf(UUID.randomUUID());
+    when(jobBuilder.submit()).thenReturn(jobId);
+    return jobId;
   }
 
   @Test
@@ -1030,6 +1065,23 @@ class SnapshotServiceTest {
     assertThrows(HttpClientErrorException.class, () -> service.createSnapshot(request, TEST_USER));
     JobBuilder jobBuilder = mock(JobBuilder.class);
     verifyNoInteractions(jobBuilder);
+  }
+
+  @Test
+  void testCreateSnapshotWithByRequestId() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestModel request = makeByRequestIdModel(snapshotAccessRequestId);
+    request.profileId(UUID.randomUUID());
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    String jobId = mockJobService(request, jobBuilder);
+    String datasetName = request.getContents().get(0).getDatasetName();
+    when(datasetService.retrieveByName(datasetName)).thenReturn(new Dataset().name(datasetName));
+    doNothing().when(service).validateForByRequestIdMode(request);
+
+    String result = service.createSnapshot(request, TEST_USER);
+    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    verify(service).validateForByRequestIdMode(request);
+    verify(jobBuilder).submit();
   }
 
   private void mockSnapshotWithDuosDataset() {

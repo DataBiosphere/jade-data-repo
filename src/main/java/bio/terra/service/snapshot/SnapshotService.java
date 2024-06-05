@@ -175,7 +175,8 @@ public class SnapshotService {
    */
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-    String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
+    SnapshotRequestContentsModel requestContents = snapshotRequestModel.getContents().get(0);
+    String sourceDatasetName = requestContents.getDatasetName();
     Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
@@ -190,8 +191,11 @@ public class SnapshotService {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
-    // validate the request is approved, but the snapshot has not been created from the request
-    validateForByRequestIdMode(snapshotRequestModel);
+    if (requestContents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      // validate the request is approved, but the snapshot is not currently being created
+      // and has not already been created from the request
+      validateForByRequestIdMode(snapshotRequestModel);
+    }
 
     UUID snapshotId = UUID.randomUUID();
     String description =
@@ -218,26 +222,24 @@ public class SnapshotService {
   @VisibleForTesting
   void validateForByRequestIdMode(SnapshotRequestModel snapshotRequestModel) {
     SnapshotRequestContentsModel requestContents = snapshotRequestModel.getContents().get(0);
-    if (requestContents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      SnapshotAccessRequestResponse snapshotAccessRequest =
-          snapshotRequestDao.getById(requestContents.getRequestIdSpec().getSnapshotRequestId());
-      if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
-        throw new ValidationException(
-            "Snapshot request must be approved before creating a snapshot.");
-      }
-      if (snapshotAccessRequest.getCreatedSnapshotId() != null) {
-        throw new ValidationException(
-            "Snapshot with id %s is already created from request with id %s"
-                .formatted(
-                    snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
-      }
-      if (snapshotAccessRequest.getFlightid() != null
-          && jobService.unauthRetrieveJobState(snapshotAccessRequest.getFlightid())
-              != FlightStatus.ERROR) {
-        throw new ValidationException(
-            "Snapshot Create Flight with id %s is still running"
-                .formatted(snapshotAccessRequest.getFlightid()));
-      }
+    SnapshotAccessRequestResponse snapshotAccessRequest =
+        snapshotRequestDao.getById(requestContents.getRequestIdSpec().getSnapshotRequestId());
+    if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
+      throw new ValidationException(
+          "Snapshot request must be approved before creating a snapshot.");
+    }
+    if (snapshotAccessRequest.getCreatedSnapshotId() != null) {
+      throw new ValidationException(
+          "Snapshot with id %s is already created from request with id %s"
+              .formatted(
+                  snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
+    }
+    if (snapshotAccessRequest.getFlightid() != null
+        && jobService.unauthRetrieveJobState(snapshotAccessRequest.getFlightid())
+            != FlightStatus.ERROR) {
+      throw new ValidationException(
+          "Snapshot Create Flight with id %s is still running"
+              .formatted(snapshotAccessRequest.getFlightid()));
     }
   }
 

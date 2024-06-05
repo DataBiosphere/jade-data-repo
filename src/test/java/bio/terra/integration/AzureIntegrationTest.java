@@ -117,12 +117,15 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,15 +133,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.ResourceUtils;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
-@Category(Integration.class)
-public class AzureIntegrationTest extends UsersBase {
+@Tag(Integration.TAG)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class AzureIntegrationTest extends UsersBase {
   private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   private static final String omopDatasetName = "it_dataset_omop";
@@ -167,8 +171,8 @@ public class AzureIntegrationTest extends UsersBase {
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
   private Set<String> storageAccounts;
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeAll
+  public void testClassSetup() throws Exception {
     super.setup(false);
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
@@ -190,34 +194,44 @@ public class AzureIntegrationTest extends UsersBase {
             null,
             retryOptions);
     gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
+  }
+
+  @BeforeEach
+  public void testSetup() {
     snapshotIds = new ArrayList<>();
     snapshotAccessRequestIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
   }
 
-  @After
-  public void teardown() throws Exception {
+  @AfterEach
+  public void testTeardown() throws Exception {
     if (releaseSnapshotId != null) {
       snapshotIds.add(releaseSnapshotId);
     }
-    logger.info(
-        "Teardown: trying to delete snapshots {}, dataset {}, billing profile {}",
-        snapshotIds,
-        datasetId,
-        profileId);
+    logger.info("Test teardown: trying to delete snapshots {}, dataset {}", snapshotIds, datasetId);
 
     dataRepoFixtures.resetConfig(steward);
 
     for (UUID snapshotAccessRequestId : snapshotAccessRequestIds) {
       samFixtures.deleteSnapshotAccessRequest(steward, snapshotAccessRequestId);
     }
-
     for (UUID snapshotId : snapshotIds) {
       dataRepoFixtures.deleteSnapshot(steward, snapshotId);
     }
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);
     }
+    for (String storageAccountName : storageAccounts) {
+      deleteCloudResources(storageAccountName);
+    }
+    if (dac != null) {
+      samFixtures.deleteGroup(steward, dac);
+    }
+  }
+
+  @AfterAll
+  public void testClassTeardown() throws Exception {
+    logger.info("Test class teardown: trying to delete billing profile {}", profileId);
     if (profileId != null) {
       // TODO - https://broadworkbench.atlassian.net/browse/DCJ-228
       // As we move towards running smoke and integration tests in BEEs, we would like to do so
@@ -231,19 +245,16 @@ public class AzureIntegrationTest extends UsersBase {
       // rather than needing an admin to do it.
       dataRepoFixtures.deleteProfileWithCloudResourceDelete(admin, profileId);
     }
-    if (storageAccounts != null) {
-      storageAccounts.forEach(this::deleteCloudResources);
+    if (azureBlobIOTestUtility != null) {
+      azureBlobIOTestUtility.teardown();
     }
-    azureBlobIOTestUtility.teardown();
-    gcsBlobIOTestUtility.teardown();
-
-    if (dac != null) {
-      samFixtures.deleteGroup(steward, dac);
+    if (gcsBlobIOTestUtility != null) {
+      gcsBlobIOTestUtility.teardown();
     }
   }
 
   @Test
-  public void datasetsHappyPath() throws Exception {
+  void datasetsHappyPath() throws Exception {
     // Note: this region should not be the same as the default region in the application deployment
     // (eastus by default)
     AzureRegion region = AzureRegion.SOUTH_CENTRAL_US;
@@ -451,7 +462,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSnapshotCreateFromRequest() throws Exception {
+  void testSnapshotCreateFromRequest() throws Exception {
     populateOmopTable();
     UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
     SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
@@ -511,7 +522,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testSnapshotBuilder() throws Exception {
+  void testSnapshotBuilder() throws Exception {
     populateOmopTable();
 
     var concept1 =
@@ -620,7 +631,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void datasetIngestFileHappyPath() throws Exception {
+  void datasetIngestFileHappyPath() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
     String sourceFileAzure = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
@@ -1470,7 +1481,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetFileIngestLoadHistory() throws Exception {
+  void testDatasetFileIngestLoadHistory() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
     String sourceFile = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
@@ -1586,7 +1597,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetFileRefValidation() throws Exception {
+  void testDatasetFileRefValidation() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-azure-fileref.json", CloudPlatform.AZURE);
@@ -1716,7 +1727,7 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testRequiredColumnsIngest() throws Exception {
+  void testRequiredColumnsIngest() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward,
@@ -1780,16 +1791,16 @@ public class AzureIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetCombinedIngest() throws Exception {
+  void testDatasetCombinedIngest() throws Exception {
     testDatasetCombinedIngest(true);
   }
 
   @Test
-  public void testDatasetCombinedIngestFromApi() throws Exception {
+  void testDatasetCombinedIngestFromApi() throws Exception {
     testDatasetCombinedIngest(false);
   }
 
-  public void testDatasetCombinedIngest(boolean ingestFromFile) throws Exception {
+  void testDatasetCombinedIngest(boolean ingestFromFile) throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-combined-azure.json", CloudPlatform.AZURE);
@@ -1831,8 +1842,7 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
   }
 
-  public void testMetadataArrayIngest(String arrayIngestTableName, Object records)
-      throws Exception {
+  void testMetadataArrayIngest(String arrayIngestTableName, Object records) throws Exception {
     IngestRequestModel arrayIngestRequest =
         new IngestRequestModel()
             .ignoreUnknownValues(false)

@@ -234,12 +234,10 @@ public class SnapshotService {
               .formatted(
                   snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
     }
-    if (snapshotAccessRequest.getFlightid() != null
-        && jobService.unauthRetrieveJobState(snapshotAccessRequest.getFlightid())
-            != FlightStatus.ERROR) {
+    String flightId = snapshotAccessRequest.getFlightid();
+    if (flightId != null && jobService.unauthRetrieveJobState(flightId) != FlightStatus.ERROR) {
       throw new ValidationException(
-          "Snapshot Create Flight with id %s is still running"
-              .formatted(snapshotAccessRequest.getFlightid()));
+          "Snapshot Create Flight with id %s is still running".formatted(flightId));
     }
   }
 

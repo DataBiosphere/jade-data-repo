@@ -456,9 +456,10 @@ public class AzureIntegrationTest extends UsersBase {
   public void testSnapshotCreateFromRequest() throws Exception {
     populateOmopTable();
 
-    SnapshotAccessRequestResponse snapshotAccessRequest = makeSnapshotAccessRequest();
-    snapshotAccessRequest.status(SnapshotAccessRequestStatus.APPROVED);
-    snapshotAccessRequest.statusUpdatedDate(String.valueOf(Instant.now()));
+    SnapshotAccessRequestResponse snapshotAccessRequest =
+        makeSnapshotAccessRequest()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .statusUpdatedDate(String.valueOf(Instant.now()));
 
     SnapshotSummaryModel snapshotSummaryByRequest =
         makeSnapshotFromRequest(snapshotAccessRequest.getId());

@@ -87,6 +87,7 @@ import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -120,6 +121,7 @@ public class SnapshotService {
   private final FireStoreDependencyDao dependencyDao;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotDao snapshotDao;
+  private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotTableDao snapshotTableDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final IamService iamService;
@@ -137,6 +139,7 @@ public class SnapshotService {
       FireStoreDependencyDao dependencyDao,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
+      SnapshotRequestDao snapshotRequestDao,
       SnapshotTableDao snapshotTableDao,
       MetadataDataAccessUtils metadataDataAccessUtils,
       IamService iamService,
@@ -150,6 +153,7 @@ public class SnapshotService {
     this.dependencyDao = dependencyDao;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotDao = snapshotDao;
+    this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotTableDao = snapshotTableDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.iamService = iamService;
@@ -621,7 +625,15 @@ public class SnapshotService {
   public List<Dataset> getSourceDatasetsFromSnapshotRequest(
       SnapshotRequestModel snapshotRequestModel) {
     return snapshotRequestModel.getContents().stream()
-        .map(c -> datasetService.retrieveByName(c.getDatasetName()))
+        .map(
+            c ->
+                c.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID
+                    ? retrieve(
+                            snapshotRequestDao
+                                .getById(c.getRequestIdSpec().getSnapshotRequestId())
+                                .getSourceSnapshotId())
+                        .getSourceDataset()
+                    : datasetService.retrieveByName(c.getDatasetName()))
         .collect(Collectors.toList());
   }
 

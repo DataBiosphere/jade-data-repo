@@ -46,6 +46,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -91,6 +92,7 @@ import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -145,6 +147,7 @@ class SnapshotServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private MetadataDataAccessUtils metadataDataAccessUtils;
   @Mock private SnapshotDao snapshotDao;
+  @Mock private SnapshotRequestDao snapshotRequestDao;
   @Mock private SnapshotTableDao snapshotTableDao;
   @Mock private IamService iamService;
   @Mock private AzureSynapsePdao azureSynapsePdao;
@@ -171,6 +174,7 @@ class SnapshotServiceTest {
             mock(FireStoreDependencyDao.class),
             mock(BigQuerySnapshotPdao.class),
             snapshotDao,
+            snapshotRequestDao,
             snapshotTableDao,
             metadataDataAccessUtils,
             iamService,
@@ -1201,6 +1205,49 @@ class SnapshotServiceTest {
     assertThat(actual.getRelationships().size(), is(0));
     assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
     assertThat(actual.getCreationInformation(), is(contentsModel));
+  }
+
+  @Test
+  void getSourceDatasetsFromSnapshotRequestHandlesByRequestId() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestIdModel requestIdModel =
+        new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId);
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .datasetName(DATASET_NAME)
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+            .requestIdSpec(requestIdModel);
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().contents(List.of(contentsModel));
+
+    SnapshotAccessRequestResponse snapshotAccessRequest =
+        new SnapshotAccessRequestResponse().sourceSnapshotId(snapshotId);
+    Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
+    Snapshot snapshot =
+        new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
+
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
+    when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
+
+    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+
+    assertThat(datasets.get(0), is(dataset));
+  }
+
+  @Test
+  void getSourceDatasetsFromSnapshotRequestHandlesNonByRequestId() {
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .datasetName(DATASET_NAME)
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().contents(List.of(contentsModel));
+    Dataset dataset = new Dataset().id(datasetId);
+    when(datasetService.retrieveByName(DATASET_NAME)).thenReturn(dataset);
+
+    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+
+    assertThat(datasets.get(0), is(dataset));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

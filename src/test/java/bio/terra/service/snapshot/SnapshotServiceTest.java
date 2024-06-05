@@ -1214,7 +1214,7 @@ class SnapshotServiceTest {
         new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId);
     SnapshotRequestContentsModel contentsModel =
         new SnapshotRequestContentsModel()
-            .datasetName("datasetName")
+            .datasetName(DATASET_NAME)
             .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
             .requestIdSpec(requestIdModel);
     SnapshotRequestModel snapshotRequestModel =
@@ -1222,7 +1222,7 @@ class SnapshotServiceTest {
 
     SnapshotAccessRequestResponse snapshotAccessRequest =
         new SnapshotAccessRequestResponse().sourceSnapshotId(snapshotId);
-    Dataset dataset = new Dataset().id(datasetId);
+    Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
 
@@ -1236,16 +1236,14 @@ class SnapshotServiceTest {
 
   @Test
   void getSourceDatasetsFromSnapshotRequestHandlesNonByRequestId() {
-    String datasetName = "datasetName";
-
     SnapshotRequestContentsModel contentsModel =
         new SnapshotRequestContentsModel()
-            .datasetName(datasetName)
+            .datasetName(DATASET_NAME)
             .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
     SnapshotRequestModel snapshotRequestModel =
         new SnapshotRequestModel().contents(List.of(contentsModel));
     Dataset dataset = new Dataset().id(datasetId);
-    when(datasetService.retrieveByName(datasetName)).thenReturn(dataset);
+    when(datasetService.retrieveByName(DATASET_NAME)).thenReturn(dataset);
 
     List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
 

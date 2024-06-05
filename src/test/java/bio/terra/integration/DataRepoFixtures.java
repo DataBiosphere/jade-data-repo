@@ -1985,7 +1985,7 @@ public class DataRepoFixtures {
             .filter(s -> s.getId().equals(snapshotRequestId))
             .findFirst()
             .orElse(null);
-      assertNotNull("Snapshot Access Request is present", snapshotAccessRequest);
+    assertNotNull("Snapshot Access Request is present", snapshotAccessRequest);
     return snapshotAccessRequest;
   }
 

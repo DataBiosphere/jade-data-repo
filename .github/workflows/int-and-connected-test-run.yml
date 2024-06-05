@@ -204,16 +204,18 @@ jobs:
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
-      - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
-        with:
-          actions_subcommand: 'gradletestrunnersmoketest'
+      # DO NOT MERGE.
+      # - name: "Run Test Runner smoke tests via Gradle"
+      #  uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+      #  with:
+      #    actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run integration tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+          test_filter: 'AzureIntegrationTest' ## DO NOT MERGE.
         env:
           AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
           AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}

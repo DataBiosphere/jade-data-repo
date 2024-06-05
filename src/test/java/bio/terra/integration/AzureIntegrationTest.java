@@ -11,8 +11,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.model.AzureCloudResource;
@@ -117,7 +116,6 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.hamcrest.CoreMatchers;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -136,7 +134,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.ResourceUtils;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith({SpringExtension.class, TestJobWatcherExtension.class})
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
@@ -155,7 +153,6 @@ class AzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private JsonLoader jsonLoader;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private User steward;
   private User admin;
@@ -361,7 +358,7 @@ class AzureIntegrationTest extends UsersBase {
               return found;
             });
 
-    assertTrue("dataset was found in enumeration", metExpectation);
+    assertThat("dataset was found in enumeration", metExpectation);
 
     // This should fail since it currently has dataset storage account within
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));

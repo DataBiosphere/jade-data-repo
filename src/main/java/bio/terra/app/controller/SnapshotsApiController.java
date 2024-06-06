@@ -137,17 +137,9 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<JobModel> createSnapshot(
       @Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<UUID> snapshotSourceDatasetIds =
-        snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotRequestModel);
-    // TODO: auth should be put into flight
-    List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
-    if (unauthorized.isEmpty()) {
-      String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
-      // we can retrieve the job we just created
-      return jobToResponse(jobService.retrieveJob(jobId, userReq));
-    }
-    throw new IamForbiddenException(
-        "User is not authorized to create snapshots for these datasets " + unauthorized);
+    String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
+    // we can retrieve the job we just created
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override

@@ -72,10 +72,15 @@ public class TableFileDao {
 
   public FireStoreFile retrieveFileMetadata(
       TableServiceClient tableServiceClient, String collectionId, String fileId) {
-    TableClient tableClient =
-        tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
-    TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
-    return FireStoreFile.fromTableEntity(entity);
+    try {
+      TableClient tableClient =
+          tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
+      TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
+      return FireStoreFile.fromTableEntity(entity);
+    } catch (TableServiceException ex) {
+      logger.error("Error retrieving file metadata for fileId: {}", fileId);
+      throw ex;
+    }
   }
 
   /**

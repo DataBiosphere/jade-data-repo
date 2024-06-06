@@ -172,8 +172,7 @@ public class SnapshotService {
    */
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-    String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
-    Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
+    Dataset dataset = getSourceDatasetsFromSnapshotRequest(snapshotRequestModel).get(0);
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(

@@ -133,7 +133,6 @@ public class SnapshotService {
   private final RawlsService rawlsService;
   private final DuosClient duosClient;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
-  private final SnapshotRequestDao snapshotRequestDao;
 
   public static final String ASSET_NAME = "concept_asset";
 
@@ -151,8 +150,7 @@ public class SnapshotService {
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService,
       DuosClient duosClient,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
-      SnapshotRequestDao snapshotRequestDao) {
+      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -167,7 +165,6 @@ public class SnapshotService {
     this.rawlsService = rawlsService;
     this.duosClient = duosClient;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
-    this.snapshotRequestDao = snapshotRequestDao;
   }
 
   /**

@@ -152,8 +152,7 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotAccessRequestResponse updateStatus(
-      UUID requestId, SnapshotAccessRequestStatus status) {
+  public void updateStatus(UUID requestId, SnapshotAccessRequestStatus status) {
     String sql =
         """
         UPDATE snapshot_request SET
@@ -165,11 +164,10 @@ public class SnapshotRequestDao {
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
-    return getById(requestId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotAccessRequestResponse updateFlightId(UUID requestId, String flightId) {
+  public void updateFlightId(UUID requestId, String flightId) {
     String sql =
         """
         UPDATE snapshot_request SET
@@ -181,11 +179,10 @@ public class SnapshotRequestDao {
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
-    return getById(requestId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotAccessRequestResponse updateCreatedSnapshotId(UUID requestId, UUID snapshotId) {
+  public void updateCreatedSnapshotId(UUID requestId, UUID snapshotId) {
     String sql =
         """
         UPDATE snapshot_request SET
@@ -199,7 +196,6 @@ public class SnapshotRequestDao {
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
-    return getById(requestId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

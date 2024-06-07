@@ -1,12 +1,10 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
-import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +21,6 @@ class AddCreatedSnapshotIdToSnapshotRequestStepTest {
   private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
   private static final UUID CREATED_SNAPSHOT_ID = UUID.randomUUID();
   private AddCreatedSnapshotIdToSnapshotRequestStep addCreatedSnapshotIdToSnapshotRequestStep;
-  private final FlightContext flightContext = mock(FlightContext.class);
 
   @BeforeEach
   public void beforeEach() {
@@ -34,14 +31,14 @@ class AddCreatedSnapshotIdToSnapshotRequestStepTest {
 
   @Test
   void doStep() throws InterruptedException {
-    StepResult result = addCreatedSnapshotIdToSnapshotRequestStep.doStep(flightContext);
+    StepResult result = addCreatedSnapshotIdToSnapshotRequestStep.doStep(null);
     verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 
   @Test
   void undoStep() throws InterruptedException {
-    StepResult result = addCreatedSnapshotIdToSnapshotRequestStep.undoStep(flightContext);
+    StepResult result = addCreatedSnapshotIdToSnapshotRequestStep.undoStep(null);
     verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, null);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }

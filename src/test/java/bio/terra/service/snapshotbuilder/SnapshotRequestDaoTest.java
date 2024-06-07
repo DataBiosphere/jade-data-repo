@@ -141,10 +141,8 @@ class SnapshotRequestDaoTest {
     SnapshotAccessRequestResponse response = createRequest();
     assertNull(response.getStatusUpdatedDate(), "Status was never updated.");
     verifyResponseContents(response);
-
-    SnapshotAccessRequestResponse updatedResponse =
-        snapshotRequestDao.updateStatus(response.getId(), SnapshotAccessRequestStatus.APPROVED);
-
+    snapshotRequestDao.updateStatus(response.getId(), SnapshotAccessRequestStatus.APPROVED);
+    SnapshotAccessRequestResponse updatedResponse = snapshotRequestDao.getById(response.getId());
     assertThat(
         "Updated Snapshot Access Request Response should have approved status",
         updatedResponse.getStatus(),
@@ -167,9 +165,8 @@ class SnapshotRequestDaoTest {
   void updateFlightId() {
     SnapshotAccessRequestResponse response = createRequest();
     verifyResponseContents(response);
-
-    SnapshotAccessRequestResponse updatedResponse =
-        snapshotRequestDao.updateFlightId(response.getId(), FLIGHT_ID);
+    snapshotRequestDao.updateFlightId(response.getId(), FLIGHT_ID);
+    SnapshotAccessRequestResponse updatedResponse = snapshotRequestDao.getById(response.getId());
 
     // only the flightId is updated
     verifyResponseContents(updatedResponse);
@@ -190,9 +187,8 @@ class SnapshotRequestDaoTest {
   void updateCreatedSnapshotId() {
     SnapshotAccessRequestResponse response = createRequest();
     verifyResponseContents(response);
-
-    SnapshotAccessRequestResponse updatedResponse =
-        snapshotRequestDao.updateCreatedSnapshotId(response.getId(), createdSnapshot.getId());
+    snapshotRequestDao.updateCreatedSnapshotId(response.getId(), createdSnapshot.getId());
+    SnapshotAccessRequestResponse updatedResponse = snapshotRequestDao.getById(response.getId());
 
     // only the createdSnapshotId is updated
     verifyResponseContents(updatedResponse);

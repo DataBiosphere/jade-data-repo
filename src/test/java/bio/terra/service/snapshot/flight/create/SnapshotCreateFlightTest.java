@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -117,9 +118,8 @@ class SnapshotCreateFlightTest {
     var flight = new SnapshotCreateFlight(inputParameters, context);
 
     assertThat(
-        "Snapshot creation flight locks resources, then unlocks them, then writes response",
         FlightTestUtils.getStepNames(flight),
-        containsInRelativeOrder(
+        contains(
             "AddFlightIdToSnapshotRequestStep",
             "LockDatasetStep",
             "AuthorizeBillingProfileUseStep",

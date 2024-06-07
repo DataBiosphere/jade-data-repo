@@ -191,11 +191,7 @@ public class SnapshotService {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
-    if (requestContents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      // validate the request is approved, but the snapshot is not currently being created
-      // and has not already been created from the request
-      validateForByRequestIdMode(snapshotRequestModel);
-    }
+    validateForByRequestIdMode(snapshotRequestModel.getContents().get(0));
 
     UUID snapshotId = UUID.randomUUID();
     String description =
@@ -217,13 +213,16 @@ public class SnapshotService {
    * populated but the createdSnapshotId is not, then the previous flight failed and the snapshot
    * creation should be allowed to continue.
    *
-   * @param snapshotRequestModel to validate
+   * @param snapshotRequestContents to validate
    */
   @VisibleForTesting
-  void validateForByRequestIdMode(SnapshotRequestModel snapshotRequestModel) {
-    SnapshotRequestContentsModel requestContents = snapshotRequestModel.getContents().get(0);
+  void validateForByRequestIdMode(SnapshotRequestContentsModel snapshotRequestContents) {
+    if (snapshotRequestContents.getMode() != SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      return;
+    }
     SnapshotAccessRequestResponse snapshotAccessRequest =
-        snapshotRequestDao.getById(requestContents.getRequestIdSpec().getSnapshotRequestId());
+        snapshotRequestDao.getById(
+            snapshotRequestContents.getRequestIdSpec().getSnapshotRequestId());
     if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
       throw new ValidationException(
           "Snapshot request must be approved before creating a snapshot.");

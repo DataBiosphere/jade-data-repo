@@ -1,8 +1,8 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -24,7 +24,7 @@ class AddFlightIdToSnapshotRequestStepTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
   private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
   private AddFlightIdToSnapshotRequestStep addFlightIdToSnapshotRequestStep;
-  private final FlightContext flightContext = mock(FlightContext.class);
+  @Mock private FlightContext flightContext;
 
   @BeforeEach
   public void beforeEach() {
@@ -46,5 +46,6 @@ class AddFlightIdToSnapshotRequestStepTest {
     assertEquals(
         StepResult.getStepResultSuccess(),
         addFlightIdToSnapshotRequestStep.undoStep(flightContext));
+    verifyNoInteractions(snapshotRequestDao);
   }
 }

@@ -9,7 +9,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.oneOf;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.CloudRegion;
 import bio.terra.common.CloudPlatformWrapper;
@@ -1981,12 +1982,9 @@ public class DataRepoFixtures {
         response.getStatusCode(),
         equalTo(HttpStatus.OK));
     assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
-    SnapshotAccessRequestResponse snapshotAccessRequest =
-        response.getResponseObject().get().getItems().stream()
-            .filter(s -> s.getId().equals(snapshotRequestId))
-            .findFirst()
-            .orElse(null);
-    assertNotNull("Snapshot Access Request is present", snapshotAccessRequest);
-    return snapshotAccessRequest;
+    return response.getResponseObject().get().getItems().stream()
+        .filter(s -> s.getId().equals(snapshotRequestId))
+        .findFirst()
+        .orElseThrow(() -> new Exception("Snapshot Access Request is not present"));
   }
 }

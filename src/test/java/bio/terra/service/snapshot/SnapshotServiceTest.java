@@ -938,7 +938,9 @@ class SnapshotServiceTest {
     String jobId = String.valueOf(UUID.randomUUID());
     when(jobBuilder.submit()).thenReturn(jobId);
 
-    String result = service.createSnapshot(request, TEST_USER);
+    String result =
+        service.createSnapshot(
+            request, service.getSourceDatasetsFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
     verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
     verify(jobBuilder).submit();
@@ -954,7 +956,9 @@ class SnapshotServiceTest {
     String jobId = String.valueOf(UUID.randomUUID());
     when(jobBuilder.submit()).thenReturn(jobId);
 
-    String result = service.createSnapshot(request, TEST_USER);
+    String result =
+        service.createSnapshot(
+            request, service.getSourceDatasetsFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
     verify(duosClient).getDataset(DUOS_ID, TEST_USER);
     verify(jobBuilder).submit();
@@ -964,8 +968,10 @@ class SnapshotServiceTest {
   void testCreateSnapshotThrowsWhenDuosClientThrows() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(request);
     when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
-    assertThrows(HttpClientErrorException.class, () -> service.createSnapshot(request, TEST_USER));
+    assertThrows(
+        HttpClientErrorException.class, () -> service.createSnapshot(request, datasets, TEST_USER));
     JobBuilder jobBuilder = mock(JobBuilder.class);
     verifyNoInteractions(jobBuilder);
   }

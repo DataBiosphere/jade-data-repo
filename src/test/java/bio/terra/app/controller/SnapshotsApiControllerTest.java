@@ -50,6 +50,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
@@ -301,16 +302,17 @@ class SnapshotsApiControllerTest {
   @Test
   void createSnapshot() throws Exception {
     mockValidators();
-
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(List.of(DATASET_ID));
+    List<Dataset> datasets = List.of(new Dataset().id(DATASET_ID));
+    when(snapshotService.getSourceDatasetsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(datasets);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
     when(iamService.isAuthorized(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
         .thenReturn(true);
 
-    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, TEST_USER)).thenReturn(JOB_ID);
+    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, datasets, TEST_USER))
+        .thenReturn(JOB_ID);
     when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(JOB_MODEL);
 
     String actualJson =

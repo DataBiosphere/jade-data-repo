@@ -171,8 +171,10 @@ public class SnapshotService {
    * @return jobId (flightId) of the job
    */
   public String createSnapshot(
-      SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-    Dataset dataset = getSourceDatasetsFromSnapshotRequest(snapshotRequestModel).get(0);
+      SnapshotRequestModel snapshotRequestModel,
+      List<Dataset> datasets,
+      AuthenticatedUserRequest userReq) {
+    Dataset dataset = datasets.get(0);
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(
@@ -619,6 +621,10 @@ public class SnapshotService {
     return getSourceDatasetsFromSnapshotRequest(snapshotRequestModel).stream()
         .map(Dataset::getId)
         .collect(Collectors.toList());
+  }
+
+  public List<UUID> getDatasetsIds(List<Dataset> datasets) {
+    return datasets.stream().map(Dataset::getId).collect(Collectors.toList());
   }
 
   public List<Dataset> getSourceDatasetsFromSnapshotRequest(

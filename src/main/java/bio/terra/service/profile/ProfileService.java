@@ -307,7 +307,7 @@ public class ProfileService {
 
   public void registerManagedResourceGroup(
       BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-    String billingProfileId = request.getBillingAccountId();
+    String billingProfileId = request.getId().toString();
     ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
         new ManagedResourceGroupCoordinates()
             .tenantId(request.getTenantId().toString())

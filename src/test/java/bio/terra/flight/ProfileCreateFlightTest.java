@@ -34,9 +34,9 @@ class ProfileCreateFlightTest {
         contains(
             "GetOrCreateProfileIdStep",
             "CreateProfileMetadataStep",
-            "CreateProfileManagedResourceGroup",
             "CreateProfileVerifyDeployedApplicationStep",
             "CreateProfileAuthzIamStep",
+            "CreateProfileManagedResourceGroup",
             "CreateProfileJournalEntryStep"));
   }
 

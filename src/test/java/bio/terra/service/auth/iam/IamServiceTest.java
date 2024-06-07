@@ -217,4 +217,11 @@ class IamServiceTest {
     verify(iamProvider)
         .azureCreateManagedResourceGroup(TEST_USER, ID, managedResourceGroupCoordinates);
   }
+
+  @Test
+  void testDeleteManagedResourceGroup() throws InterruptedException {
+    iamService.deregisterManagedResourceGroup(TEST_USER, ID);
+
+    verify(iamProvider).azureDeleteManagedResourceGroup(TEST_USER, ID);
+  }
 }

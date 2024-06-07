@@ -405,6 +405,15 @@ class SamIamTest {
         .createManagedResourceGroup(spendProfileId.toString(), managedResourceGroupCoordinates);
   }
 
+  @Test
+  void testAzureBillingProfileDeleteManagedResourceGroup()
+      throws ApiException, InterruptedException {
+    mockSamAzureApi();
+    final UUID spendProfileId = UUID.randomUUID();
+    samIam.azureDeleteManagedResourceGroup(TEST_USER, spendProfileId);
+    verify(samAzureApi).deleteManagedResourceGroup(spendProfileId.toString());
+  }
+
   @Nested
   class TestResourcesApi {
 

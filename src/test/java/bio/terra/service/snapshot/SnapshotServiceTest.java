@@ -151,15 +151,13 @@ class SnapshotServiceTest {
   @Mock private DatasetService datasetService;
   @Mock private MetadataDataAccessUtils metadataDataAccessUtils;
   @Mock private SnapshotDao snapshotDao;
+  @Mock private SnapshotRequestDao snapshotRequestDao;
   @Mock private SnapshotTableDao snapshotTableDao;
   @Mock private IamService iamService;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private EcmService ecmService;
   @Mock private RawlsService rawlsService;
   @Mock private DuosClient duosClient;
-
-  @Mock private SnapshotRequestDao snapshotRequestDao;
-
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
@@ -179,6 +177,7 @@ class SnapshotServiceTest {
             mock(FireStoreDependencyDao.class),
             mock(BigQuerySnapshotPdao.class),
             snapshotDao,
+            snapshotRequestDao,
             snapshotTableDao,
             metadataDataAccessUtils,
             iamService,
@@ -186,8 +185,7 @@ class SnapshotServiceTest {
             azureSynapsePdao,
             rawlsService,
             duosClient,
-            mock(SnapshotBuilderSettingsDao.class),
-            snapshotRequestDao);
+            mock(SnapshotBuilderSettingsDao.class));
   }
 
   @Test
@@ -1330,6 +1328,49 @@ class SnapshotServiceTest {
     assertThat(actual.getRelationships().size(), is(0));
     assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
     assertThat(actual.getCreationInformation(), is(contentsModel));
+  }
+
+  @Test
+  void getSourceDatasetsFromSnapshotRequestHandlesByRequestId() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestIdModel requestIdModel =
+        new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId);
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .datasetName(DATASET_NAME)
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+            .requestIdSpec(requestIdModel);
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().contents(List.of(contentsModel));
+
+    SnapshotAccessRequestResponse snapshotAccessRequest =
+        new SnapshotAccessRequestResponse().sourceSnapshotId(snapshotId);
+    Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
+    Snapshot snapshot =
+        new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
+
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
+    when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
+
+    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+
+    assertThat(datasets.get(0), is(dataset));
+  }
+
+  @Test
+  void getSourceDatasetsFromSnapshotRequestHandlesNonByRequestId() {
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .datasetName(DATASET_NAME)
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().contents(List.of(contentsModel));
+    Dataset dataset = new Dataset().id(datasetId);
+    when(datasetService.retrieveByName(DATASET_NAME)).thenReturn(dataset);
+
+    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+
+    assertThat(datasets.get(0), is(dataset));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

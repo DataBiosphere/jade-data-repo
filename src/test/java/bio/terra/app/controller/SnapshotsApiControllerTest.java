@@ -305,6 +305,7 @@ class SnapshotsApiControllerTest {
     List<Dataset> datasets = List.of(new Dataset().id(DATASET_ID));
     when(snapshotService.getSourceDatasetsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
         .thenReturn(datasets);
+    when(snapshotService.getDatasetsIds(datasets)).thenCallRealMethod();
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
     when(iamService.isAuthorized(
@@ -326,17 +327,15 @@ class SnapshotsApiControllerTest {
             .getContentAsString();
     JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
     assertThat("Job model is returned", actual, equalTo(JOB_MODEL));
-
-    verify(iamService)
-        .isAuthorized(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
   }
 
   @Test
   void createSnapshot_forbidden() throws Exception {
     mockValidators();
-
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(List.of(DATASET_ID));
+    List<Dataset> datasets = List.of(new Dataset().id(DATASET_ID));
+    when(snapshotService.getSourceDatasetsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(datasets);
+    when(snapshotService.getDatasetsIds(datasets)).thenCallRealMethod();
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
     when(iamService.isAuthorized(

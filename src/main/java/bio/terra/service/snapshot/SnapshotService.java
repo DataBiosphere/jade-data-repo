@@ -196,10 +196,7 @@ public class SnapshotService {
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
-        .addParameter(JobMapKeys.SOURCE_DATASET.getKeyName(), dataset)
-        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
-        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), dataset.getId())
-        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK_SNAPSHOT)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submit();
   }
@@ -617,15 +614,8 @@ public class SnapshotService {
                     "This dataset does not have an asset specification with name: " + assetName));
   }
 
-  public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequestModel) {
-    return getSourceDatasetsFromSnapshotRequest(snapshotRequestModel).stream()
-        .map(Dataset::getId)
-        .collect(Collectors.toList());
-  }
-
   public List<UUID> getDatasetsIds(List<Dataset> datasets) {
-    return datasets.stream().map(Dataset::getId).collect(Collectors.toList());
+    return datasets.stream().map(Dataset::getId).toList();
   }
 
   public List<Dataset> getSourceDatasetsFromSnapshotRequest(

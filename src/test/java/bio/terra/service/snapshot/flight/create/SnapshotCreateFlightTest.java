@@ -13,7 +13,6 @@ import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
@@ -54,6 +53,7 @@ class SnapshotCreateFlightTest {
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
 
     inputParameters = new FlightMap();
+    // Because this isn't a swagger type, this can't be converted with the objectmapper
     SnapshotRequestModel request =
         new SnapshotRequestModel()
             .dataAccessControlGroups(DATA_ACCESS_CONTROL_GROUPS)
@@ -61,7 +61,7 @@ class SnapshotCreateFlightTest {
                 new SnapshotRequestContentsModel()
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
-    inputParameters.put(JobMapKeys.SOURCE_DATASET.getKeyName(), new Dataset(datasetSummary));
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), UUID.randomUUID());
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
   }
 

@@ -1,6 +1,5 @@
-package bio.terra.common.fixtures;
+package bio.terra.app.configuration;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

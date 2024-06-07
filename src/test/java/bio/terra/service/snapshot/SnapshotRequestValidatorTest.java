@@ -6,11 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.configuration.UnitTestConfiguration;
 import bio.terra.app.controller.ApiValidationExceptionHandler;
 import bio.terra.app.controller.GlobalExceptionHandler;
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.UnitTestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.JobModel;
 import bio.terra.service.auth.iam.IamService;
@@ -39,17 +39,19 @@ import org.springframework.test.web.servlet.MockMvc;
       GlobalExceptionHandler.class,
       UnitTestConfiguration.class
     })
+@MockBean({
+  SnapshotService.class,
+  IamService.class,
+  FileService.class,
+  ApplicationConfiguration.class,
+  AuthenticatedUserRequestFactory.class,
+  SnapshotBuilderService.class
+})
 @WebMvcTest
 @Tag(Unit.TAG)
 class SnapshotRequestValidatorTest {
   @Autowired private MockMvc mvc;
   @MockBean private JobService jobService;
-  @MockBean private SnapshotService snapshotService;
-  @MockBean private IamService iamService;
-  @MockBean private FileService fileService;
-  @MockBean private ApplicationConfiguration applicationConfiguration;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private AssetModelValidator assetModelValidator;
 

@@ -7,6 +7,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -125,9 +126,11 @@ public class SnapshotCreateFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // TODO note that with multi-dataset snapshots this will need to change
-    List<Dataset> sourceDatasets =
-        snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
-    Dataset sourceDataset = sourceDatasets.get(0);
+    Dataset sourceDataset =
+        inputParameters.get(JobMapKeys.SOURCE_DATASET.getKeyName(), Dataset.class);
+    if (sourceDataset == null) {
+      throw new BadRequestException("No provided source dataset to create snapshot");
+    }
     UUID datasetId = sourceDataset.getId();
     String datasetName = sourceDataset.getName();
 
@@ -156,7 +159,7 @@ public class SnapshotCreateFlight extends Flight {
       // Get or initialize the project where the snapshot resources will be created
       addStep(
           new CreateSnapshotInitializeProjectStep(
-              resourceService, sourceDatasets, snapshotName, snapshotId),
+              resourceService, sourceDataset, snapshotName, snapshotId),
           getDefaultExponentialBackoffRetryRule());
     }
 

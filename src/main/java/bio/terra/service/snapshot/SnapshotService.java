@@ -196,6 +196,7 @@ public class SnapshotService {
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
+        .addParameter(JobMapKeys.SOURCE_DATASET.getKeyName(), dataset)
         .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK_SNAPSHOT)

@@ -45,8 +45,6 @@ class SnapshotCreateFlightTest {
 
     SnapshotService snapshotService = mock(SnapshotService.class);
     DatasetSummary datasetSummary = mock(DatasetSummary.class);
-    when(snapshotService.getSourceDatasetsFromSnapshotRequest(any()))
-        .thenReturn(List.of(new Dataset(datasetSummary)));
 
     when(context.getBean(any(Class.class))).thenReturn(null);
     when(context.getBean(anyString(), any(Class.class))).thenReturn(null);
@@ -63,6 +61,7 @@ class SnapshotCreateFlightTest {
                 new SnapshotRequestContentsModel()
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+    inputParameters.put(JobMapKeys.SOURCE_DATASET.getKeyName(), new Dataset(datasetSummary));
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
   }
 

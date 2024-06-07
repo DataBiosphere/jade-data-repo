@@ -55,6 +55,7 @@ public class IamService {
 
   private final IamProviderInterface iamProvider;
   private final Map<AuthorizedCacheKey, Boolean> authorizedMap;
+  private final Map<AdminAuthorizedCacheKey, Boolean> adminAuthorizedMap;
   private final JournalService journalService;
   private final GoogleCredentialsService googleCredentialsService;
 
@@ -73,6 +74,8 @@ public class IamService {
             AUTH_CACHE_TIMEOUT_SECONDS_DEFAULT);
     // wrap the cache map with a synchronized map to safely share the cache across threads
     authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
+    adminAuthorizedMap =
+        Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
   }
 
   private interface Call<T> {
@@ -143,6 +146,55 @@ public class IamService {
       throw new IamForbiddenException(
           "User '" + userEmail + "' does not have required action: " + action);
     }
+  }
+
+  /**
+   * This is a wrapper method around {@link #isResourceTypeAdminAuthorized(AuthenticatedUserRequest,
+   * IamResourceType, IamAction)} that throws an exception instead of returning false when the user
+   * is NOT authorized to do the action given a resource type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @throws IamForbiddenException if NOT authorized
+   */
+  public void verifyResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    String userEmail = userReq.getEmail();
+    if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
+      throw new IamForbiddenException(
+          "User '" + userEmail + "' does not have required action: " + action);
+    }
+  }
+
+  /**
+   * Check a cache to determine whether a user is authorized to do an admin action on a resource
+   * type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return true if authorized, false otherwise
+   */
+  public boolean isResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    return adminAuthorizedMap.computeIfAbsent(
+        new AdminAuthorizedCacheKey(userReq, iamResourceType, action),
+        this::resourceTypeAdminAuthorized);
+  }
+
+  /**
+   * Call external API to determine whether a user is authorized to do an admin action on a resource
+   * type.
+   *
+   * @param key The AdminAuthorizedCacheKey
+   * @return true if authorized, false otherwise
+   */
+  private boolean resourceTypeAdminAuthorized(AdminAuthorizedCacheKey key) {
+    return callProvider(
+        () ->
+            iamProvider.getResourceTypeAdminPermission(
+                key.userReq(), key.iamResourceType(), key.action()));
   }
 
   /**

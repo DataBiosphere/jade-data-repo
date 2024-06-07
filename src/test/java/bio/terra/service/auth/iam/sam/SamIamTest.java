@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.AzureApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
@@ -865,6 +866,39 @@ class SamIamTest {
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
       doThrow(samEx).when(samGroupApi).deleteGroup(groupName);
       assertThrows(IamNotFoundException.class, () -> samIam.deleteGroup(accessToken, groupName));
+    }
+  }
+
+  @Nested
+  class TestAdminApi {
+
+    @Mock private AdminApi samAdminApi;
+
+    @BeforeEach
+    void setUp() {
+      when(samApiService.adminApi(TEST_USER.getToken())).thenReturn(samAdminApi);
+    }
+
+    @Test
+    void testGetResourceTypeAdminPermissionAllowed() throws InterruptedException {
+      when(samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+          .thenReturn(true);
+      boolean allowed =
+          samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+      assertTrue(allowed);
+    }
+
+    @Test
+    void testGetResourceTypeAdminPermissionNotAllowed() throws InterruptedException {
+      when(samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+          .thenReturn(false);
+      boolean allowed =
+          samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+      assertFalse(allowed);
     }
   }
 }

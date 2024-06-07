@@ -294,4 +294,15 @@ public interface IamProviderInterface {
       String billingProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
       throws InterruptedException;
+
+  /**
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return boolean value if the user is authorized to perform the action on the resource type
+   * @throws InterruptedException throws if sam retry fails due to interruption
+   */
+  boolean getResourceTypeAdminPermission(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws InterruptedException;
 }

@@ -16,6 +16,7 @@ public enum IamAction {
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
   UPDATE_AUTH_DOMAIN,
+  ADMIN_READ_SUMMARY_INFORMATION,
   // datarepo (admin-only actions)
   LIST_JOBS,
   DELETE_JOBS,

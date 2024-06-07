@@ -6,6 +6,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,6 +15,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.controller.SnapshotsApi;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -46,7 +49,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
@@ -63,19 +65,21 @@ import org.springframework.test.web.servlet.MvcResult;
       SnapshotsApiController.class,
       SnapshotRequestValidator.class
     })
+@MockBean({
+  JobService.class,
+  SnapshotService.class,
+  IamService.class,
+  FileService.class,
+  AuthenticatedUserRequestFactory.class,
+  SnapshotBuilderService.class
+})
 @Tag(Unit.TAG)
 @WebMvcTest
 class SnapshotValidationTest {
 
   @Autowired private MockMvc mvc;
-  @MockBean private JobService jobService;
-  @MockBean private SnapshotService snapshotService;
-  @MockBean private IamService iamService;
   @MockBean private IngestRequestValidator ingestRequestValidator;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
-  @SpyBean private ApplicationConfiguration applicationConfiguration;
+  @MockBean private ApplicationConfiguration applicationConfiguration;
 
   private SnapshotRequestModel snapshotByAssetRequest;
 
@@ -93,9 +97,10 @@ class SnapshotValidationTest {
 
   private ErrorModel expectBadSnapshotCreateRequest(SnapshotRequestModel snapshotRequest)
       throws Exception {
+    var uri = linkTo(methodOn(SnapshotsApi.class).createSnapshot(snapshotRequest)).toUri();
     MvcResult result =
         mvc.perform(
-                post("/api/repository/v1/snapshots")
+                post(uri)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtils.mapToJson(snapshotRequest)))
             .andExpect(status().is4xxClientError())
@@ -318,10 +323,10 @@ class SnapshotValidationTest {
      *
      * We check to see if the code is wrapped in quotes to prevent matching on substrings.
      */
-    List<Matcher<? super String>> expectedMatches =
+    var expectedMatches =
         Arrays.stream(messageCodes)
             .map(code -> containsString("'" + code + "'"))
-            .collect(Collectors.toList());
+            .toList();
     assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));
   }
 }

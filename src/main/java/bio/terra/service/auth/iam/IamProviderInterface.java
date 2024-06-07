@@ -282,7 +282,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
-   * Associate billing profile with an Azure managed resource group.
+   * Associate spend profile with an Azure managed resource group.
    *
    * @param userReq authenticated user
    * @param spendProfileId spend profile id
@@ -296,7 +296,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
-   * Removes association between billing profile and an Azure managed resource group.
+   * Remove association between spend profile and an Azure managed resource group.
    *
    * @param userReq authenticated user
    * @param spendProfileId billing profile id

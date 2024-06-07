@@ -446,11 +446,16 @@ public class IamService {
 
   public void registerManagedResourceGroup(
       AuthenticatedUserRequest userReq,
-      String billingProfileId,
+      UUID spendProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates) {
     callProvider(
         () ->
             iamProvider.azureCreateManagedResourceGroup(
-                userReq, billingProfileId, managedResourceGroupCoordinates));
+                userReq, spendProfileId, managedResourceGroupCoordinates));
+  }
+
+  public void deregisterManagedResourceGroup(
+      AuthenticatedUserRequest userReq, UUID spendProfileId) {
+    callProvider(() -> iamProvider.azureDeleteManagedResourceGroup(userReq, spendProfileId));
   }
 }

@@ -48,5 +48,6 @@ public class CreateProfileManagedResourceGroupStepTest {
     verify(profileService).registerManagedResourceGroup(request, TEST_USER);
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(profileService).deregisterManagedResourceGroup(request, TEST_USER);
   }
 }

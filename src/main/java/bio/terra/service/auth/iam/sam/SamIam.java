@@ -755,24 +755,37 @@ public class SamIam implements IamProviderInterface {
   @Override
   public void azureCreateManagedResourceGroup(
       AuthenticatedUserRequest userReq,
-      String billingProfileId,
+      UUID spendProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
       throws InterruptedException {
     SamRetry.retry(
         configurationService,
         () ->
             azureCreateManagedResourceGroupInner(
-                userReq, billingProfileId, managedResourceGroupCoordinates));
+                userReq, spendProfileId.toString(), managedResourceGroupCoordinates));
   }
 
   private void azureCreateManagedResourceGroupInner(
       AuthenticatedUserRequest userReq,
-      String billingProfileId,
+      String spendProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
       throws ApiException {
     samApiService
         .azureApi(userReq.getToken())
-        .createManagedResourceGroup(billingProfileId, managedResourceGroupCoordinates);
+        .createManagedResourceGroup(spendProfileId, managedResourceGroupCoordinates);
+  }
+
+  @Override
+  public void azureDeleteManagedResourceGroup(AuthenticatedUserRequest userReq, UUID spendProfileId)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> azureDeleteManagedResourceGroupInner(userReq, spendProfileId.toString()));
+  }
+
+  private void azureDeleteManagedResourceGroupInner(
+      AuthenticatedUserRequest userReq, String billingProfileId) throws ApiException {
+    samApiService.azureApi(userReq.getToken()).deleteManagedResourceGroup(billingProfileId);
   }
 
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {

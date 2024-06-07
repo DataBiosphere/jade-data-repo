@@ -206,18 +206,15 @@ class IamServiceTest {
 
   @Test
   void testRegisterManagedResourceGroup() throws InterruptedException {
-    String billingProfileId = "billingProfileId";
     ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
         new ManagedResourceGroupCoordinates()
             .tenantId("tenantId")
             .subscriptionId("subscriptionId")
             .managedResourceGroupName("managedResourceGroupName");
 
-    iamService.registerManagedResourceGroup(
-        TEST_USER, billingProfileId, managedResourceGroupCoordinates);
+    iamService.registerManagedResourceGroup(TEST_USER, ID, managedResourceGroupCoordinates);
 
     verify(iamProvider)
-        .azureCreateManagedResourceGroup(
-            TEST_USER, billingProfileId, managedResourceGroupCoordinates);
+        .azureCreateManagedResourceGroup(TEST_USER, ID, managedResourceGroupCoordinates);
   }
 }

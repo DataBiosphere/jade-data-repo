@@ -285,13 +285,23 @@ public interface IamProviderInterface {
    * Associate billing profile with an Azure managed resource group.
    *
    * @param userReq authenticated user
-   * @param billingProfileId billing profile id
+   * @param spendProfileId spend profile id
    * @param managedResourceGroupCoordinates details of the managed resource group
    * @throws InterruptedException throws if sam retry fails due to interruption
    */
   void azureCreateManagedResourceGroup(
       AuthenticatedUserRequest userReq,
-      String billingProfileId,
+      UUID spendProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
+      throws InterruptedException;
+
+  /**
+   * Removes association between billing profile and an Azure managed resource group.
+   *
+   * @param userReq authenticated user
+   * @param spendProfileId billing profile id
+   * @throws InterruptedException throws if sam retry fails due to interruption
+   */
+  void azureDeleteManagedResourceGroup(AuthenticatedUserRequest userReq, UUID spendProfileId)
       throws InterruptedException;
 }

@@ -32,7 +32,7 @@ public class CreateProfileManagedResourceGroup implements Step {
 
   @Override
   public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
-    // Registering the Managed Resource Group has no side effects to clean up
+    profileService.deregisterManagedResourceGroup(request, user);
     return StepResult.getStepResultSuccess();
   }
 }

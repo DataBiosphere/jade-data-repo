@@ -171,13 +171,11 @@ class ProfileServiceUnitTest {
 
   @Test
   void testRegisterManagedResourceGroup() {
-    String billingProfileId = "billingProfileId";
     UUID tenantId = UUID.fromString("bbbbbbbb-cccc-dddd-eeee-aaaaaaaaaaaa");
     UUID subscriptionId = UUID.fromString("cccccccc-dddd-eeee-aaaa-bbbbbbbbbbbb");
     String resourceGroupName = "resourceGroupName";
 
     var billingProfileRequestModel = new BillingProfileRequestModel();
-    billingProfileRequestModel.setBillingAccountId(billingProfileId);
     billingProfileRequestModel.setId(PROFILE_ID);
     billingProfileRequestModel.setTenantId(tenantId);
     billingProfileRequestModel.setSubscriptionId(subscriptionId);
@@ -191,7 +189,17 @@ class ProfileServiceUnitTest {
 
     profileService.registerManagedResourceGroup(billingProfileRequestModel, user);
 
-    verify(iamService, times(1))
-        .registerManagedResourceGroup(user, billingProfileId, managedResourceGroupCoordinates);
+    verify(iamService)
+        .registerManagedResourceGroup(user, PROFILE_ID, managedResourceGroupCoordinates);
+  }
+
+  @Test
+  void testDeregisterManagedResourceGroup() {
+    var billingProfileRequestModel = new BillingProfileRequestModel();
+    billingProfileRequestModel.setId(PROFILE_ID);
+
+    profileService.deregisterManagedResourceGroup(billingProfileRequestModel, user);
+
+    verify(iamService).deregisterManagedResourceGroup(user, PROFILE_ID);
   }
 }

@@ -307,14 +307,20 @@ public class ProfileService {
 
   public void registerManagedResourceGroup(
       BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-    String billingProfileId = request.getId().toString();
+    UUID spendProfileId = request.getId();
     ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
         new ManagedResourceGroupCoordinates()
             .tenantId(request.getTenantId().toString())
             .subscriptionId(request.getSubscriptionId().toString())
             .managedResourceGroupName(request.getResourceGroupName());
 
-    iamService.registerManagedResourceGroup(
-        user, billingProfileId, managedResourceGroupCoordinates);
+    iamService.registerManagedResourceGroup(user, spendProfileId, managedResourceGroupCoordinates);
+  }
+
+  public void deregisterManagedResourceGroup(
+      BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+    UUID spendProfileId = request.getId();
+
+    iamService.deregisterManagedResourceGroup(user, spendProfileId);
   }
 }

@@ -393,16 +393,16 @@ class SamIamTest {
   void testAzureBillingProfileCreateManagedResourceGroup()
       throws ApiException, InterruptedException {
     mockSamAzureApi();
-    String billingProfileName = "billingProfileName";
+    final UUID spendProfileId = UUID.randomUUID();
     ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
         new ManagedResourceGroupCoordinates()
             .tenantId("tenantId")
             .subscriptionId("subscriptionId")
             .managedResourceGroupName("managedResourceGroupName");
     samIam.azureCreateManagedResourceGroup(
-        TEST_USER, billingProfileName, managedResourceGroupCoordinates);
+        TEST_USER, spendProfileId, managedResourceGroupCoordinates);
     verify(samAzureApi)
-        .createManagedResourceGroup(billingProfileName, managedResourceGroupCoordinates);
+        .createManagedResourceGroup(spendProfileId.toString(), managedResourceGroupCoordinates);
   }
 
   @Nested

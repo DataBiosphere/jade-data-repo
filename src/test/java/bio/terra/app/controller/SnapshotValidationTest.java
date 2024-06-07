@@ -35,10 +35,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -324,9 +322,7 @@ class SnapshotValidationTest {
      * We check to see if the code is wrapped in quotes to prevent matching on substrings.
      */
     var expectedMatches =
-        Arrays.stream(messageCodes)
-            .map(code -> containsString("'" + code + "'"))
-            .toList();
+        Arrays.stream(messageCodes).map(code -> containsString("'" + code + "'")).toList();
     assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));
   }
 }

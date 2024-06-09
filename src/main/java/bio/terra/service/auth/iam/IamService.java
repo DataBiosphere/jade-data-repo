@@ -55,7 +55,6 @@ public class IamService {
 
   private final IamProviderInterface iamProvider;
   private final Map<AuthorizedCacheKey, Boolean> authorizedMap;
-  private final Map<AdminAuthorizedCacheKey, Boolean> adminAuthorizedMap;
   private final JournalService journalService;
   private final GoogleCredentialsService googleCredentialsService;
 
@@ -74,8 +73,6 @@ public class IamService {
             AUTH_CACHE_TIMEOUT_SECONDS_DEFAULT);
     // wrap the cache map with a synchronized map to safely share the cache across threads
     authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
-    adminAuthorizedMap =
-        Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
   }
 
   private interface Call<T> {
@@ -168,7 +165,7 @@ public class IamService {
   }
 
   /**
-   * Check a cache to determine whether a user is authorized to do an admin action on a resource
+   * Call external API to determine whether a user is authorized to do an admin action on a resource
    * type.
    *
    * @param userReq The AuthenticatedUserRequest
@@ -178,23 +175,8 @@ public class IamService {
    */
   public boolean isResourceTypeAdminAuthorized(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
-    return adminAuthorizedMap.computeIfAbsent(
-        new AdminAuthorizedCacheKey(userReq, iamResourceType, action),
-        this::resourceTypeAdminAuthorized);
-  }
-
-  /**
-   * Call external API to determine whether a user is authorized to do an admin action on a resource
-   * type.
-   *
-   * @param key The AdminAuthorizedCacheKey
-   * @return true if authorized, false otherwise
-   */
-  private boolean resourceTypeAdminAuthorized(AdminAuthorizedCacheKey key) {
     return callProvider(
-        () ->
-            iamProvider.getResourceTypeAdminPermission(
-                key.userReq(), key.iamResourceType(), key.action()));
+        () -> iamProvider.getResourceTypeAdminPermission(userReq, iamResourceType, action));
   }
 
   /**

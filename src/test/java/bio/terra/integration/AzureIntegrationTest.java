@@ -56,6 +56,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCountRequest;
@@ -453,8 +454,13 @@ public class AzureIntegrationTest extends UsersBase {
   @Test
   public void testSnapshotCreateFromRequest() throws Exception {
     populateOmopTable();
-    UUID snapshotRequestId = makeSnapshotAccessRequest().getId();
-    SnapshotSummaryModel snapshotSummaryByRequest = makeSnapshotFromRequest(snapshotRequestId);
+
+    SnapshotAccessRequestResponse approvedSnapshotAccessRequest =
+        approveSnapshotAccessRequest(makeSnapshotAccessRequest().getId());
+
+    SnapshotSummaryModel snapshotSummaryByRequest =
+        makeSnapshotFromRequest(approvedSnapshotAccessRequest.getId());
+
     String columnName = "datarepo_row_id";
     List<Object> personSnapshotRows =
         dataRepoFixtures
@@ -482,6 +488,16 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(conditionOccurrenceSnapshotRows, hasSize(49));
     // full table has 7 rows but only 5 are in the condition_occurrence table
     assertThat(conceptSnapshotRows, hasSize(5));
+
+    // assert the snapshot access request has been updated
+    SnapshotAccessRequestResponse updatedSnapshotAccessRequest =
+        dataRepoFixtures.getSnapshotAccessRequest(steward, approvedSnapshotAccessRequest.getId());
+    assertNotNull(
+        "Snapshot access request flightId is set", updatedSnapshotAccessRequest.getFlightid());
+    assertThat(
+        "Snapshot access request createdSnapshotId is correct",
+        updatedSnapshotAccessRequest.getCreatedSnapshotId(),
+        is(snapshotSummaryByRequest.getId()));
   }
 
   private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
@@ -508,6 +524,17 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
     assertThat("Snapshot exists", snapshotSummary.getName(), equalTo(requestSnapshot.getName()));
     return snapshotSummary;
+  }
+
+  private SnapshotAccessRequestResponse approveSnapshotAccessRequest(UUID snapshotRequestId)
+      throws Exception {
+    SnapshotAccessRequestResponse approvedAccessRequest =
+        dataRepoFixtures.approveSnapshotAccessRequest(steward, snapshotRequestId);
+    assertThat(
+        "Snapshot access request is approved",
+        approvedAccessRequest.getStatus(),
+        equalTo(SnapshotAccessRequestStatus.APPROVED));
+    return approvedAccessRequest;
   }
 
   @Test

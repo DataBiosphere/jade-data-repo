@@ -47,6 +47,7 @@ import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
@@ -1951,9 +1952,9 @@ public class DataRepoFixtures {
   }
 
   public SnapshotAccessRequestResponse createSnapshotAccessRequest(
-      TestConfiguration.User user, UUID snapshotId, String filename) throws Exception {
+      TestConfiguration.User user, UUID sourceSnapshotId, String filename) throws Exception {
     SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
-    request.sourceSnapshotId(snapshotId);
+    request.sourceSnapshotId(sourceSnapshotId);
 
     DataRepoResponse<SnapshotAccessRequestResponse> response =
         dataRepoClient.post(
@@ -1963,6 +1964,40 @@ public class DataRepoFixtures {
             new TypeReference<>() {});
     assertThat(
         "create Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  // Currently, there is no getSnapshotAccessRequest API. So this uses the enumerate endpoint,
+  // and searches through the list to find the specified snapshot access request
+  public SnapshotAccessRequestResponse getSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotRequestId) throws Exception {
+    DataRepoResponse<EnumerateSnapshotAccessRequest> response =
+        dataRepoClient.get(
+            user, "/api/repository/v1/snapshotAccessRequests", new TypeReference<>() {});
+    assertThat(
+        "get Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get().getItems().stream()
+        .filter(s -> s.getId().equals(snapshotRequestId))
+        .findFirst()
+        .orElseThrow(() -> new Exception("Snapshot Access Request is not present"));
+  }
+
+  public SnapshotAccessRequestResponse approveSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotRequestId) throws Exception {
+    DataRepoResponse<SnapshotAccessRequestResponse> response =
+        dataRepoClient.put(
+            user,
+            "/api/repository/v1/snapshotAccessRequests/" + snapshotRequestId + "/approve",
+            "",
+            new TypeReference<>() {});
+    assertThat(
+        "get Snapshot Access Request job is successful",
         response.getStatusCode(),
         equalTo(HttpStatus.OK));
     assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());

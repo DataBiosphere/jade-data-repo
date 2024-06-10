@@ -11,8 +11,6 @@ import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -38,11 +36,13 @@ public class SnapshotRequestDao {
   private static final String SNAPSHOT_SPECIFICATION = "snapshot_specification";
   private static final String CREATED_BY = "created_by";
   private static final String CREATED_DATE = "created_date";
-  private static final String UPDATED_DATE = "updated_date";
+  private static final String STATUS_UPDATED_DATE = "status_updated_date";
   private static final String STATUS = "status";
   private static final String FLIGHT_ID = "flightid";
   private static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
   private static final String AUTHORIZED_RESOURCES = "authorized_resources";
+  private static final String NOT_FOUND_MESSAGE =
+      "Snapshot Access Request with given id does not exist.";
 
   private final RowMapper<SnapshotAccessRequestResponse> responseMapper =
       (rs, rowNum) ->
@@ -53,7 +53,7 @@ public class SnapshotRequestDao {
               .snapshotResearchPurpose(rs.getString(SNAPSHOT_RESEARCH_PURPOSE))
               .snapshotSpecification(mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)))
               .createdDate(getInstantString(rs, CREATED_DATE))
-              .updatedDate(getInstantString(rs, UPDATED_DATE))
+              .statusUpdatedDate(getInstantString(rs, STATUS_UPDATED_DATE))
               .createdBy(rs.getString(CREATED_BY))
               .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)))
               .flightid(rs.getString(FLIGHT_ID))
@@ -152,22 +152,50 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotAccessRequestResponse update(UUID requestId, SnapshotAccessRequestStatus status) {
+  public void updateStatus(UUID requestId, SnapshotAccessRequestStatus status) {
     String sql =
         """
         UPDATE snapshot_request SET
-        status = :status, updated_date = :updated_date
+        status = :status, status_updated_date = now()
+        WHERE id = :id
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue(STATUS, status.toString()).addValue(ID, requestId);
+    if (jdbcTemplate.update(sql, params) == 0) {
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
+    }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void updateFlightId(UUID requestId, String flightId) {
+    String sql =
+        """
+        UPDATE snapshot_request SET
+        flightid = :flightid
+        WHERE id = :id
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue(FLIGHT_ID, flightId).addValue(ID, requestId);
+    if (jdbcTemplate.update(sql, params) == 0) {
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
+    }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void updateCreatedSnapshotId(UUID requestId, UUID snapshotId) {
+    String sql =
+        """
+        UPDATE snapshot_request SET
+        created_snapshot_id = :created_snapshot_id
         WHERE id = :id
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue(STATUS, status.toString())
-            .addValue(UPDATED_DATE, Timestamp.from(Instant.now()))
+            .addValue(CREATED_SNAPSHOT_ID, snapshotId)
             .addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
-      throw new NotFoundException("Snapshot Access Request with given id does not exist.");
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
-    return getById(requestId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

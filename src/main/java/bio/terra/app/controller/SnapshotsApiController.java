@@ -6,6 +6,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.ValidationUtils;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
@@ -137,6 +138,11 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<JobModel> createSnapshot(
       @Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+
+    if (snapshotRequestModel.getContents().size() != 1) {
+      throw new BadRequestException("Snapshot request must contain exactly one source.");
+    }
+
     Dataset dataset = snapshotService.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, dataset.getId().toString(), IamAction.LINK_SNAPSHOT);

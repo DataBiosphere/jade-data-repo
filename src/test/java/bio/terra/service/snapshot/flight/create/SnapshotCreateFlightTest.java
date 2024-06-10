@@ -13,7 +13,8 @@ import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
@@ -43,7 +44,9 @@ class SnapshotCreateFlightTest {
     when(appConfig.getMaxStairwayThreads()).thenReturn(1);
 
     SnapshotService snapshotService = mock(SnapshotService.class);
-    DatasetSummary datasetSummary = mock(DatasetSummary.class);
+    DatasetService datasetService = mock(DatasetService.class);
+    UUID datasetId = UUID.randomUUID();
+    when(datasetService.retrieve(datasetId)).thenReturn(mock(Dataset.class));
 
     when(context.getBean(any(Class.class))).thenReturn(null);
     when(context.getBean(anyString(), any(Class.class))).thenReturn(null);
@@ -51,6 +54,7 @@ class SnapshotCreateFlightTest {
     // to steps need to be added to our context mock.
     when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
+    when(context.getBean(DatasetService.class)).thenReturn(datasetService);
 
     inputParameters = new FlightMap();
     // Because this isn't a swagger type, this can't be converted with the objectmapper
@@ -61,7 +65,7 @@ class SnapshotCreateFlightTest {
                 new SnapshotRequestContentsModel()
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
-    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), UUID.randomUUID());
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
   }
 

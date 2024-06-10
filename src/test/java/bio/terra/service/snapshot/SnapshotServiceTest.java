@@ -1089,13 +1089,19 @@ class SnapshotServiceTest {
     request.profileId(UUID.randomUUID());
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
-    String datasetName = contentsModel.getDatasetName();
-    when(datasetService.retrieveByName(datasetName)).thenReturn(new Dataset().name(datasetName));
+    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
+        .thenReturn(snapshotAccessRequestResponse);
+    when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
         .thenReturn(
-            new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED));
+            new Snapshot()
+                .snapshotSources(
+                    List.of(new SnapshotSource().dataset(new Dataset().id(UUID.randomUUID())))));
 
-    String result = service.createSnapshot(request, TEST_USER);
+    String result =
+        service.createSnapshot(
+            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
   }
 

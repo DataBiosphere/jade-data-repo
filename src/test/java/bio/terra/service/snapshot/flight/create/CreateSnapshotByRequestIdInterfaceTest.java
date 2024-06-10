@@ -141,7 +141,7 @@ class CreateSnapshotByRequestIdInterfaceTest {
     var actualAssetSpec =
         CreateSnapshotByRequestIdInterface.buildAssetFromSnapshotAccessRequest(
             sourceDataset, accessRequestResponse);
-    assertThat(actualAssetSpec.getName(), containsString("snapshot-by-request-asset-"));
+    assertThat(actualAssetSpec.getName(), containsString("snapshot-by-request-asset"));
     assertThat(actualAssetSpec.getRootTable().getTable().getName(), is("person"));
     assertThat(actualAssetSpec.getRootColumn().getDatasetColumn().getName(), is("person_id"));
     assertThat(

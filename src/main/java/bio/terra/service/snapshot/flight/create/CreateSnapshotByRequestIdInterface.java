@@ -10,9 +10,7 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,10 +53,7 @@ public interface CreateSnapshotByRequestIdInterface {
       Dataset dataset, SnapshotAccessRequestResponse snapshotRequestModel) {
     // build asset model from snapshot request
     AssetModel assetModel = new AssetModel();
-    SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
-    String uniqueTimestamp = dateFormat.format(new Date());
-    assetModel.name("snapshot-by-request-asset-" + uniqueTimestamp);
-    // TODO - instead pull root table, root column and follow from snapshot builder settings
+    assetModel.name("snapshot-by-request-asset");
     assetModel.rootTable("person");
     assetModel.rootColumn("person_id");
     // Manually add dictionary tables, leave columns empty to return all columns
@@ -197,42 +192,6 @@ public interface CreateSnapshotByRequestIdInterface {
         new SnapshotBuilderTable()
             .datasetTableName("person")
             .relationships(List.of("fpk_person_race_concept")));
-
-    // Add secondary relationships?
-    // drug_exposure ========================
-    // drug_exposure & visit_occurrence = fpk_drug_visit
-    // drug_exposure & visit_detail = fpk_drug_v_detail
-    // measurement ========================
-    // measurement & visit_detail = fpk_measurement_v_detail
-    // measurement & visit_occurrence = fpk_measurement_visit
-    // measurement & provider = fpk_measurement_provider
-    // measurement & visit_detail = fpk_measurement_v_detail
-    // visit_occurrence ========================
-    // visit_occurrence & note = fpk_note_visit
-    // visit_occurrence & device_exposure = fpk_device_visit
-    // visit_occurrence & survey_conduct = fpk_survey_visit, fpk_response_visit
-    // visit_occurrence & procedure_occurrence = fpk_procedure_visit
-    // visit_occurrence & provider = fpk_visit_provider
-    // visit_occurrence & care_site = fpk_visit_care_site
-    // visit_occurrence & condition_occurrence = fpk_condition_visit
-    // visit_occurrence & visit_detail = fpd_v_detail_visit
-    // visit_occurrence & observation = fpk_observation_visit
-    // device_exposure ======================
-    // device_exposure & provider = fpk_device_provider
-    // device_exposure & visit_detail = fpk_device_v_detail
-    // device_exposure & visit_occurrence = fpk_device_visit
-    // condition_occurrence =================
-    // condition_occurrence & visit_detail = fpk_condition_v_detail
-    // condition_occurrence & visit_occurrence = fpk_condition_visit
-    // condition_occurrence & provider = fpk_condition_provider
-    // procedure_occurrence =================
-    // procedure_occurrence & visit_detail = fpk_procedure_v_detail
-    // procedure_occurrence & visit_occurrence = fpk_procedure_visit
-    // procedure_occurrence & provider = fpk_procedure_provider
-    // observation ==========================
-    // observation & visit_detail = fpk_observation_v_detail
-    // observation & visit_occurrence = fpk_observation_visit
-    // observation & provider = fpk_observation_provider
 
     return tableMap;
   }

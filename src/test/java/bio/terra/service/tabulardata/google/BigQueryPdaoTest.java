@@ -372,6 +372,10 @@ public class BigQueryPdaoTest {
     return snapshotBuilderService.createRequest(TEST_USER, request);
   }
 
+  private SnapshotAccessRequestResponse approveSnapshotAccessRequest(UUID snapshotAccessRequestId) {
+    return snapshotBuilderService.approveRequest(snapshotAccessRequestId);
+  }
+
   private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID snapshotAccessRequestId)
       throws IOException {
     String filename = "omop/snapshot-request-model-by-request-id.json";
@@ -383,10 +387,10 @@ public class BigQueryPdaoTest {
   @Test
   public void createSnapshotByRequestId() throws Exception {
     Snapshot sourceSnapshot = stageOmopData();
-    SnapshotAccessRequestResponse accessRequest =
-        createSnapshotAccessRequest(sourceSnapshot.getId());
+    SnapshotAccessRequestResponse approvedAccessRequest =
+        approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());
     SnapshotRequestModel requestModel =
-        createSnapshotRequestModelByRequestId(accessRequest.getId());
+        createSnapshotRequestModelByRequestId(approvedAccessRequest.getId());
 
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");

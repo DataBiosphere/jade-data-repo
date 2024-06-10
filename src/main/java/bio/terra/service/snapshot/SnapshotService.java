@@ -30,6 +30,8 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -92,6 +94,7 @@ import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.service.tags.TagUtils;
+import bio.terra.stairway.FlightStatus;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
@@ -187,6 +190,7 @@ public class SnapshotService {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
+    validateForByRequestIdMode(snapshotRequestModel.getContents().get(0));
 
     UUID snapshotId = UUID.randomUUID();
     String description =
@@ -198,6 +202,39 @@ public class SnapshotService {
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submit();
+  }
+
+  /**
+   * If the snapshot request is byRequestId, verify that the request has been approved and that a
+   * snapshot has not yet been successfully created from the request. Note: If the flightId is
+   * populated but the createdSnapshotId is not, then the previous flight failed and the snapshot
+   * creation should be allowed to continue.
+   *
+   * @param snapshotRequestContents to validate
+   */
+  @VisibleForTesting
+  void validateForByRequestIdMode(SnapshotRequestContentsModel snapshotRequestContents) {
+    if (snapshotRequestContents.getMode() != SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      return;
+    }
+    SnapshotAccessRequestResponse snapshotAccessRequest =
+        snapshotRequestDao.getById(
+            snapshotRequestContents.getRequestIdSpec().getSnapshotRequestId());
+    if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
+      throw new ValidationException(
+          "Snapshot request must be approved before creating a snapshot.");
+    }
+    if (snapshotAccessRequest.getCreatedSnapshotId() != null) {
+      throw new ValidationException(
+          "Snapshot with id %s is already created from request with id %s"
+              .formatted(
+                  snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
+    }
+    String flightId = snapshotAccessRequest.getFlightid();
+    if (flightId != null && jobService.unauthRetrieveJobState(flightId) != FlightStatus.ERROR) {
+      throw new ValidationException(
+          "Snapshot Create Flight with id %s is still running".formatted(flightId));
+    }
   }
 
   public void undoCreateSnapshot(String snapshotName) throws InterruptedException {

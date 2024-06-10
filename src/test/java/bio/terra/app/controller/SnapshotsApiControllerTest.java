@@ -307,9 +307,6 @@ class SnapshotsApiControllerTest {
         .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
-    when(iamService.isAuthorized(
-            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
-        .thenReturn(true);
 
     when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, dataset, TEST_USER))
         .thenReturn(JOB_ID);
@@ -325,6 +322,8 @@ class SnapshotsApiControllerTest {
             .getResponse()
             .getContentAsString();
     JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
+    verify(iamService)
+        .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
     assertThat("Job model is returned", actual, equalTo(JOB_MODEL));
   }
 
@@ -336,18 +335,15 @@ class SnapshotsApiControllerTest {
         .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
-    when(iamService.isAuthorized(
-            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
-        .thenReturn(false);
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
 
     mvc.perform(
             post(SNAPSHOTS_ENDPOINT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(SNAPSHOT_REQUEST_MODEL)))
         .andExpect(status().isForbidden());
-
-    verify(iamService)
-        .isAuthorized(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
   }
 
   @Test

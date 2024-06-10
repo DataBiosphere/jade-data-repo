@@ -15,6 +15,7 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
@@ -46,7 +47,9 @@ class SnapshotCreateFlightTest {
     SnapshotService snapshotService = mock(SnapshotService.class);
     DatasetService datasetService = mock(DatasetService.class);
     UUID datasetId = UUID.randomUUID();
-    when(datasetService.retrieve(datasetId)).thenReturn(mock(Dataset.class));
+    Dataset dataset = mock(Dataset.class);
+    when(datasetService.retrieve(datasetId)).thenReturn(dataset);
+    when(dataset.getDatasetSummary()).thenReturn(mock(DatasetSummary.class));
 
     when(context.getBean(any(Class.class))).thenReturn(null);
     when(context.getBean(anyString(), any(Class.class))).thenReturn(null);

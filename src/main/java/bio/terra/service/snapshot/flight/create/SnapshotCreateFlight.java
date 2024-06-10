@@ -17,6 +17,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.duos.DuosClient;
 import bio.terra.service.duos.DuosDao;
 import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsIdService;
@@ -63,9 +64,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 public class SnapshotCreateFlight extends Flight {
+  private static final Logger logger = LoggerFactory.getLogger(SnapshotCreateFlight.class);
 
   public SnapshotCreateFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
@@ -109,6 +113,7 @@ public class SnapshotCreateFlight extends Flight {
     SnapshotBuilderService snapshotBuilderService =
         appContext.getBean(SnapshotBuilderService.class);
     IamService iamService = appContext.getBean(IamService.class);
+    DuosClient duosClient = appContext.getBean(DuosClient.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -133,6 +138,22 @@ public class SnapshotCreateFlight extends Flight {
 
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
+
+    addStep(new AuthorizeSourceDatasetUseStep(iamService, datasetId, userReq));
+
+    if (snapshotReq.getProfileId() == null) {
+      snapshotReq.setProfileId(sourceDataset.getDefaultProfileId());
+      logger.warn(
+          "Enriching {} snapshot {} request with dataset default profileId {}",
+          userReq.getEmail(),
+          snapshotReq.getName(),
+          sourceDataset.getDefaultProfileId());
+    }
+
+    String duosId = snapshotReq.getDuosId();
+    if (duosId != null) {
+      addStep(new VerifyDuosDatasetStep(duosClient, duosId, userReq));
+    }
 
     // Take out a shared lock on the source dataset, to guard against it being deleted out from
     // under us (for example)
@@ -161,7 +182,6 @@ public class SnapshotCreateFlight extends Flight {
     }
 
     // if DUOS id in request, get/create firecloud group (needed for CreateSnapshotMetadataStep)
-    String duosId = snapshotReq.getDuosId();
     if (duosId != null) {
       addStep(new RetrieveDuosFirecloudGroupStep(duosDao, duosId));
       addStep(

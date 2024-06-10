@@ -57,7 +57,6 @@ class SnapshotCreateFlightTest {
     when(context.getBean(DatasetService.class)).thenReturn(datasetService);
 
     inputParameters = new FlightMap();
-    // Because this isn't a swagger type, this can't be converted with the objectmapper
     SnapshotRequestModel request =
         new SnapshotRequestModel()
             .dataAccessControlGroups(DATA_ACCESS_CONTROL_GROUPS)

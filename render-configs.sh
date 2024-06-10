@@ -10,13 +10,13 @@
 
 # If you're running Azure Integration Tests you should use the following settings:
 # ./render-configs.sh -a integration -r tools
-# Then, refresh your z-shell configuration (`source ~./zshrc`) (follow getting started doc to set env variables)
+# Then, refresh your z-shell configuration (`source ~/.zshrc`) (follow getting started doc to set env variables)
 # Alternatively, if you use the -i flag, it copies the environment variables to your clipboard and you can paste them into your Intellij test profile.
 # ./render-configs.sh -a integration -r tools -i
 
 # If you want a set up locally, you can use the following settings:
 # ./render-configs.sh -a dev -r dev
-# Then, refresh your z-shell configuration (`source ~./zshrc`)
+# Then, refresh your z-shell configuration (`source ~/.zshrc`)
 # ./gradlew bootRun
 
 AZURE_ENV=dev

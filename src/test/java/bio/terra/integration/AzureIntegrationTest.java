@@ -140,13 +140,14 @@ import org.springframework.util.ResourceUtils;
 @AutoConfigureMockMvc
 @Tag(Integration.TAG)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class AzureIntegrationTest extends UsersBase {
+class AzureIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
 
+  @Autowired private UsersBase usersBase;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private SamFixtures samFixtures;
   @Autowired private AuthService authService;
@@ -170,10 +171,10 @@ class AzureIntegrationTest extends UsersBase {
 
   @BeforeAll
   public void createSharedBillingProfile() throws Exception {
-    super.setup(false);
+    usersBase.setup(false);
     // Voldemort is required by this test since the application is deployed with his user authz'ed
-    steward = steward("voldemort");
-    admin = admin("hermione");
+    steward = usersBase.steward("voldemort");
+    admin = usersBase.admin("hermione");
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
   }
@@ -883,7 +884,7 @@ class AzureIntegrationTest extends UsersBase {
                     .addTables(
                         List.of(
                             DatasetFixtures.tableModel("new_table", List.of("new_table_column")))));
-    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward, datasetId, updateModel);
     assertThat(
         "The new table is in the update response",
         response.getSchema().getTables().stream()

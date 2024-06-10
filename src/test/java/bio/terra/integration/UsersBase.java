@@ -6,7 +6,9 @@ import bio.terra.common.configuration.TestConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component
 public class UsersBase {
   private static final String ADMIN_ROLE = "admin";
   private static final String STEWARD_ROLE = "steward";

@@ -137,8 +137,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<JobModel> createSnapshot(
       @Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    Dataset dataset =
-        snapshotService.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
+    Dataset dataset = snapshotService.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, dataset.getId().toString(), IamAction.LINK_SNAPSHOT);
     String jobId = snapshotService.createSnapshot(snapshotRequestModel, dataset, userReq);

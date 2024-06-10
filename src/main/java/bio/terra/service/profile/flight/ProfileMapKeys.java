@@ -8,6 +8,7 @@ public final class ProfileMapKeys {
       "profileApplicationDeploymentIdList";
   public static final String PROFILE_UNIQUE_STORAGE_ACCOUNT_RESOURCE_LIST =
       "profileUniqueStorageAccountResourceList";
+  public static final String PROFILE_APPLICATION_DEPLOYMENT = "profileApplicationDeployment";
 
   private ProfileMapKeys() {}
 }

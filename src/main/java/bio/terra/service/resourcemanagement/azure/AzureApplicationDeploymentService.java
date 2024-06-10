@@ -56,11 +56,13 @@ public class AzureApplicationDeploymentService {
   }
 
   /**
-   * Return or register an application deployment into the TDR metadata
+   * Return the Azure application deployment associated with the {@link BillingProfileModel}, first
+   * registering it in Postgres if it doesn't yet exist.
    *
    * @param billingProfile previously authorized billing profile
-   * @return application deployment resource object
-   * @throws InterruptedException if shutting down
+   * @return the {@link AzureApplicationDeploymentResource} associated with the billing profile
+   * @throws MismatchedBillingProfilesException if another billing profile has already registered
+   *     its association with the Azure application deployment.
    */
   public AzureApplicationDeploymentResource getOrRegisterApplicationDeployment(
       BillingProfileModel billingProfile) {
@@ -141,13 +143,11 @@ public class AzureApplicationDeploymentService {
   }
 
   /**
-   * Register a new azure application deployment. This process is not transactional or done in a
-   * stairway flight, so it is possible we will allocate projects and before they are recorded in
-   * our database, we will fail and they will be orphaned.
+   * Register and return the Azure application deployment associated with the {@link
+   * BillingProfileModel}.
    *
-   * @param billingProfile authorized billing profile that'll pay for the application deployment
-   * @return a populated application deployment resource object
-   * @throws InterruptedException if the flight is interrupted during execution
+   * @param billingProfile previously authorized billing profile
+   * @return the {@link AzureApplicationDeploymentResource} associated with the billing profile
    */
   private AzureApplicationDeploymentResource newApplicationDeployment(
       BillingProfileModel billingProfile) {

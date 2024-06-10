@@ -1987,4 +1987,20 @@ public class DataRepoFixtures {
         .findFirst()
         .orElseThrow(() -> new Exception("Snapshot Access Request is not present"));
   }
+
+  public SnapshotAccessRequestResponse approveSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotRequestId) throws Exception {
+    DataRepoResponse<SnapshotAccessRequestResponse> response =
+        dataRepoClient.put(
+            user,
+            "/api/repository/v1/snapshotAccessRequests/" + snapshotRequestId + "/approve",
+            "",
+            new TypeReference<>() {});
+    assertThat(
+        "get Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
 }

@@ -98,7 +98,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -456,13 +455,11 @@ public class AzureIntegrationTest extends UsersBase {
   public void testSnapshotCreateFromRequest() throws Exception {
     populateOmopTable();
 
-    SnapshotAccessRequestResponse snapshotAccessRequest =
-        makeSnapshotAccessRequest()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .statusUpdatedDate(String.valueOf(Instant.now()));
+    SnapshotAccessRequestResponse approvedSnapshotAccessRequest =
+        approveSnapshotAccessRequest(makeSnapshotAccessRequest().getId());
 
     SnapshotSummaryModel snapshotSummaryByRequest =
-        makeSnapshotFromRequest(snapshotAccessRequest.getId());
+        makeSnapshotFromRequest(approvedSnapshotAccessRequest.getId());
 
     String columnName = "datarepo_row_id";
     List<Object> personSnapshotRows =
@@ -494,7 +491,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     // assert the snapshot access request has been updated
     SnapshotAccessRequestResponse updatedSnapshotAccessRequest =
-        dataRepoFixtures.getSnapshotAccessRequest(steward, snapshotAccessRequest.getId());
+        dataRepoFixtures.getSnapshotAccessRequest(steward, approvedSnapshotAccessRequest.getId());
     assertNotNull(
         "Snapshot access request flightId is set", updatedSnapshotAccessRequest.getFlightid());
     assertThat(
@@ -527,6 +524,17 @@ public class AzureIntegrationTest extends UsersBase {
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
     assertThat("Snapshot exists", snapshotSummary.getName(), equalTo(requestSnapshot.getName()));
     return snapshotSummary;
+  }
+
+  private SnapshotAccessRequestResponse approveSnapshotAccessRequest(UUID snapshotRequestId)
+      throws Exception {
+    SnapshotAccessRequestResponse approvedAccessRequest =
+        dataRepoFixtures.approveSnapshotAccessRequest(steward, snapshotRequestId);
+    assertThat(
+        "Snapshot access request is approved",
+        approvedAccessRequest.getStatus(),
+        equalTo(SnapshotAccessRequestStatus.APPROVED));
+    return approvedAccessRequest;
   }
 
   @Test

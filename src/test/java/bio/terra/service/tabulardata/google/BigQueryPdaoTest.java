@@ -29,7 +29,6 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
@@ -74,7 +73,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -371,10 +369,11 @@ public class BigQueryPdaoTest {
     String filename = "omop/snapshot-access-request.json";
     SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
     request.sourceSnapshotId(sourceSnapshotId);
-    return snapshotBuilderService
-        .createRequest(TEST_USER, request)
-        .status(SnapshotAccessRequestStatus.APPROVED)
-        .statusUpdatedDate(String.valueOf(Instant.now()));
+    return snapshotBuilderService.createRequest(TEST_USER, request);
+  }
+
+  private SnapshotAccessRequestResponse approveSnapshotAccessRequest(UUID snapshotAccessRequestId) {
+    return snapshotBuilderService.approveRequest(snapshotAccessRequestId);
   }
 
   private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID snapshotAccessRequestId)
@@ -388,10 +387,10 @@ public class BigQueryPdaoTest {
   @Test
   public void createSnapshotByRequestId() throws Exception {
     Snapshot sourceSnapshot = stageOmopData();
-    SnapshotAccessRequestResponse accessRequest =
-        createSnapshotAccessRequest(sourceSnapshot.getId());
+    SnapshotAccessRequestResponse approvedAccessRequest =
+        approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());
     SnapshotRequestModel requestModel =
-        createSnapshotRequestModelByRequestId(accessRequest.getId());
+        createSnapshotRequestModelByRequestId(approvedAccessRequest.getId());
 
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");

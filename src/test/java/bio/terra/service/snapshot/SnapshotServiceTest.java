@@ -1214,7 +1214,7 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void getSourceDatasetsFromSnapshotRequestHandlesByRequestId() {
+  void getSourceDatasetFromSnapshotRequestHandlesByRequestId() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestIdModel requestIdModel =
         new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId);
@@ -1241,7 +1241,7 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void getSourceDatasetsFromSnapshotRequestHandlesNonByRequestId() {
+  void getSourceDatasetFromSnapshotRequestHandlesNonByRequestId() {
     SnapshotRequestContentsModel contentsModel =
         new SnapshotRequestContentsModel()
             .datasetName(DATASET_NAME)

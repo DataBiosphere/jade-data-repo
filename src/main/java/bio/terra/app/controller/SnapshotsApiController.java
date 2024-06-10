@@ -129,7 +129,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
 
     if (snapshotRequestModel.getContents().size() > 1) {
-      throw new BadRequestException("Snapshot request must at most one source.");
+      throw new BadRequestException("Snapshot request must contain at most one source.");
     }
 
     Dataset dataset = snapshotService.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);

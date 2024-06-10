@@ -39,7 +39,6 @@ import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -138,18 +137,13 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<JobModel> createSnapshot(
       @Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<Dataset> datasets =
-        snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
-    List<UUID> snapshotSourceDatasetIds = snapshotService.getDatasetsIds(datasets);
-    // TODO: auth should be put into flight
-    List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
-    if (unauthorized.isEmpty()) {
-      String jobId = snapshotService.createSnapshot(snapshotRequestModel, datasets, userReq);
-      // we can retrieve the job we just created
-      return jobToResponse(jobService.retrieveJob(jobId, userReq));
-    }
-    throw new IamForbiddenException(
-        "User is not authorized to create snapshots for these datasets " + unauthorized);
+    Dataset dataset =
+        snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel).get(0);
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, dataset.getId().toString(), IamAction.LINK_SNAPSHOT);
+    String jobId = snapshotService.createSnapshot(snapshotRequestModel, dataset, userReq);
+    // we can retrieve the job we just created
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override

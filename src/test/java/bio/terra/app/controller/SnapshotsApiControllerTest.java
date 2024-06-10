@@ -302,17 +302,16 @@ class SnapshotsApiControllerTest {
   @Test
   void createSnapshot() throws Exception {
     mockValidators();
-    List<Dataset> datasets = List.of(new Dataset().id(DATASET_ID));
-    when(snapshotService.getSourceDatasetsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(datasets);
-    when(snapshotService.getDatasetsIds(datasets)).thenCallRealMethod();
+    Dataset dataset = new Dataset().id(DATASET_ID);
+    when(snapshotService.getSourceDatasetFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
     when(iamService.isAuthorized(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
         .thenReturn(true);
 
-    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, datasets, TEST_USER))
+    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, dataset, TEST_USER))
         .thenReturn(JOB_ID);
     when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(JOB_MODEL);
 
@@ -332,10 +331,9 @@ class SnapshotsApiControllerTest {
   @Test
   void createSnapshot_forbidden() throws Exception {
     mockValidators();
-    List<Dataset> datasets = List.of(new Dataset().id(DATASET_ID));
-    when(snapshotService.getSourceDatasetsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(datasets);
-    when(snapshotService.getDatasetsIds(datasets)).thenCallRealMethod();
+    Dataset dataset = new Dataset().id(DATASET_ID);
+    when(snapshotService.getSourceDatasetFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
     when(iamService.isAuthorized(

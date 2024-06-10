@@ -172,9 +172,8 @@ public class SnapshotService {
    */
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel,
-      List<Dataset> datasets,
+      Dataset dataset,
       AuthenticatedUserRequest userReq) {
-    Dataset dataset = datasets.get(0);
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(
@@ -614,23 +613,15 @@ public class SnapshotService {
                     "This dataset does not have an asset specification with name: " + assetName));
   }
 
-  public List<UUID> getDatasetsIds(List<Dataset> datasets) {
-    return datasets.stream().map(Dataset::getId).toList();
-  }
-
-  public List<Dataset> getSourceDatasetsFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequestModel) {
-    return snapshotRequestModel.getContents().stream()
-        .map(
-            c ->
-                c.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID
-                    ? retrieve(
-                            snapshotRequestDao
-                                .getById(c.getRequestIdSpec().getSnapshotRequestId())
-                                .getSourceSnapshotId())
-                        .getSourceDataset()
-                    : datasetService.retrieveByName(c.getDatasetName()))
-        .collect(Collectors.toList());
+  public Dataset getSourceDatasetFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+    SnapshotRequestContentsModel contents = snapshotRequestModel.getContents().get(0);
+    return contents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID
+        ? retrieve(
+                snapshotRequestDao
+                    .getById(contents.getRequestIdSpec().getSnapshotRequestId())
+                    .getSourceSnapshotId())
+            .getSourceDataset()
+        : datasetService.retrieveByName(contents.getDatasetName());
   }
 
   public AddAuthDomainResponseModel addSnapshotDataAccessControls(

@@ -940,7 +940,7 @@ class SnapshotServiceTest {
 
     String result =
         service.createSnapshot(
-            request, service.getSourceDatasetsFromSnapshotRequest(request), TEST_USER);
+            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
     verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
     verify(jobBuilder).submit();
@@ -958,7 +958,7 @@ class SnapshotServiceTest {
 
     String result =
         service.createSnapshot(
-            request, service.getSourceDatasetsFromSnapshotRequest(request), TEST_USER);
+            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
     verify(duosClient).getDataset(DUOS_ID, TEST_USER);
     verify(jobBuilder).submit();
@@ -968,10 +968,10 @@ class SnapshotServiceTest {
   void testCreateSnapshotThrowsWhenDuosClientThrows() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
-    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(request);
+    Dataset dataset = service.getSourceDatasetFromSnapshotRequest(request);
     when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
     assertThrows(
-        HttpClientErrorException.class, () -> service.createSnapshot(request, datasets, TEST_USER));
+        HttpClientErrorException.class, () -> service.createSnapshot(request, dataset, TEST_USER));
     JobBuilder jobBuilder = mock(JobBuilder.class);
     verifyNoInteractions(jobBuilder);
   }
@@ -1235,9 +1235,9 @@ class SnapshotServiceTest {
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
     when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
 
-    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+    Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 
-    assertThat(datasets.get(0), is(dataset));
+    assertThat(sourceDataset, is(dataset));
   }
 
   @Test
@@ -1251,9 +1251,9 @@ class SnapshotServiceTest {
     Dataset dataset = new Dataset().id(datasetId);
     when(datasetService.retrieveByName(DATASET_NAME)).thenReturn(dataset);
 
-    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+    Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 
-    assertThat(datasets.get(0), is(dataset));
+    assertThat(sourceDataset, is(dataset));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

@@ -22,8 +22,7 @@ public enum JobMapKeys {
   FILE_ID("fileId"),
   ASSET_ID("assetId"),
   TRANSACTION_ID("transactionId"),
-  DELETE_CLOUD_RESOURCES("deleteCloudResources"),
-  SOURCE_DATASET("sourceDataset");
+  DELETE_CLOUD_RESOURCES("deleteCloudResources");
 
   private String keyName;
 

@@ -124,7 +124,6 @@ public class SnapshotCreateFlight extends Flight {
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    // TODO note that with multi-dataset snapshots this will need to change
     UUID datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class);
     Dataset sourceDataset = datasetService.retrieve(datasetId);
     String datasetName = sourceDataset.getName();
@@ -197,7 +196,6 @@ public class SnapshotCreateFlight extends Flight {
 
     // Make the big query dataset with views and populate row id filtering tables.
     // Depending on the type of snapshot, the primary data step will differ:
-    // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
     switch (snapshotReq.getContents().get(0).getMode()) {
       case BYASSET -> {
         addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));

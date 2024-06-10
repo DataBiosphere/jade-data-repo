@@ -427,14 +427,18 @@ class SnapshotBuilderServiceTest {
   @Test
   void testRejectRequest() {
     UUID id = UUID.randomUUID();
-    snapshotBuilderService.rejectRequest(id);
+    var response = new SnapshotAccessRequestResponse();
+    when(snapshotRequestDao.getById(id)).thenReturn(response);
+    assertThat(snapshotBuilderService.rejectRequest(id), is(response));
     verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   @Test
   void testApproveRequest() {
     UUID id = UUID.randomUUID();
-    snapshotBuilderService.approveRequest(id);
+    var response = new SnapshotAccessRequestResponse();
+    when(snapshotRequestDao.getById(id)).thenReturn(response);
+    assertThat(snapshotBuilderService.approveRequest(id), is(response));
     verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
   }
 

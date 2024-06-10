@@ -20,25 +20,25 @@ class AddCreatedSnapshotIdToSnapshotRequestStepTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
   private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
   private static final UUID CREATED_SNAPSHOT_ID = UUID.randomUUID();
-  private AddCreatedSnapshotIdToSnapshotRequestStep addCreatedSnapshotIdToSnapshotRequestStep;
+  private AddCreatedSnapshotIdToSnapshotRequestStep step;
 
   @BeforeEach
-  public void beforeEach() {
-    addCreatedSnapshotIdToSnapshotRequestStep =
+  void beforeEach() {
+    step =
         new AddCreatedSnapshotIdToSnapshotRequestStep(
             snapshotRequestDao, SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID);
   }
 
   @Test
   void doStep() throws InterruptedException {
-    StepResult result = addCreatedSnapshotIdToSnapshotRequestStep.doStep(null);
+    StepResult result = step.doStep(null);
     verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 
   @Test
   void undoStep() throws InterruptedException {
-    StepResult result = addCreatedSnapshotIdToSnapshotRequestStep.undoStep(null);
+    StepResult result = step.undoStep(null);
     verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, null);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }

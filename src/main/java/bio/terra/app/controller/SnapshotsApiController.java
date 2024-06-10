@@ -123,24 +123,13 @@ public class SnapshotsApiController implements SnapshotsApi {
     return authenticatedUserRequestFactory.from(request);
   }
 
-  // -- snapshot --
-  private List<UUID> getUnauthorizedSources(
-      List<UUID> snapshotSourceDatasetIds, AuthenticatedUserRequest userReq) {
-    return snapshotSourceDatasetIds.stream()
-        .filter(
-            sourceId ->
-                !iamService.isAuthorized(
-                    userReq, IamResourceType.DATASET, sourceId.toString(), IamAction.LINK_SNAPSHOT))
-        .collect(Collectors.toList());
-  }
-
   @Override
   public ResponseEntity<JobModel> createSnapshot(
       @Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
 
-    if (snapshotRequestModel.getContents().size() != 1) {
-      throw new BadRequestException("Snapshot request must contain exactly one source.");
+    if (snapshotRequestModel.getContents().size() > 1) {
+      throw new BadRequestException("Snapshot request must at most one source.");
     }
 
     Dataset dataset = snapshotService.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);

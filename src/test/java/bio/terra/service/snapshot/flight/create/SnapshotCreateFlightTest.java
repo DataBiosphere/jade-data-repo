@@ -68,7 +68,14 @@ class SnapshotCreateFlightTest {
   }
 
   @Test
-  void testSnapshotCreateFlight() {
+  void testSnapshotCreateFlightByFullView() {
+    SnapshotRequestModel request =
+        new SnapshotRequestModel()
+            .dataAccessControlGroups(DATA_ACCESS_CONTROL_GROUPS)
+            .addContentsItem(
+                new SnapshotRequestContentsModel()
+                    .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
     var flight = new SnapshotCreateFlight(inputParameters, context);
 
     assertThat(

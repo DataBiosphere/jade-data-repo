@@ -62,10 +62,10 @@ public interface CreateSnapshotByRequestIdInterface {
 
     // Build asset tables and columns based on the concept sets included in the snapshot request
     List<SnapshotBuilderTable> tables = pullTables(snapshotRequestModel);
-    // First pass - just add tables and follow, an empty set of columns will return all columns
     tables.forEach(
         table -> {
-          assetModel.addTablesItem(new AssetTableModel().name(table.getDatasetTableName()));
+          assetModel.addTablesItem(
+              new AssetTableModel().name(table.getDatasetTableName()).columns(table.getColumns()));
           assetModel.follow(table.getRelationships());
         });
 

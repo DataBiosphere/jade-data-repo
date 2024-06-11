@@ -15,10 +15,12 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.JobModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -86,6 +88,8 @@ class SnapshotRequestValidatorTest {
   void validateByRequestId() throws Exception {
     when(jobService.retrieveJob(any(), any()))
         .thenReturn(new JobModel().jobStatus(JobModel.JobStatusEnum.SUCCEEDED));
+    when(snapshotService.getSourceDatasetFromSnapshotRequest(any()))
+        .thenReturn(new Dataset().id(UUID.randomUUID()));
     String validRequestModel =
         """
         {

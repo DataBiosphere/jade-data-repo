@@ -1037,7 +1037,9 @@ class SnapshotServiceTest {
     String jobId = String.valueOf(UUID.randomUUID());
     when(jobBuilder.submit()).thenReturn(jobId);
 
-    String result = service.createSnapshot(request, TEST_USER);
+    String result =
+        service.createSnapshot(
+            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
     verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
     verify(jobBuilder).submit();
@@ -1049,7 +1051,9 @@ class SnapshotServiceTest {
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
 
-    String result = service.createSnapshot(request, TEST_USER);
+    String result =
+        service.createSnapshot(
+            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
     verify(duosClient).getDataset(DUOS_ID, TEST_USER);
     verify(jobBuilder).submit();
@@ -1068,8 +1072,10 @@ class SnapshotServiceTest {
   void testCreateSnapshotThrowsWhenDuosClientThrows() {
     SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+    Dataset dataset = service.getSourceDatasetFromSnapshotRequest(request);
     when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
-    assertThrows(HttpClientErrorException.class, () -> service.createSnapshot(request, TEST_USER));
+    assertThrows(
+        HttpClientErrorException.class, () -> service.createSnapshot(request, dataset, TEST_USER));
     JobBuilder jobBuilder = mock(JobBuilder.class);
     verifyNoInteractions(jobBuilder);
   }
@@ -1083,13 +1089,19 @@ class SnapshotServiceTest {
     request.profileId(UUID.randomUUID());
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
-    String datasetName = contentsModel.getDatasetName();
-    when(datasetService.retrieveByName(datasetName)).thenReturn(new Dataset().name(datasetName));
+    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
+        .thenReturn(snapshotAccessRequestResponse);
+    when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
         .thenReturn(
-            new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED));
+            new Snapshot()
+                .snapshotSources(
+                    List.of(new SnapshotSource().dataset(new Dataset().id(UUID.randomUUID())))));
 
-    String result = service.createSnapshot(request, TEST_USER);
+    String result =
+        service.createSnapshot(
+            request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
     assertThat("Job is submitted and id returned", result, equalTo(jobId));
   }
 
@@ -1331,7 +1343,7 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void getSourceDatasetsFromSnapshotRequestHandlesByRequestId() {
+  void getSourceDatasetFromSnapshotRequestHandlesByRequestId() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestIdModel requestIdModel =
         new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId);
@@ -1352,13 +1364,13 @@ class SnapshotServiceTest {
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
     when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
 
-    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+    Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 
-    assertThat(datasets.get(0), is(dataset));
+    assertThat(sourceDataset, is(dataset));
   }
 
   @Test
-  void getSourceDatasetsFromSnapshotRequestHandlesNonByRequestId() {
+  void getSourceDatasetFromSnapshotRequestHandlesNonByRequestId() {
     SnapshotRequestContentsModel contentsModel =
         new SnapshotRequestContentsModel()
             .datasetName(DATASET_NAME)
@@ -1368,9 +1380,9 @@ class SnapshotServiceTest {
     Dataset dataset = new Dataset().id(datasetId);
     when(datasetService.retrieveByName(DATASET_NAME)).thenReturn(dataset);
 
-    List<Dataset> datasets = service.getSourceDatasetsFromSnapshotRequest(snapshotRequestModel);
+    Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 
-    assertThat(datasets.get(0), is(dataset));
+    assertThat(sourceDataset, is(dataset));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

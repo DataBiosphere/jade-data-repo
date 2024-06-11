@@ -174,10 +174,9 @@ public class SnapshotService {
    * @return jobId (flightId) of the job
    */
   public String createSnapshot(
-      SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-    SnapshotRequestContentsModel requestContents = snapshotRequestModel.getContents().get(0);
-    String sourceDatasetName = requestContents.getDatasetName();
-    Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
+      SnapshotRequestModel snapshotRequestModel,
+      Dataset dataset,
+      AuthenticatedUserRequest userReq) {
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(
@@ -200,9 +199,7 @@ public class SnapshotService {
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
-        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
-        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), dataset.getId())
-        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK_SNAPSHOT)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), dataset.getId())
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId.toString())
         .submit();
   }
@@ -653,26 +650,15 @@ public class SnapshotService {
                     "This dataset does not have an asset specification with name: " + assetName));
   }
 
-  public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequestModel) {
-    return getSourceDatasetsFromSnapshotRequest(snapshotRequestModel).stream()
-        .map(Dataset::getId)
-        .collect(Collectors.toList());
-  }
-
-  public List<Dataset> getSourceDatasetsFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequestModel) {
-    return snapshotRequestModel.getContents().stream()
-        .map(
-            c ->
-                c.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID
-                    ? retrieve(
-                            snapshotRequestDao
-                                .getById(c.getRequestIdSpec().getSnapshotRequestId())
-                                .getSourceSnapshotId())
-                        .getSourceDataset()
-                    : datasetService.retrieveByName(c.getDatasetName()))
-        .collect(Collectors.toList());
+  public Dataset getSourceDatasetFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+    SnapshotRequestContentsModel contents = snapshotRequestModel.getContents().get(0);
+    return contents.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID
+        ? retrieve(
+                snapshotRequestDao
+                    .getById(contents.getRequestIdSpec().getSnapshotRequestId())
+                    .getSourceSnapshotId())
+            .getSourceDataset()
+        : datasetService.retrieveByName(contents.getDatasetName());
   }
 
   public AddAuthDomainResponseModel addSnapshotDataAccessControls(

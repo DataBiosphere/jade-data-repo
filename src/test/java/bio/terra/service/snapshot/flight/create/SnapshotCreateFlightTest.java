@@ -16,6 +16,7 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
@@ -46,9 +47,11 @@ class SnapshotCreateFlightTest {
     when(appConfig.getMaxStairwayThreads()).thenReturn(1);
 
     SnapshotService snapshotService = mock(SnapshotService.class);
-    DatasetSummary datasetSummary = mock(DatasetSummary.class);
-    when(snapshotService.getSourceDatasetsFromSnapshotRequest(any()))
-        .thenReturn(List.of(new Dataset(datasetSummary)));
+    DatasetService datasetService = mock(DatasetService.class);
+    UUID datasetId = UUID.randomUUID();
+    Dataset dataset = mock(Dataset.class);
+    when(datasetService.retrieve(datasetId)).thenReturn(dataset);
+    when(dataset.getDatasetSummary()).thenReturn(mock(DatasetSummary.class));
 
     when(context.getBean(any(Class.class))).thenReturn(null);
     when(context.getBean(anyString(), any(Class.class))).thenReturn(null);
@@ -56,8 +59,11 @@ class SnapshotCreateFlightTest {
     // to steps need to be added to our context mock.
     when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
     when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
+    when(context.getBean(DatasetService.class)).thenReturn(datasetService);
 
     inputParameters = new FlightMap();
+
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
     inputParameters.put(JobMapKeys.SNAPSHOT_ID.getKeyName(), UUID.randomUUID());
   }
 

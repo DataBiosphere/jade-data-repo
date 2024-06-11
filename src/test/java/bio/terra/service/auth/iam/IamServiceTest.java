@@ -130,7 +130,7 @@ class IamServiceTest {
     assertThat(
         "Error message reflects cause",
         thrown.getMessage(),
-        containsString("does not have required action: " + action));
+        containsString("does not have required action '%s'".formatted(action)));
   }
 
   @Test
@@ -150,7 +150,7 @@ class IamServiceTest {
     assertThat(
         "Error message reflects cause",
         thrown.getMessage(),
-        containsString("does not have any actions"));
+        containsString("does not hold any actions"));
   }
 
   @Test

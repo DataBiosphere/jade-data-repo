@@ -141,7 +141,8 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!isAuthorized(userReq, iamResourceType, resourceId, action)) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have required action: " + action);
+          "User '%s' does not have required action '%s' on the %s with ID %s"
+              .formatted(userEmail, action, iamResourceType.getSamResourceName(), resourceId));
     }
   }
 
@@ -191,7 +192,8 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!hasAnyActions(userReq, iamResourceType, resourceId)) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have any actions on the resource");
+          "User '%s' does not hold any actions on the %s with ID %s"
+              .formatted(userEmail, iamResourceType.getSamResourceName(), resourceId));
     }
   }
 
@@ -235,7 +237,8 @@ public class IamService {
 
     if (!unavailableActions.isEmpty()) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' is missing required actions (returned in details)",
+          "User '%s' is missing required actions on the %s with ID %s (returned in details)"
+              .formatted(userEmail, iamResourceType.getSamResourceName(), resourceId),
           unavailableActions);
     }
   }

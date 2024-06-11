@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -219,5 +220,28 @@ class IamServiceTest {
                 .stewards(policies.getStewards())
                 .readers(expectedReaders)
                 .discoverers(policies.getDiscoverers())));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+        .thenReturn(true);
+    assertDoesNotThrow(
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedFalse() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+        .thenReturn(false);
+    assertThrows(
+        IamForbiddenException.class,
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
   }
 }

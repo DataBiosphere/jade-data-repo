@@ -146,6 +146,40 @@ public class IamService {
   }
 
   /**
+   * This is a wrapper method around {@link #isResourceTypeAdminAuthorized(AuthenticatedUserRequest,
+   * IamResourceType, IamAction)} that throws an exception instead of returning false when the user
+   * is NOT authorized to do the action given a resource type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @throws IamForbiddenException if NOT authorized
+   */
+  public void verifyResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    String userEmail = userReq.getEmail();
+    if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
+      throw new IamForbiddenException(
+          "User '" + userEmail + "' does not have required action: " + action);
+    }
+  }
+
+  /**
+   * Call external API to determine whether a user is authorized to do an admin action on a resource
+   * type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return true if authorized, false otherwise
+   */
+  public boolean isResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    return callProvider(
+        () -> iamProvider.getResourceTypeAdminPermission(userReq, iamResourceType, action));
+  }
+
+  /**
    * This is a wrapper method around {@link #hasAnyActions(AuthenticatedUserRequest,
    * IamResourceType, String)} that throws an exception instead of returning false when the user
    * holds no actions on the resource.

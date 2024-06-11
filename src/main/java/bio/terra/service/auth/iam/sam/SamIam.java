@@ -775,6 +775,23 @@ public class SamIam implements IamProviderInterface {
         .createManagedResourceGroup(billingProfileId, managedResourceGroupCoordinates);
   }
 
+  @Override
+  public boolean getResourceTypeAdminPermission(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService,
+        () -> getResourceTypeAdminPermissionInner(userReq, iamResourceType, action));
+  }
+
+  private boolean getResourceTypeAdminPermissionInner(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws ApiException {
+    return samApiService
+        .adminApi(userReq.getToken())
+        .resourceTypeAdminPermission(iamResourceType.getSamResourceName(), action.toString());
+  }
+
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {
     UserStatusInfo userStatusInfo = getUserInfo(userReq);
     if (!userStatusInfo.isEnabled()) {

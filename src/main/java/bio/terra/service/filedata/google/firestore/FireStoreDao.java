@@ -672,6 +672,7 @@ public class FireStoreDao {
         fileDao.retrieveFileMetadata(
             datasetFirestore, fireStoreDirectoryEntry.getDatasetId(), fileId);
     if (fireStoreFile == null) {
+      logger.info("fileId not found in dataset: {}", fileId);
       return null;
     }
 

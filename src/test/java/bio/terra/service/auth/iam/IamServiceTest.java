@@ -26,6 +26,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -219,5 +220,26 @@ class IamServiceTest {
                 .stewards(policies.getStewards())
                 .readers(expectedReaders)
                 .discoverers(policies.getDiscoverers())));
+  }
+
+  @Test
+  void testRegisterManagedResourceGroup() throws InterruptedException {
+    ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
+        new ManagedResourceGroupCoordinates()
+            .tenantId("tenantId")
+            .subscriptionId("subscriptionId")
+            .managedResourceGroupName("managedResourceGroupName");
+
+    iamService.registerManagedResourceGroup(TEST_USER, ID, managedResourceGroupCoordinates);
+
+    verify(iamProvider)
+        .azureCreateManagedResourceGroup(TEST_USER, ID, managedResourceGroupCoordinates);
+  }
+
+  @Test
+  void testDeleteManagedResourceGroup() throws InterruptedException {
+    iamService.deregisterManagedResourceGroup(TEST_USER, ID);
+
+    verify(iamProvider).azureDeleteManagedResourceGroup(TEST_USER, ID);
   }
 }

@@ -2,6 +2,8 @@ package bio.terra.app.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,6 +22,7 @@ import bio.terra.model.DRSObject;
 import bio.terra.model.DRSPassportRequestModel;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
+import java.net.URI;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -35,11 +38,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @ContextConfiguration(classes = {DataRepositoryServiceApiController.class})
 @Tag(Unit.TAG)
 @WebMvcTest
+@MockBean(ApplicationConfiguration.class)
 class DataRepositoryServiceApiControllerTest {
-
-  private static final String GET_DRS_OBJECT_ENDPOINT = "/ga4gh/drs/v1/objects/{object_id}";
-  private static final String GET_DRS_OBJECT_ACCESS_ENDPOINT =
-      "/ga4gh/drs/v1/objects/{object_id}/access/{access_id}";
 
   // Test fixtures
   private static final String DRS_ID = "foo";
@@ -54,7 +54,6 @@ class DataRepositoryServiceApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private ApplicationConfiguration applicationConfiguration;
   @MockBean private DrsService drsService;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
@@ -66,30 +65,53 @@ class DataRepositoryServiceApiControllerTest {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
   }
 
+  private static URI createGetUri() {
+    return linkTo(methodOn(DataRepositoryServiceApiController.class).getObject(DRS_ID, false))
+        .toUri();
+  }
+
+  private static URI createAccessUri() {
+    return linkTo(
+            methodOn(DataRepositoryServiceApiController.class)
+                .getAccessURL(DRS_ID, DRS_ACCESS_ID, null))
+        .toUri();
+  }
+
   @Test
   void testUnknownDrsIdWithGetFlow() throws Exception {
     when(drsService.lookupObjectByDrsId(TEST_USER, DRS_ID, false))
         .thenThrow(DrsObjectNotFoundException.class);
-    mvc.perform(get(GET_DRS_OBJECT_ENDPOINT, DRS_ID)).andExpect(status().isNotFound());
+    mvc.perform(get(createGetUri())).andExpect(status().isNotFound());
 
     when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null))
         .thenThrow(DrsObjectNotFoundException.class);
-    mvc.perform(get(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID))
-        .andExpect(status().isNotFound());
+    mvc.perform(get(createAccessUri())).andExpect(status().isNotFound());
   }
 
   @Test
   void testKnownDrsIdWithGetFlow() throws Exception {
     when(drsService.lookupObjectByDrsId(TEST_USER, DRS_ID, false)).thenReturn(DRS_OBJECT);
-    mvc.perform(get(GET_DRS_OBJECT_ENDPOINT, DRS_ID))
+    mvc.perform(get(createGetUri()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(DRS_ID));
 
     when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
-    mvc.perform(get(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID))
+    mvc.perform(get(createAccessUri()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.url").value(DRS_ACCESS_URL));
+  }
+
+  private static URI createPostObjectUri() {
+    return linkTo(methodOn(DataRepositoryServiceApiController.class).postObject(DRS_ID, PASSPORT))
+        .toUri();
+  }
+
+  private static URI createPostAccessUri() {
+    return linkTo(
+            methodOn(DataRepositoryServiceApiController.class)
+                .postAccessURL(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+        .toUri();
   }
 
   @Test
@@ -97,14 +119,14 @@ class DataRepositoryServiceApiControllerTest {
     when(drsService.lookupObjectByDrsIdPassport(DRS_ID, PASSPORT))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(
-        post(GET_DRS_OBJECT_ENDPOINT, DRS_ID)
+        post(createPostObjectUri())
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(PASSPORT)));
 
     when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(
-            post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
+            post(createPostAccessUri())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(PASSPORT)))
         .andExpect(status().isNotFound());
@@ -114,7 +136,7 @@ class DataRepositoryServiceApiControllerTest {
   void testKnownDrsIdWithPostFlow() throws Exception {
     when(drsService.lookupObjectByDrsIdPassport(DRS_ID, PASSPORT)).thenReturn(DRS_OBJECT);
     mvc.perform(
-            post(GET_DRS_OBJECT_ENDPOINT, DRS_ID)
+            post(createPostObjectUri())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(PASSPORT)))
         .andExpect(status().isOk())
@@ -123,7 +145,7 @@ class DataRepositoryServiceApiControllerTest {
     when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
     mvc.perform(
-            post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
+            post(createPostAccessUri())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(PASSPORT)))
         .andExpect(status().isOk())
@@ -134,13 +156,13 @@ class DataRepositoryServiceApiControllerTest {
   void testUnknownDrsIdWithOptionsFlow() throws Exception {
     when(drsService.lookupAuthorizationsByDrsId(DRS_ID))
         .thenThrow(DrsObjectNotFoundException.class);
-    mvc.perform(options(GET_DRS_OBJECT_ENDPOINT, DRS_ID)).andExpect(status().isNotFound());
+    mvc.perform(options(createGetUri())).andExpect(status().isNotFound());
   }
 
   @Test
   void testKnownDrsIdWithOptionsFlow() throws Exception {
     when(drsService.lookupAuthorizationsByDrsId(DRS_ID)).thenReturn(PASSPORT_AUTHORIZATIONS);
-    mvc.perform(options(GET_DRS_OBJECT_ENDPOINT, DRS_ID))
+    mvc.perform(options(createGetUri()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.passport_auth_issuers[0]").value(PASSPORT_ISSUER));
   }

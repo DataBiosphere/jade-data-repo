@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -21,6 +22,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -56,7 +58,12 @@ class CreateSnapshotMetadataStepTest {
     workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, PROJECT_RESOURCE_ID);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
 
-    snapshotRequestModel = new SnapshotRequestModel();
+    snapshotRequestModel =
+        new SnapshotRequestModel()
+            .contents(
+                List.of(
+                    new SnapshotRequestContentsModel()
+                        .mode(SnapshotRequestContentsModel.ModeEnum.BYASSET)));
     snapshot = new Snapshot();
     when(snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel))
         .thenReturn(snapshot);

@@ -50,6 +50,8 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
+import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -73,7 +75,6 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
-import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -95,6 +96,7 @@ import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -1329,19 +1331,40 @@ class SnapshotServiceTest {
     contentsModel.requestIdSpec(requestIdModel);
     snapshotRequestModel.contents(List.of(contentsModel));
 
-    AssetSpecification asset = new AssetSpecification().name("concept_asset");
-    Dataset dataset = new Dataset().name("datasetName").assetSpecifications(List.of(asset));
+    Dataset dataset = SnapshotBuilderTestData.DATASET;
+    dataset.name("datasetName");
     when(datasetService.retrieveByName("datasetName")).thenReturn(dataset);
+    when(snapshotRequestDao.getById(snapshotAccessRequestId))
+        .thenReturn(
+            new SnapshotAccessRequestResponse()
+                .snapshotSpecification(
+                    new SnapshotBuilderRequest()
+                        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))));
 
     Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
-    SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset).assetSpecification(asset);
+    SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
 
-    assertThat(actual.getTables().size(), is(0));
+    assertThat(actual.getTables().size(), is(3));
     assertThat(actual.getName(), is(snapshotRequestModel.getName()));
     assertThat(actual.getDescription(), is(snapshotRequestModel.getDescription()));
-    assertThat(actual.getRelationships().size(), is(0));
+    assertThat(actual.getRelationships().size(), is(5));
     assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
     assertThat(actual.getCreationInformation(), is(contentsModel));
+    assertThat(
+        actual.getFirstSnapshotSource().getAssetSpecification().getAssetTables().stream()
+            .map(t -> t.getTable().getName())
+            .toList(),
+        containsInAnyOrder("person", "drug_exposure", "concept"));
+    assertThat(
+        actual.getFirstSnapshotSource().getAssetSpecification().getAssetRelationships().stream()
+            .map(t -> t.getDatasetRelationship().getName())
+            .toList(),
+        containsInAnyOrder(
+            "fpk_drug_person",
+            "fpk_drug_type_concept",
+            "fpk_drug_concept",
+            "fpk_drug_route_concept",
+            "fpk_drug_concept_s"));
   }
 
   @Test
@@ -1415,6 +1438,55 @@ class SnapshotServiceTest {
         .thenReturn(new SnapshotAccessRequestResponse().snapshotName(" a$%").id(uuid));
 
     assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
+  }
+
+  @Test
+  void pullTables() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    UUID sourceSnapshotId = UUID.randomUUID();
+
+    var accessRequestResponse =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
+    accessRequestResponse.id(snapshotAccessRequestId);
+
+    assertThat(
+        service.pullTables(accessRequestResponse).get(0).getDatasetTableName(),
+        is("drug_exposure"));
+  }
+
+  @Test
+  void buildAssetFromSnapshotAccessRequest() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    UUID sourceSnapshotId = UUID.randomUUID();
+    UUID datasetProfileId = UUID.randomUUID();
+    UUID datasetId = UUID.randomUUID();
+
+    Dataset sourceDataset = SnapshotBuilderTestData.DATASET;
+    sourceDataset.name("dataset_name");
+    sourceDataset.id(datasetId);
+    sourceDataset.defaultProfileId(datasetProfileId);
+    var accessRequestResponse =
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
+    accessRequestResponse.id(snapshotAccessRequestId);
+
+    var actualAssetSpec =
+        service.buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequestResponse);
+    assertThat(actualAssetSpec.getName(), containsString("snapshot-by-request-asset"));
+    assertThat(actualAssetSpec.getRootTable().getTable().getName(), is("person"));
+    assertThat(actualAssetSpec.getRootColumn().getDatasetColumn().getName(), is("person_id"));
+    assertThat(
+        actualAssetSpec.getAssetRelationships().stream()
+            .map(r -> r.getDatasetRelationship().getName())
+            .toList(),
+        containsInAnyOrder(
+            "fpk_drug_person",
+            "fpk_drug_type_concept",
+            "fpk_drug_concept",
+            "fpk_drug_route_concept",
+            "fpk_drug_concept_s"));
+    assertThat(
+        actualAssetSpec.getAssetTables().stream().map(at -> at.getTable().getName()).toList(),
+        contains("person", "concept", "drug_exposure"));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

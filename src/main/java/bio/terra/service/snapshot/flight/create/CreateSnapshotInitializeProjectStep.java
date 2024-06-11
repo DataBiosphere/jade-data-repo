@@ -11,22 +11,21 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.List;
 import java.util.UUID;
 
 public class CreateSnapshotInitializeProjectStep implements Step {
   private final ResourceService resourceService;
-  private final List<Dataset> sourceDatasets;
+  private final Dataset sourceDataset;
   private final String snapshotName;
   private final UUID snapshotId;
 
   public CreateSnapshotInitializeProjectStep(
       ResourceService resourceService,
-      List<Dataset> sourceDatasets,
+      Dataset sourceDataset,
       String snapshotName,
       UUID snapshotId) {
     this.resourceService = resourceService;
-    this.sourceDatasets = sourceDatasets;
+    this.sourceDataset = sourceDataset;
     this.snapshotName = snapshotName;
     this.snapshotId = snapshotId;
   }
@@ -44,7 +43,7 @@ public class CreateSnapshotInitializeProjectStep implements Step {
     try {
       projectResourceId =
           resourceService.initializeSnapshotProject(
-              profileModel, projectId, sourceDatasets, snapshotName, snapshotId);
+              profileModel, projectId, sourceDataset, snapshotName, snapshotId);
     } catch (GoogleResourceException e) {
       if (e.getCause().getMessage().contains("500 Internal Server Error")) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

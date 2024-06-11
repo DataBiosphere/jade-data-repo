@@ -50,6 +50,7 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
@@ -301,16 +302,14 @@ class SnapshotsApiControllerTest {
   @Test
   void createSnapshot() throws Exception {
     mockValidators();
-
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(List.of(DATASET_ID));
+    Dataset dataset = new Dataset().id(DATASET_ID);
+    when(snapshotService.getSourceDatasetFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
-    when(iamService.isAuthorized(
-            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
-        .thenReturn(true);
 
-    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, TEST_USER)).thenReturn(JOB_ID);
+    when(snapshotService.createSnapshot(SNAPSHOT_REQUEST_MODEL, dataset, TEST_USER))
+        .thenReturn(JOB_ID);
     when(jobService.retrieveJob(JOB_ID, TEST_USER)).thenReturn(JOB_MODEL);
 
     String actualJson =
@@ -323,32 +322,28 @@ class SnapshotsApiControllerTest {
             .getResponse()
             .getContentAsString();
     JobModel actual = TestUtils.mapFromJson(actualJson, JobModel.class);
-    assertThat("Job model is returned", actual, equalTo(JOB_MODEL));
-
     verify(iamService)
-        .isAuthorized(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
+        .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
+    assertThat("Job model is returned", actual, equalTo(JOB_MODEL));
   }
 
   @Test
   void createSnapshot_forbidden() throws Exception {
     mockValidators();
-
-    when(snapshotService.getSourceDatasetIdsFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
-        .thenReturn(List.of(DATASET_ID));
+    Dataset dataset = new Dataset().id(DATASET_ID);
+    when(snapshotService.getSourceDatasetFromSnapshotRequest(SNAPSHOT_REQUEST_MODEL))
+        .thenReturn(dataset);
 
     IamAction iamAction = IamAction.LINK_SNAPSHOT;
-    when(iamService.isAuthorized(
-            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction))
-        .thenReturn(false);
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorization(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
 
     mvc.perform(
             post(SNAPSHOTS_ENDPOINT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(SNAPSHOT_REQUEST_MODEL)))
         .andExpect(status().isForbidden());
-
-    verify(iamService)
-        .isAuthorized(TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), iamAction);
   }
 
   @Test

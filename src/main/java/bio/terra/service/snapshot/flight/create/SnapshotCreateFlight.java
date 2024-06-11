@@ -8,6 +8,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -113,6 +114,15 @@ public class SnapshotCreateFlight extends Flight {
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
     String snapshotName = snapshotReq.getName();
+    SnapshotRequestContentsModel contents = snapshotReq.getContents().get(0);
+    SnapshotRequestContentsModel.ModeEnum mode = contents.getMode();
+
+    // at start of flight, store the flight id in the snapshot request
+    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      addStep(
+          new AddFlightIdToSnapshotRequestStep(
+              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId()));
+    }
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -124,11 +134,8 @@ public class SnapshotCreateFlight extends Flight {
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    // TODO note that with multi-dataset snapshots this will need to change
-    List<Dataset> sourceDatasets =
-        snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
-    Dataset sourceDataset = sourceDatasets.get(0);
-    UUID datasetId = sourceDataset.getId();
+    UUID datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), UUID.class);
+    Dataset sourceDataset = datasetService.retrieve(datasetId);
     String datasetName = sourceDataset.getName();
 
     var platform =
@@ -156,7 +163,7 @@ public class SnapshotCreateFlight extends Flight {
       // Get or initialize the project where the snapshot resources will be created
       addStep(
           new CreateSnapshotInitializeProjectStep(
-              resourceService, sourceDatasets, snapshotName, snapshotId),
+              resourceService, sourceDataset, snapshotName, snapshotId),
           getDefaultExponentialBackoffRetryRule());
     }
 
@@ -198,9 +205,9 @@ public class SnapshotCreateFlight extends Flight {
     }
 
     // Make the big query dataset with views and populate row id filtering tables.
-    // Depending on the type of snapshot, the primary data step will differ:
+    // Depending on the type of snapshot, the primary data step will diff
     // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
-    switch (snapshotReq.getContents().get(0).getMode()) {
+    switch (mode) {
       case BYASSET -> {
         addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
         addStep(
@@ -413,5 +420,12 @@ public class SnapshotCreateFlight extends Flight {
             datasetId,
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
+
+    // at end of flight, add created snapshot id to the snapshot request
+    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      addStep(
+          new AddCreatedSnapshotIdToSnapshotRequestStep(
+              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId(), snapshotId));
+    }
   }
 }

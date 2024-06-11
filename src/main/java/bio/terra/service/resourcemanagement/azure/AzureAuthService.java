@@ -43,7 +43,10 @@ public class AzureAuthService {
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);
     // wrap the cache map with a synchronized map to safely share the cache across threads
-    authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
+    // DO NOT MERGE: disabling cache to debug AzureIntegrationTest failures with shared billing
+    // profile.
+    authorizedMap =
+        Collections.synchronizedMap(new PassiveExpiringMap<>(0 /*15*/, TimeUnit.MINUTES));
   }
 
   /**
@@ -152,12 +155,14 @@ public class AzureAuthService {
   /** Obtain a secret key for the associated storage account */
   private String getStorageAccountKey(
       UUID subscriptionId, String resourceGroupName, String storageAccountResourceName) {
-
     AzureAuthorizedCacheKey authorizedCacheKey =
         new AzureAuthorizedCacheKey(subscriptionId, resourceGroupName, storageAccountResourceName);
+    logger.info("Will get or compute AzureAuthService.getStorageAccountKey...");
     return authorizedMap.computeIfAbsent(
         authorizedCacheKey,
         val -> {
+          // DO NOT MERGE: debugging logging only.
+          logger.info("COMPUTING A NEW AzureAuthService.getStorageAccountKey");
           AzureResourceManager client = configuration.getClient(subscriptionId);
           return client
               .storageAccounts()

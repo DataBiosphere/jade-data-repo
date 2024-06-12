@@ -42,7 +42,6 @@ import org.springframework.test.web.servlet.MockMvc;
       UnitTestConfiguration.class
     })
 @MockBean({
-  SnapshotService.class,
   IamService.class,
   FileService.class,
   ApplicationConfiguration.class,
@@ -54,6 +53,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class SnapshotRequestValidatorTest {
   @Autowired private MockMvc mvc;
   @MockBean private JobService jobService;
+  @MockBean private SnapshotService snapshotService;
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private AssetModelValidator assetModelValidator;
 

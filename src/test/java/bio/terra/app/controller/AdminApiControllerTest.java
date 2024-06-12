@@ -20,9 +20,11 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -81,12 +83,11 @@ class AdminApiControllerTest {
 
   @Test
   void testAdminRetrieveDatasetInvalidId() throws Exception {
-    int status =
-        mvc.perform(get(ADMIN_DATASETS_ENDPOINT, "not a UUID"))
-            .andReturn()
-            .getResponse()
-            .getStatus();
-    assertThat("", status, equalTo(400));
+    mvc.perform(get(ADMIN_DATASETS_ENDPOINT, "not a UUID"))
+        .andExpect(status().isBadRequest())
+        .andReturn()
+        .getResponse()
+        .getStatus();
   }
 
   @Test
@@ -97,6 +98,15 @@ class AdminApiControllerTest {
     int status =
         mvc.perform(get(ADMIN_DATASETS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat("", status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
+  }
+
+  @Test
+  void testAdminRetrieveDatasetNotFound() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
+    doThrow(new DatasetNotFoundException("Dataset not found for id: " + MODEL_ID))
+        .when(datasetService)
+        .retrieveDatasetModel(any(), any(), any());
+    mvc.perform(get(ADMIN_DATASETS_ENDPOINT, MODEL_ID)).andExpect(status().isNotFound());
   }
 
   @Test
@@ -127,11 +137,19 @@ class AdminApiControllerTest {
 
   @Test
   void testAdminRetrieveSnapshotInvalidId() throws Exception {
-    int status =
-        mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, "not a UUID"))
-            .andReturn()
-            .getResponse()
-            .getStatus();
-    assertThat("", status, equalTo(400));
+    mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, "not a UUID"))
+        .andExpect(status().isBadRequest())
+        .andReturn()
+        .getResponse()
+        .getStatus();
+  }
+
+  @Test
+  void testAdminRetrieveSnapshotNotFound() throws Exception {
+    when(iamService.isResourceTypeAdminAuthorized(any(), any(), any())).thenReturn(true);
+    doThrow(new SnapshotNotFoundException("Snapshot not found - id: " + MODEL_ID))
+        .when(snapshotService)
+        .retrieveSnapshotModel(any(), any(), any());
+    mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andExpect(status().isNotFound());
   }
 }

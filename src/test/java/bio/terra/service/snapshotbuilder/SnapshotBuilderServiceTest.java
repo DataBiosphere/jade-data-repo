@@ -207,7 +207,7 @@ class SnapshotBuilderServiceTest {
 
     var queryBuilder = mock(SearchConceptsQueryBuilder.class);
     when(queryBuilderFactory.searchConceptsQueryBuilder()).thenReturn(queryBuilder);
-    when(queryBuilder.buildSearchConceptsQuery(any(), any())).thenReturn(mock(Query.class));
+    when(queryBuilder.buildSearchConceptsQuery(any(), eq(true))).thenReturn(mock(Query.class));
 
     var concept = new SnapshotBuilderConcept().name("concept1").id(1);
     mockRunQueryForSearchConcepts(concept, snapshot);
@@ -265,11 +265,11 @@ class SnapshotBuilderServiceTest {
   private <T> org.mockito.stubbing.OngoingStubbing<List<T>> mockRunQuery(Snapshot snapshot) {
     return CloudPlatformWrapper.of(snapshot.getCloudPlatform())
         .choose(
-            () -> when(bigQuerySnapshotPdao.runQuery(any(), any(), any())),
+            () -> when(bigQuerySnapshotPdao.runQuery(any(), any(), any(), any())),
             () -> {
               when(snapshotService.getOrCreateExternalAzureDataSource(snapshot, TEST_USER))
                   .thenReturn("dataSource");
-              return when(azureSynapsePdao.runQuery(any(), any()));
+              return when(azureSynapsePdao.runQuery(any(), any(), any()));
             });
   }
 
@@ -324,7 +324,7 @@ class SnapshotBuilderServiceTest {
     var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);
     when(query.renderSQL(contextArgument.capture())).thenReturn(sql);
     var count = 5;
-    when(azureSynapsePdao.runQuery(eq(sql), any())).thenReturn(List.of(count));
+    when(azureSynapsePdao.runQuery(eq(sql), any(), any())).thenReturn(List.of(count));
     int rollupCount =
         snapshotBuilderService.getRollupCountForCohorts(snapshot.getId(), cohorts, TEST_USER);
     assertThat(

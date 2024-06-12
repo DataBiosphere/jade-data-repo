@@ -1400,10 +1400,11 @@ public class AzureSynapsePdao {
     T convert(ResultSet rs) throws SQLException;
   }
 
-  // WARNING: SQL string must be sanitized before calling this method
-  public <T> List<T> runQuery(String sql, Converter<? extends T> converter) {
+  public <T> List<T> runQuery(
+      String query, Map<String, String> userEnteredData, Converter<? extends T> converter) {
+    MapSqlParameterSource params = new MapSqlParameterSource().addValues(userEnteredData);
     try {
-      return synapseJdbcTemplate.query(sql, (rs, rowNum) -> converter.convert(rs));
+      return synapseJdbcTemplate.query(query, params, (rs, rowNum) -> converter.convert(rs));
     } catch (DataAccessException ex) {
       logger.warn(QUERY_EMPTY_TABLE_ERROR_MESSAGE, ex);
       return new ArrayList<>();

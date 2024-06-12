@@ -1416,11 +1416,22 @@ public class BigQuerySnapshotPdao {
     T convert(FieldValueList fieldValue);
   }
 
-  // WARNING: SQL string must be sanitized before calling this method
-  public <T> List<T> runQuery(String sql, Snapshot snapshot, Converter<T> converter) {
+  public <T> List<T> runQuery(
+      String query,
+      Map<String, String> userEnteredData,
+      Snapshot snapshot,
+      Converter<T> converter) {
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(query)
+            .setNamedParameters(
+                userEnteredData.entrySet().stream()
+                    .collect(
+                        Collectors.toMap(
+                            Map.Entry::getKey, e -> QueryParameterValue.string(e.getValue()))))
+            .build();
     try {
       final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-      final TableResult result = bigQueryProject.query(sql);
+      final TableResult result = bigQueryProject.getBigQuery().query(queryConfig);
       return StreamSupport.stream(result.iterateAll().spliterator(), false)
           .map(converter::convert)
           .toList();

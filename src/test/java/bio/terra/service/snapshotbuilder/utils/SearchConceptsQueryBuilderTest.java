@@ -54,8 +54,8 @@ class SearchConceptsQueryBuilderTest {
             WHERE
               ((c.domain_id = 'Observation'
                   AND c.standard_concept = 'S')
-                AND (CONTAINS_SUBSTR(c.concept_name, 'cancer')
-                  OR CONTAINS_SUBSTR(c.concept_code, 'cancer')))
+                AND (CONTAINS_SUBSTR(c.concept_name, @filter_text)
+                  OR CONTAINS_SUBSTR(c.concept_code, @filter_text)))
             GROUP BY
               c.concept_name,
               c.concept_id,
@@ -87,9 +87,9 @@ class SearchConceptsQueryBuilderTest {
             WHERE
               ((c.domain_id = 'Observation'
                   AND c.standard_concept = 'S')
-                AND (CHARINDEX('cancer',
+                AND (CHARINDEX(:filter_text,
                     c.concept_name) > 0
-                  OR CHARINDEX('cancer',
+                  OR CHARINDEX(:filter_text,
                     c.concept_code) > 0))
             GROUP BY
               c.concept_name,
@@ -102,7 +102,7 @@ class SearchConceptsQueryBuilderTest {
     String actual =
         new QueryBuilderFactory()
             .searchConceptsQueryBuilder()
-            .buildSearchConceptsQuery(domainOption, "cancer")
+            .buildSearchConceptsQuery(domainOption, true)
             .renderSQL(context);
 
     assertQueryEquals(context.getPlatform().choose(expectedGcp, expectedAzure), actual);
@@ -116,7 +116,7 @@ class SearchConceptsQueryBuilderTest {
     String actual =
         new QueryBuilderFactory()
             .searchConceptsQueryBuilder()
-            .buildSearchConceptsQuery(domainOption, "")
+            .buildSearchConceptsQuery(domainOption, false)
             .renderSQL(context);
     String gcpExpected =
         """
@@ -146,10 +146,10 @@ class SearchConceptsQueryBuilderTest {
   @ArgumentsSource(SqlRenderContextProvider.class)
   void testCreateSearchConceptClause(SqlRenderContext context) {
     Concept concept = Concept.asPrimary();
-    String actual = createSearchConceptClause("cancer", concept.name()).renderSQL(context);
+    String actual = createSearchConceptClause(concept.name()).renderSQL(context);
 
-    var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, 'cancer')";
-    var expectedAzureQuery = "CHARINDEX('cancer', c.concept_name) > 0";
+    var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, @filter_text)";
+    var expectedAzureQuery = "CHARINDEX(:filter_text, c.concept_name) > 0";
 
     assertQueryEquals(context.getPlatform().choose(expectedGCPQuery, expectedAzureQuery), actual);
   }

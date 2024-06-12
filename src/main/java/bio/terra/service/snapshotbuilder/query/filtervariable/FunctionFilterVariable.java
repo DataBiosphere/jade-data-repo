@@ -2,7 +2,7 @@ package bio.terra.service.snapshotbuilder.query.filtervariable;
 
 import bio.terra.service.snapshotbuilder.query.FieldVariable;
 import bio.terra.service.snapshotbuilder.query.FilterVariable;
-import bio.terra.service.snapshotbuilder.query.Literal;
+import bio.terra.service.snapshotbuilder.query.SelectExpression;
 import bio.terra.service.snapshotbuilder.query.SqlExpression;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import java.util.List;
@@ -12,10 +12,10 @@ import org.stringtemplate.v4.ST;
 public class FunctionFilterVariable implements FilterVariable {
   private final FieldVariable fieldVariable;
   private final FunctionTemplate functionTemplate;
-  private final List<Literal> values;
+  private final List<SelectExpression> values;
 
   public FunctionFilterVariable(
-      FunctionTemplate functionTemplate, FieldVariable fieldVariable, Literal... values) {
+      FunctionTemplate functionTemplate, FieldVariable fieldVariable, SelectExpression... values) {
     this.functionTemplate = functionTemplate;
     this.fieldVariable = fieldVariable;
     this.values = List.of(values);

@@ -196,9 +196,12 @@ class AzureIntegrationTest {
             null,
             retryOptions);
     gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
+    datasetId = null;
+    releaseSnapshotId = null;
     snapshotIds = new ArrayList<>();
     snapshotAccessRequestIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
+    dac = null;
   }
 
   @AfterEach

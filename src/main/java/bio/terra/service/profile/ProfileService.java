@@ -306,13 +306,15 @@ public class ProfileService {
   }
 
   public void registerManagedResourceGroup(
-      BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+      BillingProfileRequestModel request,
+      AuthenticatedUserRequest user,
+      String azureResourceGroupName) {
     UUID spendProfileId = request.getId();
     ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
         new ManagedResourceGroupCoordinates()
             .tenantId(request.getTenantId().toString())
             .subscriptionId(request.getSubscriptionId().toString())
-            .managedResourceGroupName(request.getResourceGroupName());
+            .managedResourceGroupName(azureResourceGroupName);
 
     iamService.registerManagedResourceGroup(user, spendProfileId, managedResourceGroupCoordinates);
   }

@@ -36,6 +36,7 @@ class ProfileCreateFlightTest {
             "CreateProfileMetadataStep",
             "CreateProfileVerifyDeployedApplicationStep",
             "CreateProfileAuthzIamStep",
+            "CreateProfileAzureApplicationDeploymentStep",
             "CreateProfileManagedResourceGroup",
             "CreateProfileJournalEntryStep"));
   }

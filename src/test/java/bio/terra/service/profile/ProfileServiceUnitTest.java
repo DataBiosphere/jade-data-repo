@@ -28,6 +28,7 @@ import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
@@ -50,6 +51,7 @@ class ProfileServiceUnitTest {
   @Mock private GoogleBillingService googleBillingService;
   @Mock private AzureAuthzService azureAuthzService;
   @Mock private ApplicationConfiguration applicationConfiguration;
+  @Mock private AzureApplicationDeploymentResource azureApplicationDeploymentResource;
 
   private ProfileService profileService;
   private AuthenticatedUserRequest user;
@@ -187,7 +189,8 @@ class ProfileServiceUnitTest {
             .subscriptionId(subscriptionId.toString())
             .managedResourceGroupName(resourceGroupName);
 
-    profileService.registerManagedResourceGroup(billingProfileRequestModel, user);
+    profileService.registerManagedResourceGroup(
+        billingProfileRequestModel, user, resourceGroupName);
 
     verify(iamService)
         .registerManagedResourceGroup(user, PROFILE_ID, managedResourceGroupCoordinates);
@@ -202,4 +205,10 @@ class ProfileServiceUnitTest {
 
     verify(iamService).deregisterManagedResourceGroup(user, PROFILE_ID);
   }
+
+  @Test
+  void testRegisterAzureApplicationDeployment() {}
+
+  @Test
+  void testDeregisterAzureApplicationDeployment() {}
 }

@@ -6,6 +6,7 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -17,6 +18,8 @@ public class ProfileCreateFlight extends Flight {
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     ProfileService profileService = appContext.getBean(ProfileService.class);
+    AzureApplicationDeploymentService azureApplicationDeploymentService =
+        appContext.getBean(AzureApplicationDeploymentService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
 
     BillingProfileRequestModel request =
@@ -37,6 +40,9 @@ public class ProfileCreateFlight extends Flight {
     }
     addStep(new CreateProfileAuthzIamStep(profileService, request, user));
     if (platform.isAzure()) {
+      addStep(
+          new CreateProfileAzureApplicationDeploymentStep(
+              azureApplicationDeploymentService, request, user));
       addStep(new CreateProfileManagedResourceGroup(profileService, request, user));
     }
     addStep(new CreateProfileJournalEntryStep(journalService, user, request));

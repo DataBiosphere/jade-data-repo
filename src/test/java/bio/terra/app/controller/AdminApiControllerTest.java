@@ -80,6 +80,16 @@ class AdminApiControllerTest {
   }
 
   @Test
+  void testAdminRetrieveDatasetInvalidId() throws Exception {
+    int status =
+        mvc.perform(get(ADMIN_DATASETS_ENDPOINT, "not a UUID"))
+            .andReturn()
+            .getResponse()
+            .getStatus();
+    assertThat("", status, equalTo(400));
+  }
+
+  @Test
   void testAdminRetrieveDatasetNotAuthorized() throws Exception {
     doThrow(FORBIDDEN_EXCEPTION)
         .when(iamService)
@@ -113,5 +123,15 @@ class AdminApiControllerTest {
     int status =
         mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
     assertThat("", status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
+  }
+
+  @Test
+  void testAdminRetrieveSnapshotInvalidId() throws Exception {
+    int status =
+        mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, "not a UUID"))
+            .andReturn()
+            .getResponse()
+            .getStatus();
+    assertThat("", status, equalTo(400));
   }
 }

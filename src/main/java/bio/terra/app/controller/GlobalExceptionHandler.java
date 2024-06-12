@@ -16,12 +16,12 @@ import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 @RestControllerAdvice
@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
 
   // -- exceptions from validations - we don't control the exception raised --
   @ExceptionHandler({
-    MethodArgumentTypeMismatchException.class,
+    TypeMismatchException.class,
     MethodArgumentNotValidException.class,
     IllegalArgumentException.class,
     NoHandlerFoundException.class

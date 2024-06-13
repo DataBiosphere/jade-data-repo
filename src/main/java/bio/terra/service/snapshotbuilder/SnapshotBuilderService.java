@@ -1,7 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory.FILTER_TEXT;
-
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
@@ -50,7 +48,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.thymeleaf.util.StringUtils;
 
 @Component
 public class SnapshotBuilderService {
@@ -106,7 +103,17 @@ public class SnapshotBuilderService {
       Query query,
       Snapshot snapshot,
       AuthenticatedUserRequest userRequest,
-      Map<String, String> userEnteredData,
+      BigQuerySnapshotPdao.Converter<T> bqConverter,
+      AzureSynapsePdao.Converter<T> synapseConverter) {
+    return runSnapshotBuilderQuery(
+        query, snapshot, userRequest, Map.of(), bqConverter, synapseConverter);
+  }
+
+  private <T> List<T> runSnapshotBuilderQuery(
+      Query query,
+      Snapshot snapshot,
+      AuthenticatedUserRequest userRequest,
+      Map<String, ?> paramMap,
       BigQuerySnapshotPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
     String sql = query.renderSQL(createContext(snapshot, userRequest));
@@ -114,8 +121,8 @@ public class SnapshotBuilderService {
     List<T> result =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform())
             .choose(
-                () -> bigQuerySnapshotPdao.runQuery(sql, userEnteredData, snapshot, bqConverter),
-                () -> azureSynapsePdao.runQuery(sql, userEnteredData, synapseConverter));
+                () -> bigQuerySnapshotPdao.runQuery(sql, paramMap, snapshot, bqConverter),
+                () -> azureSynapsePdao.runQuery(sql, paramMap, synapseConverter));
     logger.info(
         "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
     return result;
@@ -137,7 +144,6 @@ public class SnapshotBuilderService {
             query,
             snapshot,
             userRequest,
-            Map.of(),
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderConceptsResponse().result(concepts);
@@ -210,14 +216,14 @@ public class SnapshotBuilderService {
         queryBuilderFactory
             .searchConceptsQueryBuilder()
             .buildSearchConceptsQuery(
-                snapshotBuilderDomainOption, !StringUtils.isEmpty(searchText));
+                snapshotBuilderDomainOption, searchText != null && !searchText.isEmpty());
 
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             query,
             snapshot,
             userRequest,
-            Map.of(FILTER_TEXT, searchText),
+            Map.of(QueryBuilderFactory.FILTER_TEXT, searchText),
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderConceptsResponse().result(concepts);
@@ -238,7 +244,6 @@ public class SnapshotBuilderService {
             query,
             snapshot,
             userRequest,
-            Map.of(),
             AggregateBQQueryResultsUtils::toCount,
             AggregateSynapseQueryResultsUtils::toCount)
         .get(0);
@@ -265,7 +270,6 @@ public class SnapshotBuilderService {
             queryBuilderFactory.conceptChildrenQueryBuilder().retrieveDomainId(conceptId),
             snapshot,
             userRequest,
-            Map.of(),
             AggregateBQQueryResultsUtils::toDomainId,
             AggregateSynapseQueryResultsUtils::toDomainId);
     if (domainIdResult.size() == 1) {
@@ -335,7 +339,7 @@ public class SnapshotBuilderService {
 
     Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
     runSnapshotBuilderQuery(
-            query, snapshot, userRequest, Map.of(), ParentQueryResult::new, ParentQueryResult::new)
+            query, snapshot, userRequest, ParentQueryResult::new, ParentQueryResult::new)
         .forEach(
             row -> {
               SnapshotBuilderParentConcept parent =

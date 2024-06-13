@@ -1401,10 +1401,9 @@ public class AzureSynapsePdao {
   }
 
   public <T> List<T> runQuery(
-      String query, Map<String, String> userEnteredData, Converter<? extends T> converter) {
-    MapSqlParameterSource params = new MapSqlParameterSource().addValues(userEnteredData);
+      String query, Map<String, ?> paramMap, Converter<? extends T> converter) {
     try {
-      return synapseJdbcTemplate.query(query, params, (rs, rowNum) -> converter.convert(rs));
+      return synapseJdbcTemplate.query(query, paramMap, (rs, rowNum) -> converter.convert(rs));
     } catch (DataAccessException ex) {
       logger.warn(QUERY_EMPTY_TABLE_ERROR_MESSAGE, ex);
       return new ArrayList<>();

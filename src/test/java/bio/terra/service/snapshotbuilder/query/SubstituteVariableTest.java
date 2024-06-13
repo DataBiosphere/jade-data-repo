@@ -1,6 +1,6 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import bio.terra.common.category.Unit;
 import org.junit.jupiter.api.Tag;

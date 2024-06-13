@@ -1417,21 +1417,15 @@ public class BigQuerySnapshotPdao {
   }
 
   public <T> List<T> runQuery(
-      String query,
-      Map<String, String> userEnteredData,
-      Snapshot snapshot,
-      Converter<T> converter) {
-    QueryJobConfiguration queryConfig =
-        QueryJobConfiguration.newBuilder(query)
-            .setNamedParameters(
-                userEnteredData.entrySet().stream()
-                    .collect(
-                        Collectors.toMap(
-                            Map.Entry::getKey, e -> QueryParameterValue.string(e.getValue()))))
-            .build();
+      String query, Map<String, ?> paramMap, Snapshot snapshot, Converter<T> converter) {
+    Map<String, QueryParameterValue> values =
+        paramMap.entrySet().stream()
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey, e -> QueryParameterValue.string((String) e.getValue())));
     try {
       final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-      final TableResult result = bigQueryProject.getBigQuery().query(queryConfig);
+      final TableResult result = bigQueryProject.query(query, values);
       return StreamSupport.stream(result.iterateAll().spliterator(), false)
           .map(converter::convert)
           .toList();

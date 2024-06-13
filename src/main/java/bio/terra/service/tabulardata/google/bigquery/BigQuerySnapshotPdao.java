@@ -1417,7 +1417,7 @@ public class BigQuerySnapshotPdao {
   }
 
   public <T> List<T> runQuery(
-      String query, Map<String, ?> paramMap, Snapshot snapshot, Converter<T> converter) {
+      String query, Map<String, String> paramMap, Snapshot snapshot, Converter<T> converter) {
     Map<String, QueryParameterValue> values =
         paramMap.entrySet().stream()
             .collect(

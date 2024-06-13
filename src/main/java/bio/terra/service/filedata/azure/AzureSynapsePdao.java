@@ -1401,7 +1401,7 @@ public class AzureSynapsePdao {
   }
 
   public <T> List<T> runQuery(
-      String query, Map<String, ?> paramMap, Converter<? extends T> converter) {
+      String query, Map<String, String> paramMap, Converter<? extends T> converter) {
     try {
       return synapseJdbcTemplate.query(query, paramMap, (rs, rowNum) -> converter.convert(rs));
     } catch (DataAccessException ex) {

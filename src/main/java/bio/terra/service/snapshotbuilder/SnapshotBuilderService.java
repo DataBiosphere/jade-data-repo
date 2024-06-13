@@ -113,7 +113,7 @@ public class SnapshotBuilderService {
       Query query,
       Snapshot snapshot,
       AuthenticatedUserRequest userRequest,
-      Map<String, ?> paramMap,
+      Map<String, String> paramMap,
       BigQuerySnapshotPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
     String sql = query.renderSQL(createContext(snapshot, userRequest));

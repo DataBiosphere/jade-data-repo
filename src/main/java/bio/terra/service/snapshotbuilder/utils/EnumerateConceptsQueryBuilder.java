@@ -21,15 +21,15 @@ import bio.terra.service.snapshotbuilder.query.table.DomainOccurrence;
 import bio.terra.service.snapshotbuilder.query.table.Table;
 import java.util.List;
 
-public class SearchConceptsQueryBuilder {
+public class EnumerateConceptsQueryBuilder {
 
   /**
-   * Generate a query that retrieves all the concepts from the given searched text. If a search text
-   * is not provided, a search will be made only on the domain.
+   * Generate a query that retrieves all the concepts from the given searched text. If text is not
+   * provided, all concepts in the domain will be enumerated.
    *
    * <pre>{@code
-   *  GCP: searchClause = (CONTAINS_SUBSTR(c.concept_name, 'search_text') OR CONTAINS_SUBSTR(c.concept_code, 'search_text'))
-   *  Azure: searchClause = CHARINDEX('search_text', c.concept_name) > 0 OR CHARINDEX('search_text', c.concept_code) > 0))
+   *  GCP: filterClause = (CONTAINS_SUBSTR(c.concept_name, 'filter_text') OR CONTAINS_SUBSTR(c.concept_code, 'filter_text'))
+   *  Azure: filterClause = CHARINDEX('search_text', c.concept_name) > 0 OR CHARINDEX('filter_text', c.concept_code) > 0))
    *
    *  sql_code = c.concept_name, c_concept_id, COUNT(DISTINCT co.person_id) AS count, 1 AS has_children FROM
    * `concept` AS c JOIN `concept_ancestor` AS c0 ON c0.ancestor_concept_id = c.concept_id LEFT JOIN
@@ -40,7 +40,7 @@ public class SearchConceptsQueryBuilder {
    * Azure: `SELECT TOP 100 {sql_code}`
    * </pre>
    */
-  public Query buildSearchConceptsQuery(
+  public Query buildEnumerateConceptsQuery(
       SnapshotBuilderDomainOption domainOption, boolean hasFilterText) {
     Concept concept = Concept.asPrimary();
     FieldVariable nameField = concept.name();
@@ -83,18 +83,18 @@ public class SearchConceptsQueryBuilder {
     if (!hasFilterText) {
       where = domainClause;
     } else {
-      // search concept name clause filters for the search text based on field concept_name
-      var searchNameClause = createSearchConceptClause(concept.name());
+      // filters for the search text based on field concept_name
+      var filterNameClause = createFilterConceptClause(concept.name());
 
-      // search concept name clause filters for the search text based on field concept_code
-      var searchCodeClause = createSearchConceptClause(concept.conceptCode());
+      // filters for the search text based on field concept_code
+      var filterCodeClause = createFilterConceptClause(concept.conceptCode());
 
-      // (searchNameClause OR searchCodeClause)
-      List<FilterVariable> searches = List.of(searchNameClause, searchCodeClause);
+      // (filterNameClause OR filterCodeClause)
+      List<FilterVariable> searches = List.of(filterNameClause, filterCodeClause);
       BooleanAndOrFilterVariable searchClause =
           new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
 
-      // domainClause AND (searchNameClause OR searchCodeClause)
+      // domainClause AND (filterNameClause OR filterCodeClause)
       List<FilterVariable> allFilters = List.of(domainClause, searchClause);
 
       where =
@@ -112,7 +112,7 @@ public class SearchConceptsQueryBuilder {
         .build();
   }
 
-  static FunctionFilterVariable createSearchConceptClause(FieldVariable fieldVariable) {
+  static FunctionFilterVariable createFilterConceptClause(FieldVariable fieldVariable) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
         fieldVariable,

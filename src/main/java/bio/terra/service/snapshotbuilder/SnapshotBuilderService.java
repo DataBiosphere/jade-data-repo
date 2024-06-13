@@ -198,7 +198,7 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderConceptsResponse enumerateConcepts(
-      UUID snapshotId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
+      UUID snapshotId, int domainId, String filterText, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
@@ -214,16 +214,16 @@ public class SnapshotBuilderService {
 
     Query query =
         queryBuilderFactory
-            .searchConceptsQueryBuilder()
-            .buildSearchConceptsQuery(
-                snapshotBuilderDomainOption, searchText != null && !searchText.isEmpty());
+            .enumerateConceptsQueryBuilder()
+            .buildEnumerateConceptsQuery(
+                snapshotBuilderDomainOption, filterText != null && !filterText.isEmpty());
 
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             query,
             snapshot,
             userRequest,
-            Map.of(QueryBuilderFactory.FILTER_TEXT, searchText),
+            Map.of(QueryBuilderFactory.FILTER_TEXT, filterText),
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderConceptsResponse().result(concepts);

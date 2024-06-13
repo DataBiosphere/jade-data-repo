@@ -1,10 +1,10 @@
 package bio.terra.service.snapshotbuilder.query;
 
 public class SubstituteVariable implements SelectExpression {
-  private final String searchText;
+  private final String variableName;
 
-  public SubstituteVariable(String searchText) {
-    this.searchText = searchText;
+  public SubstituteVariable(String variableName) {
+    this.variableName = variableName;
   }
 
   // Documentation for @ notation
@@ -13,6 +13,6 @@ public class SubstituteVariable implements SelectExpression {
   // https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html#jdbc-NamedParameterJdbcTemplate
   @Override
   public String renderSQL(SqlRenderContext context) {
-    return context.getPlatform().choose("@" + searchText, ":" + searchText);
+    return context.getPlatform().choose("@" + variableName, ":" + variableName);
   }
 }

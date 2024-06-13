@@ -421,15 +421,15 @@ public class BigQueryPdaoTest {
     var concept3 =
         new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
     getConceptChildrenTest(snapshot, concept1, concept3);
-    searchConceptTest(snapshot, concept1);
+    enumerateConceptTest(snapshot, concept1);
     getConceptHierarchyTest(snapshot, concept1, concept3);
   }
 
-  private void searchConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
+  private void enumerateConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
     var enumerateConceptsResult =
         snapshotBuilderService.enumerateConcepts(
             snapshot.getId(), 19, concept1.getName(), TEST_USER);
-    // A concept returned by search concepts always has hasChildren = true, even if it doesn't
+    // A concept returned by enumerate concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =
         new SnapshotBuilderConcept()

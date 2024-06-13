@@ -49,9 +49,9 @@ import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilder;
+import bio.terra.service.snapshotbuilder.utils.EnumerateConceptsQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
-import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -191,7 +191,7 @@ class SnapshotBuilderServiceTest {
 
   @ParameterizedTest
   @EnumSource(CloudPlatform.class)
-  void searchConcepts(CloudPlatform cloudPlatform) {
+  void enumerateConcepts(CloudPlatform cloudPlatform) {
     Snapshot snapshot = makeSnapshot(cloudPlatform);
     when(snapshotService.retrieve(snapshot.getId())).thenReturn(snapshot);
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
@@ -205,23 +205,23 @@ class SnapshotBuilderServiceTest {
     when(snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId()))
         .thenReturn(snapshotBuilderSettings);
 
-    var queryBuilder = mock(SearchConceptsQueryBuilder.class);
-    when(queryBuilderFactory.searchConceptsQueryBuilder()).thenReturn(queryBuilder);
-    when(queryBuilder.buildSearchConceptsQuery(any(), eq(true))).thenReturn(mock(Query.class));
+    var queryBuilder = mock(EnumerateConceptsQueryBuilder.class);
+    when(queryBuilderFactory.enumerateConceptsQueryBuilder()).thenReturn(queryBuilder);
+    when(queryBuilder.buildEnumerateConceptsQuery(any(), eq(true))).thenReturn(mock(Query.class));
 
     var concept = new SnapshotBuilderConcept().name("concept1").id(1);
-    mockRunQueryForSearchConcepts(concept, snapshot);
+    mockRunQueryForEnumerateConcepts(concept, snapshot);
     var response =
         snapshotBuilderService.enumerateConcepts(
             snapshot.getId(), domainOption.getId(), "cancer", TEST_USER);
     assertThat(
-        "searchConcepts returns the expected response",
+        "enumerateConcepts returns the expected response",
         response.getResult(),
         equalTo(List.of(concept)));
   }
 
   @Test
-  void searchConceptsUnknownDomain() {
+  void enumerateConceptsUnknownDomain() {
     Snapshot snapshot = makeSnapshot(CloudPlatform.GCP);
     UUID snapshotId = snapshot.getId();
     when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
@@ -248,7 +248,7 @@ class SnapshotBuilderServiceTest {
         .id(UUID.randomUUID());
   }
 
-  private void mockRunQueryForSearchConcepts(SnapshotBuilderConcept concept, Snapshot snapshot) {
+  private void mockRunQueryForEnumerateConcepts(SnapshotBuilderConcept concept, Snapshot snapshot) {
     mockRunQuery(snapshot).thenReturn(List.of(concept));
   }
 

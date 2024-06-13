@@ -1,7 +1,7 @@
 package bio.terra.service.snapshotbuilder.utils;
 
 import static bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderTest.assertQueryEquals;
-import static bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder.createSearchConceptClause;
+import static bio.terra.service.snapshotbuilder.utils.EnumerateConceptsQueryBuilder.createFilterConceptClause;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class SearchConceptsQueryBuilderTest {
+class EnumerateConceptsQueryBuilderTest {
 
   private SnapshotBuilderDomainOption createDomainOption(
       String name, int id, String occurrenceTable, String columnName) {
@@ -29,7 +29,7 @@ class SearchConceptsQueryBuilderTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void buildSearchConceptsQuery(SqlRenderContext context) {
+  void buildEnumerateConceptsQuery(SqlRenderContext context) {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Observation", 27, "observation", "observation_concept_id");
 
@@ -101,8 +101,8 @@ class SearchConceptsQueryBuilderTest {
 
     String actual =
         new QueryBuilderFactory()
-            .searchConceptsQueryBuilder()
-            .buildSearchConceptsQuery(domainOption, true)
+            .enumerateConceptsQueryBuilder()
+            .buildEnumerateConceptsQuery(domainOption, true)
             .renderSQL(context);
 
     assertQueryEquals(context.getPlatform().choose(expectedGcp, expectedAzure), actual);
@@ -110,13 +110,13 @@ class SearchConceptsQueryBuilderTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void buildSearchConceptsQueryEmpty(SqlRenderContext context) {
+  void buildEnumerateConceptsQueryEmpty(SqlRenderContext context) {
     SnapshotBuilderDomainOption domainOption =
         createDomainOption("Condition", 19, "condition_occurrence", "condition_concept_id");
     String actual =
         new QueryBuilderFactory()
-            .searchConceptsQueryBuilder()
-            .buildSearchConceptsQuery(domainOption, false)
+            .enumerateConceptsQueryBuilder()
+            .buildEnumerateConceptsQuery(domainOption, false)
             .renderSQL(context);
     String gcpExpected =
         """
@@ -144,9 +144,9 @@ class SearchConceptsQueryBuilderTest {
 
   @ParameterizedTest
   @ArgumentsSource(SqlRenderContextProvider.class)
-  void testCreateSearchConceptClause(SqlRenderContext context) {
+  void testCreateFilterConceptClause(SqlRenderContext context) {
     Concept concept = Concept.asPrimary();
-    String actual = createSearchConceptClause(concept.name()).renderSQL(context);
+    String actual = createFilterConceptClause(concept.name()).renderSQL(context);
 
     var expectedGCPQuery = "CONTAINS_SUBSTR(c.concept_name, @filter_text)";
     var expectedAzureQuery = "CHARINDEX(:filter_text, c.concept_name) > 0";
@@ -160,7 +160,7 @@ class SearchConceptsQueryBuilderTest {
     Concept concept = Concept.asPrimary();
     assertThat(
         "generated sql is as expected",
-        SearchConceptsQueryBuilder.createDomainClause(concept, "domain").renderSQL(context),
+        EnumerateConceptsQueryBuilder.createDomainClause(concept, "domain").renderSQL(context),
         is("(c.domain_id = 'domain' AND c.standard_concept = 'S')"));
   }
 }

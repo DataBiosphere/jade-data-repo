@@ -584,18 +584,18 @@ class SnapshotsApiControllerTest {
 
   @ParameterizedTest
   @MethodSource
-  void testEnumerateConcepts(String searchText) throws Exception {
+  void testEnumerateConcepts(String filterText) throws Exception {
     SnapshotBuilderConceptsResponse expected = makeGetConceptChildrenResponse();
 
     var domainId = 1234;
 
-    when(snapshotBuilderService.enumerateConcepts(SNAPSHOT_ID, domainId, searchText, TEST_USER))
+    when(snapshotBuilderService.enumerateConcepts(SNAPSHOT_ID, domainId, filterText, TEST_USER))
         .thenReturn(expected);
     String actualJson =
         mvc.perform(
                 get(ENUMERATE_CONCEPTS_ENDPOINT, SNAPSHOT_ID)
                     .queryParam("domainId", String.valueOf(domainId))
-                    .queryParam("filterText", searchText))
+                    .queryParam("filterText", filterText))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

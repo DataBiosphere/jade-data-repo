@@ -118,14 +118,12 @@ public class DuosService {
         .firecloudGroupEmail(groupEmail);
   }
 
-  @VisibleForTesting
-  String constructFirecloudGroupName(String duosId) {
-    return String.format("%s-users", duosId);
+  public static String constructFirecloudGroupName(String id) {
+    return String.format("%s-users", id);
   }
 
-  @VisibleForTesting
-  String constructUniqueFirecloudGroupName(String duosId) {
-    return String.format("%s-%s", constructFirecloudGroupName(duosId), UUID.randomUUID());
+  public static String constructUniqueFirecloudGroupName(String id) {
+    return String.format("%s-%s", constructFirecloudGroupName(id), UUID.randomUUID());
   }
 
   /**

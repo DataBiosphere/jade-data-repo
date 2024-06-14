@@ -133,7 +133,7 @@ class SnapshotCreateFlightTest {
             "GetResourceBufferProjectStep",
             "CreateSnapshotInitializeProjectStep",
             "CreateSnapshotMetadataStep",
-            "CreateSamGroupStep",
+            "CreateSnapshotFirecloudGroupStep",
             "CreateSnapshotByRequestIdGcpStep",
             "CountSnapshotTableRowsStep",
             "SnapshotAuthzIamStep",

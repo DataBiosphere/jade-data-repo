@@ -8,12 +8,12 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 
-public class CreateSamGroupStep implements Step {
-  private final IamService iamClient;
+public class CreateFirecloudGroupStep implements Step {
+  private final IamService iamService;
   private final SnapshotRequestModel snapshotReq;
 
-  public CreateSamGroupStep(IamService iamClient, SnapshotRequestModel snapshotReq) {
-    this.iamClient = iamClient;
+  public CreateFirecloudGroupStep(IamService iamService, SnapshotRequestModel snapshotReq) {
+    this.iamService = iamService;
     this.snapshotReq = snapshotReq;
   }
 
@@ -21,7 +21,7 @@ public class CreateSamGroupStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     context
         .getWorkingMap()
-        .put(SnapshotWorkingMapKeys.SAM_GROUP, iamClient.createGroup(snapshotReq.getName()));
+        .put(SnapshotWorkingMapKeys.SAM_GROUP, iamService.createGroup(snapshotReq.getName()));
     return StepResult.getStepResultSuccess();
   }
 
@@ -30,7 +30,7 @@ public class CreateSamGroupStep implements Step {
     String createdGroup =
         context.getWorkingMap().get(SnapshotWorkingMapKeys.SAM_GROUP, String.class);
     if (createdGroup != null) {
-      iamClient.deleteGroup(createdGroup);
+      iamService.deleteGroup(createdGroup);
     }
     return StepResult.getStepResultSuccess();
   }

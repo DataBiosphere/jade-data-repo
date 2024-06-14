@@ -21,19 +21,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class CreateSamGroupStepTest {
+class CreateFirecloudGroupStepTest {
 
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
   @Mock private FlightMap workingMap;
   private final String snapshotName = "test";
   private final SnapshotRequestModel snapshotReq = new SnapshotRequestModel().name(snapshotName);
-  private CreateSamGroupStep step;
+  private CreateFirecloudGroupStep step;
 
   @BeforeEach
   void setUp() {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    step = new CreateSamGroupStep(iamService, snapshotReq);
+    step = new CreateFirecloudGroupStep(iamService, snapshotReq);
   }
 
   @Test

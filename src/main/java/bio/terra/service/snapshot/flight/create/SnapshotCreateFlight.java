@@ -262,7 +262,7 @@ public class SnapshotCreateFlight extends Flight {
                   new CreateSnapshotByRowIdParquetFilesAzureStep(
                       azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
       case BYREQUESTID -> {
-        addStep(new CreateSamGroupStep(iamClient, snapshotReq));
+        addStep(new CreateFirecloudGroupStep(iamClient, snapshotReq));
         addStep(
             platform.choose(
                 () ->

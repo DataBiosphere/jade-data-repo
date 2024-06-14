@@ -105,13 +105,24 @@ public class SnapshotBuilderService {
       AuthenticatedUserRequest userRequest,
       BigQuerySnapshotPdao.Converter<T> bqConverter,
       AzureSynapsePdao.Converter<T> synapseConverter) {
+    return runSnapshotBuilderQuery(
+        query, snapshot, userRequest, Map.of(), bqConverter, synapseConverter);
+  }
+
+  private <T> List<T> runSnapshotBuilderQuery(
+      Query query,
+      Snapshot snapshot,
+      AuthenticatedUserRequest userRequest,
+      Map<String, String> paramMap,
+      BigQuerySnapshotPdao.Converter<T> bqConverter,
+      AzureSynapsePdao.Converter<T> synapseConverter) {
     String sql = query.renderSQL(createContext(snapshot, userRequest));
     Instant start = Instant.now();
     List<T> result =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform())
             .choose(
-                () -> bigQuerySnapshotPdao.runQuery(sql, snapshot, bqConverter),
-                () -> azureSynapsePdao.runQuery(sql, synapseConverter));
+                () -> bigQuerySnapshotPdao.runQuery(sql, paramMap, snapshot, bqConverter),
+                () -> azureSynapsePdao.runQuery(sql, paramMap, synapseConverter));
     logger.info(
         "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
     return result;
@@ -187,7 +198,7 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotBuilderConceptsResponse enumerateConcepts(
-      UUID snapshotId, int domainId, String searchText, AuthenticatedUserRequest userRequest) {
+      UUID snapshotId, int domainId, String filterText, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
         snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
@@ -203,14 +214,16 @@ public class SnapshotBuilderService {
 
     Query query =
         queryBuilderFactory
-            .searchConceptsQueryBuilder()
-            .buildSearchConceptsQuery(snapshotBuilderDomainOption, searchText);
+            .enumerateConceptsQueryBuilder()
+            .buildEnumerateConceptsQuery(
+                snapshotBuilderDomainOption, filterText != null && !filterText.isEmpty());
 
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
             query,
             snapshot,
             userRequest,
+            Map.of(QueryBuilderFactory.FILTER_TEXT, filterText),
             AggregateBQQueryResultsUtils::toConcept,
             AggregateSynapseQueryResultsUtils::toConcept);
     return new SnapshotBuilderConceptsResponse().result(concepts);

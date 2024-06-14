@@ -1911,7 +1911,7 @@ public class DataRepoFixtures {
                 + queryParams,
             new TypeReference<>() {});
     assertThat(
-        "search concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        "enumerate concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }

@@ -16,25 +16,17 @@
         ]
       }
     ],
-    "valueSets": [
-      {
-        "name": "Condition",
-        "values": [
-          "Condition Column 1",
-          "Condition Column 2"
-        ]
-      }
-    ],
     "conceptSets": [
       {
         "name": "Condition",
-        "concept": {
-          "id": 19,
-          "code": null,
-          "name": "Condition",
-          "hasChildren": false
-        },
-        "featureValueGroupName": "Condition"
+        "table": {
+          "datasetTableName": "condition_occurrence",
+          "columns": [],
+          "relationships": ["fpk_condition_person",
+            "fpk_condition_concept",
+            "fpk_condition_status_concept",
+            "fpk_condition_concept_s"]
+        }
       }
     ]
   }

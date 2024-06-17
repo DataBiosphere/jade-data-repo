@@ -16,17 +16,13 @@
         ]
       }
     ],
-    "conceptSets": [
+    "outputTables": [
       {
         "name": "Condition",
-        "table": {
-          "datasetTableName": "condition_occurrence",
-          "columns": [],
-          "relationships": ["fpk_condition_person",
-            "fpk_condition_concept",
-            "fpk_condition_status_concept",
-            "fpk_condition_concept_s"]
-        }
+        "values": [
+          "Condition Column 1",
+          "Condition Column 2"
+        ]
       }
     ]
   }

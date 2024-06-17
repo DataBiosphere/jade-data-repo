@@ -5,10 +5,10 @@ import bio.terra.common.FutureUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.DuosFirecloudGroupsSyncResponse;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FirecloudGroupModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.duos.exception.DuosDatasetBadRequestException;
 import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
 import bio.terra.service.duos.exception.DuosFirecloudGroupUpdateConflictException;
@@ -100,30 +100,13 @@ public class DuosService {
   public DuosFirecloudGroupModel createFirecloudGroup(String duosId) {
     logger.info("Creating Firecloud group for {} users", duosId);
 
-    // First try with the more readable group name.
-    String groupName = constructFirecloudGroupName(duosId);
-    String groupEmail;
-    try {
-      groupEmail = iamService.createGroup(groupName);
-    } catch (IamConflictException ex) {
-      logger.warn(
-          "Firecloud group {} already exists: trying creation with a unique name", groupName);
-      groupName = constructUniqueFirecloudGroupName(duosId);
-      groupEmail = iamService.createGroup(groupName);
-    }
+    FirecloudGroupModel firecloudGroup = iamService.createFirecloudGroup(duosId);
+    String groupName = firecloudGroup.getGroupName();
     logger.info("Successfully created Firecloud group {} for {} users", groupName, duosId);
     return new DuosFirecloudGroupModel()
         .duosId(duosId)
         .firecloudGroupName(groupName)
-        .firecloudGroupEmail(groupEmail);
-  }
-
-  public static String constructFirecloudGroupName(String id) {
-    return String.format("%s-users", id);
-  }
-
-  public static String constructUniqueFirecloudGroupName(String id) {
-    return String.format("%s-%s", constructFirecloudGroupName(id), UUID.randomUUID());
+        .firecloudGroupEmail(firecloudGroup.getGroupEmail());
   }
 
   /**

@@ -1,16 +1,13 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.FirecloudGroupModel;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamConflictException;
-import bio.terra.service.duos.DuosService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -42,20 +39,12 @@ class CreateSnapshotFirecloudGroupStepTest {
 
   @Test
   void doStep() throws InterruptedException {
-    String groupName = DuosService.constructFirecloudGroupName(snapshotIdString);
-    when(iamService.createGroup(groupName)).thenReturn(snapshotIdString);
+    String groupName = snapshotIdString + "-users";
+    String groupEmail = groupName + "@firecloud.org";
+    when(iamService.createFirecloudGroup(snapshotIdString))
+        .thenReturn(new FirecloudGroupModel().groupName(groupName).groupEmail(groupEmail));
     assertEquals(StepResult.getStepResultSuccess(), step.doStep(flightContext));
     verify(workingMap).put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP, groupName);
-  }
-
-  @Test
-  void doStepTryAgain() throws InterruptedException {
-    String oldGroupName = DuosService.constructFirecloudGroupName(snapshotIdString);
-    when(iamService.createGroup(oldGroupName)).thenThrow(new IamConflictException(new Throwable()));
-    when(iamService.createGroup(startsWith(oldGroupName))).thenReturn(snapshotIdString);
-    assertEquals(StepResult.getStepResultSuccess(), step.doStep(flightContext));
-    verify(workingMap)
-        .put(eq(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP), startsWith(oldGroupName));
   }
 
   @Test

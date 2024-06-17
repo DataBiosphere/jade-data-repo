@@ -7,16 +7,23 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.FirecloudGroupModel;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
+import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.oauth2.GoogleCredentialsService;
 import bio.terra.service.configuration.ConfigEnum;
@@ -27,6 +34,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -243,5 +251,59 @@ class IamServiceTest {
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
                 TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testConstructFirecloudGroupName() {
+    String id = "123456";
+    assertEquals(iamService.constructFirecloudGroupName(id), String.format("%s-users", id));
+  }
+
+  @Test
+  void testConstructUniqueFirecloudGroupName() {
+    String id = "123456";
+    String actual = iamService.constructUniqueFirecloudGroupName(id);
+    // we don't know exactly what our backstop name will be as it will be suffixed by a new UUID,
+    // but we know that it will start with our more readable group name.
+    assertTrue(actual.contains(String.format("%s-users-", id)));
+    assertEquals(49, actual.length());
+  }
+
+  @Test
+  void testCreateFirecloudGroup() {
+    iamService = spy(iamService);
+    String resourceId = "123456";
+    String groupName = String.format("%s-users", resourceId);
+    String groupEmail = groupName + "@firecloud.org";
+    when(iamService.createGroup(groupName)).thenReturn(groupEmail);
+
+    FirecloudGroupModel actual = iamService.createFirecloudGroup(resourceId);
+    assertThat(actual.getGroupName(), equalTo(groupName));
+    assertThat(actual.getGroupEmail(), equalTo(groupEmail));
+  }
+
+  @Test
+  void testCreateFirecloudGroupWithNamingConflict() {
+    iamService = spy(iamService);
+    String resourceId = "123456";
+    String groupName = String.format("%s-users", resourceId);
+    String groupEmailNew = groupName + "-new" + "@firecloud.org";
+    when(iamService.createGroup(startsWith(groupName))).thenReturn(groupEmailNew);
+    doThrow(new IamConflictException("", List.of())).when(iamService).createGroup(groupName);
+    FirecloudGroupModel actual = iamService.createFirecloudGroup(resourceId);
+    assertThat(actual.getGroupName(), Matchers.startsWith(groupName));
+    assertThat(actual.getGroupEmail(), equalTo(groupEmailNew));
+    // Our first creation attempt failed, so we tried to create again with our unique groupname.
+    verify(iamService, times(2)).createGroup(startsWith(groupName));
+  }
+
+  @Test
+  void testCreateFirecloudGroupWithUnretryableCreationException() {
+    iamService = spy(iamService);
+    String resourceId = "123456";
+    String groupName = String.format("%s-users", resourceId);
+    doThrow(new IamForbiddenException("", List.of())).when(iamService).createGroup(groupName);
+    assertThrows(IamForbiddenException.class, () -> iamService.createFirecloudGroup(resourceId));
+    verify(iamService).createGroup(startsWith(groupName));
   }
 }

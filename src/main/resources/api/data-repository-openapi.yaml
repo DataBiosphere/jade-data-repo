@@ -7613,6 +7613,17 @@ components:
         lastSynced:
           description: Last time TDR queried DUOS for its dataset's authorized users
           type: string
+    FirecloudGroupModel:
+      type: object
+      description: >
+        A Firecloud managed group for the authorized users of a resource.
+      properties:
+        groupName:
+          description: Name of Firecloud managed group
+          type: string
+        groupEmail:
+          description: Email of Firecloud managed group
+          type: string
     SnapshotLinkDuosDatasetResponse:
       type: object
       description: >

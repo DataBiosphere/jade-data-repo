@@ -3,17 +3,20 @@ package bio.terra.service.auth.iam;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.FirecloudGroupModel;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.auth.oauth2.GoogleCredentialsService;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.journal.JournalService;
 import com.google.auth.oauth2.ImpersonatedCredentials;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -438,6 +441,31 @@ public class IamService {
   public String createGroup(String groupName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.createGroup(tdrSaAccessToken, groupName));
+  }
+
+  public FirecloudGroupModel createFirecloudGroup(String resourceId) {
+    // First try with the more readable group name.
+    String groupName = constructFirecloudGroupName(resourceId);
+    String groupEmail;
+    try {
+      groupEmail = createGroup(groupName);
+    } catch (IamConflictException ex) {
+      logger.warn(
+          "Firecloud group {} already exists: trying creation with a unique name", groupName);
+      groupName = constructUniqueFirecloudGroupName(resourceId);
+      groupEmail = createGroup(groupName);
+    }
+    return new FirecloudGroupModel().groupName(groupName).groupEmail(groupEmail);
+  }
+
+  @VisibleForTesting
+  String constructFirecloudGroupName(String id) {
+    return String.format("%s-users", id);
+  }
+
+  @VisibleForTesting
+  String constructUniqueFirecloudGroupName(String id) {
+    return String.format("%s-%s", constructFirecloudGroupName(id), UUID.randomUUID());
   }
 
   /**

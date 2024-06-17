@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -26,10 +25,10 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FirecloudGroupModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.duos.exception.DuosDatasetBadRequestException;
 import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
@@ -44,7 +43,6 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -162,42 +160,24 @@ class DuosServiceTest {
 
   @Test
   void testCreateFirecloudGroup() {
-    when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(FIRECLOUD_GROUP_EMAIL);
+    when(iamService.createFirecloudGroup(DUOS_ID))
+        .thenReturn(
+            new FirecloudGroupModel()
+                .groupName(FIRECLOUD_GROUP_NAME)
+                .groupEmail(FIRECLOUD_GROUP_EMAIL));
 
     DuosFirecloudGroupModel actual = duosService.createFirecloudGroup(DUOS_ID);
     assertThat(actual.getDuosId(), equalTo(DUOS_ID));
     assertThat(actual.getFirecloudGroupName(), equalTo(FIRECLOUD_GROUP_NAME));
     assertThat(actual.getFirecloudGroupEmail(), equalTo(FIRECLOUD_GROUP_EMAIL));
-    verify(iamService).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
   }
 
   @Test
-  void testCreateFirecloudGroupWithNamingConflict() {
-    String groupEmailNew = firecloudGroupEmail(FIRECLOUD_GROUP_NAME + "-new");
-
-    // If we encounter a naming collision when trying to create a Firecloud group,
-    // we don't know exactly what our backstop name will be as it will be suffixed by a new UUID,
-    // but we know that it will start with our more readable group name.
-    when(iamService.createGroup(startsWith(FIRECLOUD_GROUP_NAME))).thenReturn(groupEmailNew);
-    doThrow(new IamConflictException("", List.of()))
-        .when(iamService)
-        .createGroup(FIRECLOUD_GROUP_NAME);
-
-    DuosFirecloudGroupModel actual = duosService.createFirecloudGroup(DUOS_ID);
-    assertThat(actual.getDuosId(), equalTo(DUOS_ID));
-    assertThat(actual.getFirecloudGroupName(), Matchers.startsWith(FIRECLOUD_GROUP_NAME));
-    assertThat(actual.getFirecloudGroupEmail(), equalTo(groupEmailNew));
-    // Our first creation attempt failed, so we tried to create again with our unique group name.
-    verify(iamService, times(2)).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
-  }
-
-  @Test
-  void testCreateFirecloudGroupWithUnretriableCreationException() {
+  void testCreateFirecloudGroupWithUnretryableCreationException() {
     doThrow(new IamForbiddenException("", List.of()))
         .when(iamService)
-        .createGroup(FIRECLOUD_GROUP_NAME);
+        .createFirecloudGroup(DUOS_ID);
     assertThrows(IamForbiddenException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
-    verify(iamService).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
   }
 
   @Test

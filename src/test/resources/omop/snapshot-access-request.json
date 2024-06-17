@@ -19,7 +19,7 @@
     "outputTables": [
       {
         "name": "Condition",
-        "values": [
+        "columns": [
           "Condition Column 1",
           "Condition Column 2"
         ]

@@ -17,22 +17,22 @@ import java.time.Instant;
 public class CreateSnapshotPrimaryDataFullViewGcpStep implements Step {
 
   private BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  private DatasetService datasetservice;
   private SnapshotDao snapshotDao;
   private SnapshotService snapshotService;
   private SnapshotRequestModel snapshotReq;
+  private Dataset sourceDataset;
 
   public CreateSnapshotPrimaryDataFullViewGcpStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
-      DatasetService datasetservice,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
+      SnapshotRequestModel snapshotReq,
+      Dataset sourceDataset) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
-    this.datasetservice = datasetservice;
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -41,10 +41,8 @@ public class CreateSnapshotPrimaryDataFullViewGcpStep implements Step {
      * from the dataset tables, we will need to get the table's live views
      */
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
-    SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    Dataset dataset = datasetservice.retrieveByName(contentsModel.getDatasetName());
-    bigQuerySnapshotPdao.createSnapshotWithLiveViews(snapshot, dataset, createdAt);
+    bigQuerySnapshotPdao.createSnapshotWithLiveViews(snapshot, sourceDataset, createdAt);
 
     return StepResult.getStepResultSuccess();
   }

@@ -224,10 +224,10 @@ public class SnapshotCreateFlight extends Flight {
               () ->
                   new CreateSnapshotPrimaryDataFullViewGcpStep(
                       bigQuerySnapshotPdao,
-                      datasetService,
                       snapshotDao,
                       snapshotService,
-                      snapshotReq),
+                      snapshotReq,
+                      sourceDataset),
               () ->
                   new CreateSnapshotByFullViewParquetFilesAzureStep(
                       azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
@@ -242,7 +242,8 @@ public class SnapshotCreateFlight extends Flight {
                         datasetService,
                         snapshotDao,
                         snapshotReq,
-                        userReq),
+                        userReq,
+                        sourceDataset),
                 () ->
                     new CreateSnapshotByQueryParquetFilesAzureStep(
                         azureSynapsePdao,
@@ -251,7 +252,8 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotReq,
                         datasetService,
                         userReq,
-                        snapshotId)));
+                        snapshotId,
+                        sourceDataset)));
       }
       case BYROWID -> addStep(
           platform.choose(

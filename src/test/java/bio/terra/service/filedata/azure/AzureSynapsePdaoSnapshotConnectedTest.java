@@ -275,8 +275,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             datasetService,
             TEST_USER,
             snapshotId,
-            new Dataset()
-            );
+            new Dataset());
     createSnapshotPrimaryDataQueryAzureStep.validateRootTable(query, assetSpecification);
 
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);

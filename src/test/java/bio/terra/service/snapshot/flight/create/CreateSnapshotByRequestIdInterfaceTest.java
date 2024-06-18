@@ -15,13 +15,12 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +37,7 @@ class CreateSnapshotByRequestIdInterfaceTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   @Mock FlightContext flightContext;
+  @Mock SnapshotService snapshotService;
   @Mock SnapshotBuilderService snapshotBuilderService;
   @Mock SnapshotRequestDao snapshotRequestDao;
   @Mock SnapshotDao snapshotDao;
@@ -71,15 +71,12 @@ class CreateSnapshotByRequestIdInterfaceTest {
     SnapshotRequestModel requestModel =
         SnapshotBuilderTestData.createSnapshotRequestByRequestId(snapshotAccessRequestId);
 
-    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+    when(snapshotService.getSnapshotAccessRequestById(snapshotAccessRequestId))
+        .thenReturn(accessRequestResponse);
     when(snapshotDao.retrieveSnapshot(sourceSnapshotId)).thenReturn(sourceSnapshot);
     when(snapshotBuilderService.generateRowIdQuery(
             accessRequestResponse, sourceSnapshot, TEST_USER))
         .thenReturn(sqlQuery);
-
-    var workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ASSET_SPECIFICATION, new AssetSpecification());
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     // mock out call to createSnapshotPrimaryData
     when(createSnapshotByRequestIdInterface.createSnapshot(
@@ -94,8 +91,8 @@ class CreateSnapshotByRequestIdInterfaceTest {
             flightContext,
             snapshot,
             requestModel,
+            snapshotService,
             snapshotBuilderService,
-            snapshotRequestDao,
             snapshotDao,
             TEST_USER),
         is(StepResult.getStepResultSuccess()));

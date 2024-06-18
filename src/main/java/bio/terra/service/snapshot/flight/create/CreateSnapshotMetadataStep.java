@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
-import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -54,15 +53,6 @@ public class CreateSnapshotMetadataStep implements Step {
               .makeSnapshotFromSnapshotRequest(snapshotReq)
               .id(snapshotId)
               .projectResourceId(projectResourceId);
-      if (snapshotReq
-          .getContents()
-          .get(0)
-          .getMode()
-          .equals(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)) {
-        workingMap.put(
-            SnapshotWorkingMapKeys.SNAPSHOT_ASSET_SPECIFICATION,
-            snapshot.getFirstSnapshotSource().getAssetSpecification());
-      }
       if (snapshotReq.getDuosId() != null) {
         DuosFirecloudGroupModel duosFirecloudGroup =
             SnapshotDuosFlightUtils.getFirecloudGroup(context);

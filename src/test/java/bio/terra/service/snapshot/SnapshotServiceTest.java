@@ -1344,10 +1344,10 @@ class SnapshotServiceTest {
     Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
     SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
 
-    assertThat(actual.getTables().size(), is(3));
+    assertThat(actual.getTables(), hasSize(3));
     assertThat(actual.getName(), is(snapshotRequestModel.getName()));
     assertThat(actual.getDescription(), is(snapshotRequestModel.getDescription()));
-    assertThat(actual.getRelationships().size(), is(5));
+    assertThat(actual.getRelationships(), hasSize(5));
     assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
     assertThat(actual.getCreationInformation(), is(contentsModel));
     assertThat(
@@ -1457,16 +1457,13 @@ class SnapshotServiceTest {
   @Test
   void buildAssetFromSnapshotAccessRequest() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
-    UUID sourceSnapshotId = UUID.randomUUID();
-    UUID datasetProfileId = UUID.randomUUID();
-    UUID datasetId = UUID.randomUUID();
 
     Dataset sourceDataset = SnapshotBuilderTestData.DATASET;
     sourceDataset.name("dataset_name");
     sourceDataset.id(datasetId);
-    sourceDataset.defaultProfileId(datasetProfileId);
+    sourceDataset.defaultProfileId(profileId);
     var accessRequestResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
+        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
 
     var actualAssetSpec =

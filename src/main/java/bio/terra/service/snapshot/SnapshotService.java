@@ -632,7 +632,7 @@ public class SnapshotService {
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
     SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
-    switch (snapshotRequestModel.getContents().get(0).getMode()) {
+    switch (requestContents.getMode()) {
       case BYASSET -> {
         AssetSpecification assetSpecification = getAssetSpecificationFromRequest(requestContents);
         snapshotSource.assetSpecification(assetSpecification);
@@ -656,17 +656,13 @@ public class SnapshotService {
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
       }
       case BYREQUESTID -> {
-        String datasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
+        String datasetName = requestContents.getDatasetName();
         Dataset queryDataset = datasetService.retrieveByName(datasetName);
-        UUID accessRequestId =
-            snapshotRequestModel.getContents().get(0).getRequestIdSpec().getSnapshotRequestId();
-        SnapshotAccessRequestResponse accessRequest = getById(accessRequestId);
+        UUID accessRequestId = requestContents.getRequestIdSpec().getSnapshotRequestId();
+        SnapshotAccessRequestResponse accessRequest = getSnapshotAccessRequestById(accessRequestId);
 
         AssetSpecification queryAssetSpecification =
             buildAssetFromSnapshotAccessRequest(queryDataset, accessRequest);
-        // Make sure the AssetSpecification ID field is null
-        // so that it is not written to the database in the snapshot source table
-        queryAssetSpecification.id(null);
         // populate the assetSpecification field so that we can write it to the working map in the
         // step
         snapshotSource.assetSpecification(queryAssetSpecification);
@@ -688,18 +684,18 @@ public class SnapshotService {
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
-  private SnapshotAccessRequestResponse getById(UUID accessRequestId) {
+  public SnapshotAccessRequestResponse getSnapshotAccessRequestById(UUID accessRequestId) {
     return snapshotRequestDao.getById(accessRequestId);
   }
 
-  @VisibleForTesting
-  AssetSpecification buildAssetFromSnapshotAccessRequest(
+  public AssetSpecification buildAssetFromSnapshotAccessRequest(
       Dataset dataset, SnapshotAccessRequestResponse snapshotRequestModel) {
     // build asset model from snapshot request
-    AssetModel assetModel = new AssetModel();
-    assetModel.name("snapshot-by-request-asset");
-    assetModel.rootTable("person");
-    assetModel.rootColumn("person_id");
+    AssetModel assetModel =
+        new AssetModel()
+            .name("snapshot-by-request-asset")
+            .rootTable("person")
+            .rootColumn("person_id");
     // Manually add dictionary tables, leave columns empty to return all columns
     assetModel.addTablesItem(new AssetTableModel().name("person"));
     assetModel.addTablesItem(new AssetTableModel().name("concept"));
@@ -727,16 +723,13 @@ public class SnapshotService {
 
     Map<String, SnapshotBuilderTable> tableMap = populateManualTableMap();
 
-    return valueSetNames.stream()
-        .map(
-            name -> {
-              if (tableMap.containsKey(name)) {
-                return tableMap.get(name);
-              } else {
-                throw new IllegalArgumentException("Unknown value set name: " + name);
-              }
-            })
-        .toList();
+    Set<String> missing = new HashSet<>(valueSetNames);
+    missing.removeAll(tableMap.keySet());
+    if (!missing.isEmpty()) {
+      throw new IllegalArgumentException("Unknown value set names: " + missing);
+    }
+
+    return valueSetNames.stream().map(tableMap::get).toList();
   }
 
   private Map<String, SnapshotBuilderTable> populateManualTableMap() {

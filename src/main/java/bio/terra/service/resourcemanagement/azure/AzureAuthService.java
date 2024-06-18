@@ -121,9 +121,9 @@ public class AzureAuthService {
 
   public TableServiceClient getTableServiceClient(AzureStorageAuthInfo storageAuthInfo) {
     return getTableServiceClient(
-        storageAuthInfo.getSubscriptionId(),
-        storageAuthInfo.getResourceGroupName(),
-        storageAuthInfo.getStorageAccountResourceName());
+        storageAuthInfo.subscriptionId(),
+        storageAuthInfo.resourceGroupName(),
+        storageAuthInfo.storageAccountResourceName());
   }
 
   /**

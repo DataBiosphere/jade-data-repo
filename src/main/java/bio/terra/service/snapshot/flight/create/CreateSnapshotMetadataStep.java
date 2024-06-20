@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -27,6 +28,7 @@ public class CreateSnapshotMetadataStep implements Step {
   private final SnapshotService snapshotService;
   private final SnapshotRequestModel snapshotReq;
   private final UUID snapshotId;
+  private final Dataset sourceDataset;
 
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
@@ -34,11 +36,13 @@ public class CreateSnapshotMetadataStep implements Step {
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq,
-      UUID snapshotId) {
+      UUID snapshotId,
+      Dataset sourceDataset) {
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
     this.snapshotId = snapshotId;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -50,7 +54,7 @@ public class CreateSnapshotMetadataStep implements Step {
           workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
       Snapshot snapshot =
           snapshotService
-              .makeSnapshotFromSnapshotRequest(snapshotReq)
+              .makeSnapshotFromSnapshotRequest(snapshotReq, sourceDataset)
               .id(snapshotId)
               .projectResourceId(projectResourceId);
       if (snapshotReq.getDuosId() != null) {

@@ -1343,7 +1343,7 @@ class SnapshotServiceTest {
                         .addValueSetsItem(
                             new SnapshotBuilderFeatureValueGroup().name("Condition"))));
 
-    Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
+    Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset);
     SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
 
     assertThat(actual.getTables(), hasSize(4));

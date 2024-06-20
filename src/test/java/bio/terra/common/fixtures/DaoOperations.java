@@ -88,8 +88,9 @@ public class DaoOperations {
   }
 
   public Snapshot createSnapshotFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequest, UUID projectResourceId) {
-    Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+      SnapshotRequestModel snapshotRequest, Dataset sourceDataset, UUID projectResourceId) {
+    Snapshot snapshot =
+        snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest, sourceDataset);
     snapshot.id(UUID.randomUUID());
     snapshot.projectResourceId(projectResourceId);
     return snapshot;
@@ -105,7 +106,7 @@ public class DaoOperations {
   public Snapshot createAndIngestSnapshot(Dataset dataset, String snapshotPath) throws IOException {
     SnapshotRequestModel snapshotRequest = createSnapshotRequestFromDataset(dataset, snapshotPath);
     Snapshot snapshot =
-        createSnapshotFromSnapshotRequest(snapshotRequest, dataset.getProjectResourceId());
+        createSnapshotFromSnapshotRequest(snapshotRequest, dataset, dataset.getProjectResourceId());
     return ingestSnapshot(snapshot);
   }
 

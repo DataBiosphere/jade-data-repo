@@ -11,7 +11,6 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -50,14 +49,12 @@ class CreateSnapshotByRequestIdInterfaceTest {
     UUID sourceSnapshotId = UUID.randomUUID();
     UUID datasetProfileId = UUID.randomUUID();
     UUID datasetId = UUID.randomUUID();
-    AssetSpecification asset = new AssetSpecification().name("concept_asset");
     String sqlQuery = "query";
 
     Dataset sourceDataset = new Dataset();
     sourceDataset.name("dataset_name");
     sourceDataset.id(datasetId);
     sourceDataset.defaultProfileId(datasetProfileId);
-    sourceDataset.assetSpecifications(List.of(asset));
 
     Snapshot snapshot = new Snapshot();
 
@@ -80,7 +77,7 @@ class CreateSnapshotByRequestIdInterfaceTest {
 
     // mock out call to createSnapshotPrimaryData
     when(createSnapshotByRequestIdInterface.createSnapshot(
-            any(), any(), eq(snapshot), eq(sqlQuery), any()))
+            eq(flightContext), any(), eq(snapshot), eq(sqlQuery), any()))
         .thenReturn(StepResult.getStepResultSuccess());
     when(createSnapshotByRequestIdInterface.prepareAndCreateSnapshot(
             any(), any(), any(), any(), any(), any(), any()))

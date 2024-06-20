@@ -13,6 +13,7 @@ import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -51,6 +52,7 @@ class CreateSnapshotMetadataStepTest {
   private FlightMap workingMap;
   private SnapshotRequestModel snapshotRequestModel;
   private Snapshot snapshot;
+  private Dataset dataset;
 
   @BeforeEach
   void setup() {
@@ -65,7 +67,8 @@ class CreateSnapshotMetadataStepTest {
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYASSET)));
     snapshot = new Snapshot();
-    when(snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel))
+    dataset = new Dataset();
+    when(snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset))
         .thenReturn(snapshot);
   }
 
@@ -74,7 +77,7 @@ class CreateSnapshotMetadataStepTest {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     step =
         new CreateSnapshotMetadataStep(
-            snapshotDao, snapshotService, snapshotRequestModel, SNAPSHOT_ID);
+            snapshotDao, snapshotService, snapshotRequestModel, SNAPSHOT_ID, dataset);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     snapshot.id(UUID.randomUUID()).projectResourceId(PROJECT_RESOURCE_ID);
@@ -95,7 +98,7 @@ class CreateSnapshotMetadataStepTest {
 
     step =
         new CreateSnapshotMetadataStep(
-            snapshotDao, snapshotService, snapshotRequestModel, SNAPSHOT_ID);
+            snapshotDao, snapshotService, snapshotRequestModel, SNAPSHOT_ID, dataset);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     snapshot

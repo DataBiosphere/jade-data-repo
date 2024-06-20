@@ -620,7 +620,8 @@ public class SnapshotService {
    *
    * @return Snapshot
    */
-  public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+  public Snapshot makeSnapshotFromSnapshotRequest(
+      SnapshotRequestModel snapshotRequestModel, Dataset sourceDataset) {
     // Make this early, so we can hook up back links to it
     Snapshot snapshot = new Snapshot();
     List<SnapshotRequestContentsModel> requestContentsList = snapshotRequestModel.getContents();
@@ -630,8 +631,7 @@ public class SnapshotService {
     }
 
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
-    Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
-    SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
+    SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(sourceDataset);
     switch (requestContents.getMode()) {
       case BYASSET -> {
         AssetSpecification assetSpecification = getAssetSpecificationFromRequest(requestContents);
@@ -656,13 +656,11 @@ public class SnapshotService {
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
       }
       case BYREQUESTID -> {
-        String datasetName = requestContents.getDatasetName();
-        Dataset queryDataset = datasetService.retrieveByName(datasetName);
         UUID accessRequestId = requestContents.getRequestIdSpec().getSnapshotRequestId();
         SnapshotAccessRequestResponse accessRequest = getSnapshotAccessRequestById(accessRequestId);
 
         AssetSpecification queryAssetSpecification =
-            buildAssetFromSnapshotAccessRequest(queryDataset, accessRequest);
+            buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequest);
         // populate the assetSpecification field so that we can write it to the working map in the
         // step
         snapshotSource.assetSpecification(queryAssetSpecification);
@@ -675,7 +673,8 @@ public class SnapshotService {
         .description(snapshotRequestModel.getDescription())
         .snapshotSources(Collections.singletonList(snapshotSource))
         .profileId(snapshotRequestModel.getProfileId())
-        .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
+        .relationships(
+            createSnapshotRelationships(sourceDataset.getRelationships(), snapshotSource))
         .creationInformation(requestContents)
         .consentCode(snapshotRequestModel.getConsentCode())
         .properties(snapshotRequestModel.getProperties())

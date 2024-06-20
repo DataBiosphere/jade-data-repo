@@ -706,7 +706,7 @@ public class SnapshotService {
         table -> {
           assetModel.addTablesItem(
               new AssetTableModel().name(table.getDatasetTableName()).columns(table.getColumns()));
-          assetModel.follow(table.getRelationships());
+          table.getRelationships().forEach(assetModel::addFollowItem);
         });
 
     // Make sure we just built a valid asset model

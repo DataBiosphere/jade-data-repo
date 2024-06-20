@@ -235,9 +235,29 @@ public class SnapshotBuilderTestData {
                   DRUG_ROUTE_CONCEPT_ID_COLUMN,
                   DRUG_SOURCE_CONCEPT_ID_COLUMN));
 
+  private static final Column CONDITION_CONCEPT_ID_COLUMN =
+      new Column().name(ConditionOccurrence.CONDITION_CONCEPT_ID).type(TableDataType.INTEGER);
+  private static final Column CONDITION_STATUS_CONCEPT_ID_COLUMN =
+      new Column()
+          .name(ConditionOccurrence.CONDITION_STATUS_CONCEPT_ID)
+          .type(TableDataType.INTEGER);
+  private static final Column CONDITION_SOURCE_CONCEPT_ID_COLUMN =
+      new Column()
+          .name(ConditionOccurrence.CONDITION_SOURCE_CONCEPT_ID)
+          .type(TableDataType.INTEGER);
+  public static final DatasetTable CONDITION_TABLE =
+      new DatasetTable()
+          .name(ConditionOccurrence.TABLE_NAME)
+          .columns(
+              List.of(
+                  PERSON_ID_COLUMN,
+                  CONDITION_CONCEPT_ID_COLUMN,
+                  CONDITION_SOURCE_CONCEPT_ID_COLUMN,
+                  CONDITION_STATUS_CONCEPT_ID_COLUMN));
+
   public static final Dataset DATASET =
       new Dataset(new DatasetSummary().cloudPlatform(CloudPlatform.AZURE))
-          .tables(List.of(PERSON_TABLE, CONCEPT_TABLE, DRUG_TABLE))
+          .tables(List.of(PERSON_TABLE, CONCEPT_TABLE, DRUG_TABLE, CONDITION_TABLE))
           .relationships(
               List.of(
                   new Relationship()
@@ -274,6 +294,34 @@ public class SnapshotBuilderTestData {
                       .fromColumn(DRUG_SOURCE_CONCEPT_ID_COLUMN)
                       .fromTable(DRUG_TABLE)
                       .toTable(CONCEPT_TABLE)
+                      .toColumn(CONCEPT_ID_COLUMN),
+                  new Relationship()
+                      .name("fpk_condition_person")
+                      .id(UUID.randomUUID())
+                      .fromColumn(PERSON_ID_COLUMN)
+                      .fromTable(CONDITION_TABLE)
+                      .toTable(PERSON_TABLE)
+                      .toColumn(PERSON_ID_COLUMN),
+                  new Relationship()
+                      .name("fpk_condition_concept")
+                      .id(UUID.randomUUID())
+                      .fromColumn(CONDITION_CONCEPT_ID_COLUMN)
+                      .fromTable(CONDITION_TABLE)
+                      .toTable(CONCEPT_TABLE)
+                      .toColumn(CONCEPT_ID_COLUMN),
+                  new Relationship()
+                      .name("fpk_condition_status_concept")
+                      .id(UUID.randomUUID())
+                      .fromColumn(CONDITION_STATUS_CONCEPT_ID_COLUMN)
+                      .fromTable(CONDITION_TABLE)
+                      .toTable(CONCEPT_TABLE)
+                      .toColumn(CONCEPT_ID_COLUMN),
+                  new Relationship()
+                      .name("fpk_condition_concept_s")
+                      .id(UUID.randomUUID())
+                      .fromColumn(CONDITION_SOURCE_CONCEPT_ID_COLUMN)
+                      .fromTable(CONDITION_TABLE)
+                      .toTable(CONCEPT_TABLE)
                       .toColumn(CONCEPT_ID_COLUMN)));
 
   public static SnapshotBuilderCohort createCohort() {
@@ -308,8 +356,8 @@ public class SnapshotBuilderTestData {
             new SnapshotBuilderDatasetConceptSet()
                 .name("conceptSet")
                 .featureValueGroupName("featureValueGroupName"))
-        .addValueSetsItem(
-            new SnapshotBuilderFeatureValueGroup().name("Drug").addValuesItem("value"));
+        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))
+        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Condition"));
   }
 
   public static SnapshotAccessRequest createSnapshotAccessRequest(UUID sourceSnapshotId) {

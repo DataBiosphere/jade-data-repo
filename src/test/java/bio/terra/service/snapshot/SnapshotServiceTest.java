@@ -1339,22 +1339,24 @@ class SnapshotServiceTest {
             new SnapshotAccessRequestResponse()
                 .snapshotSpecification(
                     new SnapshotBuilderRequest()
-                        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))));
+                        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))
+                        .addValueSetsItem(
+                            new SnapshotBuilderFeatureValueGroup().name("Condition"))));
 
     Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
     SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
 
-    assertThat(actual.getTables(), hasSize(3));
+    assertThat(actual.getTables(), hasSize(4));
     assertThat(actual.getName(), is(snapshotRequestModel.getName()));
     assertThat(actual.getDescription(), is(snapshotRequestModel.getDescription()));
-    assertThat(actual.getRelationships(), hasSize(5));
+    assertThat(actual.getRelationships(), hasSize(9));
     assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
     assertThat(actual.getCreationInformation(), is(contentsModel));
     assertThat(
         actual.getFirstSnapshotSource().getAssetSpecification().getAssetTables().stream()
             .map(t -> t.getTable().getName())
             .toList(),
-        containsInAnyOrder("person", "drug_exposure", "concept"));
+        containsInAnyOrder("person", "drug_exposure", "condition_occurrence", "concept"));
     assertThat(
         actual.getFirstSnapshotSource().getAssetSpecification().getAssetRelationships().stream()
             .map(t -> t.getDatasetRelationship().getName())
@@ -1364,7 +1366,11 @@ class SnapshotServiceTest {
             "fpk_drug_type_concept",
             "fpk_drug_concept",
             "fpk_drug_route_concept",
-            "fpk_drug_concept_s"));
+            "fpk_drug_concept_s",
+            "fpk_condition_person",
+            "fpk_condition_concept",
+            "fpk_condition_status_concept",
+            "fpk_condition_concept_s"));
   }
 
   @Test
@@ -1487,10 +1493,14 @@ class SnapshotServiceTest {
             "fpk_drug_type_concept",
             "fpk_drug_concept",
             "fpk_drug_route_concept",
-            "fpk_drug_concept_s"));
+            "fpk_drug_concept_s",
+            "fpk_condition_person",
+            "fpk_condition_concept",
+            "fpk_condition_status_concept",
+            "fpk_condition_concept_s"));
     assertThat(
         actualAssetSpec.getAssetTables().stream().map(at -> at.getTable().getName()).toList(),
-        contains("person", "concept", "drug_exposure"));
+        contains("person", "concept", "drug_exposure", "condition_occurrence"));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.model.FirecloudGroupModel;
+import bio.terra.service.auth.iam.FirecloudGroupModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;

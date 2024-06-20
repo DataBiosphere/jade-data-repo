@@ -7,7 +7,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -19,7 +18,6 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.FirecloudGroupModel;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
@@ -256,16 +254,16 @@ class IamServiceTest {
   @Test
   void testConstructFirecloudGroupName() {
     String id = "123456";
-    assertEquals(iamService.constructFirecloudGroupName(id), String.format("%s-users", id));
+    assertEquals(IamService.constructFirecloudGroupName(id), String.format("%s-users", id));
   }
 
   @Test
   void testConstructUniqueFirecloudGroupName() {
     String id = "123456";
-    String actual = iamService.constructUniqueFirecloudGroupName(id);
+    String actual = IamService.constructUniqueFirecloudGroupName(id);
     // we don't know exactly what our backstop name will be as it will be suffixed by a new UUID,
     // but we know that it will start with our more readable group name.
-    assertTrue(actual.contains(String.format("%s-users-", id)));
+    assertThat(actual, Matchers.startsWith("%s-users-".formatted(id)));
     assertEquals(49, actual.length());
   }
 

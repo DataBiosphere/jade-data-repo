@@ -3,7 +3,6 @@ package bio.terra.service.auth.iam;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.FirecloudGroupModel;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -459,12 +458,12 @@ public class IamService {
   }
 
   @VisibleForTesting
-  String constructFirecloudGroupName(String id) {
+  static String constructFirecloudGroupName(String id) {
     return String.format("%s-users", id);
   }
 
   @VisibleForTesting
-  String constructUniqueFirecloudGroupName(String id) {
+  static String constructUniqueFirecloudGroupName(String id) {
     return String.format("%s-%s", constructFirecloudGroupName(id), UUID.randomUUID());
   }
 

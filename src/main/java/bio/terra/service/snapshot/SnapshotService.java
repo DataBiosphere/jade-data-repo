@@ -195,7 +195,7 @@ public class SnapshotService {
     UUID snapshotId = UUID.randomUUID();
     String description =
         "Create snapshot %s with ID %s".formatted(snapshotRequestModel.getName(), snapshotId);
-    
+
     snapshotRequestModel.setContents(
         snapshotRequestModel.getContents().stream()
             .map(model -> model.datasetName(dataset.getName()))

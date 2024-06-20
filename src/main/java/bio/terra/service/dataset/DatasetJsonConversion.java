@@ -331,12 +331,13 @@ public final class DatasetJsonConversion {
   }
 
   private static List<AssetRelationship> processAssetRelationships(
-      List<String> assetRelationshipNames, Map<String, Relationship> relationships) {
-    return Collections.unmodifiableList(
-        relationships.entrySet().stream()
-            .filter(map -> assetRelationshipNames.contains(map.getKey()))
-            .map(entry -> new AssetRelationship().datasetRelationship(entry.getValue()))
-            .collect(Collectors.toList()));
+      List<String> orderedAssetRelationshipNames, Map<String, Relationship> relationships) {
+    return orderedAssetRelationshipNames.stream()
+        .filter(relationships::containsKey)
+        .map(
+            relationship ->
+                new AssetRelationship().datasetRelationship(relationships.get(relationship)))
+        .toList();
   }
 
   public static AssetModel assetModelFromAssetSpecification(AssetSpecification spec) {

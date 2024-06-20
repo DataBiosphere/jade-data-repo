@@ -1448,10 +1448,17 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
-
+    var firstTable = service.pullTables(accessRequestResponse).get(0);
+    assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
+    // Must preserve relationship order
     assertThat(
-        service.pullTables(accessRequestResponse).get(0).getDatasetTableName(),
-        is("drug_exposure"));
+        firstTable.getRelationships(),
+        contains(
+            "fpk_drug_person",
+            "fpk_drug_type_concept",
+            "fpk_drug_concept",
+            "fpk_drug_route_concept",
+            "fpk_drug_concept_s"));
   }
 
   @Test
@@ -1475,7 +1482,7 @@ class SnapshotServiceTest {
         actualAssetSpec.getAssetRelationships().stream()
             .map(r -> r.getDatasetRelationship().getName())
             .toList(),
-        containsInAnyOrder(
+        contains(
             "fpk_drug_person",
             "fpk_drug_type_concept",
             "fpk_drug_concept",

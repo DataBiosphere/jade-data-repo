@@ -195,6 +195,13 @@ public class SnapshotService {
     UUID snapshotId = UUID.randomUUID();
     String description =
         "Create snapshot %s with ID %s".formatted(snapshotRequestModel.getName(), snapshotId);
+    // In order to avoid having the dataset name be wrong (since this is created off a request
+    // rather than a dataset in particular), we override the dataset name here. This only works
+    // because we don't actually support multiple sources.
+    snapshotRequestModel.setContents(
+        snapshotRequestModel.getContents().stream()
+            .map(model -> model.datasetName(dataset.getName()))
+            .toList());
 
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)

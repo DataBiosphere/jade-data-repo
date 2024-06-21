@@ -124,6 +124,7 @@ public class AzureBlobStorePdaoTest {
   @MockBean private AzureAuthService azureAuthService;
   @MockBean private GcsPdao gcsPdao;
   @MockBean private GcsProjectFactory gcsProjectFactory;
+  @MockBean private AzureBlobService azureBlobService;
 
   @MockBean(name = "azureTableThreadpool")
   private AsyncTaskExecutor asyncTaskExecutor;
@@ -160,10 +161,10 @@ public class AzureBlobStorePdaoTest {
     blobCrl = mock(BlobCrl.class);
     doReturn(targetBlobContainerFactory).when(dao).getTargetDataClientFactory(any(), any(), any());
     doReturn(sourceBlobContainerFactory)
-        .when(dao)
+        .when(azureBlobService)
         .getSourceClientFactory(anyString(), any(), anyString());
-    doReturn(sourceBlobContainerFactory).when(dao).getSourceClientFactory(any());
-    doReturn(blobCrl).when(dao).getBlobCrl(any());
+    doReturn(sourceBlobContainerFactory).when(azureBlobService).getSourceClientFactory(any());
+    doReturn(blobCrl).when(azureBlobService).getBlobCrl(any());
   }
 
   @Test

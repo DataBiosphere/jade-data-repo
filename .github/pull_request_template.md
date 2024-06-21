@@ -1,23 +1,19 @@
-### Jira Ticket: https://broadworkbench.atlassian.net/browse/[Ticket #]
+### Addresses
+Jira Ticket: https://broadworkbench.atlassian.net/browse/[Ticket #]
+<!--Please give an abridged version of why this change is needed -->
 
-<!-- ### Dependencies --->
-<!-- Include any dependent tickets and describe the relationship. Include any relevant Jira tickets. --->
 
-## Summary of changes:
+### Summary of Changes
 <!--Please give an abridged version of the ticket description here and/or fill out the following fields.-->
 
-### What
--
 
-### Why
--
+### Testing Strategy
 
-### Testing strategy
-<!-- Note that changes impacting components in Storybook stories can be viewed at
-https://www.chromatic.com/library?appId=65fc89c9335768720ff8605a&branch=<branch>
-The branch corresponding to this PR is selected, and changes can be reviewed by commit. --->
+----
+Have you read [Terra's Contributing Guide](https://github.com/DataBiosphere/terra-ui/wiki/Contributor-Guide) lately? If not, do that first.
 
-- [ ] <!-- Test case 1 -->
-
-<!-- ### Visual Aids -->
-<!-- https://support.apple.com/guide/quicktime-player/record-your-screen-qtp97b08e666/mac -->
+- Label PR with a Jira ticket number and include a link to the ticket
+- Fill out the [Security Risk Assessment](https://sdarq.dsp-appsec.broadinstitute.org/jira-ticket-risk-assesment) (requires Broad Internal network access) and attached the result to the JIRA ticket
+- PR describes scope of changes
+- Get two approvals from code owners
+- Verify all GitHub Actions pass

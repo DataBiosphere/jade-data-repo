@@ -1333,7 +1333,6 @@ class SnapshotServiceTest {
 
     Dataset dataset = SnapshotBuilderTestData.DATASET;
     dataset.name("datasetName");
-    when(datasetService.retrieveByName("datasetName")).thenReturn(dataset);
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(
             new SnapshotAccessRequestResponse()

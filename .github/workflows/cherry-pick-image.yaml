@@ -1,3 +1,6 @@
+# Note that this action is called from the UI build process:
+# https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/.github/workflows/dev-image-update.yaml#L95
+# Changes merged here require a version bump in that action.
 name: cherry-pick-image
 on:
   workflow_call:

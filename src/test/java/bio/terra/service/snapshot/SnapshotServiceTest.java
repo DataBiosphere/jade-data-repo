@@ -1385,6 +1385,37 @@ class SnapshotServiceTest {
     assertThat(sourceDataset, is(dataset));
   }
 
+  @Test
+  void generateUpdatedSnapshotNameIfByRequestOnlyAffectsByRequest() {
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel().mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
+    String name = "a-e$2";
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
+
+    assertThat(service.generateUpdatedSnapshotNameIfByRequest(snapshotRequestModel), is(name));
+  }
+
+  @Test
+  void generateUpdatedSnapshotNameIfByRequest() {
+    String uuidAsString = "2c297e7c-b303-4243-af6a-76cd9d3b0ca8";
+    UUID uuid = UUID.fromString(uuidAsString);
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+            .requestIdSpec(new SnapshotRequestIdModel().snapshotRequestId(uuid));
+    String name = " a-e$2-";
+    String expectedName = "a_2c297e7c_b303_4243_af6a_76cd9d3b0ca8";
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
+
+    when(snapshotRequestDao.getById(uuid))
+        .thenReturn(new SnapshotAccessRequestResponse().snapshotName(" a$%").id(uuid));
+
+    assertThat(
+        service.generateUpdatedSnapshotNameIfByRequest(snapshotRequestModel), is(expectedName));
+  }
+
   private void testPreview(int totalRowCount, int filteredRowCount) {
     SnapshotPreviewModel snapshotPreviewModel =
         service.retrievePreview(

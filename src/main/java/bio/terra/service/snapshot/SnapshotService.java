@@ -167,6 +167,29 @@ public class SnapshotService {
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
+  public String generateUpdatedSnapshotNameIfByRequest(SnapshotRequestModel model) {
+    SnapshotRequestContentsModel contentsModel = model.getContents().get(0);
+    if (contentsModel.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+          snapshotRequestDao.getById(contentsModel.getRequestIdSpec().getSnapshotRequestId());
+      String dashesAndSpacesRegex = "[- ]+";
+      String nonAlphaNumericRegex = "\\W";
+
+      return org.springframework.util.StringUtils.trimTrailingCharacter(
+          org.springframework.util.StringUtils.trimLeadingCharacter(
+              String.format(
+                      "%s_%s",
+                      snapshotAccessRequestResponse.getSnapshotName(),
+                      snapshotAccessRequestResponse.getId().toString())
+                  .replaceAll(dashesAndSpacesRegex, "_")
+                  .replaceAll(nonAlphaNumericRegex, "")
+                  .trim(),
+              '_'),
+          '_');
+    }
+    return model.getName();
+  }
+
   /**
    * Kick-off snapshot creation Pre-condition: the snapshot request has been syntax checked by the
    * validator
@@ -177,6 +200,7 @@ public class SnapshotService {
       SnapshotRequestModel snapshotRequestModel,
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
+    snapshotRequestModel.setName(generateUpdatedSnapshotNameIfByRequest(snapshotRequestModel));
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(

@@ -4,6 +4,7 @@ import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
@@ -15,6 +16,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -49,6 +51,18 @@ public class SnapshotAuthzIamStep implements Step {
       DuosFirecloudGroupModel duosFirecloudGroup =
           SnapshotDuosFlightUtils.getFirecloudGroup(context);
       derivedPolicies.addReadersItem(duosFirecloudGroup.getFirecloudGroupEmail());
+    }
+    if (snapshotRequestModel.getContents().get(0).getMode()
+        == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      var snapshotFirecloudGroupEmail =
+          workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class);
+      if (snapshotFirecloudGroupEmail == null) {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL,
+            new IllegalStateException(
+                "Snapshot Firecloud group email not found in working map. We expect a group to be created by snapshot create by request id."));
+      }
+      derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }
     Map<IamRole, String> policies =
         sam.createSnapshotResource(userReq, snapshotId, derivedPolicies);

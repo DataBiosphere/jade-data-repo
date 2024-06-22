@@ -34,7 +34,7 @@ on:
       - '**.gradle'
       - 'Dockerfile'
       - 'datarepo-clienttests/**'
-      - '.github/workflows/**'
+      - '.github/workflows/int-and-connected-test-run.yml'
       - '.swagger-codegen-ignore'
   workflow_dispatch: {}
   schedule:

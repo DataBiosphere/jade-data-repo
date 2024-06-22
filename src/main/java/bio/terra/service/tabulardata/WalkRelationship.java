@@ -14,6 +14,15 @@ import org.slf4j.LoggerFactory;
 public class WalkRelationship {
   private static final Logger logger = LoggerFactory.getLogger(WalkRelationship.class);
 
+  public boolean isStrictRelationshipDirection() {
+    return strictRelationshipDirection;
+  }
+
+  public WalkRelationship setStrictRelationshipDirection(boolean strictRelationshipDirection) {
+    this.strictRelationshipDirection = strictRelationshipDirection;
+    return this;
+  }
+
   public enum WalkDirection {
     FROM_TO,
     TO_FROM
@@ -27,21 +36,27 @@ public class WalkRelationship {
   private int fromIndex; // index of table we are walking from
   private int toIndex; // index of table we are walking to
 
+  private boolean strictRelationshipDirection;
+
   public static List<WalkRelationship> ofAssetSpecification(AssetSpecification assetSpecification) {
     List<WalkRelationship> walklist = new ArrayList<>();
     for (AssetRelationship assetRelationship : assetSpecification.getAssetRelationships()) {
-      walklist.add(WalkRelationship.ofAssetRelationship(assetRelationship));
+      walklist.add(
+          WalkRelationship.ofAssetRelationship(
+              assetRelationship, assetSpecification.isFollowStrictDirection()));
     }
     return walklist;
   }
 
-  public static WalkRelationship ofAssetRelationship(AssetRelationship assetRelationship) {
+  public static WalkRelationship ofAssetRelationship(
+      AssetRelationship assetRelationship, boolean strictRelationshipDirection) {
     Relationship datasetRelationship = assetRelationship.getDatasetRelationship();
     return new WalkRelationship()
         .fromColumn(datasetRelationship.getFromColumn())
         .fromTable(datasetRelationship.getFromTable())
         .toColumn(datasetRelationship.getToColumn())
-        .toTable(datasetRelationship.getToTable());
+        .toTable(datasetRelationship.getToTable())
+        .setStrictRelationshipDirection(strictRelationshipDirection);
   }
 
   public WalkRelationship() {
@@ -147,6 +162,9 @@ public class WalkRelationship {
     if (startTableId.equals(this.getFromTableId())) {
       this.setDirection(WalkRelationship.WalkDirection.FROM_TO);
     } else if (startTableId.equals(this.getToTableId())) {
+      if (strictRelationshipDirection) {
+        return false;
+      }
       this.setDirection(WalkRelationship.WalkDirection.TO_FROM);
     } else {
       // This relationship is not connected to the start table

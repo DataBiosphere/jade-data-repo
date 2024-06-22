@@ -237,6 +237,9 @@ public class SnapshotBuilderTestData {
 
   private static final Column CONDITION_CONCEPT_ID_COLUMN =
       new Column().name(ConditionOccurrence.CONDITION_CONCEPT_ID).type(TableDataType.INTEGER);
+
+  private static final Column CONDITION_TYPE_CONCEPT_ID_COLUMN =
+      new Column().name(ConditionOccurrence.CONDITION_TYPE_CONCEPT_ID).type(TableDataType.INTEGER);
   private static final Column CONDITION_STATUS_CONCEPT_ID_COLUMN =
       new Column()
           .name(ConditionOccurrence.CONDITION_STATUS_CONCEPT_ID)
@@ -261,12 +264,12 @@ public class SnapshotBuilderTestData {
           .relationships(
               List.of(
                   new Relationship()
-                      .name("fpk_drug_person")
+                      .name("fpk_person_drug")
                       .id(UUID.randomUUID())
-                      .fromTable(DRUG_TABLE)
-                      .fromColumn(PERSON_ID_COLUMN)
-                      .toTable(PERSON_TABLE)
-                      .toColumn(PERSON_ID_COLUMN),
+                      .toTable(DRUG_TABLE)
+                      .toColumn(PERSON_ID_COLUMN)
+                      .fromTable(PERSON_TABLE)
+                      .fromColumn(PERSON_ID_COLUMN),
                   new Relationship()
                       .name("fpk_drug_type_concept")
                       .id(UUID.randomUUID())
@@ -296,16 +299,23 @@ public class SnapshotBuilderTestData {
                       .toTable(CONCEPT_TABLE)
                       .toColumn(CONCEPT_ID_COLUMN),
                   new Relationship()
-                      .name("fpk_condition_person")
+                      .name("fpk_person_condition")
                       .id(UUID.randomUUID())
-                      .fromColumn(PERSON_ID_COLUMN)
-                      .fromTable(CONDITION_TABLE)
-                      .toTable(PERSON_TABLE)
-                      .toColumn(PERSON_ID_COLUMN),
+                      .toColumn(PERSON_ID_COLUMN)
+                      .toTable(CONDITION_TABLE)
+                      .fromTable(PERSON_TABLE)
+                      .fromColumn(PERSON_ID_COLUMN),
                   new Relationship()
                       .name("fpk_condition_concept")
                       .id(UUID.randomUUID())
                       .fromColumn(CONDITION_CONCEPT_ID_COLUMN)
+                      .fromTable(CONDITION_TABLE)
+                      .toTable(CONCEPT_TABLE)
+                      .toColumn(CONCEPT_ID_COLUMN),
+                  new Relationship()
+                      .name("fpk_condition_type_concept")
+                      .id(UUID.randomUUID())
+                      .fromColumn(CONDITION_TYPE_CONCEPT_ID_COLUMN)
                       .fromTable(CONDITION_TABLE)
                       .toTable(CONCEPT_TABLE)
                       .toColumn(CONCEPT_ID_COLUMN),

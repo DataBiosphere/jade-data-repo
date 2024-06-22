@@ -1348,7 +1348,7 @@ class SnapshotServiceTest {
     assertThat(actual.getTables(), hasSize(4));
     assertThat(actual.getName(), is(snapshotRequestModel.getName()));
     assertThat(actual.getDescription(), is(snapshotRequestModel.getDescription()));
-    assertThat(actual.getRelationships(), hasSize(9));
+    assertThat(actual.getRelationships(), hasSize(10));
     assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
     assertThat(actual.getCreationInformation(), is(contentsModel));
     assertThat(
@@ -1361,13 +1361,14 @@ class SnapshotServiceTest {
             .map(t -> t.getDatasetRelationship().getName())
             .toList(),
         containsInAnyOrder(
-            "fpk_drug_person",
+            "fpk_person_drug",
+            "fpk_person_condition",
             "fpk_drug_type_concept",
             "fpk_drug_concept",
             "fpk_drug_route_concept",
             "fpk_drug_concept_s",
-            "fpk_condition_person",
             "fpk_condition_concept",
+            "fpk_condition_type_concept",
             "fpk_condition_status_concept",
             "fpk_condition_concept_s"));
   }
@@ -1456,12 +1457,12 @@ class SnapshotServiceTest {
     var firstTable = service.pullTables(accessRequestResponse).get(0);
     assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
     // Must preserve relationship order
+    assertThat(firstTable.getPersonRelationship(), equalTo("fpk_person_drug"));
     assertThat(
-        firstTable.getRelationships(),
+        firstTable.getConceptRelationships(),
         contains(
-            "fpk_drug_person",
-            "fpk_drug_type_concept",
             "fpk_drug_concept",
+            "fpk_drug_type_concept",
             "fpk_drug_route_concept",
             "fpk_drug_concept_s"));
   }
@@ -1488,18 +1489,19 @@ class SnapshotServiceTest {
             .map(r -> r.getDatasetRelationship().getName())
             .toList(),
         contains(
-            "fpk_drug_person",
-            "fpk_drug_type_concept",
+            "fpk_person_drug",
+            "fpk_person_condition",
             "fpk_drug_concept",
+            "fpk_drug_type_concept",
             "fpk_drug_route_concept",
             "fpk_drug_concept_s",
-            "fpk_condition_person",
             "fpk_condition_concept",
+            "fpk_condition_type_concept",
             "fpk_condition_status_concept",
             "fpk_condition_concept_s"));
     assertThat(
         actualAssetSpec.getAssetTables().stream().map(at -> at.getTable().getName()).toList(),
-        contains("person", "concept", "drug_exposure", "condition_occurrence"));
+        contains("person", "drug_exposure", "condition_occurrence", "concept"));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

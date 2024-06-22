@@ -694,10 +694,10 @@ public class SnapshotService {
         new AssetModel()
             .name("snapshot-by-request-asset")
             .rootTable("person")
-            .rootColumn("person_id");
+            .rootColumn("person_id")
+            .followStrictDirection(true);
     // Manually add dictionary tables, leave columns empty to return all columns
     assetModel.addTablesItem(new AssetTableModel().name("person"));
-    assetModel.addTablesItem(new AssetTableModel().name("concept"));
 
     // Build asset tables and columns based on the concept sets included in the snapshot request
     List<SnapshotBuilderTable> tables = pullTables(snapshotRequestModel);
@@ -705,8 +705,13 @@ public class SnapshotService {
         table -> {
           assetModel.addTablesItem(
               new AssetTableModel().name(table.getDatasetTableName()).columns(table.getColumns()));
-          table.getRelationships().forEach(assetModel::addFollowItem);
+          // First add all person <-> occurrence relationships
+          assetModel.addFollowItem(table.getPersonRelationship());
         });
+    // Second, add all occurrence <-> concept relationships
+    tables.forEach(table -> table.getConceptRelationships().forEach(assetModel::addFollowItem));
+
+    assetModel.addTablesItem(new AssetTableModel().name("concept"));
 
     // Make sure we just built a valid asset model
     dataset.validateDatasetAssetSpecification(assetModel);
@@ -739,20 +744,20 @@ public class SnapshotService {
         "Drug",
         new SnapshotBuilderTable()
             .datasetTableName("drug_exposure")
-            .relationships(
+            .personRelationship("fpk_person_drug")
+            .conceptRelationships(
                 List.of(
-                    "fpk_drug_person",
-                    "fpk_drug_type_concept",
                     "fpk_drug_concept",
+                    "fpk_drug_type_concept",
                     "fpk_drug_route_concept",
                     "fpk_drug_concept_s")));
     tableMap.put(
         "Measurement",
         new SnapshotBuilderTable()
             .datasetTableName("measurement")
-            .relationships(
+            .personRelationship("fpk_person_measurement")
+            .conceptRelationships(
                 List.of(
-                    "fpk_measurement_person",
                     "fpk_measurement_concept",
                     "fpk_measurement_unit",
                     "fpk_measurement_concept_s",
@@ -763,9 +768,9 @@ public class SnapshotService {
         "Visit",
         new SnapshotBuilderTable()
             .datasetTableName("visit_occurrence")
-            .relationships(
+            .personRelationship("fpk_person_visit")
+            .conceptRelationships(
                 List.of(
-                    "fpk_visit_person",
                     "fpk_visit_preceding",
                     "fpk_visit_concept_s",
                     "fpk_visit_type_concept",
@@ -775,29 +780,27 @@ public class SnapshotService {
         "Device",
         new SnapshotBuilderTable()
             .datasetTableName("device_exposure")
-            .relationships(
-                List.of(
-                    "fpk_device_person",
-                    "fpk_device_concept",
-                    "fpk_device_concept_s",
-                    "fpk_device_type_concept")));
+            .personRelationship("fpk_person_device")
+            .conceptRelationships(
+                List.of("fpk_device_concept", "fpk_device_concept_s", "fpk_device_type_concept")));
     tableMap.put(
         "Condition",
         new SnapshotBuilderTable()
             .datasetTableName("condition_occurrence")
-            .relationships(
+            .personRelationship("fpk_person_condition")
+            .conceptRelationships(
                 List.of(
-                    "fpk_condition_person",
                     "fpk_condition_concept",
+                    "fpk_condition_type_concept",
                     "fpk_condition_status_concept",
                     "fpk_condition_concept_s")));
     tableMap.put(
         "Procedure",
         new SnapshotBuilderTable()
             .datasetTableName("procedure_occurrence")
-            .relationships(
+            .personRelationship("fpk_person_procedure")
+            .conceptRelationships(
                 List.of(
-                    "fpk_procedure_person",
                     "fpk_procedure_concept",
                     "fpk_procedure_concept_s",
                     "fpk_procedure_type_concept",
@@ -806,29 +809,27 @@ public class SnapshotService {
         "Observation",
         new SnapshotBuilderTable()
             .datasetTableName("observation")
-            .relationships(
+            .personRelationship("fpk_person_observation")
+            .conceptRelationships(
                 List.of(
-                    "fpk_observation_person",
-                    "fpk_observation_period_person",
                     "fpk_observation_concept",
                     "fpk_observation_concept_s",
                     "fpk_observation_unit",
                     "fpk_observation_qualifier",
                     "fpk_observation_type_concept",
-                    "fpk_observation_period_concept",
                     "fpk_observation_value")));
     tableMap.put("Year of Birth", new SnapshotBuilderTable().datasetTableName("person"));
     tableMap.put(
         "Ethnicity",
         new SnapshotBuilderTable()
             .datasetTableName("person")
-            .relationships(
+            .conceptRelationships(
                 List.of("fpk_person_ethnicity_concept", "fpk_person_ethnicity_concept_s")));
     tableMap.put(
         "Race",
         new SnapshotBuilderTable()
             .datasetTableName("person")
-            .relationships(List.of("fpk_person_race_concept")));
+            .conceptRelationships(List.of("fpk_person_race_concept")));
 
     return tableMap;
   }

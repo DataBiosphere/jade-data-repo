@@ -59,7 +59,7 @@ class AzureBlobStorePdaoUnitTest {
   private AzureBlobStorePdao azureBlobStorePdao;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     billingProfileModel = new BillingProfileModel().id(BILLING_PROFILE_ID);
     azureBlobStorePdao =
         new AzureBlobStorePdao(
@@ -84,7 +84,7 @@ class AzureBlobStorePdaoUnitTest {
             .profileId(BILLING_PROFILE_ID);
   }
 
-  private void mocksForDeleteBlobParquet() {
+  void mocksForDeleteBlobParquet() {
     when(profileDao.getBillingProfileById(BILLING_PROFILE_ID)).thenReturn(billingProfileModel);
     when(azureContainerPdao.getDestinationContainerSignedUrl(any(), any(), any()))
         .thenReturn(SIGNED_URL);
@@ -95,7 +95,7 @@ class AzureBlobStorePdaoUnitTest {
   }
 
   @Test
-  public void testDeleteBlobParquet() {
+  void testDeleteBlobParquet() {
     mocksForDeleteBlobParquet();
     boolean result =
         azureBlobStorePdao.deleteBlobParquet(
@@ -104,7 +104,7 @@ class AzureBlobStorePdaoUnitTest {
   }
 
   @Test
-  public void testDeleteScratchParquet() {
+  void testDeleteScratchParquet() {
     mocksForDeleteBlobParquet();
     boolean result =
         azureBlobStorePdao.deleteScratchParquet(
@@ -113,7 +113,7 @@ class AzureBlobStorePdaoUnitTest {
   }
 
   @Test
-  public void testDeleteMetadataParquet() {
+  void testDeleteMetadataParquet() {
     mocksForDeleteBlobParquet();
     boolean result =
         azureBlobStorePdao.deleteMetadataParquet(

@@ -41,14 +41,14 @@ class AzureBlobServiceTest {
   private AzureBlobService azureBlobService;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     azureBlobService = new AzureBlobService(resourceConfiguration);
     when(resourceConfiguration.maxRetries()).thenReturn(MAX_RETRIES);
     when(resourceConfiguration.retryTimeoutSeconds()).thenReturn(RETRY_TIMEOUT_SECONDS);
   }
 
   @Test
-  public void testGetRetryOptions() {
+  void testGetRetryOptions() {
     RequestRetryOptions requestRetryOptions = azureBlobService.getRetryOptions();
 
     Duration expectedTimeout = Duration.ofSeconds(RETRY_TIMEOUT_SECONDS);
@@ -57,7 +57,7 @@ class AzureBlobServiceTest {
   }
 
   @Test
-  public void testGetBlobCrl() {
+  void testGetBlobCrl() {
     RequestRetryOptions retryOptions = azureBlobService.getRetryOptions();
 
     BlobContainerClientFactory destinationClientFactory =
@@ -68,7 +68,7 @@ class AzureBlobServiceTest {
   }
 
   @Test
-  public void testGetSourceClientFactory() {
+  void testGetSourceClientFactory() {
     BlobContainerClientFactory blobContainerClientFactory =
         azureBlobService.getSourceClientFactory(SIGNED_URL);
     BlobContainerClient blobContainerClient = blobContainerClientFactory.getBlobContainerClient();
@@ -79,7 +79,7 @@ class AzureBlobServiceTest {
   }
 
   @Test
-  public void testGetSourceClientFactoryWithCredential() {
+  void testGetSourceClientFactoryWithCredential() {
     TokenCredential azureCredential =
         new ClientSecretCredentialBuilder()
             .clientId("clientId")

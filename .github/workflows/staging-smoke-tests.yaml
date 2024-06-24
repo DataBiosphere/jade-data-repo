@@ -45,39 +45,21 @@ jobs:
         run: |
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
-      - name: "Import Vault staging secrets"
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.STAGING_ROLE_ID }}
-          secretId: ${{ secrets.STAGING_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/staging/test-runner-sa key | B64_APPLICATION_CREDENTIALS ;
       - name: "Perform IAM policy cleanup for staging"
         run: |
-          # write vault tokens
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          # write token
+          base64 --decode <<< ${{ secrets.TEST_RUNNER_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
 
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.ROLE_ID }}
-          secretId: ${{ secrets.SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
       - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
         env:
           # note: hack to overwrite the env var to grab the dev credentials too
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
         run: |
-          # write vault tokens
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          # write token
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

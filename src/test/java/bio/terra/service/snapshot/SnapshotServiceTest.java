@@ -1090,7 +1090,9 @@ class SnapshotServiceTest {
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .id(snapshotAccessRequestId);
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(snapshotAccessRequestResponse);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))

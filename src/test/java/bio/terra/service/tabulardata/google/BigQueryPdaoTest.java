@@ -395,7 +395,9 @@ public class BigQueryPdaoTest {
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");
     Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
-    assertThat(snapshot.getName(), is(requestModel.getName()));
+    assertThat(
+        snapshot.getName(),
+        is(snapshotService.generateUpdatedSnapshotNameIfByRequest(requestModel)));
     assertThat(snapshot.getTables().size(), is(equalTo(3)));
     BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());

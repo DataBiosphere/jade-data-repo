@@ -180,15 +180,17 @@ public class SnapshotService {
       String snapshotAccessRequestName =
           Optional.ofNullable(snapshotAccessRequestResponse.getSnapshotName()).orElse("");
 
-      // We take the first 474 characters of the name, because the UUID is 36 characters long, so
-      // the name is 474 characters + the underscore + 36 characters for the UUID, totalling to a
-      // max of 511.
-      String generatedName =
-          String.format(
-              "%s_%s",
-              snapshotAccessRequestName.substring(
-                  0, Math.min(473, snapshotAccessRequestName.length())),
-              snapshotAccessRequestResponse.getId().toString());
+      String cleanedId = snapshotAccessRequestResponse.getId().toString().replace('-', '_');
+      String cleanedName =
+          StringUtils.truncate(
+              snapshotAccessRequestName
+                  .replaceAll(dashesAndSpacesRegex, "_")
+                  .replaceAll(nonAlphaNumericRegex, "")
+                  .trim(),
+              511 - 1 - cleanedId.length());
+      String separator = cleanedName.length() > 0 ? "_" : "";
+
+      String generatedName = String.format("%s%s%s", cleanedName, separator, cleanedId);
 
       return StringUtils.strip(
           generatedName

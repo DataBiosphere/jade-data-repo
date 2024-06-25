@@ -59,6 +59,7 @@ public class CreateSnapshotStorageTableDataStep implements Step {
     TableServiceClient snapshotTableServiceClient =
         azureAuthService.getTableServiceClient(snapshotStorageAuthInfo);
 
+    // Would instead need to call BigQueryPdao here
     Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
 
     tableDao.addFilesToSnapshot(

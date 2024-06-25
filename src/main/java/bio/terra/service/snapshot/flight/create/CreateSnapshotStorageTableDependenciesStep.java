@@ -48,6 +48,7 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
 
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
+    // would instead need to call bigQueryPdao here
     Set<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     tableDependencyDao.storeSnapshotFileDependencies(
         datasetTableServiceClient, datasetId, snapshotId, refIds);

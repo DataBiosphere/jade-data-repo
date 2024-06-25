@@ -138,6 +138,8 @@ public class SnapshotCreateFlight extends Flight {
     Dataset sourceDataset = datasetService.retrieve(datasetId);
     String datasetName = sourceDataset.getName();
 
+    // instead use dataset summary flag useGCPTabularData = true
+    // add step to verify the cloud platform matches the billing profile
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
 
@@ -196,6 +198,7 @@ public class SnapshotCreateFlight extends Flight {
               sourceDataset.isSecureMonitoringEnabled(), sourceDataset.getStorageAccountRegion())
           .forEach(s -> this.addStep(s.step(), s.retryRule()));
 
+      //Maybe still need this?
       addStep(
           new CreateSnapshotSourceDatasetDataSourceAzureStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));
@@ -314,6 +317,8 @@ public class SnapshotCreateFlight extends Flight {
           new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, dataAccessControlGroups));
     }
 
+    // if gcptabularData flag is set, I think we would skip this set of GCP specific steps and instead
+    // run the Azure specific steps
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot
       addStep(
@@ -363,6 +368,8 @@ public class SnapshotCreateFlight extends Flight {
                 snapshotService, datasetService, drsIdService, drsService, fileDao, snapshotId));
       }
     } else if (platform.isAzure()) {
+      // If we kept the file storage system in Azure, we would need these steps
+      // which means we would have an Azure storage account just for the storage table
       addStep(
           new CreateSnapshotStorageTableDataStep(
               tableDao,

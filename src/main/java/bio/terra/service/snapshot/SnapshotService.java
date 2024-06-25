@@ -167,7 +167,7 @@ public class SnapshotService {
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
-  public String generateUpdatedSnapshotNameIfByRequest(SnapshotRequestModel model) {
+  public String getSnapshotName(SnapshotRequestModel model) {
     SnapshotRequestContentsModel contentsModel = model.getContents().get(0);
     if (contentsModel.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       SnapshotAccessRequestResponse snapshotAccessRequestResponse =
@@ -200,7 +200,7 @@ public class SnapshotService {
       SnapshotRequestModel snapshotRequestModel,
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
-    snapshotRequestModel.setName(generateUpdatedSnapshotNameIfByRequest(snapshotRequestModel));
+    snapshotRequestModel.setName(getSnapshotName(snapshotRequestModel));
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(

@@ -1395,7 +1395,7 @@ class SnapshotServiceTest {
     SnapshotRequestModel snapshotRequestModel =
         new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
 
-    assertThat(service.generateUpdatedSnapshotNameIfByRequest(snapshotRequestModel), is(name));
+    assertThat(service.getSnapshotName(snapshotRequestModel), is(name));
   }
 
   @Test
@@ -1414,8 +1414,7 @@ class SnapshotServiceTest {
     when(snapshotRequestDao.getById(uuid))
         .thenReturn(new SnapshotAccessRequestResponse().snapshotName(" a$%").id(uuid));
 
-    assertThat(
-        service.generateUpdatedSnapshotNameIfByRequest(snapshotRequestModel), is(expectedName));
+    assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

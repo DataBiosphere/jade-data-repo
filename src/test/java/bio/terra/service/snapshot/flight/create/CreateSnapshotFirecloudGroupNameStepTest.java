@@ -43,7 +43,7 @@ class CreateSnapshotFirecloudGroupNameStepTest {
     when(iamService.getGroup(startsWith(groupName)))
         .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
+    assertEquals(StepResult.getStepResultSuccess(), step.doStep(flightContext));
     assertTrue(
         Objects.requireNonNull(
                 workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class))

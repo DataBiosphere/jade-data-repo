@@ -822,21 +822,22 @@ class SamIamTest {
 
     @Test
     void testGetGroup() throws ApiException, InterruptedException {
+      String accessToken = TEST_USER.getToken();
       String groupEmail = String.format("%s@dev.test.firecloud.org", GROUP_NAME);
       when(samGroupApi.getGroup(GROUP_NAME)).thenReturn(groupEmail);
       assertThat(
           "Firecloud group email is returned",
-          samIam.getGroup(TEST_USER.getToken(), GROUP_NAME),
+          samIam.getGroup(accessToken, GROUP_NAME),
           equalTo(groupEmail));
     }
 
     @Test
     void testGetGroupWithFailure() throws ApiException {
+      String accessToken = TEST_USER.getToken();
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
       when(samGroupApi.getGroup(GROUP_NAME)).thenThrow(samEx);
-      assertThrows(
-          IamNotFoundException.class, () -> samIam.getGroup(TEST_USER.getToken(), GROUP_NAME));
+      assertThrows(IamNotFoundException.class, () -> samIam.getGroup(accessToken, GROUP_NAME));
     }
 
     @Test

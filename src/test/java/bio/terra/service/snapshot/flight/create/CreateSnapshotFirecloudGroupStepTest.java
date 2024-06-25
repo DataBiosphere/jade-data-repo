@@ -45,10 +45,10 @@ class CreateSnapshotFirecloudGroupStepTest {
     when(iamService.createGroup(GROUP_NAME)).thenReturn(GROUP_EMAIL);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     assertEquals(
+        GROUP_EMAIL,
         flightContext
             .getWorkingMap()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class),
-        GROUP_EMAIL);
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class));
   }
 
   @Test
@@ -60,10 +60,10 @@ class CreateSnapshotFirecloudGroupStepTest {
     when(iamService.getGroup(GROUP_NAME)).thenReturn(GROUP_EMAIL);
     assertEquals(step.doStep(flightContext).getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
     assertEquals(
+        GROUP_EMAIL,
         flightContext
             .getWorkingMap()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class),
-        GROUP_EMAIL);
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class));
   }
 
   @Test
@@ -85,7 +85,7 @@ class CreateSnapshotFirecloudGroupStepTest {
     FlightMap workingMap = new FlightMap();
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    assertEquals(step.undoStep(flightContext), StepResult.getStepResultSuccess());
+    assertEquals(StepResult.getStepResultSuccess(), step.undoStep(flightContext));
     verify(iamService).deleteGroup(GROUP_NAME);
   }
 
@@ -95,6 +95,6 @@ class CreateSnapshotFirecloudGroupStepTest {
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     doThrow(IamNotFoundException.class).when(iamService).deleteGroup(GROUP_NAME);
-    assertEquals(step.undoStep(flightContext), StepResult.getStepResultSuccess());
+    assertEquals(StepResult.getStepResultSuccess(), step.undoStep(flightContext));
   }
 }

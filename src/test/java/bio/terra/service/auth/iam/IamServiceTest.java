@@ -251,9 +251,10 @@ class IamServiceTest {
   @Test
   void testGetGroup() throws InterruptedException {
     String groupName = "groupName";
+    String groupEmail = "groupEmail";
     String accessToken = "accessToken";
     when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
-    when(iamProvider.getGroup(accessToken, groupName)).thenReturn(groupName);
-    iamService.getGroup(groupName);
+    when(iamProvider.getGroup(accessToken, groupName)).thenReturn(groupEmail);
+    assertEquals(groupEmail, iamService.getGroup(groupName));
   }
 }

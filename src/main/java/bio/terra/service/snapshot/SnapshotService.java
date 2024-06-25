@@ -191,7 +191,7 @@ public class SnapshotService {
               SNAPSHOT_NAME_MAX_LENGTH - 1 - cleanedId.length());
       String separator = cleanedName.length() > 0 ? "_" : "";
 
-      String generatedName = String.format("%s%s%s", cleanedName, separator, cleanedId);
+      String generatedName = cleanedName + separator + cleanedId;
 
       return StringUtils.strip(
           generatedName

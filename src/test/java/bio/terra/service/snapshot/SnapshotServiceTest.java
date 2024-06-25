@@ -1388,7 +1388,7 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void generateUpdatedSnapshotNameIfByRequestOnlyAffectsByRequest() {
+  void getSnapshotNameForNonRequest() {
     SnapshotRequestContentsModel contentsModel =
         new SnapshotRequestContentsModel().mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
     String name = "a-e$2";
@@ -1399,7 +1399,7 @@ class SnapshotServiceTest {
   }
 
   @Test
-  void generateUpdatedSnapshotNameIfByRequest() {
+  void getSnapshotNameForByRequest() {
     String uuidAsString = "2c297e7c-b303-4243-af6a-76cd9d3b0ca8";
     UUID uuid = UUID.fromString(uuidAsString);
     SnapshotRequestContentsModel contentsModel =

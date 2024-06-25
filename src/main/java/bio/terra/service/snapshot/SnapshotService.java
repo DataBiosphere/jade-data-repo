@@ -184,10 +184,12 @@ public class SnapshotService {
       String cleanedId = snapshotAccessRequestResponse.getId().toString().replace('-', '_');
       String cleanedName =
           StringUtils.truncate(
-              snapshotAccessRequestName
-                  .replaceAll(dashesAndSpacesRegex, "_")
-                  .replaceAll(nonAlphaNumericRegex, "")
-                  .trim(),
+              StringUtils.strip(
+                  snapshotAccessRequestName
+                      .replaceAll(dashesAndSpacesRegex, "_")
+                      .replaceAll(nonAlphaNumericRegex, "")
+                      .trim(),
+                  "_"),
               SNAPSHOT_NAME_MAX_LENGTH - 1 - cleanedId.length());
       String separator = cleanedName.length() > 0 ? "_" : "";
 

@@ -105,6 +105,8 @@ public class DatasetIngestFlight extends Flight {
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     Dataset dataset = datasetService.retrieve(datasetId);
+    // instead use dataset summary flag useGCPTabularData = true
+    // add step to verify the cloud platform matches the billing profile
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =
@@ -133,6 +135,9 @@ public class DatasetIngestFlight extends Flight {
           new AuthorizeBillingProfileUseStep(
               profileService, ingestRequestModel.getProfileId(), userReq));
 
+      // we need this step to put the a storage account info in the working map
+      // So, then we also probably need the authorizeBillingProfileUse step - Could we default to the
+      // default billing profile if the gcpTabularData flag is set?
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
       addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
       // Turn on logging and monitoring for the storage account associated with the dataset and
@@ -325,6 +330,7 @@ public class DatasetIngestFlight extends Flight {
   }
 
   private void addOptionalCombinedIngestStep(Step step) {
+    // Add check that we do NOT allow for combined ingest for gcpTabularData ingest
     addOptionalCombinedIngestStep(step, null);
   }
 
@@ -404,7 +410,7 @@ public class DatasetIngestFlight extends Flight {
 
     if (ingestRequest.isBulkMode()) {
       // Load the files!
-      addStep(
+      addOptionalCombinedIngestStep(
           new IngestBulkGcpCombinedIngestStep(
               ingestRequest.getLoadTag(),
               profileId,

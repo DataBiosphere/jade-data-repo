@@ -312,23 +312,21 @@ public final class DatasetJsonConversion {
                 spec.rootTable(newAssetTable);
                 processingRootTable = true;
               }
+              Map<String, Column> allTableColumns = datasetTable.getColumnsMap();
               List<String> colNamesToInclude = tblMod.getColumns();
               if (colNamesToInclude.isEmpty()) {
-                // Keep columns in order
-                colNamesToInclude =
-                    datasetTable.getColumns().stream().map(Column::getName).toList();
+                colNamesToInclude = new ArrayList<>(allTableColumns.keySet());
               }
-              Map<String, Column> allTableColumns = datasetTable.getColumnsMap();
-              newAssetTable.columns(
+              Map<String, AssetColumn> assetColumnsMap =
                   colNamesToInclude.stream()
-                      .map(
-                          columnName ->
-                              new AssetColumn().datasetColumn(allTableColumns.get(columnName)))
-                      .toList());
+                      .collect(
+                          Collectors.toMap(
+                              colName -> colName,
+                              colName ->
+                                  new AssetColumn().datasetColumn(allTableColumns.get(colName))));
+              newAssetTable.columns(new ArrayList<>(assetColumnsMap.values()));
               if (processingRootTable) {
-                spec.rootColumn(
-                    new AssetColumn()
-                        .datasetColumn(allTableColumns.get(assetModel.getRootColumn())));
+                spec.rootColumn(assetColumnsMap.get(assetModel.getRootColumn()));
               }
               newAssetTables.add(newAssetTable);
             });

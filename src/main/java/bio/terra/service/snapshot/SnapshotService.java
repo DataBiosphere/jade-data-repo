@@ -249,6 +249,7 @@ public class SnapshotService {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotName);
     for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
       Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+      // This will insead need to call tableDependencyDao
       dependencyDao.deleteSnapshotFileDependencies(dataset, snapshot.getId().toString());
     }
 
@@ -327,6 +328,7 @@ public class SnapshotService {
     String description = "Export snapshot %s".formatted(snapshot.toLogString());
 
     var cloudPlatformWrapper = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
+    // instead key off of dataset.gcpTabularData() flag
     if (cloudPlatformWrapper.isAzure()) {
       if (validatePrimaryKeyUniqueness) {
         throw new FeatureNotImplementedException(

@@ -49,6 +49,8 @@ public class DatasetDataDeleteFlight extends Flight {
 
     // get data from inputs that steps need
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
+    // TODO - check cloud platform here
+    // instead key off of dataset.gcpTabularData() flag
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);

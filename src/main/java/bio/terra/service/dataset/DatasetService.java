@@ -462,6 +462,7 @@ public class DatasetService {
   public List<BulkLoadHistoryModel> getLoadHistory(
       UUID datasetId, String loadTag, int offset, int limit) {
     var dataset = retrieve(datasetId);
+    // instead key off of dataset.gcpTabularData() flag
     var platformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     return platformWrapper.choose(
@@ -520,6 +521,7 @@ public class DatasetService {
                       "No dataset table column exists with the name: " + sort));
     }
 
+    // instead key off of dataset.gcpTabularData() flag
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 
     if (cloudPlatformWrapper.isGcp()) {
@@ -579,6 +581,7 @@ public class DatasetService {
 
     Column column = dataset.getColumn(tableName, columnName);
 
+    // instead key off of dataset.gcpTabularData() flag
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 
     if (cloudPlatformWrapper.isGcp()) {

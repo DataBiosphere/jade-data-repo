@@ -65,6 +65,7 @@ public class DatasetDeleteFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    // instead key off of dataset.gcpTabularData() flag
     var platform =
         CloudPlatformWrapper.of(
             inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
@@ -73,6 +74,7 @@ public class DatasetDeleteFlight extends Flight {
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
     addStep(new LockDatasetStep(datasetService, datasetId, false, true), lockDatasetRetry);
+    // WE would need to delete the resources in both clouds
     if (platform.isGcp()) {
       addStep(new DeleteDatasetStoreProjectIdStep(datasetId, datasetService, datasetBucketDao));
       // TODO: Do this check for Azure datasets

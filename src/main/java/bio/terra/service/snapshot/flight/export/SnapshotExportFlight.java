@@ -66,6 +66,8 @@ public class SnapshotExportFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
     }
+    // ExportGS paths wouldn't work for gcpTabularData flag
+    // Skip these steps
     boolean exportGsPaths =
         Objects.requireNonNullElse(
             inputParameters.get(ExportMapKeys.EXPORT_GSPATHS, Boolean.class), false);

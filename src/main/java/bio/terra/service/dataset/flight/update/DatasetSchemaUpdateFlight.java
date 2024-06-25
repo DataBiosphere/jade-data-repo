@@ -43,6 +43,7 @@ public class DatasetSchemaUpdateFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
 
     Dataset dataset = datasetDao.retrieve(datasetId);
+    // instead key off of dataset.gcpTabularData() flag
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getCloudPlatform());
 

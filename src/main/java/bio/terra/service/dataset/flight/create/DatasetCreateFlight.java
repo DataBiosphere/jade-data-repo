@@ -70,6 +70,7 @@ public class DatasetCreateFlight extends Flight {
     AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
         new AzureStorageMonitoringStepProvider(monitoringService);
 
+    // This platform would continue to be the dataset's platform, no matter the gcpTabularFlag value
     var platform = CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
 
     AuthenticatedUserRequest userReq =

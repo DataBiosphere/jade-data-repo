@@ -179,6 +179,7 @@ public class FileService {
 
   public List<FileModel> listDatasetFiles(String datasetId, int offset, int limit) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    // can continue to use source dataset's cloud platform
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
       try {
@@ -197,6 +198,7 @@ public class FileService {
   public List<FileModel> listSnapshotFiles(String snapshotId, int offset, int limit) {
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     Dataset dataset = snapshot.getSourceDataset();
+    // instead use sourceDataset's platform
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -244,6 +246,7 @@ public class FileService {
 
   public Optional<FileModel> lookupOptionalPath(String datasetId, String path, int depth) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    // can continue to use source dataset's cloud platform
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     final Optional<FSItem> file;
@@ -264,6 +267,7 @@ public class FileService {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    // can continue to use source dataset's cloud platform
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveById(dataset, fileId, depth);
     } else if (cloudPlatformWrapper.isAzure()) {
@@ -286,6 +290,7 @@ public class FileService {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    // can continue to use source dataset's cloud platform
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveByPath(dataset, path, depth);
     } else {
@@ -319,6 +324,7 @@ public class FileService {
 
   FSItem lookupSnapshotFSItem(SnapshotProject snapshot, String fileId, int depth)
       throws InterruptedException {
+    // instead use source dataset's cloud platform
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -347,6 +353,7 @@ public class FileService {
 
   FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth)
       throws InterruptedException {
+    // TODO - key off of cloud platform
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     return fileDao.retrieveByPath(snapshot, path, depth);
   }
@@ -398,6 +405,7 @@ public class FileService {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
    */
+  // Is this GCP specific?
   static List<DRSChecksum> makeChecksums(ChecksumInterface checksum) {
     String fsItemCrc32c = checksum.getChecksumCrc32c();
     List<DRSChecksum> checksums = new ArrayList<>();

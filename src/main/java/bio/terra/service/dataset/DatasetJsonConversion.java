@@ -286,7 +286,10 @@ public final class DatasetJsonConversion {
       AssetModel assetModel,
       Map<String, DatasetTable> tables,
       Map<String, Relationship> datasetRelationships) {
-    AssetSpecification spec = new AssetSpecification().name(assetModel.getName());
+    AssetSpecification spec =
+        new AssetSpecification()
+            .name(assetModel.getName())
+            .setFollowStrictDirection(assetModel.isFollowStrictDirection());
     List<String> assetRelationships = Objects.requireNonNullElse(assetModel.getFollow(), List.of());
     spec.assetTables(processAssetTables(spec, assetModel, tables));
     spec.assetRelationships(processAssetRelationships(assetRelationships, datasetRelationships));

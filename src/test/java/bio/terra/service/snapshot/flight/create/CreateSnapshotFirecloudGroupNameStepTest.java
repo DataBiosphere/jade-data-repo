@@ -45,8 +45,8 @@ class CreateSnapshotFirecloudGroupNameStepTest {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     assertTrue(
-        Objects.requireNonNull(workingMap
-                .get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class))
+        Objects.requireNonNull(
+                workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class))
             .startsWith(groupName));
   }
 

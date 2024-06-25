@@ -120,6 +120,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotService {
   private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
+  private static final int SNAPSHOT_NAME_MAX_LENGTH = 511;
   private final JobService jobService;
   private final DatasetService datasetService;
   private final FireStoreDependencyDao dependencyDao;
@@ -187,7 +188,7 @@ public class SnapshotService {
                   .replaceAll(dashesAndSpacesRegex, "_")
                   .replaceAll(nonAlphaNumericRegex, "")
                   .trim(),
-              511 - 1 - cleanedId.length());
+              SNAPSHOT_NAME_MAX_LENGTH - 1 - cleanedId.length());
       String separator = cleanedName.length() > 0 ? "_" : "";
 
       String generatedName = String.format("%s%s%s", cleanedName, separator, cleanedId);

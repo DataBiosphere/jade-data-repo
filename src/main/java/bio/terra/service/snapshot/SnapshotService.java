@@ -106,6 +106,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -175,13 +176,18 @@ public class SnapshotService {
       String dashesAndSpacesRegex = "[- ]+";
       String nonAlphaNumericRegex = "\\W";
 
+      // Handle null as empty string.
+      String snapshotAccessRequestName =
+          Optional.ofNullable(snapshotAccessRequestResponse.getSnapshotName()).orElse("");
+
       // We take the first 474 characters of the name, because the UUID is 36 characters long, so
       // the name is 474 characters + the underscore + 36 characters for the UUID, totalling to a
       // max of 511.
       String generatedName =
           String.format(
               "%s_%s",
-              snapshotAccessRequestResponse.getSnapshotName().substring(0, 473),
+              snapshotAccessRequestName.substring(
+                  0, Math.min(473, snapshotAccessRequestName.length())),
               snapshotAccessRequestResponse.getId().toString());
 
       return StringUtils.strip(

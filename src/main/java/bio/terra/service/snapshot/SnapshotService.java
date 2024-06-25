@@ -175,17 +175,21 @@ public class SnapshotService {
       String dashesAndSpacesRegex = "[- ]+";
       String nonAlphaNumericRegex = "\\W";
 
-      return org.springframework.util.StringUtils.trimTrailingCharacter(
-          org.springframework.util.StringUtils.trimLeadingCharacter(
-              String.format(
-                      "%s_%s",
-                      snapshotAccessRequestResponse.getSnapshotName(),
-                      snapshotAccessRequestResponse.getId().toString())
-                  .replaceAll(dashesAndSpacesRegex, "_")
-                  .replaceAll(nonAlphaNumericRegex, "")
-                  .trim(),
-              '_'),
-          '_');
+      // We take the first 474 characters of the name, because the UUID is 36 characters long, so
+      // the name is 474 characters + the underscore + 36 characters for the UUID, totalling to a
+      // max of 511.
+      String generatedName =
+          String.format(
+              "%s_%s",
+              snapshotAccessRequestResponse.getSnapshotName().substring(0, 473),
+              snapshotAccessRequestResponse.getId().toString());
+
+      return StringUtils.strip(
+          generatedName
+              .replaceAll(dashesAndSpacesRegex, "_")
+              .replaceAll(nonAlphaNumericRegex, "")
+              .trim(),
+          "_");
     }
     return model.getName();
   }

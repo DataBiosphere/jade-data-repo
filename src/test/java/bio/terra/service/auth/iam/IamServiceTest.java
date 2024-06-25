@@ -7,6 +7,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,6 +47,8 @@ class IamServiceTest {
 
   @Mock private ConfigurationService configurationService;
 
+  @Mock private GoogleCredentialsService googleCredentialsService;
+
   private IamService iamService;
 
   @BeforeEach
@@ -58,7 +61,7 @@ class IamServiceTest {
             iamProvider,
             configurationService,
             mock(JournalService.class),
-            mock(GoogleCredentialsService.class));
+            googleCredentialsService);
   }
 
   @Test
@@ -243,5 +246,14 @@ class IamServiceTest {
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
                 TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testGetGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.getGroup(accessToken, groupName)).thenReturn(groupName);
+    iamService.getGroup(groupName);
   }
 }

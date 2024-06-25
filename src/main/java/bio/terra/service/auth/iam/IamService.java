@@ -441,6 +441,15 @@ public class IamService {
   }
 
   /**
+   * @param groupName Firecloud managed group to retrieve as the TDR SA
+   * @return the email for the retrieved group
+   */
+  public String getGroup(String groupName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
    * @param groupName Firecloud managed group
    * @param policyName name of Firecloud managed group policy
    * @param emailAddresses emails which the TDR SA will set as group policy members

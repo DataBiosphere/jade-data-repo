@@ -250,6 +250,13 @@ public interface IamProviderInterface {
   String createGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
+   * @param accessToken valid oauth token for the account retrieving the group
+   * @param groupName name of Firecloud managed group to retrieve
+   * @return the group's email address
+   */
+  String getGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group
    * @param policyName name of Firecloud managed group policy

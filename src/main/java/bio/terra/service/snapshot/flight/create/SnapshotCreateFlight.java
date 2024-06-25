@@ -263,27 +263,31 @@ public class SnapshotCreateFlight extends Flight {
               () ->
                   new CreateSnapshotByRowIdParquetFilesAzureStep(
                       azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
-      case BYREQUESTID -> addStep(
-          platform.choose(
-              () ->
-                  new CreateSnapshotByRequestIdGcpStep(
-                      snapshotReq,
-                      snapshotService,
-                      snapshotBuilderService,
-                      snapshotRequestDao,
-                      snapshotDao,
-                      userReq,
-                      bigQuerySnapshotPdao),
-              () ->
-                  new CreateSnapshotByRequestIdAzureStep(
-                      snapshotReq,
-                      snapshotService,
-                      snapshotBuilderService,
-                      snapshotRequestDao,
-                      snapshotDao,
-                      userReq,
-                      azureSynapsePdao,
-                      snapshotId)));
+      case BYREQUESTID -> {
+        addStep(new CreateSnapshotFirecloudGroupNameStep(snapshotId, iamService));
+        addStep(new CreateSnapshotFirecloudGroupStep(iamService));
+        addStep(
+            platform.choose(
+                () ->
+                    new CreateSnapshotByRequestIdGcpStep(
+                        snapshotReq,
+                        snapshotService,
+                        snapshotBuilderService,
+                        snapshotRequestDao,
+                        snapshotDao,
+                        userReq,
+                        bigQuerySnapshotPdao),
+                () ->
+                    new CreateSnapshotByRequestIdAzureStep(
+                        snapshotReq,
+                        snapshotService,
+                        snapshotBuilderService,
+                        snapshotRequestDao,
+                        snapshotDao,
+                        userReq,
+                        azureSynapsePdao,
+                        snapshotId)));
+      }
     }
     if (platform.isAzure()) {
       addStep(

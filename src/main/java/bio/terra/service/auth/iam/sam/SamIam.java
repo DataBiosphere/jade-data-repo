@@ -692,6 +692,11 @@ public class SamIam implements IamProviderInterface {
     samApiService.groupApi(accessToken).postGroup(groupName, null);
   }
 
+  @Override
+  public String getGroup(String accessToken, String groupName) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getGroupEmail(accessToken, groupName));
+  }
+
   private String getGroupEmail(String accessToken, String groupName) throws ApiException {
     return samApiService.groupApi(accessToken).getGroup(groupName);
   }

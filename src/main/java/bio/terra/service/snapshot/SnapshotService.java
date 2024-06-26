@@ -106,6 +106,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -119,6 +120,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotService {
   private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
+  private static final int SNAPSHOT_NAME_MAX_LENGTH = 511;
   private final JobService jobService;
   private final DatasetService datasetService;
   private final FireStoreDependencyDao dependencyDao;
@@ -167,6 +169,35 @@ public class SnapshotService {
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
+  public String getSnapshotName(SnapshotRequestModel model) {
+    SnapshotRequestContentsModel contentsModel = model.getContents().get(0);
+    if (contentsModel.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+          snapshotRequestDao.getById(contentsModel.getRequestIdSpec().getSnapshotRequestId());
+      String dashesAndSpacesRegex = "[- ]+";
+      String nonAlphaNumericRegex = "\\W";
+
+      // Handle null as empty string.
+      String snapshotAccessRequestName =
+          Optional.ofNullable(snapshotAccessRequestResponse.getSnapshotName()).orElse("");
+
+      String cleanedId = snapshotAccessRequestResponse.getId().toString().replace('-', '_');
+      String cleanedName =
+          StringUtils.truncate(
+              StringUtils.strip(
+                  snapshotAccessRequestName
+                      .replaceAll(dashesAndSpacesRegex, "_")
+                      .replaceAll(nonAlphaNumericRegex, "")
+                      .trim(),
+                  "_"),
+              SNAPSHOT_NAME_MAX_LENGTH - 1 - cleanedId.length());
+      String separator = cleanedName.length() > 0 ? "_" : "";
+
+      return cleanedName + separator + cleanedId;
+    }
+    return model.getName();
+  }
+
   /**
    * Kick-off snapshot creation Pre-condition: the snapshot request has been syntax checked by the
    * validator
@@ -177,6 +208,7 @@ public class SnapshotService {
       SnapshotRequestModel snapshotRequestModel,
       Dataset dataset,
       AuthenticatedUserRequest userReq) {
+    snapshotRequestModel.setName(getSnapshotName(snapshotRequestModel));
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(

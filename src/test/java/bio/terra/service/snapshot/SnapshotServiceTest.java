@@ -1090,7 +1090,9 @@ class SnapshotServiceTest {
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .id(snapshotAccessRequestId);
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(snapshotAccessRequestResponse);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
@@ -1383,6 +1385,36 @@ class SnapshotServiceTest {
     Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 
     assertThat(sourceDataset, is(dataset));
+  }
+
+  @Test
+  void getSnapshotNameForNonRequest() {
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel().mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
+    String name = "a-e$2";
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
+
+    assertThat(service.getSnapshotName(snapshotRequestModel), is(name));
+  }
+
+  @Test
+  void getSnapshotNameForByRequest() {
+    String uuidAsString = "2c297e7c-b303-4243-af6a-76cd9d3b0ca8";
+    UUID uuid = UUID.fromString(uuidAsString);
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+            .requestIdSpec(new SnapshotRequestIdModel().snapshotRequestId(uuid));
+    String name = " a-e$2-";
+    String expectedName = "a_2c297e7c_b303_4243_af6a_76cd9d3b0ca8";
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
+
+    when(snapshotRequestDao.getById(uuid))
+        .thenReturn(new SnapshotAccessRequestResponse().snapshotName(" a$%").id(uuid));
+
+    assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {

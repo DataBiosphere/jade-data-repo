@@ -459,7 +459,7 @@ public class AzureIntegrationTest extends UsersBase {
         approveSnapshotAccessRequest(makeSnapshotAccessRequest().getId());
 
     SnapshotSummaryModel snapshotSummaryByRequest =
-        makeSnapshotFromRequest(approvedSnapshotAccessRequest.getId());
+        makeSnapshotFromRequest(approvedSnapshotAccessRequest);
 
     String columnName = "datarepo_row_id";
     List<Object> personSnapshotRows =
@@ -509,12 +509,17 @@ public class AzureIntegrationTest extends UsersBase {
     return accessRequest;
   }
 
-  private SnapshotSummaryModel makeSnapshotFromRequest(UUID requestSnapshotId) throws Exception {
+  private SnapshotSummaryModel makeSnapshotFromRequest(
+      SnapshotAccessRequestResponse snapshotAccessRequestResponse) throws Exception {
     SnapshotRequestModel requestSnapshot =
         jsonLoader.loadObject(
             "omop/snapshot-request-model-by-request-id.json", SnapshotRequestModel.class);
     requestSnapshot.getContents().get(0).setDatasetName(datasetName);
-    requestSnapshot.getContents().get(0).getRequestIdSpec().setSnapshotRequestId(requestSnapshotId);
+    requestSnapshot
+        .getContents()
+        .get(0)
+        .getRequestIdSpec()
+        .setSnapshotRequestId(snapshotAccessRequestResponse.getId());
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -522,7 +527,15 @@ public class AzureIntegrationTest extends UsersBase {
     UUID snapshotByRequestId = snapshotSummary.getId();
     snapshotIds.add(snapshotByRequestId);
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
-    assertThat("Snapshot exists", snapshotSummary.getName(), equalTo(requestSnapshot.getName()));
+    assertThat(
+        "Snapshot exists",
+        snapshotSummary.getName(),
+        equalTo(
+            String.format(
+                    "%s_%s",
+                    snapshotAccessRequestResponse.getSnapshotName(),
+                    snapshotAccessRequestResponse.getId())
+                .replace('-', '_')));
     return snapshotSummary;
   }
 

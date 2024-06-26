@@ -1,16 +1,17 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
-import bio.terra.service.duos.DuosService;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class CreateSnapshotFirecloudGroupNameStep implements Step {
+public class CreateSnapshotFirecloudGroupNameStep extends DefaultUndoStep {
   private final UUID snapshotId;
   private final IamService iamService;
 
@@ -21,7 +22,7 @@ public class CreateSnapshotFirecloudGroupNameStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    String groupName = DuosService.constructUniqueFirecloudGroupName(String.valueOf(snapshotId));
+    String groupName = IamService.constructUniqueFirecloudGroupName(String.valueOf(snapshotId));
     try {
       iamService.getGroup(groupName);
     } catch (IamNotFoundException ex) {
@@ -29,12 +30,9 @@ public class CreateSnapshotFirecloudGroupNameStep implements Step {
       return StepResult.getStepResultSuccess();
     }
 
-    throw new InterruptedException("Failed to create a unique group name");
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // nothing to undo
-    return StepResult.getStepResultSuccess();
+    return new StepResult(
+        StepStatus.STEP_RESULT_FAILURE_FATAL,
+        new InternalServerErrorException(
+            "Could not create a unique group name for snapshot " + snapshotId));
   }
 }

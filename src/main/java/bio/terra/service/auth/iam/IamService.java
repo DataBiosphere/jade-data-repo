@@ -431,6 +431,14 @@ public class IamService {
 
   // -- managed group support --
 
+  public static String constructFirecloudGroupName(String duosId) {
+    return String.format("%s-users", duosId);
+  }
+
+  public static String constructUniqueFirecloudGroupName(String duosId) {
+    return String.format("%s-%s", constructFirecloudGroupName(duosId), UUID.randomUUID());
+  }
+
   /**
    * @param groupName Firecloud managed group to create as the TDR SA
    * @return the email for the newly created group

@@ -101,14 +101,14 @@ public class DuosService {
     logger.info("Creating Firecloud group for {} users", duosId);
 
     // First try with the more readable group name.
-    String groupName = constructFirecloudGroupName(duosId);
+    String groupName = IamService.constructFirecloudGroupName(duosId);
     String groupEmail;
     try {
       groupEmail = iamService.createGroup(groupName);
     } catch (IamConflictException ex) {
       logger.warn(
           "Firecloud group {} already exists: trying creation with a unique name", groupName);
-      groupName = constructUniqueFirecloudGroupName(duosId);
+      groupName = IamService.constructUniqueFirecloudGroupName(duosId);
       groupEmail = iamService.createGroup(groupName);
     }
     logger.info("Successfully created Firecloud group {} for {} users", groupName, duosId);
@@ -116,14 +116,6 @@ public class DuosService {
         .duosId(duosId)
         .firecloudGroupName(groupName)
         .firecloudGroupEmail(groupEmail);
-  }
-
-  public static String constructFirecloudGroupName(String duosId) {
-    return String.format("%s-users", duosId);
-  }
-
-  public static String constructUniqueFirecloudGroupName(String duosId) {
-    return String.format("%s-%s", constructFirecloudGroupName(duosId), UUID.randomUUID());
   }
 
   /**

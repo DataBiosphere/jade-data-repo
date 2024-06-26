@@ -8,11 +8,11 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
-import bio.terra.service.duos.DuosService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +39,7 @@ class CreateSnapshotFirecloudGroupNameStepTest {
   @Test
   void doStep() throws InterruptedException {
     FlightMap workingMap = new FlightMap();
-    String groupName = DuosService.constructFirecloudGroupName(String.valueOf(snapshotId));
+    String groupName = IamService.constructFirecloudGroupName(String.valueOf(snapshotId));
     when(iamService.getGroup(startsWith(groupName)))
         .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
@@ -51,13 +51,13 @@ class CreateSnapshotFirecloudGroupNameStepTest {
   }
 
   @Test
-  void doStepFailure() {
-    assertThrows(InterruptedException.class, () -> step.doStep(flightContext));
+  void doStepFailure() throws InterruptedException {
+    assertEquals(step.doStep(flightContext).getStepStatus(), StepStatus.STEP_RESULT_FAILURE_FATAL);
     verifyNoInteractions(flightContext);
   }
 
   @Test
-  void undoStep() throws InterruptedException {
+  void undoStep() {
     assertEquals(step.undoStep(flightContext), StepResult.getStepResultSuccess());
   }
 }

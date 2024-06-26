@@ -22,7 +22,7 @@ public class CreateSnapshotFirecloudGroupNameStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    String groupName = IamService.constructUniqueFirecloudGroupName(String.valueOf(snapshotId));
+    String groupName = IamService.constructFirecloudGroupName(String.valueOf(snapshotId));
     try {
       iamService.getGroup(groupName);
     } catch (IamNotFoundException ex) {
@@ -32,7 +32,6 @@ public class CreateSnapshotFirecloudGroupNameStep extends DefaultUndoStep {
 
     return new StepResult(
         StepStatus.STEP_RESULT_FAILURE_FATAL,
-        new InternalServerErrorException(
-            "Could not create a unique group name for snapshot " + snapshotId));
+        new InternalServerErrorException("Group " + groupName + " already exists in Sam"));
   }
 }

@@ -13,7 +13,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -44,10 +43,9 @@ class CreateSnapshotFirecloudGroupNameStepTest {
         .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     assertEquals(StepResult.getStepResultSuccess(), step.doStep(flightContext));
-    assertTrue(
-        Objects.requireNonNull(
-                workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class))
-            .startsWith(groupName));
+    assertEquals(
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class),
+        groupName);
   }
 
   @Test

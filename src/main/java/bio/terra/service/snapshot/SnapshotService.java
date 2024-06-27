@@ -739,7 +739,18 @@ public class SnapshotService {
   private Map<String, SnapshotBuilderTable> populateManualTableMap() {
     // manual definition of domain names -> dataset table
     Map<String, SnapshotBuilderTable> tableMap = new HashMap<>();
-    tableMap.put("Demographics", new SnapshotBuilderTable().datasetTableName("person"));
+    tableMap.put(
+        "Demographics",
+        new SnapshotBuilderTable()
+            .datasetTableName("person")
+            .conceptRelationships(
+                List.of(
+                    "fpk_person_gender_concept",
+                    "fpk_person_race_concept",
+                    "fpk_person_ethnicity_concept",
+                    "fpk_person_gender_concept_s",
+                    "fpk_person_race_concept_s",
+                    "fpk_person_ethnicity_concept_s")));
     tableMap.put(
         "Drug",
         new SnapshotBuilderTable()
@@ -818,18 +829,6 @@ public class SnapshotService {
                     "fpk_observation_qualifier",
                     "fpk_observation_type_concept",
                     "fpk_observation_value")));
-    tableMap.put("Year of Birth", new SnapshotBuilderTable().datasetTableName("person"));
-    tableMap.put(
-        "Ethnicity",
-        new SnapshotBuilderTable()
-            .datasetTableName("person")
-            .conceptRelationships(
-                List.of("fpk_person_ethnicity_concept", "fpk_person_ethnicity_concept_s")));
-    tableMap.put(
-        "Race",
-        new SnapshotBuilderTable()
-            .datasetTableName("person")
-            .conceptRelationships(List.of("fpk_person_race_concept")));
 
     return tableMap;
   }

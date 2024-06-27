@@ -48,6 +48,7 @@ class IngestCreateParquetFilesStepTest {
       AuthenticationFixtures.randomUserRequest();
   private IngestCreateParquetFilesStep step;
   private FlightMap flightMap;
+  private FlightMap inputParameters;
 
   private static final String FLIGHT_ID = "flightId";
   private static final UUID DATASET_ID = UUID.randomUUID();
@@ -80,14 +81,16 @@ class IngestCreateParquetFilesStepTest {
         new AzureStorageAccountResource().applicationResource(applicationResource);
 
     flightMap = new FlightMap();
-    flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());
     flightMap.put(IngestMapKeys.PARQUET_FILE_PATH, PARQUET_FILE_PATH);
-    flightMap.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
     flightMap.put(IngestMapKeys.AZURE_ROWS_FAILED_VALIDATION, 0);
     flightMap.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
 
+    inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
+
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
-    when(flightContext.getInputParameters()).thenReturn(flightMap);
+    when(flightContext.getInputParameters()).thenReturn(inputParameters);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
     when(datasetService.retrieve(DATASET_ID)).thenReturn(dataset);
   }
@@ -134,7 +137,7 @@ class IngestCreateParquetFilesStepTest {
             .table(DATASET_TABLE_NAME)
             .path(PARQUET_FILE_PATH)
             .format(FormatEnum.ARRAY);
-    flightMap.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }

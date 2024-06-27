@@ -79,7 +79,7 @@ public class AssetSpecification {
     return followStrictDirection;
   }
 
-  public AssetSpecification setFollowStrictDirection(boolean followStrictDirection) {
+  public AssetSpecification followStrictDirection(boolean followStrictDirection) {
     this.followStrictDirection = followStrictDirection;
     return this;
   }

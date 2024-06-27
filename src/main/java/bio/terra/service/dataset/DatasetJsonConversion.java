@@ -289,7 +289,7 @@ public final class DatasetJsonConversion {
     AssetSpecification spec =
         new AssetSpecification()
             .name(assetModel.getName())
-            .setFollowStrictDirection(assetModel.isFollowStrictDirection());
+            .followStrictDirection(assetModel.isFollowStrictDirection());
     List<String> assetRelationships = Objects.requireNonNullElse(assetModel.getFollow(), List.of());
     spec.assetTables(processAssetTables(spec, assetModel, tables));
     spec.assetRelationships(processAssetRelationships(assetRelationships, datasetRelationships));
@@ -334,12 +334,12 @@ public final class DatasetJsonConversion {
   }
 
   private static List<AssetRelationship> processAssetRelationships(
-      List<String> orderedAssetRelationshipNames, Map<String, Relationship> relationships) {
-    return orderedAssetRelationshipNames.stream()
+      List<String> assetRelationshipNames, Map<String, Relationship> relationships) {
+    return assetRelationshipNames.stream()
         .filter(relationships::containsKey)
         .map(
-            relationship ->
-                new AssetRelationship().datasetRelationship(relationships.get(relationship)))
+            relationshipName ->
+                new AssetRelationship().datasetRelationship(relationships.get(relationshipName)))
         .toList();
   }
 

@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,6 +20,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -60,6 +60,9 @@ class IngestCreateParquetFilesStepTest {
   private static final String APPLICATION_DEPLOYMENT_ID =
       String.format("subscriptions/%s/resourceGroups/%s", SUBSCRIPTION_ID, RESOURCE_GROUP_NAME);
 
+  private Dataset dataset;
+  private AzureStorageAccountResource storageAccountResource;
+
   @BeforeEach
   public void setup() {
     step =
@@ -72,12 +75,12 @@ class IngestCreateParquetFilesStepTest {
             .path(PARQUET_FILE_PATH)
             .format(FormatEnum.CSV);
     DatasetTable datasetTable = new DatasetTable().name(DATASET_TABLE_NAME);
-    Dataset dataset =
+    dataset =
         new Dataset().name(DATASET_ID.toString()).id(DATASET_ID).tables(List.of(datasetTable));
     AzureApplicationDeploymentResource applicationResource =
         new AzureApplicationDeploymentResource()
             .azureApplicationDeploymentId(APPLICATION_DEPLOYMENT_ID);
-    AzureStorageAccountResource storageAccountResource =
+    storageAccountResource =
         new AzureStorageAccountResource().applicationResource(applicationResource);
 
     flightMap = new FlightMap();
@@ -97,18 +100,41 @@ class IngestCreateParquetFilesStepTest {
 
   @Test
   void testDoAndUndoStepSuccess() throws InterruptedException, SQLException {
+    String finalTableName = IngestUtils.getSynapseIngestTableName(FLIGHT_ID);
+    String parquetFilePath = FolderType.METADATA.getPath(PARQUET_FILE_PATH);
+    String destinationDataSourceName = IngestUtils.getTargetDataSourceName(FLIGHT_ID);
+    String scratchTableName = IngestUtils.getSynapseScratchTableName(FLIGHT_ID);
+    DatasetTable datasetTable = IngestUtils.getDatasetTable(flightContext, dataset);
+    List<String> dropTables = List.of(finalTableName);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(azureSynapsePdao).createFinalParquetFiles(any(), any(), any(), any(), any());
+    verify(azureSynapsePdao)
+        .createFinalParquetFiles(
+            finalTableName,
+            parquetFilePath,
+            destinationDataSourceName,
+            scratchTableName,
+            datasetTable);
     StepResult undoResult = step.undoStep(flightContext);
-    verify(azureSynapsePdao).dropTables(any());
-    verify(azureBlobStorePdao).deleteMetadataParquet(any(), any(), any());
+    verify(azureSynapsePdao).dropTables(dropTables);
+    verify(azureBlobStorePdao)
+        .deleteMetadataParquet(parquetFilePath, storageAccountResource, TEST_USER);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }
 
   @Test
   void testDoStepSQLException() throws InterruptedException, SQLException {
-    when(azureSynapsePdao.createFinalParquetFiles(any(), any(), any(), any(), any()))
+    String finalTableName = IngestUtils.getSynapseIngestTableName(FLIGHT_ID);
+    String destinationParquetFile = FolderType.METADATA.getPath(PARQUET_FILE_PATH);
+    String destinationDataSourceName = IngestUtils.getTargetDataSourceName(FLIGHT_ID);
+    String scratchTableName = IngestUtils.getSynapseScratchTableName(FLIGHT_ID);
+    DatasetTable datasetTable = IngestUtils.getDatasetTable(flightContext, dataset);
+    when(azureSynapsePdao.createFinalParquetFiles(
+            finalTableName,
+            destinationParquetFile,
+            destinationDataSourceName,
+            scratchTableName,
+            datasetTable))
         .thenThrow(SQLException.class);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));

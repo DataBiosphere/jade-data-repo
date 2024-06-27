@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -23,22 +23,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @Tag(Unit.TAG)
 @ExtendWith(MockitoExtension.class)
-class CreateSnapshotFirecloudGroupNameStepTest {
+class CreateSnapshotSamGroupNameStepTest {
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
   private final UUID snapshotId = UUID.randomUUID();
 
-  private CreateSnapshotFirecloudGroupNameStep step;
+  private CreateSnapshotSamGroupNameStep step;
 
   @BeforeEach
   void setUp() {
-    step = new CreateSnapshotFirecloudGroupNameStep(snapshotId, iamService);
+    step = new CreateSnapshotSamGroupNameStep(snapshotId, iamService);
   }
 
   @Test
   void doStep() throws InterruptedException {
     FlightMap workingMap = new FlightMap();
-    String groupName = IamService.constructFirecloudGroupName(String.valueOf(snapshotId));
+    String groupName = IamService.constructSamGroupName(String.valueOf(snapshotId));
     when(iamService.getGroup(startsWith(groupName)))
         .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
     when(flightContext.getWorkingMap()).thenReturn(workingMap);

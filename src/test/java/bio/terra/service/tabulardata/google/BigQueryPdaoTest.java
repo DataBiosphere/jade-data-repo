@@ -8,6 +8,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
@@ -45,6 +47,7 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.model.TransactionModel.StatusEnum;
 import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetTable;
@@ -386,6 +389,8 @@ public class BigQueryPdaoTest {
 
   @Test
   public void createSnapshotByRequestId() throws Exception {
+    when(samService.getGroup(any(), any()))
+        .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
     Snapshot sourceSnapshot = stageOmopData();
     SnapshotAccessRequestResponse approvedAccessRequest =
         approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());

@@ -5,24 +5,24 @@ import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 
-public class CreateSnapshotFirecloudGroupStep implements Step {
+public class CreateSnapshotSamGroupStep implements Step {
   private final IamService iamService;
 
-  public CreateSnapshotFirecloudGroupStep(IamService iamService) {
+  public CreateSnapshotSamGroupStep(IamService iamService) {
     this.iamService = iamService;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    FlightMap workingMap = context.getWorkingMap();
     String groupName =
-        context
-            .getWorkingMap()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
     String groupEmail;
 
     try {
@@ -39,7 +39,7 @@ public class CreateSnapshotFirecloudGroupStep implements Step {
       }
     }
     // save the group email for later steps
-    context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, groupEmail);
+    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, groupEmail);
     return StepResult.getStepResultSuccess();
   }
 

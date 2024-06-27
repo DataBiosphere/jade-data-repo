@@ -431,12 +431,12 @@ public class IamService {
 
   // -- managed group support --
 
-  public static String constructFirecloudGroupName(String duosId) {
+  public static String constructSamGroupName(String duosId) {
     return String.format("%s-users", duosId);
   }
 
-  public static String constructUniqueFirecloudGroupName(String duosId) {
-    return String.format("%s-%s", constructFirecloudGroupName(duosId), UUID.randomUUID());
+  public static String constructUniqueSamGroupName(String duosId) {
+    return String.format("%s-%s", constructSamGroupName(duosId), UUID.randomUUID());
   }
 
   /**

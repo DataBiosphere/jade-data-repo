@@ -23,25 +23,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @Tag(Unit.TAG)
 @ExtendWith(MockitoExtension.class)
-class CreateSnapshotFirecloudGroupStepTest {
+class CreateSnapshotSamGroupStepTest {
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
 
   private static final String GROUP_NAME = "groupName";
   private static final String GROUP_EMAIL = "groupEmail";
 
-  private CreateSnapshotFirecloudGroupStep step;
+  private CreateSnapshotSamGroupStep step;
 
   @BeforeEach
   void setUp() {
-    step = new CreateSnapshotFirecloudGroupStep(iamService);
+    FlightMap workingMap = new FlightMap();
+    step = new CreateSnapshotSamGroupStep(iamService);
+    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
   }
 
   @Test
   void doStep() throws InterruptedException {
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     when(iamService.createGroup(GROUP_NAME)).thenReturn(GROUP_EMAIL);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     assertEquals(
@@ -53,9 +53,6 @@ class CreateSnapshotFirecloudGroupStepTest {
 
   @Test
   void doStepIamConflict() throws InterruptedException {
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     when(iamService.createGroup(GROUP_NAME)).thenThrow(IamConflictException.class);
     when(iamService.getGroup(GROUP_NAME)).thenReturn(GROUP_EMAIL);
     assertEquals(step.doStep(flightContext).getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
@@ -68,9 +65,6 @@ class CreateSnapshotFirecloudGroupStepTest {
 
   @Test
   void doStepIamNotFound() throws InterruptedException {
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     when(iamService.createGroup(GROUP_NAME)).thenThrow(IamConflictException.class);
     when(iamService.getGroup(GROUP_NAME)).thenThrow(IamNotFoundException.class);
     assertEquals(step.doStep(flightContext).getStepStatus(), StepStatus.STEP_RESULT_RESTART_FLIGHT);
@@ -82,18 +76,12 @@ class CreateSnapshotFirecloudGroupStepTest {
 
   @Test
   void undoStep() throws InterruptedException {
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     assertEquals(StepResult.getStepResultSuccess(), step.undoStep(flightContext));
     verify(iamService).deleteGroup(GROUP_NAME);
   }
 
   @Test
   void undoStepIamNotFound() throws InterruptedException {
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, GROUP_NAME);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     doThrow(IamNotFoundException.class).when(iamService).deleteGroup(GROUP_NAME);
     assertEquals(StepResult.getStepResultSuccess(), step.undoStep(flightContext));
   }

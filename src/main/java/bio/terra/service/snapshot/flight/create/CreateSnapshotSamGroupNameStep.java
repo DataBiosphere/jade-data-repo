@@ -11,18 +11,18 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class CreateSnapshotFirecloudGroupNameStep extends DefaultUndoStep {
+public class CreateSnapshotSamGroupNameStep extends DefaultUndoStep {
   private final UUID snapshotId;
   private final IamService iamService;
 
-  public CreateSnapshotFirecloudGroupNameStep(UUID snapshotId, IamService iamService) {
+  public CreateSnapshotSamGroupNameStep(UUID snapshotId, IamService iamService) {
     this.snapshotId = snapshotId;
     this.iamService = iamService;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    String groupName = IamService.constructFirecloudGroupName(String.valueOf(snapshotId));
+    String groupName = IamService.constructSamGroupName(String.valueOf(snapshotId));
     try {
       iamService.getGroup(groupName);
     } catch (IamNotFoundException ex) {

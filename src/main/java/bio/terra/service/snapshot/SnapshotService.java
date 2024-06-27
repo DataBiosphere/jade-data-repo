@@ -694,8 +694,7 @@ public class SnapshotService {
         new AssetModel()
             .name("snapshot-by-request-asset")
             .rootTable("person")
-            .rootColumn("person_id")
-            .followStrictDirection(true);
+            .rootColumn("person_id");
     // Manually add dictionary tables, leave columns empty to return all columns
     assetModel.addTablesItem(new AssetTableModel().name("person"));
 
@@ -717,7 +716,7 @@ public class SnapshotService {
     dataset.validateDatasetAssetSpecification(assetModel);
 
     // convert the asset model to an asset specification
-    return dataset.getNewAssetSpec(assetModel);
+    return dataset.getNewAssetSpec(assetModel).followStrictDirection(true);
   }
 
   @VisibleForTesting

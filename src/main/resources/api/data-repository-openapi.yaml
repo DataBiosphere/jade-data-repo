@@ -5359,9 +5359,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ObjectNameProperty'
-        followStrictDirection:
-          type: boolean
-          default: false
       description: One asset in the data model. The table list identifies the tables
         in the asset. The rootTable and rootColumn indicate which value will be used
         as the unique identifier. The list of relationships provides the instructions

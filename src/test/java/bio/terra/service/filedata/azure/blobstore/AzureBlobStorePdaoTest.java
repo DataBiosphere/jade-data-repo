@@ -160,11 +160,10 @@ public class AzureBlobStorePdaoTest {
     sourceBlobContainerFactory = mock(BlobContainerClientFactory.class);
     blobCrl = mock(BlobCrl.class);
     doReturn(targetBlobContainerFactory).when(dao).getTargetDataClientFactory(any(), any(), any());
-    doReturn(sourceBlobContainerFactory)
-        .when(azureBlobService)
-        .getSourceClientFactory(anyString(), any(), anyString());
-    doReturn(sourceBlobContainerFactory).when(azureBlobService).getSourceClientFactory(any());
-    doReturn(blobCrl).when(azureBlobService).getBlobCrl(any());
+    when(azureBlobService.getSourceClientFactory(anyString(), any(), anyString()))
+        .thenReturn(sourceBlobContainerFactory);
+    when(azureBlobService.getSourceClientFactory(any())).thenReturn(sourceBlobContainerFactory);
+    when(azureBlobService.getBlobCrl(any())).thenReturn(blobCrl);
   }
 
   @Test

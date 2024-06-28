@@ -393,15 +393,14 @@ public class AzureBlobStorePdao implements CloudFileReader {
     return success;
   }
 
-  public boolean deleteScratchParquet(
+  public boolean deleteBlobParquet(
+      FolderType folderType,
       String blobPath,
       AzureStorageAccountResource storageAccountResource,
       AuthenticatedUserRequest userRequest) {
-
     String blobUrl =
         String.format(
-            "%s/%s",
-            storageAccountResource.getStorageAccountUrl(), FolderType.SCRATCH.getPath(blobPath));
+            "%s/%s", storageAccountResource.getStorageAccountUrl(), folderType.getPath(blobPath));
     BlobUrlParts blobParts = BlobUrlParts.parse(blobUrl);
 
     BillingProfileModel profileModel =
@@ -422,6 +421,22 @@ public class AzureBlobStorePdao implements CloudFileReader {
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
 
     return blobCrl.deleteBlobsWithPrefix(blobName);
+  }
+
+  public boolean deleteScratchParquet(
+      String blobPath,
+      AzureStorageAccountResource storageAccountResource,
+      AuthenticatedUserRequest userRequest) {
+
+    return deleteBlobParquet(FolderType.SCRATCH, blobPath, storageAccountResource, userRequest);
+  }
+
+  public boolean deleteMetadataParquet(
+      String blobPath,
+      AzureStorageAccountResource storageAccountResource,
+      AuthenticatedUserRequest userRequest) {
+
+    return deleteBlobParquet(FolderType.METADATA, blobPath, storageAccountResource, userRequest);
   }
 
   /**

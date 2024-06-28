@@ -83,6 +83,7 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'check'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
@@ -127,6 +128,7 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testConnected'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Temp: Archive all junit test reports"
@@ -172,6 +174,7 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
           actions_subcommand: 'gcp_whitelist'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an available namespace to deploy API to and set state lock"

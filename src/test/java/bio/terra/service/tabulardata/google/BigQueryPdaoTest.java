@@ -391,6 +391,7 @@ public class BigQueryPdaoTest {
   public void createSnapshotByRequestId() throws Exception {
     when(samService.getGroup(any(), any()))
         .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
+    when(samService.createGroup(any(), any())).thenReturn("group@firecloud.org");
     Snapshot sourceSnapshot = stageOmopData();
     SnapshotAccessRequestResponse approvedAccessRequest =
         approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());

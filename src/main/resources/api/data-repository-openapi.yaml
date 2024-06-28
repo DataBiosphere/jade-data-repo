@@ -7420,9 +7420,9 @@ components:
           type: array
           items:
             type: string
-        personRelationship:
+        primaryTableRelationship:
           type: string
-        conceptRelationships:
+        secondaryTableRelationships:
           type: array
           items:
             type: string

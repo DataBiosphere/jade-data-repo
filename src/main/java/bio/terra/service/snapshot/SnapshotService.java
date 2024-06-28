@@ -705,10 +705,11 @@ public class SnapshotService {
           assetModel.addTablesItem(
               new AssetTableModel().name(table.getDatasetTableName()).columns(table.getColumns()));
           // First add all person <-> occurrence relationships
-          assetModel.addFollowItem(table.getPersonRelationship());
+          assetModel.addFollowItem(table.getPrimaryTableRelationship());
         });
     // Second, add all occurrence <-> concept relationships
-    tables.forEach(table -> table.getConceptRelationships().forEach(assetModel::addFollowItem));
+    tables.forEach(
+        table -> table.getSecondaryTableRelationships().forEach(assetModel::addFollowItem));
 
     assetModel.addTablesItem(new AssetTableModel().name("concept"));
 
@@ -742,7 +743,7 @@ public class SnapshotService {
         "Demographics",
         new SnapshotBuilderTable()
             .datasetTableName("person")
-            .conceptRelationships(
+            .secondaryTableRelationships(
                 List.of(
                     "fpk_person_gender_concept",
                     "fpk_person_race_concept",
@@ -754,8 +755,8 @@ public class SnapshotService {
         "Drug",
         new SnapshotBuilderTable()
             .datasetTableName("drug_exposure")
-            .personRelationship("fpk_person_drug")
-            .conceptRelationships(
+            .primaryTableRelationship("fpk_person_drug")
+            .secondaryTableRelationships(
                 List.of(
                     "fpk_drug_concept",
                     "fpk_drug_type_concept",
@@ -765,8 +766,8 @@ public class SnapshotService {
         "Measurement",
         new SnapshotBuilderTable()
             .datasetTableName("measurement")
-            .personRelationship("fpk_person_measurement")
-            .conceptRelationships(
+            .primaryTableRelationship("fpk_person_measurement")
+            .secondaryTableRelationships(
                 List.of(
                     "fpk_measurement_concept",
                     "fpk_measurement_unit",
@@ -778,8 +779,8 @@ public class SnapshotService {
         "Visit",
         new SnapshotBuilderTable()
             .datasetTableName("visit_occurrence")
-            .personRelationship("fpk_person_visit")
-            .conceptRelationships(
+            .primaryTableRelationship("fpk_person_visit")
+            .secondaryTableRelationships(
                 List.of(
                     "fpk_visit_preceding",
                     "fpk_visit_concept_s",
@@ -790,15 +791,15 @@ public class SnapshotService {
         "Device",
         new SnapshotBuilderTable()
             .datasetTableName("device_exposure")
-            .personRelationship("fpk_person_device")
-            .conceptRelationships(
+            .primaryTableRelationship("fpk_person_device")
+            .secondaryTableRelationships(
                 List.of("fpk_device_concept", "fpk_device_concept_s", "fpk_device_type_concept")));
     tableMap.put(
         "Condition",
         new SnapshotBuilderTable()
             .datasetTableName("condition_occurrence")
-            .personRelationship("fpk_person_condition")
-            .conceptRelationships(
+            .primaryTableRelationship("fpk_person_condition")
+            .secondaryTableRelationships(
                 List.of(
                     "fpk_condition_concept",
                     "fpk_condition_type_concept",
@@ -808,8 +809,8 @@ public class SnapshotService {
         "Procedure",
         new SnapshotBuilderTable()
             .datasetTableName("procedure_occurrence")
-            .personRelationship("fpk_person_procedure")
-            .conceptRelationships(
+            .primaryTableRelationship("fpk_person_procedure")
+            .secondaryTableRelationships(
                 List.of(
                     "fpk_procedure_concept",
                     "fpk_procedure_concept_s",
@@ -819,8 +820,8 @@ public class SnapshotService {
         "Observation",
         new SnapshotBuilderTable()
             .datasetTableName("observation")
-            .personRelationship("fpk_person_observation")
-            .conceptRelationships(
+            .primaryTableRelationship("fpk_person_observation")
+            .secondaryTableRelationships(
                 List.of(
                     "fpk_observation_concept",
                     "fpk_observation_concept_s",

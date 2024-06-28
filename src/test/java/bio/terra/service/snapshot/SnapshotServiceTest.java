@@ -1457,9 +1457,9 @@ class SnapshotServiceTest {
     var firstTable = service.pullTables(accessRequestResponse).get(0);
     assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
     // Must preserve relationship order
-    assertThat(firstTable.getPersonRelationship(), equalTo("fpk_person_drug"));
+    assertThat(firstTable.getPrimaryTableRelationship(), equalTo("fpk_person_drug"));
     assertThat(
-        firstTable.getConceptRelationships(),
+        firstTable.getSecondaryTableRelationships(),
         contains(
             "fpk_drug_concept",
             "fpk_drug_type_concept",

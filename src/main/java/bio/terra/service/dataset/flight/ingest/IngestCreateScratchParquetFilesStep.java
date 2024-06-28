@@ -82,9 +82,8 @@ public class IngestCreateScratchParquetFilesStep implements Step {
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
-    String scratchParquetFile = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
-    azureBlobStorePdao.deleteScratchParquet(
-        scratchParquetFile, storageAccountResource, userRequest);
+    String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
+    azureBlobStorePdao.deleteScratchParquet(parquetFilePath, storageAccountResource, userRequest);
 
     return StepResult.getStepResultSuccess();
   }

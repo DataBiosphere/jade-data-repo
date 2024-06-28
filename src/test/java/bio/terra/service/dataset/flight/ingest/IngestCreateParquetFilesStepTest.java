@@ -119,7 +119,7 @@ class IngestCreateParquetFilesStepTest {
     StepResult undoResult = step.undoStep(flightContext);
     verify(azureSynapsePdao).dropTables(dropTables);
     verify(azureBlobStorePdao)
-        .deleteMetadataParquet(parquetFilePath, storageAccountResource, TEST_USER);
+        .deleteMetadataParquet(PARQUET_FILE_PATH, storageAccountResource, TEST_USER);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }
 

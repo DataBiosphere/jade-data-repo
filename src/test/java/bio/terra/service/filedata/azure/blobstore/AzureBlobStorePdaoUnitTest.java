@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.blobstore;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -87,7 +88,8 @@ class AzureBlobStorePdaoUnitTest {
 
   void mocksForDeleteBlobParquet(FolderType folderType, String blobPath) {
     when(profileDao.getBillingProfileById(BILLING_PROFILE_ID)).thenReturn(billingProfileModel);
-    when(azureContainerPdao.getDestinationContainerSignedUrl(any(), any(), any()))
+    when(azureContainerPdao.getDestinationContainerSignedUrl(
+            eq(billingProfileModel), eq(storageAccountResource), any()))
         .thenReturn(SIGNED_URL);
 
     BlobCrl blobCrl = mock(BlobCrl.class);

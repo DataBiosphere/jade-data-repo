@@ -390,7 +390,10 @@ public class AzureBlobStorePdao implements CloudFileReader {
       AuthenticatedUserRequest userRequest) {
     String blobUrl =
         String.format(
-            "%s/%s", storageAccountResource.getStorageAccountUrl(), folderType.getPath(blobPath));
+            "%s/%s/%s",
+            storageAccountResource.getStorageAccountUrl(),
+            storageAccountResource.getTopLevelContainer(),
+            folderType.getPath(blobPath));
     BlobUrlParts blobParts = BlobUrlParts.parse(blobUrl);
 
     BillingProfileModel profileModel =

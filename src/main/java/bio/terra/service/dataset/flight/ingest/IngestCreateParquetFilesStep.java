@@ -106,8 +106,7 @@ public class IngestCreateParquetFilesStep implements Step {
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
-    String parquetFilePath =
-        FolderType.METADATA.getPath(workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class));
+    String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
     azureBlobStorePdao.deleteMetadataParquet(parquetFilePath, storageAccountResource, userRequest);
 
     return StepResult.getStepResultSuccess();

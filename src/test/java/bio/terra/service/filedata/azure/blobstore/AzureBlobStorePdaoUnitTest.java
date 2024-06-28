@@ -81,43 +81,48 @@ class AzureBlobStorePdaoUnitTest {
         new AzureStorageAccountResource()
             .applicationResource(applicationDeploymentResource)
             .name("storageAccountResourceName")
+            .topLevelContainer("containerId")
             .profileId(BILLING_PROFILE_ID);
   }
 
-  void mocksForDeleteBlobParquet() {
+  void mocksForDeleteBlobParquet(FolderType folderType, String blobPath) {
     when(profileDao.getBillingProfileById(BILLING_PROFILE_ID)).thenReturn(billingProfileModel);
     when(azureContainerPdao.getDestinationContainerSignedUrl(any(), any(), any()))
         .thenReturn(SIGNED_URL);
 
     BlobCrl blobCrl = mock(BlobCrl.class);
     when(azureBlobService.getBlobCrl(any())).thenReturn(blobCrl);
-    when(blobCrl.deleteBlobsWithPrefix(any())).thenReturn(true);
+    when(blobCrl.deleteBlobsWithPrefix(folderType.getPath(blobPath))).thenReturn(true);
   }
 
   @Test
   void testDeleteBlobParquet() {
-    mocksForDeleteBlobParquet();
+    FolderType folderType = FolderType.DATA;
+    String blobPath = "parquetBlobPath";
+    mocksForDeleteBlobParquet(folderType, blobPath);
     boolean result =
         azureBlobStorePdao.deleteBlobParquet(
-            FolderType.SCRATCH, "parquetBlobPath", storageAccountResource, TEST_USER);
+            folderType, blobPath, storageAccountResource, TEST_USER);
     assertTrue(result);
   }
 
   @Test
   void testDeleteScratchParquet() {
-    mocksForDeleteBlobParquet();
+    FolderType folderType = FolderType.SCRATCH;
+    String blobPath = folderType.getPath("parquetScratchPath");
+    mocksForDeleteBlobParquet(folderType, blobPath);
     boolean result =
-        azureBlobStorePdao.deleteScratchParquet(
-            "parquetScratchPath", storageAccountResource, TEST_USER);
+        azureBlobStorePdao.deleteScratchParquet(blobPath, storageAccountResource, TEST_USER);
     assertTrue(result);
   }
 
   @Test
   void testDeleteMetadataParquet() {
-    mocksForDeleteBlobParquet();
+    FolderType folderType = FolderType.METADATA;
+    String blobPath = folderType.getPath("parquetMetadataPath");
+    mocksForDeleteBlobParquet(folderType, blobPath);
     boolean result =
-        azureBlobStorePdao.deleteMetadataParquet(
-            "parquetMetadataPath", storageAccountResource, TEST_USER);
+        azureBlobStorePdao.deleteMetadataParquet(blobPath, storageAccountResource, TEST_USER);
     assertTrue(result);
   }
 }

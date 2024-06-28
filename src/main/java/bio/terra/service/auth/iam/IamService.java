@@ -431,6 +431,14 @@ public class IamService {
 
   // -- managed group support --
 
+  public static String constructSamGroupName(String duosId) {
+    return String.format("%s-users", duosId);
+  }
+
+  public static String constructUniqueSamGroupName(String duosId) {
+    return String.format("%s-%s", constructSamGroupName(duosId), UUID.randomUUID());
+  }
+
   /**
    * @param groupName Firecloud managed group to create as the TDR SA
    * @return the email for the newly created group
@@ -438,6 +446,15 @@ public class IamService {
   public String createGroup(String groupName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.createGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * @param groupName Firecloud managed group to retrieve as the TDR SA
+   * @return the email for the retrieved group
+   */
+  public String getGroup(String groupName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getGroup(tdrSaAccessToken, groupName));
   }
 
   /**

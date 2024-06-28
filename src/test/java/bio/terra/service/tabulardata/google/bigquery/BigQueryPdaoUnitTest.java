@@ -1208,7 +1208,7 @@ class BigQueryPdaoUnitTest {
             List.of(
                 new SnapshotSource()
                     .dataset(mockDataset())
-                    .assetSpecification(
+                    .setAssetSpecification(
                         new AssetSpecification()
                             .rootTable(new AssetTable().datasetTable(tbl1))
                             .rootColumn(

@@ -635,7 +635,7 @@ public class SnapshotService {
     switch (requestContents.getMode()) {
       case BYASSET -> {
         AssetSpecification assetSpecification = getAssetSpecificationFromRequest(requestContents);
-        snapshotSource.assetSpecification(assetSpecification);
+        snapshotSource.setAssetSpecification(assetSpecification);
         conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
       }
       case BYFULLVIEW -> conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
@@ -648,7 +648,7 @@ public class SnapshotService {
         Dataset queryDataset = datasetService.retrieveByName(datasetName);
         AssetSpecification queryAssetSpecification =
             getAssetByNameFromDataset(queryDataset, assetName);
-        snapshotSource.assetSpecification(queryAssetSpecification);
+        snapshotSource.setAssetSpecification(queryAssetSpecification);
         conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
       }
       case BYROWID -> {
@@ -663,7 +663,7 @@ public class SnapshotService {
             buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequest);
         // populate the assetSpecification field so that we can write it to the working map in the
         // step
-        snapshotSource.assetSpecification(queryAssetSpecification);
+        snapshotSource.setAssetSpecification(queryAssetSpecification);
         conjureSnapshotTablesFromAsset(snapshot, snapshotSource);
       }
     }

@@ -60,7 +60,7 @@ public class SnapshotAuthzIamStep implements Step {
         return new StepResult(
             StepStatus.STEP_RESULT_FAILURE_FATAL,
             new IllegalStateException(
-                "Snapshot Firecloud group email not found in working map. We expect a group to be created by snapshot create by request id."));
+                "Snapshot Firecloud group email was not found in working map. We expect a group to be created by snapshot create by request id."));
       }
       derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }

@@ -155,7 +155,7 @@ class SnapshotAuthzIamStepTest {
     assertThat(
         doResult.getException().isPresent() ? doResult.getException().get().getMessage() : "",
         containsString(
-            "Snapshot Firecloud group email not found in working map. We expect a group to be created by snapshot create by request id."));
+            "Snapshot Firecloud group email was not found in working map. We expect a group to be created by snapshot create by request id."));
   }
 
   // For Snapshot Create by mode OTHER THAN byRequestId, we expect do not expect that a group is

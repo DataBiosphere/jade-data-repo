@@ -11,6 +11,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.IngestResponseModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -145,14 +146,21 @@ class IngestCreateParquetFilesStepTest {
     flightMap.put(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, 10);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    IngestResponseModel ingestResponse =
+        flightMap.get(JobMapKeys.RESPONSE.getKeyName(), IngestResponseModel.class);
+    assertThat(ingestResponse.getBadRowCount(), equalTo(10L));
   }
 
   @Test
   void testDoStepWithCombinedFileIngest() throws InterruptedException {
+    BulkLoadArrayResultModel bulkLoadArrayResultModel = new BulkLoadArrayResultModel();
     flightMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, 1);
-    flightMap.put(IngestMapKeys.BULK_LOAD_RESULT, new BulkLoadArrayResultModel());
+    flightMap.put(IngestMapKeys.BULK_LOAD_RESULT, bulkLoadArrayResultModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    IngestResponseModel ingestResponse =
+        flightMap.get(JobMapKeys.RESPONSE.getKeyName(), IngestResponseModel.class);
+    assertThat(ingestResponse.getLoadResult(), equalTo(bulkLoadArrayResultModel));
   }
 
   @Test
@@ -166,5 +174,8 @@ class IngestCreateParquetFilesStepTest {
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    IngestResponseModel ingestResponse =
+        flightMap.get(JobMapKeys.RESPONSE.getKeyName(), IngestResponseModel.class);
+    assertThat(ingestResponse.getPath(), equalTo(null));
   }
 }

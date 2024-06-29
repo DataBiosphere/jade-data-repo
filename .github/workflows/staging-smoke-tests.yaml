@@ -56,6 +56,7 @@ jobs:
       - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
         env:
           # note: hack to overwrite the env var to grab the dev credentials too
+          TEMP_CREDENTIALS: /tmp/jade-dev-account.b64
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
         run: |
           # write token

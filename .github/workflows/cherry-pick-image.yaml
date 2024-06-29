@@ -35,6 +35,7 @@ jobs:
     steps:
       - name: "Authenticate with GCR SA Credentials"
         env:
+          TEMP_CREDENTIALS: /tmp/jade-dev-account.b64
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
         run: |
           # write token

@@ -1,7 +1,6 @@
 name: DataRepo Staging Smoke Tests
 env:
   K8_CLUSTER: jade-master-us-central1
-  TEMP_CREDENTIALS: /tmp/jade-dev-account.b64
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
@@ -49,8 +48,7 @@ jobs:
       - name: "Perform IAM policy cleanup for staging"
         run: |
           # write token
-          base64 --decode <<< ${{ secrets.TEST_RUNNER_B64_CREDENTIALS }} > ${TEMP_CREDENTIALS}
-          jq -r .key ${TEMP_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          base64 --decode <<< ${{ secrets.TEST_RUNNER_B64_CREDENTIALS }} | jq -r .key > ${GOOGLE_APPLICATION_CREDENTIALS}
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
@@ -60,8 +58,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
         run: |
           # write token
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${TEMP_CREDENTIALS}
-          jq -r .sa ${TEMP_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} | jq -r .sa > ${GOOGLE_APPLICATION_CREDENTIALS}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

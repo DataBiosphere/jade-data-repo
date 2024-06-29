@@ -1,6 +1,7 @@
 name: DataRepo Staging Smoke Tests
 env:
   K8_CLUSTER: jade-master-us-central1
+  TEMP_CREDENTIALS: /tmp/jade-dev-account.b64
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
@@ -56,7 +57,6 @@ jobs:
       - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
         env:
           # note: hack to overwrite the env var to grab the dev credentials too
-          TEMP_CREDENTIALS: /tmp/jade-dev-account.b64
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
         run: |
           # write token

@@ -48,7 +48,7 @@ public class AssetUtils {
                     .toColumn(sampleTable.getColumnByName("participant_ids").orElseThrow())
                     .toTable(sampleTable)
                     .name("participant_sample_relationship"));
-    return WalkRelationship.ofAssetRelationship(sampleParticipantRelationship);
+    return WalkRelationship.ofAssetRelationship(sampleParticipantRelationship, false);
   }
 
   private static AssetTable setUpAssetTable(String resourcePath) {

@@ -60,7 +60,6 @@ class CreateSnapshotByRequestIdAzureStepTest {
                 snapshotReq,
                 snapshotService,
                 snapshotBuilderService,
-                snapshotRequestDao,
                 snapshotDao,
                 TEST_USER,
                 azureSynapsePdao,
@@ -78,8 +77,8 @@ class CreateSnapshotByRequestIdAzureStepTest {
             mockFlightContext,
             snapshot,
             snapshotReq,
+            snapshotService,
             snapshotBuilderService,
-            snapshotRequestDao,
             snapshotDao,
             TEST_USER);
     StepResult result = createSnapshotByRequestIdAzureStep.doStep(mockFlightContext);

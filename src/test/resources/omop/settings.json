@@ -173,58 +173,34 @@
   "featureValueGroups": [
     {
       "name": "Drug",
-      "values": [
-        "Drug Column 1","Drug Column 2"
-      ]
+      "values": []
     },{
       "name": "Measurement",
-      "values": [
-        "Measurement Column 1","Measurement Column 2"
-      ]
+      "values": []
     },{
       "name": "Visit",
-      "values": [
-        "Visit Column 1","Visit Column 2"
-      ]
+      "values": []
     },{
       "name": "Device",
-      "values": [
-        "Device Column 1","Device Column 2"
-      ]
+      "values": []
     },{
       "name": "Procedure",
-      "values": [
-        "Procedure Column 1","Procedure Column 2"
-      ]
+      "values": []
     },{
       "name": "Condition",
-      "values": [
-        "Condition Column 1","Condition Column 2"
-      ]
+      "values": []
     },{
       "name": "Observation",
-      "values": [
-        "Observation Column 1","Observation Column 2"
-      ]
+      "values": []
     },{
       "name": "Person",
-      "values": [
-        "Person Column 1","Person Column 2"
-      ]
-    },{
-      "name": "Genomics",
-      "values": [
-        "Genomics Column 1","Genomics Column 2"
-      ]
+      "values": []
     }
   ],
   "datasetConceptSets": [
     {
       "name": "Demographics",
       "featureValueGroupName": "Person"
-    },{
-      "name": "Genomics",
-      "featureValueGroupName": "Genomics"
     }
   ]
 }

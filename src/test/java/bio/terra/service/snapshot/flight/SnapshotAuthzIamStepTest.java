@@ -17,6 +17,7 @@ import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.create.SnapshotAuthzIamStep;
@@ -25,8 +26,11 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -60,10 +64,8 @@ class SnapshotAuthzIamStepTest {
     workingMap = new FlightMap();
     snapshotRequestModel = new SnapshotRequestModel();
     // Set mode to something other than byRequestId
-    snapshotRequestModel.contents(
-        List.of(
-            new SnapshotRequestContentsModel()
-                .mode(SnapshotRequestContentsModel.ModeEnum.BYASSET)));
+    snapshotRequestModel.addContentsItem(
+        new SnapshotRequestContentsModel().mode(SnapshotRequestContentsModel.ModeEnum.BYASSET));
     when(iamService.deriveSnapshotPolicies(snapshotRequestModel))
         .thenReturn(new SnapshotRequestModelPolicies().readers(new ArrayList<>()));
   }
@@ -116,21 +118,23 @@ class SnapshotAuthzIamStepTest {
     workingMap.put(
         SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    snapshotRequestModel.contents(
-        List.of(
-            new SnapshotRequestContentsModel()
-                .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)));
+    overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
+    var expectedPolicies =
+        new SnapshotRequestModelPolicies().addReadersItem(SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
+    Map<IamRole, String> expectedPoliciesMap = new HashMap<>();
+    expectedPoliciesMap.put(IamRole.READER, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
+    when(iamService.createSnapshotResource(TEST_USER, SNAPSHOT_ID, expectedPolicies))
+        .thenReturn(expectedPoliciesMap);
     step =
         new SnapshotAuthzIamStep(
             iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-
-    ArgumentCaptor<SnapshotRequestModelPolicies> argument =
-        ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
-    List<String> readers = argument.getValue().getReaders();
-    assertTrue(readers.contains(SNAPSHOT_FIRECLOUD_GROUP_EMAIL));
+    Map<IamRole, String> workingMapPolicies =
+        flightContext
+            .getWorkingMap()
+            .get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
+    assertThat(workingMapPolicies.get(IamRole.READER), equalTo(SNAPSHOT_FIRECLOUD_GROUP_EMAIL));
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
@@ -143,10 +147,7 @@ class SnapshotAuthzIamStepTest {
   @Test
   void testDoAByRequestIdButNoEmail() throws InterruptedException {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    snapshotRequestModel.contents(
-        List.of(
-            new SnapshotRequestContentsModel()
-                .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)));
+    overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
     step =
         new SnapshotAuthzIamStep(
             iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
@@ -166,17 +167,17 @@ class SnapshotAuthzIamStepTest {
     workingMap.put(
         SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    var expectedPolicies = new SnapshotRequestModelPolicies().readers(List.of());
 
     step =
         new SnapshotAuthzIamStep(
             iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), eq(expectedPolicies));
+  }
 
-    ArgumentCaptor<SnapshotRequestModelPolicies> argument =
-        ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
-    List<String> readers = argument.getValue().getReaders();
-    assertFalse(readers.contains(SNAPSHOT_FIRECLOUD_GROUP_EMAIL));
+  private void overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum mode) {
+    snapshotRequestModel.contents(List.of(new SnapshotRequestContentsModel().mode(mode)));
   }
 }

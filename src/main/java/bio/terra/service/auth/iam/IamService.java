@@ -458,6 +458,26 @@ public class IamService {
   }
 
   /**
+   * Overwrite group membership to include listed emails AND the current user's email AND admin
+   * emails
+   *
+   * @param groupName Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses emails which the TDR SA will set as group policy members
+   */
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    callProvider(
+        () ->
+            iamProvider.overwriteGroupPolicyEmailsIncludeRequestingUser(
+                tdrSaAccessToken, userRequest, groupName, policyName, emailAddresses));
+  }
+
+  /**
    * @param groupName Firecloud managed group
    * @param policyName name of Firecloud managed group policy
    * @param emailAddresses emails which the TDR SA will set as group policy members

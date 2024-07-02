@@ -258,6 +258,20 @@ public interface IamProviderInterface {
 
   /**
    * @param accessToken valid oauth token for the account modifying the group policy members
+   * @param groupName name of Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses user emails which will overwrite group policy contents. This list will
+   *     also include the current authenticated user
+   */
+  void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException;
+  /**
+   * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group
    * @param policyName name of Firecloud managed group policy
    * @param emailAddresses user emails which will overwrite group policy contents

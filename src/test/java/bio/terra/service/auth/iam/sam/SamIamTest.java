@@ -841,6 +841,25 @@ class SamIamTest {
     }
 
     @Test
+    void setGroupMembershipWithAdmin() throws ApiException, InterruptedException {
+      final String snapshotRequesterEmail = "requester@a.com";
+      final String requestApproverId = "userid";
+      final String requestApproverEmail = "a@a.com";
+      mockUserInfo(requestApproverId, requestApproverEmail);
+      var expectedListOfEmails =
+          List.of(snapshotRequesterEmail, requestApproverEmail, samConfig.adminsGroupEmail());
+
+      samIam.overwriteGroupPolicyEmailsIncludeRequestingUser(
+          TEST_USER.getToken(), // In a real use case, this would be the TDR SA Token
+          TEST_USER, // While this would be the user making the request
+          GROUP_NAME,
+          IamRole.MEMBER.toString(),
+          List.of(snapshotRequesterEmail));
+      verify(samGroupApi)
+          .overwriteGroupPolicyEmails(GROUP_NAME, IamRole.MEMBER.toString(), expectedListOfEmails);
+    }
+
+    @Test
     void testOverwriteGroupPolicyEmails() throws InterruptedException, ApiException {
       String accessToken = TEST_USER.getToken();
       String policyName = IamRole.MEMBER.toString();

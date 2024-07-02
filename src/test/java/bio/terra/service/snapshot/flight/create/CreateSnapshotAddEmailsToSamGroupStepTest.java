@@ -31,14 +31,14 @@ class CreateSnapshotAddEmailsToSamGroupStepTest {
   @Mock private IamService iamService;
   @Mock private SnapshotRequestDao snapshotRequestDao;
   @Mock private FlightContext flightContext;
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
   private static final String RESEARCHER_EMAIL = "researcher@gmail.com";
 
   private static final String GROUP_NAME = "groupName";
 
   private CreateSnapshotAddEmailsToSamGroupStep step;
   private UUID snapshotRequestId;
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
   void setUp() {
@@ -53,11 +53,12 @@ class CreateSnapshotAddEmailsToSamGroupStepTest {
 
   @Test
   void doStep() throws InterruptedException {
-    var emailsToAdd = List.of(TEST_USER.getEmail(), RESEARCHER_EMAIL);
+    var emailsToAdd = List.of(RESEARCHER_EMAIL);
     var request = new SnapshotAccessRequestResponse().createdBy(RESEARCHER_EMAIL);
     when(snapshotRequestDao.getById(snapshotRequestId)).thenReturn(request);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     verify(iamService)
-        .overwriteGroupPolicyEmails(GROUP_NAME, IamRole.MEMBER.toString(), emailsToAdd);
+        .overwriteGroupPolicyEmailsIncludeRequestingUser(
+            TEST_USER, GROUP_NAME, IamRole.MEMBER.toString(), emailsToAdd);
   }
 }

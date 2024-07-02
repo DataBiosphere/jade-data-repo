@@ -18,7 +18,6 @@ public class CreateSnapshotAddEmailsToSamGroupStep extends DefaultUndoStep {
   private final AuthenticatedUserRequest userRequest;
   private final IamService iamService;
   private final SnapshotRequestDao snapshotRequestDao;
-
   private final UUID snapshotRequestId;
 
   public CreateSnapshotAddEmailsToSamGroupStep(
@@ -37,10 +36,10 @@ public class CreateSnapshotAddEmailsToSamGroupStep extends DefaultUndoStep {
     FlightMap workingMap = context.getWorkingMap();
     String groupName =
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
-    List<String> emailsToAddToGroup = new ArrayList<>();
-    emailsToAddToGroup.add(userRequest.getEmail());
-    emailsToAddToGroup.add(snapshotRequestDao.getById(snapshotRequestId).getCreatedBy());
-    iamService.overwriteGroupPolicyEmails(groupName, IamRole.MEMBER.toString(), emailsToAddToGroup);
+    List<String> emailsToAddToGroup =
+        List.of(snapshotRequestDao.getById(snapshotRequestId).getCreatedBy());
+    iamService.overwriteGroupPolicyEmailsIncludeRequestingUser(
+        userRequest, groupName, IamRole.MEMBER.toString(), emailsToAddToGroup);
     return StepResult.getStepResultSuccess();
   }
 }

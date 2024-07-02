@@ -620,7 +620,9 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdBy("email@a.com");
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -635,6 +637,7 @@ class SnapshotServiceTest {
     SnapshotAccessRequestResponse accessRequestResponse =
         new SnapshotAccessRequestResponse()
             .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdBy("email@a.com")
             .flightid(flightId);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -688,6 +691,21 @@ class SnapshotServiceTest {
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     // any flight status that isn't error or fatal
     when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.READY);
+    assertThrows(
+        ValidationException.class,
+        () -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
+  }
+
+  @Test
+  void validateForByRequestIdIdModeCreatedByEmail() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestContentsModel snapshotRequestContentsModel =
+        makeByRequestIdContentsModel(snapshotAccessRequestId);
+    SnapshotAccessRequestResponse accessRequestResponse =
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdBy("notanemail.com");
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     assertThrows(
         ValidationException.class,
         () -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -1094,6 +1112,7 @@ class SnapshotServiceTest {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
         new SnapshotAccessRequestResponse()
             .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdBy("email@a.com")
             .id(snapshotAccessRequestId);
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(snapshotAccessRequestResponse);

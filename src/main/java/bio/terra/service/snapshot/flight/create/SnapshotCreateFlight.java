@@ -181,7 +181,8 @@ public class SnapshotCreateFlight extends Flight {
 
     // create the snapshot metadata object in postgres and lock it
     addStep(
-        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq, snapshotId),
+        new CreateSnapshotMetadataStep(
+            snapshotDao, snapshotService, snapshotReq, snapshotId, sourceDataset),
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
@@ -273,7 +274,6 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotReq,
                         snapshotService,
                         snapshotBuilderService,
-                        snapshotRequestDao,
                         snapshotDao,
                         userReq,
                         bigQuerySnapshotPdao),
@@ -282,7 +282,6 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotReq,
                         snapshotService,
                         snapshotBuilderService,
-                        snapshotRequestDao,
                         snapshotDao,
                         userReq,
                         azureSynapsePdao,

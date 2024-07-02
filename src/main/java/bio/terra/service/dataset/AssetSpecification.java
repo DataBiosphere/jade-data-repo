@@ -12,6 +12,7 @@ public class AssetSpecification {
   private AssetColumn rootColumn;
   private List<AssetTable> assetTables = new ArrayList<>();
   private List<AssetRelationship> assetRelationships = new ArrayList<>();
+  private boolean followStrictDirection = false;
 
   public AssetColumn getRootColumn() {
     return rootColumn;
@@ -72,5 +73,14 @@ public class AssetSpecification {
         .filter(at -> at.getTable().getName().equals(tableName))
         .findFirst()
         .orElseThrow();
+  }
+
+  public boolean isFollowStrictDirection() {
+    return followStrictDirection;
+  }
+
+  public AssetSpecification followStrictDirection(boolean followStrictDirection) {
+    this.followStrictDirection = followStrictDirection;
+    return this;
   }
 }

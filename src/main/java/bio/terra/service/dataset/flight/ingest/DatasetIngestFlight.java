@@ -285,7 +285,9 @@ public class DatasetIngestFlight extends Flight {
       addStep(
           new IngestValidateScratchTableFilerefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
-      addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
+      addStep(
+          new IngestCreateParquetFilesStep(
+              azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
       addStep(new IngestCleanAzureStep(azureSynapsePdao, azureBlobStorePdao, userReq));
       addStep(
           new PerformPayloadIngestStep(

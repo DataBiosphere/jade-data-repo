@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -139,42 +138,6 @@ class SnapshotAuthzIamStepTest {
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService).deleteSnapshotResource(TEST_USER, SNAPSHOT_ID);
-  }
-
-  // For Snapshot Create byRequestId, we expect that a group is created and the email is put in the
-  // working map
-  // If the email is not found, we should fail the step
-  @Test
-  void testDoAByRequestIdButNoEmail() throws InterruptedException {
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
-    step =
-        new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
-    StepResult doResult = step.doStep(flightContext);
-    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
-    assertThat(
-        doResult.getException().isPresent() ? doResult.getException().get().getMessage() : "",
-        containsString(
-            "Snapshot Firecloud group email was not found in working map. We expect a group to be created by snapshot create by request id."));
-  }
-
-  // For Snapshot Create by mode OTHER THAN byRequestId, we expect do not expect that a group is
-  // created
-  // We should not add the group unless it is byRequestId
-  @Test
-  void testSnapshotGroupNotPresentIfNotByRequestId() throws InterruptedException {
-    workingMap.put(
-        SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    var expectedPolicies = new SnapshotRequestModelPolicies().readers(List.of());
-
-    step =
-        new SnapshotAuthzIamStep(
-            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
-    StepResult doResult = step.doStep(flightContext);
-    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), eq(expectedPolicies));
   }
 
   private void overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum mode) {

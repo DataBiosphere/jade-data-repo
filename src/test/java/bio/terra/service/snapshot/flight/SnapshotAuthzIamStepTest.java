@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,7 +14,6 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
@@ -22,7 +22,6 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.create.SnapshotAuthzIamStep;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
-import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -47,15 +46,14 @@ class SnapshotAuthzIamStepTest {
   @Mock private IamService iamService;
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
-  @Mock private SnapshotRequestDao snapshotRequestDao;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
-  private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
   private static final String DUOS_ID = "DUOS-123456";
   private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP =
       DuosFixtures.createDbFirecloudGroup(DUOS_ID);
+  private static final String SNAPSHOT_FIRECLOUD_GROUP_EMAIL = UUID.randomUUID() + "-users";
 
   private SnapshotAuthzIamStep step;
   private FlightMap workingMap;
@@ -77,13 +75,7 @@ class SnapshotAuthzIamStepTest {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     step =
         new SnapshotAuthzIamStep(
-            iamService,
-            snapshotService,
-            snapshotRequestModel,
-            snapshotRequestDao,
-            TEST_USER,
-            SNAPSHOT_ID,
-            null);
+            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
@@ -106,13 +98,7 @@ class SnapshotAuthzIamStepTest {
     snapshotRequestModel.duosId(DUOS_ID);
     step =
         new SnapshotAuthzIamStep(
-            iamService,
-            snapshotService,
-            snapshotRequestModel,
-            snapshotRequestDao,
-            TEST_USER,
-            SNAPSHOT_ID,
-            null);
+            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
 
@@ -129,36 +115,66 @@ class SnapshotAuthzIamStepTest {
 
   @Test
   void testDoAndUndoWithSnapshotFirecloudGroup() throws InterruptedException {
-    var requesterEmail = "example@a.com";
+    workingMap.put(
+        SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
-    when(snapshotRequestDao.getById(SNAPSHOT_REQUEST_ID))
-        .thenReturn(new SnapshotAccessRequestResponse().createdBy(requesterEmail));
-    var expectedPolicies = new SnapshotRequestModelPolicies().addReadersItem(requesterEmail);
+    var expectedPolicies =
+        new SnapshotRequestModelPolicies().addReadersItem(SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
     Map<IamRole, String> expectedPoliciesMap = new HashMap<>();
-    expectedPoliciesMap.put(IamRole.READER, requesterEmail);
+    expectedPoliciesMap.put(IamRole.READER, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
     when(iamService.createSnapshotResource(TEST_USER, SNAPSHOT_ID, expectedPolicies))
         .thenReturn(expectedPoliciesMap);
     step =
         new SnapshotAuthzIamStep(
-            iamService,
-            snapshotService,
-            snapshotRequestModel,
-            snapshotRequestDao,
-            TEST_USER,
-            SNAPSHOT_ID,
-            SNAPSHOT_REQUEST_ID);
+            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     Map<IamRole, String> workingMapPolicies =
         flightContext
             .getWorkingMap()
             .get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
-    assertThat(workingMapPolicies.get(IamRole.READER), equalTo(requesterEmail));
+    assertThat(workingMapPolicies.get(IamRole.READER), equalTo(SNAPSHOT_FIRECLOUD_GROUP_EMAIL));
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService).deleteSnapshotResource(TEST_USER, SNAPSHOT_ID);
+  }
+
+  // For Snapshot Create byRequestId, we expect that a group is created and the email is put in the
+  // working map
+  // If the email is not found, we should fail the step
+  @Test
+  void testDoAByRequestIdButNoEmail() throws InterruptedException {
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID);
+    step =
+        new SnapshotAuthzIamStep(
+            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
+    assertThat(
+        doResult.getException().isPresent() ? doResult.getException().get().getMessage() : "",
+        containsString(
+            "Snapshot Firecloud group email was not found in working map. We expect a group to be created by snapshot create by request id."));
+  }
+
+  // For Snapshot Create by mode OTHER THAN byRequestId, we expect do not expect that a group is
+  // created
+  // We should not add the group unless it is byRequestId
+  @Test
+  void testSnapshotGroupNotPresentIfNotByRequestId() throws InterruptedException {
+    workingMap.put(
+        SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SNAPSHOT_FIRECLOUD_GROUP_EMAIL);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    var expectedPolicies = new SnapshotRequestModelPolicies().readers(List.of());
+
+    step =
+        new SnapshotAuthzIamStep(
+            iamService, snapshotService, snapshotRequestModel, TEST_USER, SNAPSHOT_ID);
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), eq(expectedPolicies));
   }
 
   private void overrideSnapshotRequestMode(SnapshotRequestContentsModel.ModeEnum mode) {

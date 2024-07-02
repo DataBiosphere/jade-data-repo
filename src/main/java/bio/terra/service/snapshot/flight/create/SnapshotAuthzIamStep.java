@@ -12,11 +12,11 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils;
-import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -26,11 +26,7 @@ public class SnapshotAuthzIamStep implements Step {
   private final IamService sam;
   private final SnapshotService snapshotService;
   private final SnapshotRequestModel snapshotRequestModel;
-
   private final AuthenticatedUserRequest userReq;
-  private final SnapshotRequestDao snapshotRequestDao;
-
-  private final UUID snapshotRequestId;
   private final UUID snapshotId;
   private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzIamStep.class);
 
@@ -38,17 +34,13 @@ public class SnapshotAuthzIamStep implements Step {
       IamService sam,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotRequestModel,
-      SnapshotRequestDao snapshotRequestDao,
       AuthenticatedUserRequest userReq,
-      UUID snapshotId,
-      UUID snapshotRequestId) {
+      UUID snapshotId) {
     this.sam = sam;
     this.snapshotService = snapshotService;
     this.snapshotRequestModel = snapshotRequestModel;
-    this.snapshotRequestDao = snapshotRequestDao;
     this.userReq = userReq;
     this.snapshotId = snapshotId;
-    this.snapshotRequestId = snapshotRequestId;
   }
 
   @Override
@@ -62,8 +54,15 @@ public class SnapshotAuthzIamStep implements Step {
     }
     if (snapshotRequestModel.getContents().get(0).getMode()
         == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      var snapshotRequesterEmail = snapshotRequestDao.getById(snapshotRequestId).getCreatedBy();
-      derivedPolicies.addReadersItem(snapshotRequesterEmail);
+      var snapshotFirecloudGroupEmail =
+          workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class);
+      if (snapshotFirecloudGroupEmail == null) {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL,
+            new IllegalStateException(
+                "Snapshot Firecloud group email was not found in working map. We expect a group to be created by snapshot create by request id."));
+      }
+      derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }
     Map<IamRole, String> policies =
         sam.createSnapshotResource(userReq, snapshotId, derivedPolicies);

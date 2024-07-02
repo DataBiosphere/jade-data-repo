@@ -41,8 +41,6 @@ jobs:
         with:
           actions_subcommand: 'bumper'
           sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
           version_file_path: build.gradle
           version_variable_name: version
           # Sets the author of the version bump commit to broadbot. This is used in our skip job logic.
@@ -94,8 +92,6 @@ jobs:
         with:
           actions_subcommand: 'gradlebuild'
           sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Update Version in helm for Dev Env"
         uses: broadinstitute/datarepo-actions/actions/main@0.73.0
         with:
@@ -122,8 +118,6 @@ jobs:
         with:
           actions_subcommand: 'alpharelease'
           sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
           alpharelease: ${{ needs.bump_version.outputs.api_image_tag }} # creates gcr build with semver tag
           gcr_google_project: 'broad-jade-dev'
 

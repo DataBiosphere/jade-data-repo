@@ -305,7 +305,15 @@ public class SnapshotCreateFlight extends Flight {
 
     // Create the IAM resource and readers for the snapshot
     // The IAM code contains retries, so we don't make a retry rule here.
-    addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq, snapshotId));
+    addStep(
+        new SnapshotAuthzIamStep(
+            iamClient,
+            snapshotService,
+            snapshotReq,
+            snapshotRequestDao,
+            userReq,
+            snapshotId,
+            contents.getRequestIdSpec().getSnapshotRequestId()));
 
     // Now that the snapshot exists in Sam, we can add data access control groups to the snapshot
     List<String> dataAccessControlGroups = snapshotReq.getDataAccessControlGroups();

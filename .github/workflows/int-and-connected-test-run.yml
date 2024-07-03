@@ -181,6 +181,7 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradlebuild' # creates gcr build with git_hash tag
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
@@ -190,6 +191,7 @@ jobs:
           helm_datarepo_ui_chart_version: 0.0.347
           helm_gcloud_sqlproxy_chart_version: 0.19.13
           helm_oidc_proxy_chart_version: 0.0.44
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
@@ -212,6 +214,7 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
         env:
           AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
           AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
@@ -220,6 +223,7 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0

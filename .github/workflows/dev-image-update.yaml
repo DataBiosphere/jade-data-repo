@@ -97,6 +97,7 @@ jobs:
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
         uses: broadinstitute/retry@v2.8.3 #forked from nick-fields/retry
         with:

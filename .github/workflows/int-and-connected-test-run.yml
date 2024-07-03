@@ -208,6 +208,7 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Run integration tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:

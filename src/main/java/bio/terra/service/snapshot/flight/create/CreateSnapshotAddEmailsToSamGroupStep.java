@@ -10,7 +10,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 

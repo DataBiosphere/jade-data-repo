@@ -130,10 +130,8 @@ class SnapshotAuthzIamStepTest {
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     Map<IamRole, String> workingMapPolicies =
-        flightContext
-            .getWorkingMap()
-            .get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
-    assertThat(workingMapPolicies.get(IamRole.READER), equalTo(SNAPSHOT_FIRECLOUD_GROUP_EMAIL));
+        workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
+    assertThat(workingMapPolicies, equalTo(expectedPoliciesMap));
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));

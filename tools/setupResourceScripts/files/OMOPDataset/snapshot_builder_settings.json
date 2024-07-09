@@ -176,7 +176,7 @@
       "table": {
         "datasetTableName": "drug_exposure",
         "columns": [],
-        "primaryTableRelationship": "fpk_drug_person",
+        "primaryTableRelationship": "fpk_person_drug",
         "secondaryTableRelationships": [
           "fpk_drug_type_concept",
           "fpk_drug_concept",
@@ -188,7 +188,7 @@
       "table": {
         "datasetTableName": "measurement",
         "columns": [],
-        "primaryTableRelationship": "fpk_measurement_person",
+        "primaryTableRelationship": "fpk_person_measurement",
         "secondaryTableRelationships": [
           "fpk_measurement_concept",
           "fpk_measurement_unit",
@@ -202,7 +202,7 @@
       "table": {
         "datasetTableName": "visit_occurrence",
         "columns": [],
-        "primaryTableRelationship": "fpk_visit_person",
+        "primaryTableRelationship": "fpk_person_visit",
         "secondaryTableRelationships": [
           "fpk_visit_preceding",
           "fpk_visit_concept_s",
@@ -215,7 +215,7 @@
       "table": {
         "datasetTableName": "device_exposure",
         "columns": [],
-        "primaryTableRelationship": "fpk_device_person",
+        "primaryTableRelationship": "fpk_person_device",
         "secondaryTableRelationships": [
           "fpk_device_concept",
           "fpk_device_concept_s",
@@ -226,7 +226,7 @@
       "table": {
         "datasetTableName": "procedure_occurrence",
         "columns": [],
-        "primaryTableRelationship": "fpk_procedure_person",
+        "primaryTableRelationship": "fpk_person_procedure",
         "secondaryTableRelationships": [
           "fpk_procedure_concept",
           "fpk_procedure_concept_s",
@@ -238,7 +238,7 @@
       "table": {
         "datasetTableName": "condition_occurrence",
         "columns": [],
-        "primaryTableRelationship": "fpk_condition_person",
+        "primaryTableRelationship": "fpk_person_condition",
         "secondaryTableRelationships": [
           "fpk_condition_concept",
           "fpk_condition_type_concept",
@@ -250,7 +250,7 @@
       "table": {
         "datasetTableName": "observation",
         "columns": [],
-        "primaryTableRelationship": "fpk_observation_person",
+        "primaryTableRelationship": "fpk_person_observation",
         "secondaryTableRelationships": [
           "fpk_observation_period_person",
           "fpk_observation_concept",
@@ -273,7 +273,7 @@
       "table": {
         "datasetTableName": "sample",
         "columns": [],
-        "primaryTableRelationship": "fpk_sample_person"
+        "primaryTableRelationship": "fpk_person_sample"
       }
     }
   ]

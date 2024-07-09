@@ -4,6 +4,7 @@ import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
@@ -49,6 +50,12 @@ public class SnapshotAuthzIamStep implements Step {
       DuosFirecloudGroupModel duosFirecloudGroup =
           SnapshotDuosFlightUtils.getFirecloudGroup(context);
       derivedPolicies.addReadersItem(duosFirecloudGroup.getFirecloudGroupEmail());
+    }
+    if (snapshotRequestModel.getContents().get(0).getMode()
+        == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      var snapshotFirecloudGroupEmail =
+          workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class);
+      derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }
     Map<IamRole, String> policies =
         sam.createSnapshotResource(userReq, snapshotId, derivedPolicies);

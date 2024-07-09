@@ -34,7 +34,7 @@ import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotIdsAndRolesModel;
@@ -722,18 +722,18 @@ public class SnapshotService {
 
   @VisibleForTesting
   List<SnapshotBuilderTable> pullTables(SnapshotAccessRequestResponse snapshotRequestModel) {
-    var valueSets = snapshotRequestModel.getSnapshotSpecification().getValueSets();
-    var valueSetNames = valueSets.stream().map(SnapshotBuilderFeatureValueGroup::getName).toList();
+    var tables = snapshotRequestModel.getSnapshotSpecification().getOutputTables();
+    var tableNames = tables.stream().map(SnapshotBuilderOutputTable::getName).toList();
 
     Map<String, SnapshotBuilderTable> tableMap = populateManualTableMap();
 
-    Set<String> missing = new HashSet<>(valueSetNames);
+    Set<String> missing = new HashSet<>(tableNames);
     missing.removeAll(tableMap.keySet());
     if (!missing.isEmpty()) {
       throw new IllegalArgumentException("Unknown value set names: " + missing);
     }
 
-    return valueSetNames.stream().map(tableMap::get).toList();
+    return tableNames.stream().map(tableMap::get).toList();
   }
 
   private Map<String, SnapshotBuilderTable> populateManualTableMap() {

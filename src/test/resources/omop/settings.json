@@ -170,37 +170,110 @@
       ]
     }
   ],
-  "featureValueGroups": [
-    {
-      "name": "Drug",
-      "values": []
-    },{
-      "name": "Measurement",
-      "values": []
-    },{
-      "name": "Visit",
-      "values": []
-    },{
-      "name": "Device",
-      "values": []
-    },{
-      "name": "Procedure",
-      "values": []
-    },{
-      "name": "Condition",
-      "values": []
-    },{
-      "name": "Observation",
-      "values": []
-    },{
-      "name": "Person",
-      "values": []
-    }
-  ],
   "datasetConceptSets": [
     {
+      "name": "Drug",
+      "table": {
+        "datasetTableName": "drug_exposure",
+        "columns": [],
+        "primaryTableRelationship": "fpk_drug_person",
+        "secondaryTableRelationships": [
+          "fpk_drug_type_concept",
+          "fpk_drug_concept",
+          "fpk_drug_route_concept",
+          "fpk_drug_concept_s"]
+      }
+    },{
+      "name": "Measurement",
+      "table": {
+        "datasetTableName": "measurement",
+        "columns": [],
+        "primaryTableRelationship": "fpk_measurement_person",
+        "secondaryTableRelationships": [
+          "fpk_measurement_concept",
+          "fpk_measurement_unit",
+          "fpk_measurement_concept_s",
+          "fpk_measurement_value",
+          "fpk_measurement_type_concept",
+          "fpk_measurement_operator"]
+      }
+    },{
+      "name": "Visit",
+      "table": {
+        "datasetTableName": "visit_occurrence",
+        "columns": [],
+        "primaryTableRelationship": "fpk_visit_person",
+        "secondaryTableRelationships": [
+          "fpk_visit_preceding",
+          "fpk_visit_concept_s",
+          "fpk_visit_type_concept",
+          "fpk_visit_concept",
+          "fpk_visit_discharge"]
+      }
+    },{
+      "name": "Device",
+      "table": {
+        "datasetTableName": "device_exposure",
+        "columns": [],
+        "primaryTableRelationship": "fpk_device_person",
+        "secondaryTableRelationships": [
+          "fpk_device_concept",
+          "fpk_device_concept_s",
+          "fpk_device_type_concept"]
+      }
+    },{
+      "name": "Procedure",
+      "table": {
+        "datasetTableName": "procedure_occurrence",
+        "columns": [],
+        "primaryTableRelationship": "fpk_procedure_person",
+        "secondaryTableRelationships": [
+          "fpk_procedure_concept",
+          "fpk_procedure_concept_s",
+          "fpk_procedure_type_concept",
+          "fpk_procedure_modifier"]
+      }
+    },{
+      "name": "Condition",
+      "table": {
+        "datasetTableName": "condition_occurrence",
+        "columns": [],
+        "primaryTableRelationship": "fpk_condition_person",
+        "secondaryTableRelationships": [
+          "fpk_condition_concept",
+          "fpk_condition_status_concept",
+          "fpk_condition_concept_s"]
+      }
+    },{
+      "name": "Observation",
+      "table": {
+        "datasetTableName": "observation",
+        "columns": [],
+        "primaryTableRelationship": "fpk_observation_person",
+        "secondaryTableRelationships": [
+          "fpk_observation_period_person",
+          "fpk_observation_concept",
+          "fpk_observation_concept_s",
+          "fpk_observation_unit",
+          "fpk_observation_qualifier",
+          "fpk_observation_type_concept",
+          "fpk_observation_period_concept",
+          "fpk_observation_value"]
+      }
+    },{
       "name": "Demographics",
-      "featureValueGroupName": "Person"
+      "table": {
+        "datasetTableName": "person",
+        "columns": [],
+        "secondaryTableRelationships": ["fpk_person_ethnicity_concept", "fpk_person_ethnicity_concept_s", "fpk_person_race_concept"]
+      }
+    },{
+      "name": "Genomics",
+      "table": {
+        "datasetTableName": "sample",
+        "columns": [],
+        "primaryTableRelationship": "fpk_sample_person"
+      }
     }
   ]
 }

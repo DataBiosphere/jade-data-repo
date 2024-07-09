@@ -13,8 +13,8 @@ import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderOption;
+import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataListItem;
 import bio.terra.model.SnapshotBuilderProgramDataListOption;
@@ -168,21 +168,10 @@ public class SnapshotBuilderTestData {
                       Person.RACE_CONCEPT_ID,
                       "Race",
                       List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
-          .featureValueGroups(
-              List.of(
-                  new SnapshotBuilderFeatureValueGroup().name("Condition"),
-                  new SnapshotBuilderFeatureValueGroup().name("Observation"),
-                  new SnapshotBuilderFeatureValueGroup().name("Procedure"),
-                  new SnapshotBuilderFeatureValueGroup().name("Surveys"),
-                  new SnapshotBuilderFeatureValueGroup().name("Person")))
           .datasetConceptSets(
               List.of(
-                  new SnapshotBuilderDatasetConceptSet()
-                      .name("Demographics")
-                      .featureValueGroupName("Person"),
-                  new SnapshotBuilderDatasetConceptSet()
-                      .name("All surveys")
-                      .featureValueGroupName("Surveys")));
+                  new SnapshotBuilderDatasetConceptSet().name("Demographics"),
+                  new SnapshotBuilderDatasetConceptSet().name("All surveys")));
 
   public static final Column PERSON_ID_COLUMN =
       new Column().name("person_id").type(TableDataType.INTEGER);
@@ -362,12 +351,8 @@ public class SnapshotBuilderTestData {
   public static SnapshotBuilderRequest createSnapshotBuilderRequest() {
     return new SnapshotBuilderRequest()
         .addCohortsItem(createCohort())
-        .addConceptSetsItem(
-            new SnapshotBuilderDatasetConceptSet()
-                .name("conceptSet")
-                .featureValueGroupName("featureValueGroupName"))
-        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))
-        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Condition"));
+        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
+        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition"));
   }
 
   public static SnapshotAccessRequest createSnapshotAccessRequest(UUID sourceSnapshotId) {

@@ -50,7 +50,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -1338,9 +1338,8 @@ class SnapshotServiceTest {
             new SnapshotAccessRequestResponse()
                 .snapshotSpecification(
                     new SnapshotBuilderRequest()
-                        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))
-                        .addValueSetsItem(
-                            new SnapshotBuilderFeatureValueGroup().name("Condition"))));
+                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
+                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition"))));
 
     Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset);
     SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);

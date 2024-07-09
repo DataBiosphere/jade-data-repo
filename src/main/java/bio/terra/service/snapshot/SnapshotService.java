@@ -34,6 +34,7 @@ import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
+import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotBuilderTable;
@@ -688,7 +689,7 @@ public class SnapshotService {
   }
 
   public AssetSpecification buildAssetFromSnapshotAccessRequest(
-      Dataset dataset, SnapshotAccessRequestResponse snapshotRequestModel) {
+      Dataset dataset, SnapshotAccessRequestResponse snapshotAccessRequest) {
     // build asset model from snapshot request
     AssetModel assetModel =
         new AssetModel()
@@ -699,7 +700,7 @@ public class SnapshotService {
     assetModel.addTablesItem(new AssetTableModel().name("person"));
 
     // Build asset tables and columns based on the concept sets included in the snapshot request
-    List<SnapshotBuilderTable> tables = pullTables(snapshotRequestModel);
+    List<SnapshotBuilderTable> tables = pullTables(snapshotAccessRequest);
     tables.forEach(
         table -> {
           assetModel.addTablesItem(
@@ -721,116 +722,29 @@ public class SnapshotService {
   }
 
   @VisibleForTesting
-  List<SnapshotBuilderTable> pullTables(SnapshotAccessRequestResponse snapshotRequestModel) {
-    var tables = snapshotRequestModel.getSnapshotSpecification().getOutputTables();
-    var tableNames = tables.stream().map(SnapshotBuilderOutputTable::getName).toList();
+  List<SnapshotBuilderTable> pullTables(SnapshotAccessRequestResponse snapshotAccessRequest) {
+    List<String> includedTableNames =
+        snapshotAccessRequest.getSnapshotSpecification().getOutputTables().stream()
+            .map(SnapshotBuilderOutputTable::getName)
+            .toList();
+    List<SnapshotBuilderDatasetConceptSet> allTables =
+        snapshotBuilderSettingsDao
+            .getBySnapshotId(snapshotAccessRequest.getSourceSnapshotId())
+            .getDatasetConceptSets();
 
-    Map<String, SnapshotBuilderTable> tableMap = populateManualTableMap();
-
-    Set<String> missing = new HashSet<>(tableNames);
-    missing.removeAll(tableMap.keySet());
+    Set<String> missing = new HashSet<>(includedTableNames);
+    allTables.stream()
+        .map(SnapshotBuilderDatasetConceptSet::getName)
+        .toList()
+        .forEach(missing::remove);
     if (!missing.isEmpty()) {
       throw new IllegalArgumentException("Unknown value set names: " + missing);
     }
 
-    return tableNames.stream().map(tableMap::get).toList();
-  }
-
-  private Map<String, SnapshotBuilderTable> populateManualTableMap() {
-    // manual definition of domain names -> dataset table
-    Map<String, SnapshotBuilderTable> tableMap = new HashMap<>();
-    tableMap.put(
-        "Demographics",
-        new SnapshotBuilderTable()
-            .datasetTableName("person")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_person_gender_concept",
-                    "fpk_person_race_concept",
-                    "fpk_person_ethnicity_concept",
-                    "fpk_person_gender_concept_s",
-                    "fpk_person_race_concept_s",
-                    "fpk_person_ethnicity_concept_s")));
-    tableMap.put(
-        "Drug",
-        new SnapshotBuilderTable()
-            .datasetTableName("drug_exposure")
-            .primaryTableRelationship("fpk_person_drug")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_drug_concept",
-                    "fpk_drug_type_concept",
-                    "fpk_drug_route_concept",
-                    "fpk_drug_concept_s")));
-    tableMap.put(
-        "Measurement",
-        new SnapshotBuilderTable()
-            .datasetTableName("measurement")
-            .primaryTableRelationship("fpk_person_measurement")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_measurement_concept",
-                    "fpk_measurement_unit",
-                    "fpk_measurement_concept_s",
-                    "fpk_measurement_value",
-                    "fpk_measurement_type_concept",
-                    "fpk_measurement_operator")));
-    tableMap.put(
-        "Visit",
-        new SnapshotBuilderTable()
-            .datasetTableName("visit_occurrence")
-            .primaryTableRelationship("fpk_person_visit")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_visit_preceding",
-                    "fpk_visit_concept_s",
-                    "fpk_visit_type_concept",
-                    "fpk_visit_concept",
-                    "fpk_visit_discharge")));
-    tableMap.put(
-        "Device",
-        new SnapshotBuilderTable()
-            .datasetTableName("device_exposure")
-            .primaryTableRelationship("fpk_person_device")
-            .secondaryTableRelationships(
-                List.of("fpk_device_concept", "fpk_device_concept_s", "fpk_device_type_concept")));
-    tableMap.put(
-        "Condition",
-        new SnapshotBuilderTable()
-            .datasetTableName("condition_occurrence")
-            .primaryTableRelationship("fpk_person_condition")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_condition_concept",
-                    "fpk_condition_type_concept",
-                    "fpk_condition_status_concept",
-                    "fpk_condition_concept_s")));
-    tableMap.put(
-        "Procedure",
-        new SnapshotBuilderTable()
-            .datasetTableName("procedure_occurrence")
-            .primaryTableRelationship("fpk_person_procedure")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_procedure_concept",
-                    "fpk_procedure_concept_s",
-                    "fpk_procedure_type_concept",
-                    "fpk_procedure_modifier")));
-    tableMap.put(
-        "Observation",
-        new SnapshotBuilderTable()
-            .datasetTableName("observation")
-            .primaryTableRelationship("fpk_person_observation")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_observation_concept",
-                    "fpk_observation_concept_s",
-                    "fpk_observation_unit",
-                    "fpk_observation_qualifier",
-                    "fpk_observation_type_concept",
-                    "fpk_observation_value")));
-
-    return tableMap;
+    return allTables.stream()
+        .filter((table) -> includedTableNames.contains(table.getName()))
+        .map(SnapshotBuilderDatasetConceptSet::getTable)
+        .toList();
   }
 
   public static AssetSpecification getAssetByNameFromDataset(Dataset dataset, String assetName) {

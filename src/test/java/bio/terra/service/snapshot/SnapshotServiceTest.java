@@ -160,6 +160,7 @@ class SnapshotServiceTest {
   @Mock private EcmService ecmService;
   @Mock private RawlsService rawlsService;
   @Mock private DuosClient duosClient;
+  @Mock private SnapshotBuilderSettingsDao settingsDao;
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
@@ -187,7 +188,7 @@ class SnapshotServiceTest {
             azureSynapsePdao,
             rawlsService,
             duosClient,
-            mock(SnapshotBuilderSettingsDao.class));
+            settingsDao);
   }
 
   @Test
@@ -1094,7 +1095,8 @@ class SnapshotServiceTest {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
         new SnapshotAccessRequestResponse()
             .status(SnapshotAccessRequestStatus.APPROVED)
-            .id(snapshotAccessRequestId);
+            .id(snapshotAccessRequestId)
+            .sourceSnapshotId(UUID.randomUUID());
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(snapshotAccessRequestResponse);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
@@ -1102,7 +1104,6 @@ class SnapshotServiceTest {
             new Snapshot()
                 .snapshotSources(
                     List.of(new SnapshotSource().dataset(new Dataset().id(UUID.randomUUID())))));
-
     String result =
         service.createSnapshot(
             request, service.getSourceDatasetFromSnapshotRequest(request), TEST_USER);
@@ -1333,13 +1334,17 @@ class SnapshotServiceTest {
 
     Dataset dataset = SnapshotBuilderTestData.DATASET;
     dataset.name("datasetName");
+    UUID sourceSnapshotId = UUID.randomUUID();
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(
             new SnapshotAccessRequestResponse()
+                .sourceSnapshotId(sourceSnapshotId)
                 .snapshotSpecification(
                     new SnapshotBuilderRequest()
                         .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
                         .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition"))));
+    when(settingsDao.getBySnapshotId(sourceSnapshotId))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset);
     SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
@@ -1453,6 +1458,8 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
+    when(settingsDao.getBySnapshotId(sourceSnapshotId))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
     var firstTable = service.pullTables(accessRequestResponse).get(0);
     assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
     // Must preserve relationship order
@@ -1477,6 +1484,7 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
+    when(settingsDao.getBySnapshotId(snapshotId)).thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     var actualAssetSpec =
         service.buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequestResponse);

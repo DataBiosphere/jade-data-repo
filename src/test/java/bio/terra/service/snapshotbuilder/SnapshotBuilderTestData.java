@@ -22,6 +22,7 @@ import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -33,7 +34,8 @@ import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.query.table.Person;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.DrugExposure;
-import bio.terra.service.snapshotbuilder.utils.constants.ObservationOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.Measurement;
+import bio.terra.service.snapshotbuilder.utils.constants.Observation;
 import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;
 import java.util.List;
 import java.util.UUID;
@@ -122,8 +124,8 @@ public class SnapshotBuilderTestData {
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       OBSERVATION_DOMAIN_ID,
-                      ObservationOccurrence.TABLE_NAME,
-                      ObservationOccurrence.OBSERVATION_CONCEPT_ID,
+                      Observation.TABLE_NAME,
+                      Observation.OBSERVATION_CONCEPT_ID,
                       "Observation",
                       new SnapshotBuilderConcept()
                           .id(300)
@@ -170,8 +172,53 @@ public class SnapshotBuilderTestData {
                       List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
           .datasetConceptSets(
               List.of(
-                  new SnapshotBuilderDatasetConceptSet().name("Demographics"),
-                  new SnapshotBuilderDatasetConceptSet().name("All surveys")));
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Drug")
+                      .table(
+                          new SnapshotBuilderTable()
+                              .datasetTableName(DrugExposure.TABLE_NAME)
+                              .primaryTableRelationship("fpk_person_drug")
+                              .secondaryTableRelationships(
+                                  List.of(
+                                      "fpk_drug_concept",
+                                      "fpk_drug_type_concept",
+                                      "fpk_drug_route_concept",
+                                      "fpk_drug_concept_s"))),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Condition")
+                      .table(
+                          new SnapshotBuilderTable()
+                              .datasetTableName(ConditionOccurrence.TABLE_NAME)
+                              .primaryTableRelationship("fpk_person_condition")
+                              .secondaryTableRelationships(
+                                  List.of(
+                                      "fpk_condition_concept",
+                                      "fpk_condition_type_concept",
+                                      "fpk_condition_status_concept",
+                                      "fpk_condition_concept_s"))),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Procedure")
+                      .table(
+                          new SnapshotBuilderTable()
+                              .datasetTableName(ProcedureOccurrence.TABLE_NAME)),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Observation")
+                      .table(new SnapshotBuilderTable().datasetTableName(Observation.TABLE_NAME)),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Measurement")
+                      .table(new SnapshotBuilderTable().datasetTableName(Measurement.TABLE_NAME)),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Visit")
+                      .table(new SnapshotBuilderTable().datasetTableName("visit_occurrence")),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Device")
+                      .table(new SnapshotBuilderTable().datasetTableName("device_exposure")),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Demographics")
+                      .table(new SnapshotBuilderTable().datasetTableName(Person.TABLE_NAME)),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Genomics")
+                      .table(new SnapshotBuilderTable().datasetTableName("sample"))));
 
   public static final Column PERSON_ID_COLUMN =
       new Column().name("person_id").type(TableDataType.INTEGER);

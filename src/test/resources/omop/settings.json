@@ -241,6 +241,7 @@
         "primaryTableRelationship": "fpk_condition_person",
         "secondaryTableRelationships": [
           "fpk_condition_concept",
+          "fpk_condition_type_concept",
           "fpk_condition_status_concept",
           "fpk_condition_concept_s"]
       }

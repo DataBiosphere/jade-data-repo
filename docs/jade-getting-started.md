@@ -292,11 +292,9 @@ While not exhaustive, here's a list that notes the important environment variabl
 You can convert any application.property to an environment variable by switching to upper case and
 every "." to "_".
 
-* Instances of `ZZ` are only needed if you have a personal development environment setup. It is no longer
-  recommended to set this up. But, if used, `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
-
 ```
-export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
+# User email that will appear in logs
+export JADE_USER_EMAIL=$(gcloud config list account --format "value(core.account)")
 
 # Integration test setting
 export IT_JADE_API_URL=http://localhost:8080

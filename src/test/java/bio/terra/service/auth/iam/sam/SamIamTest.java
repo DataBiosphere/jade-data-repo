@@ -87,7 +87,7 @@ class SamIamTest {
   private static final String GROUP_NAME = "firecloud_group_name";
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
   private final SamConfiguration samConfig =
-      new SamConfiguration("https://sam.dsde-dev.broadinstitute.org", ADMIN_EMAIL, 10, 30, 60);
+      new SamConfiguration("https://sam.dsde-dev.broadinstitute.org", ADMIN_EMAIL, 0, 0, 0);
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 

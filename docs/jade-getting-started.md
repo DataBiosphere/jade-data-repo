@@ -463,6 +463,10 @@ Ensure that:
   * You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
    ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
 
+## Resources
+* [Stairway Flight Developer Guide](https://github.com/DataBiosphere/stairway/blob/develop/FLIGHT_DEVELOPER_GUIDE.md) - Data Repo utilizes Stairway to run asynchronous operations throughout the code base.
+* [Data Repo Service](https://ga4gh.github.io/data-repository-service-schemas/docs/) - The Data Repo implements parts of the The Data Repository Service (DRS) specification. 
+
 ## Appendix
 
 ### Personal Dev Environment Setup

@@ -124,7 +124,7 @@ public class SnapshotDaoTest {
   public void setup() throws Exception {
     dataset = daoOperations.createDataset("snapshot-test-dataset-with-multi-columns.json");
     datasetId = dataset.getId();
-    projectId = dataset.getProjectResource().getId();
+    projectId = dataset.getProjectResourceId();
     profileId = dataset.getDefaultProfileId();
 
     snapshotRequest =
@@ -158,7 +158,7 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot createSnapshot(SnapshotRequestModel request) {
-    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, projectId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(request, dataset);
     return insertAndRetrieveSnapshot(snapshot);
   }
 
@@ -179,7 +179,7 @@ public class SnapshotDaoTest {
   public void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
-    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, dataset);
     Snapshot fromDb = insertAndRetrieveSnapshot(snapshot);
     assertThat("snapshot name set correctly", fromDb.getName(), equalTo(snapshot.getName()));
 
@@ -794,7 +794,7 @@ public class SnapshotDaoTest {
     String properties =
         "{\"projectName\":\"project\", " + "\"authors\": [\"harry\", \"ron\", \"hermionie\"]}";
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).properties(properties);
-    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, projectId);
+    Snapshot snapshot = daoOperations.createSnapshotFromSnapshotRequest(snapshotRequest, dataset);
     Snapshot fromDB = insertAndRetrieveSnapshot(snapshot);
     assertThat(
         "snapshot properties set correctly",

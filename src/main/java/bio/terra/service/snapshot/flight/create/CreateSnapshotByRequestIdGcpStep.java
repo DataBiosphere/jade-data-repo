@@ -7,7 +7,6 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -19,7 +18,6 @@ public class CreateSnapshotByRequestIdGcpStep implements CreateSnapshotByRequest
   private final SnapshotRequestModel snapshotReq;
   private final SnapshotService snapshotService;
   private final SnapshotBuilderService snapshotBuilderService;
-  private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotDao snapshotDao;
   private final AuthenticatedUserRequest userReq;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
@@ -28,14 +26,12 @@ public class CreateSnapshotByRequestIdGcpStep implements CreateSnapshotByRequest
       SnapshotRequestModel snapshotReq,
       SnapshotService snapshotService,
       SnapshotBuilderService snapshotBuilderService,
-      SnapshotRequestDao snapshotRequestDao,
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq,
       BigQuerySnapshotPdao bigQuerySnapshotPdao) {
     this.snapshotReq = snapshotReq;
     this.snapshotService = snapshotService;
     this.snapshotBuilderService = snapshotBuilderService;
-    this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotDao = snapshotDao;
     this.userReq = userReq;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
@@ -61,8 +57,8 @@ public class CreateSnapshotByRequestIdGcpStep implements CreateSnapshotByRequest
         context,
         snapshot,
         snapshotReq,
+        snapshotService,
         snapshotBuilderService,
-        snapshotRequestDao,
         snapshotDao,
         userReq);
   }

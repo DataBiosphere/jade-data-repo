@@ -181,7 +181,8 @@ public class SnapshotCreateFlight extends Flight {
 
     // create the snapshot metadata object in postgres and lock it
     addStep(
-        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq, snapshotId),
+        new CreateSnapshotMetadataStep(
+            snapshotDao, snapshotService, snapshotReq, snapshotId, sourceDataset),
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
@@ -224,10 +225,10 @@ public class SnapshotCreateFlight extends Flight {
               () ->
                   new CreateSnapshotPrimaryDataFullViewGcpStep(
                       bigQuerySnapshotPdao,
-                      datasetService,
                       snapshotDao,
                       snapshotService,
-                      snapshotReq),
+                      snapshotReq,
+                      sourceDataset),
               () ->
                   new CreateSnapshotByFullViewParquetFilesAzureStep(
                       azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
@@ -242,7 +243,8 @@ public class SnapshotCreateFlight extends Flight {
                         datasetService,
                         snapshotDao,
                         snapshotReq,
-                        userReq),
+                        userReq,
+                        sourceDataset),
                 () ->
                     new CreateSnapshotByQueryParquetFilesAzureStep(
                         azureSynapsePdao,
@@ -251,7 +253,8 @@ public class SnapshotCreateFlight extends Flight {
                         snapshotReq,
                         datasetService,
                         userReq,
-                        snapshotId)));
+                        snapshotId,
+                        sourceDataset)));
       }
       case BYROWID -> addStep(
           platform.choose(
@@ -261,27 +264,29 @@ public class SnapshotCreateFlight extends Flight {
               () ->
                   new CreateSnapshotByRowIdParquetFilesAzureStep(
                       azureSynapsePdao, snapshotService, snapshotReq, snapshotId)));
-      case BYREQUESTID -> addStep(
-          platform.choose(
-              () ->
-                  new CreateSnapshotByRequestIdGcpStep(
-                      snapshotReq,
-                      snapshotService,
-                      snapshotBuilderService,
-                      snapshotRequestDao,
-                      snapshotDao,
-                      userReq,
-                      bigQuerySnapshotPdao),
-              () ->
-                  new CreateSnapshotByRequestIdAzureStep(
-                      snapshotReq,
-                      snapshotService,
-                      snapshotBuilderService,
-                      snapshotRequestDao,
-                      snapshotDao,
-                      userReq,
-                      azureSynapsePdao,
-                      snapshotId)));
+      case BYREQUESTID -> {
+        addStep(new CreateSnapshotSamGroupNameStep(snapshotId, iamService));
+        addStep(new CreateSnapshotSamGroupStep(iamService));
+        addStep(
+            platform.choose(
+                () ->
+                    new CreateSnapshotByRequestIdGcpStep(
+                        snapshotReq,
+                        snapshotService,
+                        snapshotBuilderService,
+                        snapshotDao,
+                        userReq,
+                        bigQuerySnapshotPdao),
+                () ->
+                    new CreateSnapshotByRequestIdAzureStep(
+                        snapshotReq,
+                        snapshotService,
+                        snapshotBuilderService,
+                        snapshotDao,
+                        userReq,
+                        azureSynapsePdao,
+                        snapshotId)));
+      }
     }
     if (platform.isAzure()) {
       addStep(

@@ -78,13 +78,12 @@ jobs:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-unit }}
       - name: "Run unit tests and sonar scan via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'check'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
   test_connected:
     name: "Run connected tests"
@@ -122,13 +121,12 @@ jobs:
           # write vault token
           base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run connected tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testConnected'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Temp: Archive all junit test reports"
         uses: actions/upload-artifact@v2
         if: always()
@@ -169,29 +167,31 @@ jobs:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-integration
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gcp_whitelist'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradlebuild' # creates gcr build with git_hash tag
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: 0.0.8
-          helm_datarepo_api_chart_version: 0.0.690
-          helm_datarepo_ui_chart_version: 0.0.339
+          helm_datarepo_api_chart_version: 0.0.705
+          helm_datarepo_ui_chart_version: 0.0.349
           helm_gcloud_sqlproxy_chart_version: 0.19.13
           helm_oidc_proxy_chart_version: 0.0.44
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
@@ -199,34 +199,38 @@ jobs:
           echo "git_hash=${git_hash}" >> $GITHUB_OUTPUT
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.74.0
         timeout-minutes: 20
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Run integration tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
         env:
           AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
           AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
   report-to-sherlock:
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
     needs: deploy_test_integration

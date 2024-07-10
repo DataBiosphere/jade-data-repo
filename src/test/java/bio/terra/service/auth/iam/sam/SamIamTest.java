@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.AzureApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
@@ -83,6 +84,7 @@ class SamIamTest {
   @Mock private UsersApi samUsersApi;
 
   private SamIam samIam;
+  private static final String GROUP_NAME = "firecloud_group_name";
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
   private final SamConfiguration samConfig =
       new SamConfiguration("https://sam.dsde-dev.broadinstitute.org", ADMIN_EMAIL, 10, 30, 60);
@@ -786,85 +788,131 @@ class SamIamTest {
     @Test
     void testCreateGroup() throws ApiException, InterruptedException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
-      String groupEmail = String.format("%s@dev.test.firecloud.org", groupName);
+      String groupEmail = String.format("%s@dev.test.firecloud.org", GROUP_NAME);
 
-      when(samGroupApi.getGroup(groupName)).thenReturn(groupEmail);
+      when(samGroupApi.getGroup(GROUP_NAME)).thenReturn(groupEmail);
       assertThat(
           "Firecloud group email is returned when creation succeeds and email returned by SAM",
-          samIam.createGroup(accessToken, groupName),
+          samIam.createGroup(accessToken, GROUP_NAME),
           equalTo(groupEmail));
-      verify(samGroupApi).postGroup(groupName, null);
+      verify(samGroupApi).postGroup(GROUP_NAME, null);
     }
 
     @Test
     void testCreateGroupWithCreationFailure() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_CONFLICT, "Group already exists");
-      doThrow(samEx).when(samGroupApi).postGroup(groupName, null);
-      assertThrows(IamConflictException.class, () -> samIam.createGroup(accessToken, groupName));
-      verify(samGroupApi, never()).getGroup(groupName);
+      doThrow(samEx).when(samGroupApi).postGroup(GROUP_NAME, null);
+      assertThrows(IamConflictException.class, () -> samIam.createGroup(accessToken, GROUP_NAME));
+      verify(samGroupApi, never()).getGroup(GROUP_NAME);
     }
 
     @Test
     void testCreateGroupWithEmailFetchFailure() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
-      when(samGroupApi.getGroup(groupName)).thenThrow(samEx);
-      assertThrows(IamNotFoundException.class, () -> samIam.createGroup(accessToken, groupName));
-      verify(samGroupApi).postGroup(groupName, null);
+      when(samGroupApi.getGroup(GROUP_NAME)).thenThrow(samEx);
+      assertThrows(IamNotFoundException.class, () -> samIam.createGroup(accessToken, GROUP_NAME));
+      verify(samGroupApi).postGroup(GROUP_NAME, null);
+    }
+
+    @Test
+    void testGetGroup() throws ApiException, InterruptedException {
+      String accessToken = TEST_USER.getToken();
+      String groupEmail = String.format("%s@dev.test.firecloud.org", GROUP_NAME);
+      when(samGroupApi.getGroup(GROUP_NAME)).thenReturn(groupEmail);
+      assertThat(
+          "Firecloud group email is returned",
+          samIam.getGroup(accessToken, GROUP_NAME),
+          equalTo(groupEmail));
+    }
+
+    @Test
+    void testGetGroupWithFailure() throws ApiException {
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+      when(samGroupApi.getGroup(GROUP_NAME)).thenThrow(samEx);
+      assertThrows(IamNotFoundException.class, () -> samIam.getGroup(accessToken, GROUP_NAME));
     }
 
     @Test
     void testOverwriteGroupPolicyEmails() throws InterruptedException, ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
       String policyName = IamRole.MEMBER.toString();
       List<String> emails = List.of("user@a.com");
 
-      samIam.overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
-      verify(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
+      samIam.overwriteGroupPolicyEmails(accessToken, GROUP_NAME, policyName, emails);
+      verify(samGroupApi).overwriteGroupPolicyEmails(GROUP_NAME, policyName, emails);
     }
 
     @Test
     void testOverwriteGroupPolicyEmailsThrowsWhenSamGroupApiThrows() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
       String policyName = IamRole.MEMBER.toString();
       List<String> emails = List.of("user@a.com");
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
-      doThrow(samEx).when(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
+      doThrow(samEx).when(samGroupApi).overwriteGroupPolicyEmails(GROUP_NAME, policyName, emails);
       assertThrows(
           IamNotFoundException.class,
-          () -> samIam.overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails));
+          () -> samIam.overwriteGroupPolicyEmails(accessToken, GROUP_NAME, policyName, emails));
     }
 
     @Test
     void testDeleteGroup() throws ApiException, InterruptedException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
-      samIam.deleteGroup(accessToken, groupName);
-      verify(samGroupApi).deleteGroup(groupName);
+      samIam.deleteGroup(accessToken, GROUP_NAME);
+      verify(samGroupApi).deleteGroup(GROUP_NAME);
     }
 
     @Test
     void testDeleteGroupThrowsWhenSamGroupApiThrows() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
-      doThrow(samEx).when(samGroupApi).deleteGroup(groupName);
-      assertThrows(IamNotFoundException.class, () -> samIam.deleteGroup(accessToken, groupName));
+      doThrow(samEx).when(samGroupApi).deleteGroup(GROUP_NAME);
+      assertThrows(IamNotFoundException.class, () -> samIam.deleteGroup(accessToken, GROUP_NAME));
+    }
+  }
+
+  @Nested
+  class TestAdminApi {
+
+    @Mock private AdminApi samAdminApi;
+
+    @BeforeEach
+    void setUp() {
+      when(samApiService.adminApi(TEST_USER.getToken())).thenReturn(samAdminApi);
+    }
+
+    @Test
+    void testGetResourceTypeAdminPermissionAllowed() throws InterruptedException {
+      when(samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+          .thenReturn(true);
+      boolean allowed =
+          samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+      assertTrue(allowed);
+    }
+
+    @Test
+    void testGetResourceTypeAdminPermissionNotAllowed() throws InterruptedException {
+      when(samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+          .thenReturn(false);
+      boolean allowed =
+          samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+      assertFalse(allowed);
     }
   }
 }

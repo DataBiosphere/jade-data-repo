@@ -20,6 +20,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.auth.iam.IamService;
@@ -89,11 +90,9 @@ class IngestRequestValidatorTest {
 
   @Test
   void testAzureIngestRequestParameters() throws Exception {
-    Dataset dataset = mock(Dataset.class);
-    DatasetSummary datasetSummary = mock(DatasetSummary.class);
-    when(datasetSummary.getStorageCloudPlatform()).thenReturn(CloudPlatform.AZURE);
-    when(dataset.getDatasetSummary()).thenReturn(datasetSummary);
-    when(datasetService.retrieve(any())).thenReturn(dataset);
+    DatasetSummaryModel datasetSummary = mock(DatasetSummaryModel.class);
+    when(datasetSummary.getCloudPlatform()).thenReturn(CloudPlatform.AZURE);
+    when(datasetService.retrieveDatasetSummary(any())).thenReturn(datasetSummary);
 
     var nullIngest =
         new IngestRequestModel()

@@ -459,7 +459,7 @@ public class AzureIntegrationTest extends UsersBase {
         approveSnapshotAccessRequest(makeSnapshotAccessRequest().getId());
 
     SnapshotSummaryModel snapshotSummaryByRequest =
-        makeSnapshotFromRequest(approvedSnapshotAccessRequest.getId());
+        makeSnapshotFromRequest(approvedSnapshotAccessRequest);
 
     String columnName = "datarepo_row_id";
     List<Object> personSnapshotRows =
@@ -509,12 +509,17 @@ public class AzureIntegrationTest extends UsersBase {
     return accessRequest;
   }
 
-  private SnapshotSummaryModel makeSnapshotFromRequest(UUID requestSnapshotId) throws Exception {
+  private SnapshotSummaryModel makeSnapshotFromRequest(
+      SnapshotAccessRequestResponse snapshotAccessRequestResponse) throws Exception {
     SnapshotRequestModel requestSnapshot =
         jsonLoader.loadObject(
             "omop/snapshot-request-model-by-request-id.json", SnapshotRequestModel.class);
     requestSnapshot.getContents().get(0).setDatasetName(datasetName);
-    requestSnapshot.getContents().get(0).getRequestIdSpec().setSnapshotRequestId(requestSnapshotId);
+    requestSnapshot
+        .getContents()
+        .get(0)
+        .getRequestIdSpec()
+        .setSnapshotRequestId(snapshotAccessRequestResponse.getId());
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -522,7 +527,15 @@ public class AzureIntegrationTest extends UsersBase {
     UUID snapshotByRequestId = snapshotSummary.getId();
     snapshotIds.add(snapshotByRequestId);
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
-    assertThat("Snapshot exists", snapshotSummary.getName(), equalTo(requestSnapshot.getName()));
+    assertThat(
+        "Snapshot exists",
+        snapshotSummary.getName(),
+        equalTo(
+            String.format(
+                    "%s_%s",
+                    snapshotAccessRequestResponse.getSnapshotName(),
+                    snapshotAccessRequestResponse.getId())
+                .replace('-', '_')));
     return snapshotSummary;
   }
 
@@ -547,14 +560,14 @@ public class AzureIntegrationTest extends UsersBase {
         new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
 
     getConceptChildrenTest(concept1, concept3);
-    searchConceptTest(concept1);
+    enumerateConceptTest(concept1);
     getConceptHierarchyTest(concept1, concept3);
   }
 
-  private void searchConceptTest(SnapshotBuilderConcept concept1) throws Exception {
-    var searchConceptsResult =
+  private void enumerateConceptTest(SnapshotBuilderConcept concept1) throws Exception {
+    var enumerateConceptsResult =
         dataRepoFixtures.enumerateConcepts(steward, releaseSnapshotId, 19, concept1.getName());
-    // A concept returned by search concepts always has hasChildren = true, even if it doesn't
+    // A concept returned by enumerate concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =
         new SnapshotBuilderConcept()
@@ -563,14 +576,15 @@ public class AzureIntegrationTest extends UsersBase {
             .count(concept1.getCount())
             .code(concept1.getCode())
             .hasChildren(true);
-    assertThat(searchConceptsResult.getResult(), CoreMatchers.is(List.of(concept)));
+    assertThat(enumerateConceptsResult.getResult(), CoreMatchers.is(List.of(concept)));
   }
 
   private void getConceptHierarchyTest(
       SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
-    var searchConceptsResult = dataRepoFixtures.getConceptHierarchy(steward, releaseSnapshotId, 3);
+    var enumerateConceptsResult =
+        dataRepoFixtures.getConceptHierarchy(steward, releaseSnapshotId, 3);
     assertThat(
-        searchConceptsResult.getResult(),
+        enumerateConceptsResult.getResult(),
         CoreMatchers.is(
             List.of(
                 new SnapshotBuilderParentConcept()

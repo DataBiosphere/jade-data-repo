@@ -4,8 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +47,8 @@ class IamServiceTest {
 
   @Mock private ConfigurationService configurationService;
 
+  @Mock private GoogleCredentialsService googleCredentialsService;
+
   private IamService iamService;
 
   @BeforeEach
@@ -57,7 +61,7 @@ class IamServiceTest {
             iamProvider,
             configurationService,
             mock(JournalService.class),
-            mock(GoogleCredentialsService.class));
+            googleCredentialsService);
   }
 
   @Test
@@ -129,7 +133,7 @@ class IamServiceTest {
     assertThat(
         "Error message reflects cause",
         thrown.getMessage(),
-        containsString("does not have required action: " + action));
+        containsString("does not have required action '%s'".formatted(action)));
   }
 
   @Test
@@ -149,7 +153,7 @@ class IamServiceTest {
     assertThat(
         "Error message reflects cause",
         thrown.getMessage(),
-        containsString("does not have any actions"));
+        containsString("does not hold any actions"));
   }
 
   @Test
@@ -219,5 +223,38 @@ class IamServiceTest {
                 .stewards(policies.getStewards())
                 .readers(expectedReaders)
                 .discoverers(policies.getDiscoverers())));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedTrue() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+        .thenReturn(true);
+    assertDoesNotThrow(
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testVerifyResourceTypeAdminAuthorizedFalse() throws InterruptedException {
+    when(iamProvider.getResourceTypeAdminPermission(
+            TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+        .thenReturn(false);
+    assertThrows(
+        IamForbiddenException.class,
+        () ->
+            iamService.verifyResourceTypeAdminAuthorized(
+                TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testGetGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String groupEmail = "groupEmail";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.getGroup(accessToken, groupName)).thenReturn(groupEmail);
+    assertEquals(groupEmail, iamService.getGroup(groupName));
   }
 }

@@ -692,6 +692,11 @@ public class SamIam implements IamProviderInterface {
     samApiService.groupApi(accessToken).postGroup(groupName, null);
   }
 
+  @Override
+  public String getGroup(String accessToken, String groupName) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getGroupEmail(accessToken, groupName));
+  }
+
   private String getGroupEmail(String accessToken, String groupName) throws ApiException {
     return samApiService.groupApi(accessToken).getGroup(groupName);
   }
@@ -773,6 +778,23 @@ public class SamIam implements IamProviderInterface {
     samApiService
         .azureApi(userReq.getToken())
         .createManagedResourceGroup(billingProfileId, managedResourceGroupCoordinates);
+  }
+
+  @Override
+  public boolean getResourceTypeAdminPermission(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService,
+        () -> getResourceTypeAdminPermissionInner(userReq, iamResourceType, action));
+  }
+
+  private boolean getResourceTypeAdminPermissionInner(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
+      throws ApiException {
+    return samApiService
+        .adminApi(userReq.getToken())
+        .resourceTypeAdminPermission(iamResourceType.getSamResourceName(), action.toString());
   }
 
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {

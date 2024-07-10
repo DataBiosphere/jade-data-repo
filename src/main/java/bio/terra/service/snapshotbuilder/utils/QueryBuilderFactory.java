@@ -9,6 +9,7 @@ public class QueryBuilderFactory {
   public static final String HAS_CHILDREN = "has_children";
   public static final String COUNT = "count";
   public static final String PARENT_ID = "parent_id";
+  public static final String FILTER_TEXT = "filter_text";
 
   public CriteriaQueryBuilder criteriaQueryBuilder(
       SnapshotBuilderSettings snapshotBuilderSettings) {
@@ -23,7 +24,7 @@ public class QueryBuilderFactory {
     return new ConceptChildrenQueryBuilder();
   }
 
-  public SearchConceptsQueryBuilder searchConceptsQueryBuilder() {
-    return new SearchConceptsQueryBuilder();
+  public EnumerateConceptsQueryBuilder enumerateConceptsQueryBuilder() {
+    return new EnumerateConceptsQueryBuilder();
   }
 }

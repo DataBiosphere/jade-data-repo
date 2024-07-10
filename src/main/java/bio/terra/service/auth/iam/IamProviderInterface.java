@@ -250,6 +250,13 @@ public interface IamProviderInterface {
   String createGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
+   * @param accessToken valid oauth token for the account retrieving the group
+   * @param groupName name of Firecloud managed group to retrieve
+   * @return the group's email address
+   */
+  String getGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group
    * @param policyName name of Firecloud managed group policy
@@ -293,5 +300,16 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq,
       String billingProfileId,
       ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
+      throws InterruptedException;
+
+  /**
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return boolean value if the user is authorized to perform the action on the resource type
+   * @throws InterruptedException throws if sam retry fails due to interruption
+   */
+  boolean getResourceTypeAdminPermission(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
       throws InterruptedException;
 }

@@ -8,6 +8,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
@@ -45,6 +47,7 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.model.TransactionModel.StatusEnum;
 import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetTable;
@@ -386,6 +389,9 @@ public class BigQueryPdaoTest {
 
   @Test
   public void createSnapshotByRequestId() throws Exception {
+    when(samService.getGroup(any(), any()))
+        .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
+    when(samService.createGroup(any(), any())).thenReturn("group@firecloud.org");
     Snapshot sourceSnapshot = stageOmopData();
     SnapshotAccessRequestResponse approvedAccessRequest =
         approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());
@@ -395,7 +401,7 @@ public class BigQueryPdaoTest {
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");
     Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
-    assertThat(snapshot.getName(), is(requestModel.getName()));
+    assertThat(snapshot.getName(), is(snapshotService.getSnapshotName(requestModel)));
     assertThat(snapshot.getTables().size(), is(equalTo(3)));
     BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
@@ -421,15 +427,15 @@ public class BigQueryPdaoTest {
     var concept3 =
         new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
     getConceptChildrenTest(snapshot, concept1, concept3);
-    searchConceptTest(snapshot, concept1);
+    enumerateConceptTest(snapshot, concept1);
     getConceptHierarchyTest(snapshot, concept1, concept3);
   }
 
-  private void searchConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
+  private void enumerateConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
     var enumerateConceptsResult =
         snapshotBuilderService.enumerateConcepts(
             snapshot.getId(), 19, concept1.getName(), TEST_USER);
-    // A concept returned by search concepts always has hasChildren = true, even if it doesn't
+    // A concept returned by enumerate concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =
         new SnapshotBuilderConcept()

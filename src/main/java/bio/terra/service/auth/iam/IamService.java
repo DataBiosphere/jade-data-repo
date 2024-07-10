@@ -141,8 +141,43 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!isAuthorized(userReq, iamResourceType, resourceId, action)) {
       throw new IamForbiddenException(
+          "User '%s' does not have required action '%s' on the %s with ID %s"
+              .formatted(userEmail, action, iamResourceType.getSamResourceName(), resourceId));
+    }
+  }
+
+  /**
+   * This is a wrapper method around {@link #isResourceTypeAdminAuthorized(AuthenticatedUserRequest,
+   * IamResourceType, IamAction)} that throws an exception instead of returning false when the user
+   * is NOT authorized to do the action given a resource type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @throws IamForbiddenException if NOT authorized
+   */
+  public void verifyResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    String userEmail = userReq.getEmail();
+    if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
+      throw new IamForbiddenException(
           "User '" + userEmail + "' does not have required action: " + action);
     }
+  }
+
+  /**
+   * Call external API to determine whether a user is authorized to do an admin action on a resource
+   * type.
+   *
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return true if authorized, false otherwise
+   */
+  public boolean isResourceTypeAdminAuthorized(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action) {
+    return callProvider(
+        () -> iamProvider.getResourceTypeAdminPermission(userReq, iamResourceType, action));
   }
 
   /**
@@ -157,7 +192,8 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!hasAnyActions(userReq, iamResourceType, resourceId)) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have any actions on the resource");
+          "User '%s' does not hold any actions on the %s with ID %s"
+              .formatted(userEmail, iamResourceType.getSamResourceName(), resourceId));
     }
   }
 
@@ -201,7 +237,8 @@ public class IamService {
 
     if (!unavailableActions.isEmpty()) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' is missing required actions (returned in details)",
+          "User '%s' is missing required actions on the %s with ID %s (returned in details)"
+              .formatted(userEmail, iamResourceType.getSamResourceName(), resourceId),
           unavailableActions);
     }
   }
@@ -394,6 +431,14 @@ public class IamService {
 
   // -- managed group support --
 
+  public static String constructSamGroupName(String duosId) {
+    return String.format("%s-users", duosId);
+  }
+
+  public static String constructUniqueSamGroupName(String duosId) {
+    return String.format("%s-%s", constructSamGroupName(duosId), UUID.randomUUID());
+  }
+
   /**
    * @param groupName Firecloud managed group to create as the TDR SA
    * @return the email for the newly created group
@@ -401,6 +446,15 @@ public class IamService {
   public String createGroup(String groupName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.createGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * @param groupName Firecloud managed group to retrieve as the TDR SA
+   * @return the email for the retrieved group
+   */
+  public String getGroup(String groupName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getGroup(tdrSaAccessToken, groupName));
   }
 
   /**

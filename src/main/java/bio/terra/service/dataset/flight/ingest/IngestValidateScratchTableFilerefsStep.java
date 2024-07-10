@@ -14,14 +14,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
+public class IngestValidateScratchTableFilerefsStep extends IngestValidateRefsStep {
 
   private final AzureAuthService azureAuthService;
   private final DatasetService datasetService;
   private final AzureSynapsePdao azureSynapsePdao;
   private final TableDirectoryDao tableDirectoryDao;
 
-  public IngestValidateAzureRefsStep(
+  /** Check that all file references staged in the scratch table point to files in the dataset. */
+  public IngestValidateScratchTableFilerefsStep(
       AzureAuthService azureAuthService,
       DatasetService datasetService,
       AzureSynapsePdao azureSynapsePdao,
@@ -42,7 +43,7 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
 
     var tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     Table table = IngestUtils.getDatasetTable(context, dataset);
-    var tableName = IngestUtils.getSynapseIngestTableName(context.getFlightId());
+    var scratchTableName = IngestUtils.getSynapseScratchTableName(context.getFlightId());
 
     // For each fileref column, scan the staging table and build an array of file ids
     // Then probe the file system to validate that the file exists and is part
@@ -55,7 +56,8 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
             .flatMap(
                 column -> {
                   List<String> refIdArray =
-                      azureSynapsePdao.getRefIds(tableName, column, dataset.getCollectionType());
+                      azureSynapsePdao.getRefIds(
+                          scratchTableName, column, dataset.getCollectionType());
                   return tableDirectoryDao
                       .validateRefIds(tableServiceClient, dataset.getId(), refIdArray)
                       .stream()

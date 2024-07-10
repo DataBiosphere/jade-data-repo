@@ -11,10 +11,10 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
@@ -36,6 +36,7 @@ class CreateSnapshotByRequestIdInterfaceTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   @Mock FlightContext flightContext;
+  @Mock SnapshotService snapshotService;
   @Mock SnapshotBuilderService snapshotBuilderService;
   @Mock SnapshotRequestDao snapshotRequestDao;
   @Mock SnapshotDao snapshotDao;
@@ -48,14 +49,12 @@ class CreateSnapshotByRequestIdInterfaceTest {
     UUID sourceSnapshotId = UUID.randomUUID();
     UUID datasetProfileId = UUID.randomUUID();
     UUID datasetId = UUID.randomUUID();
-    AssetSpecification asset = new AssetSpecification().name("concept_asset");
     String sqlQuery = "query";
 
     Dataset sourceDataset = new Dataset();
     sourceDataset.name("dataset_name");
     sourceDataset.id(datasetId);
     sourceDataset.defaultProfileId(datasetProfileId);
-    sourceDataset.assetSpecifications(List.of(asset));
 
     Snapshot snapshot = new Snapshot();
 
@@ -69,7 +68,8 @@ class CreateSnapshotByRequestIdInterfaceTest {
     SnapshotRequestModel requestModel =
         SnapshotBuilderTestData.createSnapshotRequestByRequestId(snapshotAccessRequestId);
 
-    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+    when(snapshotService.getSnapshotAccessRequestById(snapshotAccessRequestId))
+        .thenReturn(accessRequestResponse);
     when(snapshotDao.retrieveSnapshot(sourceSnapshotId)).thenReturn(sourceSnapshot);
     when(snapshotBuilderService.generateRowIdQuery(
             accessRequestResponse, sourceSnapshot, TEST_USER))
@@ -77,7 +77,7 @@ class CreateSnapshotByRequestIdInterfaceTest {
 
     // mock out call to createSnapshotPrimaryData
     when(createSnapshotByRequestIdInterface.createSnapshot(
-            eq(flightContext), eq(asset), eq(snapshot), eq(sqlQuery), any()))
+            eq(flightContext), any(), eq(snapshot), eq(sqlQuery), any()))
         .thenReturn(StepResult.getStepResultSuccess());
     when(createSnapshotByRequestIdInterface.prepareAndCreateSnapshot(
             any(), any(), any(), any(), any(), any(), any()))
@@ -88,8 +88,8 @@ class CreateSnapshotByRequestIdInterfaceTest {
             flightContext,
             snapshot,
             requestModel,
+            snapshotService,
             snapshotBuilderService,
-            snapshotRequestDao,
             snapshotDao,
             TEST_USER),
         is(StepResult.getStepResultSuccess()));

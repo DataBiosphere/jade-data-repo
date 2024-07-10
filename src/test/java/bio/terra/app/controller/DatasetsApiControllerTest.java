@@ -1,9 +1,11 @@
 package bio.terra.app.controller;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,6 +24,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
@@ -29,6 +32,9 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.JobModel;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
@@ -92,6 +98,7 @@ class DatasetsApiControllerTest {
   private static final String DATASET_ID_ENDPOINT = "/api/repository/v1/datasets/{id}";
   private static final String LOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/lock";
   private static final String UNLOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/unlock";
+  private static final String DATASET_INGEST_ENDPOINT = DATASET_ID_ENDPOINT + "/ingest";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
   private static final String QUERY_DATA_ENDPOINT = DATASET_ID_ENDPOINT + "/data/{table}";
@@ -109,10 +116,16 @@ class DatasetsApiControllerTest {
   private static final int OFFSET = 0;
   private static final String FILTER = null;
   private static final String TABLE_NAME = "good_table";
+  private IngestRequestModel ingestRequestModel;
 
   @BeforeEach
   void setUp() {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
+    ingestRequestModel =
+        new IngestRequestModel()
+            .table(TABLE_NAME)
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .path("/path/to/controlfile.json");
   }
 
   @Test
@@ -255,7 +268,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataById() {
     return Stream.of(
-        arguments("goodColumn", postRequest(TABLE_NAME, "goodColumn")),
+        arguments("goodColumn", postQueryDataRequest(TABLE_NAME, "goodColumn")),
         arguments("datarepo_row_id", getRequest(TABLE_NAME, "datarepo_row_id")));
   }
 
@@ -295,7 +308,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> provideRequests() {
     return Stream.of(
-        arguments(postRequest(TABLE_NAME, "goodColumn")),
+        arguments(postQueryDataRequest(TABLE_NAME, "goodColumn")),
         arguments(getRequest(TABLE_NAME, "goodColumn")));
   }
 
@@ -353,7 +366,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataRetrievalFails() {
     return Stream.of(
-        arguments(postRequest("bad_table", "good_column")),
+        arguments(postQueryDataRequest("bad_table", "good_column")),
         arguments(getRequest("bad_table", "good_column")));
   }
 
@@ -419,7 +432,8 @@ class DatasetsApiControllerTest {
     when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
   }
 
-  private static MockHttpServletRequestBuilder postRequest(String tableName, String columnName) {
+  private static MockHttpServletRequestBuilder postQueryDataRequest(
+      String tableName, String columnName) {
     return post(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
         .contentType(MediaType.APPLICATION_JSON)
         .content(
@@ -482,5 +496,97 @@ class DatasetsApiControllerTest {
     assertThat("ResourceLock object returns as expected", resultingLocks, equalTo(resourceLocks));
     verifyAuthorizationCall(IamAction.UNLOCK_RESOURCE);
     verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, unlockRequest);
+  }
+
+  @Test
+  void ingestDataset_forbidden() throws Exception {
+    IamAction iamAction = IamAction.INGEST_DATA;
+    mockForbidden(iamAction);
+    mockValidators();
+
+    mvc.perform(
+            post(DATASET_INGEST_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(ingestRequestModel)))
+        .andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+  }
+
+  private static Stream<Arguments> ingestDataset_updateStrategy_supported() {
+    return Stream.of(
+        arguments(CloudPlatform.GCP, null),
+        arguments(CloudPlatform.GCP, IngestRequestModel.UpdateStrategyEnum.APPEND),
+        arguments(CloudPlatform.GCP, IngestRequestModel.UpdateStrategyEnum.REPLACE),
+        arguments(CloudPlatform.GCP, IngestRequestModel.UpdateStrategyEnum.MERGE),
+        arguments(CloudPlatform.AZURE, null),
+        arguments(CloudPlatform.AZURE, IngestRequestModel.UpdateStrategyEnum.APPEND));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void ingestDataset_updateStrategy_supported(
+      CloudPlatform platform, IngestRequestModel.UpdateStrategyEnum updateStrategy)
+      throws Exception {
+    ingestRequestModel.updateStrategy(updateStrategy);
+    String jobId = "a-job-id";
+    JobModel expectedJob = new JobModel().id(jobId).jobStatus(JobModel.JobStatusEnum.RUNNING);
+
+    mockValidators();
+    when(datasetService.retrieveDatasetSummary(DATASET_ID))
+        .thenReturn(new DatasetSummaryModel().cloudPlatform(platform));
+    when(datasetService.ingestDataset(
+            eq(DATASET_ID.toString()), any(IngestRequestModel.class), eq(TEST_USER)))
+        .thenReturn(jobId);
+    when(jobService.retrieveJob(jobId, TEST_USER)).thenReturn(expectedJob);
+
+    String actualJson =
+        mvc.perform(
+                post(DATASET_INGEST_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(ingestRequestModel)))
+            .andExpect(status().isAccepted())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JobModel job = TestUtils.mapFromJson(actualJson, JobModel.class);
+    assertThat(job, equalTo(expectedJob));
+
+    verifyAuthorizationCall(IamAction.INGEST_DATA);
+  }
+
+  private static Stream<Arguments> ingestDataset_updateStrategy_unsupported() {
+    return Stream.of(
+        arguments(CloudPlatform.AZURE, IngestRequestModel.UpdateStrategyEnum.REPLACE),
+        arguments(CloudPlatform.AZURE, IngestRequestModel.UpdateStrategyEnum.MERGE));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void ingestDataset_updateStrategy_unsupported(
+      CloudPlatform platform, IngestRequestModel.UpdateStrategyEnum updateStrategy)
+      throws Exception {
+    mockValidators();
+    when(datasetService.retrieveDatasetSummary(DATASET_ID))
+        .thenReturn(new DatasetSummaryModel().cloudPlatform(platform));
+
+    String actualJson =
+        mvc.perform(
+                post(DATASET_INGEST_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        TestUtils.mapToJson(ingestRequestModel.updateStrategy(updateStrategy))))
+            .andExpect(status().isBadRequest())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ErrorModel error = TestUtils.mapFromJson(actualJson, ErrorModel.class);
+    assertThat(error.getMessage(), equalTo("Invalid ingest parameters detected"));
+    String expectedErrorDetail =
+        "Ingests to Azure datasets can only use 'append' as an update strategy, was '%s'."
+            .formatted(updateStrategy);
+    assertThat(error.getErrorDetail(), contains(expectedErrorDetail));
+
+    verifyAuthorizationCall(IamAction.INGEST_DATA);
   }
 }

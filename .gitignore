@@ -66,3 +66,5 @@ gha-creds-*.json
 #tools output
 tools/setupResourceScripts/*_outputs.json
 tools/profileEndpoints/results_*.csv
+
+src/main/java/bio/terra/service/parquet/output/*

@@ -241,19 +241,26 @@ dependencies {
 
     // OpenTelemetry @WithSpan annotations:
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.2.0'
+    // Needed for HadoopInputFile.fromPath(path(signed uri))
+    // Old version is needed - https://stackoverflow.com/questions/66713254/spark-wasb-and-jetty-11
+    implementation 'org.eclipse.jetty:jetty-util:9.4.55.v20240627'
 
-    testImplementation 'org.apache.parquet:parquet-common:1.12.0'
-    testImplementation 'org.apache.parquet:parquet-hadoop:1.12.0'
-    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.12.0'
-    testImplementation 'org.apache.parquet:parquet-encoding:1.12.0'
-    testImplementation 'org.apache.parquet:parquet-column:1.12.0'
-    testImplementation ('org.apache.hadoop:hadoop-common:3.3.1')  {
+    // Needed for org.apache.parquet.avro.AvroParquetReader & AvroParquetWriter
+    implementation 'org.apache.parquet:parquet-avro:1.12.0'
+    // Needed for hadoop.fs.Path & hadoop.conf.Configuration
+    implementation ('org.apache.hadoop:hadoop-common:3.3.1')  {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'
         exclude group: 'com.sun.jersey', module: 'jersey-json'
         exclude group: 'com.sun.jersey', module: 'jersey-server'
     }
-    testImplementation ('org.apache.hadoop:hadoop-azure:3.3.1') {
+
+    implementation 'org.apache.parquet:parquet-common:1.12.0'
+    implementation 'org.apache.parquet:parquet-hadoop:1.12.0'
+    implementation 'org.apache.parquet:parquet-hadoop-bundle:1.12.0'
+    implementation 'org.apache.parquet:parquet-encoding:1.12.0'
+    implementation 'org.apache.parquet:parquet-column:1.12.0'
+    implementation ('org.apache.hadoop:hadoop-azure:3.3.1') {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'
         exclude group: 'com.sun.jersey', module: 'jersey-json'

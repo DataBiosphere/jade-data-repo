@@ -841,13 +841,13 @@ class SamIamTest {
     }
 
     @Test
-    void setGroupMembershipWithAdmin() throws ApiException, InterruptedException {
+    void overwriteGroupPolicyEmailsIncludeRequestingUser()
+        throws ApiException, InterruptedException {
       final String snapshotRequesterEmail = "requester@a.com";
       final String requestApproverId = "userid";
       final String requestApproverEmail = "a@a.com";
       mockUserInfo(requestApproverId, requestApproverEmail);
-      var expectedListOfEmails =
-          List.of(snapshotRequesterEmail, requestApproverEmail, samConfig.adminsGroupEmail());
+      var expectedListOfEmails = List.of(snapshotRequesterEmail, requestApproverEmail);
 
       samIam.overwriteGroupPolicyEmailsIncludeRequestingUser(
           TEST_USER.getToken(), // In a real use case, this would be the TDR SA Token

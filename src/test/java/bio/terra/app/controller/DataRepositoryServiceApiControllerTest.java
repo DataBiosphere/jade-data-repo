@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -65,16 +66,20 @@ class DataRepositoryServiceApiControllerTest {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
   }
 
+  private static <T> URI createUri(ResponseEntity<T> object) {
+    return linkTo(object).toUri();
+  }
+
+  private static DataRepositoryServiceApiController getDrsApi() {
+    return methodOn(DataRepositoryServiceApiController.class);
+  }
+
   private static URI createGetUri() {
-    return linkTo(methodOn(DataRepositoryServiceApiController.class).getObject(DRS_ID, false))
-        .toUri();
+    return createUri(getDrsApi().getObject(DRS_ID, false));
   }
 
   private static URI createAccessUri() {
-    return linkTo(
-            methodOn(DataRepositoryServiceApiController.class)
-                .getAccessURL(DRS_ID, DRS_ACCESS_ID, null))
-        .toUri();
+    return createUri(getDrsApi().getAccessURL(DRS_ID, DRS_ACCESS_ID, null));
   }
 
   @Test
@@ -103,15 +108,11 @@ class DataRepositoryServiceApiControllerTest {
   }
 
   private static URI createPostObjectUri() {
-    return linkTo(methodOn(DataRepositoryServiceApiController.class).postObject(DRS_ID, PASSPORT))
-        .toUri();
+    return createUri(getDrsApi().postObject(DRS_ID, PASSPORT));
   }
 
   private static URI createPostAccessUri() {
-    return linkTo(
-            methodOn(DataRepositoryServiceApiController.class)
-                .postAccessURL(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
-        .toUri();
+    return createUri(getDrsApi().postAccessURL(DRS_ID, DRS_ACCESS_ID, PASSPORT, null));
   }
 
   @Test

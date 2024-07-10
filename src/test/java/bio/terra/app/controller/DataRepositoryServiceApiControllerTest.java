@@ -70,16 +70,16 @@ class DataRepositoryServiceApiControllerTest {
     return linkTo(object).toUri();
   }
 
-  private static DataRepositoryServiceApiController getDrsApi() {
+  private static DataRepositoryServiceApiController getApi() {
     return methodOn(DataRepositoryServiceApiController.class);
   }
 
   private static URI createGetUri() {
-    return createUri(getDrsApi().getObject(DRS_ID, false));
+    return createUri(getApi().getObject(DRS_ID, false));
   }
 
   private static URI createAccessUri() {
-    return createUri(getDrsApi().getAccessURL(DRS_ID, DRS_ACCESS_ID, null));
+    return createUri(getApi().getAccessURL(DRS_ID, DRS_ACCESS_ID, null));
   }
 
   @Test
@@ -108,11 +108,11 @@ class DataRepositoryServiceApiControllerTest {
   }
 
   private static URI createPostObjectUri() {
-    return createUri(getDrsApi().postObject(DRS_ID, PASSPORT));
+    return createUri(getApi().postObject(DRS_ID, PASSPORT));
   }
 
   private static URI createPostAccessUri() {
-    return createUri(getDrsApi().postAccessURL(DRS_ID, DRS_ACCESS_ID, PASSPORT, null));
+    return createUri(getApi().postAccessURL(DRS_ID, DRS_ACCESS_ID, PASSPORT, null));
   }
 
   @Test

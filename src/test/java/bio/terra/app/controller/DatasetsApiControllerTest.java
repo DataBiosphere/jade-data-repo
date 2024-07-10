@@ -11,6 +11,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,6 +59,7 @@ import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
+import java.net.URI;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -71,6 +74,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -80,13 +84,13 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
 @Tag(Unit.TAG)
 @WebMvcTest
+@MockBean(FileService.class)
 class DatasetsApiControllerTest {
   @Autowired private MockMvc mvc;
   @MockBean private JobService jobService;
   @MockBean private DatasetRequestValidator datasetRequestValidator;
   @MockBean private DatasetService datasetService;
   @MockBean private IamService iamService;
-  @MockBean private FileService fileService;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private AssetModelValidator assetModelValidator;
   @MockBean private IngestRequestValidator ingestRequestValidator;
@@ -95,16 +99,8 @@ class DatasetsApiControllerTest {
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
-  private static final String DATASET_ID_ENDPOINT = "/api/repository/v1/datasets/{id}";
-  private static final String LOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/lock";
-  private static final String UNLOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/unlock";
-  private static final String DATASET_INGEST_ENDPOINT = DATASET_ID_ENDPOINT + "/ingest";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
-  private static final String QUERY_DATA_ENDPOINT = DATASET_ID_ENDPOINT + "/data/{table}";
-
-  private static final String QUERY_COLUMN_STATISTICS_ENDPOINT =
-      QUERY_DATA_ENDPOINT + "/statistics/{column}";
 
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
@@ -128,6 +124,18 @@ class DatasetsApiControllerTest {
             .path("/path/to/controlfile.json");
   }
 
+  private static <T> URI createUri(ResponseEntity<T> object) {
+    return linkTo(object).toUri();
+  }
+
+  private static DatasetsApiController getApi() {
+    return methodOn(DatasetsApiController.class);
+  }
+
+  private static MockHttpServletRequestBuilder createGetRequest() {
+    return get(createUri(getApi().retrieveDataset(DATASET_ID, List.of(INCLUDE))));
+  }
+
   @Test
   void testRetrieveDataset() throws Exception {
     DatasetModel expected = new DatasetModel().id(DATASET_ID);
@@ -135,8 +143,7 @@ class DatasetsApiControllerTest {
         .thenReturn(expected);
 
     String actualJson =
-        mvc.perform(
-                get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
+        mvc.perform(createGetRequest())
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -151,8 +158,7 @@ class DatasetsApiControllerTest {
   @Test
   void testRetrieveDatasetNotFound() throws Exception {
     mockNotFound();
-    mvc.perform(get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
-        .andExpect(status().isNotFound());
+    mvc.perform(createGetRequest()).andExpect(status().isNotFound());
     verifyNoInteractions(iamService);
   }
 
@@ -164,8 +170,7 @@ class DatasetsApiControllerTest {
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), List.of(iamAction));
 
-    mvc.perform(get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
-        .andExpect(status().isForbidden());
+    mvc.perform(createGetRequest()).andExpect(status().isForbidden());
 
     verifyAuthorizationsCall(List.of(iamAction));
   }
@@ -173,6 +178,12 @@ class DatasetsApiControllerTest {
   private void mockPatchDatasetIamActions() {
     when(datasetService.patchDatasetIamActions(DATASET_PATCH_REQUEST))
         .thenReturn(DATASET_PATCH_ACTIONS);
+  }
+
+  private static MockHttpServletRequestBuilder createPatchRequest() {
+    return patch(createUri(getApi().patchDataset(DATASET_ID, DATASET_PATCH_REQUEST)))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST));
   }
 
   @Test
@@ -186,10 +197,7 @@ class DatasetsApiControllerTest {
         .thenReturn(patchedDatasetSummary);
 
     String actualJson =
-        mvc.perform(
-                patch(DATASET_ID_ENDPOINT, DATASET_ID)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
+        mvc.perform(createPatchRequest())
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -208,11 +216,7 @@ class DatasetsApiControllerTest {
     mockPatchDatasetIamActions();
     mockNotFound();
 
-    mvc.perform(
-            patch(DATASET_ID_ENDPOINT, DATASET_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
-        .andExpect(status().isNotFound());
+    mvc.perform(createPatchRequest()).andExpect(status().isNotFound());
 
     verifyNoInteractions(iamService);
     verify(datasetService, never()).patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER);
@@ -227,11 +231,7 @@ class DatasetsApiControllerTest {
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), DATASET_PATCH_ACTIONS);
 
-    mvc.perform(
-            patch(DATASET_ID_ENDPOINT, DATASET_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
-        .andExpect(status().isForbidden());
+    mvc.perform(createPatchRequest()).andExpect(status().isForbidden());
 
     verify(datasetService, never()).patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER);
   }
@@ -275,13 +275,22 @@ class DatasetsApiControllerTest {
   private static Stream<Arguments> testQueryDatasetColumnStatistics() {
     return Stream.of(
         arguments(
-            post(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, "good_table", "good_column")
+            post(createUri(
+                    getApi()
+                        .queryDatasetColumnStatisticsById(
+                            DATASET_ID,
+                            "good_table",
+                            "good_column",
+                            new QueryColumnStatisticsRequestModel())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     TestUtils.mapToJson(new QueryColumnStatisticsRequestModel().filter(FILTER)))),
         arguments(
-            get(QUERY_COLUMN_STATISTICS_ENDPOINT, DATASET_ID, "good_table", "good_column")
-                .queryParam("filter", FILTER)));
+            get(
+                createUri(
+                    getApi()
+                        .lookupDatasetColumnStatisticsById(
+                            DATASET_ID, "good_table", "good_column", FILTER)))));
   }
 
   @ParameterizedTest
@@ -434,7 +443,10 @@ class DatasetsApiControllerTest {
 
   private static MockHttpServletRequestBuilder postQueryDataRequest(
       String tableName, String columnName) {
-    return post(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
+    URI uri =
+        createUri(
+            getApi().queryDatasetDataById(DATASET_ID, tableName, new QueryDataRequestModel()));
+    return post(uri)
         .contentType(MediaType.APPLICATION_JSON)
         .content(
             TestUtils.mapToJson(
@@ -447,7 +459,10 @@ class DatasetsApiControllerTest {
   }
 
   private static MockHttpServletRequestBuilder getRequest(String tableName, String columnName) {
-    return get(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
+    URI uri =
+        createUri(
+            getApi().queryDatasetDataById(DATASET_ID, tableName, new QueryDataRequestModel()));
+    return get(uri)
         .queryParam("limit", String.valueOf(LIMIT))
         .queryParam("offset", String.valueOf(OFFSET))
         .queryParam("sort", columnName)
@@ -462,7 +477,7 @@ class DatasetsApiControllerTest {
     mockValidators();
 
     var response =
-        mvc.perform(put(LOCK_DATASET_ENDPOINT, DATASET_ID))
+        mvc.perform(put(createUri(getApi().lockDataset(DATASET_ID))))
             .andExpect(status().is2xxSuccessful())
             .andReturn()
             .getResponse()
@@ -485,7 +500,7 @@ class DatasetsApiControllerTest {
 
     var response =
         mvc.perform(
-                put(UNLOCK_DATASET_ENDPOINT, DATASET_ID)
+                put(createUri(getApi().unlockDataset(DATASET_ID, unlockRequest)))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtils.mapToJson(unlockRequest)))
             .andExpect(status().is2xxSuccessful())
@@ -498,17 +513,19 @@ class DatasetsApiControllerTest {
     verify(datasetService).manualUnlock(TEST_USER, DATASET_ID, unlockRequest);
   }
 
+  private MockHttpServletRequestBuilder createIngestDatasetRequest() {
+    return post(createUri(getApi().ingestDataset(DATASET_ID, ingestRequestModel)))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(TestUtils.mapToJson(ingestRequestModel));
+  }
+
   @Test
   void ingestDataset_forbidden() throws Exception {
     IamAction iamAction = IamAction.INGEST_DATA;
     mockForbidden(iamAction);
     mockValidators();
 
-    mvc.perform(
-            post(DATASET_INGEST_ENDPOINT, DATASET_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(ingestRequestModel)))
-        .andExpect(status().isForbidden());
+    mvc.perform(createIngestDatasetRequest()).andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
   }
@@ -541,10 +558,7 @@ class DatasetsApiControllerTest {
     when(jobService.retrieveJob(jobId, TEST_USER)).thenReturn(expectedJob);
 
     String actualJson =
-        mvc.perform(
-                post(DATASET_INGEST_ENDPOINT, DATASET_ID)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(ingestRequestModel)))
+        mvc.perform(createIngestDatasetRequest())
             .andExpect(status().isAccepted())
             .andReturn()
             .getResponse()
@@ -569,13 +583,10 @@ class DatasetsApiControllerTest {
     mockValidators();
     when(datasetService.retrieveDatasetSummary(DATASET_ID))
         .thenReturn(new DatasetSummaryModel().cloudPlatform(platform));
+    ingestRequestModel.setUpdateStrategy(updateStrategy);
 
     String actualJson =
-        mvc.perform(
-                post(DATASET_INGEST_ENDPOINT, DATASET_ID)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        TestUtils.mapToJson(ingestRequestModel.updateStrategy(updateStrategy))))
+        mvc.perform(createIngestDatasetRequest())
             .andExpect(status().isBadRequest())
             .andReturn()
             .getResponse()

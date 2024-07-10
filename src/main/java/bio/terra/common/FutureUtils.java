@@ -74,7 +74,7 @@ public final class FutureUtils {
                       foundFailure.compareAndSet(null, ere);
                     } else {
                       foundFailure.compareAndSet(
-                          null, new ApiException("Error executing thread", e));
+                          null, new ApiException(e.getMessage(), e.getCause()));
                     }
                   }
                   return null;

@@ -82,8 +82,11 @@ if $USE_VAULT; then
     | tee /tmp/jade-dev-account.json \
     | jq -r .private_key > /tmp/jade-dev-account.pem
 else
-  echo no direct GSM mapping for secret/dsde/datarepo/dev/sa-key.json
-  exit 1
+  gcloud secrets versions access latest --project $GCLOUD_PROJECT --secret sa-b64 \
+    | jq -r .sa \
+    | base64 -d \
+    | tee /tmp/jade-dev-account.json \
+    | jq -r .private_key > /tmp/jade-dev-account.pem
 fi
 
 GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
@@ -137,7 +140,7 @@ if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
   done
 
   # Copy variables to clipboard
-  echo $SETTINGS  | pbcopy
+  echo "$SETTINGS"  | pbcopy
   echo "Environment variables copied to clipboard"
 fi
 

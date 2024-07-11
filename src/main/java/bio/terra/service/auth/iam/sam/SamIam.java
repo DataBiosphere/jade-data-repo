@@ -712,9 +712,7 @@ public class SamIam implements IamProviderInterface {
     List<String> emails = new ArrayList<>(emailAddresses);
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     emails.add(userStatusInfo.getUserEmail());
-    SamRetry.retry(
-        configurationService,
-        () -> overwriteGroupPolicyEmailsInner(accessToken, groupName, policyName, emails));
+    overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
   }
 
   @Override

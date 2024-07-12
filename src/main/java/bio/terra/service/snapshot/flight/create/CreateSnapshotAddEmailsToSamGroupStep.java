@@ -19,6 +19,17 @@ public class CreateSnapshotAddEmailsToSamGroupStep extends DefaultUndoStep {
   private final SnapshotRequestDao snapshotRequestDao;
   private final UUID snapshotRequestId;
 
+  /**
+   * For Snapshot byRequestId, add two emails to the SAM group: (1) Snapshot Creator (The email
+   * associated with the userRequest) and (2) Snapshot Request Creator (The email in the createdBy
+   * field on the snapshot request)
+   *
+   * @param userRequest authenticated user request for the user that is creating the snapshot
+   * @param iamService
+   * @param snapshotRequestDao
+   * @param snapshotRequestId id of the snapshot request, used together with the snapshotRequestDao
+   *     to get the snapshot request, which contains the createdBy field
+   */
   public CreateSnapshotAddEmailsToSamGroupStep(
       AuthenticatedUserRequest userRequest,
       IamService iamService,

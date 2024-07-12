@@ -735,7 +735,6 @@ public class SnapshotService {
     Set<String> missing = new HashSet<>(includedTableNames);
     allTables.stream()
         .map(SnapshotBuilderDatasetConceptSet::getName)
-        .toList()
         .forEach(missing::remove);
     if (!missing.isEmpty()) {
       throw new IllegalArgumentException("Unknown value set names: " + missing);

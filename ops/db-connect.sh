@@ -18,6 +18,9 @@ usage() {
 Usage: $0 [OPTION]...
 Connect to a Terra Data Repo database in an environment.
 
+You MUST have gcloud, kubectl, jq, and psql installed to run this script. In
+addition, you MUST be connected to the VPN to access the database.
+
   --env ENV             Environment to connect to (default: dev)
   --port PORT           Local port to forward to the SQL proxy (default: 5432)
   --database DATABASE   Database to connect to, either datarepo or stairway

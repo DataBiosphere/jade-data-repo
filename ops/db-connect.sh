@@ -112,7 +112,7 @@ port_forward_sqlproxy() {
   fi
 
   # select the first pod that has a name that contains "sqlproxy"
-  SQLPROXY_POD=$(kubectl get pods --namespace="$NAMESPACE" --output="json" | jq -r '[ .items[].metadata.name | select(. | contains("sqlproxy")) ].[0]')
+  SQLPROXY_POD=$(kubectl get pods --namespace="$NAMESPACE" --output="json" | jq -r '.items | map(.metadata.name | select(contains("sqlproxy"))) | first')
   kubectl port-forward "$SQLPROXY_POD" --namespace "$NAMESPACE" "$PORT:5432" &
   PID=$!
   trap cleanup EXIT

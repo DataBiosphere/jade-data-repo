@@ -1,30 +1,87 @@
-#!/bin/bash
-
-# Call this to connect to cloud Postgres for a specific Data Repo instance.
-# For example, to connect to the dev datarepo database as user mm, run:
-# $ DB=datarepo SUFFIX=mm ENVIRONMENT=dev ./db-connect.sh
-# To connect to a user instance's stairway database, run:
-# $ DB=stairway-mm SUFFIX=mm ENVIRONMENT=dev ./db-connect.sh
+#!/bin/sh
 #
-# If the connection times out, check that you are on the Broad VPN and are connected to correct
-# Kubernetes cluster.
+# This script is used to connect to the TDR Cloud SQL database in a GCP project.
 #
-# If you get an AlreadyExists error, it's possible the pod didn't shut down properly. You can
-# delete it using kubectl, where ZZ is the SUFFIX.
-# $ kubectl --namespace ZZ delete pod ZZ-psql
+# It uses the gcloud CLI to get the credentials for the cluster, kubectl to port
+# forward to the SQL proxy pod, and psql to connect to the database.
+#
+# You MUST have gcloud, kubectl, jq, and psql installed to run this script. In
+# addition, you MUST be connected to the VPN to access the database.
+#
+# Usage: ./db-connect.sh
+#
+# The following environment variables may be set to override the defaults:
+#
+#   PROJECT     the GCP project that contains the Cloud SQL database
+#
+#   NAMESPACE   the Kubernetes namespace for the SQL proxy pod
+#               these can be listed with `kubectl get namespaces`
+#
+#   SECRET      the secret path for the database password in GCP Secrets Manager
+#               the paths are listed at https://github.com/broadinstitute/vault-migration-tool/blob/main/mappings/tdr.yaml
+#
+#   PORT        the local port to forward to the SQL proxy pod
+#
+#   DATABASE    the name of the database to connect to
+#
 
-: "${DB:?}"
-: "${ENVIRONMENT:?}"
-SUFFIX=${SUFFIX:-$ENVIRONMENT}
+set -eu
 
-VAULT_PATH="secret/dsde/datarepo/${ENVIRONMENT}/helm-datarepodb-${ENVIRONMENT}"
+# Default values that may be overridden by environment variables
+PROJECT="${PROJECT:-broad-jade-dev}"
+NAMESPACE="${NAMESPACE:-dev}"
+SECRET="${SECRET:-helm-datarepodb}"
+PORT="${PORT:-5432}"
+DATABASE="${DATABASE:-stairway}"
 
-PW=$( vault read -format=json "$VAULT_PATH" | jq -r .data.datarepopassword )
+error() {
+    echo "ERROR: $1" >&2
+    exit 1
+}
 
-if [ -z "$PW" ]; then
-  echo "Vault password is empty"
-  exit 1 # error
-fi
+cleanup() {
+  kill "$PID"
+}
 
-kubectl --namespace "${SUFFIX}" run "${SUFFIX}-psql" -it --restart=Never --rm --image postgres:11 -- \
-    psql "postgresql://drmanager:${PW}@${SUFFIX}-jade-gcloud-sqlproxy.${SUFFIX}/${DB}"
+set_cluster_credentials() {
+  CLUSTER_JSON=$(gcloud container clusters list --format="json")
+
+  REGION=$(echo "$CLUSTER_JSON" | jq -r .[0].zone)
+  NAME=$(echo "$CLUSTER_JSON" | jq -r .[0].name)
+
+  gcloud container clusters get-credentials "$NAME" --region="$REGION" --project="$PROJECT"
+}
+
+port_forward_sqlproxy() {
+  POD_JSON=$(kubectl get pods --namespace="$NAMESPACE" --output="json")
+
+  # validate that the namespace is in the list of namespaces
+  if ! echo "$POD_JSON" | jq -r '.items[].metadata.namespace' | grep -q "$NAMESPACE"; then
+    error "Namespace '$NAMESPACE' not found in list of namespaces"
+  fi
+
+  # select the first pod that has a name that contains "sqlproxy"
+  SQLPROXY_POD=$(kubectl get pods --namespace="$NAMESPACE" --output="json" | jq -r '[ .items[].metadata.name | select(. | contains("sqlproxy")) ].[0]')
+  kubectl port-forward "$SQLPROXY_POD" --namespace "$NAMESPACE" "$PORT:5432" &
+  PID=$!
+}
+
+connect_cloud_sql_db() {
+  USERNAME="drmanager"
+  PASSWORD=$(gcloud secrets versions access latest --project="$PROJECT" --secret="$SECRET" | jq -r '.datarepopassword')
+
+  # validate that the password is not empty
+  if [ -z "$PASSWORD" ]; then
+    error "Could not retrieve password for project '$PROJECT' with secret path '$SECRET'"
+  fi
+
+  psql "postgresql://$USERNAME:$PASSWORD@localhost:$PORT/$DATABASE"
+}
+
+trap cleanup EXIT
+
+gcloud config set project "$PROJECT"
+
+set_cluster_credentials
+port_forward_sqlproxy
+connect_cloud_sql_db

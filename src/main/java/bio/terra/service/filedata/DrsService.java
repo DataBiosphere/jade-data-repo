@@ -111,6 +111,7 @@ public class DrsService {
   private final DrsDao drsDao;
   private final DrsMetricsService drsMetricsService;
   private final AsyncTaskExecutor executor;
+  private final Map<Integer, List<String>> azureIps;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -133,7 +134,8 @@ public class DrsService {
       EcmConfiguration ecmConfiguration,
       DrsDao drsDao,
       DrsMetricsService drsMetricsService,
-      @Qualifier("drsResolutionThreadpool") AsyncTaskExecutor executor) {
+      @Qualifier("drsResolutionThreadpool") AsyncTaskExecutor executor,
+      @Qualifier("azureIPs") Map<Integer, List<String>> azureIPs) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -148,6 +150,7 @@ public class DrsService {
     this.drsDao = drsDao;
     this.drsMetricsService = drsMetricsService;
     this.executor = executor;
+    this.azureIps = azureIPs;
   }
 
   private class DrsRequestResource implements AutoCloseable {

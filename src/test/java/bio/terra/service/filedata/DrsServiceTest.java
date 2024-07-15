@@ -73,11 +73,14 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -180,7 +183,8 @@ public class DrsServiceTest {
                 ecmConfiguration,
                 drsDao,
                 drsMetricsService,
-                new SimpleAsyncTaskExecutor()));
+                new SimpleAsyncTaskExecutor(),
+                Map.of()));
     when(jobService.getActivePodCount()).thenReturn(1);
     when(drsConfiguration.maxDrsLookups()).thenReturn(1);
 

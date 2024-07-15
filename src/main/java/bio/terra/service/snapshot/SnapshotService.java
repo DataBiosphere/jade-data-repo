@@ -712,11 +712,17 @@ public class SnapshotService {
           assetModel.addTablesItem(
               new AssetTableModel().name(table.getDatasetTableName()).columns(table.getColumns()));
           // First add all person <-> occurrence relationships
-          assetModel.addFollowItem(table.getPrimaryTableRelationship());
+          if (table.getPrimaryTableRelationship() != null) {
+            assetModel.addFollowItem(table.getPrimaryTableRelationship());
+          }
         });
     // Second, add all occurrence <-> concept relationships
     tables.forEach(
-        table -> table.getSecondaryTableRelationships().forEach(assetModel::addFollowItem));
+        table -> {
+          if (table.getSecondaryTableRelationships() != null) {
+            table.getSecondaryTableRelationships().forEach(assetModel::addFollowItem);
+          }
+        });
 
     assetModel.addTablesItem(new AssetTableModel().name("concept"));
 

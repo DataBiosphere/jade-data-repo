@@ -135,6 +135,7 @@ class SnapshotCreateFlightTest {
             "CreateSnapshotMetadataStep",
             "CreateSnapshotSamGroupNameStep",
             "CreateSnapshotSamGroupStep",
+            "CreateSnapshotAddEmailsToSamGroupStep",
             "CreateSnapshotByRequestIdGcpStep",
             "CountSnapshotTableRowsStep",
             "SnapshotAuthzIamStep",

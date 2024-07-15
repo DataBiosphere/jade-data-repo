@@ -87,7 +87,7 @@ class SamIamTest {
   private static final String GROUP_NAME = "firecloud_group_name";
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
   private final SamConfiguration samConfig =
-      new SamConfiguration("https://sam.dsde-dev.broadinstitute.org", ADMIN_EMAIL, 10, 30, 60);
+      new SamConfiguration("https://sam.dsde-dev.broadinstitute.org", ADMIN_EMAIL, 0, 0, 0);
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
@@ -838,6 +838,25 @@ class SamIamTest {
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
       when(samGroupApi.getGroup(GROUP_NAME)).thenThrow(samEx);
       assertThrows(IamNotFoundException.class, () -> samIam.getGroup(accessToken, GROUP_NAME));
+    }
+
+    @Test
+    void overwriteGroupPolicyEmailsIncludeRequestingUser()
+        throws ApiException, InterruptedException {
+      final String snapshotRequesterEmail = "requester@a.com";
+      final String requestApproverId = "userid";
+      final String requestApproverEmail = "a@a.com";
+      mockUserInfo(requestApproverId, requestApproverEmail);
+      var expectedListOfEmails = List.of(snapshotRequesterEmail, requestApproverEmail);
+
+      samIam.overwriteGroupPolicyEmailsIncludeRequestingUser(
+          TEST_USER.getToken(), // In a real use case, this would be the TDR SA Token
+          TEST_USER, // While this would be the user making the request
+          GROUP_NAME,
+          IamRole.MEMBER.toString(),
+          List.of(snapshotRequesterEmail));
+      verify(samGroupApi)
+          .overwriteGroupPolicyEmails(GROUP_NAME, IamRole.MEMBER.toString(), expectedListOfEmails);
     }
 
     @Test

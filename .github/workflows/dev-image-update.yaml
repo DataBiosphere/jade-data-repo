@@ -37,11 +37,10 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: "Bump the tag to a new version"
         id: bumperstep
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'bumper'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
           version_file_path: build.gradle
           version_variable_name: version
           # Sets the author of the version bump commit to broadbot. This is used in our skip job logic.
@@ -89,16 +88,16 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN }}
           path: datarepo-helm-definitions
       - name: "Build new delevop docker image"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'gradlebuild'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: "Update Version in helm for Dev Env"
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
         uses: broadinstitute/retry@v2.8.3 #forked from nick-fields/retry
         with:
@@ -116,11 +115,10 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Release Candidate Container Build: Create release candidate images'
-        uses: broadinstitute/datarepo-actions/actions/main@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:
           actions_subcommand: 'alpharelease'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
           alpharelease: ${{ needs.bump_version.outputs.api_image_tag }} # creates gcr build with semver tag
           gcr_google_project: 'broad-jade-dev'
 

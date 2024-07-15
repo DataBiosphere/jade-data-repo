@@ -702,6 +702,20 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userReq,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException {
+    List<String> emails = new ArrayList<>(emailAddresses);
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    emails.add(userStatusInfo.getUserEmail());
+    overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
+  }
+
+  @Override
   public void overwriteGroupPolicyEmails(
       String accessToken, String groupName, String policyName, List<String> emailAddresses)
       throws InterruptedException {

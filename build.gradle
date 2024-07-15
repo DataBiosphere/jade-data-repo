@@ -45,7 +45,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.96.0-SNAPSHOT'
+    version '2.101.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -396,7 +396,7 @@ jib {
     // https://www.randori.com/blog/cve-2021-44228/
     // for more information
     container {
-        jvmFlags = ["-Xms1g", "-Xmx2g", "-Dlog4j2.formatMsgNoLookups=true"]
+        jvmFlags = ["-Xms1g", "-Xmx4g", "-Dlog4j2.formatMsgNoLookups=true"]
     }
     container.creationTime = buildTime()
 }

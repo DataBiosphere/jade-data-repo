@@ -11,6 +11,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -276,6 +277,11 @@ public class SnapshotService {
     if (flightId != null && jobService.unauthRetrieveJobState(flightId) != FlightStatus.ERROR) {
       throw new ValidationException(
           "Snapshot Create Flight with id %s is still running".formatted(flightId));
+    }
+    var requesterEmail = snapshotAccessRequest.getCreatedBy();
+    if (requesterEmail == null || !ValidationUtils.isValidEmail(requesterEmail)) {
+      throw new ValidationException(
+          "The createdBy email supplied on the access request is not valid.");
     }
   }
 

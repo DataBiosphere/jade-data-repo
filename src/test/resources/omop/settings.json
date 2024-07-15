@@ -252,13 +252,11 @@
         "columns": [],
         "primaryTableRelationship": "fpk_person_observation",
         "secondaryTableRelationships": [
-          "fpk_observation_period_person",
           "fpk_observation_concept",
           "fpk_observation_concept_s",
           "fpk_observation_unit",
           "fpk_observation_qualifier",
           "fpk_observation_type_concept",
-          "fpk_observation_period_concept",
           "fpk_observation_value"]
       }
     },{
@@ -266,7 +264,12 @@
       "table": {
         "datasetTableName": "person",
         "columns": [],
-        "secondaryTableRelationships": ["fpk_person_ethnicity_concept", "fpk_person_ethnicity_concept_s", "fpk_person_race_concept"]
+        "secondaryTableRelationships": ["fpk_person_gender_concept",
+          "fpk_person_race_concept",
+          "fpk_person_ethnicity_concept",
+          "fpk_person_gender_concept_s",
+          "fpk_person_race_concept_s",
+          "fpk_person_ethnicity_concept_s"]
       }
     }
   ]

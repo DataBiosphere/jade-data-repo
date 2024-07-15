@@ -211,6 +211,10 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.2.0'
 
     implementation 'bio.terra:terra-common-lib:1.1.14-SNAPSHOT'
+    implementation 'bio.terra:stairway-gcp:1.1.10-SNAPSHOT' // DO NOT MERGE:
+    // Temporarily pulling in Stairway dependency directly for a full integration test run.
+    // Following that, I will update the Stairway dependency in TCL, and bump TCL in TDR
+    // (TDR gets its Stairway dependency transitively from TCL).
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.11-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'

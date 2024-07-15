@@ -268,13 +268,6 @@
         "columns": [],
         "secondaryTableRelationships": ["fpk_person_ethnicity_concept", "fpk_person_ethnicity_concept_s", "fpk_person_race_concept"]
       }
-    },{
-      "name": "Genomics",
-      "table": {
-        "datasetTableName": "sample",
-        "columns": [],
-        "primaryTableRelationship": "fpk_person_sample"
-      }
     }
   ]
 }

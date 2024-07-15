@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -92,8 +93,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -111,8 +110,6 @@ import org.stringtemplate.v4.ST;
 @Category(Connected.class)
 @EmbeddedDatabaseTest
 public class BigQueryPdaoTest {
-  private static final Logger logger = LoggerFactory.getLogger(BigQueryPdaoTest.class);
-
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BigQuerySnapshotPdao bigQuerySnapshotPdao;
@@ -133,9 +130,6 @@ public class BigQueryPdaoTest {
   private BillingProfileModel profileModel;
 
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
-
-  private final List<UUID> datasetIdsToDelete = new ArrayList<>();
-  private final List<Dataset> bqDatasetsToDelete = new ArrayList<>();
 
   private final List<BlobInfo> blobsToDelete = new ArrayList<>();
 
@@ -306,7 +300,7 @@ public class BigQueryPdaoTest {
 
   static final List<IngestSource> TABLES =
       List.of(
-          new IngestSource("concept", "omop/concept-table-data.jsonl", 7),
+          new IngestSource("concept", "omop/concept-table-data.jsonl", 8),
           new IngestSource("person", "omop/person-table-data.jsonl", 23),
           new IngestSource("relationship", "omop/relationship.jsonl", 2),
           new IngestSource("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10),
@@ -408,14 +402,14 @@ public class BigQueryPdaoTest {
     String rowId = "datarepo_row_id";
     List<String> personIds =
         queryForIds(snapshot.getName(), "person", rowId, bigQuerySnapshotProject, rowId);
-    assertThat(personIds.size(), is(23));
+    assertThat(personIds, hasSize(23));
     List<String> conditionOccurrenceIds =
         queryForIds(
             snapshot.getName(), "condition_occurrence", rowId, bigQuerySnapshotProject, rowId);
-    assertThat(conditionOccurrenceIds.size(), is(49));
+    assertThat(conditionOccurrenceIds, hasSize(49));
     List<String> conceptIds =
         queryForIds(snapshot.getName(), "concept", rowId, bigQuerySnapshotProject, rowId);
-    assertThat(conceptIds.size(), is(5));
+    assertThat(conceptIds, hasSize(6));
   }
 
   @Test

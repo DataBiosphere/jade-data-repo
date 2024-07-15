@@ -29,7 +29,6 @@ import bio.terra.service.common.AssetUtils;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -73,7 +72,6 @@ class AzureSynapsePdaoUnitTest {
         new AzureSynapsePdao(
             azureResourceConfiguration,
             mock(ApplicationConfiguration.class),
-            mock(DrsIdService.class),
             new ObjectMapper(),
             synapseJdbcTemplate);
     assetSpec = AssetUtils.buildTestAssetSpec();

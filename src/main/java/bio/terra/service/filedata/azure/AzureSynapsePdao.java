@@ -44,6 +44,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.tabulardata.WalkRelationship;
+import bio.terra.stairway.ShortUUID;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -71,7 +72,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -393,19 +393,15 @@ public class AzureSynapsePdao {
       "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
 
   private final ApplicationConfiguration applicationConfiguration;
-  private final DrsIdService drsIdService;
   private final ObjectMapper objectMapper;
 
-  @Autowired
   public AzureSynapsePdao(
       AzureResourceConfiguration azureResourceConfiguration,
       ApplicationConfiguration applicationConfiguration,
-      DrsIdService drsIdService,
       ObjectMapper objectMapper,
       @Qualifier("synapseJdbcTemplate") NamedParameterJdbcTemplate synapseJdbcTemplate) {
     this.azureResourceConfiguration = azureResourceConfiguration;
     this.applicationConfiguration = applicationConfiguration;
-    this.drsIdService = drsIdService;
     this.objectMapper = objectMapper;
     this.synapseJdbcTemplate = synapseJdbcTemplate;
   }
@@ -788,7 +784,6 @@ public class AzureSynapsePdao {
    *     table snapshot
    * @return tableRowCounts - hash map of snapshot table names and number of rows included in
    *     snapshot
-   * @throws SQLException
    */
   public Map<String, Long> createSnapshotParquetFilesByAsset(
       AssetSpecification assetSpec,
@@ -798,7 +793,7 @@ public class AzureSynapsePdao {
       SnapshotRequestAssetModel requestModel,
       boolean isGlobalFieldIds,
       String compactIdPrefix)
-      throws SQLException, PdaoException {
+      throws PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     // First handle root table
@@ -916,7 +911,6 @@ public class AzureSynapsePdao {
    * @param tableRowCounts Map tracking the number of rows included in each table of the snapshot
    * @param isGlobalFieldIds If true, configure query to use the global drs id format
    * @param compactIdPrefix If specified, configure the query to use a compact drs id format
-   * @throws SQLException
    */
   public void createSnapshotParquetFilesByRelationship(
       UUID snapshotId,
@@ -946,11 +940,11 @@ public class AzureSynapsePdao {
     // If there are no rows in the "from" table's snapshot, then there is nothing to be added
     // to the "to" snapshot table
     Long fromTableCount = tableRowCounts.get(fromTableName);
-    if (fromTableCount == null || fromTableCount <= Long.valueOf(0)) {
+    if (fromTableCount == null || fromTableCount <= 0L) {
       logger.info(
           "Snapshot by Asset - No rows included in from table {}. Parquet file for snapshot table will not be created.",
           fromTableName);
-      tableRowCounts.put(toTableName, (long) 0);
+      tableRowCounts.put(toTableName, 0L);
       return;
     }
 
@@ -961,7 +955,9 @@ public class AzureSynapsePdao {
             toTableName,
             snapshotId,
             IngestUtils.getSnapshotSliceParquetFilePath(
-                toTableName, String.format("%s_%s_relationship", fromTableName, toTableName)),
+                toTableName,
+                String.format(
+                    "%s_%s_%s_relationship", ShortUUID.get(), fromTableName, toTableName)),
             datasetDataSourceName,
             snapshotDataSourceName,
             toAssetTable.getSynapseColumns(),
@@ -1016,7 +1012,7 @@ public class AzureSynapsePdao {
   @VisibleForTesting
   ST buildSnapshotByAssetQueryTemplate(Map<String, Long> tableRowCounts, String toTableName) {
     Long toTableRowCount = tableRowCounts.get(toTableName);
-    boolean toTableAlreadyHasRows = toTableRowCount != null && toTableRowCount > Long.valueOf(0);
+    boolean toTableAlreadyHasRows = toTableRowCount != null && toTableRowCount > 0L;
 
     return new ST(
         toTableAlreadyHasRows
@@ -1052,7 +1048,7 @@ public class AzureSynapsePdao {
             table.getColumns().stream()
                 .filter(c -> columnsToInclude.contains(c.getName()))
                 .map(Column::toSynapseColumn)
-                .collect(Collectors.toList());
+                .toList();
         sqlCreateSnapshotTableTemplate = new ST(CREATE_SNAPSHOT_TABLE_BY_ROW_ID_TEMPLATE);
         query =
             generateSnapshotParquetCreateQuery(
@@ -1078,10 +1074,12 @@ public class AzureSynapsePdao {
         rows = synapseJdbcTemplate.update(query, params);
       } catch (DataAccessException ex) {
         logger.warn(
-            "No rows were added to the Snapshot for table "
-                + table.getName()
-                + ". This may be because the source dataset was empty or because the rows were filtered out by the query/asset specification defined in the snapshot create request. Exception: "
-                + ex.getMessage());
+            "No rows were added to the Snapshot for table {}. "
+                + "This may be because the source dataset was empty or because the rows were filtered "
+                + "out by the query/asset specification defined in the snapshot create request. "
+                + "Exception: {}",
+            table.getName(),
+            ex.getMessage());
       }
       tableRowCounts.put(table.getName(), (long) rows);
     }
@@ -1317,14 +1315,9 @@ public class AzureSynapsePdao {
       CollectionType collectionType) {
 
     // Ensure that the sort column is a valid column
-    if (!sort.equals(PDAO_ROW_ID_COLUMN)) {
-      table
-          .getColumnByName(sort)
-          .orElseThrow(
-              () ->
-                  new InvalidColumnException(
-                      "Column %s was not found in the snapshot table %s"
-                          .formatted(sort, tableName)));
+    if (!sort.equals(PDAO_ROW_ID_COLUMN) && table.getColumnByName(sort).isEmpty()) {
+      throw new InvalidColumnException(
+          "Column %s was not found in the snapshot table %s".formatted(sort, tableName));
     }
 
     List<SynapseColumn> columns =
@@ -1333,7 +1326,7 @@ public class AzureSynapsePdao {
                 Column.toSynapseColumn(
                     new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING))),
             table.getSynapseColumns());
-    boolean includeTotalRowCount = collectionType.equals(CollectionType.DATASET);
+    boolean includeTotalRowCount = collectionType == CollectionType.DATASET;
     final String sql =
         new ST(QUERY_FROM_DATASOURCE_TEMPLATE)
             .add("columns", columns)
@@ -1431,17 +1424,15 @@ public class AzureSynapsePdao {
   }
 
   private void cleanup(List<String> resourceNames, String sql) {
-    resourceNames.stream()
-        .forEach(
-            resource -> {
-              try {
-                ST sqlTemplate = new ST(sql);
-                sqlTemplate.add("resourceName", resource);
-                executeSynapseQuery(sqlTemplate.render());
-              } catch (Exception ex) {
-                logger.warn("Unable to clean up synapse resource {}.", resource, ex);
-              }
-            });
+    for (String resource : resourceNames) {
+      try {
+        ST sqlTemplate = new ST(sql);
+        sqlTemplate.add("resourceName", resource);
+        executeSynapseQuery(sqlTemplate.render());
+      } catch (Exception ex) {
+        logger.warn("Unable to clean up synapse resource {}.", resource, ex);
+      }
+    }
   }
 
   public static String getCredentialName(UUID collectionId, String email) {
@@ -1464,11 +1455,10 @@ public class AzureSynapsePdao {
           case BYTES -> resultSet.getBytes(column.getName());
           case DIRREF, FILEREF, STRING, TEXT, DATE, DATETIME, TIMESTAMP -> resultSet.getString(
               column.getName());
-          case FLOAT -> resultSet.getFloat(column.getName());
+          case FLOAT, NUMERIC -> resultSet.getFloat(column.getName());
           case FLOAT64 -> resultSet.getDouble(column.getName());
           case INTEGER -> resultSet.getInt(column.getName());
           case INT64 -> resultSet.getLong(column.getName());
-          case NUMERIC -> resultSet.getFloat(column.getName());
           case TIME -> resultSet.getTime(column.getName());
           default -> throw new IllegalArgumentException(
               "Unknown datatype '" + column.getType() + "'");
@@ -1477,7 +1467,7 @@ public class AzureSynapsePdao {
         throw new PdaoException("Error reading data", e);
       }
     } else {
-      String rawValue = null;
+      String rawValue;
       try {
         rawValue = resultSet.getString(column.getName());
       } catch (SQLException e) {

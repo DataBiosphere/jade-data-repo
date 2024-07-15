@@ -15,7 +15,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -54,7 +53,7 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
               snapshotReq.isGlobalFileIds(),
               snapshotReq.getCompactIdPrefix());
       workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
-    } catch (SQLException | PdaoException ex) {
+    } catch (PdaoException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
     return StepResult.getStepResultSuccess();

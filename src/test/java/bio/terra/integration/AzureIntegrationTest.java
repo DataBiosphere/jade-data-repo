@@ -380,7 +380,7 @@ public class AzureIntegrationTest extends UsersBase {
 
   static final List<IngestSource> TABLES =
       List.of(
-          new IngestSource("concept", "omop/concept-table-data.jsonl", 7),
+          new IngestSource("concept", "omop/concept-table-data.jsonl", 8),
           new IngestSource("person", "omop/person-table-data.jsonl", 23),
           new IngestSource("relationship", "omop/relationship.jsonl", 2),
           new IngestSource("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10),

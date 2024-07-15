@@ -3,5 +3,6 @@
 {"concept_id": 3, "domain_id": "Condition",  "concept_name": "concept3", "concept_code": 13, "standard_concept": "S"}
 {"concept_id": 4, "domain_id": "Condition",  "concept_name": "concept4", "concept_code": 14, "standard_concept": "S"}
 {"concept_id": 5, "domain_id": "Condition",  "concept_name": "concept5", "concept_code": 15}
+{"concept_id": 100, "domain_id": "Domain",  "concept_name": "concept type", "concept_code": 100}
 {"concept_id": 44818723, "domain_id": "Metadata", "concept_name": "Subsumes"}
 {"concept_id": 44818821, "domain_id": "Metadata", "concept_name": "Is a"}

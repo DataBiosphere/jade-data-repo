@@ -33,6 +33,7 @@ public class SnapshotAuthzFileAclStep implements Step {
   private final GcsPdao gcsPdao;
   private final DatasetService datasetService;
   private final ConfigurationService configService;
+  private final UUID snapshotId;
   private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzFileAclStep.class);
 
   public SnapshotAuthzFileAclStep(
@@ -40,18 +41,19 @@ public class SnapshotAuthzFileAclStep implements Step {
       SnapshotService snapshotService,
       GcsPdao gcsPdao,
       DatasetService datasetService,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      UUID snapshotId) {
     this.fireStoreDao = fireStoreDao;
     this.snapshotService = snapshotService;
     this.gcsPdao = gcsPdao;
     this.datasetService = datasetService;
     this.configService = configService;
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     Map<IamRole, String> policies =
@@ -110,7 +112,6 @@ public class SnapshotAuthzFileAclStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     Map<IamRole, String> policies =

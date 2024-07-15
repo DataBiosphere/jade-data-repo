@@ -6,9 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import bio.terra.common.category.Unit;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
 @Tag(Unit.TAG)
 class DRSPassportRequestModelTest {
 

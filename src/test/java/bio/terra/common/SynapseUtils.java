@@ -3,7 +3,7 @@ package bio.terra.common;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.configuration.TestConfiguration;
@@ -550,7 +550,7 @@ public class SynapseUtils {
             SqlSortDirection.ASC,
             "",
             collectionType);
-    assertNotNull("collection type should be defined as a snapshot or dataset.", collectionType);
+    assertNotNull(collectionType, "collection type should be defined as a snapshot or dataset.");
     switch (collectionType) {
       case DATASET:
         assertThat(

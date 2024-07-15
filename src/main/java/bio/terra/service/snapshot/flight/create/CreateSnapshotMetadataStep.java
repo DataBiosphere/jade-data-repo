@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -26,27 +27,34 @@ public class CreateSnapshotMetadataStep implements Step {
   private final SnapshotDao snapshotDao;
   private final SnapshotService snapshotService;
   private final SnapshotRequestModel snapshotReq;
+  private final UUID snapshotId;
+  private final Dataset sourceDataset;
 
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
   public CreateSnapshotMetadataStep(
-      SnapshotDao snapshotDao, SnapshotService snapshotService, SnapshotRequestModel snapshotReq) {
+      SnapshotDao snapshotDao,
+      SnapshotService snapshotService,
+      SnapshotRequestModel snapshotReq,
+      UUID snapshotId,
+      Dataset sourceDataset) {
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
+    this.snapshotId = snapshotId;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
   public StepResult doStep(FlightContext context) {
     try {
       FlightMap workingMap = context.getWorkingMap();
-      // fill in the ideas that we made in previous steps
+      // fill in the ids that we made in previous steps
       UUID projectResourceId =
           workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
-      UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
       Snapshot snapshot =
           snapshotService
-              .makeSnapshotFromSnapshotRequest(snapshotReq)
+              .makeSnapshotFromSnapshotRequest(snapshotReq, sourceDataset)
               .id(snapshotId)
               .projectResourceId(projectResourceId);
       if (snapshotReq.getDuosId() != null) {
@@ -72,8 +80,6 @@ public class CreateSnapshotMetadataStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     logger.debug("Snapshot creation failed. Deleting metadata.");
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     snapshotDao.delete(snapshotId);
     return StepResult.getStepResultSuccess();
   }

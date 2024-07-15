@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.category.Unit;
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.stairway.Step;
 import java.util.List;
@@ -15,7 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 class AzureStorageMonitoringStepProviderTest {
 
   private static final List<Class<? extends Step>> EXPECTED_STANDARD_STEPS =

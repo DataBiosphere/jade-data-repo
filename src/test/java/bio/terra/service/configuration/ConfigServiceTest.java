@@ -10,10 +10,13 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.category.Unit;
@@ -24,30 +27,35 @@ import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import java.util.List;
 import org.apache.commons.codec.binary.StringUtils;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class ConfigServiceTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class ConfigServiceTest {
 
-  @Autowired private ConfigurationService configService;
+  private SamConfiguration samConfiguration;
 
-  @Autowired private SamConfiguration samConfiguration;
+  private ConfigurationService configService;
+
+  @BeforeEach
+  void beforeEach() {
+    samConfiguration = new SamConfiguration("", "", 5, 10, 15);
+    configService =
+        new ConfigurationService(
+            samConfiguration,
+            mock(GoogleResourceConfiguration.class),
+            mock(ApplicationConfiguration.class));
+  }
 
   @Test
-  public void configBasicTest() throws Exception {
+  void configBasicTest() {
     // Order of tests can cause config state to change, so ensure config is reset otherwise tests
     // may fail
     configService.reset();
@@ -87,13 +95,13 @@ public class ConfigServiceTest {
     configService.setConfig(groupModel);
 
     // Retrieve specific config
-    Integer expectedValue = retryInitialWaitSeconds + delta;
+    int expectedValue = retryInitialWaitSeconds + delta;
     ConfigModel configModel = configService.getConfig(SAM_RETRY_INITIAL_WAIT_SECONDS.name());
     assertThat(configModel.getConfigType(), equalTo(ConfigModel.ConfigTypeEnum.PARAMETER));
     assertThat(
         "Int param matches",
         configModel.getParameter().getValue(),
-        equalTo(expectedValue.toString()));
+        equalTo(String.valueOf(expectedValue)));
 
     // Reset config and check result
     configService.reset();
@@ -107,18 +115,20 @@ public class ConfigServiceTest {
         configModelList, SAM_OPERATION_TIMEOUT_SECONDS.name(), operationTimeoutSeconds);
   }
 
-  @Test(expected = DuplicateConfigNameException.class)
-  public void testDuplicateConfigException() throws Exception {
-    configService.addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, 42);
+  @Test
+  void testDuplicateConfigException() {
+    assertThrows(
+        DuplicateConfigNameException.class,
+        () -> configService.addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, 42));
   }
 
-  @Test(expected = ConfigNotFoundException.class)
-  public void testConfigNotFoundLookup() throws Exception {
-    configService.getConfig("xyzzy");
+  @Test
+  void testConfigNotFoundLookup() {
+    assertThrows(ConfigNotFoundException.class, () -> configService.getConfig("xyzzy"));
   }
 
-  @Test(expected = ConfigNotFoundException.class)
-  public void testConfigNotFoundSet() throws Exception {
+  @Test
+  void testConfigNotFoundSet() {
     ConfigGroupModel groupModel =
         new ConfigGroupModel()
             .label("configNotFoundSetTest")
@@ -127,18 +137,18 @@ public class ConfigServiceTest {
                     .name("xyzzy")
                     .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                     .parameter(new ConfigParameterModel().value(String.valueOf(22))));
-    configService.setConfig(groupModel);
+    assertThrows(ConfigNotFoundException.class, () -> configService.setConfig(groupModel));
   }
 
   private void checkIntParamValue(
-      List<ConfigModel> configModelList, String name, Integer expectedValue) {
+      List<ConfigModel> configModelList, String name, int expectedValue) {
     for (ConfigModel configModel : configModelList) {
       if (StringUtils.equals(configModel.getName(), name)) {
         assertThat(configModel.getConfigType(), equalTo(ConfigModel.ConfigTypeEnum.PARAMETER));
         assertThat(
             "Int param matches",
             configModel.getParameter().getValue(),
-            equalTo(expectedValue.toString()));
+            equalTo(String.valueOf(expectedValue)));
         return;
       }
     }
@@ -146,19 +156,19 @@ public class ConfigServiceTest {
   }
 
   @Test
-  public void testFaultSimple() throws Exception {
+  void testFaultSimple() {
     configService.addFaultSimple(UNIT_TEST_SIMPLE_FAULT);
 
     boolean simpleTest = configService.testInsertFault(UNIT_TEST_SIMPLE_FAULT);
-    assertFalse("Simple fault is disabled", simpleTest);
+    assertFalse(simpleTest, "Simple fault is disabled");
 
     configService.setFault(UNIT_TEST_SIMPLE_FAULT.name(), true);
     simpleTest = configService.testInsertFault(UNIT_TEST_SIMPLE_FAULT);
-    assertTrue("Simple fault is enabled", simpleTest);
+    assertTrue(simpleTest, "Simple fault is enabled");
   }
 
   @Test
-  public void testCountedFixed() throws Exception {
+  void testCountedFixed() {
     setFaultCounted(5, 3, 20, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     configService.setFault(UNIT_TEST_COUNTED_FAULT.name(), true);
 
@@ -197,7 +207,7 @@ public class ConfigServiceTest {
   }
 
   @Test
-  public void testCountedRandom() throws Exception {
+  void testCountedRandom() {
     setFaultCounted(0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
     configService.setFault(UNIT_TEST_COUNTED_FAULT.name(), true);
 
@@ -213,16 +223,19 @@ public class ConfigServiceTest {
     assertThat(inserted, allOf(greaterThan(900), lessThan(1100)));
   }
 
-  @Test(expected = DuplicateConfigNameException.class)
-  public void testDuplicateFaultConfigException() throws Exception {
+  @Test
+  void testDuplicateFaultConfigException() {
     configService.addFaultCounted(
         UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
-    configService.addFaultCounted(
-        UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+    assertThrows(
+        DuplicateConfigNameException.class,
+        () ->
+            configService.addFaultCounted(
+                UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM));
   }
 
-  @Test(expected = ValidationException.class)
-  public void testMismatchedFaultTypeSet() throws Exception {
+  @Test
+  void testMismatchedFaultTypeSet() {
     setFaultCounted(0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
     ConfigFaultModel faultModel =
         new ConfigFaultModel()
@@ -237,11 +250,11 @@ public class ConfigServiceTest {
                     .name(UNIT_TEST_COUNTED_FAULT.name())
                     .configType(ConfigModel.ConfigTypeEnum.FAULT)
                     .fault(faultModel));
-    configService.setConfig(groupModel);
+    assertThrows(ValidationException.class, () -> configService.setConfig(groupModel));
   }
 
-  @Test(expected = ValidationException.class)
-  public void testMissingCountedModelSet() throws Exception {
+  @Test
+  void testMissingCountedModelSet() {
     setFaultCounted(0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
     ConfigFaultModel faultModel =
         new ConfigFaultModel()
@@ -256,7 +269,7 @@ public class ConfigServiceTest {
                     .name(UNIT_TEST_COUNTED_FAULT.name())
                     .configType(ConfigModel.ConfigTypeEnum.FAULT)
                     .fault(faultModel));
-    configService.setConfig(groupModel);
+    assertThrows(ValidationException.class, () -> configService.setConfig(groupModel));
   }
 
   private void tryCountedN(int iterations, boolean expected) {

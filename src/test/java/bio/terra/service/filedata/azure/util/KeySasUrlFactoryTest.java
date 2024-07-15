@@ -16,21 +16,19 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class KeySasUrlFactoryTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class KeySasUrlFactoryTest {
   private static final String SAS_TOKEN = "sig=123&sv=2020-06-10&sp=crwl";
   private static final String CONTENT_DISPOSITION = "myuser@xyz.org";
   private BlobSasTokenOptions sasTokenOptions;
@@ -44,8 +42,8 @@ public class KeySasUrlFactoryTest {
 
   @Captor ArgumentCaptor<BlobServiceSasSignatureValues> signatureValuesArgumentCaptor;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     when(blobContainerClient.getBlobClient(any())).thenReturn(blobClient);
 
     keySasUrlFactory =
@@ -63,7 +61,7 @@ public class KeySasUrlFactoryTest {
   }
 
   @Test
-  public void testContentDispositionWhenSetInOptions() {
+  void testContentDispositionWhenSetInOptions() {
     keySasUrlFactory.createSasUrlForBlob("myblob", sasTokenOptions);
 
     assertThat(
@@ -72,7 +70,7 @@ public class KeySasUrlFactoryTest {
   }
 
   @Test
-  public void testPermissionsWhenSetInOptions() {
+  void testPermissionsWhenSetInOptions() {
     keySasUrlFactory.createSasUrlForBlob("myblob", sasTokenOptions);
 
     assertThat(
@@ -80,7 +78,7 @@ public class KeySasUrlFactoryTest {
   }
 
   @Test
-  public void testExpirationWhenSetInOptions() {
+  void testExpirationWhenSetInOptions() {
     keySasUrlFactory.createSasUrlForBlob("myblob", sasTokenOptions);
 
     assertThat(

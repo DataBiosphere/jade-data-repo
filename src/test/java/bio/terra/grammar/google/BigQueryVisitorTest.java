@@ -4,7 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
-import bio.terra.model.DatasetModel;
+import bio.terra.model.SnapshotModel;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
@@ -15,10 +15,10 @@ class BigQueryVisitorTest {
 
   @Test
   void bqTableName() {
-    DatasetModel dataset = new DatasetModel().name("name").dataProject("project");
+    var snapshot = new SnapshotModel().name("name").dataProject("project");
     String tableName = "table";
-    String fullTableName = BigQueryVisitor.bqTableName(dataset).generate(tableName);
-    String expected = "`project.datarepo_name.table`";
+    String fullTableName = BigQueryVisitor.bqSnapshotTableName(snapshot).generate(tableName);
+    String expected = "`project.name.table`";
     assertThat(
         "the expected table name has been generated.",
         fullTableName,
@@ -27,10 +27,10 @@ class BigQueryVisitorTest {
 
   @Test
   void bqTableNameNull() {
-    DatasetModel dataset = new DatasetModel();
+    var snapshot = new SnapshotModel();
     String tableName = null;
-    String fullTableName = BigQueryVisitor.bqTableName(dataset).generate(tableName);
-    String expected = "`null.datarepo_null.null`";
+    String fullTableName = BigQueryVisitor.bqSnapshotTableName(snapshot).generate(tableName);
+    String expected = "`null.null.null`";
     assertThat(
         "the expected table name has been generated.",
         fullTableName,
@@ -39,9 +39,7 @@ class BigQueryVisitorTest {
 
   @Test
   void bqTableNameNullModel() {
-    DatasetModel dataset = null;
-    String tableName = null;
-    TableNameGenerator generator = BigQueryVisitor.bqTableName(dataset);
-    assertThrows(NullPointerException.class, () -> generator.generate(tableName));
+    TableNameGenerator generator = BigQueryVisitor.bqSnapshotTableName(null);
+    assertThrows(NullPointerException.class, () -> generator.generate(null));
   }
 }

@@ -4,34 +4,31 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import bio.terra.common.category.Unit;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class TagUtilsTest {
+@Tag(Unit.TAG)
+class TagUtilsTest {
 
   @Test
-  public void testSanitizeTags() {
+  void testSanitizeTags() {
     assertThat("Null tag list is converted to empty list", TagUtils.sanitizeTags(null), empty());
 
     assertThat("Empty tag list is returned", TagUtils.sanitizeTags(List.of()), empty());
 
-    List<String> nullTagElements = new ArrayList<>(List.of("", "\t", "\n"));
-    nullTagElements.add(null);
     assertThat(
         "Null, empty, and whitespace tags are filtered out",
-        TagUtils.sanitizeTags(nullTagElements),
+        TagUtils.sanitizeTags(Arrays.asList("", "\t", "\n", null)),
         empty());
 
     String tag = "a tag";
@@ -53,7 +50,7 @@ public class TagUtilsTest {
   }
 
   @Test
-  public void testAddTagsClause() throws SQLException {
+  void testAddTagsClause() throws SQLException {
     Connection connection = mock(Connection.class);
     List<String> clauses = new ArrayList<>();
     MapSqlParameterSource params = new MapSqlParameterSource();

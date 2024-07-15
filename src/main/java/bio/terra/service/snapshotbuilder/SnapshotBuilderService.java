@@ -1,126 +1,186 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.EnumerateSnapshotAccessRequestItem;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
 import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
-import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.query.Query;
+import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
-import bio.terra.service.snapshotbuilder.utils.ConceptChildrenQueryBuilder;
-import bio.terra.service.snapshotbuilder.utils.CriteriaQueryBuilderFactory;
-import bio.terra.service.snapshotbuilder.utils.SearchConceptsQueryBuilder;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
-import com.google.cloud.bigquery.TableResult;
+import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import org.apache.commons.lang3.NotImplementedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotBuilderService {
 
-  public static final String CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE =
-      "Cloud platform not implemented";
+  private static final Logger logger = LoggerFactory.getLogger(SnapshotBuilderService.class);
+
   private final SnapshotRequestDao snapshotRequestDao;
   private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
   private final DatasetService datasetService;
-  private final BigQueryDatasetPdao bigQueryDatasetPdao;
+  private final IamService iamService;
+  private final SnapshotService snapshotService;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
 
   private final AzureSynapsePdao azureSynapsePdao;
-  private final CriteriaQueryBuilderFactory criteriaQueryBuilderFactory;
+  private final QueryBuilderFactory queryBuilderFactory;
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
       SnapshotBuilderSettingsDao snapshotBuilderSettingsDao,
       DatasetService datasetService,
-      BigQueryDatasetPdao bigQueryDatasetPdao,
+      IamService iamService,
+      SnapshotService snapshotService,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       AzureSynapsePdao azureSynapsePdao,
-      CriteriaQueryBuilderFactory criteriaQueryBuilderFactory) {
+      QueryBuilderFactory queryBuilderFactory) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
-    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
+    this.iamService = iamService;
+    this.snapshotService = snapshotService;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.azureSynapsePdao = azureSynapsePdao;
-    this.criteriaQueryBuilderFactory = criteriaQueryBuilderFactory;
+    this.queryBuilderFactory = queryBuilderFactory;
   }
 
-  public SnapshotAccessRequestResponse createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest, String email) {
-    return snapshotRequestDao.create(id, snapshotAccessRequest, email);
+  public SnapshotAccessRequestResponse createRequest(
+      AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
+    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+        snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
+    try {
+      iamService.createSnapshotBuilderRequestResource(
+          userRequest,
+          snapshotAccessRequest.getSourceSnapshotId(),
+          snapshotAccessRequestResponse.getId());
+    } catch (ApiException e) {
+      snapshotRequestDao.delete(snapshotAccessRequestResponse.getId());
+      throw e;
+    }
+    return snapshotAccessRequestResponse;
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
-      String cloudSpecificSql,
-      Dataset dataset,
-      Function<TableResult, List<T>> gcpFormatQueryFunction,
-      Function<ResultSet, T> synapseFormatQueryFunction) {
-    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    if (cloudPlatformWrapper.isGcp()) {
-      return bigQueryDatasetPdao.runQuery(cloudSpecificSql, dataset, gcpFormatQueryFunction);
-    } else if (cloudPlatformWrapper.isAzure()) {
-      return azureSynapsePdao.runQuery(cloudSpecificSql, synapseFormatQueryFunction);
-    } else {
-      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
-    }
+      Query query,
+      Snapshot snapshot,
+      AuthenticatedUserRequest userRequest,
+      BigQuerySnapshotPdao.Converter<T> bqConverter,
+      AzureSynapsePdao.Converter<T> synapseConverter) {
+    return runSnapshotBuilderQuery(
+        query, snapshot, userRequest, Map.of(), bqConverter, synapseConverter);
   }
 
-  public SnapshotBuilderGetConceptsResponse getConceptChildren(
-      UUID datasetId, Integer conceptId, AuthenticatedUserRequest userRequest) {
-    Dataset dataset = datasetService.retrieve(datasetId);
-    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
-    String cloudSpecificSql =
-        ConceptChildrenQueryBuilder.buildConceptChildrenQuery(
-            conceptId, tableNameGenerator, CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+  private <T> List<T> runSnapshotBuilderQuery(
+      Query query,
+      Snapshot snapshot,
+      AuthenticatedUserRequest userRequest,
+      Map<String, String> paramMap,
+      BigQuerySnapshotPdao.Converter<T> bqConverter,
+      AzureSynapsePdao.Converter<T> synapseConverter) {
+    String sql = query.renderSQL(createContext(snapshot, userRequest));
+    Instant start = Instant.now();
+    List<T> result =
+        CloudPlatformWrapper.of(snapshot.getCloudPlatform())
+            .choose(
+                () -> bigQuerySnapshotPdao.runQuery(sql, paramMap, snapshot, bqConverter),
+                () -> azureSynapsePdao.runQuery(sql, paramMap, synapseConverter));
+    logger.info(
+        "{} seconds to run query \"{}\"", Duration.between(start, Instant.now()).toSeconds(), sql);
+    return result;
+  }
+
+  public SnapshotBuilderConceptsResponse getConceptChildren(
+      UUID snapshotId, int conceptId, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
+
+    SnapshotBuilderDomainOption domainOption = getDomainOption(conceptId, snapshot, userRequest);
+
+    Query query =
+        queryBuilderFactory
+            .conceptChildrenQueryBuilder()
+            .buildConceptChildrenQuery(domainOption, conceptId);
+
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            cloudSpecificSql,
-            dataset,
-            AggregateBQQueryResultsUtils::aggregateConceptResults,
-            AggregateSynapseQueryResultsUtils::aggregateConceptResult);
-    return new SnapshotBuilderGetConceptsResponse().result(concepts);
+            query,
+            snapshot,
+            userRequest,
+            AggregateBQQueryResultsUtils::toConcept,
+            AggregateSynapseQueryResultsUtils::toConcept);
+    return new SnapshotBuilderConceptsResponse().result(concepts);
   }
 
-  TableNameGenerator getTableNameGenerator(Dataset dataset, AuthenticatedUserRequest userRequest) {
+  @VisibleForTesting
+  SqlRenderContext createContext(Snapshot snapshot, AuthenticatedUserRequest userRequest) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
+    TableNameGenerator tableNameGenerator =
+        CloudPlatformWrapper.of(snapshot.getCloudPlatform())
+            .choose(
+                () ->
+                    BigQueryVisitor.bqSnapshotTableName(
+                        snapshotService.retrieveSnapshotModel(snapshot.getId(), userRequest)),
+                () ->
+                    SynapseVisitor.azureTableName(
+                        snapshotService.getOrCreateExternalAzureDataSource(snapshot, userRequest)));
+    return new SqlRenderContext(tableNameGenerator, platform);
+  }
+
+  @VisibleForTesting
+  SqlRenderContext createContext(Dataset dataset, AuthenticatedUserRequest userRequest) {
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    if (platform.isGcp()) {
-      return BigQueryVisitor.bqTableName(datasetService.retrieveModel(dataset, userRequest));
-    } else if (platform.isAzure()) {
-      return SynapseVisitor.azureTableName(
-          datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest));
-    } else {
-      throw new NotImplementedException(CLOUD_PLATFORM_NOT_IMPLEMENTED_MESSAGE);
-    }
+    TableNameGenerator tableNameGenerator =
+        platform.choose(
+            () ->
+                BigQueryVisitor.bqDatasetTableName(
+                    datasetService.retrieveModel(dataset, userRequest)),
+            () ->
+                SynapseVisitor.azureTableName(
+                    datasetService.getOrCreateExternalAzureDataSource(dataset, userRequest)));
+    return new SqlRenderContext(tableNameGenerator, platform);
   }
 
   public SnapshotBuilderCountResponse getCountResponse(
       UUID id, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
-    int rollupCount =
-        getRollupCountForCriteriaGroups(
-            id,
-            cohorts.stream().map(SnapshotBuilderCohort::getCriteriaGroups).toList(),
-            userRequest);
+    int rollupCount = getRollupCountForCohorts(id, cohorts, userRequest);
     return new SnapshotBuilderCountResponse()
         .result(new SnapshotBuilderCountResponseResult().total(fuzzyLowCount(rollupCount)));
   }
@@ -128,129 +188,191 @@ public class SnapshotBuilderService {
   // if the rollup count is 0 OR >=20, then we will return the actual value
   // if the rollup count is between 1 and 19, we will return 19 and in the UI we will display <20
   // This helps reduce the risk of re-identification
-  int fuzzyLowCount(int rollupCount) {
+  public static int fuzzyLowCount(int rollupCount) {
     return rollupCount == 0 ? rollupCount : Math.max(rollupCount, 19);
   }
 
-  public EnumerateSnapshotAccessRequest enumerateByDatasetId(UUID id) {
-    return convertToEnumerateModel(snapshotRequestDao.enumerateByDatasetId(id));
+  public EnumerateSnapshotAccessRequest enumerateRequests(Collection<UUID> authorizedResources) {
+    return new EnumerateSnapshotAccessRequest()
+        .items(snapshotRequestDao.enumerate(authorizedResources));
   }
 
-  public SnapshotBuilderGetConceptsResponse searchConcepts(
-      UUID datasetId, String domainId, String searchText, AuthenticatedUserRequest userRequest) {
-    Dataset dataset = datasetService.retrieve(datasetId);
-    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+  public SnapshotBuilderConceptsResponse enumerateConcepts(
+      UUID snapshotId, int domainId, String filterText, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
 
     SnapshotBuilderDomainOption snapshotBuilderDomainOption =
         snapshotBuilderSettings.getDomainOptions().stream()
-            .filter(domainOption -> domainOption.getName().equals(domainId))
+            .filter(domainOption -> domainOption.getId() == domainId)
             .findFirst()
             .orElseThrow(
                 () ->
                     new BadRequestException(
                         "Invalid domain category is given: %s".formatted(domainId)));
 
-    String cloudSpecificSql =
-        SearchConceptsQueryBuilder.buildSearchConceptsQuery(
-            snapshotBuilderDomainOption,
-            searchText,
-            tableNameGenerator,
-            CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+    Query query =
+        queryBuilderFactory
+            .enumerateConceptsQueryBuilder()
+            .buildEnumerateConceptsQuery(
+                snapshotBuilderDomainOption, filterText != null && !filterText.isEmpty());
+
     List<SnapshotBuilderConcept> concepts =
         runSnapshotBuilderQuery(
-            cloudSpecificSql,
-            dataset,
-            AggregateBQQueryResultsUtils::aggregateConceptResults,
-            AggregateSynapseQueryResultsUtils::aggregateConceptResult);
-    return new SnapshotBuilderGetConceptsResponse().result(concepts);
+            query,
+            snapshot,
+            userRequest,
+            Map.of(QueryBuilderFactory.FILTER_TEXT, filterText),
+            AggregateBQQueryResultsUtils::toConcept,
+            AggregateSynapseQueryResultsUtils::toConcept);
+    return new SnapshotBuilderConceptsResponse().result(concepts);
   }
 
-  public int getRollupCountForCriteriaGroups(
-      UUID datasetId,
-      List<List<SnapshotBuilderCriteriaGroup>> criteriaGroups,
-      AuthenticatedUserRequest userRequest) {
-    Dataset dataset = datasetService.retrieve(datasetId);
+  public int getRollupCountForCohorts(
+      UUID snapshotId, List<SnapshotBuilderCohort> cohorts, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
     SnapshotBuilderSettings snapshotBuilderSettings =
-        snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(datasetId);
-    TableNameGenerator tableNameGenerator = getTableNameGenerator(dataset, userRequest);
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
 
     Query query =
-        criteriaQueryBuilderFactory
-            .createCriteriaQueryBuilder("person", tableNameGenerator, snapshotBuilderSettings)
-            .generateRollupCountsQueryForCriteriaGroupsList(criteriaGroups);
-    String cloudSpecificSQL = query.renderSQL(CloudPlatformWrapper.of(dataset.getCloudPlatform()));
+        queryBuilderFactory
+            .criteriaQueryBuilder(snapshotBuilderSettings)
+            .generateRollupCountsQueryForCohorts(cohorts);
 
     return runSnapshotBuilderQuery(
-            cloudSpecificSQL,
-            dataset,
-            AggregateBQQueryResultsUtils::rollupCountsMapper,
-            AggregateSynapseQueryResultsUtils::rollupCountsMapper)
+            query,
+            snapshot,
+            userRequest,
+            AggregateBQQueryResultsUtils::toCount,
+            AggregateSynapseQueryResultsUtils::toCount)
         .get(0);
   }
 
-  private EnumerateSnapshotAccessRequest convertToEnumerateModel(
-      List<SnapshotAccessRequestResponse> responses) {
-    EnumerateSnapshotAccessRequest enumerateModel = new EnumerateSnapshotAccessRequest();
-    for (SnapshotAccessRequestResponse response : responses) {
-      enumerateModel.addItemsItem(
-          new EnumerateSnapshotAccessRequestItem()
-              .id(response.getId())
-              .status(response.getStatus())
-              .createdDate(response.getCreatedDate())
-              .name(response.getSnapshotName())
-              .researchPurpose(response.getSnapshotResearchPurpose())
-              .createdBy(response.getCreatedBy()));
+  private SnapshotBuilderDomainOption getDomainOptionFromSettingsByName(
+      String domainId, UUID snapshotId) {
+    SnapshotBuilderSettings snapshotBuilderSettings =
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotId);
+
+    return snapshotBuilderSettings.getDomainOptions().stream()
+        .filter(domainOption -> domainOption.getName().equals(domainId))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new BadRequestException(
+                    "Invalid domain category is given: %s".formatted(domainId)));
+  }
+
+  private String getDomainId(
+      int conceptId, Snapshot snapshot, AuthenticatedUserRequest userRequest) {
+    List<String> domainIdResult =
+        runSnapshotBuilderQuery(
+            queryBuilderFactory.conceptChildrenQueryBuilder().retrieveDomainId(conceptId),
+            snapshot,
+            userRequest,
+            AggregateBQQueryResultsUtils::toDomainId,
+            AggregateSynapseQueryResultsUtils::toDomainId);
+    if (domainIdResult.size() == 1) {
+      return domainIdResult.get(0);
+    } else if (domainIdResult.isEmpty()) {
+      throw new IllegalStateException("No domain Id found for concept: " + conceptId);
+    } else {
+      throw new IllegalStateException("Multiple domains found for concept: " + conceptId);
     }
-    return enumerateModel;
   }
 
-  // Hardcoded stubbed data, will remove once query is implemented.
-  private static SnapshotBuilderConcept createConcept(int id, String name, boolean hasChildren) {
-    return new SnapshotBuilderConcept().id(id).name(name).count(100).hasChildren(hasChildren);
+  // This method is used to generate the SQL query to get the rowIds for the snapshot creation
+  // process from a snapshot access request
+  public String generateRowIdQuery(
+      SnapshotAccessRequestResponse accessRequest,
+      Snapshot snapshot,
+      AuthenticatedUserRequest userReq) {
+
+    SnapshotBuilderSettings settings = snapshotBuilderSettingsDao.getBySnapshotId(snapshot.getId());
+    Dataset dataset = snapshot.getSourceDataset();
+
+    List<SnapshotBuilderCohort> cohorts = accessRequest.getSnapshotSpecification().getCohorts();
+
+    Query sqlQuery =
+        queryBuilderFactory.criteriaQueryBuilder(settings).generateRowIdQueryForCohorts(cohorts);
+    return sqlQuery.renderSQL(createContext(dataset, userReq));
   }
 
-  private static List<SnapshotBuilderConcept> loadConcepts() {
-    return List.of(
-        createConcept(100, "Condition", true),
-        createConcept(400, "Carcinoma of lung parenchyma", true),
-        createConcept(401, "Squamous cell carcinoma of lung", true),
-        createConcept(402, "Non-small cell lung cancer", true),
-        createConcept(403, "Epidermal growth factor receptor negative ...", false),
-        createConcept(404, "Non-small cell lung cancer with mutation in epidermal..", true),
-        createConcept(405, "Non-small cell cancer of lung biopsy..", false),
-        createConcept(406, "Non-small cell cancer of lung lymph node..", false),
-        createConcept(407, "Small cell lung cancer", true),
-        createConcept(408, "Lung Parenchcyma", false));
-  }
+  record ParentQueryResult(
+      int parentId, int childId, String childName, String code, int count, boolean hasChildren) {
+    ParentQueryResult(ResultSet rs) throws SQLException {
+      this(
+          rs.getInt(QueryBuilderFactory.PARENT_ID),
+          rs.getInt(Concept.CONCEPT_ID),
+          rs.getString(Concept.CONCEPT_NAME),
+          rs.getString(Concept.CONCEPT_CODE),
+          rs.getInt(QueryBuilderFactory.COUNT),
+          rs.getInt(QueryBuilderFactory.HAS_CHILDREN) > 0);
+    }
 
-  private static SnapshotBuilderConcept getConcept(List<SnapshotBuilderConcept> concepts, int id) {
-    return concepts.stream().filter(c -> c.getId().equals(id)).findFirst().orElseThrow();
-  }
+    ParentQueryResult(FieldValueList row) {
+      this(
+          (int) row.get(QueryBuilderFactory.PARENT_ID).getLongValue(),
+          (int) row.get(Concept.CONCEPT_ID).getLongValue(),
+          row.get(Concept.CONCEPT_NAME).getStringValue(),
+          row.get(Concept.CONCEPT_CODE).getStringValue(),
+          (int) row.get(QueryBuilderFactory.COUNT).getLongValue(),
+          row.get(QueryBuilderFactory.HAS_CHILDREN).getLongValue() > 0);
+    }
 
-  // Map of concept id to parent concept id.
-  private static final Map<Integer, Integer> HIERARCHY =
-      Map.of(406, 404, 405, 404, 404, 401, 403, 401, 407, 402, 401, 400, 400, 100, 408, 100);
+    SnapshotBuilderConcept toConcept() {
+      return new SnapshotBuilderConcept()
+          .id(childId)
+          .name(childName)
+          .hasChildren(hasChildren)
+          .code(code)
+          .count(SnapshotBuilderService.fuzzyLowCount(count));
+    }
+  }
 
   public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
-      UUID id, int conceptId, AuthenticatedUserRequest userRequest) {
-    var concepts = loadConcepts();
-    SnapshotBuilderConcept concept = getConcept(concepts, conceptId);
-    while (true) {
-      // For a child concept, generate its parent concept and siblings until we reach the root.
-      var parentId = HIERARCHY.get(concept.getId());
-      if (parentId == null) {
-        break;
-      }
-      var parent = getConcept(concepts, parentId);
-      concept =
-          parent.children(
-              HIERARCHY.entrySet().stream()
-                  .filter(e -> e.getValue().equals(parentId))
-                  .map(entry -> getConcept(concepts, entry.getKey()))
-                  .toList());
+      UUID snapshotId, int conceptId, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
+
+    var domainOption = getDomainOption(conceptId, snapshot, userRequest);
+    var query = queryBuilderFactory.hierarchyQueryBuilder().generateQuery(domainOption, conceptId);
+
+    Map<Integer, SnapshotBuilderParentConcept> parents = new HashMap<>();
+    runSnapshotBuilderQuery(
+            query, snapshot, userRequest, ParentQueryResult::new, ParentQueryResult::new)
+        .forEach(
+            row -> {
+              SnapshotBuilderParentConcept parent =
+                  parents.computeIfAbsent(
+                      row.parentId,
+                      k ->
+                          new SnapshotBuilderParentConcept()
+                              .parentId(k)
+                              .children(new ArrayList<>()));
+              parent.addChildrenItem(row.toConcept());
+            });
+    if (parents.isEmpty()) {
+      throw new BadRequestException("No parents found for concept %s".formatted(conceptId));
     }
-    return new SnapshotBuilderGetConceptHierarchyResponse().result(concept);
+
+    return new SnapshotBuilderGetConceptHierarchyResponse().result(List.copyOf(parents.values()));
+  }
+
+  public SnapshotAccessRequestResponse rejectRequest(UUID id) {
+    snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
+    return snapshotRequestDao.getById(id);
+  }
+
+  public SnapshotAccessRequestResponse approveRequest(UUID id) {
+    snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
+    return snapshotRequestDao.getById(id);
+  }
+
+  private SnapshotBuilderDomainOption getDomainOption(
+      int conceptId, Snapshot snapshot, AuthenticatedUserRequest userRequest) {
+    // domain is needed to join with the domain specific occurrence table
+    // this does not work for the metadata domain
+    String domainId = getDomainId(conceptId, snapshot, userRequest);
+    return getDomainOptionFromSettingsByName(domainId, snapshot.getId());
   }
 }

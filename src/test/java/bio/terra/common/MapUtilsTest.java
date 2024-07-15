@@ -3,16 +3,17 @@ package bio.terra.common;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(Unit.class)
-public class MapUtilsTest {
+@Tag(Unit.TAG)
+class MapUtilsTest {
 
   private static final Map<String, Integer> BASE_MAP =
       Map.of(
@@ -21,7 +22,7 @@ public class MapUtilsTest {
           "two", 2);
 
   @Test
-  public void testPartitionMap() {
+  void testPartitionMap() {
     List<Map<String, Integer>> partitionedMap = MapUtils.partitionMap(BASE_MAP, 2);
     assertThat("two chunks were created", partitionedMap, hasSize(2));
     Map<String, Integer> reconstitutedMap = new HashMap<>();
@@ -33,7 +34,7 @@ public class MapUtilsTest {
   }
 
   @Test
-  public void testPartitionMapBiggerChunkSize() {
+  void testPartitionMapBiggerChunkSize() {
     List<Map<String, Integer>> partitionedMap = MapUtils.partitionMap(BASE_MAP, 20);
     assertThat("one chunk was created", partitionedMap, hasSize(1));
     assertThat(
@@ -43,13 +44,13 @@ public class MapUtilsTest {
   }
 
   @Test
-  public void testPartitionMapEmptyMap() {
+  void testPartitionMapEmptyMap() {
     List<Map<String, Integer>> partitionedMap = MapUtils.partitionMap(Map.of(), 10);
     assertThat("no chunks were created", partitionedMap, hasSize(0));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testPartitionMapInvalidChunkSize() {
-    MapUtils.partitionMap(BASE_MAP, -1);
+  @Test
+  void testPartitionMapInvalidChunkSize() {
+    assertThrows(IllegalArgumentException.class, () -> MapUtils.partitionMap(BASE_MAP, -1));
   }
 }

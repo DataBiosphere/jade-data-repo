@@ -4,6 +4,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -60,22 +61,22 @@ public class SnapshotRequestValidator implements Validator {
             }
 
             switch (contents.getMode()) {
-              case BYASSET:
-                validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
-                break;
-              case BYFULLVIEW:
+              case BYASSET -> validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
+              case BYFULLVIEW -> {
                 // no additional validation necessary
-                break;
-              case BYQUERY:
-                validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
-                break;
-              case BYROWID:
-                validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
-                break;
-              default:
-                errors.rejectValue("contents", "SnapshotContentsModeInvalid");
+              }
+              case BYQUERY -> validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
+              case BYROWID -> validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
+              case BYREQUESTID -> validateSnapshotRequestIdSpec(
+                  contents.getRequestIdSpec(), errors);
             }
           });
+    }
+  }
+
+  private void validateSnapshotRequestIdSpec(SnapshotRequestIdModel requestIdSpec, Errors errors) {
+    if (requestIdSpec == null) {
+      errors.rejectValue("contents", "SnapshotRequestIdMissing");
     }
   }
 

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -130,6 +131,18 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
       throws InterruptedException;
 
+  /**
+   * Create a snapshot builder request IAM resource
+   *
+   * @param userReq authenticated user
+   * @param snapshotId id of the snapshot the request is based off of
+   * @param snapshotBuilderRequestId id of the snapshot builder request
+   * @return Map of policy group emails for the snapshot builder request policies
+   */
+  Map<IamRole, List<String>> createSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
+      throws InterruptedException;
+
   // -- billing profile resource support --
 
   /**
@@ -237,6 +250,29 @@ public interface IamProviderInterface {
   String createGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
+   * @param accessToken valid oauth token for the account retrieving the group
+   * @param groupName name of Firecloud managed group to retrieve
+   * @return the group's email address
+   */
+  String getGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * @param accessToken valid oauth token for the account modifying the group policy members
+   * @param userRequest information about the requesting user - we'll use this to pull the user's
+   *     email and add it to the group
+   * @param groupName name of Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses user emails which will overwrite group policy contents. This list will
+   *     also include the current authenticated user.
+   */
+  void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException;
+  /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group
    * @param policyName name of Firecloud managed group policy
@@ -266,5 +302,30 @@ public interface IamProviderInterface {
    */
   String signUrlForBlob(
       AuthenticatedUserRequest userReq, String project, String path, Duration duration)
+      throws InterruptedException;
+
+  /**
+   * Associate billing profile with an Azure managed resource group.
+   *
+   * @param userReq authenticated user
+   * @param billingProfileId billing profile id
+   * @param managedResourceGroupCoordinates details of the managed resource group
+   * @throws InterruptedException throws if sam retry fails due to interruption
+   */
+  void azureCreateManagedResourceGroup(
+      AuthenticatedUserRequest userReq,
+      String billingProfileId,
+      ManagedResourceGroupCoordinates managedResourceGroupCoordinates)
+      throws InterruptedException;
+
+  /**
+   * @param userReq The AuthenticatedUserRequest
+   * @param iamResourceType The IamResourceType
+   * @param action The IamAction
+   * @return boolean value if the user is authorized to perform the action on the resource type
+   * @throws InterruptedException throws if sam retry fails due to interruption
+   */
+  boolean getResourceTypeAdminPermission(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
       throws InterruptedException;
 }

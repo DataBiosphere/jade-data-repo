@@ -1,0 +1,10 @@
+{
+  "profileName": "test_azure_profile",
+  "biller": "direct",
+  "description": "Azure billing profile for test data",
+  "cloudPlatform": "azure",
+  "tenantId": "efc08443-0082-4d6c-8931-c5794c156abd",
+  "subscriptionId": "71d52ec1-5886-480a-9d6e-ed98cbf1f69f",
+  "resourceGroupName": "TDR",
+  "applicationDeploymentName": "PUT_IN_YOUR_OWN"
+}

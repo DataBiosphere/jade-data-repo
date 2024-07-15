@@ -5,28 +5,29 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.IamResourceTypeEnum;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.springframework.test.context.ActiveProfiles;
+import java.util.Objects;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class IamResourceTypeTest {
+@Tag(Unit.TAG)
+class IamResourceTypeTest {
+  @ParameterizedTest
+  @EnumSource(IamResourceType.class)
+  void testAllEnumValues(IamResourceType resource) {
+    assertThat(
+        "ENUM encodes and decodes",
+        IamResourceType.fromEnum(IamResourceType.toIamResourceTypeEnum(resource)),
+        equalTo(resource));
+  }
 
-  @Test
-  public void testAllEnumValues() {
-    for (IamResourceType resource : IamResourceType.values()) {
-      assertThat(
-          "ENUM encodes and decodes",
-          IamResourceType.fromEnum(IamResourceType.toIamResourceTypeEnum(resource)),
-          equalTo(resource));
-    }
-
-    for (IamResourceTypeEnum resource : IamResourceTypeEnum.values()) {
-      assertThat(
-          "ENUM encodes and decodes",
-          IamResourceType.toIamResourceTypeEnum(IamResourceType.fromEnum(resource)),
-          equalTo(resource));
-    }
+  @ParameterizedTest
+  @EnumSource(IamResourceTypeEnum.class)
+  void testAllEnumValues(IamResourceTypeEnum resource) {
+    assertThat(
+        "ENUM encodes and decodes",
+        IamResourceType.toIamResourceTypeEnum(
+            Objects.requireNonNull(IamResourceType.fromEnum(resource))),
+        equalTo(resource));
   }
 }

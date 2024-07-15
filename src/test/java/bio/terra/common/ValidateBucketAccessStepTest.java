@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -41,8 +42,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class ValidateBucketAccessStepTest {
+@Tag(Unit.TAG)
+class ValidateBucketAccessStepTest {
   @Mock private CloudFileReader cloudFileReader;
   @Mock private Dataset dataset;
   @Mock private FlightContext flightContext;

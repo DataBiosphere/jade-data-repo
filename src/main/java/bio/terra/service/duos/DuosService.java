@@ -26,7 +26,7 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -101,14 +101,14 @@ public class DuosService {
     logger.info("Creating Firecloud group for {} users", duosId);
 
     // First try with the more readable group name.
-    String groupName = constructFirecloudGroupName(duosId);
+    String groupName = IamService.constructSamGroupName(duosId);
     String groupEmail;
     try {
       groupEmail = iamService.createGroup(groupName);
     } catch (IamConflictException ex) {
       logger.warn(
           "Firecloud group {} already exists: trying creation with a unique name", groupName);
-      groupName = constructUniqueFirecloudGroupName(duosId);
+      groupName = IamService.constructUniqueSamGroupName(duosId);
       groupEmail = iamService.createGroup(groupName);
     }
     logger.info("Successfully created Firecloud group {} for {} users", groupName, duosId);
@@ -116,16 +116,6 @@ public class DuosService {
         .duosId(duosId)
         .firecloudGroupName(groupName)
         .firecloudGroupEmail(groupEmail);
-  }
-
-  @VisibleForTesting
-  String constructFirecloudGroupName(String duosId) {
-    return String.format("%s-users", duosId);
-  }
-
-  @VisibleForTesting
-  String constructUniqueFirecloudGroupName(String duosId) {
-    return String.format("%s-%s", constructFirecloudGroupName(duosId), UUID.randomUUID());
   }
 
   /**
@@ -155,7 +145,7 @@ public class DuosService {
     UUID id = firecloudGroup.getId();
     try {
       duosDao.updateFirecloudGroupLastSyncedDate(id, lastSyncedDate);
-    } catch (CannotSerializeTransactionException ex) {
+    } catch (PessimisticLockingFailureException ex) {
       String message =
           firecloudGroup.getFirecloudGroupEmail()
               + " members were updated, "

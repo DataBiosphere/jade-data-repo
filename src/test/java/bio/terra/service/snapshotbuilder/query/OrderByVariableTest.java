@@ -3,47 +3,40 @@ package bio.terra.service.snapshotbuilder.query;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
-import bio.terra.model.CloudPlatform;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 @Tag(Unit.TAG)
 class OrderByVariableTest {
 
   @NotNull
   private static FieldVariable createVariable() {
-    TablePointer table = QueryTestUtils.fromTableName("table");
-    TableVariable tableVariable = TableVariable.forPrimary(table);
-    var fieldVariable = new FieldVariable(new FieldPointer(table, "column"), tableVariable);
-    TableVariable.generateAliases(List.of(tableVariable));
-    return fieldVariable;
+    TablePointer table = TablePointer.fromTableName("table");
+    SourceVariable sourceVariable = SourceVariable.forPrimary(table);
+    return new FieldVariable(new FieldPointer(table, "column"), sourceVariable);
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLAsc(CloudPlatform platform) {
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQLAsc(SqlRenderContext context) {
     var orderByVariable = new OrderByVariable(createVariable());
-    assertThat(
-        orderByVariable.renderSQL(false, CloudPlatformWrapper.of(platform)), is("t.column ASC"));
+    assertThat(orderByVariable.renderSQL(false, context), is("t.column ASC"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLDesc(CloudPlatform platform) {
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQLDesc(SqlRenderContext context) {
     var orderByVariable = new OrderByVariable(createVariable(), OrderByDirection.DESCENDING);
-    assertThat(
-        orderByVariable.renderSQL(false, CloudPlatformWrapper.of(platform)), is("t.column DESC"));
+    assertThat(orderByVariable.renderSQL(false, context), is("t.column DESC"));
   }
 
   @ParameterizedTest
-  @EnumSource(CloudPlatform.class)
-  void renderSQLRandom(CloudPlatform platform) {
+  @ArgumentsSource(SqlRenderContextProvider.class)
+  void renderSQLRandom(SqlRenderContext context) {
     var orderByVariable = OrderByVariable.random();
-    assertThat(orderByVariable.renderSQL(true, CloudPlatformWrapper.of(platform)), is("RAND()"));
+    assertThat(orderByVariable.renderSQL(true, context), is("RAND()"));
   }
 }

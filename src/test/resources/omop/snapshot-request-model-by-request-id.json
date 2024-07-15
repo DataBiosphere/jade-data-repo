@@ -1,0 +1,14 @@
+{
+  "name": "test-by-requestId",
+  "description": "",
+  "policies": {},
+  "contents": [
+    {
+      "datasetName": "it_dataset_omop",
+      "mode": "byRequestId",
+      "requestIdSpec": {
+        "snapshotRequestId": "00000000-0000-0000-0000-000000000000"
+    }
+  }
+  ]
+}

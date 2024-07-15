@@ -4,20 +4,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import java.util.List;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class BlobContainerCopierBuilderTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class BlobContainerCopierBuilderTest {
 
   @Mock private BlobContainerClientFactory sourceFactory;
   @Mock private BlobContainerClientFactory destinationFactory;
@@ -26,7 +25,7 @@ public class BlobContainerCopierBuilderTest {
   private BlobContainerCopier copier;
 
   @Test
-  public void testBuildCopierUsingSourceAndDestinationFactories_CopierIsBuilt() {
+  void testBuildCopierUsingSourceAndDestinationFactories_CopierIsBuilt() {
 
     copier =
         new BlobContainerCopierBuilder()
@@ -42,7 +41,7 @@ public class BlobContainerCopierBuilderTest {
   }
 
   @Test
-  public void testBuildCopierUsingSourceAndDestinationFactoriesWithPairs_CopierIsBuilt() {
+  void testBuildCopierUsingSourceAndDestinationFactoriesWithPairs_CopierIsBuilt() {
 
     copier =
         new BlobContainerCopierBuilder()
@@ -60,7 +59,7 @@ public class BlobContainerCopierBuilderTest {
   }
 
   @Test
-  public void testBuildCopierUsingSourceBlobUrlAndDestinationFactories_CopierIsBuilt() {
+  void testBuildCopierUsingSourceBlobUrlAndDestinationFactories_CopierIsBuilt() {
 
     String sourceBlobUrl = "https://mytest.blob.core.windows.net/mytest/test?sp=rl";
     String destinationBlobName = "destBlobName";
@@ -81,7 +80,7 @@ public class BlobContainerCopierBuilderTest {
   }
 
   @Test
-  public void testBuildCopierUsingSourceGCSBlobUrlAndDestinationFactories_CopierIsBuilt() {
+  void testBuildCopierUsingSourceGCSBlobUrlAndDestinationFactories_CopierIsBuilt() {
 
     String sourceBlobUrl = "gs://mybucket/my.blob.txt";
     String destinationBlobName = "destBlobName";
@@ -101,8 +100,10 @@ public class BlobContainerCopierBuilderTest {
             hasProperty("destinationClientFactory", equalTo(destinationFactory))));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testSourceFactoryIsMissing_ThrowsIllegalArgumentException() {
-    copier = new BlobContainerCopierBuilder().destinationClientFactory(destinationFactory).build();
+  @Test
+  void testSourceFactoryIsMissing_ThrowsIllegalArgumentException() {
+    BlobContainerCopierBuilder blobContainerCopierBuilder =
+        new BlobContainerCopierBuilder().destinationClientFactory(destinationFactory);
+    assertThrows(IllegalArgumentException.class, blobContainerCopierBuilder::build);
   }
 }

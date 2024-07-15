@@ -17,18 +17,16 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class RemoveDuosFirecloudReaderStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class RemoveDuosFirecloudReaderStepTest {
 
   @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
@@ -41,15 +39,15 @@ public class RemoveDuosFirecloudReaderStepTest {
 
   private RemoveDuosFirecloudReaderStep step;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     step =
         new RemoveDuosFirecloudReaderStep(
             iamService, TEST_USER, SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV);
   }
 
   @Test
-  public void testDoAndUndoStep() throws InterruptedException {
+  void testDoAndUndoStep() throws InterruptedException {
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService)

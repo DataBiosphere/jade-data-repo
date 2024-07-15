@@ -478,7 +478,7 @@ public class SnapshotDao implements TaggableResourceDao {
         // Find the matching asset in the dataset
         Optional<AssetSpecification> assetSpecification =
             dataset.getAssetSpecificationById(raw.assetId);
-        snapshotSource.assetSpecification(
+        snapshotSource.setAssetSpecification(
             assetSpecification.orElseThrow(
                 () ->
                     new CorruptMetadataException(

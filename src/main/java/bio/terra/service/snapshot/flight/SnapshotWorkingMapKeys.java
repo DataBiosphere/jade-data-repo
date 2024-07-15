@@ -6,7 +6,6 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
 
   private SnapshotWorkingMapKeys() {}
 
-  public static final String SNAPSHOT_ID = "snapshotId";
   public static final String POLICY_MAP = "policyMap";
   public static final String PROJECT_RESOURCE_ID = "projectResourceId";
   public static final String PROFILE_ID = "profileId";
@@ -23,4 +22,6 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SNAPSHOT_EXPORT_PARQUET_PATHS = "snapshotExportParquetPaths";
   public static final String SNAPSHOT_EXPORT_MANIFEST_PATH = "snapshotExportManifestPath";
   public static final String SNAPSHOT_EXPORT_GSPATHS_FILENAME = "snapshotExportGspathsFileName";
+  public static final String SNAPSHOT_FIRECLOUD_GROUP_NAME = "snapshotFirecloudGroupName";
+  public static final String SNAPSHOT_FIRECLOUD_GROUP_EMAIL = "snapshotFirecloudGroupEmail";
 }

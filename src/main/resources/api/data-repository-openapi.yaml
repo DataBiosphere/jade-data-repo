@@ -30,10 +30,6 @@ info:
 servers:
   - url: /
 security:
-  - googleoauth:
-      - openid
-      - email
-      - profile
   - oidc:
       - openid
       - email
@@ -1161,13 +1157,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1214,13 +1204,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1354,16 +1338,7 @@ paths:
       operationId: addSnapshotPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - reader
-              - discoverer
+        - $ref: '#/components/parameters/SnapshotPolicyName'
       requestBody:
         description: Snapshot to change the policy of
         content:
@@ -1406,16 +1381,7 @@ paths:
       operationId: deleteSnapshotPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - reader
-              - discoverer
+        - $ref: '#/components/parameters/SnapshotPolicyName'
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -1744,22 +1710,22 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: >
-              Not found - TDR has no record of of a DUOS dataset with the specified ID.
+            Not found - TDR has no record of of a DUOS dataset with the specified ID.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         409:
           description: >
-              Conflict - Firecloud group contents may have been updated, but TDR encountered a
-              conflict when writing back to the database.
+            Conflict - Firecloud group contents may have been updated, but TDR encountered a
+            conflict when writing back to the database.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         500:
           description: >
-              An unexpected error occurred - Firecloud group contents may not have been updated.
+            An unexpected error occurred - Firecloud group contents may not have been updated.
           content:
             application/json:
               schema:
@@ -2399,16 +2365,7 @@ paths:
       operationId: addDatasetPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - custodian
-              - snapshot_creator
+        - $ref: '#/components/parameters/DatasetPolicyName'
       requestBody:
         description: Dataset to change the policy of
         content:
@@ -2451,16 +2408,7 @@ paths:
       operationId: deleteDatasetPolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: policyName
-          in: path
-          description: The relevant policy
-          required: true
-          schema:
-            type: string
-            enum:
-              - steward
-              - custodian
-              - snapshot_creator
+        - $ref: '#/components/parameters/DatasetPolicyName'
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -2760,13 +2708,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionModel'
         400:
-          description: Bad request - invalid query pameters
+          description: Bad request - invalid query parameters
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to read transaction from this datasset
+          description: No permission to read transaction from this dataset
           content:
             application/json:
               schema:
@@ -2817,13 +2765,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobModel'
         400:
-          description: Bad request - invalid transaction terminat request, badly formed or unrecognized state
+          description: Bad request - invalid transaction terminate request, badly formed or unrecognized state
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to terminate the transaction for this datasset
+          description: No permission to terminate the transaction for this dataset
           content:
             application/json:
               schema:
@@ -2839,7 +2787,7 @@ paths:
       tags:
         - datasets
         - repository
-      description: Add an asset definiion to a dataset
+      description: Add an asset definition to a dataset
       operationId: addDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2896,12 +2844,7 @@ paths:
       operationId: removeDatasetAssetSpecifications
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: assetid
-          in: path
-          description: An asset id
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/AssetId'
       responses:
         200:
           description: Redirect for ingest complete
@@ -3021,21 +2964,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotRequests:
+  /api/repository/v1/snapshotAccessRequests:
     get:
       tags:
-        - datasets
+        - SnapshotAccessRequest
       description: As an admin for this dataset, view all snapshot requests for this dataset.
-      operationId: enumerateSnapshotRequests
-      parameters:
-        - $ref: '#/components/parameters/Id'
+      operationId: enumerateSnapshotAccessRequests
       responses:
         200:
           description: The snapshot requests have been retrieved.
           content:
             application/json:
               schema:
-                  $ref: '#/components/schemas/EnumerateSnapshotAccessRequest'
+                $ref: '#/components/schemas/EnumerateSnapshotAccessRequest'
         400:
           description: Bad request - invalid id, or badly formed IamResourceType.
           content:
@@ -3068,12 +3009,10 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     post:
       tags:
-        - datasets
+        - SnapshotAccessRequest
       description: As a researcher, create a snapshot request for a dataset, given a set of criteria
         and required concept sets and values.
-      operationId: createSnapshotRequest
-      parameters:
-        - $ref: '#/components/parameters/Id'
+      operationId: createSnapshotAccessRequest
       requestBody:
         description: Description of the snapshot being requested.
         content:
@@ -3107,6 +3046,96 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: No dataset found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/reject:
+    put:
+      tags:
+        - SnapshotAccessRequest
+      description: As a custodian, reject a snapshot access request.
+      operationId: rejectSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request has been rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
+        400:
+          description: Bad request - invalid id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to reject snapshot request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No snapshot request found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/approve:
+    put:
+      tags:
+        - SnapshotAccessRequest
+      description: As a custodian, approve a snapshot access request.
+      operationId: approveSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request has been approved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
+        400:
+          description: Bad request - invalid id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to approve snapshot request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No snapshot request found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -3322,12 +3351,7 @@ paths:
       operationId: getLoadHistoryForLoadTag
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: loadTag
-          in: path
-          description: a load tag
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/LoadTag'
         - name: offset
           in: query
           description: The number of items to skip before starting to collect the result
@@ -3387,12 +3411,7 @@ paths:
       operationId: bulkFileResultsDelete
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: loadtag
-          in: path
-          description: a load tag
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/LoadTag'
         - name: jobId
           in: query
           description: The job id associated with the load
@@ -3513,13 +3532,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3624,13 +3637,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: depth
-          in: query
-          description: Enumeration depth; -1 means fully expand; 0 means no expansion;
-            1..N expands that many subdirectories
-          schema:
-            type: integer
-            default: 0
+        - $ref: '#/components/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -3991,9 +3998,9 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: upgrade
 
-##############################################################################
-## DRS STANDARD ENDPOINTS
-##############################################################################
+  ##############################################################################
+  ## DRS STANDARD ENDPOINTS
+  ##############################################################################
   /ga4gh/drs/v1/service-info:
     get:
       tags:
@@ -4379,9 +4386,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DRSError'
-#################################################################
-#####                  JOURNAL                              #####
-#################################################################
+  #################################################################
+  #####                  JOURNAL                              #####
+  #################################################################
   /api/repository/v1/journal/{resourceKey}:
     get:
       tags:
@@ -4460,24 +4467,52 @@ paths:
   ## SNAPSHOT BUILDER API ENDPOINTS
   ## ⚠️ NOTE: ALL SNAPSHOT APIS ARE SUBJECT TO CHANGE
   ##############################################################################
-  /api/repository/v1/datasets/{id}/snapshotBuilder/settings:
-    post:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/settings:
+    get:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
-        Updates the settings for using the dataset in the snapshot builder.
-      operationId: updateDatasetSnapshotBuilderSettings
+        Get the snapshot builder settings for a snapshot.
+      operationId: getSnapshotSnapshotBuilderSettings
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: The snapshot builder settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotBuilderSettings'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Updates the snapshot builder settings for a snapshot.
+      operationId: updateSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
             type: string
             format: uuid
       requestBody:
-        description: New settings for the dataset to use for snapshot building
+        description: New settings for the snapshot to use for snapshot building
         content:
           application/json:
             schema:
@@ -4485,59 +4520,59 @@ paths:
         required: true
       responses:
         200:
-          description: The updated Dataset
+          description: The updated settings
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DatasetModel'
-        400:
-          description: Bad request - invalid id, badly formed IamResourceType.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+                $ref: '#/components/schemas/SnapshotBuilderSettings'
+        default:
+          description: Unexpected error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: Unauthorized - missing permissions to update snapshot builder settings.
+    delete:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Removes the snapshot builder settings for a snapshot.
+      operationId: deleteSnapshotSnapshotBuilderSettings
+      parameters:
+        - in: path
+          description: The UUID of the snapshot.
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Settings were deleted
+        default:
+          description: Unexpected error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: No dataset found that meets the request parameters.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        500:
-          description: An unexpected error occurred.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{conceptId}:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts/{conceptId}/children:
     get:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
         Gets all concepts with the specified concept as their parent.
-      operationId: getConcepts
+      operationId: getConceptChildren
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
             type: string
             format: uuid
         - in: path
-          description: A dataset concept id.
+          description: A snapshot concept id.
           name: conceptId
           required: true
           schema:
@@ -4548,7 +4583,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderGetConceptsResponse'
+                $ref: '#/components/schemas/SnapshotBuilderConceptsResponse'
         400:
           description: Bad request - invalid id, badly formed IamResourceType.
           content:
@@ -4556,7 +4591,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+          description: Unauthorized - snapshot does not exist or missing permissions to view.
           content:
             application/json:
               schema:
@@ -4568,7 +4603,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset found that meets the request parameters.
+          description: No snapshot found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -4579,31 +4614,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/snapshotBuilder/concepts/{domainId}/search:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts:
     get:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
-        Searches concepts of the specified domain that match the given searchText.
-      operationId: searchConcepts
+        Retrieves concepts of the specified domain and enables filtering concepts given by the searchText.
+      operationId: enumerateConcepts
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
             type: string
             format: uuid
-        - in: path
-          description: A domain id.
+        - in: query
+          description: The concept ID of the domain
           name: domainId
           required: true
           schema:
-            type: string
+            type: integer
         - in: query
           description: User specified text to search concepts for.
-          name: searchText
+          name: filterText
           schema:
             type: string
       responses:
@@ -4612,7 +4647,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SnapshotBuilderGetConceptsResponse'
+                $ref: '#/components/schemas/SnapshotBuilderConceptsResponse'
         400:
           description: Bad request - invalid id, badly formed IamResourceType.
           content:
@@ -4620,7 +4655,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+          description: Unauthorized - snapshot does not exist or missing permissions to view.
           content:
             application/json:
               schema:
@@ -4632,7 +4667,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset or domain found that meets the request parameters.
+          description: No snapshot or domain found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -4644,25 +4679,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /api/repository/v1/datasets/{id}/snapshotBuilder/conceptHierarchy/{conceptId}:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/concepts/{conceptId}/hierarchy:
     get:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
-        Given a concept ID, return the root of the tree of concepts that contain this concept.
-        For each element in the path, all sibling concepts are returned.
+        Given a concept ID, return the tree of concepts that contain this concept. A tree
+        is represented as a list of parent IDs and their children, which are concepts.
       operationId: getConceptHierarchy
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
             type: string
             format: uuid
         - in: path
-          description: A dataset concept id.
+          description: A snapshot concept id.
           name: conceptId
           required: true
           schema:
@@ -4681,7 +4716,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         401:
-          description: Unauthorized - dataset does not exist or missing permissions to view.
+          description: Unauthorized - snapshot does not exist or missing permissions to view.
           content:
             application/json:
               schema:
@@ -4693,7 +4728,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset found that meets the request parameters.
+          description: No snapshot found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -4705,17 +4740,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /api/repository/v1/datasets/{id}/snapshotBuilder/count:
+  /api/repository/v1/snapshots/{id}/snapshotBuilder/count:
     post:
       tags:
-        - datasets
+        - snapshots
         - repository
       description: >
-        Given a list of snapshot builder cohorts, return the unique participant count for this dataset.
+        Given a list of snapshot builder cohorts, return the unique participant count for this snapshot.
       operationId: getSnapshotBuilderCount
       parameters:
         - in: path
-          description: The UUID of the dataset.
+          description: The UUID of the snapshot.
           name: id
           required: true
           schema:
@@ -4748,7 +4783,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: No dataset found that meets the request parameters.
+          description: No snapshot found that meets the request parameters.
           content:
             application/json:
               schema:
@@ -5170,7 +5205,7 @@ components:
           additionalProperties:
             type: array
             items:
-             type: string
+              type: string
       description: >
         The total number of datasets available that match the filter criteria and a page of summaries
     ColumnModel:
@@ -5488,13 +5523,13 @@ components:
             - merge
           description: >
             Approach for how to treat updates to the target table:
-             * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
-             * `replace` - If a primary key is present on the table, treat rows with matching primary keys
+             * `append` (GCP, Azure) - Default: only ever insert rows, regardless of whether or not the primary key value exists
+             * `replace` (GCP only) - If a primary key is present on the table, treat rows with matching primary keys
                          as updates. If duplicate IDs are found in your ingest, the ingest job
                          will fail. If your rows specify `datarepo_row_id`, it will be ignored and
                          TDR will generate new row IDs for your new records. Note: the full new
                          record must be specified.
-             * `merge` - If a primary key is present on the table, treat rows with matching primary keys
+             * `merge` (GCP only) - If a primary key is present on the table, treat rows with matching primary keys
                          as partial updates. Any fields specified will overwrite their current values
                          in the matching table row. If your rows specify `datarepo_row_id`, it will
                          be ignored and TDR will generate new row IDs for your new records. Each
@@ -5675,7 +5710,7 @@ components:
         filteredRowCount:
           type: integer
       description: >
-       Data from a dataset table
+        Data from a dataset table
     SnapshotPreviewModel:
       type: object
       properties:
@@ -6052,6 +6087,15 @@ components:
           $ref: '#/components/schemas/ConsentCode'
         duosId:
           $ref: '#/components/schemas/DuosId'
+        dataAccessControlGroups:
+          type: array
+          items:
+            type: string
+          description: >
+            Add data access control groups to the snapshot. The provided user groups will be registered as a group constraint policy in Terra Policy Service, and as an auth domain in Sam.
+            *** WARNING - Once this is set it cannot be modified ***
+            If a snapshot has data access controls, a user must have access to the resource directly (via a policy) and belong to all of its data access control groups in order to view and export the data.
+            For example, if a user is a steward of a snapshot but is not a member of its data access control groups, Sam will prevent that user from accessing the resource.
         contents:
           type: array
           items:
@@ -6082,6 +6126,10 @@ components:
               items:
                 type: string
             discoverers:
+              type: array
+              items:
+                type: string
+            aggregateDataReaders:
               type: array
               items:
                 type: string
@@ -6119,12 +6167,15 @@ components:
             - byFullView
             - byQuery
             - byRowId
+            - byRequestId
         assetSpec:
           $ref: '#/components/schemas/SnapshotRequestAssetModel'
         querySpec:
           $ref: '#/components/schemas/SnapshotRequestQueryModel'
         rowIdSpec:
           $ref: '#/components/schemas/SnapshotRequestRowIdModel'
+        requestIdSpec:
+          $ref: '#/components/schemas/SnapshotRequestIdModel'
       description: >
         The contents specifies the source of the data (dataset and asset)
         and the rows to include (field and rootValues).
@@ -6185,6 +6236,15 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotRequestIdModel:
+      required:
+        - snapshotRequestId
+      type: object
+      properties:
+        snapshotRequestId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+      description: >
+        A reference to a SnapshotAccessRequest which contains a snapshot specification.
     SnapshotPatchRequestModel:
       type: object
       properties:
@@ -7146,6 +7206,7 @@ components:
         - domainOptions
         - programDataOptions
         - featureValueGroups
+        - datasetConceptSets
       properties:
         domainOptions:
           type: array
@@ -7253,6 +7314,8 @@ components:
           type: string
         featureValueGroupName:
           type: string
+        concept:
+          $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderDomainOption:
       allOf:
@@ -7260,6 +7323,8 @@ components:
         - type: object
           required:
             - root
+            - conceptCount
+            - participantCount
           properties:
             root:
               $ref: '#/components/schemas/SnapshotBuilderConcept'
@@ -7270,7 +7335,7 @@ components:
       description: >
         ⚠️ An object describing high level information about a domain for use in the snapshot builder
 
-    SnapshotBuilderGetConceptsResponse:
+    SnapshotBuilderConceptsResponse:
       type: object
       description: >
         ⚠️ The response object for the getConcepts endpoint
@@ -7284,6 +7349,18 @@ components:
         sql:
           type: string
 
+    SnapshotBuilderParentConcept:
+      type: object
+      description: >
+        ⚠️ An object describing a parent concept in the Snapshot Builder
+      properties:
+        parentId:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderConcept'
+
     SnapshotBuilderConcept:
       type: object
       description: >
@@ -7295,16 +7372,14 @@ components:
       properties:
         id:
           type: integer
+        code:
+          type: string
         name:
           type: string
         count:
           type: integer
         hasChildren:
           type: boolean
-        children:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderConcept'
 
     SnapshotBuilderGetConceptHierarchyResponse:
       type: object
@@ -7312,7 +7387,9 @@ components:
         ⚠️ The response object for the getConceptHierarchy endpoint
       properties:
         result:
-          $ref: '#/components/schemas/SnapshotBuilderConcept'
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
     SnapshotBuilderFeatureValueGroup:
       type: object
@@ -7329,6 +7406,27 @@ components:
           items:
             type: string
 
+    SnapshotBuilderTable:
+      type: object
+      description: >
+        ⚠️ Describes the underlying table for a concept/value set
+      required:
+        - datasetTableName
+        - columns
+      properties:
+        datasetTableName:
+          type: string
+        columns:
+          type: array
+          items:
+            type: string
+        primaryTableRelationship:
+          type: string
+        secondaryTableRelationships:
+          type: array
+          items:
+            type: string
+
     EnumerateSnapshotAccessRequest:
       type: object
       description: The model for enumerated SnapshotAccessRequests.
@@ -7336,48 +7434,17 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/EnumerateSnapshotAccessRequestItem'
-
-    EnumerateSnapshotAccessRequestItem:
-      type: object
-      description: The model for SnapshotAccessRequests when enumerated in a response.
-      required:
-        - id
-        - status
-        - createdDate
-        - name
-        - researchPurpose
-        - createdBy
-      properties:
-        id:
-          $ref: '#/components/schemas/UniqueIdProperty'
-        status:
-          $ref: '#/components/schemas/SnapshotAccessRequestStatus'
-        createdDate:
-          type: string
-        name:
-          type: string
-        researchPurpose:
-          type: string
-        createdBy:
-          type: string
+            $ref: '#/components/schemas/SnapshotAccessRequestResponse'
 
     SnapshotAccessRequestResponse:
       type: object
       description: The response object for a submitted SnapshotAccessRequest.
-      required:
-        - id
-        - datasetId
-        - snapshotName
-        - snapshotResearchPurpose
-        - snapshotSpecification
-        - createdBy
-        - createdDate
-        - status
       properties:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        sourceSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
         snapshotName:
           type: string
@@ -7391,8 +7458,13 @@ components:
           $ref: '#/components/schemas/SnapshotAccessRequestStatus'
         createdDate:
           type: string
-        updatedDate:
+        statusUpdatedDate:
           type: string
+        flightid:
+          $ref: '#/components/schemas/ShortIdProperty'
+        createdSnapshotId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+
 
     SnapshotAccessRequestStatus:
       type: string
@@ -7420,11 +7492,14 @@ components:
     SnapshotAccessRequest:
       type: object
       properties:
+        sourceSnapshotId:
+          type: string
+          format: uuid
         name:
           type: string
         researchPurposeStatement:
           type: string
-        datasetRequest:
+        snapshotBuilderRequest:
           $ref: '#/components/schemas/SnapshotBuilderRequest'
       description: Request for access to a snapshot.
 
@@ -7447,6 +7522,7 @@ components:
 
     SnapshotBuilderCohort:
       type: object
+      required: [ criteriaGroups ]
       properties:
         name:
           type: string
@@ -7458,6 +7534,7 @@ components:
 
     SnapshotBuilderCriteriaGroup:
       type: object
+      required: [ criteria, mustMeet, meetAll ]
       properties:
         name:
           type: string
@@ -7469,8 +7546,6 @@ components:
           type: boolean
         meetAll:
           type: boolean
-        count:
-          type: number
       description: Criteria Group specifying a Cohort.
 
     SnapshotBuilderCriteria:
@@ -7482,8 +7557,6 @@ components:
         kind:
           type: string
           enum: [ list, range, domain ]
-        name:
-          type: string
         id:
           description: the ID of either the domain or program data entry
           type: integer
@@ -7498,6 +7571,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - values
           properties:
             values:
               type: array
@@ -7509,6 +7584,9 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - low
+            - high
           properties:
             low:
               type: integer
@@ -7520,6 +7598,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/SnapshotBuilderCriteria'
         - type: object
+          required:
+            - conceptId
           properties:
             conceptId:
               type: integer
@@ -7824,7 +7904,7 @@ components:
             included in the result.
 
             If true and the object_id refers to a bundle, then the entire set of objects
-            in the bundle is expanded. That is, if the bundle contains aother bundles,
+            in the bundle is expanded. That is, if the bundle contains other bundles,
             then those other bundles are recursively expanded and included in the result.
             Recursion continues through the entire sub-tree of the bundle.
 
@@ -7870,9 +7950,9 @@ components:
             which token to send via other means. It is strongly recommended that the caller
             validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
             by malicious DRS servers requesting credentials they should not have.
-#################################################################
-#####                  JOURNAL MODELS
-#################################################################
+    #################################################################
+    #####                  JOURNAL MODELS
+    #################################################################
     JournalEntryModel:
       required:
         - id
@@ -7915,7 +7995,7 @@ components:
           description: A note about the journal entry
     IamResourceTypeEnum:
       type: string
-      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE ]
+      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE, SNAPSHOT_BUILDER_REQUEST ]
       description: >
         The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile.  DATAREPO and WORKSPACE are not implemented at this time but are included in the list for completeness.
   parameters:
@@ -7938,6 +8018,7 @@ components:
           - steward
           - reader
           - discoverer
+          - aggregate_data_reader
     DatasetPolicyName:
       name: policyName
       in: path
@@ -7982,7 +8063,7 @@ components:
         type: integer
         default: 0
     LoadTag:
-      name: loadtag
+      name: loadTag
       in: path
       description: a load tag
       required: true
@@ -7991,7 +8072,7 @@ components:
     AssetId:
       name: assetid
       in: path
-      description: An asset id
+      description: An asset name
       required: true
       schema:
         type: string
@@ -8004,16 +8085,6 @@ components:
         type: string
         format: uuid
   securitySchemes:
-    googleoauth:
-      type: oauth2
-      flows:
-        implicit:
-          authorizationUrl: https://accounts.google.com/o/oauth2/auth
-          scopes:
-            openid: open id authorization
-            email: email authorization
-            profile: profile authorization
-            https://www.googleapis.com/auth/cloud-billing.readonly: cloud billing authorization
     oidc:
       type: oauth2
       flows:

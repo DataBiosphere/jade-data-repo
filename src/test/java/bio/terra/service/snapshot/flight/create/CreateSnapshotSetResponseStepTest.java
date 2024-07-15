@@ -4,10 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -22,8 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class CreateSnapshotSetResponseStepTest {
+@Tag(Unit.TAG)
+class CreateSnapshotSetResponseStepTest {
 
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
@@ -36,7 +36,6 @@ public class CreateSnapshotSetResponseStepTest {
   @BeforeEach
   void setup() {
     workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     when(snapshotService.retrieveSnapshotSummary(SNAPSHOT_ID)).thenReturn(SNAPSHOT_SUMMARY);
@@ -44,7 +43,7 @@ public class CreateSnapshotSetResponseStepTest {
 
   @Test
   void testDoStep() {
-    step = new CreateSnapshotSetResponseStep(snapshotService);
+    step = new CreateSnapshotSetResponseStep(snapshotService, SNAPSHOT_ID);
 
     StepResult doResult = step.doStep(flightContext);
 

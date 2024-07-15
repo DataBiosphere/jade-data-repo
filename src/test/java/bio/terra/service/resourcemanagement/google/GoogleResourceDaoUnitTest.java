@@ -99,7 +99,9 @@ public class GoogleResourceDaoUnitTest {
 
   /* Helper method to create a minimal dataset and register its ID for cleanup */
   private Dataset createDataset(UUID projectResourceId) throws IOException {
-    Dataset dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectResourceId);
+    Dataset dataset =
+        daoOperations.createDataset(
+            billingProfile.getId(), projectResourceId, DaoOperations.DATASET_MINIMAL);
     datasetIds.add(dataset.getId());
     return dataset;
   }

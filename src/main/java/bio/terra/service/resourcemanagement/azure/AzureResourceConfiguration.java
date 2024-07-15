@@ -163,7 +163,7 @@ public record AzureResourceConfiguration(
       int connectRetryInterval,
       int connectRetryCount) {}
 
-  public record Threading(int numTableThreads) {}
+  public record Threading(int numTableThreads, int maxQueueSize) {}
 
   @Bean("azureTableThreadpool")
   public AsyncTaskExecutor azureTableThreadpool() {
@@ -171,7 +171,7 @@ public record AzureResourceConfiguration(
     executor.setCorePoolSize(threading().numTableThreads());
     executor.setMaxPoolSize(threading().numTableThreads());
     executor.setKeepAliveSeconds(0);
-    executor.setQueueCapacity(threading().numTableThreads());
+    executor.setQueueCapacity(threading().maxQueueSize());
     executor.setThreadNamePrefix("az-table-thread-");
     executor.initialize();
     return executor;

@@ -12,10 +12,7 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.BufferService;
-import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
@@ -57,18 +54,10 @@ public class ResourceServiceConnectedTest {
     ResourceInfo resource = bufferService.handoutResource(false);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
-    String role = "roles/bigquery.jobUser";
-    String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
-    List<String> stewardsGroupEmailList = Lists.newArrayList();
-    stewardsGroupEmailList.add(stewardsGroupEmail);
-    Map<String, List<String>> roleToStewardMap = new HashMap<>();
-    roleToStewardMap.put(role, stewardsGroupEmailList);
-
     GoogleProjectResource projectResource =
         projectService.initializeGoogleProject(
             projectId,
             profile,
-            roleToStewardMap,
             GoogleRegion.DEFAULT_GOOGLE_REGION,
             Map.of("test-name", "resource-service-connected-test"),
             CollectionType.DATASET);

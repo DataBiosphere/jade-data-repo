@@ -15,6 +15,7 @@ import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.usermetrics.BardClient;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SqlSortDirection;
+import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
@@ -57,9 +58,9 @@ import org.springframework.test.context.ActiveProfiles;
 @AutoConfigureMockMvc
 @SpringBootTest
 @ActiveProfiles({"google", "unittest"})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class JobServiceTest {
+class JobServiceTest {
   private static final Logger logger = LoggerFactory.getLogger(JobServiceTest.class);
 
   private AuthenticatedUserRequest testUser =
@@ -96,7 +97,7 @@ public class JobServiceTest {
   @MockBean private BardClient bardClient;
 
   @BeforeEach
-  public void setUp() throws Exception {
+  void setUp() throws Exception {
     when(samService.isAuthorized(
             testUser, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS))
         .thenReturn(false);
@@ -110,13 +111,13 @@ public class JobServiceTest {
   }
 
   @AfterEach
-  public void tearDown() throws Exception {
+  void tearDown() throws Exception {
     logger.info("Deleting {} jobs", jobIds.size());
     jobIds.forEach(this::deleteJob);
   }
 
   @Test
-  public void enumerateTooLongBackFilterTest() throws Exception {
+  void enumerateTooLongBackFilterTest() throws Exception {
     int numVisibleJobs = 3;
     List<JobModel> expectedJobs =
         IntStream.range(0, numVisibleJobs)
@@ -145,7 +146,7 @@ public class JobServiceTest {
   }
 
   @Test
-  public void retrieveTest() throws Exception {
+  void retrieveTest() throws Exception {
     // We perform 7 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
@@ -204,7 +205,7 @@ public class JobServiceTest {
   }
 
   @Test
-  public void enumerateJobsPermissionTest() throws Exception {
+  void enumerateJobsPermissionTest() throws Exception {
     // We perform 9 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
@@ -304,12 +305,12 @@ public class JobServiceTest {
   }
 
   @Test
-  public void testBadIdRetrieveJob() throws InterruptedException {
+  void testBadIdRetrieveJob() throws InterruptedException {
     assertThrows(StairwayException.class, () -> jobService.retrieveJob("abcdef", null));
   }
 
   @Test
-  public void testBadIdRetrieveResult() throws InterruptedException {
+  void testBadIdRetrieveResult() throws InterruptedException {
     assertThrows(
         StairwayException.class, () -> jobService.retrieveJobResult("abcdef", Object.class, null));
   }

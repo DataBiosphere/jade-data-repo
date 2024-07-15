@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -117,7 +118,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Test
   public void datasetHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -262,7 +263,7 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
+            steward(), profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -360,13 +361,12 @@ public class DatasetIntegrationTest extends UsersBase {
   public void testAssetCreationUndo() throws Exception {
     // create a dataset
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
     datasetId = summaryModel.getId();
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
-    assertThat(
-        "Asset specification is as originally expected", originalAssetList.size(), equalTo(2));
+    assertThat("Asset specification is as originally expected", originalAssetList, hasSize(3));
 
     // Test Asset Validation
     AssetModel invalidAssetModel =
@@ -395,7 +395,7 @@ public class DatasetIntegrationTest extends UsersBase {
     List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
     // assert that the asset isn't there
-    assertThat("Additional asset specification has never been added", assetList.size(), equalTo(2));
+    assertThat("Additional asset specification has never been added", assetList, hasSize(3));
   }
 
   @Test
@@ -412,7 +412,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDatasetWithPolicies(
-            steward(), profileId, "omop/it-dataset-omop.json", policiesRequest);
+            steward(), profileId, "omop/it-dataset-omop.jsonl", policiesRequest);
     datasetId = summaryModel.getId();
 
     Map<String, List<String>> rolesToPolicies =

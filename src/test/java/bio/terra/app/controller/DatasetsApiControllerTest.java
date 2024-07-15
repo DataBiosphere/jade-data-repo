@@ -1,17 +1,18 @@
 package bio.terra.app.controller;
 
-import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SETTINGS;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,27 +20,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.TestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
-import bio.terra.model.EnumerateSnapshotAccessRequest;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.JobModel;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
-import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotBuilderConcept;
-import bio.terra.model.SnapshotBuilderCountRequest;
-import bio.terra.model.SnapshotBuilderCountResponse;
-import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderCriteria;
-import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SqlSortDirectionAscDefault;
@@ -58,9 +57,8 @@ import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,7 +78,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DatasetsApiController.class, GlobalExceptionHandler.class})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
 class DatasetsApiControllerTest {
   @Autowired private MockMvc mvc;
@@ -94,42 +92,40 @@ class DatasetsApiControllerTest {
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
   @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
-  private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
-  private static final String LOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/lock";
-  private static final String UNLOCK_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}/unlock";
-  private static final String SNAPSHOT_REQUESTS_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotRequests";
+  private static final String DATASET_ID_ENDPOINT = "/api/repository/v1/datasets/{id}";
+  private static final String LOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/lock";
+  private static final String UNLOCK_DATASET_ENDPOINT = DATASET_ID_ENDPOINT + "/unlock";
+  private static final String DATASET_INGEST_ENDPOINT = DATASET_ID_ENDPOINT + "/ingest";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
-  private static final String QUERY_DATA_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
+  private static final String QUERY_DATA_ENDPOINT = DATASET_ID_ENDPOINT + "/data/{table}";
 
   private static final String QUERY_COLUMN_STATISTICS_ENDPOINT =
       QUERY_DATA_ENDPOINT + "/statistics/{column}";
 
-  private static final String SNAPSHOT_BUILDER_ENDPOINT =
-      RETRIEVE_DATASET_ENDPOINT + "/snapshotBuilder";
-  private static final String GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/settings";
-  private static final String GET_CONCEPTS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{parentConcept}";
-  private static final String GET_COUNT_ENDPOINT = SNAPSHOT_BUILDER_ENDPOINT + "/count";
-  private static final String SEARCH_CONCEPTS_ENDPOINT =
-      SNAPSHOT_BUILDER_ENDPOINT + "/concepts/{domainId}/search";
   private static final SqlSortDirectionAscDefault DIRECTION = SqlSortDirectionAscDefault.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
-  private static final Integer CONCEPT_ID = 0;
+  private static final DatasetPatchRequestModel DATASET_PATCH_REQUEST =
+      new DatasetPatchRequestModel().phsId("a-phs-id").description("a-description");
+  private static final Set<IamAction> DATASET_PATCH_ACTIONS =
+      Set.of(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER);
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
   private static final String FILTER = null;
   private static final String TABLE_NAME = "good_table";
+  private IngestRequestModel ingestRequestModel;
 
   @BeforeEach
   void setUp() {
     when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
+    ingestRequestModel =
+        new IngestRequestModel()
+            .table(TABLE_NAME)
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .path("/path/to/controlfile.json");
   }
 
   @Test
@@ -140,8 +136,7 @@ class DatasetsApiControllerTest {
 
     String actualJson =
         mvc.perform(
-                get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
-                    .queryParam("include", String.valueOf(INCLUDE)))
+                get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -156,9 +151,7 @@ class DatasetsApiControllerTest {
   @Test
   void testRetrieveDatasetNotFound() throws Exception {
     mockNotFound();
-    mvc.perform(
-            get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
-                .queryParam("include", String.valueOf(INCLUDE)))
+    mvc.perform(get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isNotFound());
     verifyNoInteractions(iamService);
   }
@@ -171,12 +164,76 @@ class DatasetsApiControllerTest {
         .verifyAuthorizations(
             TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), List.of(iamAction));
 
-    mvc.perform(
-            get(RETRIEVE_DATASET_ENDPOINT, DATASET_ID)
-                .queryParam("include", String.valueOf(INCLUDE)))
+    mvc.perform(get(DATASET_ID_ENDPOINT, DATASET_ID).queryParam("include", String.valueOf(INCLUDE)))
         .andExpect(status().isForbidden());
 
     verifyAuthorizationsCall(List.of(iamAction));
+  }
+
+  private void mockPatchDatasetIamActions() {
+    when(datasetService.patchDatasetIamActions(DATASET_PATCH_REQUEST))
+        .thenReturn(DATASET_PATCH_ACTIONS);
+  }
+
+  @Test
+  void patchDataset() throws Exception {
+    mockValidators();
+    mockPatchDatasetIamActions();
+
+    var patchedDatasetSummary =
+        new DatasetSummaryModel().id(DATASET_ID).description("patched dataset");
+    when(datasetService.patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER))
+        .thenReturn(patchedDatasetSummary);
+
+    String actualJson =
+        mvc.perform(
+                patch(DATASET_ID_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    DatasetSummaryModel actual = TestUtils.mapFromJson(actualJson, DatasetSummaryModel.class);
+    assertThat("Dataset summary is returned", actual, equalTo(patchedDatasetSummary));
+
+    verify(iamService)
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), DATASET_PATCH_ACTIONS);
+  }
+
+  @Test
+  void patchDataset_notFound() throws Exception {
+    mockValidators();
+    mockPatchDatasetIamActions();
+    mockNotFound();
+
+    mvc.perform(
+            patch(DATASET_ID_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
+        .andExpect(status().isNotFound());
+
+    verifyNoInteractions(iamService);
+    verify(datasetService, never()).patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER);
+  }
+
+  @Test
+  void patchDataset_forbidden() throws Exception {
+    mockValidators();
+    mockPatchDatasetIamActions();
+    doThrow(IamForbiddenException.class)
+        .when(iamService)
+        .verifyAuthorizations(
+            TEST_USER, IamResourceType.DATASET, DATASET_ID.toString(), DATASET_PATCH_ACTIONS);
+
+    mvc.perform(
+            patch(DATASET_ID_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(DATASET_PATCH_REQUEST)))
+        .andExpect(status().isForbidden());
+
+    verify(datasetService, never()).patch(DATASET_ID, DATASET_PATCH_REQUEST, TEST_USER);
   }
 
   @ParameterizedTest
@@ -211,7 +268,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataById() {
     return Stream.of(
-        arguments("goodColumn", postRequest(TABLE_NAME, "goodColumn")),
+        arguments("goodColumn", postQueryDataRequest(TABLE_NAME, "goodColumn")),
         arguments("datarepo_row_id", getRequest(TABLE_NAME, "datarepo_row_id")));
   }
 
@@ -251,7 +308,7 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> provideRequests() {
     return Stream.of(
-        arguments(postRequest(TABLE_NAME, "goodColumn")),
+        arguments(postQueryDataRequest(TABLE_NAME, "goodColumn")),
         arguments(getRequest(TABLE_NAME, "goodColumn")));
   }
 
@@ -309,46 +366,25 @@ class DatasetsApiControllerTest {
 
   private static Stream<Arguments> testQueryDatasetDataRetrievalFails() {
     return Stream.of(
-        arguments(postRequest("bad_table", "good_column")),
+        arguments(postQueryDataRequest("bad_table", "good_column")),
         arguments(getRequest("bad_table", "good_column")));
-  }
-
-  @Test
-  void testUpdateSnapshotBuilderSettings() throws Exception {
-    when(datasetService.retrieveDatasetModel(
-            DATASET_ID,
-            TEST_USER,
-            List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)))
-        .thenReturn(new DatasetModel());
-
-    mockValidators();
-
-    mvc.perform(
-            post(GET_SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, DATASET_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(SETTINGS)))
-        .andExpect(status().is2xxSuccessful())
-        .andReturn();
-
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    verify(datasetService).updateDatasetSnapshotBuilderSettings(DATASET_ID, SETTINGS);
   }
 
   static Stream<Arguments> testCreateCriteriaData() {
     return Stream.of(
         arguments(
             """
-            {"kind":"domain","name":"name","id":0}""",
+            {"kind":"domain","id":0}""",
             SnapshotBuilderCriteria.class,
             SnapshotBuilderCriteria.KindEnum.DOMAIN),
         arguments(
             """
-            {"kind":"list","name":"name","id":0,"values":[]}""",
+            {"kind":"list","id":0,"values":[]}""",
             SnapshotBuilderProgramDataListCriteria.class,
             SnapshotBuilderCriteria.KindEnum.LIST),
         arguments(
             """
-            {"kind":"range","name":"name","id":0,"low":0,"high":10}""",
+            {"kind":"range","id":0,"low":0,"high":10}""",
             SnapshotBuilderProgramDataRangeCriteria.class,
             SnapshotBuilderCriteria.KindEnum.RANGE));
   }
@@ -361,125 +397,7 @@ class DatasetsApiControllerTest {
       SnapshotBuilderCriteria.KindEnum kind)
       throws Exception {
     SnapshotBuilderCriteria criteria = TestUtils.mapFromJson(json, criteriaClass);
-    assertThat(criteria.getName(), equalTo("name"));
     assertThat(criteria.getKind(), equalTo(kind));
-  }
-
-  @Test
-  void testCreateSnapshotRequest() throws Exception {
-    mockValidators();
-    SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest();
-    SnapshotAccessRequestResponse expectedResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse();
-    when(snapshotBuilderService.createSnapshotRequest(eq(DATASET_ID), eq(request), anyString()))
-        .thenReturn(expectedResponse);
-    String actualJson =
-        mvc.perform(
-                post(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(request)))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    SnapshotAccessRequestResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
-    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  @Test
-  void testEnumerateSnapshotRequests() throws Exception {
-    mockValidators();
-    var expectedResponseItem =
-        SnapshotBuilderTestData.createEnumerateSnapshotAccessRequestModelItem();
-    var expectedResponse = new EnumerateSnapshotAccessRequest();
-    expectedResponse.items(List.of(expectedResponseItem, expectedResponseItem));
-    when(snapshotBuilderService.enumerateByDatasetId(DATASET_ID)).thenReturn(expectedResponse);
-    String actualJson =
-        mvc.perform(get(SNAPSHOT_REQUESTS_ENDPOINT, DATASET_ID))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    EnumerateSnapshotAccessRequest actual =
-        TestUtils.mapFromJson(actualJson, EnumerateSnapshotAccessRequest.class);
-    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  @Test
-  void testGetConcepts() throws Exception {
-    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
-    when(snapshotBuilderService.getConceptChildren(DATASET_ID, CONCEPT_ID, TEST_USER))
-        .thenReturn(expected);
-    String actualJson =
-        mvc.perform(get(GET_CONCEPTS_ENDPOINT, DATASET_ID, CONCEPT_ID))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    SnapshotBuilderGetConceptsResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
-    assertThat("Concept list and sql is returned", actual, equalTo(expected));
-
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  @Test
-  void getSnapshotBuilderCount() throws Exception {
-    mockValidators();
-    var cohorts = List.of(SnapshotBuilderTestData.createCohort());
-    int count = 1234;
-    when(snapshotBuilderService.getCountResponse(DATASET_ID, cohorts, TEST_USER))
-        .thenReturn(
-            new SnapshotBuilderCountResponse()
-                .result(new SnapshotBuilderCountResponseResult().total(count)));
-    mvc.perform(
-            post(GET_COUNT_ENDPOINT, DATASET_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(new SnapshotBuilderCountRequest().cohorts(cohorts))))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.total").value(count));
-    verifyAuthorizationCall(IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  private static Stream<String> searchTextArguments() {
-    return Stream.of("cancer", "", null);
-  }
-
-  @ParameterizedTest
-  @MethodSource("searchTextArguments")
-  void testSearchConcepts(String searchText) throws Exception {
-    SnapshotBuilderGetConceptsResponse expected = makeGetConceptsResponse();
-
-    when(snapshotBuilderService.searchConcepts(DATASET_ID, "condition", searchText, TEST_USER))
-        .thenReturn(expected);
-    String actualJson =
-        mvc.perform(
-                get(SEARCH_CONCEPTS_ENDPOINT, DATASET_ID, "condition")
-                    .queryParam("searchText", searchText))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    SnapshotBuilderGetConceptsResponse actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptsResponse.class);
-    assertThat("Concept list and sql is returned", actual, equalTo(expected));
-
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-  }
-
-  private SnapshotBuilderGetConceptsResponse makeGetConceptsResponse() {
-    return new SnapshotBuilderGetConceptsResponse()
-        .sql("SELECT * FROM dataset")
-        .result(
-            List.of(
-                new SnapshotBuilderConcept()
-                    .count(100)
-                    .name("Stub concept")
-                    .hasChildren(true)
-                    .id(CONCEPT_ID + 1)));
   }
 
   /** Mock so that the user does not hold `iamAction` on the dataset. */
@@ -514,7 +432,8 @@ class DatasetsApiControllerTest {
     when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
   }
 
-  private static MockHttpServletRequestBuilder postRequest(String tableName, String columnName) {
+  private static MockHttpServletRequestBuilder postQueryDataRequest(
+      String tableName, String columnName) {
     return post(QUERY_DATA_ENDPOINT, DATASET_ID, tableName)
         .contentType(MediaType.APPLICATION_JSON)
         .content(
@@ -580,27 +499,94 @@ class DatasetsApiControllerTest {
   }
 
   @Test
-  void getConceptHierarchy() throws Exception {
-    var expected =
-        new SnapshotBuilderGetConceptHierarchyResponse()
-            .result(new SnapshotBuilderConcept().name("test"));
-    var conceptId = 1234;
+  void ingestDataset_forbidden() throws Exception {
+    IamAction iamAction = IamAction.INGEST_DATA;
+    mockForbidden(iamAction);
+    mockValidators();
 
-    when(snapshotBuilderService.getConceptHierarchy(DATASET_ID, conceptId, TEST_USER))
-        .thenReturn(expected);
+    mvc.perform(
+            post(DATASET_INGEST_ENDPOINT, DATASET_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(ingestRequestModel)))
+        .andExpect(status().isForbidden());
+
+    verifyAuthorizationCall(iamAction);
+  }
+
+  private static Stream<Arguments> ingestDataset_updateStrategy_supported() {
+    return Stream.of(
+        arguments(CloudPlatform.GCP, null),
+        arguments(CloudPlatform.GCP, IngestRequestModel.UpdateStrategyEnum.APPEND),
+        arguments(CloudPlatform.GCP, IngestRequestModel.UpdateStrategyEnum.REPLACE),
+        arguments(CloudPlatform.GCP, IngestRequestModel.UpdateStrategyEnum.MERGE),
+        arguments(CloudPlatform.AZURE, null),
+        arguments(CloudPlatform.AZURE, IngestRequestModel.UpdateStrategyEnum.APPEND));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void ingestDataset_updateStrategy_supported(
+      CloudPlatform platform, IngestRequestModel.UpdateStrategyEnum updateStrategy)
+      throws Exception {
+    ingestRequestModel.updateStrategy(updateStrategy);
+    String jobId = "a-job-id";
+    JobModel expectedJob = new JobModel().id(jobId).jobStatus(JobModel.JobStatusEnum.RUNNING);
+
+    mockValidators();
+    when(datasetService.retrieveDatasetSummary(DATASET_ID))
+        .thenReturn(new DatasetSummaryModel().cloudPlatform(platform));
+    when(datasetService.ingestDataset(
+            eq(DATASET_ID.toString()), any(IngestRequestModel.class), eq(TEST_USER)))
+        .thenReturn(jobId);
+    when(jobService.retrieveJob(jobId, TEST_USER)).thenReturn(expectedJob);
+
     String actualJson =
         mvc.perform(
-                get(
-                    SNAPSHOT_BUILDER_ENDPOINT + "/conceptHierarchy/{conceptId}",
-                    DATASET_ID,
-                    conceptId))
-            .andExpect(status().isOk())
+                post(DATASET_INGEST_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(ingestRequestModel)))
+            .andExpect(status().isAccepted())
             .andReturn()
             .getResponse()
             .getContentAsString();
-    var actual =
-        TestUtils.mapFromJson(actualJson, SnapshotBuilderGetConceptHierarchyResponse.class);
-    assertThat(actual, equalTo(expected));
-    verifyAuthorizationCall(IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
+    JobModel job = TestUtils.mapFromJson(actualJson, JobModel.class);
+    assertThat(job, equalTo(expectedJob));
+
+    verifyAuthorizationCall(IamAction.INGEST_DATA);
+  }
+
+  private static Stream<Arguments> ingestDataset_updateStrategy_unsupported() {
+    return Stream.of(
+        arguments(CloudPlatform.AZURE, IngestRequestModel.UpdateStrategyEnum.REPLACE),
+        arguments(CloudPlatform.AZURE, IngestRequestModel.UpdateStrategyEnum.MERGE));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void ingestDataset_updateStrategy_unsupported(
+      CloudPlatform platform, IngestRequestModel.UpdateStrategyEnum updateStrategy)
+      throws Exception {
+    mockValidators();
+    when(datasetService.retrieveDatasetSummary(DATASET_ID))
+        .thenReturn(new DatasetSummaryModel().cloudPlatform(platform));
+
+    String actualJson =
+        mvc.perform(
+                post(DATASET_INGEST_ENDPOINT, DATASET_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        TestUtils.mapToJson(ingestRequestModel.updateStrategy(updateStrategy))))
+            .andExpect(status().isBadRequest())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    ErrorModel error = TestUtils.mapFromJson(actualJson, ErrorModel.class);
+    assertThat(error.getMessage(), equalTo("Invalid ingest parameters detected"));
+    String expectedErrorDetail =
+        "Ingests to Azure datasets can only use 'append' as an update strategy, was '%s'."
+            .formatted(updateStrategy);
+    assertThat(error.getErrorDetail(), contains(expectedErrorDetail));
+
+    verifyAuthorizationCall(IamAction.INGEST_DATA);
   }
 }

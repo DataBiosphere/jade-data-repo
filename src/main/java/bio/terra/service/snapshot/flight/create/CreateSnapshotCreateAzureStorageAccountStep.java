@@ -8,7 +8,6 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -17,12 +16,14 @@ import java.util.UUID;
 public class CreateSnapshotCreateAzureStorageAccountStep extends CreateAzureStorageAccountStep {
   private final ResourceService resourceService;
   private final Dataset dataset;
+  private final UUID snapshotId;
 
   public CreateSnapshotCreateAzureStorageAccountStep(
-      ResourceService resourceService, Dataset dataset) {
+      ResourceService resourceService, Dataset dataset, UUID snapshotId) {
     super(resourceService, dataset);
     this.resourceService = resourceService;
     this.dataset = dataset;
+    this.snapshotId = snapshotId;
   }
 
   @Override
@@ -37,8 +38,6 @@ public class CreateSnapshotCreateAzureStorageAccountStep extends CreateAzureStor
     String flightId = context.getFlightId();
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
     AzureStorageAccountResource storageAccountResource =
         resourceService.createSnapshotStorageAccount(

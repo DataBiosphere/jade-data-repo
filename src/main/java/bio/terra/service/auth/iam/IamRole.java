@@ -8,10 +8,12 @@ public enum IamRole {
   ADMIN,
   STEWARD,
   CUSTODIAN,
+  AGGREGATE_DATA_READER,
   READER,
   DISCOVERER,
   OWNER,
   USER,
+  APPROVER,
   SNAPSHOT_CREATOR,
   /** A role used by Firecloud Managed Groups */
   MEMBER;

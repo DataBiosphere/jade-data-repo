@@ -15,7 +15,6 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -50,9 +49,6 @@ public abstract class IngestPopulateFileStateFromFlightMapStep implements Step {
   }
 
   @Override
-  @SuppressFBWarnings(
-      value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
-      justification = "Spotbugs doesn't understand resource try construct")
   public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));

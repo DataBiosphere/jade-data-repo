@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
@@ -39,10 +40,13 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.AzureApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
@@ -53,6 +57,8 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.FullyQualifiedResourceId;
+import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
 import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SubsystemStatus;
@@ -69,36 +75,36 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class SamIamTest {
+@Tag(Unit.TAG)
+class SamIamTest {
 
   @Mock private SamApiService samApiService;
+  @Mock private AzureApi samAzureApi;
   @Mock private GoogleApi samGoogleApi;
   @Mock private UsersApi samUsersApi;
 
   private SamIam samIam;
+  private static final String GROUP_NAME = "firecloud_group_name";
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
   private final SamConfiguration samConfig =
-      new SamConfiguration(
-          "https://sam.dsde-dev.broadinstitute.org",
-          "samStewardsGroupEmail@a.com",
-          ADMIN_EMAIL,
-          10,
-          30,
-          60);
+      new SamConfiguration("https://sam.dsde-dev.broadinstitute.org", ADMIN_EMAIL, 0, 0, 0);
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     GoogleResourceConfiguration resourceConfiguration =
         new GoogleResourceConfiguration("jade-data-repo", 600, 4, false, "123456", "78910");
     samIam =
         new SamIam(
             samConfig,
             new ConfigurationService(
-                samConfig, null, resourceConfiguration, new ApplicationConfiguration()),
+                samConfig, resourceConfiguration, new ApplicationConfiguration()),
             samApiService);
+  }
+
+  private void mockSamAzureApi() {
+    when(samApiService.azureApi(TEST_USER.getToken())).thenReturn(samAzureApi);
   }
 
   private void mockSamGoogleApi() {
@@ -236,7 +242,12 @@ public class SamIamTest {
           req.getPolicies().keySet().stream().map(IamRole::fromValue).toList();
       assertThat(
           policyKeys,
-          containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER));
+          containsInAnyOrder(
+              IamRole.ADMIN,
+              IamRole.STEWARD,
+              IamRole.READER,
+              IamRole.DISCOVERER,
+              IamRole.AGGREGATE_DATA_READER));
 
       AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
       assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
@@ -283,7 +294,12 @@ public class SamIamTest {
     List<IamRole> policyKeys = req.getPolicies().keySet().stream().map(IamRole::fromValue).toList();
     assertThat(
         policyKeys,
-        containsInAnyOrder(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER));
+        containsInAnyOrder(
+            IamRole.ADMIN,
+            IamRole.STEWARD,
+            IamRole.READER,
+            IamRole.DISCOVERER,
+            IamRole.AGGREGATE_DATA_READER));
 
     AccessPolicyMembershipRequest admin = req.getPolicies().get(IamRole.ADMIN.toString());
     assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
@@ -373,6 +389,22 @@ public class SamIamTest {
                 .gsPath(path)
                 .duration(BigDecimal.valueOf(15))
                 .requesterPaysProject(project));
+  }
+
+  @Test
+  void testAzureBillingProfileCreateManagedResourcieGroup()
+      throws ApiException, InterruptedException {
+    mockSamAzureApi();
+    String billingProfileName = "billingProfileName";
+    ManagedResourceGroupCoordinates managedResourceGroupCoordinates =
+        new ManagedResourceGroupCoordinates()
+            .tenantId("tenantId")
+            .subscriptionId("subscriptionId")
+            .managedResourceGroupName("managedResourceGroupName");
+    samIam.azureCreateManagedResourceGroup(
+        TEST_USER, billingProfileName, managedResourceGroupCoordinates);
+    verify(samAzureApi)
+        .createManagedResourceGroup(billingProfileName, managedResourceGroupCoordinates);
   }
 
   @Nested
@@ -538,6 +570,34 @@ public class SamIamTest {
     }
 
     @Test
+    void testCreateSnapshotBuilderRequest() throws InterruptedException, ApiException {
+      mockUserInfo(TEST_USER.getSubjectId(), TEST_USER.getEmail());
+
+      final UUID snapshotId = UUID.randomUUID();
+      final UUID snapshotBuilderRequestId = UUID.randomUUID();
+      final CreateResourceRequestV2 request =
+          new CreateResourceRequestV2()
+              .parent(
+                  new FullyQualifiedResourceId()
+                      .resourceTypeName(IamResourceType.DATASNAPSHOT.toString())
+                      .resourceId(snapshotId.toString()))
+              .resourceId(snapshotBuilderRequestId.toString())
+              .authDomain(List.of())
+              .policies(
+                  Map.of(
+                      IamRole.OWNER.toString(),
+                      new AccessPolicyMembershipRequest()
+                          .roles(List.of(IamRole.OWNER.toString()))
+                          .memberEmails(List.of(TEST_USER.getEmail()))));
+      assertThat(
+          samIam.createSnapshotBuilderRequestResource(
+              TEST_USER, snapshotId, snapshotBuilderRequestId),
+          is(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail()))));
+      verify(samResourceApi)
+          .createResourceV2(IamResourceType.SNAPSHOT_BUILDER_REQUEST.toString(), request);
+    }
+
+    @Test
     void testCreateProfile() throws InterruptedException, ApiException {
       final UUID profileId = UUID.randomUUID();
       final String userSubjectId = "userid";
@@ -546,11 +606,14 @@ public class SamIamTest {
 
       CreateResourceRequestV2 req = new CreateResourceRequestV2();
       req.setResourceId(profileId.toString());
-      req.putPoliciesItem(
-          IamRole.ADMIN.toString(),
-          new AccessPolicyMembershipRequest()
-              .memberEmails(List.of(samConfig.adminsGroupEmail()))
-              .roles(List.of(IamRole.ADMIN.toString())));
+      Optional.ofNullable(samConfig.adminsGroupEmail())
+          .ifPresent(
+              adminsGroupEmail ->
+                  req.putPoliciesItem(
+                      IamRole.ADMIN.toString(),
+                      new AccessPolicyMembershipRequest()
+                          .memberEmails(List.of(adminsGroupEmail))
+                          .roles(List.of(IamRole.ADMIN.toString()))));
       req.putPoliciesItem(
           IamRole.OWNER.toString(),
           new AccessPolicyMembershipRequest()
@@ -690,7 +753,7 @@ public class SamIamTest {
                       """
                             {GooglePubSub=class SubsystemStatus {
                                 ok: true
-                                messages: null
+                                messages: []
                                 additionalProperties: null
                             }}""")));
     }
@@ -725,85 +788,150 @@ public class SamIamTest {
     @Test
     void testCreateGroup() throws ApiException, InterruptedException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
-      String groupEmail = String.format("%s@dev.test.firecloud.org", groupName);
+      String groupEmail = String.format("%s@dev.test.firecloud.org", GROUP_NAME);
 
-      when(samGroupApi.getGroup(groupName)).thenReturn(groupEmail);
+      when(samGroupApi.getGroup(GROUP_NAME)).thenReturn(groupEmail);
       assertThat(
           "Firecloud group email is returned when creation succeeds and email returned by SAM",
-          samIam.createGroup(accessToken, groupName),
+          samIam.createGroup(accessToken, GROUP_NAME),
           equalTo(groupEmail));
-      verify(samGroupApi).postGroup(groupName, null);
+      verify(samGroupApi).postGroup(GROUP_NAME, null);
     }
 
     @Test
     void testCreateGroupWithCreationFailure() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_CONFLICT, "Group already exists");
-      doThrow(samEx).when(samGroupApi).postGroup(groupName, null);
-      assertThrows(IamConflictException.class, () -> samIam.createGroup(accessToken, groupName));
-      verify(samGroupApi, never()).getGroup(groupName);
+      doThrow(samEx).when(samGroupApi).postGroup(GROUP_NAME, null);
+      assertThrows(IamConflictException.class, () -> samIam.createGroup(accessToken, GROUP_NAME));
+      verify(samGroupApi, never()).getGroup(GROUP_NAME);
     }
 
     @Test
     void testCreateGroupWithEmailFetchFailure() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
-      when(samGroupApi.getGroup(groupName)).thenThrow(samEx);
-      assertThrows(IamNotFoundException.class, () -> samIam.createGroup(accessToken, groupName));
-      verify(samGroupApi).postGroup(groupName, null);
+      when(samGroupApi.getGroup(GROUP_NAME)).thenThrow(samEx);
+      assertThrows(IamNotFoundException.class, () -> samIam.createGroup(accessToken, GROUP_NAME));
+      verify(samGroupApi).postGroup(GROUP_NAME, null);
+    }
+
+    @Test
+    void testGetGroup() throws ApiException, InterruptedException {
+      String accessToken = TEST_USER.getToken();
+      String groupEmail = String.format("%s@dev.test.firecloud.org", GROUP_NAME);
+      when(samGroupApi.getGroup(GROUP_NAME)).thenReturn(groupEmail);
+      assertThat(
+          "Firecloud group email is returned",
+          samIam.getGroup(accessToken, GROUP_NAME),
+          equalTo(groupEmail));
+    }
+
+    @Test
+    void testGetGroupWithFailure() throws ApiException {
+      String accessToken = TEST_USER.getToken();
+      ApiException samEx =
+          new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+      when(samGroupApi.getGroup(GROUP_NAME)).thenThrow(samEx);
+      assertThrows(IamNotFoundException.class, () -> samIam.getGroup(accessToken, GROUP_NAME));
+    }
+
+    @Test
+    void overwriteGroupPolicyEmailsIncludeRequestingUser()
+        throws ApiException, InterruptedException {
+      final String snapshotRequesterEmail = "requester@a.com";
+      final String requestApproverId = "userid";
+      final String requestApproverEmail = "a@a.com";
+      mockUserInfo(requestApproverId, requestApproverEmail);
+      var expectedListOfEmails = List.of(snapshotRequesterEmail, requestApproverEmail);
+
+      samIam.overwriteGroupPolicyEmailsIncludeRequestingUser(
+          TEST_USER.getToken(), // In a real use case, this would be the TDR SA Token
+          TEST_USER, // While this would be the user making the request
+          GROUP_NAME,
+          IamRole.MEMBER.toString(),
+          List.of(snapshotRequesterEmail));
+      verify(samGroupApi)
+          .overwriteGroupPolicyEmails(GROUP_NAME, IamRole.MEMBER.toString(), expectedListOfEmails);
     }
 
     @Test
     void testOverwriteGroupPolicyEmails() throws InterruptedException, ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
       String policyName = IamRole.MEMBER.toString();
       List<String> emails = List.of("user@a.com");
 
-      samIam.overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
-      verify(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
+      samIam.overwriteGroupPolicyEmails(accessToken, GROUP_NAME, policyName, emails);
+      verify(samGroupApi).overwriteGroupPolicyEmails(GROUP_NAME, policyName, emails);
     }
 
     @Test
     void testOverwriteGroupPolicyEmailsThrowsWhenSamGroupApiThrows() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
       String policyName = IamRole.MEMBER.toString();
       List<String> emails = List.of("user@a.com");
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
-      doThrow(samEx).when(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
+      doThrow(samEx).when(samGroupApi).overwriteGroupPolicyEmails(GROUP_NAME, policyName, emails);
       assertThrows(
           IamNotFoundException.class,
-          () -> samIam.overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails));
+          () -> samIam.overwriteGroupPolicyEmails(accessToken, GROUP_NAME, policyName, emails));
     }
 
     @Test
     void testDeleteGroup() throws ApiException, InterruptedException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
-      samIam.deleteGroup(accessToken, groupName);
-      verify(samGroupApi).deleteGroup(groupName);
+      samIam.deleteGroup(accessToken, GROUP_NAME);
+      verify(samGroupApi).deleteGroup(GROUP_NAME);
     }
 
     @Test
     void testDeleteGroupThrowsWhenSamGroupApiThrows() throws ApiException {
       String accessToken = TEST_USER.getToken();
-      String groupName = "firecloud_group_name";
 
       ApiException samEx =
           new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
-      doThrow(samEx).when(samGroupApi).deleteGroup(groupName);
-      assertThrows(IamNotFoundException.class, () -> samIam.deleteGroup(accessToken, groupName));
+      doThrow(samEx).when(samGroupApi).deleteGroup(GROUP_NAME);
+      assertThrows(IamNotFoundException.class, () -> samIam.deleteGroup(accessToken, GROUP_NAME));
+    }
+  }
+
+  @Nested
+  class TestAdminApi {
+
+    @Mock private AdminApi samAdminApi;
+
+    @BeforeEach
+    void setUp() {
+      when(samApiService.adminApi(TEST_USER.getToken())).thenReturn(samAdminApi);
+    }
+
+    @Test
+    void testGetResourceTypeAdminPermissionAllowed() throws InterruptedException {
+      when(samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+          .thenReturn(true);
+      boolean allowed =
+          samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+      assertTrue(allowed);
+    }
+
+    @Test
+    void testGetResourceTypeAdminPermissionNotAllowed() throws InterruptedException {
+      when(samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION))
+          .thenReturn(false);
+      boolean allowed =
+          samIam.getResourceTypeAdminPermission(
+              TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
+      assertFalse(allowed);
     }
   }
 }

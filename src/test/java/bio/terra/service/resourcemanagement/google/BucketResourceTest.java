@@ -33,7 +33,6 @@ import bio.terra.service.resourcemanagement.BucketResourceLockTester;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import com.google.api.client.util.Lists;
 import com.google.cloud.Binding;
 import com.google.cloud.Policy;
 import com.google.cloud.storage.Bucket;
@@ -42,7 +41,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -571,20 +569,12 @@ public class BucketResourceTest {
   }
 
   private GoogleProjectResource buildProjectResource() throws Exception {
-    String role = "roles/bigquery.jobUser";
-    String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
-    List<String> stewardsGroupEmailList = Lists.newArrayList();
-    stewardsGroupEmailList.add(stewardsGroupEmail);
-    Map<String, List<String>> roleToStewardMap = new HashMap<>();
-    roleToStewardMap.put(role, stewardsGroupEmailList);
-
     ResourceInfo resourceInfo = bufferService.handoutResource(false);
 
     // create project metadata
     return projectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
         profile,
-        roleToStewardMap,
         GoogleRegion.DEFAULT_GOOGLE_REGION,
         Map.of("test-name", "bucket-resource-test"),
         CollectionType.DATASET);

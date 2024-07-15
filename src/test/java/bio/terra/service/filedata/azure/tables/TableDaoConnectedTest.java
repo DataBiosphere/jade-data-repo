@@ -24,7 +24,6 @@ import bio.terra.service.snapshot.SnapshotSource;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -223,7 +222,6 @@ public class TableDaoConnectedTest {
   // - do the compute and validate
   // Use binary for the sizes so each size combo will be unique
   @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void testComputeSnapshot() throws Exception {
 
     // Make files that will be in the snapshot

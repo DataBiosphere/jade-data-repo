@@ -3,9 +3,9 @@ package bio.terra.service.snapshot.flight.duos;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,18 +23,16 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class UpdateSnapshotDuosFirecloudGroupIdStepTest {
 
   @Mock private SnapshotDao snapshotDao;
   @Mock private FlightContext flightContext;
@@ -48,14 +46,14 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
   private UpdateSnapshotDuosFirecloudGroupIdStep step;
   private FlightMap workingMap;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
   }
 
   @Test
-  public void testDoAndUndoStepUnlink() throws InterruptedException {
+  void testDoAndUndoStepUnlink() throws InterruptedException {
     step =
         new UpdateSnapshotDuosFirecloudGroupIdStep(
             snapshotDao, SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV);
@@ -67,7 +65,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
     SnapshotLinkDuosDatasetResponse response =
         workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotLinkDuosDatasetResponse.class);
     assertNotNull(response);
-    assertNull("No new DUOS dataset to link", response.getLinked());
+    assertNull(response.getLinked(), "No new DUOS dataset to link");
     assertThat(
         "Unlinked our previous DUOS dataset",
         response.getUnlinked(),
@@ -79,7 +77,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
   }
 
   @Test
-  public void testDoAndUndoStepLink() throws InterruptedException {
+  void testDoAndUndoStepLink() throws InterruptedException {
     step = new UpdateSnapshotDuosFirecloudGroupIdStep(snapshotDao, SNAPSHOT_ID, null);
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
 
@@ -91,7 +89,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
         workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotLinkDuosDatasetResponse.class);
     assertNotNull(response);
     assertThat("Linked a new DUOS dataset", response.getLinked(), equalTo(DUOS_FIRECLOUD_GROUP));
-    assertNull("No previous DUOS dataset to unlink", response.getUnlinked());
+    assertNull(response.getUnlinked(), "No previous DUOS dataset to unlink");
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
@@ -99,7 +97,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
   }
 
   @Test
-  public void testDoAndUndoStepUpdateLink() throws InterruptedException {
+  void testDoAndUndoStepUpdateLink() throws InterruptedException {
     step =
         new UpdateSnapshotDuosFirecloudGroupIdStep(
             snapshotDao, SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV);
@@ -124,7 +122,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
   }
 
   @Test
-  public void testDoAndUndoUnlinkNoOp() throws InterruptedException {
+  void testDoAndUndoUnlinkNoOp() throws InterruptedException {
     // The caller could conceivably trigger a flight to unlink a snapshot from its DUOS dataset,
     // despite the snapshot having no existing link.  In the user's eyes this is a no-op.
     step = new UpdateSnapshotDuosFirecloudGroupIdStep(snapshotDao, SNAPSHOT_ID, null);
@@ -136,8 +134,8 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
     SnapshotLinkDuosDatasetResponse response =
         workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotLinkDuosDatasetResponse.class);
     assertNotNull(response);
-    assertNull("No new DUOS dataset to link", response.getLinked());
-    assertNull("No previous DUOS dataset to unlink", response.getUnlinked());
+    assertNull(response.getLinked(), "No new DUOS dataset to link");
+    assertNull(response.getUnlinked(), "No previous DUOS dataset to unlink");
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
@@ -145,7 +143,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
   }
 
   @Test
-  public void testDoAndUndoStepFails() throws InterruptedException {
+  void testDoAndUndoStepFails() throws InterruptedException {
     step =
         new UpdateSnapshotDuosFirecloudGroupIdStep(
             snapshotDao, SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV);

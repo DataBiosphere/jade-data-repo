@@ -46,38 +46,34 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.curator.shaded.com.google.common.base.Charsets;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(SpringRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-@AutoConfigureMockMvc
-public class IngestBulkGcpStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class IngestBulkGcpStepTest {
 
   private static final String LOAD_TAG = "loadtag";
   private static final UUID PROFILE_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
 
-  @MockBean private GcsPdao gcsPdao;
-  @MockBean private ObjectMapper objectMapper;
-  @MockBean private FireStoreDao fileDao;
-  @MockBean private FileService fileService;
-  @MockBean private FlightContext context;
+  @Mock private GcsPdao gcsPdao;
+  @Mock private ObjectMapper objectMapper;
+  @Mock private FireStoreDao fileDao;
+  @Mock private FileService fileService;
+  @Mock private FlightContext context;
 
   private ExecutorService executor;
   private Dataset dataset;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     executor =
         new ThreadPoolExecutor(10, 10, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(100));
 
@@ -88,30 +84,30 @@ public class IngestBulkGcpStepTest {
             .projectResource(new GoogleProjectResource().googleProjectId("google_project_id"));
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     if (executor != null) {
       executor.shutdownNow();
     }
   }
 
   @Test
-  public void testHappyPathRandomFileIdsNotSelfHosted() throws InterruptedException {
+  void testHappyPathRandomFileIdsNotSelfHosted() throws InterruptedException {
     happyPathTest(false, false);
   }
 
   @Test
-  public void testHappyPathPredictableFileIdsNotSelfHosted() throws InterruptedException {
+  void testHappyPathPredictableFileIdsNotSelfHosted() throws InterruptedException {
     happyPathTest(true, false);
   }
 
   @Test
-  public void testHappyPathRandomFileIdsSelfHosted() throws InterruptedException {
+  void testHappyPathRandomFileIdsSelfHosted() throws InterruptedException {
     happyPathTest(false, true);
   }
 
   @Test
-  public void testHappyPathPredictableFileIdsSelfHosted() throws InterruptedException {
+  void testHappyPathPredictableFileIdsSelfHosted() throws InterruptedException {
     happyPathTest(true, true);
   }
 
@@ -128,7 +124,8 @@ public class IngestBulkGcpStepTest {
                 new FileToLoad(
                     new BulkLoadFileModel().sourcePath("gs://s/f2").targetPath("/t/f2"), false),
                 new FileToLoad(
-                    new BulkLoadFileModel().sourcePath("gs://s/f3").targetPath("/t/f3"), false)));
+                    new BulkLoadFileModel().sourcePath("gs://s/f3").targetPath("/t/f3"), false)),
+            selfHosted);
 
     StepResult stepResult = ingestStep.doStep(context);
     assertThat(
@@ -167,27 +164,26 @@ public class IngestBulkGcpStepTest {
   }
 
   @Test
-  public void testFailPathRandomFileIdsNotSelfHosted() throws InterruptedException {
+  void testFailPathRandomFileIdsNotSelfHosted() throws InterruptedException {
     failPathTest(false, false);
   }
 
   @Test
-  public void testFailPathPredictableFileIdsNotSelfHosted() throws InterruptedException {
+  void testFailPathPredictableFileIdsNotSelfHosted() throws InterruptedException {
     failPathTest(true, false);
   }
 
   @Test
-  public void testFailPathRandomFileIdsSelfHosted() throws InterruptedException {
+  void testFailPathRandomFileIdsSelfHosted() throws InterruptedException {
     failPathTest(false, true);
   }
 
   @Test
-  public void testFailPathPredictableFileIdsSelfHosted() throws InterruptedException {
+  void testFailPathPredictableFileIdsSelfHosted() throws InterruptedException {
     failPathTest(true, true);
   }
 
-  public void failPathTest(boolean predictableFileIds, boolean selfHosted)
-      throws InterruptedException {
+  void failPathTest(boolean predictableFileIds, boolean selfHosted) throws InterruptedException {
     dataset.predictableFileIds(predictableFileIds);
     dataset.getDatasetSummary().selfHosted(selfHosted);
 
@@ -199,7 +195,8 @@ public class IngestBulkGcpStepTest {
                 new FileToLoad(
                     new BulkLoadFileModel().sourcePath("gs://s/f2").targetPath("/t/f2"), true),
                 new FileToLoad(
-                    new BulkLoadFileModel().sourcePath("gs://s/f3").targetPath("/t/f3"), false)));
+                    new BulkLoadFileModel().sourcePath("gs://s/f3").targetPath("/t/f3"), false)),
+            selfHosted);
 
     StepResult stepResult = ingestStep.doStep(context);
     assertThat(
@@ -245,7 +242,7 @@ public class IngestBulkGcpStepTest {
   }
 
   @Test
-  public void testIdConflicts() throws InterruptedException {
+  void testIdConflicts() throws InterruptedException {
     IngestBulkGcpStep ingestStep =
         initialize(
             List.of(
@@ -254,7 +251,10 @@ public class IngestBulkGcpStepTest {
                 new FileToLoad(
                     new BulkLoadFileModel().sourcePath("gs://s/f2").targetPath("/t/f2"), false),
                 new FileToLoad(
-                    new BulkLoadFileModel().sourcePath("gs://s/f3").targetPath("/t/f3"), false)));
+                    new BulkLoadFileModel().sourcePath("gs://s/f3").targetPath("/t/f3"), false)),
+            false);
+
+    when(fileDao.upsertDirectoryEntries(eq(dataset), eq("loadtag"), any())).thenReturn(Map.of());
 
     UUID existingFileId = UUID.randomUUID();
     // Mock so that the 2 second file (gs://s/f2) is a conflict
@@ -289,88 +289,96 @@ public class IngestBulkGcpStepTest {
 
   private record FileToLoad(BulkLoadFileModel model, boolean shouldFail) {}
 
-  private IngestBulkGcpStep initialize(List<FileToLoad> files) {
+  private IngestBulkGcpStep initialize(List<FileToLoad> files, boolean selfHosted) {
     // Mock common flight context
     when(context.getInputParameters())
         .thenReturn(makeContextMap(Map.of(FileMapKeys.BUCKET_INFO, new GoogleBucketResource())));
     FlightMap workingMap = new FlightMap();
     when(context.getWorkingMap()).thenReturn(workingMap);
 
-    // Mock the copy operation for the files
-    when(gcsPdao.copyFile(eq(dataset), any(), any(), any()))
-        .thenAnswer(
-            a -> {
-              Dataset dataset = a.getArgument(0);
-              FileLoadModel fileLoadModel = a.getArgument(1);
-              boolean shouldFail =
-                  files.stream()
-                      .filter(
-                          f ->
-                              f.model().getSourcePath().equals(fileLoadModel.getSourcePath())
-                                  && f.model()
-                                      .getTargetPath()
-                                      .equals(fileLoadModel.getTargetPath()))
-                      .findFirst()
-                      .map(FileToLoad::shouldFail)
-                      .orElse(true);
-              String fileId = a.getArgument(2);
-              GoogleBucketResource bucketResource = a.getArgument(3);
+    if (!selfHosted) {
+      // Mock the copy operation for the files
+      when(gcsPdao.copyFile(eq(dataset), any(), any(), any()))
+          .thenAnswer(
+              a -> {
+                Dataset dataset = a.getArgument(0);
+                FileLoadModel fileLoadModel = a.getArgument(1);
+                boolean shouldFail =
+                    files.stream()
+                        .filter(
+                            f ->
+                                f.model().getSourcePath().equals(fileLoadModel.getSourcePath())
+                                    && f.model()
+                                        .getTargetPath()
+                                        .equals(fileLoadModel.getTargetPath()))
+                        .findFirst()
+                        .map(FileToLoad::shouldFail)
+                        .orElse(true);
+                String fileId = a.getArgument(2);
+                GoogleBucketResource bucketResource = a.getArgument(3);
 
-              if (shouldFail) {
-                throw new StorageException(500, "Error from Google");
-              }
+                if (shouldFail) {
+                  throw new StorageException(500, "Error from Google");
+                }
 
-              String hashingString = fileLoadModel.getSourcePath() + fileLoadModel.getTargetPath();
-              if (dataset.hasPredictableFileIds()) {
-                fileId = UUID.nameUUIDFromBytes(hashingString.getBytes(Charsets.UTF_8)).toString();
-              }
-              return new FSFileInfo()
-                  .fileId(fileId)
-                  .cloudPath(
-                      "gs://%s/%s/%s/%s"
-                          .formatted(
-                              bucketResource.getName(),
-                              dataset.getId().toString(),
-                              fileId,
-                              getLastNameFromPath(fileLoadModel.getTargetPath())))
-                  .checksumMd5(DigestUtils.md5Hex(hashingString))
-                  .size((long) hashingString.length())
-                  .createdDate(Instant.now().toString());
-            });
+                String hashingString =
+                    fileLoadModel.getSourcePath() + fileLoadModel.getTargetPath();
+                if (dataset.hasPredictableFileIds()) {
+                  fileId =
+                      UUID.nameUUIDFromBytes(hashingString.getBytes(Charsets.UTF_8)).toString();
+                }
+                return new FSFileInfo()
+                    .fileId(fileId)
+                    .cloudPath(
+                        "gs://%s/%s/%s/%s"
+                            .formatted(
+                                bucketResource.getName(),
+                                dataset.getId().toString(),
+                                fileId,
+                                getLastNameFromPath(fileLoadModel.getTargetPath())))
+                    .checksumMd5(DigestUtils.md5Hex(hashingString))
+                    .size((long) hashingString.length())
+                    .createdDate(Instant.now().toString());
+              });
+    }
 
-    // Mock the copy operation for the files
-    when(gcsPdao.linkSelfHostedFile(any(), any(), any()))
-        .thenAnswer(
-            a -> {
-              FileLoadModel fileLoadModel = a.getArgument(0);
-              boolean shouldFail =
-                  files.stream()
-                      .filter(
-                          f ->
-                              f.model().getSourcePath().equals(fileLoadModel.getSourcePath())
-                                  && f.model()
-                                      .getTargetPath()
-                                      .equals(fileLoadModel.getTargetPath()))
-                      .findFirst()
-                      .map(FileToLoad::shouldFail)
-                      .orElse(true);
-              String fileId = a.getArgument(1);
+    if (selfHosted) {
+      // Mock the copy operation for the files
+      when(gcsPdao.linkSelfHostedFile(any(), any(), any()))
+          .thenAnswer(
+              a -> {
+                FileLoadModel fileLoadModel = a.getArgument(0);
+                boolean shouldFail =
+                    files.stream()
+                        .filter(
+                            f ->
+                                f.model().getSourcePath().equals(fileLoadModel.getSourcePath())
+                                    && f.model()
+                                        .getTargetPath()
+                                        .equals(fileLoadModel.getTargetPath()))
+                        .findFirst()
+                        .map(FileToLoad::shouldFail)
+                        .orElse(true);
+                String fileId = a.getArgument(1);
 
-              if (shouldFail) {
-                throw new StorageException(500, "Error from Google");
-              }
+                if (shouldFail) {
+                  throw new StorageException(500, "Error from Google");
+                }
 
-              String hashingString = fileLoadModel.getSourcePath() + fileLoadModel.getTargetPath();
-              if (dataset.hasPredictableFileIds()) {
-                fileId = UUID.nameUUIDFromBytes(hashingString.getBytes(Charsets.UTF_8)).toString();
-              }
-              return new FSFileInfo()
-                  .fileId(fileId)
-                  .cloudPath(fileLoadModel.getSourcePath())
-                  .checksumMd5(DigestUtils.md5Hex(hashingString))
-                  .size((long) hashingString.length())
-                  .createdDate(Instant.now().toString());
-            });
+                String hashingString =
+                    fileLoadModel.getSourcePath() + fileLoadModel.getTargetPath();
+                if (dataset.hasPredictableFileIds()) {
+                  fileId =
+                      UUID.nameUUIDFromBytes(hashingString.getBytes(Charsets.UTF_8)).toString();
+                }
+                return new FSFileInfo()
+                    .fileId(fileId)
+                    .cloudPath(fileLoadModel.getSourcePath())
+                    .checksumMd5(DigestUtils.md5Hex(hashingString))
+                    .size((long) hashingString.length())
+                    .createdDate(Instant.now().toString());
+              });
+    }
 
     // Instantiate the step
     return new IngestBulkGcpStep(

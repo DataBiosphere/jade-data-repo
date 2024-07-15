@@ -2,12 +2,13 @@ package bio.terra.service.dataset.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
@@ -24,8 +25,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-@Tag("bio.terra.common.category.Unit")
-public class IngestUtilsTest {
+@Tag(Unit.TAG)
+class IngestUtilsTest {
 
   @ParameterizedTest
   @EnumSource(names = {"CSV", "ARRAY", "JSON"})
@@ -34,12 +35,12 @@ public class IngestUtilsTest {
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), new IngestRequestModel().format(format));
     if (format == FormatEnum.CSV) {
       assertFalse(
-          format + " ingest is not considered json-type",
-          IngestUtils.isJsonTypeIngest(inputParameters));
+          IngestUtils.isJsonTypeIngest(inputParameters),
+          format + " ingest is not considered json-type");
     } else {
       assertTrue(
-          format + " ingest is considered json-type",
-          IngestUtils.isJsonTypeIngest(inputParameters));
+          IngestUtils.isJsonTypeIngest(inputParameters),
+          format + " ingest is considered json-type");
     }
   }
 
@@ -77,9 +78,9 @@ public class IngestUtilsTest {
   @MethodSource
   void testInvalidBlobUrl(String invalidFeature, String url) {
     assertThrows(
-        "Blob URL with " + invalidFeature + " is invalid",
         InvalidBlobURLException.class,
-        () -> IngestUtils.validateBlobAzureBlobFileURL(url));
+        () -> IngestUtils.validateBlobAzureBlobFileURL(url),
+        () -> "Blob URL with " + invalidFeature + " is invalid");
   }
 
   private static Stream<Arguments> testInvalidBlobUrl() {
@@ -106,23 +107,23 @@ public class IngestUtilsTest {
     // We should not find ourselves here: ingests default to append mode if unspecified.
     FlightMap flightMapNoUpdateStrategy = createFlightMap(null);
     assertFalse(
-        "Ingests with unspecified update strategy can specify their own row IDs",
-        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapNoUpdateStrategy));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapNoUpdateStrategy),
+        "Ingests with unspecified update strategy can specify their own row IDs");
 
     FlightMap flightMapAppend = createFlightMap(IngestRequestModel.UpdateStrategyEnum.APPEND);
     assertFalse(
-        "Ingests in append mode can specify their own row IDs",
-        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapAppend));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapAppend),
+        "Ingests in append mode can specify their own row IDs");
 
     FlightMap flightMapReplace = createFlightMap(IngestRequestModel.UpdateStrategyEnum.REPLACE);
     assertTrue(
-        "Ingests in replace mode will have any specified row IDs unset",
-        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapReplace));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapReplace),
+        "Ingests in replace mode will have any specified row IDs unset");
 
     FlightMap flightMapMerge = createFlightMap(IngestRequestModel.UpdateStrategyEnum.MERGE);
     assertTrue(
-        "Ingests in merge mode will have any specified row IDs unset",
-        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapMerge));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapMerge),
+        "Ingests in merge mode will have any specified row IDs unset");
   }
 
   @Test

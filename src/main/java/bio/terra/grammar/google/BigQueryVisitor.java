@@ -4,6 +4,7 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.SnapshotModel;
 import bio.terra.service.snapshotbuilder.query.TableNameGenerator;
 import java.util.Map;
 import java.util.Objects;
@@ -26,8 +27,12 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     String tableName = getNameFromContext(ctx.table_name());
     return String.format(
         "%s AS `%s`",
-        generateTableName(dataset, datasetName, tableName),
+        generateTableName(dataset.getDataProject(), bqDatasetName, tableName),
         generateAlias(bqDatasetName, tableName));
+  }
+
+  private static String generateTableName(String dataProject, String name, String tableName) {
+    return String.format("`%s.%s.%s`", dataProject, name, tableName);
   }
 
   @Override
@@ -39,14 +44,14 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
     return String.format("`%s`.%s", alias, columnName);
   }
 
-  public static TableNameGenerator bqTableName(DatasetModel dataset) {
-    return (tableName) -> generateTableName(dataset, dataset.getName(), tableName);
+  public static TableNameGenerator bqDatasetTableName(DatasetModel dataset) {
+    return tableName ->
+        generateTableName(
+            dataset.getDataProject(), prefixDatasetName(dataset.getName()), tableName);
   }
 
-  private static String generateTableName(
-      DatasetModel dataset, String datasetName, String tableName) {
-    return String.format(
-        "`%s.%s.%s`", dataset.getDataProject(), prefixDatasetName(datasetName), tableName);
+  public static TableNameGenerator bqSnapshotTableName(SnapshotModel snapshot) {
+    return tableName -> generateTableName(snapshot.getDataProject(), snapshot.getName(), tableName);
   }
 
   private static String prefixDatasetName(String datasetName) {

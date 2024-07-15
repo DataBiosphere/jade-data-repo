@@ -1,7 +1,7 @@
 package bio.terra.service.filedata;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.TestUtils;
@@ -9,38 +9,34 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.Dataset;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@Category(Unit.class)
-public class FileIdServiceTest {
+@Tag(Unit.TAG)
+@ExtendWith(MockitoExtension.class)
+class FileIdServiceTest {
 
   FileIdService service = new FileIdService();
 
   @Mock Dataset dataset;
 
-  @Before
-  public void setUp() throws Exception {
-    MockitoAnnotations.openMocks(this);
-  }
-
   @Test
-  public void testPredictableUUIDEquals() {
+  void testPredictableUUIDEquals() {
     when(dataset.hasPredictableFileIds()).thenReturn(true);
     FSItem fsItem1 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
 
     FSItem fsItem2 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
     assertEquals(
-        "IDs match",
         service.calculateFileId(dataset, fsItem1),
-        service.calculateFileId(dataset, fsItem2));
+        service.calculateFileId(dataset, fsItem2),
+        "IDs match");
   }
 
   @Test
-  public void testPredictableUUIDWithMissingFieldsFails() {
+  void testPredictableUUIDWithMissingFieldsFails() {
     TestUtils.assertError(
         NullPointerException.class,
         "A target path is required to create a file id",
@@ -56,21 +52,21 @@ public class FileIdServiceTest {
   }
 
   @Test
-  public void testPredictableUUIDNotEqualsWhenRandom() {
+  void testPredictableUUIDNotEqualsWhenRandom() {
     when(dataset.hasPredictableFileIds()).thenReturn(false);
     FSItem fsItem1 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
 
     FSItem fsItem2 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
     assertNotEquals(
-        "IDs don't match when using random ID mode",
         service.calculateFileId(dataset, fsItem1),
-        service.calculateFileId(dataset, fsItem2));
+        service.calculateFileId(dataset, fsItem2),
+        "IDs don't match when using random ID mode");
   }
 
   record TestCase(FSItem fsItem, FSFileInfo fsFileInfo) {}
 
   @Test
-  public void testPredictableUUIDNotEquals() {
+  void testPredictableUUIDNotEquals() {
     when(dataset.hasPredictableFileIds()).thenReturn(true);
     List<TestCase> testCases =
         Stream.of("/foo/bar/file1.txt", "/foo/bar/file2.txt")
@@ -91,9 +87,9 @@ public class FileIdServiceTest {
       TestCase tc1 = testCases.get(i);
       TestCase tc2 = testCases.get((i + 1) % testCases.size());
       assertNotEquals(
-          "IDs don't collide between:\n%s\nand\n%s".formatted(tc1.fsItem, tc2.fsItem),
           service.calculateFileId(dataset, tc1.fsItem),
-          service.calculateFileId(dataset, tc2.fsItem));
+          service.calculateFileId(dataset, tc2.fsItem),
+          () -> "IDs don't collide between:\n%s\nand\n%s".formatted(tc1.fsItem, tc2.fsItem));
     }
   }
 }

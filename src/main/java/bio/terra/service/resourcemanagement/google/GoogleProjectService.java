@@ -157,7 +157,6 @@ public class GoogleProjectService {
    *
    * @param googleProjectId google's id of the project
    * @param billingProfile previously authorized billing profile
-   * @param roleIdentityMapping permissions to set
    * @param region region of dataset/snapshot
    * @param labels labels to add to the project
    * @return project resource object
@@ -166,7 +165,6 @@ public class GoogleProjectService {
   public GoogleProjectResource initializeGoogleProject(
       String googleProjectId,
       BillingProfileModel billingProfile,
-      Map<String, List<String>> roleIdentityMapping,
       GoogleRegion region,
       Map<String, String> labels,
       CollectionType collectionType)
@@ -190,7 +188,8 @@ public class GoogleProjectService {
               + " with a different profile "
               + billingProfile.getId());
     } catch (GoogleResourceNotFoundException e) {
-      logger.info("no project resource found for projectId: {}", googleProjectId);
+      logger.info(
+          "no project resource found for projectId: {}, initializing one instead", googleProjectId);
     }
 
     // Otherwise this project needs to be initialized
@@ -198,8 +197,7 @@ public class GoogleProjectService {
     if (project == null) {
       throw new GoogleResourceException("Could not get project after handout");
     }
-    return initializeProject(
-        project, billingProfile, roleIdentityMapping, region, labels, collectionType);
+    return initializeProject(project, billingProfile, region, labels, collectionType);
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -229,7 +227,6 @@ public class GoogleProjectService {
   private GoogleProjectResource initializeProject(
       Project project,
       BillingProfileModel billingProfile,
-      Map<String, List<String>> roleIdentityMapping,
       GoogleRegion region,
       Map<String, String> labels,
       CollectionType collectionType)
@@ -249,8 +246,6 @@ public class GoogleProjectService {
     billingService.assignProjectBilling(billingProfile, googleProjectResource);
 
     enableServices(googleProjectResource, region);
-    resourceManagerService.updateIamPermissions(
-        roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
     resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);
 
     String projectName;

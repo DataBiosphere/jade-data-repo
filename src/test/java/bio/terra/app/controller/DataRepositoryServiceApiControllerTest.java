@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.TestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -32,9 +33,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = {DataRepositoryServiceApiController.class})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
-public class DataRepositoryServiceApiControllerTest {
+class DataRepositoryServiceApiControllerTest {
 
   private static final String GET_DRS_OBJECT_ENDPOINT = "/ga4gh/drs/v1/objects/{object_id}";
   private static final String GET_DRS_OBJECT_ACCESS_ENDPOINT =

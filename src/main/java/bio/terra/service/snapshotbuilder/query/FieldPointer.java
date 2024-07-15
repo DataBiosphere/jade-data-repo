@@ -5,69 +5,69 @@ import java.util.List;
 public class FieldPointer {
   private static final String ALL_FIELDS_COLUMN_NAME = "*";
 
-  private final TablePointer tablePointer;
+  private final SourcePointer sourcePointer;
   private final String columnName;
-  private final TablePointer foreignTablePointer;
+  private final SourcePointer foreignSourcePointer;
   private final String foreignKeyColumnName;
   private final String foreignColumnName;
   private final boolean joinCanBeEmpty;
   private final String sqlFunctionWrapper;
 
   private FieldPointer(
-      TablePointer tablePointer,
+      SourcePointer sourcePointer,
       String columnName,
-      TablePointer foreignTablePointer,
+      SourcePointer foreignSourcePointer,
       String foreignKeyColumnName,
       String foreignColumnName,
       boolean joinCanBeEmpty,
       String sqlFunctionWrapper) {
-    this.tablePointer = tablePointer;
+    this.sourcePointer = sourcePointer;
     this.columnName = columnName;
-    this.foreignTablePointer = foreignTablePointer;
+    this.foreignSourcePointer = foreignSourcePointer;
     this.foreignKeyColumnName = foreignKeyColumnName;
     this.foreignColumnName = foreignColumnName;
     this.joinCanBeEmpty = joinCanBeEmpty;
     this.sqlFunctionWrapper = sqlFunctionWrapper;
   }
 
-  public FieldPointer(TablePointer tablePointer, String columnName, String sqlFunctionWrapper) {
-    this(tablePointer, columnName, null, null, null, false, sqlFunctionWrapper);
+  public FieldPointer(SourcePointer sourcePointer, String columnName, String sqlFunctionWrapper) {
+    this(sourcePointer, columnName, null, null, null, false, sqlFunctionWrapper);
   }
 
-  public FieldPointer(TablePointer tablePointer, String columnName) {
-    this(tablePointer, columnName, null);
+  public FieldPointer(SourcePointer sourcePointer, String columnName) {
+    this(sourcePointer, columnName, null);
   }
 
-  public static FieldPointer allFields(TablePointer tablePointer) {
-    return new FieldPointer(tablePointer, ALL_FIELDS_COLUMN_NAME);
+  public static FieldPointer allFields(SourcePointer sourcePointer) {
+    return new FieldPointer(sourcePointer, ALL_FIELDS_COLUMN_NAME);
   }
 
   public static FieldPointer foreignColumn(
-      TablePointer foreignTablePointer, String foreignColumnName) {
-    return new FieldPointer(null, null, foreignTablePointer, null, foreignColumnName, false, null);
+      SourcePointer foreignSourcePointer, String foreignColumnName) {
+    return new FieldPointer(null, null, foreignSourcePointer, null, foreignColumnName, false, null);
   }
 
   public FieldVariable buildVariable(
-      TableVariable primaryTable, List<TableVariable> tableVariables) {
-    return buildVariable(primaryTable, tableVariables, null);
+      SourceVariable primaryTable, List<SourceVariable> sourceVariables) {
+    return buildVariable(primaryTable, sourceVariables, null);
   }
 
   public FieldVariable buildVariable(
-      TableVariable primaryTable, List<TableVariable> tableVariables, String alias) {
+      SourceVariable primaryTable, List<SourceVariable> sourceVariables, String alias) {
     if (isForeignKey()) {
       FieldVariable primaryTableColumn =
-          new FieldVariable(new FieldPointer(tablePointer, columnName), primaryTable);
-      TableVariable foreignTable =
+          new FieldVariable(new FieldPointer(sourcePointer, columnName), primaryTable);
+      SourceVariable foreignTable =
           joinCanBeEmpty
-              ? TableVariable.forLeftJoined(
-                  foreignTablePointer, foreignKeyColumnName, primaryTableColumn)
-              : TableVariable.forJoined(
-                  foreignTablePointer, foreignKeyColumnName, primaryTableColumn);
+              ? SourceVariable.forLeftJoined(
+                  foreignSourcePointer, foreignKeyColumnName, primaryTableColumn)
+              : SourceVariable.forJoined(
+                  foreignSourcePointer, foreignKeyColumnName, primaryTableColumn);
       // TODO: Check if there is already a table variable with the same JOIN criteria, so we don't
       // JOIN the same table for each field we need from it.
-      tableVariables.add(foreignTable);
+      sourceVariables.add(foreignTable);
       return new FieldVariable(
-          new FieldPointer(foreignTablePointer, foreignColumnName, sqlFunctionWrapper),
+          new FieldPointer(foreignSourcePointer, foreignColumnName, sqlFunctionWrapper),
           foreignTable,
           alias);
     } else {
@@ -76,7 +76,7 @@ public class FieldPointer {
   }
 
   public boolean isForeignKey() {
-    return foreignTablePointer != null;
+    return foreignSourcePointer != null;
   }
 
   public String getColumnName() {

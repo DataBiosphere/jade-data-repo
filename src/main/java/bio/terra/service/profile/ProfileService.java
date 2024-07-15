@@ -275,7 +275,7 @@ public class ProfileService {
   }
 
   // Verify user access to the billing account during billing profile creation
-  public void verifyAccount(String billingAccountId, AuthenticatedUserRequest user) {
+  public void verifyGoogleBillingAccount(String billingAccountId, AuthenticatedUserRequest user) {
     if (!googleBillingService.canAccess(user, billingAccountId)) {
       throw new InaccessibleBillingAccountException(
           "The user '"

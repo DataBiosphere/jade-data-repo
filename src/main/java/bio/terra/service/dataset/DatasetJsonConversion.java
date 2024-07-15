@@ -19,7 +19,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,15 +33,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 public final class DatasetJsonConversion {
-  private final SnapshotBuilderSettingsDao snapshotBuilderSettingsDao;
 
   private final MetadataDataAccessUtils metadataDataAccessUtils;
 
-  public DatasetJsonConversion(
-      MetadataDataAccessUtils metadataDataAccessUtils,
-      SnapshotBuilderSettingsDao snapshotBuilderSettingsDao) {
+  public DatasetJsonConversion(MetadataDataAccessUtils metadataDataAccessUtils) {
     this.metadataDataAccessUtils = metadataDataAccessUtils;
-    this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
   }
 
   public static Dataset datasetRequestToDataset(
@@ -145,11 +140,6 @@ public final class DatasetJsonConversion {
     if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
       datasetModel.accessInformation(
           metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
-    }
-
-    if (include.contains(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)) {
-      datasetModel.snapshotBuilderSettings(
-          snapshotBuilderSettingsDao.getSnapshotBuilderSettingsByDatasetId(dataset.getId()));
     }
 
     return datasetModel;
@@ -342,11 +332,12 @@ public final class DatasetJsonConversion {
 
   private static List<AssetRelationship> processAssetRelationships(
       List<String> assetRelationshipNames, Map<String, Relationship> relationships) {
-    return Collections.unmodifiableList(
-        relationships.entrySet().stream()
-            .filter(map -> assetRelationshipNames.contains(map.getKey()))
-            .map(entry -> new AssetRelationship().datasetRelationship(entry.getValue()))
-            .collect(Collectors.toList()));
+    return assetRelationshipNames.stream()
+        .filter(relationships::containsKey)
+        .map(
+            relationshipName ->
+                new AssetRelationship().datasetRelationship(relationships.get(relationshipName)))
+        .toList();
   }
 
   public static AssetModel assetModelFromAssetSpecification(AssetSpecification spec) {

@@ -9,6 +9,7 @@ import static com.azure.storage.blob.models.CopyStatusType.SUCCESS;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import bio.terra.common.category.Unit;
 import com.azure.core.util.polling.LongRunningOperationStatus;
 import com.azure.core.util.polling.PollResponse;
 import com.azure.storage.blob.models.BlobCopyInfo;
@@ -22,7 +23,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 class BlobContainerCopyInfoTest {
 
   private static Stream<Arguments> getCopyStatusScenario() {

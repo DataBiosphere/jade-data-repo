@@ -6,6 +6,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.ValidationUtils;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotsApi;
@@ -19,6 +20,11 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCountResponse;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -34,13 +40,14 @@ import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -80,6 +87,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   private final FileService fileService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
+  private final SnapshotBuilderService snapshotBuilderService;
 
   public SnapshotsApiController(
       HttpServletRequest request,
@@ -90,7 +98,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       IngestRequestValidator ingestRequestValidator,
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-      AssetModelValidator assetModelValidator) {
+      AssetModelValidator assetModelValidator,
+      SnapshotBuilderService snapshotBuilderService) {
     this.request = request;
     this.jobService = jobService;
     this.snapshotRequestValidator = snapshotRequestValidator;
@@ -100,6 +109,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     this.fileService = fileService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
+    this.snapshotBuilderService = snapshotBuilderService;
   }
 
   @InitBinder
@@ -113,32 +123,21 @@ public class SnapshotsApiController implements SnapshotsApi {
     return authenticatedUserRequestFactory.from(request);
   }
 
-  // -- snapshot --
-  private List<UUID> getUnauthorizedSources(
-      List<UUID> snapshotSourceDatasetIds, AuthenticatedUserRequest userReq) {
-    return snapshotSourceDatasetIds.stream()
-        .filter(
-            sourceId ->
-                !iamService.isAuthorized(
-                    userReq, IamResourceType.DATASET, sourceId.toString(), IamAction.LINK_SNAPSHOT))
-        .collect(Collectors.toList());
-  }
-
   @Override
   public ResponseEntity<JobModel> createSnapshot(
       @Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<UUID> snapshotSourceDatasetIds =
-        snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotRequestModel);
-    // TODO: auth should be put into flight
-    List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
-    if (unauthorized.isEmpty()) {
-      String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
-      // we can retrieve the job we just created
-      return jobToResponse(jobService.retrieveJob(jobId, userReq));
+
+    if (snapshotRequestModel.getContents().size() > 1) {
+      throw new BadRequestException("Snapshot request must contain at most one source.");
     }
-    throw new IamForbiddenException(
-        "User is not authorized to create snapshots for these datasets " + unauthorized);
+
+    Dataset dataset = snapshotService.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, dataset.getId().toString(), IamAction.LINK_SNAPSHOT);
+    String jobId = snapshotService.createSnapshot(snapshotRequestModel, dataset, userReq);
+    // we can retrieve the job we just created
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override
@@ -407,6 +406,41 @@ public class SnapshotsApiController implements SnapshotsApi {
     return ResponseEntity.ok(snapshotService.updateTags(id, tagUpdateRequest));
   }
 
+  @Override
+  public ResponseEntity<SnapshotBuilderConceptsResponse> getConceptChildren(
+      UUID id, Integer conceptId) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId, userRequest));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderConceptsResponse> enumerateConcepts(
+      UUID id, Integer domainId, String filterText) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(
+        snapshotBuilderService.enumerateConcepts(id, domainId, filterText, userRequest));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderGetConceptHierarchyResponse> getConceptHierarchy(
+      UUID id, Integer conceptId) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(
+        snapshotBuilderService.getConceptHierarchy(id, conceptId, userRequest));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderCountResponse> getSnapshotBuilderCount(
+      UUID id, SnapshotBuilderCountRequest body) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifySnapshotAuthorization(userRequest, id.toString(), IamAction.READ_AGGREGATE_DATA);
+    return ResponseEntity.ok(
+        snapshotBuilderService.getCountResponse(id, body.getCohorts(), userRequest));
+  }
+
   private void verifySnapshotAuthorization(
       AuthenticatedUserRequest userReq, String resourceId, IamAction action) {
     IamResourceType resourceType = IamResourceType.DATASNAPSHOT;
@@ -422,5 +456,38 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.retrieveSnapshotSummary(UUID.fromString(resourceId));
     // Verify snapshot permissions
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, resourceId, actions);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderSettings> getSnapshotSnapshotBuilderSettings(UUID id) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(),
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.GET_SNAPSHOT_BUILDER_SETTINGS);
+    return ResponseEntity.ok(snapshotService.getSnapshotBuilderSettings(id));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotBuilderSettings> updateSnapshotSnapshotBuilderSettings(
+      UUID id, SnapshotBuilderSettings settings) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(),
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT);
+    snapshotService.updateSnapshotBuilderSettings(id, settings);
+    return ResponseEntity.ok(settings);
+  }
+
+  @Override
+  public ResponseEntity<Void> deleteSnapshotSnapshotBuilderSettings(UUID id) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(),
+        IamResourceType.DATASNAPSHOT,
+        id.toString(),
+        IamAction.UPDATE_SNAPSHOT);
+    snapshotService.deleteSnapshotBuilderSettings(id);
+    return ResponseEntity.ok().build();
   }
 }

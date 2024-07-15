@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
-import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -55,7 +54,18 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCriteria;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
+import bio.terra.model.SnapshotBuilderDomainCriteria;
+import bio.terra.model.SnapshotBuilderParentConcept;
+import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
@@ -70,10 +80,10 @@ import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility;
 import bio.terra.service.filedata.google.util.GcsBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -107,6 +117,7 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -136,23 +147,25 @@ public class AzureIntegrationTest extends UsersBase {
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private SamFixtures samFixtures;
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
-  @Autowired private SynapseUtils synapseUtils;
-  @Autowired private AzureSynapsePdao azureSynapsePdao;
   @Autowired private JsonLoader jsonLoader;
   @Rule @Autowired public TestJobWatcher testWatcher;
 
-  private String stewardToken;
   private User steward;
   private User admin;
   private UUID datasetId;
+  private UUID releaseSnapshotId;
+  private String datasetName;
   private List<UUID> snapshotIds;
+  private String dac;
+
+  private List<UUID> snapshotAccessRequestIds;
   private UUID profileId;
   private AzureBlobIOTestUtility azureBlobIOTestUtility;
   private GcsBlobIOTestUtility gcsBlobIOTestUtility;
-  private RequestRetryOptions retryOptions;
   private Set<String> storageAccounts;
 
   @Before
@@ -160,11 +173,10 @@ public class AzureIntegrationTest extends UsersBase {
     super.setup(false);
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
-    stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
     admin = admin("hermione");
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
-    retryOptions =
+    RequestRetryOptions retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
             azureResourceConfiguration.maxRetries(),
@@ -180,11 +192,15 @@ public class AzureIntegrationTest extends UsersBase {
             retryOptions);
     gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
     snapshotIds = new ArrayList<>();
+    snapshotAccessRequestIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
   }
 
   @After
   public void teardown() throws Exception {
+    if (releaseSnapshotId != null) {
+      snapshotIds.add(releaseSnapshotId);
+    }
     logger.info(
         "Teardown: trying to delete snapshots {}, dataset {}, billing profile {}",
         snapshotIds,
@@ -193,15 +209,27 @@ public class AzureIntegrationTest extends UsersBase {
 
     dataRepoFixtures.resetConfig(steward);
 
-    if (snapshotIds != null) {
-      for (UUID snapshotId : snapshotIds) {
-        dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-      }
+    for (UUID snapshotAccessRequestId : snapshotAccessRequestIds) {
+      samFixtures.deleteSnapshotAccessRequest(steward, snapshotAccessRequestId);
+    }
+
+    for (UUID snapshotId : snapshotIds) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
     }
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);
     }
     if (profileId != null) {
+      // TODO - https://broadworkbench.atlassian.net/browse/DCJ-228
+      // As we move towards running smoke and integration tests in BEEs, we would like to do so
+      // without relying (directly or indirectly) on a pre-seeded Admin Firecloud group set via
+      // property sam.adminsGroupEmail.
+      // Only Datarepo admins are allowed to delete profiles with deleteCloudResources=true,
+      // so this test currently relies on the presence of this group to successfully clean up its
+      // billing profile.
+      // If we are instead leveraging Janitor via Cloud Resource Library to clean up Azure resources
+      // generated by our integration tests, its owner can delete the profile in the standard way,
+      // rather than needing an admin to do it.
       dataRepoFixtures.deleteProfileWithCloudResourceDelete(admin, profileId);
     }
     if (storageAccounts != null) {
@@ -209,6 +237,10 @@ public class AzureIntegrationTest extends UsersBase {
     }
     azureBlobIOTestUtility.teardown();
     gcsBlobIOTestUtility.teardown();
+
+    if (dac != null) {
+      samFixtures.deleteGroup(steward, dac);
+    }
   }
 
   @Test
@@ -219,7 +251,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE, false, region);
+            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE, false, region);
     datasetId = summaryModel.getId();
     String storageAccountName = recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     logger.info("dataset id is " + summaryModel.getId());
@@ -327,7 +359,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Create and delete a dataset and make sure that the profile still can't be deleted
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
@@ -344,56 +376,288 @@ public class AzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
   }
 
-  private void ingestOmopTable(String tableName, String ingestFile, long expectedRowCount)
-      throws Exception {
-    List<Map<String, Object>> data;
-    try {
-      data = jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
-    } catch (Exception e) {
-      throw new RuntimeException("Error building ingest request", e);
+  record IngestSource(String tableName, String ingestFile, long expectedRowCount) {}
+
+  static final List<IngestSource> TABLES =
+      List.of(
+          new IngestSource("concept", "omop/concept-table-data.jsonl", 7),
+          new IngestSource("person", "omop/person-table-data.jsonl", 23),
+          new IngestSource("relationship", "omop/relationship.jsonl", 2),
+          new IngestSource("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10),
+          new IngestSource(
+              "condition_occurrence", "omop/condition-occurrence-table-data.jsonl", 53),
+          new IngestSource(
+              "concept_relationship", "omop/concept-relationship-table-data.jsonl", 4));
+
+  class Ingester {
+    private final IngestSource source;
+    private DataRepoResponse<JobModel> result;
+
+    Ingester(IngestSource source) {
+      this.source = source;
     }
-    var ingestRequestArray =
-        dataRepoFixtures
-            .buildSimpleIngest(tableName, data)
-            .profileId(profileId)
-            .ignoreUnknownValues(true);
-    var ingestResult = dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestArray);
-    assertThat("row count matches", ingestResult.getRowCount(), equalTo(expectedRowCount));
+
+    void ingest() throws Exception {
+      String tableName = source.tableName();
+      List<Map<String, Object>> data =
+          jsonLoader.loadObjectAsStream(source.ingestFile(), new TypeReference<>() {});
+      var ingestRequestArray =
+          dataRepoFixtures
+              .buildSimpleIngest(tableName, data)
+              .profileId(profileId)
+              .ignoreUnknownValues(true);
+      result = dataRepoFixtures.ingestJsonDataLaunch(steward, datasetId, ingestRequestArray);
+    }
+
+    void waitForCompletion() throws Exception {
+      var ingestResult =
+          dataRepoFixtures.waitForIngestResponse(steward, result).getResponseObject().orElseThrow();
+      assertThat("row count matches", ingestResult.getRowCount(), equalTo(source.expectedRowCount));
+    }
   }
 
   private void populateOmopTable() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    datasetName = summaryModel.getName();
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     // Ingest Tabular data
-    ingestOmopTable("concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable("concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
+    var ingesters = TABLES.stream().map(Ingester::new).toList();
+    for (Ingester ingester : ingesters) {
+      ingester.ingest();
+    }
+    for (Ingester ingester : ingesters) {
+      ingester.waitForCompletion();
+    }
+
+    // Create a snapshot
+    SnapshotRequestModel requestSnapshotRelease =
+        jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
+    requestSnapshotRelease.getContents().get(0).datasetName(summaryModel.getName());
+
+    SnapshotSummaryModel snapshotSummaryAll =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward, summaryModel.getName(), profileId, requestSnapshotRelease);
+    UUID snapshotByFullViewId = snapshotSummaryAll.getId();
+    releaseSnapshotId = snapshotByFullViewId;
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
+    assertThat(
+        "Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestSnapshotRelease.getName()));
+
+    // Add settings to snapshot
+    dataRepoFixtures.updateSettings(steward, releaseSnapshotId, "omop/settings.json");
+  }
+
+  @Test
+  public void testSnapshotCreateFromRequest() throws Exception {
+    populateOmopTable();
+
+    SnapshotAccessRequestResponse approvedSnapshotAccessRequest =
+        approveSnapshotAccessRequest(makeSnapshotAccessRequest().getId());
+
+    SnapshotSummaryModel snapshotSummaryByRequest =
+        makeSnapshotFromRequest(approvedSnapshotAccessRequest);
+
+    String columnName = "datarepo_row_id";
+    List<Object> personSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotSummaryByRequest.getId(), "person", 0, 100, null, columnName)
+            .getResult();
+    List<Object> conditionOccurrenceSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward,
+                snapshotSummaryByRequest.getId(),
+                "condition_occurrence",
+                0,
+                100,
+                null,
+                columnName)
+            .getResult();
+    List<Object> conceptSnapshotRows =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotSummaryByRequest.getId(), "concept", 0, 100, null, columnName)
+            .getResult();
+    assertThat(personSnapshotRows, hasSize(23));
+    // full table has 53 rows but only 49 map to existing person ids
+    assertThat(conditionOccurrenceSnapshotRows, hasSize(49));
+    // full table has 7 rows but only 5 are in the condition_occurrence table
+    assertThat(conceptSnapshotRows, hasSize(5));
+
+    // assert the snapshot access request has been updated
+    SnapshotAccessRequestResponse updatedSnapshotAccessRequest =
+        dataRepoFixtures.getSnapshotAccessRequest(steward, approvedSnapshotAccessRequest.getId());
+    assertNotNull(
+        "Snapshot access request flightId is set", updatedSnapshotAccessRequest.getFlightid());
+    assertThat(
+        "Snapshot access request createdSnapshotId is correct",
+        updatedSnapshotAccessRequest.getCreatedSnapshotId(),
+        is(snapshotSummaryByRequest.getId()));
+  }
+
+  private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
+    String filename = "omop/snapshot-access-request.json";
+    SnapshotAccessRequestResponse accessRequest =
+        dataRepoFixtures.createSnapshotAccessRequest(steward, releaseSnapshotId, filename);
+    assertThat("Snapshot access request exists", accessRequest, notNullValue());
+    snapshotAccessRequestIds.add(accessRequest.getId());
+    return accessRequest;
+  }
+
+  private SnapshotSummaryModel makeSnapshotFromRequest(
+      SnapshotAccessRequestResponse snapshotAccessRequestResponse) throws Exception {
+    SnapshotRequestModel requestSnapshot =
+        jsonLoader.loadObject(
+            "omop/snapshot-request-model-by-request-id.json", SnapshotRequestModel.class);
+    requestSnapshot.getContents().get(0).setDatasetName(datasetName);
+    requestSnapshot
+        .getContents()
+        .get(0)
+        .getRequestIdSpec()
+        .setSnapshotRequestId(snapshotAccessRequestResponse.getId());
+
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward, datasetName, profileId, requestSnapshot);
+    UUID snapshotByRequestId = snapshotSummary.getId();
+    snapshotIds.add(snapshotByRequestId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
+    assertThat(
+        "Snapshot exists",
+        snapshotSummary.getName(),
+        equalTo(
+            String.format(
+                    "%s_%s",
+                    snapshotAccessRequestResponse.getSnapshotName(),
+                    snapshotAccessRequestResponse.getId())
+                .replace('-', '_')));
+    return snapshotSummary;
+  }
+
+  private SnapshotAccessRequestResponse approveSnapshotAccessRequest(UUID snapshotRequestId)
+      throws Exception {
+    SnapshotAccessRequestResponse approvedAccessRequest =
+        dataRepoFixtures.approveSnapshotAccessRequest(steward, snapshotRequestId);
+    assertThat(
+        "Snapshot access request is approved",
+        approvedAccessRequest.getStatus(),
+        equalTo(SnapshotAccessRequestStatus.APPROVED));
+    return approvedAccessRequest;
   }
 
   @Test
   public void testSnapshotBuilder() throws Exception {
     populateOmopTable();
 
-    // Test getConcepts
-    var getConceptResponse = dataRepoFixtures.getConcepts(steward, datasetId, 2);
-    List<String> getConceptNames =
-        getConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    assertThat(
-        "expected concepts are returned",
-        getConceptNames,
-        containsInAnyOrder("concept1", "concept3"));
+    var concept1 =
+        new SnapshotBuilderConcept().name("concept1").id(1).count(22).code("11").hasChildren(false);
+    var concept3 =
+        new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
 
-    // TODO - re-enable this test
-    // Test searchConcepts
-    //    var searchConceptResponse =
-    //        dataRepoFixtures.searchConcepts(steward, datasetId, "Condition", "concept1");
-    //    List<String> searchConceptNames =
-    //
-    // searchConceptResponse.getResult().stream().map(SnapshotBuilderConcept::getName).toList();
-    //    assertThat("expected concepts are returned", searchConceptNames, contains("concept1"));
+    getConceptChildrenTest(concept1, concept3);
+    enumerateConceptTest(concept1);
+    getConceptHierarchyTest(concept1, concept3);
+  }
+
+  private void enumerateConceptTest(SnapshotBuilderConcept concept1) throws Exception {
+    var enumerateConceptsResult =
+        dataRepoFixtures.enumerateConcepts(steward, releaseSnapshotId, 19, concept1.getName());
+    // A concept returned by enumerate concepts always has hasChildren = true, even if it doesn't
+    // have children.
+    var concept =
+        new SnapshotBuilderConcept()
+            .name(concept1.getName())
+            .id(concept1.getId())
+            .count(concept1.getCount())
+            .code(concept1.getCode())
+            .hasChildren(true);
+    assertThat(enumerateConceptsResult.getResult(), CoreMatchers.is(List.of(concept)));
+  }
+
+  private void getConceptHierarchyTest(
+      SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
+    var enumerateConceptsResult =
+        dataRepoFixtures.getConceptHierarchy(steward, releaseSnapshotId, 3);
+    assertThat(
+        enumerateConceptsResult.getResult(),
+        CoreMatchers.is(
+            List.of(
+                new SnapshotBuilderParentConcept()
+                    .parentId(2)
+                    .children(List.of(concept1, concept3)))));
+  }
+
+  private void getConceptChildrenTest(
+      SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
+    var getConceptResponse = dataRepoFixtures.getConceptChildren(steward, releaseSnapshotId, 2);
+    assertThat(getConceptResponse.getResult(), CoreMatchers.is(List.of(concept1, concept3)));
+
+    getCountResponseTest();
+    getCountResponseFuzzyValuesTest();
+    getCountResponseZeroCaseTest();
+  }
+
+  private void getCountResponseTest() throws Exception {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataListCriteria()
+                .values(List.of(0))
+                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                .id(1),
+            new SnapshotBuilderProgramDataRangeCriteria()
+                .high(1960)
+                .low(1940)
+                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                .id(0),
+            new SnapshotBuilderDomainCriteria()
+                .conceptId(1)
+                .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
+                .id(19));
+    testRollupCountsWithCriteriaAndExpected(criteria, 20);
+  }
+
+  private void getCountResponseZeroCaseTest() throws Exception {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataRangeCriteria()
+                .high(1911)
+                .low(1911)
+                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                .id(0));
+    testRollupCountsWithCriteriaAndExpected(criteria, 0);
+  }
+
+  private void getCountResponseFuzzyValuesTest() throws Exception {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataListCriteria()
+                .values(List.of(8532))
+                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                .id(1));
+    testRollupCountsWithCriteriaAndExpected(criteria, 19);
+  }
+
+  private void testRollupCountsWithCriteriaAndExpected(
+      List<SnapshotBuilderCriteria> criteria, int expectedParticipants) throws Exception {
+    SnapshotBuilderCountRequest request =
+        new SnapshotBuilderCountRequest()
+            .cohorts(
+                List.of(
+                    new SnapshotBuilderCohort()
+                        .criteriaGroups(
+                            List.of(
+                                new SnapshotBuilderCriteriaGroup()
+                                    .meetAll(true)
+                                    .mustMeet(true)
+                                    .criteria(criteria)))));
+    var rollupCountsResponse =
+        dataRepoFixtures.getRollupCounts(steward, releaseSnapshotId, request);
+    assertThat(rollupCountsResponse.getResult().getTotal(), is(expectedParticipants));
   }
 
   @Test
@@ -404,7 +668,7 @@ public class AzureIntegrationTest extends UsersBase {
     String sourceFileGcs = gcsBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
@@ -820,9 +1084,16 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotByRowIdModel.setContents(List.of(contentsModel));
 
     // -------- Create Snapshot by full view ------
+
+    // create Sam Group
+    String groupName = UUID.randomUUID().toString();
+    samFixtures.addGroup(steward, groupName);
+    dac = groupName;
+
     SnapshotRequestModel requestModelAll =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
     requestModelAll.getContents().get(0).datasetName(summaryModel.getName());
+    requestModelAll.dataAccessControlGroups(List.of(groupName));
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -831,6 +1102,12 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotIds.add(snapshotByFullViewId);
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
+    List<String> dacs =
+        samFixtures.getAuthDomainForResource(
+            steward,
+            IamResourceType.DATASNAPSHOT.getSamResourceName(),
+            String.valueOf(snapshotByFullViewId));
+    assertThat("Snapshot has the expected DAC", dacs, containsInAnyOrder(groupName));
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =
@@ -1240,7 +1517,7 @@ public class AzureIntegrationTest extends UsersBase {
     String sourceFile = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
     BulkLoadFileModel fileLoadModel =

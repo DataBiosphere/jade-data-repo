@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FlightTestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
@@ -41,8 +42,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class DatasetIngestFlightTest {
+@Tag(Unit.TAG)
+class DatasetIngestFlightTest {
   @Mock private ApplicationContext context;
   @Mock private DatasetSummary datasetSummary;
   @Mock private ConfigurationService configurationService;
@@ -73,7 +74,7 @@ public class DatasetIngestFlightTest {
 
   @ParameterizedTest
   @MethodSource
-  void testDatasetIngestValidatesFileAccess(
+  void testDatasetIngestValidationSteps(
       CloudPlatform cloudPlatform, FormatEnum format, boolean bulkMode) {
     when(datasetSummary.getStorageCloudPlatform()).thenReturn(cloudPlatform);
 
@@ -135,9 +136,24 @@ public class DatasetIngestFlightTest {
           stepNames,
           hasItems(expectedIndirectFileValidationStep));
     }
+
+    if (CloudPlatformWrapper.of(cloudPlatform).isAzure()) {
+      assertThat(
+          flightDescription
+              + " validates tabular data and file references from scratch table before publishing",
+          stepNames,
+          containsInRelativeOrder(
+              "IngestCreateIngestRequestDataSourceStep",
+              "IngestCreateTargetDataSourceStep",
+              "IngestCreateScratchParquetFilesStep",
+              "IngestValidateScratchTableStep",
+              "IngestValidateScratchTableFilerefsStep",
+              "IngestCreateParquetFilesStep",
+              "IngestCleanAzureStep"));
+    }
   }
 
-  private static Stream<Arguments> testDatasetIngestValidatesFileAccess() {
+  private static Stream<Arguments> testDatasetIngestValidationSteps() {
     List<Arguments> arguments = new ArrayList<>();
     for (var platform : CloudPlatform.values()) {
       for (var format : FormatEnum.values()) {

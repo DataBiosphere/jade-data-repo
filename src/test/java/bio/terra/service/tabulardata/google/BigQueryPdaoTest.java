@@ -8,6 +8,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
@@ -27,13 +29,25 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
+import bio.terra.model.SnapshotBuilderCriteria;
+import bio.terra.model.SnapshotBuilderCriteriaGroup;
+import bio.terra.model.SnapshotBuilderDomainCriteria;
+import bio.terra.model.SnapshotBuilderParentConcept;
+import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
+import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.model.TransactionModel.StatusEnum;
 import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetTable;
@@ -46,6 +60,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -83,8 +98,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
 
 @RunWith(SpringRunner.class)
@@ -103,6 +120,7 @@ public class BigQueryPdaoTest {
   @Autowired private BigQueryTransactionPdao bigQueryTransactionPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
+  @Autowired private SnapshotBuilderSettingsDao settingsDao;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
   @Autowired private GoogleResourceManagerService resourceManagerService;
@@ -120,6 +138,8 @@ public class BigQueryPdaoTest {
   private final List<Dataset> bqDatasetsToDelete = new ArrayList<>();
 
   private final List<BlobInfo> blobsToDelete = new ArrayList<>();
+
+  private DatasetSummaryModel datasetSummaryModel;
 
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
   private static final AuthenticatedUserRequest TEST_USER =
@@ -223,10 +243,9 @@ public class BigQueryPdaoTest {
         datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
 
     // Create a snapshot!
-    DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
+    DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
     SnapshotSummaryModel snapshotSummary =
-        connectedOperations.createSnapshot(
-            datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
+        connectedOperations.createSnapshot(datasetSummary, "ingest-test-snapshot-by-date.json", "");
     SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
     BigQueryProject bigQuerySnapshotProject =
@@ -283,40 +302,229 @@ public class BigQueryPdaoTest {
     }
   }
 
-  private void ingestOmopTable(
-      Dataset dataset, String tableName, String ingestFile, int expectedRowCount) throws Exception {
-    List<Map<String, Object>> data =
-        jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
-    var ingestRequestArray =
-        new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.ARRAY)
-            .ignoreUnknownValues(false)
-            .maxBadRecords(0)
-            .table(tableName)
-            .records(List.of(data.toArray()));
-    connectedOperations.ingestTableSuccess(dataset.getId(), ingestRequestArray);
-    connectedOperations.checkTableRowCount(dataset, tableName, PDAO_PREFIX, expectedRowCount);
+  record IngestSource(String tableName, String ingestFile, int expectedRowCount) {}
+
+  static final List<IngestSource> TABLES =
+      List.of(
+          new IngestSource("concept", "omop/concept-table-data.jsonl", 7),
+          new IngestSource("person", "omop/person-table-data.jsonl", 23),
+          new IngestSource("relationship", "omop/relationship.jsonl", 2),
+          new IngestSource("concept_ancestor", "omop/concept-ancestor-table-data.jsonl", 10),
+          new IngestSource(
+              "condition_occurrence", "omop/condition-occurrence-table-data.jsonl", 53),
+          new IngestSource(
+              "concept_relationship", "omop/concept-relationship-table-data.jsonl", 4));
+
+  class Ingester {
+    private final IngestSource source;
+    private MvcResult result;
+
+    Ingester(IngestSource source) {
+      this.source = source;
+    }
+
+    void ingest(Dataset dataset) throws Exception {
+      String tableName = source.tableName();
+      List<Map<String, Object>> data =
+          jsonLoader.loadObjectAsStream(source.ingestFile(), new TypeReference<>() {});
+      var ingestRequestArray =
+          new IngestRequestModel()
+              .format(IngestRequestModel.FormatEnum.ARRAY)
+              .ignoreUnknownValues(false)
+              .maxBadRecords(0)
+              .table(tableName)
+              .records(List.of(data.toArray()));
+      result = connectedOperations.ingestTableRaw(dataset.getId(), ingestRequestArray, null);
+    }
+
+    void waitForCompletion(Dataset dataset) throws Exception {
+      MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+      connectedOperations.checkIngestTableResponse(response);
+      connectedOperations.checkTableRowCount(
+          dataset, source.tableName, PDAO_PREFIX, source.expectedRowCount());
+    }
   }
 
-  private Dataset stageOmopDataset() throws Exception {
-    Dataset dataset = readDataset("omop/it-dataset-omop.json");
+  private Snapshot stageOmopData() throws Exception {
+    Dataset dataset = readDataset("omop/it-dataset-omop.jsonl");
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
-
     // Stage tabular data for ingest.
-    ingestOmopTable(dataset, "concept", "omop/concept-table-data.json", 3);
-    ingestOmopTable(dataset, "concept_ancestor", "omop/concept-ancestor-table-data.json", 2);
-    return dataset;
+    var ingesters = TABLES.stream().map(Ingester::new).toList();
+    for (Ingester ingester : ingesters) {
+      ingester.ingest(dataset);
+    }
+    for (Ingester ingester : ingesters) {
+      ingester.waitForCompletion(dataset);
+    }
+
+    datasetSummaryModel = dataset.getDatasetSummary().toModel();
+    SnapshotSummaryModel snapshotSummary =
+        connectedOperations.createSnapshot(
+            datasetSummaryModel, "omop/release-snapshot-request.json", "");
+    var settings = jsonLoader.loadObject("omop/settings.json", SnapshotBuilderSettings.class);
+    settingsDao.upsertBySnapshotId(snapshotSummary.getId(), settings);
+    return snapshotService.retrieve(snapshotSummary.getId());
+  }
+
+  private SnapshotAccessRequestResponse createSnapshotAccessRequest(UUID sourceSnapshotId)
+      throws IOException {
+    String filename = "omop/snapshot-access-request.json";
+    SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
+    request.sourceSnapshotId(sourceSnapshotId);
+    return snapshotBuilderService.createRequest(TEST_USER, request);
+  }
+
+  private SnapshotAccessRequestResponse approveSnapshotAccessRequest(UUID snapshotAccessRequestId) {
+    return snapshotBuilderService.approveRequest(snapshotAccessRequestId);
+  }
+
+  private SnapshotRequestModel createSnapshotRequestModelByRequestId(UUID snapshotAccessRequestId)
+      throws IOException {
+    String filename = "omop/snapshot-request-model-by-request-id.json";
+    SnapshotRequestModel request = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+    request.getContents().get(0).getRequestIdSpec().snapshotRequestId(snapshotAccessRequestId);
+    return request;
+  }
+
+  @Test
+  public void createSnapshotByRequestId() throws Exception {
+    when(samService.getGroup(any(), any()))
+        .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
+    when(samService.createGroup(any(), any())).thenReturn("group@firecloud.org");
+    Snapshot sourceSnapshot = stageOmopData();
+    SnapshotAccessRequestResponse approvedAccessRequest =
+        approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());
+    SnapshotRequestModel requestModel =
+        createSnapshotRequestModelByRequestId(approvedAccessRequest.getId());
+
+    SnapshotSummaryModel snapshotSummary =
+        connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");
+    Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
+    assertThat(snapshot.getName(), is(snapshotService.getSnapshotName(requestModel)));
+    assertThat(snapshot.getTables().size(), is(equalTo(3)));
+    BigQueryProject bigQuerySnapshotProject =
+        TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
+    String rowId = "datarepo_row_id";
+    List<String> personIds =
+        queryForIds(snapshot.getName(), "person", rowId, bigQuerySnapshotProject, rowId);
+    assertThat(personIds.size(), is(23));
+    List<String> conditionOccurrenceIds =
+        queryForIds(
+            snapshot.getName(), "condition_occurrence", rowId, bigQuerySnapshotProject, rowId);
+    assertThat(conditionOccurrenceIds.size(), is(49));
+    List<String> conceptIds =
+        queryForIds(snapshot.getName(), "concept", rowId, bigQuerySnapshotProject, rowId);
+    assertThat(conceptIds.size(), is(5));
   }
 
   @Test
   public void snapshotBuilderQuery() throws Exception {
-    var dataset = stageOmopDataset();
-    var conceptResponse = snapshotBuilderService.getConceptChildren(dataset.getId(), 2, TEST_USER);
-    var concepts = conceptResponse.getResult();
+    // Since stageOmopDataset takes > 1 min to run, we test all concept APIs in one test.
+    var snapshot = stageOmopData();
+    var concept1 =
+        new SnapshotBuilderConcept().name("concept1").id(1).count(22).code("11").hasChildren(false);
+    var concept3 =
+        new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
+    getConceptChildrenTest(snapshot, concept1, concept3);
+    enumerateConceptTest(snapshot, concept1);
+    getConceptHierarchyTest(snapshot, concept1, concept3);
+  }
 
+  private void enumerateConceptTest(Snapshot snapshot, SnapshotBuilderConcept concept1) {
+    var enumerateConceptsResult =
+        snapshotBuilderService.enumerateConcepts(
+            snapshot.getId(), 19, concept1.getName(), TEST_USER);
+    // A concept returned by enumerate concepts always has hasChildren = true, even if it doesn't
+    // have children.
+    var concept =
+        new SnapshotBuilderConcept()
+            .name(concept1.getName())
+            .id(concept1.getId())
+            .count(concept1.getCount())
+            .code(concept1.getCode())
+            .hasChildren(true);
+    assertThat(enumerateConceptsResult.getResult(), is(List.of(concept)));
+  }
+
+  private void getConceptHierarchyTest(
+      Snapshot snapshot, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
+    var searchConceptsResult =
+        snapshotBuilderService.getConceptHierarchy(snapshot.getId(), 3, TEST_USER);
     assertThat(
-        concepts.stream().map(SnapshotBuilderConcept::getId).toList(), containsInAnyOrder(1, 3));
+        searchConceptsResult.getResult(),
+        is(
+            List.of(
+                new SnapshotBuilderParentConcept()
+                    .parentId(2)
+                    .children(List.of(concept1, concept3)))));
+  }
+
+  private void getConceptChildrenTest(
+      Snapshot snapshot, SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) {
+    var conceptResponse = snapshotBuilderService.getConceptChildren(snapshot.getId(), 2, TEST_USER);
+    assertThat(conceptResponse.getResult(), is(List.of(concept1, concept3)));
+
+    getCountResponseTest(snapshot);
+    getCountResponseZeroCaseTest(snapshot);
+    getCountResponseFuzzyValuesTest(snapshot);
+  }
+
+  private void getCountResponseTest(Snapshot snapshot) {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataListCriteria()
+                .values(List.of(0))
+                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                .id(1),
+            new SnapshotBuilderProgramDataRangeCriteria()
+                .high(1960)
+                .low(1940)
+                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                .id(0),
+            new SnapshotBuilderDomainCriteria()
+                .conceptId(1)
+                .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN)
+                .id(19));
+    testRollupCountsWithCriteriaAndExpected(snapshot, criteria, 20);
+  }
+
+  private void getCountResponseZeroCaseTest(Snapshot snapshot) {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataRangeCriteria()
+                .high(1911)
+                .low(1911)
+                .kind(SnapshotBuilderCriteria.KindEnum.RANGE)
+                .id(0));
+    testRollupCountsWithCriteriaAndExpected(snapshot, criteria, 0);
+  }
+
+  private void getCountResponseFuzzyValuesTest(Snapshot snapshot) {
+    List<SnapshotBuilderCriteria> criteria =
+        List.of(
+            new SnapshotBuilderProgramDataListCriteria()
+                .values(List.of(8532))
+                .kind(SnapshotBuilderCriteria.KindEnum.LIST)
+                .id(1));
+    testRollupCountsWithCriteriaAndExpected(snapshot, criteria, 19);
+  }
+
+  private void testRollupCountsWithCriteriaAndExpected(
+      Snapshot snapshot, List<SnapshotBuilderCriteria> criteria, int expectedResult) {
+    List<SnapshotBuilderCohort> cohorts =
+        List.of(
+            new SnapshotBuilderCohort()
+                .criteriaGroups(
+                    List.of(
+                        new SnapshotBuilderCriteriaGroup()
+                            .meetAll(true)
+                            .mustMeet(true)
+                            .criteria(criteria))));
+    var rollupCountsResult =
+        snapshotBuilderService.getCountResponse(snapshot.getId(), cohorts, TEST_USER);
+
+    assertThat(rollupCountsResult.getResult().getTotal(), is(expectedResult));
   }
 
   @Test
@@ -530,19 +738,22 @@ public class BigQueryPdaoTest {
   private List<String> readIds(Dataset dataset) throws Exception {
     BigQueryProject bigQueryDatasetProject =
         TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
+    Column fileColumn = new Column().name("file");
     List<String> ids =
         new ArrayList<>(
             queryForColumn(
                 BigQueryPdao.prefixName(dataset.getName()),
                 getTable(dataset, "file").getName(),
-                new Column().name("file"),
-                bigQueryDatasetProject));
+                fileColumn,
+                bigQueryDatasetProject,
+                fileColumn));
     List<List<String>> idsFromArray =
         queryForColumn(
             BigQueryPdao.prefixName(dataset.getName()),
             getTable(dataset, "file").getName(),
             new Column().name("file_a").arrayOf(true),
-            bigQueryDatasetProject);
+            bigQueryDatasetProject,
+            fileColumn);
     ids.addAll(idsFromArray.stream().flatMap(Collection::stream).toList());
     return ids;
   }
@@ -572,11 +783,15 @@ public class BigQueryPdaoTest {
   }
 
   private static final String queryForColumnTemplate =
-      "SELECT <column> FROM `<project>.<container>.<table>` ORDER BY id";
+      "SELECT <column> FROM `<project>.<container>.<table>` ORDER BY <order_by>";
 
   // Query for a table / column's value.
   static <T> List<T> queryForColumn(
-      String containerName, String tableName, Column column, BigQueryProject bigQueryProject)
+      String containerName,
+      String tableName,
+      Column column,
+      BigQueryProject bigQueryProject,
+      Column orderBy)
       throws Exception {
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();
@@ -586,6 +801,7 @@ public class BigQueryPdaoTest {
     sqlTemplate.add("container", containerName);
     sqlTemplate.add("table", tableName);
     sqlTemplate.add("column", column.getName());
+    sqlTemplate.add("order_by", orderBy.getName());
 
     QueryJobConfiguration queryConfig =
         QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
@@ -611,7 +827,22 @@ public class BigQueryPdaoTest {
 
   static List<String> queryForIds(
       String snapshotName, String tableName, BigQueryProject bigQueryProject) throws Exception {
-    return queryForColumn(snapshotName, tableName, new Column().name("id"), bigQueryProject);
+    return queryForIds(snapshotName, tableName, "id", bigQueryProject, "id");
+  }
+
+  static List<String> queryForIds(
+      String snapshotName,
+      String tableName,
+      String columnName,
+      BigQueryProject bigQueryProject,
+      String orderBy)
+      throws Exception {
+    return queryForColumn(
+        snapshotName,
+        tableName,
+        new Column().name(columnName),
+        bigQueryProject,
+        new Column().name(orderBy));
   }
 
   /* BigQuery Legacy SQL supports querying a "meta-table" about partitions

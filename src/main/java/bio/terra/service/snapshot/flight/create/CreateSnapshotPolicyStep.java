@@ -2,9 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.snapshot.flight.SnapshotPolicyStep;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
@@ -12,10 +10,13 @@ import java.util.UUID;
 public class CreateSnapshotPolicyStep extends SnapshotPolicyStep {
 
   private final boolean enableSecureMonitoring;
+  private final UUID snapshotId;
 
-  public CreateSnapshotPolicyStep(PolicyService policyService, boolean enableSecureMonitoring) {
+  public CreateSnapshotPolicyStep(
+      PolicyService policyService, boolean enableSecureMonitoring, UUID snapshotId) {
     super(policyService);
     this.enableSecureMonitoring = enableSecureMonitoring;
+    this.snapshotId = snapshotId;
   }
 
   @Override
@@ -25,8 +26,7 @@ public class CreateSnapshotPolicyStep extends SnapshotPolicyStep {
 
   @Override
   public UUID getSnapshotId(FlightContext flightContext) {
-    FlightMap flightMap = flightContext.getWorkingMap();
-    return flightMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+    return snapshotId;
   }
 
   @Override

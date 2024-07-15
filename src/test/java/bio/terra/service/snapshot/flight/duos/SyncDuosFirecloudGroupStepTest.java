@@ -2,7 +2,7 @@ package bio.terra.service.snapshot.flight.duos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,18 +15,16 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class SyncDuosFirecloudGroupStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class SyncDuosFirecloudGroupStepTest {
 
   @Mock private DuosService duosService;
   @Mock private FlightContext flightContext;
@@ -39,19 +37,18 @@ public class SyncDuosFirecloudGroupStepTest {
       DuosFixtures.createDbSyncedFirecloudGroup(DUOS_ID);
 
   private SyncDuosFirecloudGroupStep step;
-  private FlightMap workingMap;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     step = new SyncDuosFirecloudGroupStep(duosService, DUOS_ID);
 
-    workingMap = new FlightMap();
+    FlightMap workingMap = new FlightMap();
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, INSERTED);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
   }
 
   @Test
-  public void testDoStepSucceeds() throws InterruptedException {
+  void testDoStepSucceeds() throws InterruptedException {
     when(duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID)).thenReturn(SYNCED);
 
     StepResult doResult = step.doStep(flightContext);
@@ -65,7 +62,7 @@ public class SyncDuosFirecloudGroupStepTest {
   }
 
   @Test
-  public void testDoStepThrows() {
+  void testDoStepThrows() {
     doThrow(RuntimeException.class).when(duosService).syncDuosDatasetAuthorizedUsers(DUOS_ID);
     assertThrows(RuntimeException.class, () -> step.doStep(flightContext));
 

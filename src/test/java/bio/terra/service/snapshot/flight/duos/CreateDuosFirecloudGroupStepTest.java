@@ -2,9 +2,9 @@ package bio.terra.service.snapshot.flight.duos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -19,18 +19,16 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class CreateDuosFirecloudGroupStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class CreateDuosFirecloudGroupStepTest {
 
   @Mock private DuosService duosService;
   @Mock private IamService iamService;
@@ -42,8 +40,8 @@ public class CreateDuosFirecloudGroupStepTest {
   private CreateDuosFirecloudGroupStep step;
   private FlightMap workingMap;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     step = new CreateDuosFirecloudGroupStep(duosService, iamService, DUOS_ID);
 
     workingMap = new FlightMap();
@@ -52,20 +50,19 @@ public class CreateDuosFirecloudGroupStepTest {
   }
 
   @Test
-  public void testDoAndUndoStepSucceeds() throws InterruptedException {
+  void testDoAndUndoStepSucceeds() throws InterruptedException {
     when(duosService.createFirecloudGroup(DUOS_ID)).thenReturn(CREATED);
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(duosService).createFirecloudGroup(DUOS_ID);
 
     assertThat(
         "Created Firecloud group is stored in working map",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
         equalTo(CREATED));
     assertFalse(
-        "Working map's earlier record of Firecloud group retrieval is unchanged",
-        workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class));
+        workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class),
+        "Working map's earlier record of Firecloud group retrieval is unchanged");
 
     // Undoing when we created a group deletes the group
     StepResult undoResult = step.undoStep(flightContext);
@@ -74,18 +71,17 @@ public class CreateDuosFirecloudGroupStepTest {
   }
 
   @Test
-  public void testDoAndUndoStepThrows() throws InterruptedException {
+  void testDoAndUndoStepThrows() throws InterruptedException {
     doThrow(RuntimeException.class).when(duosService).createFirecloudGroup(DUOS_ID);
 
     assertThrows(RuntimeException.class, () -> step.doStep(flightContext));
-    verify(duosService).createFirecloudGroup(DUOS_ID);
 
     assertNull(
-        "No Firecloud group is added to the working map when creation fails",
-        SnapshotDuosFlightUtils.getFirecloudGroup(flightContext));
+        SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
+        "No Firecloud group is added to the working map when creation fails");
     assertFalse(
-        "Working map's earlier record of Firecloud group retrieval is unchanged",
-        workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class));
+        workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class),
+        "Working map's earlier record of Firecloud group retrieval is unchanged");
 
     // Undoing when we failed to create a group is a no-op
     StepResult undoResult = step.undoStep(flightContext);

@@ -6,14 +6,13 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.journal.JournalService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.flight.create.CreateSnapshotJournalEntryStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -25,8 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class CreateSnapshotJournalEntryStepTest {
+@Tag(Unit.TAG)
+class CreateSnapshotJournalEntryStepTest {
   @Mock private JournalService journalService;
   @Mock private FlightContext flightContext;
 
@@ -39,10 +38,7 @@ public class CreateSnapshotJournalEntryStepTest {
 
   @BeforeEach
   void setup() {
-    step = new CreateSnapshotJournalEntryStep(journalService, TEST_USER);
-    FlightMap workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    step = new CreateSnapshotJournalEntryStep(journalService, TEST_USER, SNAPSHOT_ID);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
   }
 

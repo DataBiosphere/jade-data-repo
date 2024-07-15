@@ -27,6 +27,7 @@ import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -264,6 +265,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
     AssetSpecification assetSpecification =
         buildAssetSpecification(
             datasetTables, assetName, rootTableName, rootColumnName, relationships);
+
     createSnapshotPrimaryDataQueryAzureStep =
         new CreateSnapshotByQueryParquetFilesAzureStep(
             azureSynapsePdao,
@@ -271,7 +273,9 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             snapshotService,
             new SnapshotRequestModel(),
             datasetService,
-            TEST_USER);
+            TEST_USER,
+            snapshotId,
+            new Dataset());
     createSnapshotPrimaryDataQueryAzureStep.validateRootTable(query, assetSpecification);
 
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);

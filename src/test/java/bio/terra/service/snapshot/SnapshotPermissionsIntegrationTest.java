@@ -3,7 +3,6 @@ package bio.terra.service.snapshot;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.auth.AuthService;
@@ -17,7 +16,6 @@ import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
@@ -47,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -114,67 +111,6 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
-  }
-
-  @Test
-  public void snapshotUnauthorizedPermissionsTest() throws Exception {
-    SnapshotRequestModel requestModel =
-        jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
-
-    DataRepoResponse<JobModel> createSnapLaunchResp =
-        dataRepoFixtures.createSnapshotRaw(
-            reader(), datasetSummaryModel.getName(), profileId, requestModel, true, false);
-    assertThat(
-        "Reader is not authorized on the billing profile to create a dataSnapshot",
-        createSnapLaunchResp.getStatusCode(),
-        equalTo(HttpStatus.FORBIDDEN));
-
-    SnapshotSummaryModel snapshotSummary =
-        dataRepoFixtures.createSnapshot(
-            custodian(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
-
-    DataRepoResponse<JobModel> deleteSnapResp =
-        dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId());
-    assertThat(
-        "Reader is not authorized to delete a dataSnapshot",
-        deleteSnapResp.getStatusCode(),
-        equalTo(HttpStatus.FORBIDDEN));
-
-    DataRepoResponse<SnapshotModel> getSnapResp =
-        dataRepoFixtures.getSnapshotRaw(discoverer(), snapshotSummary.getId(), null);
-    assertThat(
-        "Discoverer is not authorized to get a dataSnapshot",
-        getSnapResp.getStatusCode(),
-        equalTo(HttpStatus.FORBIDDEN));
-
-    EnumerateSnapshotModel enumSnap = dataRepoFixtures.enumerateSnapshots(discoverer());
-    assertThat("Discoverer does not have access to dataSnapshots", enumSnap.getTotal(), equalTo(0));
-
-    assertThat("Discoverer does not have access to dataSnapshots", enumSnap.getTotal(), equalTo(0));
-
-    EnumerateSnapshotModel enumSnapByDatasetId =
-        dataRepoFixtures.enumerateSnapshotsByDatasetIds(
-            steward(), Collections.singletonList(datasetSummaryModel.getId()));
-
-    assertThat("Dataset filters to dataSnapshots", enumSnapByDatasetId.getTotal(), equalTo(1));
-
-    EnumerateSnapshotModel enumSnapByNoDatasetId =
-        dataRepoFixtures.enumerateSnapshotsByDatasetIds(steward(), Collections.emptyList());
-
-    assertThat(
-        "Retrieve the dataSnapshot by dataset when no dataset is passed in",
-        enumSnapByNoDatasetId.getItems(),
-        hasItem(enumSnapByDatasetId.getItems().get(0)));
-
-    EnumerateSnapshotModel enumSnapByBadDatasetId =
-        dataRepoFixtures.enumerateSnapshotsByDatasetIds(
-            steward(), Collections.singletonList(UUID.randomUUID()));
-
-    assertThat(
-        "Invalid dataset filters out dataSnapshots", enumSnapByBadDatasetId.getTotal(), equalTo(0));
-
-    // Delete snapshot as custodian for this test since teardown uses steward
-    dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId());
   }
 
   @Test

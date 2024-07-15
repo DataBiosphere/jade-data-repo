@@ -2,39 +2,48 @@ package bio.terra.service.snapshotbuilder.utils;
 
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.query.table.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class AggregateSynapseQueryResultsUtils {
-  // TODO - pull real values for hasChildren and count
-  public static SnapshotBuilderConcept aggregateConceptResult(ResultSet rs) {
-    int count;
-    try {
-      count = (int) rs.getLong("count");
-    } catch (SQLException | IllegalArgumentException e) {
-      count = 1;
-    }
 
+  public interface CountGetter<T> {
+    T get(String fieldName) throws SQLException;
+  }
+
+  static <T> T getField(CountGetter<T> getter, String fieldName) {
     try {
-      return new SnapshotBuilderConcept()
-          .name(rs.getString("concept_name"))
-          .id((int) rs.getLong("concept_id"))
-          .hasChildren(true)
-          .count(count);
+      return getter.get(fieldName);
+    } catch (SQLException e) {
+      throw new ProcessResultSetException("Error processing result set", e);
+    }
+  }
+
+  public static SnapshotBuilderConcept toConcept(ResultSet rs) {
+    return new SnapshotBuilderConcept()
+        .name(getField(rs::getString, Concept.CONCEPT_NAME))
+        .id(getField(rs::getLong, Concept.CONCEPT_ID).intValue())
+        .hasChildren(getField(rs::getLong, QueryBuilderFactory.HAS_CHILDREN) > 0)
+        .code(getField(rs::getString, Concept.CONCEPT_CODE))
+        .count(
+            SnapshotBuilderService.fuzzyLowCount(
+                getField(rs::getLong, QueryBuilderFactory.COUNT).intValue()));
+  }
+
+  public static int toCount(ResultSet rs) {
+    try {
+      // Java ResultSet is 1 indexed
+      // https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/ResultSet.html#getInt(int)
+      return rs.getInt(1);
     } catch (SQLException e) {
       throw new ProcessResultSetException(
           "Error processing result set into SnapshotBuilderConcept model", e);
     }
   }
 
-  public static int rollupCountsMapper(ResultSet rs) {
-    try {
-      // Azure ResultSet is 1 indexed
-      // https://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html
-      return rs.getInt(1);
-    } catch (SQLException e) {
-      throw new ProcessResultSetException(
-          "Error processing result set into SnapshotBuilderConcept model", e);
-    }
+  public static String toDomainId(ResultSet rs) {
+    return getField(rs::getString, Concept.DOMAIN_ID);
   }
 }

@@ -59,7 +59,6 @@ import com.google.cloud.storage.Storage.BucketSourceOption;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -201,7 +200,6 @@ public class GcsPdao implements CloudFileReader {
     }
   }
 
-  @SuppressFBWarnings("OS_OPEN_STREAM")
   private static Stream<String> getBlobLinesStream(Blob blob, String projectId, Storage storage) {
     logger.info(String.format("Reading lines from %s", GcsUriUtils.getGsPathFromBlob(blob)));
     var reader = storage.reader(blob.getBlobId(), Storage.BlobSourceOption.userProject(projectId));

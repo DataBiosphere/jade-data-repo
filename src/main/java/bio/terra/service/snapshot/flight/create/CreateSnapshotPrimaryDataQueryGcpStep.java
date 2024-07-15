@@ -27,6 +27,7 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
   private final SnapshotDao snapshotDao;
   private final SnapshotRequestModel snapshotReq;
   private final AuthenticatedUserRequest userRequest;
+  private final Dataset sourceDataset;
 
   public CreateSnapshotPrimaryDataQueryGcpStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -34,19 +35,21 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
       DatasetService datasetService,
       SnapshotDao snapshotDao,
       SnapshotRequestModel snapshotReq,
-      AuthenticatedUserRequest userRequest) {
+      AuthenticatedUserRequest userRequest,
+      Dataset sourceDataset) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.datasetService = datasetService;
     this.snapshotDao = snapshotDao;
     this.snapshotReq = snapshotReq;
     this.userRequest = userRequest;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
+    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, sourceDataset);
   }
 
   @Override
@@ -57,7 +60,8 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
       String sqlQuery,
       Instant filterBefore)
       throws InterruptedException {
-    bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, sqlQuery, filterBefore);
+    bigQuerySnapshotPdao.createSnapshotByQuery(
+        assetSpecification, snapshot, sqlQuery, filterBefore);
     return StepResult.getStepResultSuccess();
   }
 

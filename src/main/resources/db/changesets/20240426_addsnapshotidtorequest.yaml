@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_snapshot_id_to_request
+      author: rjohanek
+      changes:
+        - addColumn:
+            tableName: snapshot_request
+            columns:
+              - column:
+                  name: source_snapshot_id
+                  type: ${uuid_type}
+                  constraints:
+                    foreignKeyName: fk_source_snapshot_snapshot_request
+                    references: snapshot(id)
+                    deleteCascade: true
+        - dropNotNullConstraint:
+            tableName: snapshot_request
+            columnName: dataset_id

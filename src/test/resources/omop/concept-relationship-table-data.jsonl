@@ -1,0 +1,4 @@
+{"concept_id_1": 2, "concept_id_2": 1, "relationship_id": "Subsumes"}
+{"concept_id_1": 2, "concept_id_2": 3, "relationship_id": "Subsumes"}
+{"concept_id_1": 3, "concept_id_2": 4, "relationship_id": "Subsumes"}
+{"concept_id_1": 2, "concept_id_2": 5, "relationship_id": "Subsumes"}

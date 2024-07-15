@@ -2,8 +2,8 @@ package bio.terra.service.snapshot.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,7 +11,9 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -21,20 +23,19 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class CreateSnapshotMetadataStepTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class CreateSnapshotMetadataStepTest {
 
   @Mock private SnapshotDao snapshotDao;
   @Mock private SnapshotService snapshotService;
@@ -51,24 +52,32 @@ public class CreateSnapshotMetadataStepTest {
   private FlightMap workingMap;
   private SnapshotRequestModel snapshotRequestModel;
   private Snapshot snapshot;
+  private Dataset dataset;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     workingMap = new FlightMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, PROJECT_RESOURCE_ID);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
 
-    snapshotRequestModel = new SnapshotRequestModel();
+    snapshotRequestModel =
+        new SnapshotRequestModel()
+            .contents(
+                List.of(
+                    new SnapshotRequestContentsModel()
+                        .mode(SnapshotRequestContentsModel.ModeEnum.BYASSET)));
     snapshot = new Snapshot();
-    when(snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel))
+    dataset = new Dataset();
+    when(snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset))
         .thenReturn(snapshot);
   }
 
   @Test
-  public void testDoAndUndoStep() throws InterruptedException {
+  void testDoAndUndoStep() throws InterruptedException {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);
+    step =
+        new CreateSnapshotMetadataStep(
+            snapshotDao, snapshotService, snapshotRequestModel, SNAPSHOT_ID, dataset);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     snapshot.id(UUID.randomUUID()).projectResourceId(PROJECT_RESOURCE_ID);
@@ -82,12 +91,14 @@ public class CreateSnapshotMetadataStepTest {
   }
 
   @Test
-  public void testDoAndUndoStepWithDUOS() throws InterruptedException {
+  void testDoAndUndoStepWithDUOS() throws InterruptedException {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     snapshotRequestModel.duosId(DUOS_ID);
 
-    step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);
+    step =
+        new CreateSnapshotMetadataStep(
+            snapshotDao, snapshotService, snapshotRequestModel, SNAPSHOT_ID, dataset);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     snapshot

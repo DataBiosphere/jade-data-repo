@@ -2,19 +2,18 @@ package bio.terra.service.filedata;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class DrsIdTest {
+@Tag(Unit.TAG)
+class DrsIdTest {
 
   @Test
-  public void testDrsIdV1() {
+  void testDrsIdV1() {
     DrsId drsId =
         DrsId.builder()
             .dnsname("dns")
@@ -33,7 +32,7 @@ public class DrsIdTest {
   }
 
   @Test
-  public void testDrsIdV2() {
+  void testDrsIdV2() {
     DrsId drsId = DrsId.builder().dnsname("dns").version("v2").fsObjectId("file").build();
 
     assertThat("drsid constructor succeeds - dnsname", drsId.getDnsname(), equalTo("dns"));
@@ -44,7 +43,7 @@ public class DrsIdTest {
   }
 
   @Test
-  public void testCompactDrsURI() {
+  void testCompactDrsURI() {
     DrsId drsId =
         DrsId.builder().dnsname("dns").version("v2").fsObjectId("file").compactId(true).build();
 
@@ -55,11 +54,11 @@ public class DrsIdTest {
     assertThat("drsid toObjectId works", drsId.toDrsObjectId(), equalTo("v2_file"));
   }
 
-  @Test(expected = InvalidDrsIdException.class)
-  public void testBadUri() {
+  @Test
+  void testBadUri() {
     DrsId drsId =
         DrsId.builder().dnsname("{[]}").version("vv").snapshotId("{[]}").fsObjectId("file").build();
 
-    drsId.toDrsUri(); // should throw
+    assertThrows(InvalidDrsIdException.class, drsId::toDrsUri);
   }
 }

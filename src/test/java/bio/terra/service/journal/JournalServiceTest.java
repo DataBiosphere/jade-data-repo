@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -33,9 +34,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @SpringBootTest
 @ActiveProfiles({"google", "unittest"})
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @EmbeddedDatabaseTest
-public class JournalServiceTest {
+class JournalServiceTest {
 
   private static final AuthenticatedUserRequest TEST_USER1 =
       AuthenticatedUserRequest.builder()

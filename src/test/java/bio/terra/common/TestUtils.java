@@ -4,10 +4,10 @@ import static bio.terra.service.filedata.google.gcs.GcsPdao.getBlobFromGsPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
@@ -36,13 +36,17 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Policy;
+import com.google.cloud.ServiceOptions;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -51,21 +55,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.function.Executable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.stringtemplate.v4.ST;
 
 public final class TestUtils {
-  private static Logger logger = LoggerFactory.getLogger(TestUtils.class);
-  private static ObjectMapper objectMapper = new ObjectMapper();
+  private static final Logger logger = LoggerFactory.getLogger(TestUtils.class);
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private TestUtils() {}
 
@@ -91,10 +96,6 @@ public final class TestUtils {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change
    * and any consequences downstream to DRS clients.
    */
-  public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods, String token) {
-    return validateDrsAccessMethods(accessMethods, token, true);
-  }
-
   public static String validateDrsAccessMethods(
       List<DRSAccessMethod> accessMethods, String token, boolean shouldAssertHttpsAccessibility) {
     assertThat("Two access methods", accessMethods.size(), equalTo(2));
@@ -104,16 +105,16 @@ public final class TestUtils {
     boolean gotHttps = false;
     for (DRSAccessMethod accessMethod : accessMethods) {
       if (accessMethod.getType() == DRSAccessMethod.TypeEnum.GS) {
-        assertFalse("have not seen GS yet", gotGs);
+        assertFalse(gotGs, "have not seen GS yet");
         gsuri = accessMethod.getAccessUrl().getUrl();
 
         // Make sure we can actually read the file
         final Storage storage = StorageOptions.getDefaultInstance().getService();
-        final String projectId = StorageOptions.getDefaultProjectId();
+        final String projectId = ServiceOptions.getDefaultProjectId();
         getBlobFromGsPath(storage, gsuri, projectId);
         gotGs = true;
       } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
-        assertFalse("have not seen HTTPS yet", gotHttps);
+        assertFalse(gotHttps, "have not seen HTTPS yet");
         verifyHttpAccess(
             accessMethod.getAccessUrl().getUrl(),
             Map.of("Authorization", String.format("Bearer %s", token)),
@@ -123,7 +124,7 @@ public final class TestUtils {
         fail("Invalid access method");
       }
     }
-    assertTrue("got both access methods", gotGs && gotHttps);
+    assertTrue(gotGs && gotHttps, "got both access methods");
     return gsuri;
   }
 
@@ -260,9 +261,8 @@ public final class TestUtils {
     try {
       return objectMapper.readValue(content, valueType);
     } catch (Exception ex) {
-      logger.error(
-          "unable to map JSON response to " + valueType.getName() + "JSON: " + content, ex);
-      throw ex;
+      throw new RuntimeException(
+          "unable to map JSON response to " + valueType.getName() + " JSON: " + content, ex);
     }
   }
 
@@ -340,10 +340,8 @@ public final class TestUtils {
    * @param runnable The code to test
    */
   public static void assertError(
-      Class<? extends Throwable> expectedThrowable,
-      String expectedMessage,
-      ThrowingRunnable runnable) {
-    Throwable throwable = assertThrows("expect a failure", expectedThrowable, runnable);
+      Class<? extends Throwable> expectedThrowable, String expectedMessage, Executable runnable) {
+    Throwable throwable = assertThrows(expectedThrowable, runnable, "expect a failure");
     assertThat(throwable.getMessage(), containsString(expectedMessage));
   }
 
@@ -360,5 +358,32 @@ public final class TestUtils {
   public static <T> T extractValueFromPrivateObject(Object object, String fieldName) {
     return objectMapper.convertValue(
         ReflectionTestUtils.getField(object, fieldName), new TypeReference<>() {});
+  }
+
+  public static String loadJson(final String resourcePath) {
+    try (InputStream stream = TestUtils.class.getClassLoader().getResourceAsStream(resourcePath)) {
+      if (stream == null) {
+        throw new FileNotFoundException(resourcePath);
+      }
+      return IOUtils.toString(stream, StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static <T> T loadObject(final String resourcePath, final Class<T> resourceClass) {
+    try {
+      return objectMapper.readerFor(resourceClass).readValue(loadJson(resourcePath));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static <T> T loadObject(final String resourcePath, final TypeReference<T> typeReference) {
+    try {
+      return objectMapper.readerFor(typeReference).readValue(loadJson(resourcePath));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

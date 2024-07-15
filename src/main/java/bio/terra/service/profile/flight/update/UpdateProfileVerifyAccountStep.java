@@ -24,7 +24,7 @@ public class UpdateProfileVerifyAccountStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel newBillingProfileModel =
         workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);
-    profileService.verifyAccount(newBillingProfileModel.getBillingAccountId(), user);
+    profileService.verifyGoogleBillingAccount(newBillingProfileModel.getBillingAccountId(), user);
     return StepResult.getStepResultSuccess();
   }
 

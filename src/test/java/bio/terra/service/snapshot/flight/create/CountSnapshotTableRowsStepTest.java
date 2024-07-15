@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -23,8 +24,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.CannotSerializeTransactionException;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class CountSnapshotTableRowsStepTest {
+@Tag(Unit.TAG)
+class CountSnapshotTableRowsStepTest {
 
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Mock private SnapshotDao snapshotDao;

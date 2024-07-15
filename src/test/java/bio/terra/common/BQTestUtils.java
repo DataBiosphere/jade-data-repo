@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.mockito.stubbing.Answer;
 
 /** Helper methods for mocking out BigQuery responses */
@@ -30,18 +29,26 @@ public final class BQTestUtils {
   public static void mockBQQuery(
       BigQueryProject mockBQProject, String sql, Schema schema, List<Map<String, String>> results) {
     try {
-      when(mockBQProject.query(eq(sql))).thenAnswer(mockAnswer(schema, results));
+      when(mockBQProject.query(sql)).thenAnswer(mockAnswer(schema, results));
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Error mocking query execution", e);
+    }
+  }
+
+  public static void mockBQQueryWithArgs(
+      BigQueryProject mockBQProject, String sql, Schema schema, List<Map<String, String>> results) {
+    try {
       when(mockBQProject.query(eq(sql), any())).thenAnswer(mockAnswer(schema, results));
     } catch (InterruptedException e) {
-      throw new RuntimeException("Error mocking query execution");
+      throw new RuntimeException("Error mocking query execution", e);
     }
   }
 
   public static void mockBQQueryError(BigQueryProject mockBQProject, String sql, Throwable ex) {
     try {
-      when(mockBQProject.query(eq(sql))).thenThrow(ex);
+      when(mockBQProject.query(sql)).thenThrow(ex);
     } catch (InterruptedException e) {
-      throw new RuntimeException("Error mocking query execution");
+      throw new RuntimeException("Error mocking query execution", e);
     }
   }
 
@@ -53,7 +60,7 @@ public final class BQTestUtils {
     try {
       when(mockBQ.query(sql)).thenAnswer(mockAnswer(schema, results));
     } catch (InterruptedException e) {
-      throw new RuntimeException("Error mocking query execution");
+      throw new RuntimeException("Error mocking query execution", e);
     }
   }
 
@@ -74,9 +81,9 @@ public final class BQTestUtils {
                 FieldValueList.of(
                     schema.getFields().stream()
                         .map(f -> FieldValue.of(FieldValue.Attribute.PRIMITIVE, r.get(f.getName())))
-                        .collect(Collectors.toList()),
+                        .toList(),
                     schema.getFields()))
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public static List<Map<String, Object>> mapToList(TableResult tableResult, String... fields) {
@@ -84,7 +91,7 @@ public final class BQTestUtils {
     List<Field> fieldsToProcess =
         tableResult.getSchema().getFields().stream()
             .filter(f -> fields.length == 0 || List.of(fields).contains(f.getName()))
-            .collect(Collectors.toList());
+            .toList();
     tableResult.getValues().forEach(r -> returnVal.add(toMap(fieldsToProcess, r)));
     return returnVal;
   }
@@ -100,29 +107,20 @@ public final class BQTestUtils {
     if (fieldValue.isNull()) {
       return null;
     }
-    switch (field.getType().getStandardType()) {
-      case BOOL:
-        return extractData(fieldValue, FieldValue::getBooleanValue);
-      case FLOAT64:
-        return extractData(fieldValue, FieldValue::getDoubleValue);
-      case INT64:
-        return extractData(fieldValue, v -> Long.valueOf(v.getLongValue()).intValue());
-      case NUMERIC:
-        return extractData(fieldValue, FieldValue::getNumericValue);
-      case STRING:
-        return extractData(fieldValue, FieldValue::getStringValue);
-      case TIMESTAMP:
-        return extractData(fieldValue, FieldValue::getTimestampValue);
-      default:
-        return extractData(fieldValue, FieldValue::getValue);
-    }
+    return switch (field.getType().getStandardType()) {
+      case BOOL -> extractData(fieldValue, FieldValue::getBooleanValue);
+      case FLOAT64 -> extractData(fieldValue, FieldValue::getDoubleValue);
+      case INT64 -> extractData(fieldValue, v -> Long.valueOf(v.getLongValue()).intValue());
+      case NUMERIC -> extractData(fieldValue, FieldValue::getNumericValue);
+      case STRING -> extractData(fieldValue, FieldValue::getStringValue);
+      case TIMESTAMP -> extractData(fieldValue, FieldValue::getTimestampValue);
+      default -> extractData(fieldValue, FieldValue::getValue);
+    };
   }
 
   private static Object extractData(FieldValue fieldValue, Function<FieldValue, Object> extractor) {
     if (fieldValue.getAttribute() == Attribute.REPEATED) {
-      return fieldValue.getRepeatedValue().stream()
-          .map(extractor::apply)
-          .collect(Collectors.toList());
+      return fieldValue.getRepeatedValue().stream().map(extractor).toList();
     }
     return extractor.apply(fieldValue);
   }

@@ -47,6 +47,7 @@ import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
@@ -58,7 +59,13 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
+import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotBuilderConceptsResponse;
+import bio.terra.model.SnapshotBuilderCountRequest;
+import bio.terra.model.SnapshotBuilderCountResponse;
+import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
+import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -1321,6 +1328,11 @@ public class DataRepoFixtures {
   public DataRepoResponse<IngestResponseModel> ingestJsonDataRaw(
       TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
     DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, request);
+    return waitForIngestResponse(user, launchResp);
+  }
+
+  public DataRepoResponse<IngestResponseModel> waitForIngestResponse(
+      TestConfiguration.User user, DataRepoResponse<JobModel> launchResp) throws Exception {
     assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
     assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
     return dataRepoClient.waitForResponse(user, launchResp, new TypeReference<>() {});
@@ -1855,36 +1867,140 @@ public class DataRepoFixtures {
         user, "/api/repository/v1/jobs" + queryParams, new TypeReference<>() {});
   }
 
-  public SnapshotBuilderGetConceptsResponse getConcepts(
-      TestConfiguration.User user, UUID datasetId, int conceptId) throws Exception {
-    DataRepoResponse<SnapshotBuilderGetConceptsResponse> response =
+  public void updateSettings(TestConfiguration.User user, UUID snapshotId, String settingsFileName)
+      throws Exception {
+    SnapshotBuilderSettings settings =
+        jsonLoader.loadObject(settingsFileName, SnapshotBuilderSettings.class);
+    DataRepoResponse<SnapshotBuilderSettings> response =
+        dataRepoClient.put(
+            user,
+            "/api/repository/v1/snapshots/" + snapshotId + "/snapshotBuilder/settings",
+            TestUtils.mapToJson(settings),
+            new TypeReference<>() {});
+
+    assertThat("post settings job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("post settings response is present", response.getResponseObject().isPresent());
+  }
+
+  public SnapshotBuilderConceptsResponse getConceptChildren(
+      TestConfiguration.User user, UUID snapshotId, int conceptId) throws Exception {
+    DataRepoResponse<SnapshotBuilderConceptsResponse> response =
         dataRepoClient.get(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/snapshotBuilder/concepts/" + conceptId,
+            "/api/repository/v1/snapshots/"
+                + snapshotId
+                + "/snapshotBuilder/concepts/"
+                + conceptId
+                + "/children",
             new TypeReference<>() {});
     assertThat("get concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 
-  public SnapshotBuilderGetConceptsResponse searchConcepts(
-      TestConfiguration.User user, UUID datasetId, String domainId, String searchText)
+  public SnapshotBuilderConceptsResponse enumerateConcepts(
+      TestConfiguration.User user, UUID snapshotId, int domainId, String filterText)
       throws Exception {
-    String queryParams = "?searchText=%s".formatted(searchText);
-
-    DataRepoResponse<SnapshotBuilderGetConceptsResponse> response =
+    String queryParams = "?domainId=%s&filterText=%s".formatted(domainId, filterText);
+    DataRepoResponse<SnapshotBuilderConceptsResponse> response =
         dataRepoClient.get(
             user,
-            "/api/repository/v1/datasets/"
-                + datasetId
-                + "/snapshotBuilder/concepts/"
-                + domainId
-                + "/search"
+            "/api/repository/v1/snapshots/"
+                + snapshotId
+                + "/snapshotBuilder/concepts"
                 + queryParams,
             new TypeReference<>() {});
     assertThat(
-        "search concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        "enumerate concept job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("concept response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  public SnapshotBuilderGetConceptHierarchyResponse getConceptHierarchy(
+      TestConfiguration.User user, UUID snapshotId, int conceptId) throws Exception {
+    DataRepoResponse<SnapshotBuilderGetConceptHierarchyResponse> response =
+        dataRepoClient.get(
+            user,
+            "/api/repository/v1/snapshots/"
+                + snapshotId
+                + "/snapshotBuilder/concepts/"
+                + conceptId
+                + "/hierarchy",
+            new TypeReference<>() {});
+    assertThat(
+        "get concept hierarchy call is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("concept response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  public SnapshotBuilderCountResponse getRollupCounts(
+      TestConfiguration.User user, UUID snapshotId, SnapshotBuilderCountRequest request)
+      throws Exception {
+    String json = TestUtils.mapToJson(request);
+    DataRepoResponse<SnapshotBuilderCountResponse> response =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/snapshots/" + snapshotId + "/snapshotBuilder/count",
+            json,
+            new TypeReference<>() {});
+    assertThat(
+        "get rollup counts job is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("rollup counts response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  public SnapshotAccessRequestResponse createSnapshotAccessRequest(
+      TestConfiguration.User user, UUID sourceSnapshotId, String filename) throws Exception {
+    SnapshotAccessRequest request = jsonLoader.loadObject(filename, SnapshotAccessRequest.class);
+    request.sourceSnapshotId(sourceSnapshotId);
+
+    DataRepoResponse<SnapshotAccessRequestResponse> response =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/snapshotAccessRequests",
+            TestUtils.mapToJson(request),
+            new TypeReference<>() {});
+    assertThat(
+        "create Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  // Currently, there is no getSnapshotAccessRequest API. So this uses the enumerate endpoint,
+  // and searches through the list to find the specified snapshot access request
+  public SnapshotAccessRequestResponse getSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotRequestId) throws Exception {
+    DataRepoResponse<EnumerateSnapshotAccessRequest> response =
+        dataRepoClient.get(
+            user, "/api/repository/v1/snapshotAccessRequests", new TypeReference<>() {});
+    assertThat(
+        "get Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get().getItems().stream()
+        .filter(s -> s.getId().equals(snapshotRequestId))
+        .findFirst()
+        .orElseThrow(() -> new Exception("Snapshot Access Request is not present"));
+  }
+
+  public SnapshotAccessRequestResponse approveSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotRequestId) throws Exception {
+    DataRepoResponse<SnapshotAccessRequestResponse> response =
+        dataRepoClient.put(
+            user,
+            "/api/repository/v1/snapshotAccessRequests/" + snapshotRequestId + "/approve",
+            "",
+            new TypeReference<>() {});
+    assertThat(
+        "get Snapshot Access Request job is successful",
+        response.getStatusCode(),
+        equalTo(HttpStatus.OK));
+    assertTrue("Snapshot Access Request is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 }

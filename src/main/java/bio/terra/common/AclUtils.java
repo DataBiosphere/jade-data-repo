@@ -2,16 +2,12 @@ package bio.terra.common;
 
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressFBWarnings(
-    value = "DMI_RANDOM_USED_ONLY_ONCE",
-    justification = "False positive introduced in 4.2.3, fixed in 4.4.2")
 public class AclUtils {
   private static final Logger logger = LoggerFactory.getLogger(AclUtils.class);
 

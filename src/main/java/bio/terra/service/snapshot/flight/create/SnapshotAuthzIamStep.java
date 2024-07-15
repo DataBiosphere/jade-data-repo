@@ -4,6 +4,7 @@ import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
@@ -25,28 +26,36 @@ public class SnapshotAuthzIamStep implements Step {
   private final SnapshotService snapshotService;
   private final SnapshotRequestModel snapshotRequestModel;
   private final AuthenticatedUserRequest userReq;
+  private final UUID snapshotId;
   private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzIamStep.class);
 
   public SnapshotAuthzIamStep(
       IamService sam,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotRequestModel,
-      AuthenticatedUserRequest userReq) {
+      AuthenticatedUserRequest userReq,
+      UUID snapshotId) {
     this.sam = sam;
     this.snapshotService = snapshotService;
     this.snapshotRequestModel = snapshotRequestModel;
     this.userReq = userReq;
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     SnapshotRequestModelPolicies derivedPolicies = sam.deriveSnapshotPolicies(snapshotRequestModel);
     if (snapshotRequestModel.getDuosId() != null) {
       DuosFirecloudGroupModel duosFirecloudGroup =
           SnapshotDuosFlightUtils.getFirecloudGroup(context);
       derivedPolicies.addReadersItem(duosFirecloudGroup.getFirecloudGroupEmail());
+    }
+    if (snapshotRequestModel.getContents().get(0).getMode()
+        == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      var snapshotFirecloudGroupEmail =
+          workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class);
+      derivedPolicies.addReadersItem(snapshotFirecloudGroupEmail);
     }
     Map<IamRole, String> policies =
         sam.createSnapshotResource(userReq, snapshotId, derivedPolicies);
@@ -56,8 +65,6 @@ public class SnapshotAuthzIamStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     try {
       sam.deleteSnapshotResource(userReq, snapshotId);
       // We do not need to remove the ACL from the files or BigQuery. It disappears

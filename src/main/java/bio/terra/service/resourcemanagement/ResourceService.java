@@ -33,7 +33,6 @@ import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +114,7 @@ public class ResourceService {
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
     return projectService.initializeGoogleProject(
-        projectId, billingProfile, null, region, labels, CollectionType.DATASET);
+        projectId, billingProfile, region, labels, CollectionType.DATASET);
   }
 
   /**
@@ -514,39 +513,28 @@ public class ResourceService {
   public UUID initializeSnapshotProject(
       BillingProfileModel billingProfile,
       String projectId,
-      List<Dataset> sourceDatasets,
+      Dataset sourceDataset,
       String snapshotName,
       UUID snapshotId)
       throws InterruptedException {
 
     GoogleRegion region =
         (GoogleRegion)
-            sourceDatasets
-                .iterator()
-                .next()
+            sourceDataset
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
 
-    String datasetNames =
-        sourceDatasets.stream().map(Dataset::getName).collect(Collectors.joining(","));
-
-    String datasetIds =
-        sourceDatasets.stream()
-            .map(Dataset::getId)
-            .map(UUID::toString)
-            .collect(Collectors.joining(","));
-
     Map<String, String> labels =
         Map.of(
-            "dataset-names", datasetNames,
-            "dataset-ids", datasetIds,
+            "dataset-names", sourceDataset.getName(),
+            "dataset-ids", sourceDataset.getId().toString(),
             "snapshot-name", snapshotName,
             "snapshot-id", snapshotId.toString(),
             "project-usage", "snapshot");
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(
-            projectId, billingProfile, null, region, labels, CollectionType.SNAPSHOT);
+            projectId, billingProfile, region, labels, CollectionType.SNAPSHOT);
 
     return googleProjectResource.getId();
   }
@@ -573,7 +561,7 @@ public class ResourceService {
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(
-            projectId, billingProfile, getStewardPolicy(), region, labels, CollectionType.DATASET);
+            projectId, billingProfile, region, labels, CollectionType.DATASET);
 
     return googleProjectResource.getId();
   }
@@ -644,14 +632,6 @@ public class ResourceService {
     final Map<String, List<String>> userPermissions =
         roles.stream().collect(Collectors.toMap(r -> r, r -> emails));
     resourceManagerService.updateIamPermissions(userPermissions, dataProject, op);
-  }
-
-  private Map<String, List<String>> getStewardPolicy() {
-    // get steward emails and add to policy
-    String stewardsGroupEmail = formatEmailForPolicy(samConfiguration.stewardsGroupEmail());
-    Map<String, List<String>> policyMap = new HashMap<>();
-    policyMap.put(BQ_JOB_USER_ROLE, Collections.singletonList(stewardsGroupEmail));
-    return Collections.unmodifiableMap(policyMap);
   }
 
   public List<UUID> markUnusedProjectsForDelete(UUID profileId) {

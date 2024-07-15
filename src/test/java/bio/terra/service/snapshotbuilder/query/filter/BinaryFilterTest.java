@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import bio.terra.service.snapshotbuilder.query.FieldPointer;
 import bio.terra.service.snapshotbuilder.query.Literal;
-import bio.terra.service.snapshotbuilder.query.TableVariable;
+import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.filtervariable.BinaryFilterVariable;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -21,7 +21,7 @@ class BinaryFilterTest {
     var filter =
         new BinaryFilter(
             fieldPointer, BinaryFilterVariable.BinaryOperator.EQUALS, new Literal("value"));
-    var variable = filter.buildVariable(TableVariable.forPrimary(null), List.of());
+    var variable = filter.buildVariable(SourceVariable.forPrimary(null), List.of());
     assertThat(variable.operator(), is(filter.operator()));
     assertThat(variable.value(), is(filter.value()));
     assertThat(variable.fieldVariable().getAliasOrColumnName(), is(fieldPointer.getColumnName()));

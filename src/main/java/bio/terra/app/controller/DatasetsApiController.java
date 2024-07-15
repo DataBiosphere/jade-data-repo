@@ -16,6 +16,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnStatisticsModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetDataModel;
@@ -26,7 +27,6 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -40,13 +40,6 @@ import bio.terra.model.QueryColumnStatisticsRequestModel;
 import bio.terra.model.QueryDataRequestModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotBuilderCountRequest;
-import bio.terra.model.SnapshotBuilderCountResponse;
-import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
-import bio.terra.model.SnapshotBuilderGetConceptsResponse;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TagUpdateRequestModel;
@@ -59,7 +52,6 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetSchemaUpdateValidator;
 import bio.terra.service.dataset.DatasetService;
@@ -67,7 +59,6 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
-import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import io.swagger.annotations.Api;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -97,7 +88,6 @@ public class DatasetsApiController implements DatasetsApi {
   private final DatasetService datasetService;
   private final IamService iamService;
   private final FileService fileService;
-  private final SnapshotBuilderService snapshotBuilderService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
   private final IngestRequestValidator ingestRequestValidator;
@@ -112,7 +102,6 @@ public class DatasetsApiController implements DatasetsApi {
       DatasetService datasetService,
       IamService iamService,
       FileService fileService,
-      SnapshotBuilderService snapshotBuilderService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
       IngestRequestValidator ingestRequestValidator,
@@ -124,7 +113,6 @@ public class DatasetsApiController implements DatasetsApi {
     this.datasetService = datasetService;
     this.iamService = iamService;
     this.fileService = fileService;
-    this.snapshotBuilderService = snapshotBuilderService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
     this.ingestRequestValidator = ingestRequestValidator;
@@ -163,8 +151,7 @@ public class DatasetsApiController implements DatasetsApi {
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<DatasetRequestAccessIncludeModel> include) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    verifyDatasetAuthorizations(
-        userRequest, id.toString(), DatasetService.getRetrieveDatasetRequiredActions(include));
+    verifyDatasetAuthorizations(userRequest, id.toString(), List.of(IamAction.READ_DATASET));
 
     return ResponseEntity.ok(datasetService.retrieveDatasetModel(id, userRequest, include));
   }
@@ -174,43 +161,6 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     verifyDatasetAuthorization(userRequest, id.toString(), null);
     return ResponseEntity.ok(datasetService.retrieveDatasetSummary(id));
-  }
-
-  @Override
-  public ResponseEntity<DatasetModel> updateDatasetSnapshotBuilderSettings(
-      @PathVariable("id") UUID id, @Valid @RequestBody SnapshotBuilderSettings settings) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    datasetService.updateDatasetSnapshotBuilderSettings(id, settings);
-    return ResponseEntity.ok(
-        datasetService.retrieveDatasetModel(
-            id, userRequest, List.of(DatasetRequestAccessIncludeModel.SNAPSHOT_BUILDER_SETTINGS)));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> getConcepts(
-      UUID id, Integer conceptId) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.getConceptChildren(id, conceptId, userRequest));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderCountResponse> getSnapshotBuilderCount(
-      UUID id, SnapshotBuilderCountRequest body) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    verifyDatasetAuthorization(
-        userRequest, id.toString(), IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(
-        snapshotBuilderService.getCountResponse(id, body.getCohorts(), userRequest));
   }
 
   @Override
@@ -332,12 +282,12 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> ingestDataset(
       @PathVariable("id") UUID id, @Valid @RequestBody IngestRequestModel ingest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     // Set default strategy to append
     if (ingest.getUpdateStrategy() == null) {
       ingest.updateStrategy(UpdateStrategyEnum.APPEND);
     }
     validateIngestParams(ingest, id);
-    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -552,69 +502,22 @@ public class DatasetsApiController implements DatasetsApi {
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
   }
 
-  @Override
-  public ResponseEntity<SnapshotAccessRequestResponse> createSnapshotRequest(
-      UUID id, SnapshotAccessRequest snapshotAccessRequest) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.VIEW_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(
-        snapshotBuilderService.createSnapshotRequest(
-            id, snapshotAccessRequest, userRequest.getEmail()));
-  }
-
-  @Override
-  public ResponseEntity<EnumerateSnapshotAccessRequest> enumerateSnapshotRequests(UUID id) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(snapshotBuilderService.enumerateByDatasetId(id));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderGetConceptsResponse> searchConcepts(
-      UUID id, String domainId, String searchText) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS); // TODO: change once SQL is sanitized
-    return ResponseEntity.ok(
-        snapshotBuilderService.searchConcepts(id, domainId, searchText, userRequest));
-  }
-
-  @Override
-  public ResponseEntity<SnapshotBuilderGetConceptHierarchyResponse> getConceptHierarchy(
-      UUID id, Integer conceptId) {
-    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userRequest,
-        IamResourceType.DATASET,
-        id.toString(),
-        IamAction.UPDATE_SNAPSHOT_BUILDER_SETTINGS);
-    return ResponseEntity.ok(
-        snapshotBuilderService.getConceptHierarchy(id, conceptId, userRequest));
-  }
-
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
-    Dataset dataset = datasetService.retrieve(datasetId);
-    CloudPlatformWrapper platform =
-        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
-
-    if (platform.isAzure()) {
+    CloudPlatform datasetPlatform =
+        datasetService.retrieveDatasetSummary(datasetId).getCloudPlatform();
+    if (CloudPlatformWrapper.of(datasetPlatform).isAzure()) {
       validateAzureIngestParams(ingestRequestModel);
     }
   }
 
   private void validateAzureIngestParams(IngestRequestModel ingestRequest) {
     List<String> errors = new ArrayList<>();
+    UpdateStrategyEnum updateStrategy = ingestRequest.getUpdateStrategy();
+    if (updateStrategy != UpdateStrategyEnum.APPEND) {
+      errors.add(
+          "Ingests to Azure datasets can only use 'append' as an update strategy, was '%s'."
+              .formatted(updateStrategy));
+    }
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV) {
       // validate CSV parameters
       if (ingestRequest.getCsvSkipLeadingRows() == null) {

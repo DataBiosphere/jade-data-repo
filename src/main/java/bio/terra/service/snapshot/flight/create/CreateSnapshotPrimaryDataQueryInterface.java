@@ -7,7 +7,6 @@ import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.service.common.CommonFlightUtils;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightContext;
@@ -21,19 +20,17 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
       FlightContext context,
       Snapshot snapshot,
       SnapshotRequestModel snapshotReq,
-      DatasetService datasetService)
+      Dataset sourceDataset)
       throws InterruptedException {
+
     SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
-
     Query query = Query.parse(snapshotQuerySpec.getQuery());
-    String datasetName = query.getDatasetName();
-    Dataset dataset = datasetService.retrieveByName(datasetName);
     AssetSpecification assetSpecification =
-        retrieveAssetSpecification(dataset, snapshotQuerySpec.getAssetName());
+        retrieveAssetSpecification(sourceDataset, snapshotQuerySpec.getAssetName());
     validateRootTable(query, assetSpecification);
-    String sqlQuery = translateQuery(query, dataset);
-
+    String sqlQuery = translateQuery(query, sourceDataset);
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
+
     return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
   }
 

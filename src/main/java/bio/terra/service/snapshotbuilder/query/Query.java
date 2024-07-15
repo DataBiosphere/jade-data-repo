@@ -1,20 +1,16 @@
 package bio.terra.service.snapshotbuilder.query;
 
-import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.service.snapshotbuilder.query.exceptions.InvalidRenderSqlParameter;
-import bio.terra.service.snapshotbuilder.query.filtervariable.HavingFilterVariable;
-import java.util.Comparator;
+import bio.terra.service.snapshotbuilder.query.table.Table;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.NotImplementedException;
 import org.stringtemplate.v4.ST;
 
 public record Query(
-    List<FieldVariable> select,
-    List<TableVariable> tables,
+    List<SelectExpression> select,
+    List<Table> tables,
     FilterVariable where,
     List<FieldVariable> groupBy,
-    HavingFilterVariable having,
     List<OrderByVariable> orderBy,
     Integer limit)
     implements SqlExpression {
@@ -26,64 +22,29 @@ public record Query(
     if (tables.isEmpty()) {
       throw new IllegalArgumentException("Query must have at least one TableVariable");
     }
-    if (groupBy == null) {
-      groupBy = List.of();
-    }
-    if (orderBy == null) {
-      orderBy = List.of();
-    }
-    long primaryTables = tables.stream().filter(TableVariable::isPrimary).count();
+    groupBy = Objects.requireNonNullElse(groupBy, List.of());
+    orderBy = Objects.requireNonNullElse(orderBy, List.of());
+
+    long primaryTables = tables.stream().filter(Table::isPrimary).count();
     if (primaryTables != 1) {
       throw new IllegalArgumentException(
           "Query can only have one primary table, but found " + primaryTables);
     }
   }
 
-  public Query(List<FieldVariable> select, List<TableVariable> tables) {
-    this(select, tables, null, null, null, null, null);
-  }
-
-  public Query(
-      List<FieldVariable> select, List<TableVariable> tables, List<FieldVariable> groupBy) {
-    this(select, tables, null, groupBy, null, null, null);
-  }
-
-  public Query(List<FieldVariable> select, List<TableVariable> tables, FilterVariable where) {
-    this(select, tables, where, null, null, null, null);
-  }
-
-  public Query(
-      List<FieldVariable> select, List<TableVariable> tables, FilterVariable where, Integer limit) {
-    this(select, tables, where, null, null, null, limit);
-  }
-
-  public Query(
-      List<FieldVariable> select,
-      List<TableVariable> tables,
-      FilterVariable where,
-      List<FieldVariable> groupBy,
-      List<OrderByVariable> orderBy,
-      Integer limit) {
-    this(select, tables, where, groupBy, null, orderBy, limit);
-  }
-
   @Override
-  public String renderSQL(CloudPlatformWrapper platform) {
-    // generate a unique alias for each TableVariable
-    TableVariable.generateAliases(tables);
-
+  public String renderSQL(SqlRenderContext context) {
     // render each SELECT FieldVariable and join them into a single string
     String selectSQL =
         select.stream()
-            .sorted(Comparator.comparing(FieldVariable::getAlias))
-            .map(fieldVar -> fieldVar.renderSQL(platform))
+            .map(fieldVar -> fieldVar.renderSQL(context))
             .collect(Collectors.joining(", "));
 
     // render the primary TableVariable
     String sql =
         new ST("<selectSQL> FROM <primaryTableFromSQL>")
             .add("selectSQL", selectSQL)
-            .add("primaryTableFromSQL", getPrimaryTable().renderSQL(platform))
+            .add("primaryTableFromSQL", getPrimaryTable().renderSQL(context))
             .render();
 
     // render the join TableVariables
@@ -94,7 +55,7 @@ public record Query(
               .add(
                   "joinTablesFromSQL",
                   tables.stream()
-                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
+                      .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(context))
                       .collect(Collectors.joining(" ")))
               .render();
     }
@@ -104,7 +65,7 @@ public record Query(
       sql =
           new ST("<sql> WHERE <whereSQL>")
               .add("sql", sql)
-              .add("whereSQL", where.renderSQL(platform))
+              .add("whereSQL", where.renderSQL(context))
               .render();
     }
 
@@ -116,13 +77,9 @@ public record Query(
               .add(
                   "groupBySQL",
                   groupBy.stream()
-                      .map(fv -> fv.renderSqlForOrderOrGroupBy(select.contains(fv)))
+                      .map(fv -> fv.renderSqlForOrderOrGroupBy(select.contains(fv), context))
                       .collect(Collectors.joining(", ")))
               .render();
-    }
-
-    if (having != null) {
-      sql += " " + having.renderSQL(platform);
     }
 
     if (!orderBy.isEmpty()) {
@@ -132,34 +89,68 @@ public record Query(
               .add(
                   "orderBySQL",
                   orderBy.stream()
-                      .map(fv -> fv.renderSQL(true, platform))
+                      .map(fv -> fv.renderSQL(true, context))
                       .collect(Collectors.joining(", ")))
               .render();
     }
 
     if (limit != null) {
-      if (platform != null) {
-        if (platform.isGcp()) {
-          sql += " LIMIT " + limit;
-        } else if (platform.isAzure()) {
-          sql = "TOP " + limit + " " + sql;
-        } else {
-          throw new NotImplementedException("Cloud Platform not implemented.");
-        }
-      } else {
-        throw new InvalidRenderSqlParameter(
-            "SQL cannot be generated because the Cloud Platform is null.");
-      }
+      var prevSql = sql;
+      sql =
+          context.getPlatform().choose(prevSql + " LIMIT " + limit, "TOP " + limit + " " + prevSql);
     }
 
     return "SELECT " + sql;
   }
 
-  public List<FieldVariable> getSelect() {
-    return List.copyOf(select);
+  public Table getPrimaryTable() {
+    return tables.stream().filter(Table::isPrimary).findFirst().orElseThrow();
   }
 
-  public TableVariable getPrimaryTable() {
-    return tables.stream().filter(TableVariable::isPrimary).findFirst().orElseThrow();
+  public static class Builder {
+    private List<SelectExpression> select;
+    private List<Table> tables;
+    private FilterVariable where;
+    private List<FieldVariable> groupBy;
+    private List<OrderByVariable> orderBy;
+    private Integer limit;
+
+    public Builder() {
+      // Constructor intentionally left empty to allow for custom initialization via setter methods
+    }
+
+    public Builder select(List<SelectExpression> select) {
+      this.select = select;
+      return this;
+    }
+
+    public Builder tables(List<Table> tables) {
+      this.tables = tables;
+      return this;
+    }
+
+    public Builder where(FilterVariable where) {
+      this.where = where;
+      return this;
+    }
+
+    public Builder groupBy(List<FieldVariable> groupBy) {
+      this.groupBy = groupBy;
+      return this;
+    }
+
+    public Builder orderBy(List<OrderByVariable> orderBy) {
+      this.orderBy = orderBy;
+      return this;
+    }
+
+    public Builder limit(Integer limit) {
+      this.limit = limit;
+      return this;
+    }
+
+    public Query build() {
+      return new Query(select, tables, where, groupBy, orderBy, limit);
+    }
   }
 }

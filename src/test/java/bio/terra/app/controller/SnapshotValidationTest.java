@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.TestUtils;
+import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.SnapshotRequestAssetModel;
@@ -26,6 +27,7 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -61,9 +63,9 @@ import org.springframework.test.web.servlet.MvcResult;
       SnapshotsApiController.class,
       SnapshotRequestValidator.class
     })
-@Tag("bio.terra.common.category.Unit")
+@Tag(Unit.TAG)
 @WebMvcTest
-public class SnapshotValidationTest {
+class SnapshotValidationTest {
 
   @Autowired private MockMvc mvc;
   @MockBean private JobService jobService;
@@ -72,6 +74,7 @@ public class SnapshotValidationTest {
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private FileService fileService;
   @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
   @SpyBean private ApplicationConfiguration applicationConfiguration;
 
   private SnapshotRequestModel snapshotByAssetRequest;
@@ -286,7 +289,7 @@ public class SnapshotValidationTest {
   }
 
   @Test
-  public void testSnapshotValidCompactIdPrefix() throws Exception {
+  void testSnapshotValidCompactIdPrefix() throws Exception {
     when(applicationConfiguration.getCompactIdPrefixAllowList()).thenReturn(List.of("foo.0"));
     // Set the name to null since we need the request to fail to keep consistent
     snapshotByAssetRequest.compactIdPrefix("foo.0").name(null);

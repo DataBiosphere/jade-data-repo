@@ -3,6 +3,7 @@ package bio.terra.common.fixtures;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -26,6 +27,9 @@ public class JsonLoader {
 
   public String loadJson(final String resourcePath) throws IOException {
     try (InputStream stream = classLoader.getResourceAsStream(resourcePath)) {
+      if (stream == null) {
+        throw new FileNotFoundException(resourcePath);
+      }
       return IOUtils.toString(stream, Charsets.UTF_8);
     }
   }

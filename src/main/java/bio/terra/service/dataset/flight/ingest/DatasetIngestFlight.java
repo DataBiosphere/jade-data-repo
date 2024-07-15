@@ -282,10 +282,12 @@ public class DatasetIngestFlight extends Flight {
           new IngestCreateScratchParquetFilesStep(
               azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
       addStep(new IngestValidateScratchTableStep(azureSynapsePdao, datasetService));
-      addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
-          new IngestValidateAzureRefsStep(
+          new IngestValidateScratchTableFilerefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
+      addStep(
+          new IngestCreateParquetFilesStep(
+              azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
       addStep(new IngestCleanAzureStep(azureSynapsePdao, azureBlobStorePdao, userReq));
       addStep(
           new PerformPayloadIngestStep(
@@ -382,7 +384,7 @@ public class DatasetIngestFlight extends Flight {
     addOptionalCombinedIngestStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
     // Lock the load.
-    addOptionalCombinedIngestStep(new LoadLockStep(loadService));
+    addOptionalCombinedIngestStep(new LoadLockStep(loadService), randomBackoffRetry);
 
     if (!dataset.isSelfHosted()) {
       // Get or create a Google project for files to be ingested into.
@@ -522,7 +524,7 @@ public class DatasetIngestFlight extends Flight {
             appConfig.getMaxBadLoadFileLineErrorsReported()));
 
     // Lock the load.
-    addOptionalCombinedIngestStep(new LoadLockStep(loadService));
+    addOptionalCombinedIngestStep(new LoadLockStep(loadService), randomBackoffRetry);
 
     // Make a link between the Storage Account and Dataset in our database.
     addOptionalCombinedIngestStep(

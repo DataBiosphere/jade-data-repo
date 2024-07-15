@@ -40,7 +40,6 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -470,9 +469,6 @@ public class FileTest extends UsersBase {
   }
 
   @Test
-  @SuppressFBWarnings(
-      value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
-      justification = "Spurious RCN check; related to Java 11")
   public void fileUnauthorizedPermissionsTest() throws Exception {
     initialize(false, false);
     String gsPath = "gs://" + testConfiguration.getIngestbucket();

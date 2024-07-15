@@ -65,7 +65,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.NotImplementedException;
@@ -1397,10 +1396,14 @@ public class AzureSynapsePdao {
     }
   }
 
-  // WARNING: SQL string must be sanitized before calling this method
-  public <T> List<T> runQuery(String sql, Function<ResultSet, T> aggregateResult) {
+  public interface Converter<T> {
+    T convert(ResultSet rs) throws SQLException;
+  }
+
+  public <T> List<T> runQuery(
+      String query, Map<String, String> paramMap, Converter<? extends T> converter) {
     try {
-      return synapseJdbcTemplate.query(sql, (rs, rowNum) -> aggregateResult.apply(rs));
+      return synapseJdbcTemplate.query(query, paramMap, (rs, rowNum) -> converter.convert(rs));
     } catch (DataAccessException ex) {
       logger.warn(QUERY_EMPTY_TABLE_ERROR_MESSAGE, ex);
       return new ArrayList<>();

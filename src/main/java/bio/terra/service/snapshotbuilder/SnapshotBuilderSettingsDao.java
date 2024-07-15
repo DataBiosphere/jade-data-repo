@@ -21,12 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class SnapshotBuilderSettingsDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final String datasetIdField = "dataset_id";
+  private static final String SNAPSHOT_ID_FIELD = "snapshot_id";
+  private static final String SETTINGS_FIELD = "settings";
 
   private static final RowMapper<SnapshotBuilderSettings> MAPPER =
       (rs, rowNum) -> {
         try {
-          return objectMapper.readValue(rs.getString("settings"), SnapshotBuilderSettings.class);
+          return objectMapper.readValue(
+              rs.getString(SETTINGS_FIELD), SnapshotBuilderSettings.class);
         } catch (JsonProcessingException e) {
           throw new InternalServerErrorException(
               "Settings not stored as properly formatted json", e);
@@ -39,21 +41,21 @@ public class SnapshotBuilderSettingsDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-  public SnapshotBuilderSettings getSnapshotBuilderSettingsByDatasetId(UUID datasetId) {
+  public SnapshotBuilderSettings getBySnapshotId(UUID snapshotId) {
     try {
 
       return jdbcTemplate.queryForObject(
-          "SELECT settings FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
-          Map.of(datasetIdField, datasetId),
+          "SELECT settings FROM snapshot_builder_settings WHERE snapshot_id = :snapshot_id",
+          Map.of(SNAPSHOT_ID_FIELD, snapshotId),
           MAPPER);
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot builder settings found for dataset", ex);
+      throw new NotFoundException("No snapshot builder settings found for snapshot", ex);
     }
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public SnapshotBuilderSettings upsertSnapshotBuilderSettingsByDataset(
-      UUID datasetId, SnapshotBuilderSettings settings) {
+  public SnapshotBuilderSettings upsertBySnapshotId(
+      UUID snapshotId, SnapshotBuilderSettings settings) {
     String jsonValue;
     try {
       jsonValue = objectMapper.writeValueAsString(settings);
@@ -61,22 +63,22 @@ public class SnapshotBuilderSettingsDao {
       throw new BadRequestException("Could not write settings to json", e);
     }
     jdbcTemplate.update(
-        "INSERT INTO snapshot_builder_settings (dataset_id, settings)"
-            + " VALUES (:dataset_id, cast(:settings as jsonb))"
-            + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_dataset_id_key"
+        "INSERT INTO snapshot_builder_settings (snapshot_id, settings)"
+            + " VALUES (:snapshot_id, cast(:settings as jsonb))"
+            + " ON CONFLICT ON CONSTRAINT snapshot_builder_settings_snapshot_id_key"
             + " DO UPDATE SET settings = cast(:settings as jsonb)",
-        Map.of(datasetIdField, datasetId, "settings", jsonValue));
-    return getSnapshotBuilderSettingsByDatasetId(datasetId);
+        Map.of(SNAPSHOT_ID_FIELD, snapshotId, SETTINGS_FIELD, jsonValue));
+    return getBySnapshotId(snapshotId);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void delete(UUID datasetId) {
+  public void deleteBySnapshotId(UUID snapshotId) {
     try {
       jdbcTemplate.update(
-          "DELETE FROM snapshot_builder_settings WHERE dataset_id = :dataset_id",
-          Map.of(datasetIdField, datasetId));
+          "DELETE FROM snapshot_builder_settings WHERE snapshot_id = :snapshot_id",
+          Map.of(SNAPSHOT_ID_FIELD, snapshotId));
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot builder settings found for dataset", ex);
+      throw new NotFoundException("No snapshot builder settings found for snapshot", ex);
     }
   }
 }

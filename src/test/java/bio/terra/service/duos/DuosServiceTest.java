@@ -6,9 +6,9 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
@@ -43,23 +43,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.dao.CannotSerializeTransactionException;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpServerErrorException;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class DuosServiceTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class DuosServiceTest {
 
   @Mock private IamService iamService;
   @Mock private DuosClient duosClient;
@@ -85,14 +84,14 @@ public class DuosServiceTest {
       new DuosDatasetApprovedUsers(
           APPROVED_USER_EMAILS.stream().map(DuosDatasetApprovedUser::new).toList());
 
-  @Before
-  public void before() {
+  @BeforeEach
+  void beforeEach() {
     executor = Executors.newFixedThreadPool(NUM_EXECUTOR_THREADS);
     duosService = new DuosService(iamService, duosClient, duosDao, executor);
   }
 
-  @After
-  public void after() {
+  @AfterEach
+  void afterEach() {
     if (executor != null) {
       executor.shutdownNow();
     }
@@ -104,7 +103,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testStatusOk() {
+  void testStatusOk() {
     Map<String, SystemStatusSystems> subsystems =
         SUBSYSTEM_NAMES.stream()
             .collect(Collectors.toMap(Function.identity(), name -> statusSubsystem(true, name)));
@@ -118,7 +117,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testStatusNotOk() {
+  void testStatusNotOk() {
     Map<String, SystemStatusSystems> subsystems =
         SUBSYSTEM_NAMES.stream()
             .collect(Collectors.toMap(Function.identity(), name -> statusSubsystem(false, name)));
@@ -132,7 +131,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testStatusNotOkWhenDuosClientThrows() {
+  void testStatusNotOkWhenDuosClientThrows() {
     String exceptionMessage = "Error thrown by DUOS";
     when(duosClient.status())
         .thenThrow(
@@ -153,7 +152,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testRetrieveFirecloudGroup() {
+  void testRetrieveFirecloudGroup() {
     assertThrows(
         DuosDatasetNotFoundException.class, () -> duosService.retrieveFirecloudGroup(DUOS_ID));
 
@@ -162,7 +161,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testCreateFirecloudGroup() {
+  void testCreateFirecloudGroup() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(FIRECLOUD_GROUP_EMAIL);
 
     DuosFirecloudGroupModel actual = duosService.createFirecloudGroup(DUOS_ID);
@@ -173,7 +172,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testCreateFirecloudGroupWithNamingConflict() {
+  void testCreateFirecloudGroupWithNamingConflict() {
     String groupEmailNew = firecloudGroupEmail(FIRECLOUD_GROUP_NAME + "-new");
 
     // If we encounter a naming collision when trying to create a Firecloud group,
@@ -193,7 +192,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testCreateFirecloudGroupWithUnretriableCreationException() {
+  void testCreateFirecloudGroupWithUnretriableCreationException() {
     doThrow(new IamForbiddenException("", List.of()))
         .when(iamService)
         .createGroup(FIRECLOUD_GROUP_NAME);
@@ -202,7 +201,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsers() {
+  void testSyncDuosDatasetAuthorizedUsers() {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
@@ -219,7 +218,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsersThrowsWhenNoRecord() {
+  void testSyncDuosDatasetAuthorizedUsersThrowsWhenNoRecord() {
     assertThrows(
         DuosDatasetNotFoundException.class,
         () -> duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID));
@@ -229,7 +228,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsersEmptiesGroupWhenDuosDatasetDoesNotExist() {
+  void testSyncDuosDatasetAuthorizedUsersEmptiesGroupWhenDuosDatasetDoesNotExist() {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetNotFoundException(""));
 
@@ -243,7 +242,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsersEmptiesGroupWhenBadDuosDatasetRequest() {
+  void testSyncDuosDatasetAuthorizedUsersEmptiesGroupWhenBadDuosDatasetRequest() {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetBadRequestException(""));
 
@@ -257,7 +256,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsersThrowsWhenUserFetchThrows() {
+  void testSyncDuosDatasetAuthorizedUsersThrowsWhenUserFetchThrows() {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     var expectedEx = new DuosInternalServerErrorException("Could not get approved users");
     when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(expectedEx);
@@ -276,7 +275,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsersThrowsWhenIamServiceThrows() {
+  void testSyncDuosDatasetAuthorizedUsersThrowsWhenIamServiceThrows() {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
@@ -302,11 +301,11 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsersThrowsCustomExceptionOnDbUpdateConflict() {
+  void testSyncDuosDatasetAuthorizedUsersThrowsCustomExceptionOnDbUpdateConflict() {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
-    var expectedEx = new CannotSerializeTransactionException("Conflict on update");
+    var expectedEx = new PessimisticLockingFailureException("Conflict on update");
     when(duosDao.updateFirecloudGroupLastSyncedDate(
             eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
         .thenThrow(expectedEx);
@@ -326,7 +325,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetAuthorizedUsersThrowsOnOtherDbExceptions() {
+  void testSyncDuosDatasetAuthorizedUsersThrowsOnOtherDbExceptions() {
     when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
@@ -349,7 +348,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetsAuthorizedUsersWithSyncErrors() {
+  void testSyncDuosDatasetsAuthorizedUsersWithSyncErrors() {
     String duosIdDuosCallThrows = "DUOS-DUOSTHROWS";
     String duosIdSamCallThrows = "DUOS-SAMTHROWS";
 
@@ -402,12 +401,8 @@ public class DuosServiceTest {
     assertThat("2 errors encountered during batch sync", errors, hasSize(2));
     var errorMessages = errors.stream().map(ErrorModel::getMessage).toList();
     var expectedErrorMessages =
-        List.of(duosIdDuosCallThrows, duosIdSamCallThrows).stream()
-            .map(
-                duosId -> {
-                  var firecloudGroup = groupMap.get(duosId);
-                  return DuosService.syncFirecloudGroupContentsErrorMessage(firecloudGroup);
-                })
+        Stream.of(duosIdDuosCallThrows, duosIdSamCallThrows)
+            .map(duosId -> DuosService.syncFirecloudGroupContentsErrorMessage(groupMap.get(duosId)))
             .toArray();
     assertThat(
         "The attempted syncs which threw exceptions are included in the response errors",
@@ -416,7 +411,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetsAuthorizedUsersWithTooFewRecordsUpdated() {
+  void testSyncDuosDatasetsAuthorizedUsersWithTooFewRecordsUpdated() {
     UUID id = FIRECLOUD_GROUP.getId();
     when(duosDao.retrieveFirecloudGroups()).thenReturn(List.of(FIRECLOUD_GROUP));
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
@@ -450,7 +445,7 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncDuosDatasetsAuthorizedUsersWithDbError() {
+  void testSyncDuosDatasetsAuthorizedUsersWithDbError() {
     UUID id = FIRECLOUD_GROUP.getId();
     when(duosDao.retrieveFirecloudGroups()).thenReturn(List.of(FIRECLOUD_GROUP));
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);

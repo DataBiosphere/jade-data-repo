@@ -4,21 +4,20 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.JournalRecordCreateEntryStep;
 import bio.terra.service.journal.JournalService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 
 public class CreateSnapshotJournalEntryStep extends JournalRecordCreateEntryStep {
+  private final UUID snapshotId;
 
   public CreateSnapshotJournalEntryStep(
-      JournalService journalService, AuthenticatedUserRequest userReq) {
+      JournalService journalService, AuthenticatedUserRequest userReq, UUID snapshotId) {
     super(journalService, userReq, IamResourceType.DATASNAPSHOT, "Created snapshot.", false);
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public UUID getResourceId(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    return workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+    return snapshotId;
   }
 }

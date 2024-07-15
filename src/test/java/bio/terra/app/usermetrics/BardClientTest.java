@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.UserMetricsConfiguration;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import java.util.Map;
@@ -23,8 +24,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("bio.terra.common.category.Unit")
-public class BardClientTest {
+@Tag(Unit.TAG)
+class BardClientTest {
 
   @Mock private UserMetricsConfiguration userMetricsConfiguration;
   @Mock private RestTemplate restTemplate;

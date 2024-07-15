@@ -268,6 +268,12 @@ public class SnapshotCreateFlight extends Flight {
         addStep(new CreateSnapshotSamGroupNameStep(snapshotId, iamService));
         addStep(new CreateSnapshotSamGroupStep(iamService));
         addStep(
+            new CreateSnapshotAddEmailsToSamGroupStep(
+                userReq,
+                iamService,
+                snapshotRequestDao,
+                contents.getRequestIdSpec().getSnapshotRequestId()));
+        addStep(
             platform.choose(
                 () ->
                     new CreateSnapshotByRequestIdGcpStep(

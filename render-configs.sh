@@ -19,6 +19,8 @@
 # Then, refresh your z-shell configuration (`source ~./zshrc`)
 # ./gradlew bootRun
 
+set -eu
+
 AZURE_ENV=dev
 RBS_ENV=tools
 COPY_INTELLIJ_ENV_VARS=n

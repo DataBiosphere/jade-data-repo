@@ -55,7 +55,7 @@ if [[ "${AZURE_ENV}" == "dev" ]]; then
     GCLOUD_PROJECT=broad-jade-dev
 elif [[ "${AZURE_ENV}" == "integration" ]]; then
     AZURE_SYNAPSE_WORKSPACENAME=tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
-    GCLOUD_PROJECT=broad-jade-dev
+    GCLOUD_PROJECT=broad-dsde-qa
 else
     echo "Invalid Azure environment: $AZURE_ENV"
     exit 1

@@ -24,7 +24,7 @@ set -eu
 AZURE_ENV=dev
 RBS_ENV=tools
 COPY_INTELLIJ_ENV_VARS=n
-USE_VAULT=true
+USE_VAULT="${USE_VAULT:-false}"
 
 while getopts ":a:r:i" option; do
   case $option in

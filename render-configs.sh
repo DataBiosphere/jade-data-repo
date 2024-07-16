@@ -62,7 +62,7 @@ fi
 echo $AZURE_SYNAPSE_WORKSPACENAME > "/tmp/azure-synapse-workspacename.txt"
 
 if $USE_VAULT; then
-  AZURE_SECRETS=$(vault read -format=json secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets)
+  AZURE_SECRETS=$(vault read -format=json -field=data secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets)
 else
   AZURE_SECRETS=$(gcloud secrets versions access latest --project $GCLOUD_PROJECT --secret azure-secrets)
 fi

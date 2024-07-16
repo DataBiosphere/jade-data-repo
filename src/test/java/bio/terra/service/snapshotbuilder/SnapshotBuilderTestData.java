@@ -21,6 +21,7 @@ import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderRequest;
+import bio.terra.model.SnapshotBuilderRootTable;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -218,7 +219,13 @@ public class SnapshotBuilderTestData {
                       .table(new SnapshotBuilderTable().datasetTableName(Person.TABLE_NAME)),
                   new SnapshotBuilderDatasetConceptSet()
                       .name("Genomics")
-                      .table(new SnapshotBuilderTable().datasetTableName("sample"))));
+                      .table(new SnapshotBuilderTable().datasetTableName("sample"))))
+          .rootTable(
+              (SnapshotBuilderRootTable)
+                  new SnapshotBuilderRootTable()
+                      .rootColumn(Person.PERSON_ID)
+                      .datasetTableName(Person.TABLE_NAME))
+          .dictionaryTable(new SnapshotBuilderTable().datasetTableName(Concept.TABLE_NAME));
 
   public static final Column PERSON_ID_COLUMN =
       new Column().name("person_id").type(TableDataType.INTEGER);

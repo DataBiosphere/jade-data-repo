@@ -1478,9 +1478,8 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
-    when(settingsDao.getBySnapshotId(sourceSnapshotId))
-        .thenReturn(SnapshotBuilderTestData.SETTINGS);
-    var firstTable = service.pullTables(accessRequestResponse).get(0);
+    var firstTable =
+        service.pullTables(accessRequestResponse, SnapshotBuilderTestData.SETTINGS).get(0);
     assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
     // Must preserve relationship order
     assertThat(firstTable.getPrimaryTableRelationship(), equalTo("fpk_person_drug"));

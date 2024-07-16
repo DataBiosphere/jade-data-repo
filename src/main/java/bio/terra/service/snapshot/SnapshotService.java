@@ -37,6 +37,7 @@ import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderOutputTable;
+import bio.terra.model.SnapshotBuilderRootTable;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotIdsAndRolesModel;
@@ -696,17 +697,21 @@ public class SnapshotService {
 
   public AssetSpecification buildAssetFromSnapshotAccessRequest(
       Dataset dataset, SnapshotAccessRequestResponse snapshotAccessRequest) {
+    SnapshotBuilderSettings settings =
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.getSourceSnapshotId());
     // build asset model from snapshot request
+    SnapshotBuilderRootTable rootTable = settings.getRootTable();
     AssetModel assetModel =
         new AssetModel()
             .name("snapshot-by-request-asset")
-            .rootTable("person")
-            .rootColumn("person_id");
-    // Manually add dictionary tables, leave columns empty to return all columns
-    assetModel.addTablesItem(new AssetTableModel().name("person"));
+            .rootTable(rootTable.getDatasetTableName())
+            .rootColumn(rootTable.getRootColumn());
+
+    // Add root table, leave columns empty to return all columns
+    assetModel.addTablesItem(new AssetTableModel().name(rootTable.getDatasetTableName()));
 
     // Build asset tables and columns based on the concept sets included in the snapshot request
-    List<SnapshotBuilderTable> tables = pullTables(snapshotAccessRequest);
+    List<SnapshotBuilderTable> tables = pullTables(snapshotAccessRequest, settings);
     tables.forEach(
         table -> {
           assetModel.addTablesItem(
@@ -716,6 +721,7 @@ public class SnapshotService {
             assetModel.addFollowItem(table.getPrimaryTableRelationship());
           }
         });
+
     // Second, add all occurrence <-> concept relationships
     tables.forEach(
         table -> {
@@ -724,7 +730,9 @@ public class SnapshotService {
           }
         });
 
-    assetModel.addTablesItem(new AssetTableModel().name("concept"));
+    // Add dictionary table, leave columns empty to return all columns
+    assetModel.addTablesItem(
+        new AssetTableModel().name(settings.getDictionaryTable().getDatasetTableName()));
 
     // Make sure we just built a valid asset model
     dataset.validateDatasetAssetSpecification(assetModel);
@@ -734,15 +742,14 @@ public class SnapshotService {
   }
 
   @VisibleForTesting
-  List<SnapshotBuilderTable> pullTables(SnapshotAccessRequestResponse snapshotAccessRequest) {
+  List<SnapshotBuilderTable> pullTables(
+      SnapshotAccessRequestResponse snapshotAccessRequest, SnapshotBuilderSettings settings) {
     List<String> includedTableNames =
         snapshotAccessRequest.getSnapshotSpecification().getOutputTables().stream()
             .map(SnapshotBuilderOutputTable::getName)
             .toList();
-    List<SnapshotBuilderDatasetConceptSet> allTables =
-        snapshotBuilderSettingsDao
-            .getBySnapshotId(snapshotAccessRequest.getSourceSnapshotId())
-            .getDatasetConceptSets();
+
+    List<SnapshotBuilderDatasetConceptSet> allTables = settings.getDatasetConceptSets();
 
     Set<String> missing = new HashSet<>(includedTableNames);
     allTables.stream().map(SnapshotBuilderDatasetConceptSet::getName).forEach(missing::remove);

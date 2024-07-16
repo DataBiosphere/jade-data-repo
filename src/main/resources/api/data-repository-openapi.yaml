@@ -7207,6 +7207,7 @@ components:
         - programDataOptions
         - featureValueGroups
         - datasetConceptSets
+        - rootTable
       properties:
         domainOptions:
           type: array
@@ -7221,6 +7222,10 @@ components:
           items:
             $ref:
               '#/components/schemas/SnapshotBuilderDatasetConceptSet'
+        rootTable:
+          $ref: '#/components/schemas/SnapshotBuilderRootTable'
+        dictionaryTable:
+          $ref: '#/components/schemas/SnapshotBuilderTable'
 
     SnapshotBuilderOption:
       type: object
@@ -7419,6 +7424,18 @@ components:
           type: array
           items:
             type: string
+
+    SnapshotBuilderRootTable:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderTable'
+        - type: object
+          required:
+            - rootColumn
+          properties:
+            rootColumn:
+              type: string
+          description: >
+                The primary column in the root table that is used to join with other tables
 
     EnumerateSnapshotAccessRequest:
       type: object

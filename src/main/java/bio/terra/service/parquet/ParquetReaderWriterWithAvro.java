@@ -83,8 +83,12 @@ public class ParquetReaderWriterWithAvro {
                   long timeOfDayNanos = bb.getLong();
                   var julianDay = bb.getInt();
                   // Given timeOfDayNanos and julianDay, convert to microseconds since epoch
+                  // Formula for converting to *nano*seconds can be found here:
+                  // https://github.com/xhochy/parquet-format/blob/cb4727767823ae201fd567f67825cc22834c20e9/LogicalTypes.md#int96-timestamps-also-called-impala_timestamp
+                  // we divide the given formula by 1000 to get back to microseconds
                   Long microSeconds =
-                      (long) (julianDay - 2440588) * 86400 * 1000000 + timeOfDayNanos / 1000;
+                      ((julianDay - 2440588) * (86400L * 1000 * 1000 * 1000) + timeOfDayNanos)
+                          / 1000;
                   newRecord.put(column, microSeconds);
                 }
                 break;

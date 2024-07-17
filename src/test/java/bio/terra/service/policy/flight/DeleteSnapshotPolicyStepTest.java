@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.Dataset;
@@ -64,7 +65,7 @@ public class DeleteSnapshotPolicyStepTest {
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
+    verify(policyService).createOrUpdatePao(SNAPSHOT_ID, TpsObjectType.SNAPSHOT, policies);
   }
 
   @Test

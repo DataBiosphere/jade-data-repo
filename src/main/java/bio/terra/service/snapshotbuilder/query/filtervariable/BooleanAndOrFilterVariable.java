@@ -29,6 +29,10 @@ public record BooleanAndOrFilterVariable(
     }
   }
 
+  public static BooleanAndOrFilterVariable and(List<FilterVariable> subFilters) {
+    return new BooleanAndOrFilterVariable(LogicalOperator.AND, subFilters);
+  }
+
   public static BooleanAndOrFilterVariable and(FilterVariable... subFilters) {
     return new BooleanAndOrFilterVariable(LogicalOperator.AND, List.of(subFilters));
   }

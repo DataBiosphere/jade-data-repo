@@ -12,6 +12,133 @@
         "count": 300,
         "hasChildren": true
       },
+      "enumerate": {
+        "startWith": {
+          "tableName": "concept",
+          "columnsUsed": [
+            {
+              "name": "concept_name",
+              "selectDetails": {
+                "isDistinct": false
+              },
+              "filterDetails": [
+                {
+                  "type": "SEARCH_TERM"
+                }
+              ],
+              "isGroupBy": true
+            },
+            {
+              "name": "concept_id",
+              "selectDetails": {
+                "isDistinct": false
+              },
+              "isGroupBy": true
+            },
+            {
+              "name": "concept_code",
+              "selectDetails": {
+                "isDistinct": false
+              },
+              "filterDetails": [
+                {
+                  "type": "SEARCH_TERM"
+                }
+              ],
+              "isGroupBy": true
+            },
+            {
+              "name": "domain_id",
+              "filterDetails": [
+                {
+                  "type": "LITERAL",
+                  "literal": "Drug"
+                }
+              ]
+            },
+            {
+              "name": "standard_concept",
+              "filterDetails": [
+                {
+                  "type": "LITERAL",
+                  "literal": "S"
+                }
+              ]
+            }
+          ]
+        },
+        "joinTables": [
+          {
+            "leftJoin": false,
+            "from": {
+              "table": "concept",
+              "column": "concept_id"
+            },
+            "to": {
+              "table": "concept_ancestor",
+              "column": "ancestor_concept_id"
+            }
+          },
+          {
+            "leftJoin": true,
+            "from": {
+              "table": "concept_ancestor",
+              "column": "descendant_concept_id"
+            },
+            "to": {
+              "table": "drug_exposure",
+              "column": "drug_concept_id",
+              "columnsUsed": [
+                {
+                  "name": "person_id",
+                  "selectDetails": {
+                    "isDistinct": true,
+                    "alias": "count",
+                    "functionWrapper": "COUNT"
+                  },
+                  "orderByDetails": "DESCENDING"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "rows": {
+        "startsWith": {
+          "name": "drug_exposure",
+          "columnsUsed": [
+            {
+              "name": "person_id",
+              "selectDetails": {
+                "isDistinct": false
+              }
+            }
+          ]
+        },
+        "joinTables": [
+          {
+            "leftJoin": false,
+            "from": {
+              "table": "drug_exposure",
+              "column": "drug_concept_id"
+            },
+            "to": {
+              "table": "concept_ancestor",
+              "column": "descendant_concept_id",
+              "columnsUsed": [
+                {
+                  "name": "ancestor_concept_id",
+                  "filterDetails": [
+                    {
+                      "type": "SEARCH_TERM"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
       "conceptCount": 157,
       "participantCount": 300
     },
@@ -27,6 +154,25 @@
         "count": 0,
         "hasChildren": true
       },
+      "enumerate": {
+        "startWith": {
+          "tableName": "concept"
+        },
+        "rollup": {
+          "join":{
+            "from": {
+              "table": "concept",
+              "column": "concept_id"
+            },
+            "to": {
+              "table": "drug_exposure",
+              "column": "drug_concept_id"
+            }
+          },
+          "column": "person_id"
+        }
+
+      },
       "conceptCount": 175,
       "participantCount": 300
     },
@@ -41,6 +187,14 @@
         "name": "Visit",
         "count": 300,
         "hasChildren": true
+      },
+      "enumerate": {
+        "startWith": {
+          "tableName": "visit_occurrence"
+        },
+        "rollup": {
+          "column": "person_id"
+        }
       },
       "conceptCount": 3,
       "participantCount": 300

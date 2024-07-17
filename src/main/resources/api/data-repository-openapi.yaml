@@ -7318,6 +7318,7 @@ components:
             - root
             - conceptCount
             - participantCount
+            - enumerate
           properties:
             root:
               $ref: '#/components/schemas/SnapshotBuilderConcept'
@@ -7325,8 +7326,126 @@ components:
               type: integer
             participantCount:
               type: integer
+            enumerate:
+              $ref: '#/components/schemas/SnapshotBuilderEnumerateModel'
+            rows:
+              $ref: '#/components/schemas/SnapshotBuilderRowsModel'
       description: >
         ⚠️ An object describing high level information about a domain for use in the snapshot builder
+
+    SnapshotBuilderEnumerateModel:
+      type: object
+      properties:
+        startsWith:
+          $ref: '#/components/schemas/SnapshotBuilderPrimaryTable'
+        joinTables:
+          description: an ordered list of tables to join to
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderJoinModel'
+
+    SnapshotBuilderRowsModel:
+      type: object
+      properties:
+        startsWith:
+          $ref: '#/components/schemas/SnapshotBuilderPrimaryTable'
+        joinTables:
+          description: an ordered list of tables to join to
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderJoinModel'
+
+    SnapshotBuilderPrimaryTable:
+      type: object
+      properties:
+        name:
+          type: string
+        columnsUsed:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderColumn'
+
+    SnapshotBuilderColumn:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        selectDetails:
+          $ref: '#/components/schemas/SnapshotBuilderColumnSelectDetails'
+        orderByDetails:
+          $ref: '#/components/schemas/SnapshotBuilderColumnOrderByDirection'
+        isGroupBy:
+          type: boolean
+        filterDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotBuilderColumnFilterDetails'
+
+    SnapshotBuilderColumnSelectDetails:
+      type: object
+      properties:
+        functionWrapper:
+          type: string
+        alias:
+          type: string
+        isDistinct:
+          type: boolean
+
+    SnapshotBuilderColumnFilterDetails:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          $ref: '#/components/schemas/SnapshotBuilderColumnFilterType'
+        literal:
+          type: string
+
+    SnapshotBuilderColumnFilterType:
+      type: string
+      enum: [ LITERAL, SEARCH_TERM ]
+
+    SnapshotBuilderColumnOrderByDirection:
+      type: string
+      enum: [ ASCENDING, DESCENDING ]
+
+    SnapshotBuilderJoinModel:
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/SnapshotBuilderJoinTable'
+        to:
+          $ref: '#/components/schemas/SnapshotBuilderJoinToTable'
+        leftJoin:
+          type: boolean
+
+    SnapshotBuilderJoinTable:
+      type: object
+      properties:
+        table:
+          type: string
+        column:
+          type: string
+
+    SnapshotBuilderJoinToTable:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderJoinTable'
+        - type: object
+          properties:
+            columnsUsed:
+              type: array
+              items:
+                $ref: '#/components/schemas/SnapshotBuilderColumn'
+
+    SnapshotBuilderRollupModel:
+      type: object
+      properties:
+        column:
+          type: string
+        join:
+          $ref: '#/components/schemas/SnapshotBuilderJoinModel'
 
     SnapshotBuilderConceptsResponse:
       type: object

@@ -50,7 +50,7 @@ public final class SourceVariable implements SqlExpression {
     return forJoined(sourcePointer, joinField, joinFieldOnParent, true);
   }
 
-  private static SourceVariable forJoined(
+  public static SourceVariable forJoined(
       SourcePointer sourcePointer,
       String joinField,
       FieldVariable fieldVariable,

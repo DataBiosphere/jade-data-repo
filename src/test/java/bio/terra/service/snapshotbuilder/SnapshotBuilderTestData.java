@@ -7,20 +7,30 @@ import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
+import bio.terra.model.SnapshotBuilderColumn;
+import bio.terra.model.SnapshotBuilderColumnFilterDetails;
+import bio.terra.model.SnapshotBuilderColumnFilterType;
+import bio.terra.model.SnapshotBuilderColumnSelectDetails;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.model.SnapshotBuilderCriteria;
 import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
+import bio.terra.model.SnapshotBuilderEnumerateModel;
+import bio.terra.model.SnapshotBuilderJoinModel;
+import bio.terra.model.SnapshotBuilderJoinTable;
+import bio.terra.model.SnapshotBuilderJoinToTable;
 import bio.terra.model.SnapshotBuilderOption;
 import bio.terra.model.SnapshotBuilderOutputTable;
+import bio.terra.model.SnapshotBuilderPrimaryTable;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataListItem;
 import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderRequest;
+import bio.terra.model.SnapshotBuilderRowsModel;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -49,12 +59,69 @@ public class SnapshotBuilderTestData {
         .root(root)
         .conceptCount(100)
         .participantCount(100)
+        .enumerate(generateSnapshotBuilderDomainOptionEnumerate(tableName, columnName))
+        .rows(generateSnapshotBuilderDomainOptionRows(tableName, columnName))
         .id(id)
         .tableName(tableName)
         .columnName(columnName)
         .name(name)
         .kind(SnapshotBuilderOption.KindEnum.DOMAIN);
     return domainOption;
+  }
+
+  private static SnapshotBuilderEnumerateModel generateSnapshotBuilderDomainOptionEnumerate(
+      String tableName, String columnName) {
+    SnapshotBuilderJoinToTable conceptTable = new SnapshotBuilderJoinToTable();
+    conceptTable.columnsUsed(List.of()).table("concept").column("concept_id");
+    SnapshotBuilderJoinToTable conceptAncestorTable = new SnapshotBuilderJoinToTable();
+    conceptAncestorTable
+        .columnsUsed(List.of())
+        .table("concept_ancestor")
+        .column("ancestor_concept_id");
+    return new SnapshotBuilderEnumerateModel()
+        .startsWith(new SnapshotBuilderPrimaryTable().name(tableName).columnsUsed(List.of()))
+        .joinTables(
+            List.of(
+                new SnapshotBuilderJoinModel()
+                    .leftJoin(false)
+                    .from(new SnapshotBuilderJoinTable().table(tableName).column(columnName))
+                    .to(conceptTable),
+                new SnapshotBuilderJoinModel()
+                    .leftJoin(false)
+                    .from(conceptTable)
+                    .to(conceptAncestorTable)));
+  }
+
+  private static SnapshotBuilderRowsModel generateSnapshotBuilderDomainOptionRows(
+      String tableName, String columnName) {
+    SnapshotBuilderJoinToTable conceptAncestorTable = new SnapshotBuilderJoinToTable();
+    conceptAncestorTable
+        .columnsUsed(
+            List.of(
+                new SnapshotBuilderColumn()
+                    .name("ancestor_concept_id")
+                    .filterDetails(
+                        List.of(
+                            new SnapshotBuilderColumnFilterDetails()
+                                .type(SnapshotBuilderColumnFilterType.SEARCH_TERM)))))
+        .table("concept_ancestor")
+        .column("descendant_concept_id");
+    return new SnapshotBuilderRowsModel()
+        .startsWith(
+            new SnapshotBuilderPrimaryTable()
+                .name(tableName)
+                .columnsUsed(
+                    List.of(
+                        new SnapshotBuilderColumn()
+                            .name("person_id")
+                            .selectDetails(
+                                new SnapshotBuilderColumnSelectDetails().isDistinct(false)))))
+        .joinTables(
+            List.of(
+                new SnapshotBuilderJoinModel()
+                    .leftJoin(false)
+                    .from(new SnapshotBuilderJoinTable().table(tableName).column(columnName))
+                    .to(conceptAncestorTable)));
   }
 
   private static SnapshotBuilderProgramDataListOption generateSnapshotBuilderProgramDataListOption(

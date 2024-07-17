@@ -84,7 +84,7 @@ public class CriteriaQueryBuilderTest {
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilter(domainCriteria);
 
     String expectedSql =
-        "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co  JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE ca.ancestor_concept_id = 0)";
+        "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co  JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE (ca.ancestor_concept_id = 0))";
     assertQueryEquals(expectedSql, filterVariable.renderSQL(context));
   }
 
@@ -105,7 +105,7 @@ public class CriteriaQueryBuilderTest {
     FilterVariable filterVariable = criteriaQueryBuilder.generateFilterForCriteria(criteria);
 
     assertQueryEquals(
-        "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE ca.ancestor_concept_id = 0)",
+        "p.person_id IN (SELECT co.person_id FROM condition_occurrence AS co JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id WHERE (ca.ancestor_concept_id = 0))",
         filterVariable.renderSQL(context));
   }
 
@@ -255,14 +255,14 @@ public class CriteriaQueryBuilderTest {
               FROM condition_occurrence AS co
               JOIN concept_ancestor AS ca
                 ON ca.descendant_concept_id = co.condition_concept_id
-              WHERE ca.ancestor_concept_id = 0) AND
+              WHERE (ca.ancestor_concept_id = 0)) AND
                 p.ethnicity_concept_id IN (0,1,2)
                 AND (p.year_of_birth >= 0 AND p.year_of_birth <= 100)
                 AND p.person_id IN (SELECT po.person_id
               FROM procedure_occurrence AS po
                 JOIN concept_ancestor AS ca1
                 ON ca1.descendant_concept_id = po.procedure_concept_id
-              WHERE ca1.ancestor_concept_id = 0))))""";
+              WHERE (ca1.ancestor_concept_id = 0)))))""";
     assertQueryEquals(expectedSql, query.renderSQL(context));
   }
 
@@ -280,7 +280,7 @@ public class CriteriaQueryBuilderTest {
         (((1=1 AND p.person_id IN
             (SELECT co.person_id FROM condition_occurrence AS co
             JOIN concept_ancestor AS ca ON ca.descendant_concept_id = co.condition_concept_id
-            WHERE ca.ancestor_concept_id = 100)
+            WHERE (ca.ancestor_concept_id = 100))
             AND (p.year_of_birth >= 1950 AND p.year_of_birth <= 2000))))
     """;
     assertQueryEquals(expectedSql, query.renderSQL(context));

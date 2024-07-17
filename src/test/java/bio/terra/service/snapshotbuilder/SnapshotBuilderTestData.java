@@ -35,7 +35,6 @@ import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.query.table.Person;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.DrugExposure;
-import bio.terra.service.snapshotbuilder.utils.constants.Measurement;
 import bio.terra.service.snapshotbuilder.utils.constants.Observation;
 import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;
 import java.util.List;
@@ -207,7 +206,7 @@ public class SnapshotBuilderTestData {
                       .table(new SnapshotBuilderTable().datasetTableName(Observation.TABLE_NAME)),
                   new SnapshotBuilderDatasetConceptSet()
                       .name("Measurement")
-                      .table(new SnapshotBuilderTable().datasetTableName(Measurement.TABLE_NAME)),
+                      .table(new SnapshotBuilderTable().datasetTableName("measurement")),
                   new SnapshotBuilderDatasetConceptSet()
                       .name("Visit")
                       .table(new SnapshotBuilderTable().datasetTableName("visit_occurrence")),

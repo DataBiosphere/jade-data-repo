@@ -19,9 +19,12 @@
 # Then, refresh your z-shell configuration (`source ~./zshrc`)
 # ./gradlew bootRun
 
+set -eu
+
 AZURE_ENV=dev
 RBS_ENV=tools
 COPY_INTELLIJ_ENV_VARS=n
+USE_VAULT="${USE_VAULT:-false}"
 
 while getopts ":a:r:i" option; do
   case $option in
@@ -49,8 +52,10 @@ done
 
 if [[ "${AZURE_ENV}" == "dev" ]]; then
     AZURE_SYNAPSE_WORKSPACENAME=tdr-synapse-east-us-ondemand.sql.azuresynapse.net
+    GCLOUD_PROJECT=broad-jade-dev
 elif [[ "${AZURE_ENV}" == "integration" ]]; then
     AZURE_SYNAPSE_WORKSPACENAME=tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
+    GCLOUD_PROJECT=broad-dsde-qa
 else
     echo "Invalid Azure environment: $AZURE_ENV"
     exit 1
@@ -58,42 +63,33 @@ fi
 # writing this values to a tmp file so the value can match the set azure environment
 echo $AZURE_SYNAPSE_WORKSPACENAME > "/tmp/azure-synapse-workspacename.txt"
 
+if $USE_VAULT; then
+  AZURE_SECRETS=$(vault read -format=json -field=data secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets)
+else
+  AZURE_SECRETS=$(gcloud secrets versions access latest --project $GCLOUD_PROJECT --secret azure-secrets)
+fi
 
-vault read -field=tenant-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-dev-tenant-id.key"
-AZURE_CREDENTIALS_HOMETENANTID=$(cat "/tmp/jade-dev-tenant-id.key")
-
-
-vault read -field=client-id secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-dev-client-id.key"
-AZURE_CREDENTIALS_APPLICATIONID=$(cat "/tmp/jade-dev-client-id.key")
-
-
-vault read -field=client-secret secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-dev-azure.key"
-AZURE_CREDENTIALS_SECRET=$(cat "/tmp/jade-dev-azure.key")
-
-
-vault read -field=synapse-sql-admin-user secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-dev-synapse-admin-user.key"
-AZURE_SYNAPSE_SQLADMINUSER=$(cat "/tmp/jade-dev-synapse-admin-user.key")
-
-
-vault read -field=synapse-sql-admin-password secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-dev-synapse-admin-password.key"
-AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat "/tmp/jade-dev-synapse-admin-password.key")
-
-
-vault read -field=synapse-encryption-key secret/dsde/datarepo/"$AZURE_ENV"/azure-application-secrets \
-    > "/tmp/jade-dev-synapse-encryption-key.key"
-AZURE_SYNAPSE_ENCRYPTIONKEY=$(cat "/tmp/jade-dev-synapse-encryption-key.key")
+AZURE_CREDENTIALS_HOMETENANTID=$(echo "$AZURE_SECRETS" | jq -r '."tenant-id"' | tee /tmp/jade-dev-tenant-id.key)
+AZURE_CREDENTIALS_APPLICATIONID=$(echo "$AZURE_SECRETS" | jq -r '."client-id"' | tee /tmp/jade-dev-client-id.key)
+AZURE_CREDENTIALS_SECRET=$(echo "$AZURE_SECRETS" | jq -r '."client-secret"' | tee /tmp/jade-dev-azure.key)
+AZURE_SYNAPSE_SQLADMINUSER=$(echo "$AZURE_SECRETS" | jq -r '."synapse-sql-admin-user"' | tee /tmp/jade-dev-synapse-admin-user.key)
+AZURE_SYNAPSE_SQLADMINPASSWORD=$(echo "$AZURE_SECRETS" | jq -r '."synapse-sql-admin-password"' | tee /tmp/jade-dev-synapse-admin-password.key)
+AZURE_SYNAPSE_ENCRYPTIONKEY=$(echo "$AZURE_SECRETS" | jq -r '."synapse-encryption-key"' | tee /tmp/jade-dev-synapse-encryption-key.key)
 
 # ========================
 # Google Credentials
 # ========================
-vault read -field=data -format=json secret/dsde/datarepo/dev/sa-key.json \
+if $USE_VAULT; then
+  vault read -field=data -format=json secret/dsde/datarepo/dev/sa-key.json \
     | tee /tmp/jade-dev-account.json \
     | jq -r .private_key > /tmp/jade-dev-account.pem
+else
+  gcloud secrets versions access latest --project $GCLOUD_PROJECT --secret sa-b64 \
+    | jq -r .sa \
+    | base64 -d \
+    | tee /tmp/jade-dev-account.json \
+    | jq -r .private_key > /tmp/jade-dev-account.pem
+fi
 
 GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
@@ -105,10 +101,12 @@ GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 # Other option: dev - this will allow for projects to persist for longer than 1 day
 if [[ "${RBS_ENV}" == "tools" ]]; then
     BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
+    BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT=broad-dsde-qa
     RBS_POOLID=datarepo_v1
     RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org
 elif [[ "${RBS_ENV}" == "dev" ]]; then
     BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/dev/dev/buffer/client-sa
+    BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT=broad-jade-dev
     RBS_POOLID=datarepo_v3
     RBS_INSTANCEURL=https://buffer.dsde-dev.broadinstitute.org
 else
@@ -121,8 +119,13 @@ echo $RBS_INSTANCEURL > "/tmp/rbs-instance-url.txt"
 
 RBS_CLIENTCREDENTIALFILEPATH=/tmp/buffer-client-sa-account.json
 
-vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
+if $USE_VAULT; then
+  vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
     | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
+else
+  gcloud secrets versions access latest --project $BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT --secret buffer-client-sa-b64 \
+    | jq -r '.key' | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
+fi
 
 
 if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
@@ -139,7 +142,7 @@ if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
   done
 
   # Copy variables to clipboard
-  echo $SETTINGS  | pbcopy
+  echo "$SETTINGS"  | pbcopy
   echo "Environment variables copied to clipboard"
 fi
 

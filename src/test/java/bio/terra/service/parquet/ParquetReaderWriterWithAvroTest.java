@@ -67,8 +67,10 @@ class ParquetReaderWriterWithAvroTest {
 
   @Test
   void formatDateTimeField() throws IOException {
-    Path sourceFile = new Path(FOLDER_PATH + "azure_original.parquet");
-    List<GenericData.Record> records = ParquetReaderWriterWithAvro.readFromParquet(sourceFile);
+    Path azureSourceFile = new Path(FOLDER_PATH + "azure_original.parquet");
+    var localConfig = new Configuration();
+    localConfig.set("parquet.avro.readInt96AsFixed", "true");
+    InputFile azureInputFile = HadoopInputFile.fromPath(azureSourceFile, localConfig);
 
     Schema nullType = Schema.create(Schema.Type.NULL);
     Schema timestampMicroType =
@@ -93,7 +95,8 @@ class ParquetReaderWriterWithAvroTest {
     var output = randomizedFilePath("datetime");
     var config = new Configuration();
     OutputFile outputFile = HadoopOutputFile.fromPath(output, config);
-    writeToParquet(records, columnNames, columnDataTypeMap, outputFile, newSchema, config);
+    readWriteToParquet(
+        azureInputFile, columnNames, columnDataTypeMap, outputFile, newSchema, config);
 
     List<GenericData.Record> formattedRecords = ParquetReaderWriterWithAvro.readFromParquet(output);
     assertThat(
@@ -110,13 +113,12 @@ class ParquetReaderWriterWithAvroTest {
   void e2eTestFormatDatetime() throws IOException {
     // == local read ==
     Path azureSourceFile = new Path(FOLDER_PATH + "azure_original.parquet");
-    List<GenericData.Record> recordsToWrite =
-        ParquetReaderWriterWithAvro.readFromParquet(azureSourceFile);
+    var localConfig = new Configuration();
+    localConfig.set("parquet.avro.readInt96AsFixed", "true");
+    InputFile azureInputFile = HadoopInputFile.fromPath(azureSourceFile, localConfig);
     //  === generate signed url from snapshotExport ===
-    //    var signedUrlFromSnapshotExport = "<redacted>";
+    //    var signedUrlFromSnapshotExport = null;
     //    InputFile azureInputFile = buildInputFileFromSignedUrl(signedUrlFromSnapshotExport);
-    //    List<GenericData.Record> recordsToWrite =
-    //        ParquetReaderWriterWithAvro.readFromParquet(azureInputFile);
 
     Schema nullType = Schema.create(Schema.Type.NULL);
     Schema timestampMicroType =
@@ -144,7 +146,8 @@ class ParquetReaderWriterWithAvroTest {
     var config = ParquetReaderWriterWithAvro.getConfigFromSignedUri(signedUrl);
     var path = new Path(writeToUri);
     OutputFile outputFile = HadoopOutputFile.fromPath(path, config);
-    writeToParquet(recordsToWrite, columnNames, columnDataTypeMap, outputFile, newSchema, config);
+    readWriteToParquet(
+        azureInputFile, columnNames, columnDataTypeMap, outputFile, newSchema, config);
 
     // Read from azure storage blob
     InputFile inputFile = HadoopInputFile.fromPath(path, config);
@@ -210,11 +213,10 @@ class ParquetReaderWriterWithAvroTest {
     var storageAccount = "shelbytestaccount";
     var filePath = "testfilesystem/oysters/";
     // Url signed from "testfilesystem" container
-    var defaultSasToken = "<redacted>";
-    // TODO: override this with your SAS token
-    var sasToken = defaultSasToken;
-    if (sasToken.equals(defaultSasToken)) {
-      throw new IllegalArgumentException("Please set a valid SAS token");
+    // TODO - set your own SAS token here
+    String sasToken = null;
+    if (sasToken == null) {
+      throw new IllegalArgumentException("SAS token must be set");
     }
     return "https://%s.blob.core.windows.net/%s%s?%s"
         .formatted(storageAccount, filePath, fileName, sasToken);

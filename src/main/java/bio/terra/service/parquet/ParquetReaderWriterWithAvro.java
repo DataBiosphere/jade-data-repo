@@ -48,8 +48,8 @@ public class ParquetReaderWriterWithAvro {
     return readFromParquet(inputFile);
   }
 
-  public static void writeToParquet(
-      List<GenericData.Record> recordsToWrite,
+  public static void readWriteToParquet(
+      InputFile inputFile,
       List<String> columnNames,
       Map<String, TableDataType> columnDataTypeMap,
       OutputFile fileToWrite,
@@ -63,32 +63,37 @@ public class ParquetReaderWriterWithAvro {
             .withCompressionCodec(CompressionCodecName.SNAPPY)
             .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
             .build()) {
+      try (ParquetReader<GenericData.Record> reader =
+          AvroParquetReader.<GenericData.Record>builder(inputFile).build()) {
+        GenericData.Record record;
 
-      for (GenericData.Record record : recordsToWrite) {
-        var newRecord = new GenericData.Record(schema);
-        for (var column : columnNames) {
-          switch (columnDataTypeMap.get(column)) {
-            case DATETIME, TIMESTAMP:
-              // Convert from fixed length binary to a long representing microseconds since epoch
-              GenericData.Fixed dtFixed = (GenericData.Fixed) record.get(column);
-              if (dtFixed == null) {
-                newRecord.put(column, null);
-              } else {
-                var bytes = dtFixed.bytes();
-                ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-                long timeOfDayNanos = bb.getLong();
-                var julianDay = bb.getInt();
-                // Given timeOfDayNanos and julianDay, convert to microseconds since epoch
-                Long microSeconds =
-                    (long) (julianDay - 2440588) * 86400 * 1000000 + timeOfDayNanos / 1000;
-                newRecord.put(column, microSeconds);
-              }
-              break;
-            default:
-              newRecord.put(column, record.get(column));
+        while ((record = reader.read()) != null) {
+
+          var newRecord = new GenericData.Record(schema);
+          for (var column : columnNames) {
+            switch (columnDataTypeMap.get(column)) {
+              case DATETIME, TIMESTAMP:
+                // Convert from fixed length binary to a long representing microseconds since epoch
+                GenericData.Fixed dtFixed = (GenericData.Fixed) record.get(column);
+                if (dtFixed == null) {
+                  newRecord.put(column, null);
+                } else {
+                  var bytes = dtFixed.bytes();
+                  ByteBuffer bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+                  long timeOfDayNanos = bb.getLong();
+                  var julianDay = bb.getInt();
+                  // Given timeOfDayNanos and julianDay, convert to microseconds since epoch
+                  Long microSeconds =
+                      (long) (julianDay - 2440588) * 86400 * 1000000 + timeOfDayNanos / 1000;
+                  newRecord.put(column, microSeconds);
+                }
+                break;
+              default:
+                newRecord.put(column, record.get(column));
+            }
           }
+          writer.write(newRecord);
         }
-        writer.write(newRecord);
       }
     }
   }

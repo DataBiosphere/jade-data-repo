@@ -55,7 +55,8 @@ class EnumerateConceptsQueryBuilderTest {
               ((c.domain_id = 'Observation'
                   AND c.standard_concept = 'S')
                 AND (CONTAINS_SUBSTR(c.concept_name, @filter_text)
-                  OR CONTAINS_SUBSTR(c.concept_code, @filter_text)))
+                  OR CONTAINS_SUBSTR(c.concept_code, @filter_text)
+                  OR CONTAINS_SUBSTR(c.concept_id, @filter_text)))
             GROUP BY
               c.concept_name,
               c.concept_id,
@@ -90,7 +91,9 @@ class EnumerateConceptsQueryBuilderTest {
                 AND (CHARINDEX(:filter_text,
                     c.concept_name) > 0
                   OR CHARINDEX(:filter_text,
-                    c.concept_code) > 0))
+                    c.concept_code) > 0
+                  OR CHARINDEX(:filter_text,
+                    c.concept_id) > 0))
             GROUP BY
               c.concept_name,
               c.concept_id,

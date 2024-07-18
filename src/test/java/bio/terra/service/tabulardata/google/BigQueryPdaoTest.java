@@ -5,10 +5,13 @@ import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -47,6 +50,7 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.model.TransactionModel.StatusEnum;
 import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -127,7 +131,6 @@ public class BigQueryPdaoTest {
   @Autowired private BufferService bufferService;
   @Autowired private SnapshotService snapshotService;
   @Autowired private SnapshotBuilderService snapshotBuilderService;
-
   @MockBean private IamProviderInterface samService;
 
   private BillingProfileModel profileModel;
@@ -392,6 +395,7 @@ public class BigQueryPdaoTest {
     when(samService.getGroup(any(), any()))
         .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
     when(samService.createGroup(any(), any())).thenReturn("group@firecloud.org");
+
     Snapshot sourceSnapshot = stageOmopData();
     SnapshotAccessRequestResponse approvedAccessRequest =
         approveSnapshotAccessRequest(createSnapshotAccessRequest(sourceSnapshot.getId()).getId());
@@ -400,6 +404,12 @@ public class BigQueryPdaoTest {
 
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(datasetSummaryModel, requestModel, "");
+    var expectedGroupName =
+        IamService.constructSamGroupName(String.valueOf(snapshotSummary.getId()));
+    verify(samService)
+        .patchAuthDomain(any(), any(), eq(snapshotSummary.getId()), eq(List.of(expectedGroupName)));
+    when(samService.retrieveAuthDomain(any(), any(), any())).thenReturn(List.of(expectedGroupName));
+
     Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
     assertThat(snapshot.getName(), is(snapshotService.getSnapshotName(requestModel)));
     assertThat(snapshot.getTables().size(), is(equalTo(3)));
@@ -416,6 +426,12 @@ public class BigQueryPdaoTest {
     List<String> conceptIds =
         queryForIds(snapshot.getName(), "concept", rowId, bigQuerySnapshotProject, rowId);
     assertThat(conceptIds.size(), is(5));
+
+    var policies = snapshotService.retrieveSnapshotPolicies(snapshot.getId(), TEST_USER);
+    assertThat(
+        "Auth domain is set to a Sam group created alongside the snapshot",
+        policies.getAuthDomain(),
+        contains(expectedGroupName));
   }
 
   @Test

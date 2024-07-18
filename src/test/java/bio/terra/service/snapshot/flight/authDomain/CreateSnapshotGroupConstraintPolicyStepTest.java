@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoUpdateRequest;
-import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -45,9 +44,9 @@ class CreateSnapshotGroupConstraintPolicyStepTest {
         new CreateSnapshotGroupConstraintPolicyStep(policyService, SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    List<TpsPolicyInput> inputs =
-        userGroups.stream().map(PolicyService::getGroupConstraintPolicyInput).toList();
-    TpsPolicyInputs policyInputs = new TpsPolicyInputs().inputs(inputs);
+    TpsPolicyInputs policyInputs =
+        new TpsPolicyInputs()
+            .inputs(List.of(PolicyService.getGroupConstraintPolicyInput(userGroups)));
     verify(policyService).createOrUpdatePao(SNAPSHOT_ID, TpsObjectType.SNAPSHOT, policyInputs);
 
     StepResult undoResult = step.undoStep(flightContext);

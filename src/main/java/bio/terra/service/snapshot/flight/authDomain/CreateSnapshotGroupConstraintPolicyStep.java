@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.authDomain;
 
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoUpdateRequest;
-import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -27,32 +26,27 @@ public class CreateSnapshotGroupConstraintPolicyStep implements Step {
   @Override
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
-    List<String> userGroups =
-        flightContext
-            .getWorkingMap()
-            .get(
-                SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS,
-                new TypeReference<>() {});
-    List<TpsPolicyInput> inputs =
-        userGroups.stream().map(PolicyService::getGroupConstraintPolicyInput).toList();
-    TpsPolicyInputs policyInputs = new TpsPolicyInputs().inputs(inputs);
-    policyService.createOrUpdatePao(snapshotId, TpsObjectType.SNAPSHOT, policyInputs);
+    policyService.createOrUpdatePao(
+        snapshotId, TpsObjectType.SNAPSHOT, getTpsPolicyInputs(flightContext));
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
+    TpsPaoUpdateRequest removeRequest =
+        new TpsPaoUpdateRequest().removeAttributes(getTpsPolicyInputs(flightContext));
+    policyService.updatePao(removeRequest, snapshotId);
+    return StepResult.getStepResultSuccess();
+  }
+
+  private TpsPolicyInputs getTpsPolicyInputs(FlightContext flightContext) {
     List<String> userGroups =
         flightContext
             .getWorkingMap()
             .get(
                 SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS,
                 new TypeReference<>() {});
-    List<TpsPolicyInput> inputs =
-        userGroups.stream().map(PolicyService::getGroupConstraintPolicyInput).toList();
-    TpsPolicyInputs policyInputs = new TpsPolicyInputs().inputs(inputs);
-    TpsPaoUpdateRequest removeRequest = new TpsPaoUpdateRequest().removeAttributes(policyInputs);
-    policyService.updatePao(removeRequest, snapshotId);
-    return StepResult.getStepResultSuccess();
+    return new TpsPolicyInputs()
+        .inputs(List.of(PolicyService.getGroupConstraintPolicyInput(userGroups)));
   }
 }

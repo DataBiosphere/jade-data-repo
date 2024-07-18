@@ -56,6 +56,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -131,6 +132,7 @@ public class BigQueryPdaoTest {
   @Autowired private BufferService bufferService;
   @Autowired private SnapshotService snapshotService;
   @Autowired private SnapshotBuilderService snapshotBuilderService;
+  @Autowired private PolicyService policyService;
   @MockBean private IamProviderInterface samService;
 
   private BillingProfileModel profileModel;
@@ -432,6 +434,20 @@ public class BigQueryPdaoTest {
         "Auth domain is set to a Sam group created alongside the snapshot",
         policies.getAuthDomain(),
         contains(expectedGroupName));
+
+    var result = policyService.getSnapshotPao(snapshot.getId());
+    var groupConstraintName =
+        result.getAttributes().getInputs().stream()
+            .filter(i -> i.getName().equals("group-constraint"))
+            .findFirst()
+            .get()
+            .getAdditionalData()
+            .get(0)
+            .getValue();
+    assertThat(
+        "Group constraint is set to the Sam group created alongside the snapshot",
+        groupConstraintName,
+        is(expectedGroupName));
   }
 
   @Test

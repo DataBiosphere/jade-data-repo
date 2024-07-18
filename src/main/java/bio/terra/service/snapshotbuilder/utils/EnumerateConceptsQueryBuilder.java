@@ -89,12 +89,14 @@ public class EnumerateConceptsQueryBuilder {
       // filters for the search text based on field concept_code
       var filterCodeClause = createFilterConceptClause(concept.conceptCode());
 
-      // (filterNameClause OR filterCodeClause)
-      List<FilterVariable> searches = List.of(filterNameClause, filterCodeClause);
+      var filterIdClause = createFilterConceptClause(concept.conceptId());
+
+      // (filterNameClause OR filterCodeClause OR filterIdClause)
+      List<FilterVariable> searches = List.of(filterNameClause, filterCodeClause, filterIdClause);
       BooleanAndOrFilterVariable searchClause =
           new BooleanAndOrFilterVariable(BooleanAndOrFilterVariable.LogicalOperator.OR, searches);
 
-      // domainClause AND (filterNameClause OR filterCodeClause)
+      // domainClause AND (filterNameClause OR filterCodeClause OR filterIdClause)
       List<FilterVariable> allFilters = List.of(domainClause, searchClause);
 
       where =

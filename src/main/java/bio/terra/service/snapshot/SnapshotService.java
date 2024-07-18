@@ -225,7 +225,7 @@ public class SnapshotService {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
-    validateForByRequestIdMode(snapshotRequestModel);
+    validateForByRequestIdMode(snapshotRequestModel.getContents().get(0));
 
     UUID snapshotId = UUID.randomUUID();
     String description =
@@ -255,8 +255,7 @@ public class SnapshotService {
    * @param snapshotRequestContents to validate
    */
   @VisibleForTesting
-  void validateForByRequestIdMode(SnapshotRequestModel snapshotRequest) {
-    var snapshotRequestContents = snapshotRequest.getContents().get(0);
+  void validateForByRequestIdMode(SnapshotRequestContentsModel snapshotRequestContents) {
     if (snapshotRequestContents.getMode() != SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       return;
     }
@@ -282,11 +281,6 @@ public class SnapshotService {
     if (requesterEmail == null || !ValidationUtils.isValidEmail(requesterEmail)) {
       throw new ValidationException(
           "The createdBy email supplied on the access request is not valid.");
-    }
-    if (snapshotRequest.getDataAccessControlGroups() != null
-        && !snapshotRequest.getDataAccessControlGroups().isEmpty()) {
-      throw new ValidationException(
-          "Data access control groups are not allowed for snapshots created byRequestId.");
     }
   }
 

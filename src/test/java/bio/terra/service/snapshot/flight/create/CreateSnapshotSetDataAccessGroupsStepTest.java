@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
@@ -26,7 +27,7 @@ class CreateSnapshotSetDataAccessGroupsStepTest {
   @Mock private FlightContext flightContext;
 
   @Test
-  void invalidGroupSetup() {
+  void testRequestAndSnapshotGroup() throws InterruptedException {
     // Group set on the request
     List<String> userGroups = new ArrayList<>(List.of("group1", "group2"));
     // Group created for the snapshot byRequestId case
@@ -36,13 +37,18 @@ class CreateSnapshotSetDataAccessGroupsStepTest {
 
     CreateSnapshotSetDataAccessGroupsStep step =
         new CreateSnapshotSetDataAccessGroupsStep(userGroups);
-    assertThrows(IllegalArgumentException.class, () -> step.doStep(flightContext));
+    var result = step.doStep(flightContext);
+    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    List<String> groups =
+        flightMap.get(
+            SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, new TypeReference<>() {});
+    assertThat(groups, containsInAnyOrder("group1", "group2", "group3"));
   }
 
   @Test
   void groupCreatedBySnapshot() throws InterruptedException {
     // No group set on the request
-    List<String> userGroups = new ArrayList<>();
+    List<String> userGroups = null;
     // Group created for the snapshot byRequestId case
     var flightMap = new FlightMap();
     var groupName = "group1";
@@ -52,7 +58,7 @@ class CreateSnapshotSetDataAccessGroupsStepTest {
     CreateSnapshotSetDataAccessGroupsStep step =
         new CreateSnapshotSetDataAccessGroupsStep(userGroups);
     var result = step.doStep(flightContext);
-    assertEquals(result.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     List<String> groups =
         flightMap.get(
             SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, new TypeReference<>() {});
@@ -70,7 +76,7 @@ class CreateSnapshotSetDataAccessGroupsStepTest {
     CreateSnapshotSetDataAccessGroupsStep step =
         new CreateSnapshotSetDataAccessGroupsStep(userGroups);
     var result = step.doStep(flightContext);
-    assertEquals(result.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     List<String> groups =
         flightMap.get(
             SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, new TypeReference<>() {});

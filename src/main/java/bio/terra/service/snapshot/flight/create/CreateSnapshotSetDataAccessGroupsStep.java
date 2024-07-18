@@ -21,28 +21,15 @@ public class CreateSnapshotSetDataAccessGroupsStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     var workingMap = flightContext.getWorkingMap();
-    // Confirm we one of 3 valid states:
-    // (1) There are no groups set
-    // (2) There is a group created for snapshot byRequestId
-    // (3) There is a group set on the request
-    boolean hasGroupSetOnRequest =
-        Objects.nonNull(dataAccessControlGroups) && !dataAccessControlGroups.isEmpty();
-    String snapshotCreatedGroupName =
-        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
-    boolean hasSnapshotCreatedGroup = Objects.nonNull(snapshotCreatedGroupName);
-    if (hasGroupSetOnRequest && hasSnapshotCreatedGroup) {
-      throw new IllegalArgumentException(
-          "Both a data access group was set on the request and a group was created.");
-    }
-    // Set the group list on the flight map
     List<String> finalGroups = new ArrayList<>();
-    if (hasSnapshotCreatedGroup) {
-      finalGroups.add(snapshotCreatedGroupName);
-    } else if (hasGroupSetOnRequest) {
-      List<String> uniqueUserGroups = new HashSet<>(dataAccessControlGroups).stream().toList();
-      finalGroups.addAll(uniqueUserGroups);
+    if (Objects.nonNull(dataAccessControlGroups)) {
+      finalGroups.addAll(dataAccessControlGroups);
     }
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, finalGroups);
+    finalGroups.add(
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class));
+    List<String> uniqueUserGroups =
+        new ArrayList<>(new HashSet<>(finalGroups).stream().filter(Objects::nonNull).toList());
+    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, uniqueUserGroups);
     return StepResult.getStepResultSuccess();
   }
 }

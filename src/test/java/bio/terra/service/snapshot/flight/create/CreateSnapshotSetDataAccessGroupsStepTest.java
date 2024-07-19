@@ -31,18 +31,19 @@ class CreateSnapshotSetDataAccessGroupsStepTest {
     // Group set on the request
     List<String> userGroups = new ArrayList<>(List.of("group1", "group2"));
     // Group created for the snapshot byRequestId case
-    var flightMap = new FlightMap();
-    flightMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, "group3");
-    when(flightContext.getWorkingMap()).thenReturn(flightMap);
+    var inputSnapshotGroup = "group3";
 
-    CreateSnapshotSetDataAccessGroupsStep step =
-        new CreateSnapshotSetDataAccessGroupsStep(userGroups);
-    var result = step.doStep(flightContext);
-    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    List<String> groups =
-        flightMap.get(
-            SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, new TypeReference<>() {});
-    assertThat(groups, containsInAnyOrder("group1", "group2", "group3"));
+    runAndAssertContains(userGroups, inputSnapshotGroup, "group1", "group2", "group3");
+  }
+
+  @Test
+  void testUniqueGroups() throws InterruptedException {
+    // Group set on the request - duplicate groups
+    List<String> userGroups = new ArrayList<>(List.of("group1", "group3", "group3"));
+    // Group created for the snapshot byRequestId case - containing duplicate to the request
+    var inputSnapshotGroup = "group3";
+
+    runAndAssertContains(userGroups, inputSnapshotGroup, "group1", "group3");
   }
 
   @Test
@@ -50,19 +51,9 @@ class CreateSnapshotSetDataAccessGroupsStepTest {
     // No group set on the request
     List<String> userGroups = null;
     // Group created for the snapshot byRequestId case
-    var flightMap = new FlightMap();
-    var groupName = "group1";
-    flightMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, groupName);
-    when(flightContext.getWorkingMap()).thenReturn(flightMap);
+    var inputSnapshotGroup = "group1";
 
-    CreateSnapshotSetDataAccessGroupsStep step =
-        new CreateSnapshotSetDataAccessGroupsStep(userGroups);
-    var result = step.doStep(flightContext);
-    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    List<String> groups =
-        flightMap.get(
-            SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, new TypeReference<>() {});
-    assertThat(groups, containsInAnyOrder(groupName));
+    runAndAssertContains(userGroups, inputSnapshotGroup, "group1");
   }
 
   @Test
@@ -70,16 +61,27 @@ class CreateSnapshotSetDataAccessGroupsStepTest {
     // Groups set on the request
     List<String> userGroups = new ArrayList<>(List.of("group1", "group2"));
     // No group created for the snapshot byRequestId case; flight map is empty
+    String inputSnapshotGroup = null;
+
+    runAndAssertContains(userGroups, inputSnapshotGroup, "group1", "group2");
+  }
+
+  private void runAndAssertContains(
+      List<String> inputRequestGroups, String inputSnapshotGroup, String... expectedGroups)
+      throws InterruptedException {
     FlightMap flightMap = new FlightMap();
+    if (inputSnapshotGroup != null) {
+      flightMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, inputSnapshotGroup);
+    }
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
 
     CreateSnapshotSetDataAccessGroupsStep step =
-        new CreateSnapshotSetDataAccessGroupsStep(userGroups);
+        new CreateSnapshotSetDataAccessGroupsStep(inputRequestGroups);
     var result = step.doStep(flightContext);
     assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     List<String> groups =
         flightMap.get(
             SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, new TypeReference<>() {});
-    assertThat(groups, containsInAnyOrder("group1", "group2"));
+    assertThat(groups, containsInAnyOrder(expectedGroups));
   }
 }

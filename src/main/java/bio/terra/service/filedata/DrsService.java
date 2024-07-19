@@ -458,19 +458,20 @@ public class DrsService {
       String objectId,
       String accessId,
       DRSPassportRequestModel passportRequestModel,
-      String userProject) {
+      String userProject,
+      String ip) {
     DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
-    return getAccessURL(null, drsObject, accessId, userProject);
+    return getAccessURL(null, drsObject, accessId, userProject, ip);
   }
 
   public DRSAccessURL getAccessUrlForObjectId(
-      AuthenticatedUserRequest authUser, String objectId, String accessId, String userProject) {
+      AuthenticatedUserRequest authUser, String objectId, String accessId, String userProject, String ip) {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
-    return getAccessURL(authUser, drsObject, accessId, userProject);
+    return getAccessURL(authUser, drsObject, accessId, userProject, ip);
   }
 
   private DRSAccessURL getAccessURL(
-      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId, String userProject) {
+      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId, String userProject, String ip) {
     // To avoid having to re-resolve the DRS ID in case it is an alias, use the id from the passed
     // in DRS object.
     DrsId drsId = drsIdService.fromObjectId(drsObject.getId());
@@ -507,7 +508,7 @@ public class DrsService {
     if (platform.isGcp()) {
       return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
     } else if (platform.isAzure()) {
-      return signAzureUrl(billingProfileModel, fsFile, authUser);
+      return signAzureUrl(billingProfileModel, fsFile, authUser, ip);
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
@@ -539,8 +540,9 @@ public class DrsService {
         .orElseThrow(illegalArgumentExceptionSupplier);
   }
 
+  // TODO here is where to add the IP range check, have to figure out how to add it
   private DRSAccessURL signAzureUrl(
-      BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser) {
+      BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser, String ip) {
     AzureStorageAccountResource storageAccountResource =
         resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
     return new DRSAccessURL()

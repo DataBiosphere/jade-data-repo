@@ -31,9 +31,9 @@ class IfDataAccessControlGroupStepTest {
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
     // Strict mocking shows that we run the nested "doStep" when the optional step is enabled
     when(step.doStep(flightContext)).thenReturn(StepResult.getStepResultSuccess());
-    IfDataAccessControlGroupStep step = new IfDataAccessControlGroupStep(this.step);
-    step.doStep(flightContext);
-    assertTrue(step.isEnabled(flightContext));
+    IfDataAccessControlGroupStep optionalStep = new IfDataAccessControlGroupStep(this.step);
+    optionalStep.doStep(flightContext);
+    assertTrue(optionalStep.isEnabled(flightContext));
   }
 
   @Test
@@ -43,8 +43,8 @@ class IfDataAccessControlGroupStepTest {
     List<String> userGroups = new ArrayList<>();
     flightMap.put(SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS, userGroups);
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
-    IfDataAccessControlGroupStep step = new IfDataAccessControlGroupStep(this.step);
-    step.doStep(flightContext);
-    assertFalse(step.isEnabled(flightContext));
+    IfDataAccessControlGroupStep optionalStep = new IfDataAccessControlGroupStep(this.step);
+    optionalStep.doStep(flightContext);
+    assertFalse(optionalStep.isEnabled(flightContext));
   }
 }

@@ -540,11 +540,14 @@ public class DrsService {
         .orElseThrow(illegalArgumentExceptionSupplier);
   }
 
-  // TODO here is where to add the IP range check, have to figure out how to add it
   private DRSAccessURL signAzureUrl(
       BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser, String ip) {
     AzureStorageAccountResource storageAccountResource =
         resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
+    // TODO: Add IP range check here
+    //  I think that this will only apply to AnVil datasets for now, not sure yet how to check for that
+    // maybe see if the provider is passed through from the DRSHub response
+    // something like if provider == "anvil" { check if IP is in IP range cache and return DRSAccessURl } else throw
     return new DRSAccessURL()
         .url(
             azureBlobStorePdao.signFile(

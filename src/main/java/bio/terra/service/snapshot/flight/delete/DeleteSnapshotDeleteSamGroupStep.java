@@ -11,16 +11,18 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
+  private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotDeleteSamGroupStep.class);
   private final IamService iamService;
-
   private final UUID snapshotId;
 
   /**
-   * On Snapshot Create byRequestId, we generate a Sam Group and set it as an auth domain On delete
-   * of the Snapshot, we need to delete this Sam group that we created We do not want to delete any
-   * other auth domain groups that may have been added to the snapshot
+   * On Snapshot Create byRequestId, we generate a Sam Group and set it as an auth domain. On
+   * snapshot delete, we need to delete this Sam group. We do not want to delete any other auth
+   * domain groups that may have been added to the snapshot.
    *
    * @param iamService
    * @param snapshotId
@@ -40,10 +42,11 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
     var expectedName = IamService.constructSamGroupName(snapshotId.toString());
     if (Objects.nonNull(authDomains) && authDomains.contains(expectedName)) {
       try {
-        // Only delete the group that we created as a part of snapshot create
         iamService.deleteGroup(expectedName);
       } catch (IamNotFoundException ex) {
-        // if group does not exist, nothing to delete
+        // if group does not exist, nothing to delete)
+      } catch (Exception ex) {
+        logger.error("Error deleting Sam group: {}", expectedName, ex);
       }
     }
     return StepResult.getStepResultSuccess();

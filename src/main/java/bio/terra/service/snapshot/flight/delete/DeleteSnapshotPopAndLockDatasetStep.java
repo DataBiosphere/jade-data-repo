@@ -15,6 +15,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class DeleteSnapshotPopAndLockDatasetStep implements Step {
@@ -63,9 +65,10 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
     }
 
     try {
-      map.put(
-          SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS,
-          snapshotService.getAuthDomains(snapshot.getId(), authenticatedUserRequest));
+      List<String> authDomains =
+          new ArrayList<>(
+              snapshotService.getAuthDomains(snapshot.getId(), authenticatedUserRequest));
+      map.put(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, authDomains);
     } catch (Exception ex) {
       // Do nothing if we can't retrieve the auth domains
       // No Sam groups will be deleted

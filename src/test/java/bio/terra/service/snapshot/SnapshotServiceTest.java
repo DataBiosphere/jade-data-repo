@@ -50,7 +50,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -160,6 +160,7 @@ class SnapshotServiceTest {
   @Mock private EcmService ecmService;
   @Mock private RawlsService rawlsService;
   @Mock private DuosClient duosClient;
+  @Mock private SnapshotBuilderSettingsDao settingsDao;
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
@@ -187,7 +188,7 @@ class SnapshotServiceTest {
             azureSynapsePdao,
             rawlsService,
             duosClient,
-            mock(SnapshotBuilderSettingsDao.class));
+            settingsDao);
   }
 
   @Test
@@ -1113,7 +1114,8 @@ class SnapshotServiceTest {
         new SnapshotAccessRequestResponse()
             .status(SnapshotAccessRequestStatus.APPROVED)
             .createdBy("email@a.com")
-            .id(snapshotAccessRequestId);
+            .id(snapshotAccessRequestId)
+            .sourceSnapshotId(UUID.randomUUID());
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(snapshotAccessRequestResponse);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
@@ -1352,14 +1354,17 @@ class SnapshotServiceTest {
 
     Dataset dataset = SnapshotBuilderTestData.DATASET;
     dataset.name("datasetName");
+    UUID sourceSnapshotId = UUID.randomUUID();
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(
             new SnapshotAccessRequestResponse()
+                .sourceSnapshotId(sourceSnapshotId)
                 .snapshotSpecification(
                     new SnapshotBuilderRequest()
-                        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))
-                        .addValueSetsItem(
-                            new SnapshotBuilderFeatureValueGroup().name("Condition"))));
+                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
+                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition"))));
+    when(settingsDao.getBySnapshotId(sourceSnapshotId))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset);
     SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
@@ -1473,7 +1478,8 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
-    var firstTable = service.pullTables(accessRequestResponse).get(0);
+    var firstTable =
+        service.pullTables(accessRequestResponse, SnapshotBuilderTestData.SETTINGS).get(0);
     assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
     // Must preserve relationship order
     assertThat(firstTable.getPrimaryTableRelationship(), equalTo("fpk_person_drug"));
@@ -1497,6 +1503,7 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
+    when(settingsDao.getBySnapshotId(snapshotId)).thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     var actualAssetSpec =
         service.buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequestResponse);

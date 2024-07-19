@@ -13,15 +13,17 @@ import bio.terra.model.SnapshotBuilderCriteriaGroup;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderDomainCriteria;
 import bio.terra.model.SnapshotBuilderDomainOption;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
 import bio.terra.model.SnapshotBuilderOption;
+import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataListItem;
 import bio.terra.model.SnapshotBuilderProgramDataListOption;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeOption;
 import bio.terra.model.SnapshotBuilderRequest;
+import bio.terra.model.SnapshotBuilderRootTable;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -33,7 +35,7 @@ import bio.terra.service.snapshotbuilder.query.table.Concept;
 import bio.terra.service.snapshotbuilder.query.table.Person;
 import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.DrugExposure;
-import bio.terra.service.snapshotbuilder.utils.constants.ObservationOccurrence;
+import bio.terra.service.snapshotbuilder.utils.constants.Observation;
 import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;
 import java.util.List;
 import java.util.UUID;
@@ -122,8 +124,8 @@ public class SnapshotBuilderTestData {
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       OBSERVATION_DOMAIN_ID,
-                      ObservationOccurrence.TABLE_NAME,
-                      ObservationOccurrence.OBSERVATION_CONCEPT_ID,
+                      Observation.TABLE_NAME,
+                      Observation.OBSERVATION_CONCEPT_ID,
                       "Observation",
                       new SnapshotBuilderConcept()
                           .id(300)
@@ -168,21 +170,61 @@ public class SnapshotBuilderTestData {
                       Person.RACE_CONCEPT_ID,
                       "Race",
                       List.of(new SnapshotBuilderProgramDataListItem().id(43).name("unused 3")))))
-          .featureValueGroups(
-              List.of(
-                  new SnapshotBuilderFeatureValueGroup().name("Condition"),
-                  new SnapshotBuilderFeatureValueGroup().name("Observation"),
-                  new SnapshotBuilderFeatureValueGroup().name("Procedure"),
-                  new SnapshotBuilderFeatureValueGroup().name("Surveys"),
-                  new SnapshotBuilderFeatureValueGroup().name("Person")))
           .datasetConceptSets(
               List.of(
                   new SnapshotBuilderDatasetConceptSet()
-                      .name("Demographics")
-                      .featureValueGroupName("Person"),
+                      .name("Drug")
+                      .table(
+                          new SnapshotBuilderTable()
+                              .datasetTableName(DrugExposure.TABLE_NAME)
+                              .primaryTableRelationship("fpk_person_drug")
+                              .secondaryTableRelationships(
+                                  List.of(
+                                      "fpk_drug_concept",
+                                      "fpk_drug_type_concept",
+                                      "fpk_drug_route_concept",
+                                      "fpk_drug_concept_s"))),
                   new SnapshotBuilderDatasetConceptSet()
-                      .name("All surveys")
-                      .featureValueGroupName("Surveys")));
+                      .name("Condition")
+                      .table(
+                          new SnapshotBuilderTable()
+                              .datasetTableName(ConditionOccurrence.TABLE_NAME)
+                              .primaryTableRelationship("fpk_person_condition")
+                              .secondaryTableRelationships(
+                                  List.of(
+                                      "fpk_condition_concept",
+                                      "fpk_condition_type_concept",
+                                      "fpk_condition_status_concept",
+                                      "fpk_condition_concept_s"))),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Procedure")
+                      .table(
+                          new SnapshotBuilderTable()
+                              .datasetTableName(ProcedureOccurrence.TABLE_NAME)),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Observation")
+                      .table(new SnapshotBuilderTable().datasetTableName(Observation.TABLE_NAME)),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Measurement")
+                      .table(new SnapshotBuilderTable().datasetTableName("measurement")),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Visit")
+                      .table(new SnapshotBuilderTable().datasetTableName("visit_occurrence")),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Device")
+                      .table(new SnapshotBuilderTable().datasetTableName("device_exposure")),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Demographics")
+                      .table(new SnapshotBuilderTable().datasetTableName(Person.TABLE_NAME)),
+                  new SnapshotBuilderDatasetConceptSet()
+                      .name("Genomics")
+                      .table(new SnapshotBuilderTable().datasetTableName("sample"))))
+          .rootTable(
+              (SnapshotBuilderRootTable)
+                  new SnapshotBuilderRootTable()
+                      .rootColumn(Person.PERSON_ID)
+                      .datasetTableName(Person.TABLE_NAME))
+          .dictionaryTable(new SnapshotBuilderTable().datasetTableName(Concept.TABLE_NAME));
 
   public static final Column PERSON_ID_COLUMN =
       new Column().name("person_id").type(TableDataType.INTEGER);
@@ -362,12 +404,8 @@ public class SnapshotBuilderTestData {
   public static SnapshotBuilderRequest createSnapshotBuilderRequest() {
     return new SnapshotBuilderRequest()
         .addCohortsItem(createCohort())
-        .addConceptSetsItem(
-            new SnapshotBuilderDatasetConceptSet()
-                .name("conceptSet")
-                .featureValueGroupName("featureValueGroupName"))
-        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))
-        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Condition"));
+        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
+        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition"));
   }
 
   public static SnapshotAccessRequest createSnapshotAccessRequest(UUID sourceSnapshotId) {

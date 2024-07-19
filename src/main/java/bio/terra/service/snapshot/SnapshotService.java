@@ -794,6 +794,10 @@ public class SnapshotService {
         .submitAndWait(AddAuthDomainResponseModel.class);
   }
 
+  public List<String> getAuthDomains(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    return iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+  }
+
   /**
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user

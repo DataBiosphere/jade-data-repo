@@ -103,6 +103,10 @@ public class SnapshotDeleteFlight extends Flight {
     // deletes the snapshot group, so no ACL cleanup is needed beyond that.
     addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
 
+    // Now that we no longer have the resources in SAM, we can delete the underlying Sam group
+    // that was created for snapshots byRequestId
+    addStep(new DeleteSnapshotDeleteSamGroupStep(iamClient, snapshotId));
+
     // Primary Data Deletion
     // Note: Must delete primary data before metadata; it relies on being able to retrieve the
     // snapshot object from the metadata to know what to delete.

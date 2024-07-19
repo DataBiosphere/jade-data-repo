@@ -58,7 +58,17 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
       map.put(SnapshotWorkingMapKeys.DATASET_EXISTS, false);
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, false);
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, false);
+
       return StepResult.getStepResultSuccess();
+    }
+
+    try {
+      map.put(
+          SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS,
+          snapshotService.getAuthDomains(snapshot.getId(), authenticatedUserRequest));
+    } catch (Exception ex) {
+      // Do nothing if we can't retrieve the auth domains
+      // No Sam groups will be deleted
     }
 
     // Now we've confirmed the snapshot exists, let's check on the source dataset

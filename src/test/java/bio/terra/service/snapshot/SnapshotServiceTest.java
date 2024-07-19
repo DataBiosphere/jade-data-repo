@@ -1615,4 +1615,12 @@ class SnapshotServiceTest {
       when(snapshotTableDao.retrieveColumns(any())).thenReturn(columns);
     }
   }
+
+  @Test
+  void getAuthDomains() {
+    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(List.of("group1", "group2"));
+    assertThat(
+        service.getAuthDomains(snapshotId, TEST_USER), containsInAnyOrder("group1", "group2"));
+  }
 }

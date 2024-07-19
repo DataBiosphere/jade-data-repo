@@ -59,10 +59,10 @@ public class PolicyService {
     return new TpsPolicyInput().namespace(POLICY_NAMESPACE).name(PROTECTED_DATA_POLICY_NAME);
   }
 
-  public TpsPaoGetResult getSnapshotPao(UUID snapshotId) {
+  public TpsPaoGetResult getPao(UUID resourceId) {
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
-      return tpsApi.getPao(snapshotId);
+      return tpsApi.getPao(resourceId);
     } catch (ApiException e) {
       throw convertApiException(e);
     }

@@ -435,7 +435,7 @@ public class BigQueryPdaoTest {
         policies.getAuthDomain(),
         contains(expectedGroupName));
 
-    var result = policyService.getSnapshotPao(snapshot.getId());
+    var result = policyService.getPao(snapshot.getId());
     var groupConstraintName =
         result.getAttributes().getInputs().stream()
             .filter(i -> i.getName().equals("group-constraint"))

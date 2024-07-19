@@ -205,4 +205,11 @@ class PolicyServiceTest {
     assertFalse(status.isOk());
     assertThat(status.getMessage(), containsString(exception.getMessage()));
   }
+
+  @Test
+  void getPao() throws ApiException {
+    mockPolicyApi();
+    policyService.getPao(snapshotId);
+    verify(tpsApi).getPao(snapshotId);
+  }
 }

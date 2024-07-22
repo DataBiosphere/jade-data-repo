@@ -84,4 +84,5 @@
     <include file="changesets/20240521_dropsettingsdatasetidaddconstraint.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240522_addjobidandcreatedsnapshotidtorequest.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240604_renameupdateddateonrequest.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20240722_clearsnapshotbuilderrequests.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

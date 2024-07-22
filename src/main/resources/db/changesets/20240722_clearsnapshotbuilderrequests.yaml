@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: clear_snapshot_builder_requests
+      author: srubenstein
+      # Delete all rows from the snapshot_request
+      # table due to breaking change to json structure
+      changes:
+        - delete:
+            tableName: snapshot_request

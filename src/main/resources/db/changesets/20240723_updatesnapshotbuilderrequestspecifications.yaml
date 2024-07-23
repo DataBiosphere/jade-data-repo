@@ -10,4 +10,4 @@ databaseChangeLog:
             columns:
               - column:
                   name: snapshot_specification
-                  value: "{\"cohorts\": [{\"name\": \"test\",\"criteriaGroups\": []}],\"outputTables\": [{\"name\": \"Drug\",\"columns\": []}]}"
+                  value: "{\"cohorts\": [{}], \"outputTables\": [{\"name\": \"Drug\"}]}"

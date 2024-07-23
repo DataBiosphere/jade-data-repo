@@ -67,7 +67,7 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
     try {
       List<String> authDomains =
           new ArrayList<>(
-              snapshotService.getAuthDomains(snapshot.getId(), authenticatedUserRequest));
+              snapshotService.retrieveAuthDomains(snapshot.getId(), authenticatedUserRequest));
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, authDomains);
     } catch (Exception ex) {
       // Do nothing if we can't retrieve the auth domains

@@ -60,7 +60,7 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
   @Test
   void setAuthDomainGroups() {
     when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
-    when(snapshotService.getAuthDomains(eq(snapshotId), any()))
+    when(snapshotService.retrieveAuthDomains(eq(snapshotId), any()))
         .thenReturn(List.of("group1", "group2"));
     var flightMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
@@ -76,7 +76,7 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
   @Test
   void noAuthDomainGroups() {
     when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
-    when(snapshotService.getAuthDomains(eq(snapshotId), any())).thenReturn(null);
+    when(snapshotService.retrieveAuthDomains(eq(snapshotId), any())).thenReturn(null);
     var flightMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
     var result = step.doStep(flightContext);

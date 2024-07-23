@@ -711,7 +711,7 @@ class SamIamTest {
               IamResourceType.DATASNAPSHOT.getSamResourceName(), snapshotId.toString()))
           .thenReturn(authDomain);
       List<String> retrievedAuthDomain =
-          samIam.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId);
+          samIam.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId);
       assertThat(retrievedAuthDomain, hasSize(authDomain.size()));
       assertThat(retrievedAuthDomain, containsInAnyOrder(authDomain.toArray()));
     }

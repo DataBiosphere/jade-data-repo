@@ -334,9 +334,10 @@ public class IamService {
   }
 
   // -- auth domain support --
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
-    return callProvider(() -> iamProvider.retrieveAuthDomain(userReq, iamResourceType, resourceId));
+    return callProvider(
+        () -> iamProvider.retrieveAuthDomains(userReq, iamResourceType, resourceId));
   }
 
   public void patchAuthDomain(

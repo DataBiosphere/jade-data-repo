@@ -426,7 +426,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {
     return SamRetry.retry(

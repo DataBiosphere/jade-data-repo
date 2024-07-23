@@ -40,7 +40,7 @@ public class AddSnapshotAuthDomainStep extends DefaultUndoStep {
                 SnapshotWorkingMapKeys.SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS,
                 new TypeReference<>() {});
     List<String> existingAuthDomain =
-        iamService.retrieveAuthDomain(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
+        iamService.retrieveAuthDomains(userRequest, IamResourceType.DATASNAPSHOT, snapshotId);
     if (!existingAuthDomain.isEmpty()) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,

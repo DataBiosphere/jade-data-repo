@@ -700,6 +700,7 @@ class DrsServiceTest {
             googleDrsObjectId,
             "gcp-passport-us-central1*" + snapshotId,
             drsPassportRequestModel,
+            null,
             null);
 
     assertThat("returns url", url.getUrl(), containsString(expectedUrl));
@@ -718,7 +719,11 @@ class DrsServiceTest {
         UnauthorizedException.class,
         () ->
             drsService.postAccessUrlForObjectId(
-                googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel, null));
+                googleDrsObjectId,
+                "gcp-passport-us-central1",
+                drsPassportRequestModel,
+                null,
+                null));
   }
 
   private static Stream<Arguments> testSignGcpUrl() {
@@ -792,7 +797,7 @@ class DrsServiceTest {
 
     DRSAccessURL url =
         drsService.getAccessUrlForObjectId(
-            TEST_USER, googleDrsObjectId, "gcp-us-central1*" + snapshotId, billingProject);
+            TEST_USER, googleDrsObjectId, "gcp-us-central1*" + snapshotId, billingProject, null);
 
     assertThat(
         "returns url",
@@ -833,7 +838,7 @@ class DrsServiceTest {
 
     DRSAccessURL result =
         drsService.getAccessUrlForObjectId(
-            TEST_USER, azureDrsObjectId, "az-centralus*" + snapshotId, null);
+            TEST_USER, azureDrsObjectId, "az-centralus*" + snapshotId, null, null);
     assertEquals(urlString, result.getUrl());
   }
 

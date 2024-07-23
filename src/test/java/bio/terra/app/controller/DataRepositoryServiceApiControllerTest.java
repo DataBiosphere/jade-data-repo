@@ -72,7 +72,7 @@ class DataRepositoryServiceApiControllerTest {
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(get(GET_DRS_OBJECT_ENDPOINT, DRS_ID)).andExpect(status().isNotFound());
 
-    when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null))
+    when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null, null))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(get(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID))
         .andExpect(status().isNotFound());
@@ -85,7 +85,7 @@ class DataRepositoryServiceApiControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(DRS_ID));
 
-    when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null))
+    when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
     mvc.perform(get(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID))
         .andExpect(status().isOk())
@@ -101,7 +101,7 @@ class DataRepositoryServiceApiControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(PASSPORT)));
 
-    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null, null))
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)
@@ -120,7 +120,7 @@ class DataRepositoryServiceApiControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(DRS_ID));
 
-    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null))
+    when(drsService.postAccessUrlForObjectId(DRS_ID, DRS_ACCESS_ID, PASSPORT, null, null))
         .thenReturn(DRS_ACCESS_URL_OBJECT);
     mvc.perform(
             post(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID)

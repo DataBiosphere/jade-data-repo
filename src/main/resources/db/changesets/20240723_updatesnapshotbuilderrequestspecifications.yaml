@@ -5,5 +5,9 @@ databaseChangeLog:
       # Delete all rows from the snapshot_request
       # table due to breaking change to json structure
       changes:
-        - delete:
+        - update:
             tableName: snapshot_request
+            columns:
+              - column:
+                  name: snapshot_specification
+                  value: "{\"cohorts\": [{\"name\": \"test\",\"criteriaGroups\": []}],\"outputTables\": [{\"name\": \"Drug\",\"columns\": []}]}"

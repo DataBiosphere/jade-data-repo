@@ -461,17 +461,28 @@ public class DrsService {
       String userProject,
       String ip) {
     DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
+    // TODO maybe here for the helper function
     return getAccessURL(null, drsObject, accessId, userProject, ip);
   }
-
+  // TODO: after fetching the drs object and before getting the access url, add a helper method to
+  // handle the IP check
+  // make it a void method that throws if the IP is not in the range
   public DRSAccessURL getAccessUrlForObjectId(
-      AuthenticatedUserRequest authUser, String objectId, String accessId, String userProject, String ip) {
+      AuthenticatedUserRequest authUser,
+      String objectId,
+      String accessId,
+      String userProject,
+      String ip) {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
     return getAccessURL(authUser, drsObject, accessId, userProject, ip);
   }
 
   private DRSAccessURL getAccessURL(
-      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId, String userProject, String ip) {
+      AuthenticatedUserRequest authUser,
+      DRSObject drsObject,
+      String accessId,
+      String userProject,
+      String ip) {
     // To avoid having to re-resolve the DRS ID in case it is an alias, use the id from the passed
     // in DRS object.
     DrsId drsId = drsIdService.fromObjectId(drsObject.getId());
@@ -508,6 +519,20 @@ public class DrsService {
     if (platform.isGcp()) {
       return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
     } else if (platform.isAzure()) {
+      // TODO: can add IP range helper check here, we may not have the right data in the calling method
+      //  consider adding a defined exception to make the behavior clear when it fails the ip check
+
+      // for now just hardcoding this here for testing, eventually will probably be in config
+      boolean isAzureOnlyData = true;
+
+      // if isAzureOnlyData is false, return the signed url (do nothing)
+      // if ip is not set, then return the signed url (do nothing)
+      // if isAzureOnlyData is true, then check the IP range
+      // if the ip range is not in the allowed range, throw an exception
+      if (isAzureOnlyData && ip != null) {
+
+      }
+
       return signAzureUrl(billingProfileModel, fsFile, authUser, ip);
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
@@ -541,13 +566,18 @@ public class DrsService {
   }
 
   private DRSAccessURL signAzureUrl(
-      BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser, String ip) {
+      BillingProfileModel profileModel,
+      FSItem fsItem,
+      AuthenticatedUserRequest authUser,
+      String ip) {
     AzureStorageAccountResource storageAccountResource =
         resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
-    // TODO: Add IP range check here
-    //  I think that this will only apply to AnVil datasets for now, not sure yet how to check for that
+    // TODO: Add IP range check here, or maybe one level higher
+    //  I think that this will only apply to AnVil datasets for now, not sure yet how to check for
+    // that
     // maybe see if the provider is passed through from the DRSHub response
-    // something like if provider == "anvil" { check if IP is in IP range cache and return DRSAccessURl } else throw
+    // something like if provider == "anvil" { check if IP is in IP range cache and return
+    // DRSAccessURl } else throw
     return new DRSAccessURL()
         .url(
             azureBlobStorePdao.signFile(

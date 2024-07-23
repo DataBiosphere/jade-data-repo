@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import static bio.terra.service.auth.iam.sam.SamIam.convertSAMExToDataRepoEx;
+import static bio.terra.service.auth.iam.sam.SamIam.convertSamExToDataRepoEx;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
@@ -125,7 +125,7 @@ public class SamFixtures {
       GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
       return samGroupApi.getGroup(groupName);
     } catch (ApiException e) {
-      throw convertSAMExToDataRepoEx(e);
+      throw convertSamExToDataRepoEx(e);
     }
   }
 

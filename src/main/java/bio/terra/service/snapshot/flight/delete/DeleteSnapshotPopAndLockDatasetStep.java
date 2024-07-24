@@ -15,6 +15,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class DeleteSnapshotPopAndLockDatasetStep implements Step {
@@ -58,7 +60,18 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
       map.put(SnapshotWorkingMapKeys.DATASET_EXISTS, false);
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, false);
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, false);
+
       return StepResult.getStepResultSuccess();
+    }
+
+    try {
+      List<String> authDomains =
+          new ArrayList<>(
+              snapshotService.retrieveAuthDomains(snapshot.getId(), authenticatedUserRequest));
+      map.put(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, authDomains);
+    } catch (Exception ex) {
+      // Do nothing if we can't retrieve the auth domains
+      // No Sam groups will be deleted
     }
 
     // Now we've confirmed the snapshot exists, let's check on the source dataset

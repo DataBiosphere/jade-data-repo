@@ -60,7 +60,7 @@ class AddSnapshotAuthDomainStepTest {
 
   @Test
   void testSnapshotAuthDomainExistsError() throws InterruptedException {
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(userGroups);
 
     AddSnapshotAuthDomainStep step =
@@ -74,7 +74,7 @@ class AddSnapshotAuthDomainStepTest {
   void testUserGroupNotFoundError() throws InterruptedException {
     AuthDomainGroupNotFoundException ex =
         new AuthDomainGroupNotFoundException("auth domain not found");
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, SNAPSHOT_ID))
         .thenReturn(List.of());
     doThrow(ex)
         .when(iamService)

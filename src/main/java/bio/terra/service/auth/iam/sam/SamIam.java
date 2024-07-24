@@ -426,7 +426,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {
     return SamRetry.retry(
@@ -626,7 +626,7 @@ public class SamIam implements IamProviderInterface {
           .userEmail(samInfo.getUserEmail())
           .enabled(samInfo.getEnabled());
     } catch (ApiException ex) {
-      throw convertSAMExToDataRepoEx(ex);
+      throw convertSamExToDataRepoEx(ex);
     }
   }
 
@@ -854,10 +854,10 @@ public class SamIam implements IamProviderInterface {
    * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP
    * status code.
    */
-  public static ErrorReportException convertSAMExToDataRepoEx(final ApiException samEx) {
-    logger.warn("SAM client exception code: {}", samEx.getCode());
-    logger.warn("SAM client exception message: {}", samEx.getMessage());
-    logger.warn("SAM client exception details: {}", samEx.getResponseBody());
+  public static ErrorReportException convertSamExToDataRepoEx(final ApiException samEx) {
+    logger.warn("Sam client exception code: {}", samEx.getCode());
+    logger.warn("Sam client exception message: {}", samEx.getMessage());
+    logger.warn("Sam client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
     String message = null;
@@ -865,7 +865,7 @@ public class SamIam implements IamProviderInterface {
       ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
       message = extractErrorMessage(errorReport);
     } catch (JsonProcessingException | IllegalArgumentException ex) {
-      message = Objects.requireNonNullElse(samEx.getMessage(), "SAM client exception");
+      message = Objects.requireNonNullElse(samEx.getMessage(), "Sam client exception");
     }
 
     switch (samEx.getCode()) {

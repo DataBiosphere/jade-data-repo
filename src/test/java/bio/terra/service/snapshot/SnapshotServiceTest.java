@@ -805,7 +805,7 @@ class SnapshotServiceTest {
             mock(InaccessibleWorkspacePolicyModel.class));
     List<String> userGroups = List.of("userGroup1", "userGroup2");
 
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
         .thenReturn(userGroups);
     when(rawlsService.resolvePolicyEmails(spm1, TEST_USER))
         .thenReturn(
@@ -1614,5 +1614,13 @@ class SnapshotServiceTest {
     if (cloudPlatform == CloudPlatform.GCP) {
       when(snapshotTableDao.retrieveColumns(any())).thenReturn(columns);
     }
+  }
+
+  @Test
+  void retrieveAuthDomains() {
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(List.of("group1", "group2"));
+    assertThat(
+        service.retrieveAuthDomains(snapshotId, TEST_USER), containsInAnyOrder("group1", "group2"));
   }
 }

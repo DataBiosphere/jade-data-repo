@@ -794,6 +794,10 @@ public class SnapshotService {
         .submitAndWait(AddAuthDomainResponseModel.class);
   }
 
+  public List<String> retrieveAuthDomains(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    return iamService.retrieveAuthDomains(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+  }
+
   /**
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user
@@ -805,7 +809,7 @@ public class SnapshotService {
     List<SamPolicyModel> samPolicyModels =
         iamService.retrievePolicies(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<String> authDomain =
-        iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+        iamService.retrieveAuthDomains(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<WorkspacePolicyModel> accessibleWorkspaces = new ArrayList<>();
     List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces = new ArrayList<>();
 

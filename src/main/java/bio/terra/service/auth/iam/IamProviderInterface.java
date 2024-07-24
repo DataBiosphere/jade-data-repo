@@ -164,7 +164,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   // -- auth domain support --
-  List<String> retrieveAuthDomain(
+  List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 

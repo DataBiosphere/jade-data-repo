@@ -107,7 +107,7 @@ public class GlobalExceptionHandler {
     // the conversion,
     // but want to add in a logging message that there's an escaped SAM ApiException somewhere.
     logger.error("SAM ApiException caught outside the service/iam package", ex);
-    ErrorReportException drex = SamIam.convertSAMExToDataRepoEx(ex);
+    ErrorReportException drex = SamIam.convertSamExToDataRepoEx(ex);
     return buildErrorModel(drex);
   }
 

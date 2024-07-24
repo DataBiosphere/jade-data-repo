@@ -66,12 +66,12 @@ class IamServiceTest {
 
   @Test
   void testRetrieveAuthDomain() throws InterruptedException {
-    when(iamProvider.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID))
+    when(iamProvider.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID))
         .thenReturn(AUTH_DOMAIN);
 
     List<String> result =
-        iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
-    verify(iamProvider).retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+        iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+    verify(iamProvider).retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
     assertEquals(AUTH_DOMAIN, result);
   }
 

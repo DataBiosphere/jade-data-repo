@@ -410,7 +410,8 @@ public class BigQueryPdaoTest {
         IamService.constructSamGroupName(String.valueOf(snapshotSummary.getId()));
     verify(samService)
         .patchAuthDomain(any(), any(), eq(snapshotSummary.getId()), eq(List.of(expectedGroupName)));
-    when(samService.retrieveAuthDomain(any(), any(), any())).thenReturn(List.of(expectedGroupName));
+    when(samService.retrieveAuthDomains(any(), any(), any()))
+        .thenReturn(List.of(expectedGroupName));
 
     Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
     assertThat(snapshot.getName(), is(snapshotService.getSnapshotName(requestModel)));

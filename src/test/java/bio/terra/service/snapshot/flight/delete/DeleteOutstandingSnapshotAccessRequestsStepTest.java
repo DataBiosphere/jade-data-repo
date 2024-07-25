@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +13,7 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
+import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepStatus;
@@ -46,16 +48,21 @@ class DeleteOutstandingSnapshotAccessRequestsStepTest {
   void doStep() throws InterruptedException {
     UUID firstRequestId = UUID.randomUUID();
     UUID secondRequestId = UUID.randomUUID();
+    UUID thirdRequestId = UUID.randomUUID();
     when(snapshotBuilderService.enumerateRequestsBySnapshot(snapshotId))
         .thenReturn(
             new EnumerateSnapshotAccessRequest()
                 .items(
                     List.of(
                         new SnapshotAccessRequestResponse().id(firstRequestId),
-                        new SnapshotAccessRequestResponse().id(secondRequestId))));
+                        new SnapshotAccessRequestResponse().id(secondRequestId),
+                        new SnapshotAccessRequestResponse()
+                            .id(thirdRequestId)
+                            .status(SnapshotAccessRequestStatus.DELETED))));
     var result = step.doStep(flightContext);
     verify(snapshotBuilderService).deleteRequest(TEST_USER, firstRequestId);
     verify(snapshotBuilderService).deleteRequest(TEST_USER, secondRequestId);
+    verify(snapshotBuilderService, times(0)).deleteRequest(TEST_USER, thirdRequestId);
     assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }
 

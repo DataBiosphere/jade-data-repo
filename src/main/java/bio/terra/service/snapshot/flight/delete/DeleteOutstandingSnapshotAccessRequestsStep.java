@@ -34,20 +34,22 @@ public class DeleteOutstandingSnapshotAccessRequestsStep implements Step {
     try {
       EnumerateSnapshotAccessRequest requestResponseList =
           snapshotBuilderService.enumerateRequestsBySnapshot(snapshotId);
-      requestResponseList.getItems().stream()
-          .filter(
-              snapshotAccessRequestResponse ->
-                  SnapshotAccessRequestStatus.DELETED.equals(
-                      snapshotAccessRequestResponse.getStatus()))
-          .forEach(
-              snapshotAccessRequestResponse ->
-                  snapshotBuilderService.deleteRequest(
-                      userReq, snapshotAccessRequestResponse.getId()));
+      if (requestResponseList != null) {
+        requestResponseList.getItems().stream()
+            .filter(
+                snapshotAccessRequestResponse ->
+                    !SnapshotAccessRequestStatus.DELETED.equals(
+                        snapshotAccessRequestResponse.getStatus()))
+            .forEach(
+                snapshotAccessRequestResponse ->
+                    snapshotBuilderService.deleteRequest(
+                        userReq, snapshotAccessRequestResponse.getId()));
+      }
     } catch (NotFoundException e) {
       // Do nothing, if there are no requests we are good.
       return StepResult.getStepResultSuccess();
     }
-    return null;
+    return StepResult.getStepResultSuccess();
   }
 
   @Override

@@ -115,11 +115,9 @@ public class SnapshotRequestDao {
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerateBySnapshot(UUID snapshotId) {
-    String sql =
-        String.format(
-            "SELECT * FROM snapshot_request WHERE %s = (:source_snapshot_id)", SOURCE_SNAPSHOT_ID);
+    String sql = "SELECT * FROM snapshot_request WHERE source_snapshot_id = :source_snapshot_id";
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue(SOURCE_SNAPSHOT_ID, snapshotId.toString());
+        new MapSqlParameterSource().addValue(SOURCE_SNAPSHOT_ID, snapshotId);
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {

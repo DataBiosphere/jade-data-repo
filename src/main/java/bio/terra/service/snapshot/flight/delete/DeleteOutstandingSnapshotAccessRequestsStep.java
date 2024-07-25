@@ -34,20 +34,17 @@ public class DeleteOutstandingSnapshotAccessRequestsStep implements Step {
     try {
       EnumerateSnapshotAccessRequest requestResponseList =
           snapshotBuilderService.enumerateRequestsBySnapshot(snapshotId);
-      if (requestResponseList != null) {
-        requestResponseList.getItems().stream()
-            .filter(
-                snapshotAccessRequestResponse ->
-                    !SnapshotAccessRequestStatus.DELETED.equals(
-                        snapshotAccessRequestResponse.getStatus()))
-            .forEach(
-                snapshotAccessRequestResponse ->
-                    snapshotBuilderService.deleteRequest(
-                        userReq, snapshotAccessRequestResponse.getId()));
-      }
+      requestResponseList.getItems().stream()
+          .filter(
+              snapshotAccessRequestResponse ->
+                  !SnapshotAccessRequestStatus.DELETED.equals(
+                      snapshotAccessRequestResponse.getStatus()))
+          .forEach(
+              snapshotAccessRequestResponse ->
+                  snapshotBuilderService.deleteRequest(
+                      userReq, snapshotAccessRequestResponse.getId()));
     } catch (NotFoundException e) {
       // Do nothing, if there are no requests we are good.
-      return StepResult.getStepResultSuccess();
     }
     return StepResult.getStepResultSuccess();
   }
@@ -58,7 +55,7 @@ public class DeleteOutstandingSnapshotAccessRequestsStep implements Step {
     logger.warn(
         String.format(
             "Trying to undo delete resource for snapshot access requests on snapshot %s",
-            snapshotId.toString()));
+            snapshotId));
     return null;
   }
 }

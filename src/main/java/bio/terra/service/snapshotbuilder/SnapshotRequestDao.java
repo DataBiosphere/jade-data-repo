@@ -100,12 +100,15 @@ public class SnapshotRequestDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerate(Collection<UUID> authorizedResources) {
-    String sql = "SELECT * FROM snapshot_request WHERE id IN (:authorized_resources)";
+    String sql =
+        "SELECT * FROM snapshot_request WHERE id IN (:authorized_resources) AND status != :status";
     if (authorizedResources.isEmpty()) {
       return List.of();
     }
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue(AUTHORIZED_RESOURCES, authorizedResources);
+        new MapSqlParameterSource()
+            .addValue(AUTHORIZED_RESOURCES, authorizedResources)
+            .addValue(STATUS, SnapshotAccessRequestStatus.DELETED.toString());
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {
@@ -115,9 +118,12 @@ public class SnapshotRequestDao {
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<SnapshotAccessRequestResponse> enumerateBySnapshot(UUID snapshotId) {
-    String sql = "SELECT * FROM snapshot_request WHERE source_snapshot_id = :source_snapshot_id";
+    String sql =
+        "SELECT * FROM snapshot_request WHERE source_snapshot_id = :source_snapshot_id AND status != :status";
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue(SOURCE_SNAPSHOT_ID, snapshotId);
+        new MapSqlParameterSource()
+            .addValue(SOURCE_SNAPSHOT_ID, snapshotId)
+            .addValue(STATUS, SnapshotAccessRequestStatus.DELETED.toString());
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {

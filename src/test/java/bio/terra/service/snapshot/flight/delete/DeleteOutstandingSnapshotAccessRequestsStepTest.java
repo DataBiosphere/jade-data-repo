@@ -26,7 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-public class DeleteOutstandingSnapshotAccessRequestsStepTest {
+class DeleteOutstandingSnapshotAccessRequestsStepTest {
   @Mock SnapshotBuilderService snapshotBuilderService;
   private UUID snapshotId;
   private static final AuthenticatedUserRequest TEST_USER =

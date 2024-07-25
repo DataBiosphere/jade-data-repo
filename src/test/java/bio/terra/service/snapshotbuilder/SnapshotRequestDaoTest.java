@@ -111,8 +111,7 @@ class SnapshotRequestDaoTest {
     Snapshot secondSnapshot =
         daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
     SnapshotAccessRequestResponse response = createRequest();
-    SnapshotAccessRequestResponse response1 =
-        createRequest(SnapshotBuilderTestData.createSnapshotAccessRequest(secondSnapshot.getId()));
+    createRequest(SnapshotBuilderTestData.createSnapshotAccessRequest(secondSnapshot.getId()));
     assertThat(
         "Snapshot Access Request should be the same as the example",
         snapshotRequestDao.enumerateBySnapshot(sourceSnapshot.getId()),

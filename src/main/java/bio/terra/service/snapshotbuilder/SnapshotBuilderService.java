@@ -197,6 +197,20 @@ public class SnapshotBuilderService {
         .items(snapshotRequestDao.enumerate(authorizedResources));
   }
 
+  public EnumerateSnapshotAccessRequest enumerateRequestsBySnapshot(UUID snapshotId) {
+    return new EnumerateSnapshotAccessRequest()
+        .items(snapshotRequestDao.enumerateBySnapshot(snapshotId));
+  }
+
+  public SnapshotAccessRequestResponse getRequest(UUID id) {
+    return snapshotRequestDao.getById(id);
+  }
+
+  public void deleteRequest(AuthenticatedUserRequest user, UUID id) {
+    iamService.deleteSnapshotBuilderRequest(user, id);
+    snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.DELETED);
+  }
+
   public SnapshotBuilderConceptsResponse enumerateConcepts(
       UUID snapshotId, int domainId, String filterText, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);

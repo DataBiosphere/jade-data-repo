@@ -113,6 +113,20 @@ public class SnapshotRequestDao {
     }
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public List<SnapshotAccessRequestResponse> enumerateBySnapshot(UUID snapshotId) {
+    String sql =
+        String.format(
+            "SELECT * FROM snapshot_request WHERE %s = (:source_snapshot_id)", SOURCE_SNAPSHOT_ID);
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue(SOURCE_SNAPSHOT_ID, snapshotId.toString());
+    try {
+      return jdbcTemplate.query(sql, params, responseMapper);
+    } catch (EmptyResultDataAccessException ex) {
+      throw new NotFoundException("No snapshot requests found for snapshot", ex);
+    }
+  }
+
   /**
    * Create a new Snapshot Access Request for the given snapshot id.
    *

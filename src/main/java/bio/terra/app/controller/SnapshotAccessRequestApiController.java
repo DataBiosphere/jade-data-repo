@@ -63,6 +63,23 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
   }
 
   @Override
+  public ResponseEntity<SnapshotAccessRequestResponse> getSnapshotAccessRequest(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.GET);
+    return ResponseEntity.ok(snapshotBuilderService.getRequest(id));
+  }
+
+  @Override
+  public ResponseEntity<Void> deleteSnapshotAccessRequest(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.DELETE);
+    snapshotBuilderService.deleteRequest(userRequest, id);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
   public ResponseEntity<SnapshotAccessRequestResponse> rejectSnapshotAccessRequest(UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(

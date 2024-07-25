@@ -306,6 +306,10 @@ public class IamService {
                 userReq, snapshotId, snapshotBuilderRequestId));
   }
 
+  public void deleteSnapshotBuilderRequest(AuthenticatedUserRequest userReq, UUID requestId) {
+    callProvider(() -> iamProvider.deleteSnapshotBuilderRequestResource(userReq, requestId));
+  }
+
   /**
    * @param request snapshot creation request
    * @return user-defined snapshot policy object, supplemented with readers from deprecated input

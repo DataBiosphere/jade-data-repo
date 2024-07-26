@@ -50,8 +50,7 @@ public class DeleteOutstandingSnapshotAccessRequestsStep implements Step {
     // can't undo delete
     logger.warn(
         String.format(
-            "Cannot undo delete resource for snapshot access requests on snapshot %s",
-            snapshotId));
+            "Cannot undo delete resource for snapshot access requests on snapshot %s", snapshotId));
     return null;
   }
 }

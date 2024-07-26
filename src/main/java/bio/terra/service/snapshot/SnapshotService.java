@@ -11,6 +11,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.SqlSortDirection;
 import bio.terra.common.Table;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -34,7 +35,9 @@ import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderDatasetConceptSet;
+import bio.terra.model.SnapshotBuilderOutputTable;
+import bio.terra.model.SnapshotBuilderRootTable;
 import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotBuilderTable;
 import bio.terra.model.SnapshotIdsAndRolesModel;
@@ -275,6 +278,11 @@ public class SnapshotService {
     if (flightId != null && jobService.unauthRetrieveJobState(flightId) != FlightStatus.ERROR) {
       throw new ValidationException(
           "Snapshot Create Flight with id %s is still running".formatted(flightId));
+    }
+    var requesterEmail = snapshotAccessRequest.getCreatedBy();
+    if (requesterEmail == null || !ValidationUtils.isValidEmail(requesterEmail)) {
+      throw new ValidationException(
+          "The createdBy email supplied on the access request is not valid.");
     }
   }
 
@@ -688,30 +696,43 @@ public class SnapshotService {
   }
 
   public AssetSpecification buildAssetFromSnapshotAccessRequest(
-      Dataset dataset, SnapshotAccessRequestResponse snapshotRequestModel) {
+      Dataset dataset, SnapshotAccessRequestResponse snapshotAccessRequest) {
+    SnapshotBuilderSettings settings =
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.getSourceSnapshotId());
     // build asset model from snapshot request
+    SnapshotBuilderRootTable rootTable = settings.getRootTable();
     AssetModel assetModel =
         new AssetModel()
             .name("snapshot-by-request-asset")
-            .rootTable("person")
-            .rootColumn("person_id");
-    // Manually add dictionary tables, leave columns empty to return all columns
-    assetModel.addTablesItem(new AssetTableModel().name("person"));
+            .rootTable(rootTable.getDatasetTableName())
+            .rootColumn(rootTable.getRootColumn());
+
+    // Add root table, leave columns empty to return all columns
+    assetModel.addTablesItem(new AssetTableModel().name(rootTable.getDatasetTableName()));
 
     // Build asset tables and columns based on the concept sets included in the snapshot request
-    List<SnapshotBuilderTable> tables = pullTables(snapshotRequestModel);
+    List<SnapshotBuilderTable> tables = pullTables(snapshotAccessRequest, settings);
     tables.forEach(
         table -> {
           assetModel.addTablesItem(
               new AssetTableModel().name(table.getDatasetTableName()).columns(table.getColumns()));
           // First add all person <-> occurrence relationships
-          assetModel.addFollowItem(table.getPrimaryTableRelationship());
+          if (table.getPrimaryTableRelationship() != null) {
+            assetModel.addFollowItem(table.getPrimaryTableRelationship());
+          }
         });
+
     // Second, add all occurrence <-> concept relationships
     tables.forEach(
-        table -> table.getSecondaryTableRelationships().forEach(assetModel::addFollowItem));
+        table -> {
+          if (table.getSecondaryTableRelationships() != null) {
+            table.getSecondaryTableRelationships().forEach(assetModel::addFollowItem);
+          }
+        });
 
-    assetModel.addTablesItem(new AssetTableModel().name("concept"));
+    // Add dictionary table, leave columns empty to return all columns
+    assetModel.addTablesItem(
+        new AssetTableModel().name(settings.getDictionaryTable().getDatasetTableName()));
 
     // Make sure we just built a valid asset model
     dataset.validateDatasetAssetSpecification(assetModel);
@@ -721,116 +742,25 @@ public class SnapshotService {
   }
 
   @VisibleForTesting
-  List<SnapshotBuilderTable> pullTables(SnapshotAccessRequestResponse snapshotRequestModel) {
-    var valueSets = snapshotRequestModel.getSnapshotSpecification().getValueSets();
-    var valueSetNames = valueSets.stream().map(SnapshotBuilderFeatureValueGroup::getName).toList();
+  List<SnapshotBuilderTable> pullTables(
+      SnapshotAccessRequestResponse snapshotAccessRequest, SnapshotBuilderSettings settings) {
+    List<String> includedTableNames =
+        snapshotAccessRequest.getSnapshotSpecification().getOutputTables().stream()
+            .map(SnapshotBuilderOutputTable::getName)
+            .toList();
 
-    Map<String, SnapshotBuilderTable> tableMap = populateManualTableMap();
+    List<SnapshotBuilderDatasetConceptSet> allTables = settings.getDatasetConceptSets();
 
-    Set<String> missing = new HashSet<>(valueSetNames);
-    missing.removeAll(tableMap.keySet());
+    Set<String> missing = new HashSet<>(includedTableNames);
+    allTables.stream().map(SnapshotBuilderDatasetConceptSet::getName).forEach(missing::remove);
     if (!missing.isEmpty()) {
       throw new IllegalArgumentException("Unknown value set names: " + missing);
     }
 
-    return valueSetNames.stream().map(tableMap::get).toList();
-  }
-
-  private Map<String, SnapshotBuilderTable> populateManualTableMap() {
-    // manual definition of domain names -> dataset table
-    Map<String, SnapshotBuilderTable> tableMap = new HashMap<>();
-    tableMap.put(
-        "Demographics",
-        new SnapshotBuilderTable()
-            .datasetTableName("person")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_person_gender_concept",
-                    "fpk_person_race_concept",
-                    "fpk_person_ethnicity_concept",
-                    "fpk_person_gender_concept_s",
-                    "fpk_person_race_concept_s",
-                    "fpk_person_ethnicity_concept_s")));
-    tableMap.put(
-        "Drug",
-        new SnapshotBuilderTable()
-            .datasetTableName("drug_exposure")
-            .primaryTableRelationship("fpk_person_drug")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_drug_concept",
-                    "fpk_drug_type_concept",
-                    "fpk_drug_route_concept",
-                    "fpk_drug_concept_s")));
-    tableMap.put(
-        "Measurement",
-        new SnapshotBuilderTable()
-            .datasetTableName("measurement")
-            .primaryTableRelationship("fpk_person_measurement")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_measurement_concept",
-                    "fpk_measurement_unit",
-                    "fpk_measurement_concept_s",
-                    "fpk_measurement_value",
-                    "fpk_measurement_type_concept",
-                    "fpk_measurement_operator")));
-    tableMap.put(
-        "Visit",
-        new SnapshotBuilderTable()
-            .datasetTableName("visit_occurrence")
-            .primaryTableRelationship("fpk_person_visit")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_visit_preceding",
-                    "fpk_visit_concept_s",
-                    "fpk_visit_type_concept",
-                    "fpk_visit_concept",
-                    "fpk_visit_discharge")));
-    tableMap.put(
-        "Device",
-        new SnapshotBuilderTable()
-            .datasetTableName("device_exposure")
-            .primaryTableRelationship("fpk_person_device")
-            .secondaryTableRelationships(
-                List.of("fpk_device_concept", "fpk_device_concept_s", "fpk_device_type_concept")));
-    tableMap.put(
-        "Condition",
-        new SnapshotBuilderTable()
-            .datasetTableName("condition_occurrence")
-            .primaryTableRelationship("fpk_person_condition")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_condition_concept",
-                    "fpk_condition_type_concept",
-                    "fpk_condition_status_concept",
-                    "fpk_condition_concept_s")));
-    tableMap.put(
-        "Procedure",
-        new SnapshotBuilderTable()
-            .datasetTableName("procedure_occurrence")
-            .primaryTableRelationship("fpk_person_procedure")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_procedure_concept",
-                    "fpk_procedure_concept_s",
-                    "fpk_procedure_type_concept",
-                    "fpk_procedure_modifier")));
-    tableMap.put(
-        "Observation",
-        new SnapshotBuilderTable()
-            .datasetTableName("observation")
-            .primaryTableRelationship("fpk_person_observation")
-            .secondaryTableRelationships(
-                List.of(
-                    "fpk_observation_concept",
-                    "fpk_observation_concept_s",
-                    "fpk_observation_unit",
-                    "fpk_observation_qualifier",
-                    "fpk_observation_type_concept",
-                    "fpk_observation_value")));
-
-    return tableMap;
+    return allTables.stream()
+        .filter((table) -> includedTableNames.contains(table.getName()))
+        .map(SnapshotBuilderDatasetConceptSet::getTable)
+        .toList();
   }
 
   public static AssetSpecification getAssetByNameFromDataset(Dataset dataset, String assetName) {
@@ -864,6 +794,10 @@ public class SnapshotService {
         .submitAndWait(AddAuthDomainResponseModel.class);
   }
 
+  public List<String> retrieveAuthDomains(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    return iamService.retrieveAuthDomains(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+  }
+
   /**
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user
@@ -875,7 +809,7 @@ public class SnapshotService {
     List<SamPolicyModel> samPolicyModels =
         iamService.retrievePolicies(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<String> authDomain =
-        iamService.retrieveAuthDomain(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+        iamService.retrieveAuthDomains(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
     List<WorkspacePolicyModel> accessibleWorkspaces = new ArrayList<>();
     List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces = new ArrayList<>();
 

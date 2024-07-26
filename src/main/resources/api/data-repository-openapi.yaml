@@ -3056,6 +3056,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get a snapshot access request you have access to read
+      operationId: getSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
+        404:
+          description: The request cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    delete:
+      tags:
+        - SnapshotAccessRequest
+      description: Delete a snapshot access request you have access to delete
+      operationId: deleteSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        204:
+          description: The request has been deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshotAccessRequests/{id}/reject:
     put:
       tags:
@@ -7207,6 +7250,7 @@ components:
         - programDataOptions
         - featureValueGroups
         - datasetConceptSets
+        - rootTable
       properties:
         domainOptions:
           type: array
@@ -7216,15 +7260,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
-        featureValueGroups:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
         datasetConceptSets:
           type: array
           items:
             $ref:
               '#/components/schemas/SnapshotBuilderDatasetConceptSet'
+        rootTable:
+          $ref: '#/components/schemas/SnapshotBuilderRootTable'
+        dictionaryTable:
+          $ref: '#/components/schemas/SnapshotBuilderTable'
 
     SnapshotBuilderOption:
       type: object
@@ -7308,14 +7352,11 @@ components:
         ⚠️ A concept set provided for the dataset, usually used to access tables that are not searchable as domains
       required:
         - name
-        - featureValueGroupName
       properties:
         name:
           type: string
-        featureValueGroupName:
-          type: string
-        concept:
-          $ref: '#/components/schemas/SnapshotBuilderConcept'
+        table:
+          $ref: '#/components/schemas/SnapshotBuilderTable'
 
     SnapshotBuilderDomainOption:
       allOf:
@@ -7391,17 +7432,17 @@ components:
           items:
             $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
-    SnapshotBuilderFeatureValueGroup:
+    SnapshotBuilderOutputTable:
       type: object
       description: >
         ⚠️ Describes a set of columns for a table with given name
       required:
         - name
-        - values
+        - columns
       properties:
         name:
           type: string
-        values:
+        columns:
           type: array
           items:
             type: string
@@ -7426,6 +7467,18 @@ components:
           type: array
           items:
             type: string
+
+    SnapshotBuilderRootTable:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderTable'
+        - type: object
+          required:
+            - rootColumn
+          properties:
+            rootColumn:
+              type: string
+          description: >
+                The primary column in the root table that is used to join with other tables
 
     EnumerateSnapshotAccessRequest:
       type: object
@@ -7468,7 +7521,7 @@ components:
 
     SnapshotAccessRequestStatus:
       type: string
-      enum: [ SUBMITTED, APPROVED, REJECTED ]
+      enum: [ SUBMITTED, APPROVED, REJECTED, DELETED ]
 
     SnapshotBuilderCountRequest:
       type: object
@@ -7510,14 +7563,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderCohort'
-        conceptSets:
+        outputTables:
           type: array
           items:
-            $ref: '#/components/schemas/SnapshotBuilderDatasetConceptSet'
-        valueSets:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
+            $ref: '#/components/schemas/SnapshotBuilderOutputTable'
       description: Specification of cohort and participant data for a requested snapshot.
 
     SnapshotBuilderCohort:

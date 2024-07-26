@@ -333,6 +333,13 @@ public class SamIam implements IamProviderInterface {
     return initialRoles;
   }
 
+  @Override
+  public void deleteSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException {
+    deleteResource(
+        userReq, IamResourceType.SNAPSHOT_BUILDER_REQUEST, snapshotBuilderRequestId.toString());
+  }
+
   private void createSnapshotBuilderRequestResourceInner(
       AuthenticatedUserRequest userReq,
       UUID snapshotId,
@@ -426,7 +433,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {
     return SamRetry.retry(
@@ -626,7 +633,7 @@ public class SamIam implements IamProviderInterface {
           .userEmail(samInfo.getUserEmail())
           .enabled(samInfo.getEnabled());
     } catch (ApiException ex) {
-      throw convertSAMExToDataRepoEx(ex);
+      throw convertSamExToDataRepoEx(ex);
     }
   }
 
@@ -699,6 +706,20 @@ public class SamIam implements IamProviderInterface {
 
   private String getGroupEmail(String accessToken, String groupName) throws ApiException {
     return samApiService.groupApi(accessToken).getGroup(groupName);
+  }
+
+  @Override
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userReq,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException {
+    List<String> emails = new ArrayList<>(emailAddresses);
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    emails.add(userStatusInfo.getUserEmail());
+    overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
   }
 
   @Override
@@ -840,10 +861,10 @@ public class SamIam implements IamProviderInterface {
    * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP
    * status code.
    */
-  public static ErrorReportException convertSAMExToDataRepoEx(final ApiException samEx) {
-    logger.warn("SAM client exception code: {}", samEx.getCode());
-    logger.warn("SAM client exception message: {}", samEx.getMessage());
-    logger.warn("SAM client exception details: {}", samEx.getResponseBody());
+  public static ErrorReportException convertSamExToDataRepoEx(final ApiException samEx) {
+    logger.warn("Sam client exception code: {}", samEx.getCode());
+    logger.warn("Sam client exception message: {}", samEx.getMessage());
+    logger.warn("Sam client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
     String message = null;
@@ -851,7 +872,7 @@ public class SamIam implements IamProviderInterface {
       ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
       message = extractErrorMessage(errorReport);
     } catch (JsonProcessingException | IllegalArgumentException ex) {
-      message = Objects.requireNonNullElse(samEx.getMessage(), "SAM client exception");
+      message = Objects.requireNonNullElse(samEx.getMessage(), "Sam client exception");
     }
 
     switch (samEx.getCode()) {

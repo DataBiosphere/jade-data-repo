@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -40,6 +41,7 @@ class SnapshotRequestDaoTest {
   @Autowired private DaoOperations daoOperations;
   @Autowired private SnapshotRequestDao snapshotRequestDao;
 
+  private Dataset dataset;
   private Snapshot sourceSnapshot;
   private Snapshot createdSnapshot;
   private SnapshotAccessRequest snapshotAccessRequest;
@@ -49,7 +51,7 @@ class SnapshotRequestDaoTest {
 
   @BeforeEach
   void beforeEach() throws IOException {
-    Dataset dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
+    dataset = daoOperations.createDataset(DaoOperations.DATASET_MINIMAL);
     sourceSnapshot = daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
     createdSnapshot =
         daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
@@ -58,6 +60,10 @@ class SnapshotRequestDaoTest {
   }
 
   private SnapshotAccessRequestResponse createRequest() {
+    return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
+  }
+
+  private SnapshotAccessRequestResponse createRequest(SnapshotAccessRequest snapshotAccessRequest) {
     return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
   }
 
@@ -99,6 +105,42 @@ class SnapshotRequestDaoTest {
         "Snapshot Access Request should be the same as the example",
         snapshotRequestDao.enumerate(Set.of(response.getId(), response1.getId())),
         contains(response, response1));
+  }
+
+  @Test
+  void enumerateIgnoresDeletedRequests() {
+    SnapshotAccessRequestResponse response = createRequest();
+    SnapshotAccessRequestResponse response1 = createRequest();
+    snapshotRequestDao.updateStatus(response1.getId(), SnapshotAccessRequestStatus.DELETED);
+    assertThat(
+        "Snapshot Access Request should be the same as the example",
+        snapshotRequestDao.enumerate(Set.of(response.getId(), response1.getId())),
+        contains(response));
+  }
+
+  @Test
+  void enumerateBySnapshotId() throws IOException {
+    Snapshot secondSnapshot =
+        daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
+    SnapshotAccessRequestResponse response = createRequest();
+    createRequest(SnapshotBuilderTestData.createSnapshotAccessRequest(secondSnapshot.getId()));
+    assertThat(
+        "Snapshot Access Request should be the same as the example",
+        snapshotRequestDao.enumerateBySnapshot(sourceSnapshot.getId()),
+        contains(response));
+  }
+
+  @Test
+  void enumerateBySnapshotIdExcludesDeletedRequests() throws IOException {
+    Snapshot secondSnapshot =
+        daoOperations.createAndIngestSnapshot(dataset, DaoOperations.SNAPSHOT_MINIMAL);
+    SnapshotAccessRequestResponse response = createRequest();
+    createRequest(SnapshotBuilderTestData.createSnapshotAccessRequest(secondSnapshot.getId()));
+    snapshotRequestDao.updateStatus(response.getId(), SnapshotAccessRequestStatus.DELETED);
+    assertThat(
+        "Snapshot Access Request should be the same as the example",
+        snapshotRequestDao.enumerateBySnapshot(sourceSnapshot.getId()).size(),
+        is(0));
   }
 
   @Test

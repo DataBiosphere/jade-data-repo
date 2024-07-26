@@ -143,6 +143,9 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
       throws InterruptedException;
 
+  void deleteSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException;
+
   // -- billing profile resource support --
 
   /**
@@ -164,7 +167,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   // -- auth domain support --
-  List<String> retrieveAuthDomain(
+  List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 
@@ -256,6 +259,22 @@ public interface IamProviderInterface {
    */
   String getGroup(String accessToken, String groupName) throws InterruptedException;
 
+  /**
+   * @param accessToken valid oauth token for the account modifying the group policy members
+   * @param userRequest information about the requesting user - we'll use this to pull the user's
+   *     email and add it to the group
+   * @param groupName name of Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses user emails which will overwrite group policy contents. This list will
+   *     also include the current authenticated user.
+   */
+  void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException;
   /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group

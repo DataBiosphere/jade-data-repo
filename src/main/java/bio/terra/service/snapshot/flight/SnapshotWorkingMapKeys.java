@@ -14,6 +14,7 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SNAPSHOT_EXISTS = "snapshotExists";
   public static final String SNAPSHOT_HAS_GOOGLE_PROJECT = "snapshotHasGoogleProject";
   public static final String SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT = "snapshotHasStorageAccount";
+  public static final String SNAPSHOT_AUTH_DOMAIN_GROUPS = "snapshotAuthDomainGroups";
   public static final String DATASET_EXISTS = "datasetExists";
   public static final String STORAGE_ACCOUNT_RESOURCE_NAME = "storageAccountResourceName";
   public static final String STORAGE_ACCOUNT_RESOURCE_TLC = "storageAccountResourceTlc";
@@ -24,4 +25,6 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SNAPSHOT_EXPORT_GSPATHS_FILENAME = "snapshotExportGspathsFileName";
   public static final String SNAPSHOT_FIRECLOUD_GROUP_NAME = "snapshotFirecloudGroupName";
   public static final String SNAPSHOT_FIRECLOUD_GROUP_EMAIL = "snapshotFirecloudGroupEmail";
+  public static final String SNAPSHOT_DATA_ACCESS_CONTROL_GROUPS =
+      "snapshotDataAccessControlGroups";
 }

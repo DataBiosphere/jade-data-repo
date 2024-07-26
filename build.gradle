@@ -45,7 +45,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.99.0-SNAPSHOT'
+    version '2.112.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -210,7 +210,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.2.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.2.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.14-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.17-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.11-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
@@ -396,7 +396,7 @@ jib {
     // https://www.randori.com/blog/cve-2021-44228/
     // for more information
     container {
-        jvmFlags = ["-Xms1g", "-Xmx2g", "-Dlog4j2.formatMsgNoLookups=true"]
+        jvmFlags = ["-Xms1g", "-Xmx4g", "-Dlog4j2.formatMsgNoLookups=true"]
     }
     container.creationTime = buildTime()
 }

@@ -50,7 +50,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
-import bio.terra.model.SnapshotBuilderFeatureValueGroup;
+import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
@@ -160,6 +160,7 @@ class SnapshotServiceTest {
   @Mock private EcmService ecmService;
   @Mock private RawlsService rawlsService;
   @Mock private DuosClient duosClient;
+  @Mock private SnapshotBuilderSettingsDao settingsDao;
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
@@ -187,7 +188,7 @@ class SnapshotServiceTest {
             azureSynapsePdao,
             rawlsService,
             duosClient,
-            mock(SnapshotBuilderSettingsDao.class));
+            settingsDao);
   }
 
   @Test
@@ -620,7 +621,9 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdBy("email@a.com");
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -635,6 +638,7 @@ class SnapshotServiceTest {
     SnapshotAccessRequestResponse accessRequestResponse =
         new SnapshotAccessRequestResponse()
             .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdBy("email@a.com")
             .flightid(flightId);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -688,6 +692,21 @@ class SnapshotServiceTest {
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     // any flight status that isn't error or fatal
     when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.READY);
+    assertThrows(
+        ValidationException.class,
+        () -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
+  }
+
+  @Test
+  void validateForByRequestIdIdModeCreatedByEmail() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestContentsModel snapshotRequestContentsModel =
+        makeByRequestIdContentsModel(snapshotAccessRequestId);
+    SnapshotAccessRequestResponse accessRequestResponse =
+        new SnapshotAccessRequestResponse()
+            .status(SnapshotAccessRequestStatus.APPROVED)
+            .createdBy("notanemail.com");
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     assertThrows(
         ValidationException.class,
         () -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -786,7 +805,7 @@ class SnapshotServiceTest {
             mock(InaccessibleWorkspacePolicyModel.class));
     List<String> userGroups = List.of("userGroup1", "userGroup2");
 
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
         .thenReturn(userGroups);
     when(rawlsService.resolvePolicyEmails(spm1, TEST_USER))
         .thenReturn(
@@ -1094,7 +1113,9 @@ class SnapshotServiceTest {
     SnapshotAccessRequestResponse snapshotAccessRequestResponse =
         new SnapshotAccessRequestResponse()
             .status(SnapshotAccessRequestStatus.APPROVED)
-            .id(snapshotAccessRequestId);
+            .createdBy("email@a.com")
+            .id(snapshotAccessRequestId)
+            .sourceSnapshotId(UUID.randomUUID());
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(snapshotAccessRequestResponse);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
@@ -1333,14 +1354,17 @@ class SnapshotServiceTest {
 
     Dataset dataset = SnapshotBuilderTestData.DATASET;
     dataset.name("datasetName");
+    UUID sourceSnapshotId = UUID.randomUUID();
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(
             new SnapshotAccessRequestResponse()
+                .sourceSnapshotId(sourceSnapshotId)
                 .snapshotSpecification(
                     new SnapshotBuilderRequest()
-                        .addValueSetsItem(new SnapshotBuilderFeatureValueGroup().name("Drug"))
-                        .addValueSetsItem(
-                            new SnapshotBuilderFeatureValueGroup().name("Condition"))));
+                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
+                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition"))));
+    when(settingsDao.getBySnapshotId(sourceSnapshotId))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset);
     SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
@@ -1454,7 +1478,8 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
-    var firstTable = service.pullTables(accessRequestResponse).get(0);
+    var firstTable =
+        service.pullTables(accessRequestResponse, SnapshotBuilderTestData.SETTINGS).get(0);
     assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
     // Must preserve relationship order
     assertThat(firstTable.getPrimaryTableRelationship(), equalTo("fpk_person_drug"));
@@ -1478,6 +1503,7 @@ class SnapshotServiceTest {
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
+    when(settingsDao.getBySnapshotId(snapshotId)).thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     var actualAssetSpec =
         service.buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequestResponse);
@@ -1588,5 +1614,13 @@ class SnapshotServiceTest {
     if (cloudPlatform == CloudPlatform.GCP) {
       when(snapshotTableDao.retrieveColumns(any())).thenReturn(columns);
     }
+  }
+
+  @Test
+  void retrieveAuthDomains() {
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(List.of("group1", "group2"));
+    assertThat(
+        service.retrieveAuthDomains(snapshotId, TEST_USER), containsInAnyOrder("group1", "group2"));
   }
 }

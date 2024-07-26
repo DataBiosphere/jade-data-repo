@@ -306,6 +306,10 @@ public class IamService {
                 userReq, snapshotId, snapshotBuilderRequestId));
   }
 
+  public void deleteSnapshotBuilderRequest(AuthenticatedUserRequest userReq, UUID requestId) {
+    callProvider(() -> iamProvider.deleteSnapshotBuilderRequestResource(userReq, requestId));
+  }
+
   /**
    * @param request snapshot creation request
    * @return user-defined snapshot policy object, supplemented with readers from deprecated input
@@ -334,9 +338,10 @@ public class IamService {
   }
 
   // -- auth domain support --
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
-    return callProvider(() -> iamProvider.retrieveAuthDomain(userReq, iamResourceType, resourceId));
+    return callProvider(
+        () -> iamProvider.retrieveAuthDomains(userReq, iamResourceType, resourceId));
   }
 
   public void patchAuthDomain(
@@ -455,6 +460,27 @@ public class IamService {
   public String getGroup(String groupName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.getGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * Overwrite group membership to include listed emails AND the current user's email
+   *
+   * @param userRequest current authenticated user - we'll use this to pull the requesting user's *
+   *     email and add it to the group
+   * @param groupName Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses emails which the TDR SA will set as group policy members
+   */
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    callProvider(
+        () ->
+            iamProvider.overwriteGroupPolicyEmailsIncludeRequestingUser(
+                tdrSaAccessToken, userRequest, groupName, policyName, emailAddresses));
   }
 
   /**

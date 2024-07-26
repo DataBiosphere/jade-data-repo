@@ -7585,8 +7585,6 @@ components:
       type: object
       required: [ criteria, mustMeet, meetAll ]
       properties:
-        name:
-          type: string
         criteria:
           type: array
           items:

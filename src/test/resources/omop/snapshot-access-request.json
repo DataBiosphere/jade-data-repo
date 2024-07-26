@@ -8,7 +8,6 @@
         "name": "test",
         "criteriaGroups": [
           {
-            "name": "Group 1",
             "meetAll": false,
             "criteria": [ ],
             "mustMeet": true

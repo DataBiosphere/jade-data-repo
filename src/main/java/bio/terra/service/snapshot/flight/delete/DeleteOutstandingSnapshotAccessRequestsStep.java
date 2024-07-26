@@ -3,7 +3,6 @@ package bio.terra.service.snapshot.flight.delete;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -34,11 +33,8 @@ public class DeleteOutstandingSnapshotAccessRequestsStep implements Step {
     try {
       EnumerateSnapshotAccessRequest requestResponseList =
           snapshotBuilderService.enumerateRequestsBySnapshot(snapshotId);
-      requestResponseList.getItems().stream()
-          .filter(
-              snapshotAccessRequestResponse ->
-                  !SnapshotAccessRequestStatus.DELETED.equals(
-                      snapshotAccessRequestResponse.getStatus()))
+      requestResponseList
+          .getItems()
           .forEach(
               snapshotAccessRequestResponse ->
                   snapshotBuilderService.deleteRequest(

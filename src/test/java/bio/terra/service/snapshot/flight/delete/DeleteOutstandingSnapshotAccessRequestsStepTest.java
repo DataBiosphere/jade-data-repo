@@ -13,7 +13,6 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
@@ -46,17 +45,13 @@ class DeleteOutstandingSnapshotAccessRequestsStepTest {
   void doStep() throws InterruptedException {
     UUID firstRequestId = UUID.randomUUID();
     UUID secondRequestId = UUID.randomUUID();
-    UUID thirdRequestId = UUID.randomUUID();
     when(snapshotBuilderService.enumerateRequestsBySnapshot(snapshotId))
         .thenReturn(
             new EnumerateSnapshotAccessRequest()
                 .items(
                     List.of(
                         new SnapshotAccessRequestResponse().id(firstRequestId),
-                        new SnapshotAccessRequestResponse().id(secondRequestId),
-                        new SnapshotAccessRequestResponse()
-                            .id(thirdRequestId)
-                            .status(SnapshotAccessRequestStatus.DELETED))));
+                        new SnapshotAccessRequestResponse().id(secondRequestId))));
     var result = step.doStep(null);
     verify(snapshotBuilderService).deleteRequest(TEST_USER, firstRequestId);
     verify(snapshotBuilderService).deleteRequest(TEST_USER, secondRequestId);

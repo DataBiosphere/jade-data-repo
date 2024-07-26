@@ -112,7 +112,7 @@ public class SnapshotRequestDao {
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot requests found for user", ex);
+      return List.of();
     }
   }
 
@@ -127,7 +127,7 @@ public class SnapshotRequestDao {
     try {
       return jdbcTemplate.query(sql, params, responseMapper);
     } catch (EmptyResultDataAccessException ex) {
-      throw new NotFoundException("No snapshot requests found for snapshot", ex);
+      return List.of();
     }
   }
 

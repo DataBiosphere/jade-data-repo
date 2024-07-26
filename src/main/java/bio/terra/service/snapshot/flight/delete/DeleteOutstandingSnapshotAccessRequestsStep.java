@@ -30,18 +30,20 @@ public class DeleteOutstandingSnapshotAccessRequestsStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    try {
-      EnumerateSnapshotAccessRequest requestResponseList =
-          snapshotBuilderService.enumerateRequestsBySnapshot(snapshotId);
-      requestResponseList
-          .getItems()
-          .forEach(
-              snapshotAccessRequestResponse ->
-                  snapshotBuilderService.deleteRequest(
-                      userReq, snapshotAccessRequestResponse.getId()));
-    } catch (NotFoundException e) {
-      // Do nothing, if there are no requests we are good.
-    }
+    EnumerateSnapshotAccessRequest requestResponseList =
+        snapshotBuilderService.enumerateRequestsBySnapshot(snapshotId);
+    requestResponseList
+        .getItems()
+        .forEach(
+            snapshotAccessRequestResponse -> {
+              try {
+                snapshotBuilderService.deleteRequest(
+                    userReq, snapshotAccessRequestResponse.getId());
+              } catch (NotFoundException ignored) {
+                // Do nothing and proceed with the expectation it is deleted
+              }
+            });
+
     return StepResult.getStepResultSuccess();
   }
 

@@ -442,6 +442,32 @@ class SnapshotBuilderServiceTest {
     verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
   }
 
+  @Test
+  void testGetRequest() {
+    UUID id = UUID.randomUUID();
+    SnapshotAccessRequestResponse daoResponse = new SnapshotAccessRequestResponse().id(id);
+    when(snapshotRequestDao.getById(id)).thenReturn(daoResponse);
+    assertThat(snapshotBuilderService.getRequest(id), is(daoResponse));
+  }
+
+  @Test
+  void testDeleteRequest() {
+    UUID id = UUID.randomUUID();
+    snapshotBuilderService.deleteRequest(TEST_USER, id);
+    verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.DELETED);
+    verify(iamService).deleteSnapshotBuilderRequest(TEST_USER, id);
+  }
+
+  @Test
+  void testEnumerateRequestsBySnapshot() {
+    UUID id = UUID.randomUUID();
+    List<SnapshotAccessRequestResponse> daoResponse = List.of(new SnapshotAccessRequestResponse());
+    when(snapshotRequestDao.enumerateBySnapshot(id)).thenReturn(daoResponse);
+    assertThat(
+        snapshotBuilderService.enumerateRequestsBySnapshot(id),
+        is(new EnumerateSnapshotAccessRequest().items(daoResponse)));
+  }
+
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {
     return new SnapshotBuilderConcept()
         .name(name)

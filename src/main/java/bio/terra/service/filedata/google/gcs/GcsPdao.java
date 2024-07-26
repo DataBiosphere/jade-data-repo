@@ -452,7 +452,7 @@ public class GcsPdao implements CloudFileReader {
           String.format(
               "File at %s was not found or does not exist", GcsUriUtils.getGsPathFromBlob(from)));
     }
-    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId));
+    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId)).getResult();
   }
 
   private boolean isInvalidUserProjectException(StorageException ex) {

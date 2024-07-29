@@ -5061,8 +5061,6 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
-        snapshotBuilderSettings:
-          $ref: '#/components/schemas/SnapshotBuilderSettings'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -5226,7 +5224,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE, SNAPSHOT_BUILDER_SETTINGS ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:

@@ -166,7 +166,13 @@ public record AzureResourceConfiguration(
 
   public record Threading(int numTableThreads, int maxQueueSize, boolean blockWhenSaturated) {}
 
-  @Bean("azureTableThreadpool")
+  /**
+   * The name of a {@link AsyncTaskExecutor} Spring Bean which executes tasks related to Azure
+   * Storage Tables.
+   */
+  public static final String TABLE_THREADPOOL_NAME = "azureTableThreadpool";
+
+  @Bean(TABLE_THREADPOOL_NAME)
   public AsyncTaskExecutor azureTableThreadpool() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     executor.setCorePoolSize(threading().numTableThreads());

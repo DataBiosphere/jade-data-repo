@@ -8,6 +8,7 @@ import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -73,7 +74,8 @@ public class TableDirectoryDao {
 
   public TableDirectoryDao(
       ConfigurationService configurationService,
-      @Qualifier("azureTableThreadpool") AsyncTaskExecutor azureTableThreadpool) {
+      @Qualifier(AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
+          AsyncTaskExecutor azureTableThreadpool) {
     this.configurationService = configurationService;
     this.azureTableThreadpool = azureTableThreadpool;
   }

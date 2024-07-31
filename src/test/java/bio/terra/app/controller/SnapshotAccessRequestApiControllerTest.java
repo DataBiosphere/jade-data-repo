@@ -127,10 +127,10 @@ class SnapshotAccessRequestApiControllerTest {
   @Test
   void testGetSnapshotRequest() throws Exception {
     var expectedResponse = SnapshotBuilderTestData.createSnapshotAccessRequestModel(SNAPSHOT_ID);
-    when(snapshotBuilderService.getRequest(expectedResponse.getId()))
+    when(snapshotBuilderService.getRequest(expectedResponse.id()))
         .thenReturn(expectedResponse.toApiResponse(SnapshotBuilderTestData.SETTINGS));
     String actualJson =
-        mvc.perform(get(GET_ENDPOINT, expectedResponse.getId()))
+        mvc.perform(get(GET_ENDPOINT, expectedResponse.id()))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -142,7 +142,7 @@ class SnapshotAccessRequestApiControllerTest {
         .verifyAuthorization(
             TEST_USER,
             IamResourceType.SNAPSHOT_BUILDER_REQUEST,
-            expectedResponse.getId().toString(),
+            expectedResponse.id().toString(),
             IamAction.GET);
   }
 

@@ -127,18 +127,18 @@ public class SnapshotAccessRequestModelTest {
   }
 
   private SnapshotAccessRequestModel generateSnapshotAccessRequestModel() {
-    return new SnapshotAccessRequestModel()
-        .id(UUID.randomUUID())
-        .sourceSnapshotId(UUID.randomUUID())
-        .snapshotName("snapshot name")
-        .snapshotResearchPurpose("snapshot research purpose")
-        .snapshotSpecification(SnapshotBuilderTestData.createSnapshotBuilderRequest())
-        .createdDate(Instant.now())
-        .statusUpdatedDate(Instant.now())
-        .createdBy("a@b.com")
-        .status(SnapshotAccessRequestStatus.SUBMITTED)
-        .flightid("flightid")
-        .createdSnapshotId(UUID.randomUUID());
+    return new SnapshotAccessRequestModel(
+        UUID.randomUUID(),
+        "snapshot name",
+        "snapshot research purpose",
+        UUID.randomUUID(),
+        SnapshotBuilderTestData.createSnapshotBuilderRequest(),
+        "a@b.com",
+        Instant.now(),
+        Instant.now(),
+        SnapshotAccessRequestStatus.SUBMITTED,
+        UUID.randomUUID(),
+        "flightid");
   }
 
   private void compareModelAndResponseFields(
@@ -146,16 +146,16 @@ public class SnapshotAccessRequestModelTest {
     String expectedSummaryString =
         "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \n\nCondition Concept Id: 100\nYear of birth between 1950 and 2000\n\nTables included:Drug, Condition\n";
 
-    assertThat(model.getId(), is(response.getId()));
-    assertThat(model.getSourceSnapshotId(), is(response.getSourceSnapshotId()));
-    assertThat(model.getSnapshotResearchPurpose(), is(response.getSnapshotResearchPurpose()));
-    assertThat(model.getSnapshotSpecification(), is(response.getSnapshotSpecification()));
-    assertThat(model.getCreatedBy(), is(response.getCreatedBy()));
-    assertThat(model.getCreatedDate().toString(), is(response.getCreatedDate()));
-    assertThat(model.getStatusUpdatedDate().toString(), is(response.getStatusUpdatedDate()));
-    assertThat(model.getStatus(), is(response.getStatus()));
-    assertThat(model.getFlightid(), is(response.getFlightid()));
-    assertThat(model.getCreatedSnapshotId(), is(response.getCreatedSnapshotId()));
+    assertThat(model.id(), is(response.getId()));
+    assertThat(model.sourceSnapshotId(), is(response.getSourceSnapshotId()));
+    assertThat(model.snapshotResearchPurpose(), is(response.getSnapshotResearchPurpose()));
+    assertThat(model.snapshotSpecification(), is(response.getSnapshotSpecification()));
+    assertThat(model.createdBy(), is(response.getCreatedBy()));
+    assertThat(model.createdDate().toString(), is(response.getCreatedDate()));
+    assertThat(model.statusUpdatedDate().toString(), is(response.getStatusUpdatedDate()));
+    assertThat(model.status(), is(response.getStatus()));
+    assertThat(model.flightid(), is(response.getFlightid()));
+    assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
     assertThat(response.getSummary(), is(expectedSummaryString));
   }
 }

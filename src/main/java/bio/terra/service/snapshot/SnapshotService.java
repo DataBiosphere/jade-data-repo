@@ -184,9 +184,9 @@ public class SnapshotService {
 
       // Handle null as empty string.
       String snapshotAccessRequestName =
-          Optional.ofNullable(snapshotAccessRequestResponse.getSnapshotName()).orElse("");
+          Optional.ofNullable(snapshotAccessRequestResponse.snapshotName()).orElse("");
 
-      String cleanedId = snapshotAccessRequestResponse.getId().toString().replace('-', '_');
+      String cleanedId = snapshotAccessRequestResponse.id().toString().replace('-', '_');
       String cleanedName =
           StringUtils.truncate(
               StringUtils.strip(
@@ -264,22 +264,21 @@ public class SnapshotService {
     SnapshotAccessRequestModel snapshotAccessRequest =
         snapshotRequestDao.getById(
             snapshotRequestContents.getRequestIdSpec().getSnapshotRequestId());
-    if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
+    if (snapshotAccessRequest.status() != SnapshotAccessRequestStatus.APPROVED) {
       throw new ValidationException(
           "Snapshot request must be approved before creating a snapshot.");
     }
-    if (snapshotAccessRequest.getCreatedSnapshotId() != null) {
+    if (snapshotAccessRequest.createdSnapshotId() != null) {
       throw new ValidationException(
           "Snapshot with id %s is already created from request with id %s"
-              .formatted(
-                  snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
+              .formatted(snapshotAccessRequest.createdSnapshotId(), snapshotAccessRequest.id()));
     }
-    String flightId = snapshotAccessRequest.getFlightid();
+    String flightId = snapshotAccessRequest.flightid();
     if (flightId != null && jobService.unauthRetrieveJobState(flightId) != FlightStatus.ERROR) {
       throw new ValidationException(
           "Snapshot Create Flight with id %s is still running".formatted(flightId));
     }
-    var requesterEmail = snapshotAccessRequest.getCreatedBy();
+    var requesterEmail = snapshotAccessRequest.createdBy();
     if (requesterEmail == null || !ValidationUtils.isValidEmail(requesterEmail)) {
       throw new ValidationException(
           "The createdBy email supplied on the access request is not valid.");
@@ -698,7 +697,7 @@ public class SnapshotService {
   public AssetSpecification buildAssetFromSnapshotAccessRequest(
       Dataset dataset, SnapshotAccessRequestModel snapshotAccessRequest) {
     SnapshotBuilderSettings settings =
-        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.getSourceSnapshotId());
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.sourceSnapshotId());
     // build asset model from snapshot request
     SnapshotBuilderRootTable rootTable = settings.getRootTable();
     AssetModel assetModel =
@@ -745,7 +744,7 @@ public class SnapshotService {
   List<SnapshotBuilderTable> pullTables(
       SnapshotAccessRequestModel snapshotAccessRequest, SnapshotBuilderSettings settings) {
     List<String> includedTableNames =
-        snapshotAccessRequest.getSnapshotSpecification().getOutputTables().stream()
+        snapshotAccessRequest.snapshotSpecification().getOutputTables().stream()
             .map(SnapshotBuilderOutputTable::getName)
             .toList();
 
@@ -778,7 +777,7 @@ public class SnapshotService {
         ? retrieve(
                 snapshotRequestDao
                     .getById(contents.getRequestIdSpec().getSnapshotRequestId())
-                    .getSourceSnapshotId())
+                    .sourceSnapshotId())
             .getSourceDataset()
         : datasetService.retrieveByName(contents.getDatasetName());
   }

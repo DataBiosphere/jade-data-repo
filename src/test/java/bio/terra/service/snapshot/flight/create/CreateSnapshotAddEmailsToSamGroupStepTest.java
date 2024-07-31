@@ -52,7 +52,9 @@ class CreateSnapshotAddEmailsToSamGroupStepTest {
   void doStep() throws InterruptedException {
     var researcherEmail = "researcher@gmail.com";
     var emailsToAdd = List.of(researcherEmail);
-    var request = new SnapshotAccessRequestModel().createdBy(researcherEmail);
+    var request =
+        new SnapshotAccessRequestModel(
+            null, null, null, null, null, researcherEmail, null, null, null, null, null);
     when(snapshotRequestDao.getById(snapshotRequestId)).thenReturn(request);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     verify(iamService)

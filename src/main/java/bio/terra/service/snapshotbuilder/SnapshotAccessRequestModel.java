@@ -17,164 +17,18 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class SnapshotAccessRequestModel {
-  private UUID id;
-  private String snapshotName;
-  private String snapshotResearchPurpose;
-  private UUID sourceSnapshotId;
-  private SnapshotBuilderRequest snapshotSpecification;
-  private String createdBy;
-  private Instant createdDate;
-  private Instant statusUpdatedDate;
-  private SnapshotAccessRequestStatus status;
-  private UUID createdSnapshotId;
-  private String flightid;
-
-  public SnapshotAccessRequestModel() {}
-
-  public UUID getId() {
-    return id;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
-
-  public SnapshotAccessRequestModel id(UUID id) {
-    this.id = id;
-    return this;
-  }
-
-  public String getSnapshotName() {
-    return snapshotName;
-  }
-
-  public void setSnapshotName(String snapshotName) {
-    this.snapshotName = snapshotName;
-  }
-
-  public SnapshotAccessRequestModel snapshotName(String snapshotName) {
-    this.snapshotName = snapshotName;
-    return this;
-  }
-
-  public String getSnapshotResearchPurpose() {
-    return snapshotResearchPurpose;
-  }
-
-  public void setSnapshotResearchPurpose(String snapshotResearchPurpose) {
-    this.snapshotResearchPurpose = snapshotResearchPurpose;
-  }
-
-  public SnapshotAccessRequestModel snapshotResearchPurpose(String snapshotResearchPurpose) {
-    this.snapshotResearchPurpose = snapshotResearchPurpose;
-    return this;
-  }
-
-  public UUID getSourceSnapshotId() {
-    return sourceSnapshotId;
-  }
-
-  public void setSourceSnapshotId(UUID sourceSnapshotId) {
-    this.sourceSnapshotId = sourceSnapshotId;
-  }
-
-  public SnapshotAccessRequestModel sourceSnapshotId(UUID sourceSnapshotId) {
-    this.sourceSnapshotId = sourceSnapshotId;
-    return this;
-  }
-
-  public SnapshotBuilderRequest getSnapshotSpecification() {
-    return snapshotSpecification;
-  }
-
-  public void setSnapshotSpecification(SnapshotBuilderRequest snapshotSpecification) {
-    this.snapshotSpecification = snapshotSpecification;
-  }
-
-  public SnapshotAccessRequestModel snapshotSpecification(
-      SnapshotBuilderRequest snapshotSpecification) {
-    this.snapshotSpecification = snapshotSpecification;
-    return this;
-  }
-
-  public String getCreatedBy() {
-    return createdBy;
-  }
-
-  public void setCreatedBy(String createdBy) {
-    this.createdBy = createdBy;
-  }
-
-  public SnapshotAccessRequestModel createdBy(String createdBy) {
-    this.createdBy = createdBy;
-    return this;
-  }
-
-  public Instant getCreatedDate() {
-    return createdDate;
-  }
-
-  public void setCreatedDate(Instant createdDate) {
-    this.createdDate = createdDate;
-  }
-
-  public SnapshotAccessRequestModel createdDate(Instant createdDate) {
-    this.createdDate = createdDate;
-    return this;
-  }
-
-  public Instant getStatusUpdatedDate() {
-    return statusUpdatedDate;
-  }
-
-  public void setStatusUpdatedDate(Instant statusUpdatedDate) {
-    this.statusUpdatedDate = statusUpdatedDate;
-  }
-
-  public SnapshotAccessRequestModel statusUpdatedDate(Instant statusUpdatedDate) {
-    this.statusUpdatedDate = statusUpdatedDate;
-    return this;
-  }
-
-  public SnapshotAccessRequestStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(SnapshotAccessRequestStatus status) {
-    this.status = status;
-  }
-
-  public SnapshotAccessRequestModel status(SnapshotAccessRequestStatus status) {
-    this.status = status;
-    return this;
-  }
-
-  public UUID getCreatedSnapshotId() {
-    return createdSnapshotId;
-  }
-
-  public void setCreatedSnapshotId(UUID createdSnapshotId) {
-    this.createdSnapshotId = createdSnapshotId;
-  }
-
-  public SnapshotAccessRequestModel createdSnapshotId(UUID createdSnapshotId) {
-    this.createdSnapshotId = createdSnapshotId;
-    return this;
-  }
-
-  public String getFlightid() {
-    return flightid;
-  }
-
-  public void setFlightid(String flightid) {
-    this.flightid = flightid;
-  }
-
-  public SnapshotAccessRequestModel flightid(String flightid) {
-    this.flightid = flightid;
-    return this;
-  }
+public record SnapshotAccessRequestModel(
+    UUID id,
+    String snapshotName,
+    String snapshotResearchPurpose,
+    UUID sourceSnapshotId,
+    SnapshotBuilderRequest snapshotSpecification,
+    String createdBy,
+    Instant createdDate,
+    Instant statusUpdatedDate,
+    SnapshotAccessRequestStatus status,
+    UUID createdSnapshotId,
+    String flightid) {
 
   @VisibleForTesting
   static String generateSummaryForCriteria(
@@ -258,7 +112,7 @@ public class SnapshotAccessRequestModel {
     return String.format(
         "Participants included:\n%s\nTables included:%s\n",
         snapshotSpecification.getCohorts().stream()
-            .map(cohort -> this.generateSummaryForCohort(cohort, settings))
+            .map(cohort -> generateSummaryForCohort(cohort, settings))
             .collect(Collectors.joining("\n")),
         snapshotSpecification.getOutputTables().stream()
             .map(SnapshotBuilderOutputTable::getName)

@@ -418,15 +418,18 @@ public class SnapshotBuilderTestData {
 
   public static SnapshotAccessRequestModel createSnapshotAccessRequestModel(UUID snapshotId) {
     SnapshotAccessRequest request = createSnapshotAccessRequest(snapshotId);
-    return new SnapshotAccessRequestModel()
-        .id(UUID.randomUUID())
-        .sourceSnapshotId(request.getSourceSnapshotId())
-        .snapshotName(request.getName())
-        .snapshotResearchPurpose(request.getResearchPurposeStatement())
-        .snapshotSpecification(request.getSnapshotBuilderRequest())
-        .createdDate(Instant.now())
-        .createdBy("user@gmail.com")
-        .status(SnapshotAccessRequestStatus.SUBMITTED);
+    return new SnapshotAccessRequestModel(
+        UUID.randomUUID(),
+        request.getName(),
+        request.getResearchPurposeStatement(),
+        request.getSourceSnapshotId(),
+        request.getSnapshotBuilderRequest(),
+        "user@gmail.com",
+        Instant.now(),
+        null,
+        SnapshotAccessRequestStatus.SUBMITTED,
+        null,
+        null);
   }
 
   public static SnapshotRequestModel createSnapshotRequestByRequestId(

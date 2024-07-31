@@ -621,9 +621,18 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .createdBy("email@a.com");
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            "email@a.com",
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            null,
+            null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -636,10 +645,18 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .createdBy("email@a.com")
-            .flightid(flightId);
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            "email@a.com",
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            null,
+            flightId);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.ERROR);
@@ -652,7 +669,18 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel().status(SnapshotAccessRequestStatus.SUBMITTED);
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SnapshotAccessRequestStatus.SUBMITTED,
+            null,
+            null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertThrows(
@@ -667,9 +695,18 @@ class SnapshotServiceTest {
         makeByRequestIdContentsModel(snapshotAccessRequestId);
 
     SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .createdSnapshotId(UUID.randomUUID());
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            UUID.randomUUID(),
+            null);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
@@ -685,9 +722,18 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .flightid(flightId);
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            null,
+            flightId);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     // any flight status that isn't error or fatal
@@ -703,9 +749,18 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .createdBy("notanemail.com");
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            "notanemail.com",
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            null,
+            null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     assertThrows(
         ValidationException.class,
@@ -1111,13 +1166,20 @@ class SnapshotServiceTest {
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
     SnapshotAccessRequestModel snapshotAccessRequest =
-        new SnapshotAccessRequestModel()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .createdBy("email@a.com")
-            .id(snapshotAccessRequestId)
-            .sourceSnapshotId(UUID.randomUUID());
+        new SnapshotAccessRequestModel(
+            snapshotAccessRequestId,
+            null,
+            null,
+            UUID.randomUUID(),
+            null,
+            "email@a.com",
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            null,
+            null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
-    when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.getSourceSnapshotId()))
+    when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
         .thenReturn(
             new Snapshot()
                 .snapshotSources(
@@ -1356,12 +1418,20 @@ class SnapshotServiceTest {
     UUID sourceSnapshotId = UUID.randomUUID();
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(
-            new SnapshotAccessRequestModel()
-                .sourceSnapshotId(sourceSnapshotId)
-                .snapshotSpecification(
-                    new SnapshotBuilderRequest()
-                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
-                        .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition"))));
+            new SnapshotAccessRequestModel(
+                null,
+                null,
+                null,
+                sourceSnapshotId,
+                new SnapshotBuilderRequest()
+                    .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
+                    .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition")),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
     when(settingsDao.getBySnapshotId(sourceSnapshotId))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
@@ -1410,7 +1480,8 @@ class SnapshotServiceTest {
         new SnapshotRequestModel().contents(List.of(contentsModel));
 
     SnapshotAccessRequestModel snapshotAccessRequest =
-        new SnapshotAccessRequestModel().sourceSnapshotId(snapshotId);
+        new SnapshotAccessRequestModel(
+            null, null, null, snapshotId, null, null, null, null, null, null, null);
     Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
@@ -1464,7 +1535,9 @@ class SnapshotServiceTest {
         new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
 
     when(snapshotRequestDao.getById(uuid))
-        .thenReturn(new SnapshotAccessRequestModel().snapshotName(" a$%").id(uuid));
+        .thenReturn(
+            new SnapshotAccessRequestModel(
+                uuid, " a$%", null, null, null, null, null, null, null, null, null));
 
     assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
   }

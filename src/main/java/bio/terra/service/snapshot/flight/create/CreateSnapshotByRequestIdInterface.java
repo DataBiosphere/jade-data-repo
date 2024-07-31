@@ -29,7 +29,7 @@ public interface CreateSnapshotByRequestIdInterface {
     SnapshotAccessRequestModel accessRequest =
         snapshotService.getSnapshotAccessRequestById(accessRequestId);
 
-    UUID sourceSnapshotId = accessRequest.getSourceSnapshotId();
+    UUID sourceSnapshotId = accessRequest.sourceSnapshotId();
     Snapshot sourceSnapshot = snapshotDao.retrieveSnapshot(sourceSnapshotId);
     Dataset dataset = sourceSnapshot.getSourceDataset();
 

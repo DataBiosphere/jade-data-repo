@@ -46,18 +46,18 @@ public class SnapshotRequestDao {
 
   private class SnapshotAccessRequestModelMapper implements RowMapper<SnapshotAccessRequestModel> {
     public SnapshotAccessRequestModel mapRow(ResultSet rs, int rowNum) throws SQLException {
-      return new SnapshotAccessRequestModel()
-          .id(rs.getObject(ID, UUID.class))
-          .sourceSnapshotId(rs.getObject(SOURCE_SNAPSHOT_ID, UUID.class))
-          .snapshotName(rs.getString(SNAPSHOT_NAME))
-          .snapshotResearchPurpose(rs.getString(SNAPSHOT_RESEARCH_PURPOSE))
-          .snapshotSpecification(mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)))
-          .createdDate(DaoUtils.getInstant(rs, CREATED_DATE))
-          .statusUpdatedDate(DaoUtils.getInstant(rs, STATUS_UPDATED_DATE))
-          .createdBy(rs.getString(CREATED_BY))
-          .status(SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)))
-          .flightid(rs.getString(FLIGHT_ID))
-          .createdSnapshotId(rs.getObject(CREATED_SNAPSHOT_ID, UUID.class));
+      return new SnapshotAccessRequestModel(
+          rs.getObject(ID, UUID.class),
+          rs.getString(SNAPSHOT_NAME),
+          rs.getString(SNAPSHOT_RESEARCH_PURPOSE),
+          rs.getObject(SOURCE_SNAPSHOT_ID, UUID.class),
+          mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)),
+          rs.getString(CREATED_BY),
+          DaoUtils.getInstant(rs, CREATED_DATE),
+          DaoUtils.getInstant(rs, STATUS_UPDATED_DATE),
+          SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)),
+          rs.getObject(CREATED_SNAPSHOT_ID, UUID.class),
+          rs.getString(FLIGHT_ID));
     }
   }
 

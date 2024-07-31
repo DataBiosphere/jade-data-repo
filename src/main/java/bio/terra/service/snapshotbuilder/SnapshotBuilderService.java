@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -196,24 +197,26 @@ public class SnapshotBuilderService {
   }
 
   public EnumerateSnapshotAccessRequest enumerateRequests(Collection<UUID> authorizedResources) {
-    return new EnumerateSnapshotAccessRequest()
-        .items(
-            snapshotRequestDao.enumerate(authorizedResources).stream()
-                .map(
-                    model ->
-                        model.toApiResponse(
-                            snapshotBuilderSettingsDao.getBySnapshotId(
-                                model.getSourceSnapshotId())))
-                .toList());
+    List<SnapshotAccessRequestModel> accessRequestModels =
+        snapshotRequestDao.enumerate(authorizedResources);
+    return generateResponseFromRequestModels(accessRequestModels);
   }
 
   public EnumerateSnapshotAccessRequest enumerateRequestsBySnapshot(UUID snapshotId) {
+    return generateResponseFromRequestModels(snapshotRequestDao.enumerateBySnapshot(snapshotId));
+  }
+
+  private EnumerateSnapshotAccessRequest generateResponseFromRequestModels(
+      List<SnapshotAccessRequestModel> models) {
+    Map<UUID, SnapshotBuilderSettings> settings =
+        models.stream()
+            .map(SnapshotAccessRequestModel::getSourceSnapshotId)
+            .distinct()
+            .collect(Collectors.toMap(id -> id, snapshotBuilderSettingsDao::getBySnapshotId));
     return new EnumerateSnapshotAccessRequest()
         .items(
-            snapshotRequestDao.enumerateBySnapshot(snapshotId).stream()
-                .map(
-                    model ->
-                        model.toApiResponse(snapshotBuilderSettingsDao.getBySnapshotId(snapshotId)))
+            models.stream()
+                .map(model -> model.toApiResponse(settings.get(model.getSourceSnapshotId())))
                 .toList());
   }
 

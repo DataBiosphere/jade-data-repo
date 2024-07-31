@@ -125,9 +125,11 @@ class UserMetricsInterceptorTest {
   }
 
   @Test
-  void testSendEventWithBillingProfileId() throws Exception {
+  void testSendEventWithAdditionalProperties() throws Exception {
+    String snapshotName = "snapshotName";
     String billingProfileId = UUID.randomUUID().toString();
     eventProperties.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId);
+    eventProperties.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName);
 
     mockRequestAuth(request);
 
@@ -142,7 +144,8 @@ class UserMetricsInterceptorTest {
                     Map.of(
                         BardEventProperties.METHOD_FIELD_NAME, METHOD.toUpperCase(),
                         BardEventProperties.PATH_FIELD_NAME, REQUEST_URI,
-                        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId),
+                        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId,
+                        BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName),
                     APP_ID,
                     DNS_NAME)));
 

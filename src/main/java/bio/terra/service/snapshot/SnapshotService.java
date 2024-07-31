@@ -692,7 +692,6 @@ public class SnapshotService {
   }
 
   public SnapshotAccessRequestModel getSnapshotAccessRequestById(UUID accessRequestId) {
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(accessRequestId);
     return snapshotRequestDao.getById(accessRequestId);
   }
 

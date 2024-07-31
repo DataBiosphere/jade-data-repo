@@ -1,13 +1,13 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
@@ -26,7 +26,7 @@ public interface CreateSnapshotByRequestIdInterface {
       throws InterruptedException {
     UUID accessRequestId =
         snapshotReq.getContents().get(0).getRequestIdSpec().getSnapshotRequestId();
-    SnapshotAccessRequestResponse accessRequest =
+    SnapshotAccessRequestModel accessRequest =
         snapshotService.getSnapshotAccessRequestById(accessRequestId);
 
     UUID sourceSnapshotId = accessRequest.getSourceSnapshotId();

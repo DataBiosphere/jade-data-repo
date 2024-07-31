@@ -7,10 +7,10 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -52,7 +52,7 @@ class CreateSnapshotAddEmailsToSamGroupStepTest {
   void doStep() throws InterruptedException {
     var researcherEmail = "researcher@gmail.com";
     var emailsToAdd = List.of(researcherEmail);
-    var request = new SnapshotAccessRequestResponse().createdBy(researcherEmail);
+    var request = new SnapshotAccessRequestModel().createdBy(researcherEmail);
     when(snapshotRequestDao.getById(snapshotRequestId)).thenReturn(request);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     verify(iamService)

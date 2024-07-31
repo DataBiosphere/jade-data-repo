@@ -85,18 +85,21 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestResponse createRequest(
       AuthenticatedUserRequest userRequest, SnapshotAccessRequest snapshotAccessRequest) {
-    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+    SnapshotAccessRequestModel snapshotAccessRequestModel =
         snapshotRequestDao.create(snapshotAccessRequest, userRequest.getEmail());
     try {
       iamService.createSnapshotBuilderRequestResource(
           userRequest,
           snapshotAccessRequest.getSourceSnapshotId(),
-          snapshotAccessRequestResponse.getId());
+          snapshotAccessRequestModel.getId());
     } catch (ApiException e) {
-      snapshotRequestDao.delete(snapshotAccessRequestResponse.getId());
+      snapshotRequestDao.delete(snapshotAccessRequestModel.getId());
       throw e;
     }
-    return snapshotAccessRequestResponse;
+
+    return snapshotAccessRequestModel.toApiResponse(
+        snapshotBuilderSettingsDao.getBySnapshotId(
+            snapshotAccessRequestModel.getSourceSnapshotId()));
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -194,16 +197,30 @@ public class SnapshotBuilderService {
 
   public EnumerateSnapshotAccessRequest enumerateRequests(Collection<UUID> authorizedResources) {
     return new EnumerateSnapshotAccessRequest()
-        .items(snapshotRequestDao.enumerate(authorizedResources));
+        .items(
+            snapshotRequestDao.enumerate(authorizedResources).stream()
+                .map(
+                    model ->
+                        model.toApiResponse(
+                            snapshotBuilderSettingsDao.getBySnapshotId(
+                                model.getSourceSnapshotId())))
+                .toList());
   }
 
   public EnumerateSnapshotAccessRequest enumerateRequestsBySnapshot(UUID snapshotId) {
     return new EnumerateSnapshotAccessRequest()
-        .items(snapshotRequestDao.enumerateBySnapshot(snapshotId));
+        .items(
+            snapshotRequestDao.enumerateBySnapshot(snapshotId).stream()
+                .map(
+                    model ->
+                        model.toApiResponse(snapshotBuilderSettingsDao.getBySnapshotId(snapshotId)))
+                .toList());
   }
 
   public SnapshotAccessRequestResponse getRequest(UUID id) {
-    return snapshotRequestDao.getById(id);
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    return model.toApiResponse(
+        snapshotBuilderSettingsDao.getBySnapshotId(model.getSourceSnapshotId()));
   }
 
   public void deleteRequest(AuthenticatedUserRequest user, UUID id) {
@@ -298,7 +315,7 @@ public class SnapshotBuilderService {
   // This method is used to generate the SQL query to get the rowIds for the snapshot creation
   // process from a snapshot access request
   public String generateRowIdQuery(
-      SnapshotAccessRequestResponse accessRequest,
+      SnapshotAccessRequestModel accessRequest,
       Snapshot snapshot,
       AuthenticatedUserRequest userReq) {
 
@@ -374,12 +391,16 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestResponse rejectRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
-    return snapshotRequestDao.getById(id);
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    return model.toApiResponse(
+        snapshotBuilderSettingsDao.getBySnapshotId(model.getSourceSnapshotId()));
   }
 
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
-    return snapshotRequestDao.getById(id);
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    return model.toApiResponse(
+        snapshotBuilderSettingsDao.getBySnapshotId(model.getSourceSnapshotId()));
   }
 
   private SnapshotBuilderDomainOption getDomainOption(

@@ -48,7 +48,6 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderOutputTable;
 import bio.terra.model.SnapshotBuilderRequest;
@@ -95,6 +94,7 @@ import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControl
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
@@ -620,8 +620,8 @@ class SnapshotServiceTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel()
             .status(SnapshotAccessRequestStatus.APPROVED)
             .createdBy("email@a.com");
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -635,8 +635,8 @@ class SnapshotServiceTest {
     String flightId = "flightId";
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel()
             .status(SnapshotAccessRequestStatus.APPROVED)
             .createdBy("email@a.com")
             .flightid(flightId);
@@ -651,8 +651,8 @@ class SnapshotServiceTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.SUBMITTED);
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel().status(SnapshotAccessRequestStatus.SUBMITTED);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertThrows(
@@ -666,8 +666,8 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
 
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel()
             .status(SnapshotAccessRequestStatus.APPROVED)
             .createdSnapshotId(UUID.randomUUID());
 
@@ -684,8 +684,8 @@ class SnapshotServiceTest {
     String flightId = "flightId";
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel()
             .status(SnapshotAccessRequestStatus.APPROVED)
             .flightid(flightId);
 
@@ -702,8 +702,8 @@ class SnapshotServiceTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel()
             .status(SnapshotAccessRequestStatus.APPROVED)
             .createdBy("notanemail.com");
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -1110,15 +1110,14 @@ class SnapshotServiceTest {
     request.profileId(UUID.randomUUID());
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
-    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
-        new SnapshotAccessRequestResponse()
+    SnapshotAccessRequestModel snapshotAccessRequest =
+        new SnapshotAccessRequestModel()
             .status(SnapshotAccessRequestStatus.APPROVED)
             .createdBy("email@a.com")
             .id(snapshotAccessRequestId)
             .sourceSnapshotId(UUID.randomUUID());
-    when(snapshotRequestDao.getById(snapshotAccessRequestId))
-        .thenReturn(snapshotAccessRequestResponse);
-    when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
+    when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.getSourceSnapshotId()))
         .thenReturn(
             new Snapshot()
                 .snapshotSources(
@@ -1357,7 +1356,7 @@ class SnapshotServiceTest {
     UUID sourceSnapshotId = UUID.randomUUID();
     when(snapshotRequestDao.getById(snapshotAccessRequestId))
         .thenReturn(
-            new SnapshotAccessRequestResponse()
+            new SnapshotAccessRequestModel()
                 .sourceSnapshotId(sourceSnapshotId)
                 .snapshotSpecification(
                     new SnapshotBuilderRequest()
@@ -1410,8 +1409,8 @@ class SnapshotServiceTest {
     SnapshotRequestModel snapshotRequestModel =
         new SnapshotRequestModel().contents(List.of(contentsModel));
 
-    SnapshotAccessRequestResponse snapshotAccessRequest =
-        new SnapshotAccessRequestResponse().sourceSnapshotId(snapshotId);
+    SnapshotAccessRequestModel snapshotAccessRequest =
+        new SnapshotAccessRequestModel().sourceSnapshotId(snapshotId);
     Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
@@ -1465,7 +1464,7 @@ class SnapshotServiceTest {
         new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
 
     when(snapshotRequestDao.getById(uuid))
-        .thenReturn(new SnapshotAccessRequestResponse().snapshotName(" a$%").id(uuid));
+        .thenReturn(new SnapshotAccessRequestModel().snapshotName(" a$%").id(uuid));
 
     assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
   }
@@ -1476,7 +1475,7 @@ class SnapshotServiceTest {
     UUID sourceSnapshotId = UUID.randomUUID();
 
     var accessRequestResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(sourceSnapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
     var firstTable =
         service.pullTables(accessRequestResponse, SnapshotBuilderTestData.SETTINGS).get(0);
@@ -1501,7 +1500,7 @@ class SnapshotServiceTest {
     sourceDataset.id(datasetId);
     sourceDataset.defaultProfileId(profileId);
     var accessRequestResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
     accessRequestResponse.id(snapshotAccessRequestId);
     when(settingsDao.getBySnapshotId(snapshotId)).thenReturn(SnapshotBuilderTestData.SETTINGS);
 

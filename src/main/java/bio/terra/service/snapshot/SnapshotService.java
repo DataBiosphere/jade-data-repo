@@ -33,7 +33,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderOutputTable;
@@ -95,6 +94,7 @@ import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
@@ -177,7 +177,7 @@ public class SnapshotService {
   public String getSnapshotName(SnapshotRequestModel model) {
     SnapshotRequestContentsModel contentsModel = model.getContents().get(0);
     if (contentsModel.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+      SnapshotAccessRequestModel snapshotAccessRequestResponse =
           snapshotRequestDao.getById(contentsModel.getRequestIdSpec().getSnapshotRequestId());
       String dashesAndSpacesRegex = "[- ]+";
       String nonAlphaNumericRegex = "\\W";
@@ -261,7 +261,7 @@ public class SnapshotService {
     if (snapshotRequestContents.getMode() != SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       return;
     }
-    SnapshotAccessRequestResponse snapshotAccessRequest =
+    SnapshotAccessRequestModel snapshotAccessRequest =
         snapshotRequestDao.getById(
             snapshotRequestContents.getRequestIdSpec().getSnapshotRequestId());
     if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
@@ -665,7 +665,7 @@ public class SnapshotService {
       }
       case BYREQUESTID -> {
         UUID accessRequestId = requestContents.getRequestIdSpec().getSnapshotRequestId();
-        SnapshotAccessRequestResponse accessRequest = getSnapshotAccessRequestById(accessRequestId);
+        SnapshotAccessRequestModel accessRequest = getSnapshotAccessRequestById(accessRequestId);
 
         AssetSpecification queryAssetSpecification =
             buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequest);
@@ -691,12 +691,13 @@ public class SnapshotService {
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
-  public SnapshotAccessRequestResponse getSnapshotAccessRequestById(UUID accessRequestId) {
+  public SnapshotAccessRequestModel getSnapshotAccessRequestById(UUID accessRequestId) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(accessRequestId);
     return snapshotRequestDao.getById(accessRequestId);
   }
 
   public AssetSpecification buildAssetFromSnapshotAccessRequest(
-      Dataset dataset, SnapshotAccessRequestResponse snapshotAccessRequest) {
+      Dataset dataset, SnapshotAccessRequestModel snapshotAccessRequest) {
     SnapshotBuilderSettings settings =
         snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.getSourceSnapshotId());
     // build asset model from snapshot request
@@ -743,7 +744,7 @@ public class SnapshotService {
 
   @VisibleForTesting
   List<SnapshotBuilderTable> pullTables(
-      SnapshotAccessRequestResponse snapshotAccessRequest, SnapshotBuilderSettings settings) {
+      SnapshotAccessRequestModel snapshotAccessRequest, SnapshotBuilderSettings settings) {
     List<String> includedTableNames =
         snapshotAccessRequest.getSnapshotSpecification().getOutputTables().stream()
             .map(SnapshotBuilderOutputTable::getName)

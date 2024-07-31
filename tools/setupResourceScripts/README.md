@@ -5,7 +5,7 @@ The `setup_tdr_resources.py` script can be used to easily create datasets and sn
     * `python3 -m venv c:/path/to/myenv`
     * `source c:/path/to/myenv/bin/activate`
 2. `cd jade-data-repo/tools/setupResourceScripts`
-3. `pip3 install -r requirements.txt`
+3. `pip3 install -r requirements.txt --upgrade`
 4. `gcloud auth login <user>`
 5. `python3 setup_tdr_resources.py --help to see all flags used.`
 

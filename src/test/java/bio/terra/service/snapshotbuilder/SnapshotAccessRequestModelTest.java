@@ -144,7 +144,7 @@ public class SnapshotAccessRequestModelTest {
   private void compareModelAndResponseFields(
       SnapshotAccessRequestModel model, SnapshotAccessRequestResponse response) {
     String expectedSummaryString =
-        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \n\nCondition Concept Id: 100\nYear of birth between 1950 and 2000\n\nTables included:Drug, Condition\n";
+        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
 
     assertThat(model.id(), is(response.getId()));
     assertThat(model.sourceSnapshotId(), is(response.getSourceSnapshotId()));

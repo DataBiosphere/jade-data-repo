@@ -109,14 +109,16 @@ public record SnapshotAccessRequestModel(
 
   @VisibleForTesting
   String generateSummaryFromSnapshotSpecification(SnapshotBuilderSettings settings) {
-    return String.format(
-        "Participants included:\n%s\nTables included:%s\n",
-        snapshotSpecification.getCohorts().stream()
-            .map(cohort -> generateSummaryForCohort(cohort, settings))
-            .collect(Collectors.joining("\n")),
-        snapshotSpecification.getOutputTables().stream()
-            .map(SnapshotBuilderOutputTable::getName)
-            .collect(Collectors.joining(", ")));
+    return snapshotSpecification != null
+        ? String.format(
+            "Participants included:\n%s\nTables included:%s\n",
+            snapshotSpecification.getCohorts().stream()
+                .map(cohort -> generateSummaryForCohort(cohort, settings))
+                .collect(Collectors.joining("\n")),
+            snapshotSpecification.getOutputTables().stream()
+                .map(SnapshotBuilderOutputTable::getName)
+                .collect(Collectors.joining(", ")))
+        : "No snapshot specification found";
   }
 
   public SnapshotAccessRequestResponse toApiResponse(SnapshotBuilderSettings settings) {

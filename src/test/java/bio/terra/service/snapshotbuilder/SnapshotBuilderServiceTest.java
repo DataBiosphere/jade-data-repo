@@ -133,8 +133,6 @@ class SnapshotBuilderServiceTest {
         new SnapshotAccessRequestModel(
             snapshotRequestId, null, null, null, null, null, null, null, null, null, null);
     SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId);
-    when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
-        .thenReturn(SnapshotBuilderTestData.SETTINGS);
     when(snapshotRequestDao.create(request, TEST_USER.getEmail())).thenReturn(model);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
         .thenThrow(new ApiException("Error"));

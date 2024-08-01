@@ -122,7 +122,6 @@ class SnapshotRequestDaoTest {
     assertThat(
         "Snapshot Access Request should be the same as the example",
         snapshotRequestDao.enumerateBySnapshot(sourceSnapshot.getId()),
-        //        contains(hasProperty("id", equalTo(response.getId()))));
         contains(response));
   }
 
@@ -254,14 +253,15 @@ class SnapshotRequestDaoTest {
   @Test
   void deleteSourceSnapshot() {
     SnapshotAccessRequestModel response = createRequest();
+    UUID responseId = response.id();
     assertThat(
         "We can retrieve the snapshot request",
-        snapshotRequestDao.getById(response.id()),
+        snapshotRequestDao.getById(responseId),
         equalTo(response));
     // delete the source snapshot
     // This should also delete the snapshot request
     daoOperations.deleteSnapshot(sourceSnapshot.getId());
-    assertThrows(NotFoundException.class, () -> snapshotRequestDao.getById(response.id()));
+    assertThrows(NotFoundException.class, () -> snapshotRequestDao.getById(responseId));
   }
 
   @Test

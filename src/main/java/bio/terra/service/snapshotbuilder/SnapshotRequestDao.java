@@ -9,8 +9,6 @@ import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -44,22 +42,20 @@ public class SnapshotRequestDao {
   private static final String NOT_FOUND_MESSAGE =
       "Snapshot Access Request with given id does not exist.";
 
-  private class SnapshotAccessRequestModelMapper implements RowMapper<SnapshotAccessRequestModel> {
-    public SnapshotAccessRequestModel mapRow(ResultSet rs, int rowNum) throws SQLException {
-      return new SnapshotAccessRequestModel(
-          rs.getObject(ID, UUID.class),
-          rs.getString(SNAPSHOT_NAME),
-          rs.getString(SNAPSHOT_RESEARCH_PURPOSE),
-          rs.getObject(SOURCE_SNAPSHOT_ID, UUID.class),
-          mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)),
-          rs.getString(CREATED_BY),
-          DaoUtils.getInstant(rs, CREATED_DATE),
-          DaoUtils.getInstant(rs, STATUS_UPDATED_DATE),
-          SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)),
-          rs.getObject(CREATED_SNAPSHOT_ID, UUID.class),
-          rs.getString(FLIGHT_ID));
-    }
-  }
+  private final RowMapper<SnapshotAccessRequestModel> modelMapper =
+      (rs, rowNum) ->
+          new SnapshotAccessRequestModel(
+              rs.getObject(ID, UUID.class),
+              rs.getString(SNAPSHOT_NAME),
+              rs.getString(SNAPSHOT_RESEARCH_PURPOSE),
+              rs.getObject(SOURCE_SNAPSHOT_ID, UUID.class),
+              mapRequestFromJson(rs.getString(SNAPSHOT_SPECIFICATION)),
+              rs.getString(CREATED_BY),
+              DaoUtils.getInstant(rs, CREATED_DATE),
+              DaoUtils.getInstant(rs, STATUS_UPDATED_DATE),
+              SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)),
+              rs.getObject(CREATED_SNAPSHOT_ID, UUID.class),
+              rs.getString(FLIGHT_ID));
 
   public SnapshotRequestDao(
       NamedParameterJdbcTemplate jdbcTemplate,
@@ -87,7 +83,7 @@ public class SnapshotRequestDao {
     String sql = "SELECT * FROM snapshot_request WHERE id = :id";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue(ID, requestId);
     try {
-      return jdbcTemplate.queryForObject(sql, params, new SnapshotAccessRequestModelMapper());
+      return jdbcTemplate.queryForObject(sql, params, modelMapper);
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot access requests found for given id", ex);
     }
@@ -112,7 +108,7 @@ public class SnapshotRequestDao {
             .addValue(AUTHORIZED_RESOURCES, authorizedResources)
             .addValue(STATUS, SnapshotAccessRequestStatus.DELETED.toString());
     try {
-      return jdbcTemplate.query(sql, params, new SnapshotAccessRequestModelMapper());
+      return jdbcTemplate.query(sql, params, modelMapper);
     } catch (EmptyResultDataAccessException ex) {
       return List.of();
     }
@@ -127,7 +123,7 @@ public class SnapshotRequestDao {
             .addValue(SOURCE_SNAPSHOT_ID, snapshotId)
             .addValue(STATUS, SnapshotAccessRequestStatus.DELETED.toString());
     try {
-      return jdbcTemplate.query(sql, params, new SnapshotAccessRequestModelMapper());
+      return jdbcTemplate.query(sql, params, modelMapper);
     } catch (EmptyResultDataAccessException ex) {
       return List.of();
     }

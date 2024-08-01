@@ -19,10 +19,11 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag(Unit.TAG)
-public class SnapshotAccessRequestModelTest {
-  private final String EXPECTED_LIST_SUMMARY_STRING = "The following concepts from Race: 0, 1, 2";
-  private final String EXPECTED_RANGE_SUMMARY_STRING = "Year of birth between 1960 and 1980";
-  private final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept Id: 401";
+class SnapshotAccessRequestModelTest {
+  private static final String EXPECTED_LIST_SUMMARY_STRING =
+      "The following concepts from Race: 0, 1, 2";
+  private static final String EXPECTED_RANGE_SUMMARY_STRING = "Year of birth between 1960 and 1980";
+  private static final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept Id: 401";
 
   @Test
   void toApiResponse() {

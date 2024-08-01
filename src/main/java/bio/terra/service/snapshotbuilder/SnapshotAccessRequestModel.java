@@ -79,7 +79,7 @@ public record SnapshotAccessRequestModel(
   static String generateSummaryForCriteriaGroup(
       SnapshotBuilderCriteriaGroup criteriaGroup, SnapshotBuilderSettings settings) {
     return String.format(
-        "Must %s %s:\n%s",
+        "Must %s %s:%n%s",
         criteriaGroup.isMustMeet() ? "meet" : "not meet",
         criteriaGroup.isMeetAll() ? "all of" : "any of",
         criteriaGroup.getCriteria().stream()
@@ -100,7 +100,7 @@ public record SnapshotAccessRequestModel(
   static String generateSummaryForCohort(
       SnapshotBuilderCohort cohort, SnapshotBuilderSettings settings) {
     return String.format(
-        "Name: %s\nGroups:\n%s",
+        "Name: %s%nGroups:%n%s",
         cohort.getName(),
         cohort.getCriteriaGroups().stream()
             .map(criteriaGroup -> generateSummaryForCriteriaGroup(criteriaGroup, settings))
@@ -111,7 +111,7 @@ public record SnapshotAccessRequestModel(
   String generateSummaryFromSnapshotSpecification(SnapshotBuilderSettings settings) {
     return snapshotSpecification != null
         ? String.format(
-            "Participants included:\n%s\nTables included:%s\n",
+            "Participants included:%n%s%nTables included:%s%n",
             snapshotSpecification.getCohorts().stream()
                 .map(cohort -> generateSummaryForCohort(cohort, settings))
                 .collect(Collectors.joining("\n")),

@@ -69,15 +69,12 @@ class SnapshotRequestDaoTest {
   private void verifyResponseContents(SnapshotAccessRequestModel response) {
     SnapshotAccessRequestModel expected =
         SnapshotBuilderTestData.createSnapshotAccessRequestModel(sourceSnapshot.getId());
-    expected.sourceSnapshotId(sourceSnapshot.getId());
 
-    expected.createdBy(EMAIL);
-    expected.status(SnapshotAccessRequestStatus.SUBMITTED);
     assertThat(
         "Given response is the same as expected.",
         response,
         samePropertyValuesAs(
-            expected, "id", "createdDate", "datasetId", "flightid", "createdSnapshotId"));
+            expected, "id", "createdDate", "flightid", "createdSnapshotId"));
     assertNotNull(response.id(), "Snapshot Access Request Response should have an id");
     assertNotNull(
         response.createdDate(),

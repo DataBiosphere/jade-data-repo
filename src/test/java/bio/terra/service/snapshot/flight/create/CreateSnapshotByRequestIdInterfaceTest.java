@@ -45,7 +45,6 @@ class CreateSnapshotByRequestIdInterfaceTest {
 
   @Test
   void prepareAndCreateSnapshot() throws InterruptedException {
-    UUID snapshotAccessRequestId = UUID.randomUUID();
     UUID sourceSnapshotId = UUID.randomUUID();
     UUID datasetProfileId = UUID.randomUUID();
     UUID datasetId = UUID.randomUUID();
@@ -63,7 +62,7 @@ class CreateSnapshotByRequestIdInterfaceTest {
 
     SnapshotAccessRequestModel accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestModel(sourceSnapshotId);
-    accessRequestResponse.id(snapshotAccessRequestId);
+    UUID snapshotAccessRequestId = accessRequestResponse.id();
 
     SnapshotRequestModel requestModel =
         SnapshotBuilderTestData.createSnapshotRequestByRequestId(snapshotAccessRequestId);

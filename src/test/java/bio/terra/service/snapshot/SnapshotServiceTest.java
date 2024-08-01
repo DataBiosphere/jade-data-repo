@@ -1544,12 +1544,10 @@ class SnapshotServiceTest {
 
   @Test
   void pullTables() {
-    UUID snapshotAccessRequestId = UUID.randomUUID();
     UUID sourceSnapshotId = UUID.randomUUID();
 
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestModel(sourceSnapshotId);
-    accessRequestResponse.id(snapshotAccessRequestId);
     var firstTable =
         service.pullTables(accessRequestResponse, SnapshotBuilderTestData.SETTINGS).get(0);
     assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
@@ -1566,15 +1564,12 @@ class SnapshotServiceTest {
 
   @Test
   void buildAssetFromSnapshotAccessRequest() {
-    UUID snapshotAccessRequestId = UUID.randomUUID();
-
     Dataset sourceDataset = SnapshotBuilderTestData.DATASET;
     sourceDataset.name("dataset_name");
     sourceDataset.id(datasetId);
     sourceDataset.defaultProfileId(profileId);
     var accessRequestResponse =
         SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
-    accessRequestResponse.id(snapshotAccessRequestId);
     when(settingsDao.getBySnapshotId(snapshotId)).thenReturn(SnapshotBuilderTestData.SETTINGS);
 
     var actualAssetSpec =

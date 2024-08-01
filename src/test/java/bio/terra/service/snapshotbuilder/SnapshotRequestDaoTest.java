@@ -73,8 +73,7 @@ class SnapshotRequestDaoTest {
     assertThat(
         "Given response is the same as expected.",
         response,
-        samePropertyValuesAs(
-            expected, "id", "createdDate", "flightid", "createdSnapshotId"));
+        samePropertyValuesAs(expected, "id", "createdDate", "flightid", "createdSnapshotId"));
     assertNotNull(response.id(), "Snapshot Access Request Response should have an id");
     assertNotNull(
         response.createdDate(),

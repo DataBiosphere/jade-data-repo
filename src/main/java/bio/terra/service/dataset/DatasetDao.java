@@ -483,6 +483,11 @@ public class DatasetDao implements TaggableResourceDao {
     return rowsAffected > 0;
   }
 
+  public Dataset retrieve(UUID id, boolean retrieveRelationship, boolean retrieveAsset) {
+    DatasetSummary summary = retrieveSummaryById(id);
+    return retrieveWorker(summary, retrieveRelationship, retrieveAsset);
+  }
+
   public Dataset retrieve(UUID id) {
     DatasetSummary summary = retrieveSummaryById(id);
     return retrieveWorker(summary);
@@ -494,14 +499,23 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   private Dataset retrieveWorker(DatasetSummary summary) {
+    return retrieveWorker(summary, true, true);
+  }
+
+  private Dataset retrieveWorker(
+      DatasetSummary summary, boolean retrieveRelationship, boolean retrieveAsset) {
     Dataset dataset = null;
     try {
       if (summary != null) {
         summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId()));
         dataset = new Dataset(summary);
         dataset.tables(tableDao.retrieveTables(dataset.getId()));
-        relationshipDao.retrieve(dataset);
-        assetDao.retrieve(dataset);
+        if (retrieveRelationship) {
+          relationshipDao.retrieve(dataset);
+        }
+        if (retrieveAsset) {
+          assetDao.retrieve(dataset);
+        }
         // Retrieve the project and application deployment resource associated with the dataset
         // This is a bit sketchy filling in the object via a dao in another package.
         // It seemed like the cleanest thing to me at the time.

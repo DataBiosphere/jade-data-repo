@@ -183,6 +183,17 @@ public class DatasetService {
   }
 
   /**
+   * Fetch existing Dataset object populated only as necessary to facilitate data ingestion (i.e.
+   * without relationships or assets which are constructed via costly database calls).
+   *
+   * @param id in UUID format
+   * @return a Dataset object
+   */
+  public Dataset retrieveForIngest(UUID id) {
+    return datasetDao.retrieve(id, false, false);
+  }
+
+  /**
    * Fetch existing Dataset object using the name.
    *
    * @param name

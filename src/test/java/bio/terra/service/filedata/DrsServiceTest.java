@@ -176,7 +176,8 @@ class DrsServiceTest {
                 ecmConfiguration,
                 drsDao,
                 drsMetricsService,
-                new SimpleAsyncTaskExecutor()));
+                new SimpleAsyncTaskExecutor(),
+                Map.of()));
     when(jobService.getActivePodCount()).thenReturn(1);
     when(drsConfiguration.maxDrsLookups()).thenReturn(1);
 

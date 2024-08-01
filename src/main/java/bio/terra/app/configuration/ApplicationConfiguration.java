@@ -2,6 +2,7 @@ package bio.terra.app.configuration;
 
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -11,8 +12,11 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -443,5 +447,30 @@ public class ApplicationConfiguration {
         factory.addConnectorCustomizers(
             connector ->
                 connector.setEncodedSolidusHandling(EncodedSolidusHandling.DECODE.getValue()));
+  }
+
+  @Bean("azureIPs")
+  public Map<Integer, List<String>> azureIPs() throws IOException {
+    URL url =
+        new URL(
+            "https://download.microsoft.com/download/7/1/D/71D86715-5596-4529-9B13-DA13A5DE5B63/ServiceTags_Public_20240708.json");
+    ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode data = objectMapper.readTree(url);
+    JsonNode values = data.get("values");
+    // Map {Region ID: List of IP addresses}
+    HashMap<Integer, List<String>> azureIPs = new HashMap<>();
+
+    for (JsonNode v : values) {
+      JsonNode properties = v.get("properties");
+      Integer regionId = properties.get("regionId").asInt();
+      ArrayList<String> addressPrefixes =
+          objectMapper.convertValue(properties.get("addressPrefixes"), ArrayList.class);
+      if (!azureIPs.containsKey(regionId)) {
+        azureIPs.put(regionId, addressPrefixes);
+      } else {
+        azureIPs.get(regionId).addAll(addressPrefixes);
+      }
+    }
+    return azureIPs;
   }
 }

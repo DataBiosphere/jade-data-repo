@@ -72,7 +72,7 @@ class SnapshotAccessRequestModelTest {
             criteriaGroup, SnapshotBuilderTestData.SETTINGS),
         equalToCompressingWhiteSpace(
             String.format(
-                "Must meet all of:\n%s\n%s\n%s",
+                "Must meet all of:%n%s%n%s%n%s",
                 EXPECTED_RANGE_SUMMARY_STRING,
                 EXPECTED_LIST_SUMMARY_STRING,
                 EXPECTED_DOMAIN_SUMMARY_STRING)));
@@ -94,7 +94,7 @@ class SnapshotAccessRequestModelTest {
             cohort, SnapshotBuilderTestData.SETTINGS),
         equalToCompressingWhiteSpace(
             String.format(
-                "Name: %s\nGroups:\n%s\n%s",
+                "Name: %s%nGroups:%n%s%n%s",
                 cohortName, expectedCriteriaGroupString, expectedCriteriaGroupString)));
   }
 

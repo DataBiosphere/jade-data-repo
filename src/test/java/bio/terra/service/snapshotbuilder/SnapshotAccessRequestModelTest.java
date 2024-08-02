@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
@@ -37,7 +38,7 @@ class SnapshotAccessRequestModelTest {
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCriteria(
             listCriteria, SnapshotBuilderTestData.SETTINGS),
-        is(EXPECTED_LIST_SUMMARY_STRING));
+        equalToCompressingWhiteSpace(EXPECTED_LIST_SUMMARY_STRING));
   }
 
   @Test
@@ -46,7 +47,7 @@ class SnapshotAccessRequestModelTest {
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCriteria(
             rangeCriteria, SnapshotBuilderTestData.SETTINGS),
-        is(EXPECTED_RANGE_SUMMARY_STRING));
+        equalToCompressingWhiteSpace(EXPECTED_RANGE_SUMMARY_STRING));
   }
 
   @Test
@@ -55,7 +56,7 @@ class SnapshotAccessRequestModelTest {
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCriteria(
             domainCriteria, SnapshotBuilderTestData.SETTINGS),
-        is(EXPECTED_DOMAIN_SUMMARY_STRING));
+        equalToCompressingWhiteSpace(EXPECTED_DOMAIN_SUMMARY_STRING));
   }
 
   @Test
@@ -69,7 +70,7 @@ class SnapshotAccessRequestModelTest {
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCriteriaGroup(
             criteriaGroup, SnapshotBuilderTestData.SETTINGS),
-        is(
+        equalToCompressingWhiteSpace(
             String.format(
                 "Must meet all of:\n%s\n%s\n%s",
                 EXPECTED_RANGE_SUMMARY_STRING,
@@ -91,7 +92,7 @@ class SnapshotAccessRequestModelTest {
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCohort(
             cohort, SnapshotBuilderTestData.SETTINGS),
-        is(
+        equalToCompressingWhiteSpace(
             String.format(
                 "Name: %s\nGroups:\n%s\n%s",
                 cohortName, expectedCriteriaGroupString, expectedCriteriaGroupString)));
@@ -157,6 +158,6 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.status(), is(response.getStatus()));
     assertThat(model.flightid(), is(response.getFlightid()));
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
-    assertThat(response.getSummary(), is(expectedSummaryString));
+    assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
   }
 }

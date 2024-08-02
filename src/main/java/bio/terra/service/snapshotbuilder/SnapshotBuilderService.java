@@ -220,9 +220,7 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotAccessRequestResponse getRequest(UUID id) {
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return model.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()));
+    return convertModelToApiResponse(snapshotRequestDao.getById(id));
   }
 
   public void deleteRequest(AuthenticatedUserRequest user, UUID id) {
@@ -394,13 +392,17 @@ public class SnapshotBuilderService {
   public SnapshotAccessRequestResponse rejectRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return model.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()));
+    return convertModelToApiResponse(model);
   }
 
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    return convertModelToApiResponse(model);
+  }
+
+  private SnapshotAccessRequestResponse convertModelToApiResponse(
+      SnapshotAccessRequestModel model) {
     return model.toApiResponse(
         snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()));
   }

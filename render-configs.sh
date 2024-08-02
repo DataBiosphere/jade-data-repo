@@ -125,7 +125,7 @@ if $USE_VAULT; then
   vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
     | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
 else
-  gcloud secrets versions access latest --project $BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT --secret BUFFER_CLIENT_GSM_SECRET \
+  gcloud secrets versions access latest --project $BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT --secret $BUFFER_CLIENT_GSM_SECRET \
     | jq -r '.key' | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
 fi
 

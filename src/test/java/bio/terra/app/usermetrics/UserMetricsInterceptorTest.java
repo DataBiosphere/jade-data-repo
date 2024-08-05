@@ -15,6 +15,7 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.model.CloudPlatform;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -69,6 +70,7 @@ class UserMetricsInterceptorTest {
 
   @BeforeEach
   void setUp() {
+    eventProperties.reset();
     when(metricsConfig.ignorePaths()).thenReturn(List.of());
     when(metricsConfig.appId()).thenReturn(APP_ID);
     when(metricsConfig.bardBasePath()).thenReturn(BARD_BASE_PATH);
@@ -126,10 +128,19 @@ class UserMetricsInterceptorTest {
 
   @Test
   void testSendEventWithAdditionalProperties() throws Exception {
+    UUID datasetId = UUID.randomUUID();
+    String datasetName = "datasetName";
+    UUID snapshotId = UUID.randomUUID();
     String snapshotName = "snapshotName";
     String billingProfileId = UUID.randomUUID().toString();
-    eventProperties.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId);
+    CloudPlatform cloudPlatform = CloudPlatform.GCP;
+
+    eventProperties.set(BardEventProperties.DATASET_ID_FIELD_NAME, datasetId);
+    eventProperties.set(BardEventProperties.DATASET_NAME_FIELD_NAME, datasetName);
+    eventProperties.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, snapshotId);
     eventProperties.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName);
+    eventProperties.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId);
+    eventProperties.set(BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cloudPlatform);
 
     mockRequestAuth(request);
 
@@ -144,8 +155,12 @@ class UserMetricsInterceptorTest {
                     Map.of(
                         BardEventProperties.METHOD_FIELD_NAME, METHOD.toUpperCase(),
                         BardEventProperties.PATH_FIELD_NAME, REQUEST_URI,
+                        BardEventProperties.DATASET_ID_FIELD_NAME, datasetId,
+                        BardEventProperties.DATASET_NAME_FIELD_NAME, datasetName,
+                        BardEventProperties.SNAPSHOT_ID_FIELD_NAME, snapshotId,
+                        BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName,
                         BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId,
-                        BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName),
+                        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cloudPlatform),
                     APP_ID,
                     DNS_NAME)));
 

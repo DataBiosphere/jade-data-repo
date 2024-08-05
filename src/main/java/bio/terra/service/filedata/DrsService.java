@@ -491,10 +491,16 @@ public class DrsService {
 
     BillingProfileModel billingProfileModel = cachedSnapshot.datasetBillingProfileModel;
 
+    loggingMetrics.set(BardEventProperties.DATASET_ID_FIELD_NAME, cachedSnapshot.getDatasetId());
+    loggingMetrics.set(
+        BardEventProperties.DATASET_NAME_FIELD_NAME, cachedSnapshot.getDatasetName());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, snapshotId);
     loggingMetrics.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, cachedSnapshot.getName());
     loggingMetrics.set(
         BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME,
         cachedSnapshot.getSnapshotBillingProfileId());
+    loggingMetrics.set(
+        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cachedSnapshot.getCloudPlatform());
 
     assertAccessMethodMatchingAccessId(accessId, drsObject);
 
@@ -1002,6 +1008,8 @@ public class DrsService {
     private final CloudPlatform cloudPlatform;
     private final String googleProjectId;
     private final String datasetProjectId;
+    private final UUID datasetId;
+    private final String datasetName;
     private final boolean globalFileIds;
 
     public SnapshotCacheResult(Snapshot snapshot) {
@@ -1025,6 +1033,8 @@ public class DrsService {
       } else {
         this.datasetProjectId = null;
       }
+      this.datasetId = snapshot.getSourceDataset().getId();
+      this.datasetName = snapshot.getSourceDataset().getName();
     }
 
     public UUID getId() {
@@ -1035,8 +1045,20 @@ public class DrsService {
       return this.name;
     }
 
+    public UUID getDatasetId() {
+      return this.datasetId;
+    }
+
+    public String getDatasetName() {
+      return this.datasetName;
+    }
+
     public UUID getSnapshotBillingProfileId() {
       return snapshotBillingProfileId;
+    }
+
+    public CloudPlatform getCloudPlatform() {
+      return this.cloudPlatform;
     }
   }
 }

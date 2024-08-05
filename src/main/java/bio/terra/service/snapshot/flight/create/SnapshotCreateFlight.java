@@ -430,11 +430,15 @@ public class SnapshotCreateFlight extends Flight {
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
 
-    // at end of flight, add created snapshot id to the snapshot request
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      UUID snapshotRequestId = contents.getRequestIdSpec().getSnapshotRequestId();
+      // Add created snapshot id to the snapshot request.
       addStep(
           new AddCreatedSnapshotIdToSnapshotRequestStep(
-              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId(), snapshotId));
+              snapshotRequestDao, snapshotRequestId, snapshotId));
+      // Notify user that snapshot is ready to use.
+      addStep(
+          new NotifyUserOfSnapshotCreationStep(snapshotBuilderService, userReq, snapshotRequestId));
     }
   }
 }

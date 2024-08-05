@@ -4,7 +4,6 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -37,6 +36,7 @@ import bio.terra.service.snapshotbuilder.utils.constants.ConditionOccurrence;
 import bio.terra.service.snapshotbuilder.utils.constants.DrugExposure;
 import bio.terra.service.snapshotbuilder.utils.constants.Observation;
 import bio.terra.service.snapshotbuilder.utils.constants.ProcedureOccurrence;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -386,7 +386,7 @@ public class SnapshotBuilderTestData {
                 .mustMeet(true)
                 .addCriteriaItem(
                     new SnapshotBuilderProgramDataListCriteria()
-                        .id(0)
+                        .id(RACE_PROGRAM_DATA_ID)
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
@@ -397,7 +397,7 @@ public class SnapshotBuilderTestData {
                     new SnapshotBuilderProgramDataRangeCriteria()
                         .low(1950)
                         .high(2000)
-                        .id(1)
+                        .id(YEAR_OF_BIRTH_PROGRAM_DATA_ID)
                         .kind(SnapshotBuilderCriteria.KindEnum.RANGE)));
   }
 
@@ -416,17 +416,20 @@ public class SnapshotBuilderTestData {
         .snapshotBuilderRequest(createSnapshotBuilderRequest());
   }
 
-  public static SnapshotAccessRequestResponse createSnapshotAccessRequestResponse(UUID snapshotId) {
+  public static SnapshotAccessRequestModel createSnapshotAccessRequestModel(UUID snapshotId) {
     SnapshotAccessRequest request = createSnapshotAccessRequest(snapshotId);
-    return new SnapshotAccessRequestResponse()
-        .id(UUID.randomUUID())
-        .sourceSnapshotId(request.getSourceSnapshotId())
-        .snapshotName(request.getName())
-        .snapshotResearchPurpose(request.getResearchPurposeStatement())
-        .snapshotSpecification(request.getSnapshotBuilderRequest())
-        .createdDate("date")
-        .createdBy("user@gmail.com")
-        .status(SnapshotAccessRequestStatus.SUBMITTED);
+    return new SnapshotAccessRequestModel(
+        UUID.randomUUID(),
+        request.getName(),
+        request.getResearchPurposeStatement(),
+        request.getSourceSnapshotId(),
+        request.getSnapshotBuilderRequest(),
+        "user@gmail.com",
+        Instant.now(),
+        null,
+        SnapshotAccessRequestStatus.SUBMITTED,
+        null,
+        null);
   }
 
   public static SnapshotRequestModel createSnapshotRequestByRequestId(

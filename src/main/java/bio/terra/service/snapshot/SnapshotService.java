@@ -33,7 +33,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderDatasetConceptSet;
 import bio.terra.model.SnapshotBuilderOutputTable;
@@ -95,6 +94,7 @@ import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.snapshot.flight.lock.SnapshotLockFlight;
 import bio.terra.service.snapshot.flight.unlock.SnapshotUnlockFlight;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
@@ -177,16 +177,16 @@ public class SnapshotService {
   public String getSnapshotName(SnapshotRequestModel model) {
     SnapshotRequestContentsModel contentsModel = model.getContents().get(0);
     if (contentsModel.getMode() == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      SnapshotAccessRequestResponse snapshotAccessRequestResponse =
+      SnapshotAccessRequestModel snapshotAccessRequestResponse =
           snapshotRequestDao.getById(contentsModel.getRequestIdSpec().getSnapshotRequestId());
       String dashesAndSpacesRegex = "[- ]+";
       String nonAlphaNumericRegex = "\\W";
 
       // Handle null as empty string.
       String snapshotAccessRequestName =
-          Optional.ofNullable(snapshotAccessRequestResponse.getSnapshotName()).orElse("");
+          Optional.ofNullable(snapshotAccessRequestResponse.snapshotName()).orElse("");
 
-      String cleanedId = snapshotAccessRequestResponse.getId().toString().replace('-', '_');
+      String cleanedId = snapshotAccessRequestResponse.id().toString().replace('-', '_');
       String cleanedName =
           StringUtils.truncate(
               StringUtils.strip(
@@ -261,25 +261,24 @@ public class SnapshotService {
     if (snapshotRequestContents.getMode() != SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       return;
     }
-    SnapshotAccessRequestResponse snapshotAccessRequest =
+    SnapshotAccessRequestModel snapshotAccessRequest =
         snapshotRequestDao.getById(
             snapshotRequestContents.getRequestIdSpec().getSnapshotRequestId());
-    if (snapshotAccessRequest.getStatus() != SnapshotAccessRequestStatus.APPROVED) {
+    if (snapshotAccessRequest.status() != SnapshotAccessRequestStatus.APPROVED) {
       throw new ValidationException(
           "Snapshot request must be approved before creating a snapshot.");
     }
-    if (snapshotAccessRequest.getCreatedSnapshotId() != null) {
+    if (snapshotAccessRequest.createdSnapshotId() != null) {
       throw new ValidationException(
           "Snapshot with id %s is already created from request with id %s"
-              .formatted(
-                  snapshotAccessRequest.getCreatedSnapshotId(), snapshotAccessRequest.getId()));
+              .formatted(snapshotAccessRequest.createdSnapshotId(), snapshotAccessRequest.id()));
     }
-    String flightId = snapshotAccessRequest.getFlightid();
+    String flightId = snapshotAccessRequest.flightid();
     if (flightId != null && jobService.unauthRetrieveJobState(flightId) != FlightStatus.ERROR) {
       throw new ValidationException(
           "Snapshot Create Flight with id %s is still running".formatted(flightId));
     }
-    var requesterEmail = snapshotAccessRequest.getCreatedBy();
+    var requesterEmail = snapshotAccessRequest.createdBy();
     if (requesterEmail == null || !ValidationUtils.isValidEmail(requesterEmail)) {
       throw new ValidationException(
           "The createdBy email supplied on the access request is not valid.");
@@ -665,7 +664,7 @@ public class SnapshotService {
       }
       case BYREQUESTID -> {
         UUID accessRequestId = requestContents.getRequestIdSpec().getSnapshotRequestId();
-        SnapshotAccessRequestResponse accessRequest = getSnapshotAccessRequestById(accessRequestId);
+        SnapshotAccessRequestModel accessRequest = getSnapshotAccessRequestById(accessRequestId);
 
         AssetSpecification queryAssetSpecification =
             buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequest);
@@ -691,14 +690,14 @@ public class SnapshotService {
         .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
-  public SnapshotAccessRequestResponse getSnapshotAccessRequestById(UUID accessRequestId) {
+  public SnapshotAccessRequestModel getSnapshotAccessRequestById(UUID accessRequestId) {
     return snapshotRequestDao.getById(accessRequestId);
   }
 
   public AssetSpecification buildAssetFromSnapshotAccessRequest(
-      Dataset dataset, SnapshotAccessRequestResponse snapshotAccessRequest) {
+      Dataset dataset, SnapshotAccessRequestModel snapshotAccessRequest) {
     SnapshotBuilderSettings settings =
-        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.getSourceSnapshotId());
+        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequest.sourceSnapshotId());
     // build asset model from snapshot request
     SnapshotBuilderRootTable rootTable = settings.getRootTable();
     AssetModel assetModel =
@@ -743,9 +742,9 @@ public class SnapshotService {
 
   @VisibleForTesting
   List<SnapshotBuilderTable> pullTables(
-      SnapshotAccessRequestResponse snapshotAccessRequest, SnapshotBuilderSettings settings) {
+      SnapshotAccessRequestModel snapshotAccessRequest, SnapshotBuilderSettings settings) {
     List<String> includedTableNames =
-        snapshotAccessRequest.getSnapshotSpecification().getOutputTables().stream()
+        snapshotAccessRequest.snapshotSpecification().getOutputTables().stream()
             .map(SnapshotBuilderOutputTable::getName)
             .toList();
 
@@ -778,7 +777,7 @@ public class SnapshotService {
         ? retrieve(
                 snapshotRequestDao
                     .getById(contents.getRequestIdSpec().getSnapshotRequestId())
-                    .getSourceSnapshotId())
+                    .sourceSnapshotId())
             .getSourceDataset()
         : datasetService.retrieveByName(contents.getDatasetName());
   }

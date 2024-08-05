@@ -9,13 +9,13 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
@@ -45,7 +45,6 @@ class CreateSnapshotByRequestIdInterfaceTest {
 
   @Test
   void prepareAndCreateSnapshot() throws InterruptedException {
-    UUID snapshotAccessRequestId = UUID.randomUUID();
     UUID sourceSnapshotId = UUID.randomUUID();
     UUID datasetProfileId = UUID.randomUUID();
     UUID datasetId = UUID.randomUUID();
@@ -61,9 +60,9 @@ class CreateSnapshotByRequestIdInterfaceTest {
     Snapshot sourceSnapshot = new Snapshot();
     sourceSnapshot.snapshotSources(List.of(new SnapshotSource().dataset(sourceDataset)));
 
-    SnapshotAccessRequestResponse accessRequestResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(sourceSnapshotId);
-    accessRequestResponse.id(snapshotAccessRequestId);
+    SnapshotAccessRequestModel accessRequestResponse =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(sourceSnapshotId);
+    UUID snapshotAccessRequestId = accessRequestResponse.id();
 
     SnapshotRequestModel requestModel =
         SnapshotBuilderTestData.createSnapshotRequestByRequestId(snapshotAccessRequestId);

@@ -7515,6 +7515,8 @@ components:
           $ref: '#/components/schemas/ShortIdProperty'
         createdSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
+        summary:
+          type: string
 
 
     SnapshotAccessRequestStatus:

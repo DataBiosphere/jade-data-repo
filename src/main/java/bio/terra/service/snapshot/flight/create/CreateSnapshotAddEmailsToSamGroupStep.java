@@ -47,7 +47,7 @@ public class CreateSnapshotAddEmailsToSamGroupStep extends DefaultUndoStep {
     String groupName =
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
     List<String> emailsToAddToGroup =
-        List.of(snapshotRequestDao.getById(snapshotRequestId).getCreatedBy());
+        List.of(snapshotRequestDao.getById(snapshotRequestId).createdBy());
     iamService.overwriteGroupPolicyEmailsIncludeRequestingUser(
         userRequest, groupName, IamRole.MEMBER.toString(), emailsToAddToGroup);
     return StepResult.getStepResultSuccess();

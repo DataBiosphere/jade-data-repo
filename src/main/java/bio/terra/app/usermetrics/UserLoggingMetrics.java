@@ -1,7 +1,6 @@
 package bio.terra.app.usermetrics;
 
 import java.util.HashMap;
-import org.apache.arrow.util.VisibleForTesting;
 import org.springframework.stereotype.Component;
 
 /**
@@ -45,10 +44,5 @@ public class UserLoggingMetrics {
     HashMap<String, Object> properties = metrics.get();
     properties.putAll(value);
     metrics.set(properties);
-  }
-
-  @VisibleForTesting
-  public void reset() {
-    metrics.get().clear();
   }
 }

@@ -70,7 +70,7 @@ class UserMetricsInterceptorTest {
 
   @BeforeEach
   void setUp() {
-    eventProperties.reset();
+    eventProperties.get().clear();
     when(metricsConfig.ignorePaths()).thenReturn(List.of());
     when(metricsConfig.appId()).thenReturn(APP_ID);
     when(metricsConfig.bardBasePath()).thenReturn(BARD_BASE_PATH);

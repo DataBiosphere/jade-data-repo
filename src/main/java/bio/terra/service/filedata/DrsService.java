@@ -491,16 +491,7 @@ public class DrsService {
 
     BillingProfileModel billingProfileModel = cachedSnapshot.datasetBillingProfileModel;
 
-    loggingMetrics.set(BardEventProperties.DATASET_ID_FIELD_NAME, cachedSnapshot.getDatasetId());
-    loggingMetrics.set(
-        BardEventProperties.DATASET_NAME_FIELD_NAME, cachedSnapshot.getDatasetName());
-    loggingMetrics.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, snapshotId);
-    loggingMetrics.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, cachedSnapshot.getName());
-    loggingMetrics.set(
-        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME,
-        cachedSnapshot.getSnapshotBillingProfileId());
-    loggingMetrics.set(
-        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cachedSnapshot.getCloudPlatform());
+    logAdditionalProperties(cachedSnapshot);
 
     assertAccessMethodMatchingAccessId(accessId, drsObject);
 
@@ -524,6 +515,24 @@ public class DrsService {
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
+  }
+
+  /**
+   * Include additional properties in the event log sent to Bard
+   *
+   * @param cachedSnapshot
+   */
+  private void logAdditionalProperties(SnapshotCacheResult cachedSnapshot) {
+    loggingMetrics.set(BardEventProperties.DATASET_ID_FIELD_NAME, cachedSnapshot.getDatasetId());
+    loggingMetrics.set(
+        BardEventProperties.DATASET_NAME_FIELD_NAME, cachedSnapshot.getDatasetName());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, cachedSnapshot.getId());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, cachedSnapshot.getName());
+    loggingMetrics.set(
+        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME,
+        cachedSnapshot.getSnapshotBillingProfileId());
+    loggingMetrics.set(
+        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cachedSnapshot.getCloudPlatform());
   }
 
   @VisibleForTesting

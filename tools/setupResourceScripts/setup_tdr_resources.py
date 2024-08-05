@@ -161,15 +161,32 @@ def add_billing_profile_members(clients, profile_id):
     )
 
 
-def dataset_ingest_json(clients, dataset_id, dataset_to_upload):
+def create_ingest_request_csv(table, upload_prefix):
+    return {
+        "csv_skip_leading_rows": 1,  # change to 0 if there is not a header row
+        "format": "csv",
+        "path": f"{upload_prefix}/{table}.csv",
+        "table": table
+    }
+
+
+def create_ingest_request_json(table, upload_prefix):
+    return {
+        "format": "json",
+        "path": f"{upload_prefix}/{table}.json",
+        "table": table
+    }
+
+
+def dataset_ingest(clients, dataset_id, dataset_to_upload, format):
+    ingest_request = {}
     jobs = []
     for table in dataset_to_upload["tables"]:
         upload_prefix = dataset_to_upload["upload_prefix"]
-        ingest_request = {
-            "format": "json",
-            "path": f"{upload_prefix}/{table}.json",
-            "table": table,
-        }
+        if format == "json":
+            ingest_request = create_ingest_request_json(table, upload_prefix)
+        elif format == "csv":
+            ingest_request = create_ingest_request_csv(table, upload_prefix)
         print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
         jobs.append(
             clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request),
@@ -211,13 +228,14 @@ def create_dataset(clients, dataset_to_upload, profile_id):
         )
         print(f"Created dataset {dataset_name} with id: {dataset['id']}")
 
-    if dataset_to_upload["format"] == "json":
-        dataset_ingest_json(clients, dataset["id"], dataset_to_upload)
+    if dataset_to_upload["format"] == "json" or dataset_to_upload["format"] == "csv":
+        dataset_ingest(clients, dataset["id"], dataset_to_upload,
+                       dataset_to_upload["format"])
     elif dataset_to_upload["format"] == "array":
         dataset_ingest_array(clients, dataset["id"], dataset_to_upload)
     else:
         raise Exception(
-            "Must specify the ingest format. Right now we support json and array"
+            "Must specify the ingest format. Right now we support json, csv, and array"
         )
 
     add_dataset_policy_members(clients, dataset["id"], dataset_to_upload)

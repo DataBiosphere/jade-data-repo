@@ -125,6 +125,7 @@ public class LoadService {
       List<BulkLoadHistoryModel> backingList, int chunkSize) {
     return new LoadHistoryIterator(backingList, chunkSize);
   }
+
   /**
    * A convenience class wrapping the getting of load history table rows in an Iterator. The
    * Iterator's elements are a list of BulkLoadHistoryModel chunk of the full results retrieved from

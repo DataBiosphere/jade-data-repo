@@ -567,8 +567,9 @@ public class DataRepoFixtures {
           case DATASET -> "/api/repository/v1/datasets/";
           case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
           case SPEND_PROFILE -> "/api/resources/v1/profiles/";
-          default -> throw new IllegalArgumentException(
-              "Policy member addition undefined for IamResourceType " + iamResourceType);
+          default ->
+              throw new IllegalArgumentException(
+                  "Policy member addition undefined for IamResourceType " + iamResourceType);
         };
     String path = pathPrefix + resourceId + "/policies/" + role.toString() + "/members";
     return dataRepoClient.post(user, path, TestUtils.mapToJson(req), new TypeReference<>() {});
@@ -604,8 +605,9 @@ public class DataRepoFixtures {
         switch (iamResourceType) {
           case DATASET -> "/api/repository/v1/datasets/";
           case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
-          default -> throw new IllegalArgumentException(
-              "Role fetch undefined for IamResourceType " + iamResourceType);
+          default ->
+              throw new IllegalArgumentException(
+                  "Role fetch undefined for IamResourceType " + iamResourceType);
         };
     String path = pathPrefix + resourceId + "/roles";
 
@@ -628,8 +630,9 @@ public class DataRepoFixtures {
           case DATASET -> "/api/repository/v1/datasets/";
           case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
           case SPEND_PROFILE -> "/api/resources/v1/profiles/";
-          default -> throw new IllegalArgumentException(
-              "Policy fetch undefined for IamResourceType " + iamResourceType);
+          default ->
+              throw new IllegalArgumentException(
+                  "Policy fetch undefined for IamResourceType " + iamResourceType);
         };
     String path = pathPrefix + resourceId + "/policies";
 

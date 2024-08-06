@@ -565,11 +565,11 @@ public class DatasetDaoTest {
 
   protected void assertDatasetTable(Table table) {
     switch (table.getName()) {
-      case "participant" -> assertThat(
-          "participant table has 4 columns", table.getColumns(), hasSize(4));
+      case "participant" ->
+          assertThat("participant table has 4 columns", table.getColumns(), hasSize(4));
       case "sample" -> assertThat("sample table has 3 columns", table.getColumns(), hasSize(3));
-      case "123_leading_number" -> assertThat(
-          "123_leading_number table has 1 column", table.getColumns(), hasSize(1));
+      case "123_leading_number" ->
+          assertThat("123_leading_number table has 1 column", table.getColumns(), hasSize(1));
       default -> throw new RuntimeException("Unexpected table " + table.getName());
     }
   }

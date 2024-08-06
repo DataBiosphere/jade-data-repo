@@ -131,10 +131,11 @@ public class PolicyService {
   @VisibleForTesting
   static RuntimeException convertApiException(ApiException ex) {
     return switch (ex.getCode()) {
-      case HttpStatus.SC_UNAUTHORIZED -> new PolicyServiceAuthorizationException(
-          "Not authorized to access Terra Policy Service", ex.getCause());
-      case HttpStatus.SC_NOT_FOUND -> new PolicyServiceNotFoundException(
-          "Policy access object not found", ex);
+      case HttpStatus.SC_UNAUTHORIZED ->
+          new PolicyServiceAuthorizationException(
+              "Not authorized to access Terra Policy Service", ex.getCause());
+      case HttpStatus.SC_NOT_FOUND ->
+          new PolicyServiceNotFoundException("Policy access object not found", ex);
       case HttpStatus.SC_BAD_REQUEST -> {
         if (StringUtils.containsIgnoreCase(ex.getMessage(), "duplicate")) {
           // TODO - this special handling may be removed once
@@ -146,8 +147,8 @@ public class PolicyService {
           yield new PolicyServiceApiException(ex);
         }
       }
-      case HttpStatus.SC_CONFLICT -> new PolicyConflictException(
-          "Policy access object already exists", ex);
+      case HttpStatus.SC_CONFLICT ->
+          new PolicyConflictException("Policy access object already exists", ex);
       default -> new PolicyServiceApiException(ex);
     };
   }

@@ -102,6 +102,7 @@ public class BlobContainerCopierTest {
     blobIOTestUtilityGcs.teardown();
     blobIOTestUtilityGcsRp.teardown();
   }
+
   /*
   Many tests in this class should be parameterized tests. However, since we are using
   JUnit 4 the implementation would be convoluted. Instead, the execution pattern

@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+java {
+    sourceCompatibility = 8
+    targetCompatibility = 8
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    ext {
+        sparkSqlVersion = "3.3.4"
+    }
+
+    compileOnly "org.apache.spark:spark-sql_2.13:${sparkSqlVersion}"
+}
+

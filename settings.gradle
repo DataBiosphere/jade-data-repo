@@ -1,2 +1,4 @@
 rootProject.name = 'jade-data-repo'
 include 'datarepo-client'
+include 'datarepo-jakarta-client'
+include 'synapse-spark'

@@ -27,7 +27,7 @@ buildscript {
 plugins {
     id 'com.google.cloud.tools.jib' version '3.4.3'
     id 'org.liquibase.gradle' version '2.2.1'
-    id 'org.gradle.test-retry' version '1.5.8'
+    id 'org.gradle.test-retry' version '1.5.10'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
     id 'org.springframework.boot' version '3.3.2'

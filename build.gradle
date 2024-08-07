@@ -260,12 +260,12 @@ dependencies {
 
     liquibaseRuntime 'org.liquibase:liquibase-core'
     liquibaseRuntime 'org.postgresql:postgresql'
-    liquibaseRuntime 'info.picocli:picocli:4.7.5'
+    liquibaseRuntime 'info.picocli:picocli:4.7.6'
 
     testImplementation 'org.junit.vintage:junit-vintage-engine'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'io.zonky.test:embedded-database-spring-test:2.5.0'
-    testImplementation 'io.zonky.test:embedded-postgres:2.0.6'
+    testImplementation 'io.zonky.test:embedded-database-spring-test:2.5.1'
+    testImplementation 'io.zonky.test:embedded-postgres:2.0.7'
     implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:12.8.0')
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'

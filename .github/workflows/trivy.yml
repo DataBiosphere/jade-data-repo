@@ -33,7 +33,7 @@ jobs:
           # Enable pipefail so a gradle build failure fails this step.
           set -o pipefail
           # build sources and store the plain log without colors
-          ./gradlew jibDockerBuild --console=plain \
+          ./gradlew jibDockerBuild --stacktrace --scan --console=plain \
             | perl -pe 's/\x1b\[[0-9;]*[mG]//g' | tee build.log
 
           # export image name from the log

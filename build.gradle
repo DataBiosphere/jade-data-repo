@@ -21,6 +21,7 @@ buildscript {
     }
     dependencies {
         classpath('io.swagger.codegen.v3:swagger-codegen:3.0.52')
+        classpath ('org.liquibase:liquibase-core:4.26.0')
     }
 }
 
@@ -417,7 +418,7 @@ tasks.jib.dependsOn setupGeneratedDir
 liquibase {
     activities {
         datarepo {
-            changeLogFile project.ext.dbDatarepoChangesetFile
+            changelogFile project.ext.dbDatarepoChangesetFile
             url project.ext.dbDatarepoUri
             username project.ext.dbDatarepoUsername
             password project.ext.dbDatarepoPassword

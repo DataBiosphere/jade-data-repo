@@ -18,7 +18,7 @@ updates:
         patterns:
           - "*"
         exclude-patterns:
-          - "spotless-plugin-gradle" # likely to require reformatting of code
+          - "com.diffplug.spotless" # likely to require reformatting of code
         update-types:
           - "minor"
           - "patch"

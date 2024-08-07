@@ -7250,6 +7250,10 @@ components:
         - datasetConceptSets
         - rootTable
       properties:
+        name:
+          type: string
+        description:
+          type: string
         domainOptions:
           type: array
           items:

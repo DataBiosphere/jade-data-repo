@@ -195,7 +195,7 @@ dependencies {
     swaggerCodegen 'io.swagger.codegen.v3:swagger-codegen-cli'
 
     implementation 'org.springframework:spring-jdbc'
-    implementation 'org.antlr:ST4:4.3'                          // String templating
+    implementation 'org.antlr:ST4:4.3.4' // String templating
 
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api'
@@ -265,7 +265,7 @@ dependencies {
     testImplementation 'au.com.dius.pact.provider:junit5:4.3.19'
     testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
 
-    antlr 'org.antlr:antlr4:4.8'
+    antlr 'org.antlr:antlr4:4.13.2'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.

@@ -253,8 +253,8 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.3.19'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.3.19'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.6.12'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.12'
 
     antlr 'org.antlr:antlr4:4.13.2'
 

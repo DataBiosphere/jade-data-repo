@@ -21,12 +21,14 @@ buildscript {
     }
     dependencies {
         classpath('io.swagger.codegen.v3:swagger-codegen:3.0.52')
+        // Required for gradle liquibase plugin
+        classpath ('org.liquibase:liquibase-core:4.26.0')
     }
 }
 
 plugins {
     id 'com.google.cloud.tools.jib' version '3.2.0'
-    id 'org.liquibase.gradle' version '2.2.1'
+    id 'org.liquibase.gradle' version '3.0.0'
     id 'org.gradle.test-retry' version '1.5.8'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
@@ -417,7 +419,7 @@ tasks.jib.dependsOn setupGeneratedDir
 liquibase {
     activities {
         datarepo {
-            changeLogFile project.ext.dbDatarepoChangesetFile
+            changelogFile project.ext.dbDatarepoChangesetFile
             url project.ext.dbDatarepoUri
             username project.ext.dbDatarepoUsername
             password project.ext.dbDatarepoPassword

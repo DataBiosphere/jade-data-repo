@@ -168,6 +168,33 @@ class UserMetricsInterceptorTest {
   }
 
   @Test
+  void testSendEventWithTransactionIdHeader() throws Exception {
+    String transactionId = UUID.randomUUID().toString();
+    when(request.getHeader("x-transaction-id")).thenReturn(transactionId);
+    mockRequestAuth(request);
+
+    runAndWait();
+
+    verify(bardClient)
+        .logEvent(
+            authCaptor.capture(),
+            eq(
+                new BardEvent(
+                    UserMetricsInterceptor.API_EVENT_NAME,
+                    Map.of(
+                        BardEventProperties.METHOD_FIELD_NAME,
+                        METHOD.toUpperCase(),
+                        BardEventProperties.PATH_FIELD_NAME,
+                        REQUEST_URI,
+                        BardEventProperties.TRANSACTION_ID_FIELD_NAME,
+                        transactionId),
+                    APP_ID,
+                    DNS_NAME)));
+
+    assertThat("token is correct", authCaptor.getValue().getToken(), equalTo(TOKEN));
+  }
+
+  @Test
   void testSendEventNotFiredWithNoBardBasePath() throws Exception {
     when(metricsConfig.bardBasePath()).thenReturn(null);
 

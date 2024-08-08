@@ -12,4 +12,5 @@ public final class BardEventProperties {
   public static final String DATASET_ID_FIELD_NAME = "datasetId";
   public static final String DATASET_NAME_FIELD_NAME = "datasetName";
   public static final String CLOUD_PLATFORM_FIELD_NAME = "cloudPlatform";
+  public static final String TRANSACTION_ID_FIELD_NAME = "transactionId";
 }

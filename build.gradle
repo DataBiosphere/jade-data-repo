@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.56')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.60')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.29.1')
     }
@@ -61,7 +61,7 @@ allprojects {
         }
         dependencies {
             dependency 'io.swagger.core.v3:swagger-annotations:2.2.22'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.56'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.60'
         }
     }
 }
@@ -310,7 +310,9 @@ swaggerSources {
                 "-D", "interfaceOnly=true," +
                     "useTags=true," +
                     "dateLibrary=java8," +
-                    "jakarta=true"
+                    "jakarta=true," +
+                    // https://github.com/swagger-api/swagger-codegen-generators/issues/1295#issuecomment-2203238201
+                    "useNullableForNotNull=false"
             ]
         }
     }

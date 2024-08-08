@@ -41,3 +41,9 @@ updates:
       # (outside of semver major, minor, and patch designations) and will attempt to update
       # to the latest published version.
       - dependency-name: "io.kubernetes:client-java"
+      # Version 3.0.57 of the Swagger codegen plugin pulls in the newest version of the Java
+      # generator which adds @NotNull unless nullable is set to true in the Swagger spec, even if
+      # the field is not required.
+      # Issue: https://github.com/swagger-api/swagger-codegen-generators/issues/1295
+      - dependency-name: "io.swagger.codegen.v3:swagger-codegen*"
+        update-types: [ "3.0.x" ]

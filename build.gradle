@@ -252,6 +252,13 @@ dependencies {
         exclude group: 'com.sun.jersey', module: 'jersey-server'
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
     }
+    testImplementation('org.apache.hadoop:hadoop-mapreduce-client-core:3.4.0') {
+        exclude group: 'com.sun.jersey', module: 'jersey-core'
+        exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.sun.jersey', module: 'jersey-server'
+        exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+    }
 
     testImplementation 'au.com.dius.pact.provider:junit5:4.6.12'
     testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.12'

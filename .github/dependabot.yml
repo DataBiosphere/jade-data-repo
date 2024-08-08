@@ -46,4 +46,4 @@ updates:
       # the field is not required.
       # Issue: https://github.com/swagger-api/swagger-codegen-generators/issues/1295
       - dependency-name: "io.swagger.codegen.v3:swagger-codegen*"
-        update-types: [ "3.0.x" ]
+        versions: [ "3.0.x" ]

@@ -4,7 +4,6 @@ import bio.terra.app.configuration.NotificationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import org.springframework.stereotype.Service;
 

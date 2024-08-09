@@ -511,9 +511,11 @@ public class DatasetDao implements TaggableResourceDao {
         dataset = new Dataset(summary);
         dataset.tables(tableDao.retrieveTables(dataset.getId()));
         if (retrieveRelationship) {
+          // This query is costly and should only be run when necessary.
           relationshipDao.retrieve(dataset);
         }
         if (retrieveAsset) {
+          // This query is costly and should only be run when necessary.
           assetDao.retrieve(dataset);
         }
         // Retrieve the project and application deployment resource associated with the dataset

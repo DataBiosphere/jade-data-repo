@@ -7,26 +7,48 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.BlobUrlParts;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
 class IngestUtilsTest {
+  private static final UUID DATASET_ID = UUID.randomUUID();
+  private static final Dataset DATASET = new Dataset().id(DATASET_ID);
+  @Mock private FlightContext context;
+  @Mock private DatasetService datasetService;
+
+  @Test
+  void getDataset() {
+    FlightMap inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());
+    when(context.getInputParameters()).thenReturn(inputParameters);
+    when(datasetService.retrieveForIngest(DATASET_ID)).thenReturn(DATASET);
+    assertThat(IngestUtils.getDataset(context, datasetService), equalTo(DATASET));
+  }
 
   @ParameterizedTest
   @EnumSource(names = {"CSV", "ARRAY", "JSON"})

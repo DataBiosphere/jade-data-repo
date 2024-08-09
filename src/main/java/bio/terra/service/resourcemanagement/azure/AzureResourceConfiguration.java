@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.BlockingRejectedExecutionHandler;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
@@ -163,9 +164,15 @@ public record AzureResourceConfiguration(
       int connectRetryInterval,
       int connectRetryCount) {}
 
-  public record Threading(int numTableThreads, int maxQueueSize) {}
+  public record Threading(int numTableThreads, int maxQueueSize, boolean blockWhenSaturated) {}
 
-  @Bean("azureTableThreadpool")
+  /**
+   * The name of a {@link AsyncTaskExecutor} Spring Bean which executes tasks related to Azure
+   * Storage Tables.
+   */
+  public static final String TABLE_THREADPOOL_NAME = "azureTableThreadpool";
+
+  @Bean(TABLE_THREADPOOL_NAME)
   public AsyncTaskExecutor azureTableThreadpool() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     executor.setCorePoolSize(threading().numTableThreads());
@@ -173,6 +180,9 @@ public record AzureResourceConfiguration(
     executor.setKeepAliveSeconds(0);
     executor.setQueueCapacity(threading().maxQueueSize());
     executor.setThreadNamePrefix("az-table-thread-");
+    if (threading().blockWhenSaturated()) {
+      executor.setRejectedExecutionHandler(new BlockingRejectedExecutionHandler());
+    }
     executor.initialize();
     return executor;
   }

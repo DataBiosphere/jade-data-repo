@@ -31,6 +31,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.TestUtils;
 import bio.terra.common.UriUtils;
 import bio.terra.common.category.Unit;
@@ -137,6 +138,7 @@ class DrsServiceTest {
   @Mock private DrsDao drsDao;
   @Mock private ApplicationConfiguration appConfig;
   @Mock private DrsMetricsService drsMetricsService;
+  @Mock private UserLoggingMetrics loggingMetrics;
 
   private DrsIdService drsIdService;
   private DrsService drsService;
@@ -176,7 +178,8 @@ class DrsServiceTest {
                 ecmConfiguration,
                 drsDao,
                 drsMetricsService,
-                new SimpleAsyncTaskExecutor()));
+                new SimpleAsyncTaskExecutor(),
+                loggingMetrics));
     when(jobService.getActivePodCount()).thenReturn(1);
     when(drsConfiguration.maxDrsLookups()).thenReturn(1);
 

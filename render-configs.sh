@@ -102,11 +102,13 @@ GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 if [[ "${RBS_ENV}" == "tools" ]]; then
     BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
     BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT=broad-dsde-qa
+    BUFFER_CLIENT_GSM_SECRET=buffer-client-sa-b64-integration
     RBS_POOLID=datarepo_v1
     RBS_INSTANCEURL=https://buffer.tools.integ.envs.broadinstitute.org
 elif [[ "${RBS_ENV}" == "dev" ]]; then
     BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/dev/dev/buffer/client-sa
     BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT=broad-jade-dev
+    BUFFER_CLIENT_GSM_SECRET=buffer-client-sa-b64
     RBS_POOLID=datarepo_v3
     RBS_INSTANCEURL=https://buffer.dsde-dev.broadinstitute.org
 else
@@ -123,7 +125,7 @@ if $USE_VAULT; then
   vault read -field=key "$BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH" \
     | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
 else
-  gcloud secrets versions access latest --project $BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT --secret buffer-client-sa-b64 \
+  gcloud secrets versions access latest --project $BUFFER_CLIENT_SERVICE_ACCOUNT_GSM_PROJECT --secret $BUFFER_CLIENT_GSM_SECRET \
     | jq -r '.key' | base64 -d > "$RBS_CLIENTCREDENTIALFILEPATH"
 fi
 

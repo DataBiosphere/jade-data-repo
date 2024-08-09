@@ -25,7 +25,6 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -109,27 +108,32 @@ class SnapshotBuilderServiceTest {
   @Test
   void createRequest() {
     UUID snapshotId = UUID.randomUUID();
-    SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse();
+    SnapshotAccessRequestModel model =
+        new SnapshotAccessRequestModel(
+            null, null, null, null, null, null, null, null, null, null, null);
     when(snapshotRequestDao.create(
             SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
-        .thenReturn(response);
+        .thenReturn(model);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
         .thenReturn(Map.of(IamRole.OWNER, List.of(TEST_USER.getEmail())));
     assertThat(
         "createSnapshotRequest returns the expected response",
         snapshotBuilderService.createRequest(
             TEST_USER, SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId)),
-        equalTo(response));
+        equalTo(model.toApiResponse(SnapshotBuilderTestData.SETTINGS)));
   }
 
   @Test
   void createRequestRollsBackIfSamFails() {
     UUID snapshotId = UUID.randomUUID();
     UUID snapshotRequestId = UUID.randomUUID();
-    SnapshotAccessRequestResponse response =
-        new SnapshotAccessRequestResponse().id(snapshotRequestId);
+    SnapshotAccessRequestModel model =
+        new SnapshotAccessRequestModel(
+            snapshotRequestId, null, null, null, null, null, null, null, null, null, null);
     SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId);
-    when(snapshotRequestDao.create(request, TEST_USER.getEmail())).thenReturn(response);
+    when(snapshotRequestDao.create(request, TEST_USER.getEmail())).thenReturn(model);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
         .thenThrow(new ApiException("Error"));
     doNothing().when(snapshotRequestDao).delete(snapshotRequestId);
@@ -140,17 +144,19 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void enumerateRequests() {
-    SnapshotAccessRequestResponse responseItem =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(UUID.randomUUID());
-    List<SnapshotAccessRequestResponse> response = List.of(responseItem);
-    when(snapshotRequestDao.enumerate(Set.of(responseItem.getId()))).thenReturn(response);
-
+    SnapshotAccessRequestModel responseItem =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(UUID.randomUUID());
+    List<SnapshotAccessRequestModel> response = List.of(responseItem);
+    when(snapshotRequestDao.enumerate(Set.of(responseItem.id()))).thenReturn(response);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
     EnumerateSnapshotAccessRequest expected =
-        new EnumerateSnapshotAccessRequest().addItemsItem(responseItem);
+        new EnumerateSnapshotAccessRequest()
+            .addItemsItem(responseItem.toApiResponse(SnapshotBuilderTestData.SETTINGS));
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",
-        snapshotBuilderService.enumerateRequests(Set.of(responseItem.getId())),
+        snapshotBuilderService.enumerateRequests(Set.of(responseItem.id())),
         equalTo(expected));
   }
 
@@ -346,8 +352,8 @@ class SnapshotBuilderServiceTest {
   @Test
   void generateRowIdQuery() {
     UUID snapshotId = UUID.randomUUID();
-    SnapshotAccessRequestResponse accessRequest =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(snapshotId);
+    SnapshotAccessRequestModel snapshotAccessRequestModel =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
 
     Dataset dataset = makeDataset(CloudPlatform.GCP);
     Snapshot snapshot =
@@ -362,13 +368,14 @@ class SnapshotBuilderServiceTest {
     when(queryBuilderFactory.criteriaQueryBuilder(SnapshotBuilderTestData.SETTINGS))
         .thenReturn(criteriaQueryBuilderMock);
     when(criteriaQueryBuilderMock.generateRowIdQueryForCohorts(
-            accessRequest.getSnapshotSpecification().getCohorts()))
+            snapshotAccessRequestModel.snapshotSpecification().getCohorts()))
         .thenReturn(query);
     var contextArgument = ArgumentCaptor.forClass(SqlRenderContext.class);
     when(query.renderSQL(contextArgument.capture())).thenReturn("sql");
 
     assertEquals(
-        "sql", snapshotBuilderService.generateRowIdQuery(accessRequest, snapshot, TEST_USER));
+        "sql",
+        snapshotBuilderService.generateRowIdQuery(snapshotAccessRequestModel, snapshot, TEST_USER));
     assertThat(
         contextArgument.getValue().getPlatform().getCloudPlatform(),
         is(dataset.getCloudPlatform()));
@@ -427,27 +434,45 @@ class SnapshotBuilderServiceTest {
   @Test
   void testRejectRequest() {
     UUID id = UUID.randomUUID();
-    var response = new SnapshotAccessRequestResponse();
+    var response =
+        new SnapshotAccessRequestModel(
+            null, null, null, null, null, null, null, null, null, null, null);
     when(snapshotRequestDao.getById(id)).thenReturn(response);
-    assertThat(snapshotBuilderService.rejectRequest(id), is(response));
+    when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
+    assertThat(
+        snapshotBuilderService.rejectRequest(id),
+        is(response.toApiResponse(SnapshotBuilderTestData.SETTINGS)));
     verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
   @Test
   void testApproveRequest() {
     UUID id = UUID.randomUUID();
-    var response = new SnapshotAccessRequestResponse();
+    var response =
+        new SnapshotAccessRequestModel(
+            id, null, null, null, null, null, null, null, null, null, null);
     when(snapshotRequestDao.getById(id)).thenReturn(response);
-    assertThat(snapshotBuilderService.approveRequest(id), is(response));
+    when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
+    assertThat(
+        snapshotBuilderService.approveRequest(id),
+        is(response.toApiResponse(SnapshotBuilderTestData.SETTINGS)));
     verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
   }
 
   @Test
   void testGetRequest() {
     UUID id = UUID.randomUUID();
-    SnapshotAccessRequestResponse daoResponse = new SnapshotAccessRequestResponse().id(id);
+    SnapshotAccessRequestModel daoResponse =
+        new SnapshotAccessRequestModel(
+            id, null, null, null, null, null, null, null, null, null, null);
     when(snapshotRequestDao.getById(id)).thenReturn(daoResponse);
-    assertThat(snapshotBuilderService.getRequest(id), is(daoResponse));
+    when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
+    assertThat(
+        snapshotBuilderService.getRequest(id),
+        is(daoResponse.toApiResponse(SnapshotBuilderTestData.SETTINGS)));
   }
 
   @Test
@@ -461,11 +486,21 @@ class SnapshotBuilderServiceTest {
   @Test
   void testEnumerateRequestsBySnapshot() {
     UUID id = UUID.randomUUID();
-    List<SnapshotAccessRequestResponse> daoResponse = List.of(new SnapshotAccessRequestResponse());
+    List<SnapshotAccessRequestModel> daoResponse =
+        List.of(
+            new SnapshotAccessRequestModel(
+                null, null, null, null, null, null, null, null, null, null, null));
     when(snapshotRequestDao.enumerateBySnapshot(id)).thenReturn(daoResponse);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
     assertThat(
         snapshotBuilderService.enumerateRequestsBySnapshot(id),
-        is(new EnumerateSnapshotAccessRequest().items(daoResponse)));
+        is(
+            new EnumerateSnapshotAccessRequest()
+                .items(
+                    daoResponse.stream()
+                        .map(model -> model.toApiResponse(SnapshotBuilderTestData.SETTINGS))
+                        .toList())));
   }
 
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {

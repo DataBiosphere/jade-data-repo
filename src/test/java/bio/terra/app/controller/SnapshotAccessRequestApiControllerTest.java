@@ -73,7 +73,8 @@ class SnapshotAccessRequestApiControllerTest {
         SnapshotBuilderTestData.createSnapshotAccessRequest(SNAPSHOT_ID);
 
     SnapshotAccessRequestResponse expectedResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(SNAPSHOT_ID);
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(SNAPSHOT_ID)
+            .toApiResponse(SnapshotBuilderTestData.SETTINGS);
     when(snapshotBuilderService.createRequest(any(), eq(request))).thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(
@@ -98,9 +99,11 @@ class SnapshotAccessRequestApiControllerTest {
   @Test
   void testEnumerateSnapshotRequests() throws Exception {
     var expectedResponseItem =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(SNAPSHOT_ID);
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(SNAPSHOT_ID)
+            .toApiResponse(SnapshotBuilderTestData.SETTINGS);
     var secondExpectedResponseItem =
-        SnapshotBuilderTestData.createSnapshotAccessRequestResponse(SNAPSHOT_ID);
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(SNAPSHOT_ID)
+            .toApiResponse(SnapshotBuilderTestData.SETTINGS);
     var expectedResponse = new EnumerateSnapshotAccessRequest();
     Map<UUID, Set<IamRole>> authResponse =
         Map.of(
@@ -123,7 +126,9 @@ class SnapshotAccessRequestApiControllerTest {
 
   @Test
   void testGetSnapshotRequest() throws Exception {
-    var expectedResponse = SnapshotBuilderTestData.createSnapshotAccessRequestResponse(SNAPSHOT_ID);
+    var expectedResponse =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(SNAPSHOT_ID)
+            .toApiResponse(SnapshotBuilderTestData.SETTINGS);
     when(snapshotBuilderService.getRequest(expectedResponse.getId())).thenReturn(expectedResponse);
     String actualJson =
         mvc.perform(get(GET_ENDPOINT, expectedResponse.getId()))

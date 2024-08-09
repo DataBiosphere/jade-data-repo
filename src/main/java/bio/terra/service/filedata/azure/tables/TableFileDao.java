@@ -9,6 +9,7 @@ import bio.terra.service.filedata.google.firestore.ApiFutureGenerator;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -39,7 +40,9 @@ public class TableFileDao {
   private final AsyncTaskExecutor azureTableThreadpool;
   private static final String PARTITION_KEY = "partitionKey";
 
-  TableFileDao(@Qualifier("azureTableThreadpool") AsyncTaskExecutor azureTableThreadpool) {
+  TableFileDao(
+      @Qualifier(AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
+          AsyncTaskExecutor azureTableThreadpool) {
     this.azureTableThreadpool = azureTableThreadpool;
   }
 

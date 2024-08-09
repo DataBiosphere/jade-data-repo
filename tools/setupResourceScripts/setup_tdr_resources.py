@@ -1,3 +1,8 @@
+import argparse
+import json
+import os
+import subprocess
+import time
 import uuid
 
 from data_repo_client import (
@@ -9,12 +14,6 @@ from data_repo_client import (
     JobsApi,
     SnapshotAccessRequestApi,
 )
-import argparse
-import subprocess
-import json
-import os
-import subprocess
-import time
 
 
 class Clients:

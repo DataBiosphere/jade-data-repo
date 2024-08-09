@@ -13,6 +13,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -132,12 +133,14 @@ public final class DaoUtils {
     }
   }
 
-  public static String getInstantString(ResultSet rs, String columnLabel) throws SQLException {
+  public static Instant getInstant(ResultSet rs, String columnLabel) throws SQLException {
     Timestamp timestamp = rs.getTimestamp(columnLabel);
-    if (timestamp != null) {
-      return timestamp.toInstant().toString();
-    }
-    return null;
+    return timestamp != null ? timestamp.toInstant() : null;
+  }
+
+  public static String getInstantString(ResultSet rs, String columnLabel) throws SQLException {
+    Instant instant = getInstant(rs, columnLabel);
+    return instant != null ? instant.toString() : null;
   }
 
   public static class UuidMapper implements RowMapper<UUID> {

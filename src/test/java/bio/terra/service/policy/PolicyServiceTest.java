@@ -2,6 +2,7 @@ package bio.terra.service.policy;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -19,6 +20,7 @@ import bio.terra.policy.client.ApiException;
 import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
+import bio.terra.policy.model.TpsPaoGetResult;
 import bio.terra.policy.model.TpsPaoUpdateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
@@ -209,7 +211,8 @@ class PolicyServiceTest {
   @Test
   void getPao() throws ApiException {
     mockPolicyApi();
-    policyService.getPao(snapshotId);
-    verify(tpsApi).getPao(snapshotId);
+    var expected = new TpsPaoGetResult().objectId(snapshotId);
+    when(tpsApi.getPao(snapshotId, false)).thenReturn(expected);
+    assertThat(policyService.getPao(snapshotId), equalTo(expected));
   }
 }

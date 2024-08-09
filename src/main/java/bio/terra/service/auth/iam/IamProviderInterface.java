@@ -143,6 +143,9 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, UUID snapshotId, UUID snapshotBuilderRequestId)
       throws InterruptedException;
 
+  void deleteSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException;
+
   // -- billing profile resource support --
 
   /**

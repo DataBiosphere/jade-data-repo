@@ -62,7 +62,7 @@ public class PolicyService {
   public TpsPaoGetResult getPao(UUID resourceId) {
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
-      return tpsApi.getPao(resourceId);
+      return tpsApi.getPao(resourceId, false);
     } catch (ApiException e) {
       throw convertApiException(e);
     }

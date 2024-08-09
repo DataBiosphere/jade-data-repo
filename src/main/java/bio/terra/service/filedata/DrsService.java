@@ -8,6 +8,8 @@ import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.app.usermetrics.BardEventProperties;
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
@@ -111,6 +113,7 @@ public class DrsService {
   private final DrsDao drsDao;
   private final DrsMetricsService drsMetricsService;
   private final AsyncTaskExecutor executor;
+  private final UserLoggingMetrics loggingMetrics;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -133,7 +136,8 @@ public class DrsService {
       EcmConfiguration ecmConfiguration,
       DrsDao drsDao,
       DrsMetricsService drsMetricsService,
-      @Qualifier("drsResolutionThreadpool") AsyncTaskExecutor executor) {
+      @Qualifier("drsResolutionThreadpool") AsyncTaskExecutor executor,
+      UserLoggingMetrics loggingMetrics) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -148,6 +152,7 @@ public class DrsService {
     this.drsDao = drsDao;
     this.drsMetricsService = drsMetricsService;
     this.executor = executor;
+    this.loggingMetrics = loggingMetrics;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -486,6 +491,8 @@ public class DrsService {
 
     BillingProfileModel billingProfileModel = cachedSnapshot.datasetBillingProfileModel;
 
+    logAdditionalProperties(cachedSnapshot);
+
     assertAccessMethodMatchingAccessId(accessId, drsObject);
 
     FSFile fsFile;
@@ -508,6 +515,24 @@ public class DrsService {
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
+  }
+
+  /**
+   * Include additional properties in the event log sent to Bard
+   *
+   * @param cachedSnapshot
+   */
+  private void logAdditionalProperties(SnapshotCacheResult cachedSnapshot) {
+    loggingMetrics.set(BardEventProperties.DATASET_ID_FIELD_NAME, cachedSnapshot.getDatasetId());
+    loggingMetrics.set(
+        BardEventProperties.DATASET_NAME_FIELD_NAME, cachedSnapshot.getDatasetName());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, cachedSnapshot.getId());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, cachedSnapshot.getName());
+    loggingMetrics.set(
+        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME,
+        cachedSnapshot.getSnapshotBillingProfileId());
+    loggingMetrics.set(
+        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cachedSnapshot.getCloudPlatform());
   }
 
   @VisibleForTesting
@@ -985,16 +1010,20 @@ public class DrsService {
   @VisibleForTesting
   static class SnapshotCacheResult {
     private final UUID id;
+    private final String name;
     private final boolean isSelfHosted;
     private final BillingProfileModel datasetBillingProfileModel;
     private final UUID snapshotBillingProfileId;
     private final CloudPlatform cloudPlatform;
     private final String googleProjectId;
     private final String datasetProjectId;
+    private final UUID datasetId;
+    private final String datasetName;
     private final boolean globalFileIds;
 
     public SnapshotCacheResult(Snapshot snapshot) {
       this.id = snapshot.getId();
+      this.name = snapshot.getName();
       this.isSelfHosted = snapshot.isSelfHosted();
       this.globalFileIds = snapshot.hasGlobalFileIds();
       this.datasetBillingProfileModel =
@@ -1013,14 +1042,32 @@ public class DrsService {
       } else {
         this.datasetProjectId = null;
       }
+      this.datasetId = snapshot.getSourceDataset().getId();
+      this.datasetName = snapshot.getSourceDataset().getName();
     }
 
     public UUID getId() {
       return this.id;
     }
 
+    public String getName() {
+      return this.name;
+    }
+
+    public UUID getDatasetId() {
+      return this.datasetId;
+    }
+
+    public String getDatasetName() {
+      return this.datasetName;
+    }
+
     public UUID getSnapshotBillingProfileId() {
       return snapshotBillingProfileId;
+    }
+
+    public CloudPlatform getCloudPlatform() {
+      return this.cloudPlatform;
     }
   }
 }

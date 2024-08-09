@@ -3056,6 +3056,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get a snapshot access request you have access to read
+      operationId: getSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
+        404:
+          description: The request cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    delete:
+      tags:
+        - SnapshotAccessRequest
+      description: Delete a snapshot access request you have access to delete
+      operationId: deleteSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        204:
+          description: The request has been deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshotAccessRequests/{id}/reject:
     put:
       tags:
@@ -5018,8 +5061,6 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
-        snapshotBuilderSettings:
-          $ref: '#/components/schemas/SnapshotBuilderSettings'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -5183,7 +5224,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE, SNAPSHOT_BUILDER_SETTINGS ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -7209,6 +7250,10 @@ components:
         - datasetConceptSets
         - rootTable
       properties:
+        name:
+          type: string
+        description:
+          type: string
         domainOptions:
           type: array
           items:
@@ -7474,11 +7519,13 @@ components:
           $ref: '#/components/schemas/ShortIdProperty'
         createdSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
+        summary:
+          type: string
 
 
     SnapshotAccessRequestStatus:
       type: string
-      enum: [ SUBMITTED, APPROVED, REJECTED ]
+      enum: [ SUBMITTED, APPROVED, REJECTED, DELETED ]
 
     SnapshotBuilderCountRequest:
       type: object
@@ -7542,8 +7589,6 @@ components:
       type: object
       required: [ criteria, mustMeet, meetAll ]
       properties:
-        name:
-          type: string
         criteria:
           type: array
           items:

@@ -333,6 +333,13 @@ public class SamIam implements IamProviderInterface {
     return initialRoles;
   }
 
+  @Override
+  public void deleteSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException {
+    deleteResource(
+        userReq, IamResourceType.SNAPSHOT_BUILDER_REQUEST, snapshotBuilderRequestId.toString());
+  }
+
   private void createSnapshotBuilderRequestResourceInner(
       AuthenticatedUserRequest userReq,
       UUID snapshotId,

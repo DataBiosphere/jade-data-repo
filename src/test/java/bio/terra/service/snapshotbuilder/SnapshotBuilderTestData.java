@@ -100,6 +100,8 @@ public class SnapshotBuilderTestData {
 
   public static final SnapshotBuilderSettings SETTINGS =
       new SnapshotBuilderSettings()
+          .name("Snapshot builder settings name")
+          .description("Snapshot builder settings description")
           .domainOptions(
               List.of(
                   generateSnapshotBuilderDomainOption(

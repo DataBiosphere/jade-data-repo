@@ -14,13 +14,13 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public class BlockingRejectedExecutionHandler implements RejectedExecutionHandler {
   @VisibleForTesting
-  static String interruptedExceptionMessage(Runnable r, ThreadPoolExecutor executor) {
-    return "Task %s interrupted while waiting to be added to queue: %s".formatted(r, executor);
+  static String interruptedExceptionMessage(ThreadPoolExecutor executor) {
+    return "Task interrupted while waiting to be added to queue: %s".formatted(executor);
   }
 
   @VisibleForTesting
-  static String executorShutdownMessage(Runnable r, ThreadPoolExecutor executor) {
-    return "%s is shutting down and cannot accept task %s".formatted(executor, r);
+  static String executorShutdownMessage(ThreadPoolExecutor executor) {
+    return "%s is shutting down and cannot accept task".formatted(executor);
   }
 
   /**
@@ -46,10 +46,10 @@ public class BlockingRejectedExecutionHandler implements RejectedExecutionHandle
         executor.getQueue().put(r);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RejectedExecutionException(interruptedExceptionMessage(r, executor), e);
+        throw new RejectedExecutionException(interruptedExceptionMessage(executor), e);
       }
     } else {
-      throw new RejectedExecutionException(executorShutdownMessage(r, executor));
+      throw new RejectedExecutionException(executorShutdownMessage(executor));
     }
   }
 }

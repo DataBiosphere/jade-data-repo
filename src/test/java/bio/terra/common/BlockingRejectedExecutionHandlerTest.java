@@ -44,7 +44,7 @@ class BlockingRejectedExecutionHandlerTest {
     RejectedExecutionException exception =
         assertThrows(
             RejectedExecutionException.class, () -> handler.rejectedExecution(r, executor));
-    String expectedMessage = BlockingRejectedExecutionHandler.executorShutdownMessage(r, executor);
+    String expectedMessage = BlockingRejectedExecutionHandler.executorShutdownMessage(executor);
     assertThat(exception.getMessage(), equalTo(expectedMessage));
     assertThat(exception.getCause(), nullValue());
   }
@@ -58,8 +58,7 @@ class BlockingRejectedExecutionHandlerTest {
     RejectedExecutionException exception =
         assertThrows(
             RejectedExecutionException.class, () -> handler.rejectedExecution(r, executor));
-    String expectedMessage =
-        BlockingRejectedExecutionHandler.interruptedExceptionMessage(r, executor);
+    String expectedMessage = BlockingRejectedExecutionHandler.interruptedExceptionMessage(executor);
     assertThat(exception.getMessage(), equalTo(expectedMessage));
     assertThat(exception.getCause(), instanceOf(InterruptedException.class));
     assertTrue(Thread.interrupted());

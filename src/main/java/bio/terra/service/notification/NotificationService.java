@@ -25,7 +25,6 @@ public class NotificationService {
   }
 
   @VisibleForTesting
-  @PostConstruct
   protected void createTopic() {
     try {
       pubSubService.createTopic(

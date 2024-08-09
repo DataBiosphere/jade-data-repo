@@ -8,6 +8,7 @@ public class DatasetProject {
   private UUID profileId;
   private String
       dataProject; // Project id of the snapshot data project--which is a string and feels like a
+
   // name
 
   public UUID getId() {

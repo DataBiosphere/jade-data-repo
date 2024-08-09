@@ -275,6 +275,7 @@ public interface IamProviderInterface {
       String policyName,
       List<String> emailAddresses)
       throws InterruptedException;
+
   /**
    * @param accessToken valid oauth token for the account modifying the group policy members
    * @param groupName name of Firecloud managed group

@@ -175,7 +175,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:4.9.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.5.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.0' // For srcclr, jib plugin conflict

@@ -35,7 +35,7 @@ public class NotificationService {
       pubSubService.createTopic(
           notificationConfiguration.projectId(), notificationConfiguration.topicId());
     } catch (IOException e) {
-      logger.error("Error creating notification topic", e);
+      logger.warn("Error creating notification topic", e);
     }
   }
 
@@ -52,7 +52,7 @@ public class NotificationService {
               new SnapshotReadyNotification(
                   user.getSubjectId(), snapshotExportLink, snapshotName, snapshotSummary)));
     } catch (IOException e) {
-      logger.error("Error sending notification", e);
+      logger.warn("Error sending notification", e);
     }
   }
 }

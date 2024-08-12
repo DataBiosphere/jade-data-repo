@@ -63,11 +63,16 @@ public final class IngestUtils {
 
   private IngestUtils() {}
 
+  /**
+   * @param context with dataset ID provided as an input parameter.
+   * @return the existing Dataset object populated only as necessary to facilitate data ingestion
+   *     (i.e. without relationships or assets which are constructed via costly database calls).
+   */
   public static Dataset getDataset(FlightContext context, DatasetService datasetService) {
     FlightMap inputParameters = context.getInputParameters();
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
-    return datasetService.retrieve(datasetId);
+    return datasetService.retrieveForIngest(datasetId);
   }
 
   public static IngestRequestModel getIngestRequestModel(FlightContext context) {

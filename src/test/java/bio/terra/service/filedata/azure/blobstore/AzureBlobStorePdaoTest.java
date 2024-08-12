@@ -126,7 +126,7 @@ public class AzureBlobStorePdaoTest {
   @MockBean private GcsProjectFactory gcsProjectFactory;
   @MockBean private AzureBlobService azureBlobService;
 
-  @MockBean(name = "azureTableThreadpool")
+  @MockBean(name = AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
   private AsyncTaskExecutor asyncTaskExecutor;
 
   @Autowired private AzureBlobStorePdao dao;

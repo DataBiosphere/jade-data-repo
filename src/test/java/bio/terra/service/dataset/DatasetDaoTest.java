@@ -417,13 +417,27 @@ public class DatasetDaoTest {
 
   @Test
   public void datasetTest() throws Exception {
+    datasetTest(true, true);
+  }
+
+  @Test
+  public void datasetTest_noRelationships() throws Exception {
+    datasetTest(false, true);
+  }
+
+  @Test
+  public void datasetTest_noAssets() throws Exception {
+    datasetTest(true, false);
+  }
+
+  private void datasetTest(boolean retrieveRelationship, boolean retrieveAsset) throws Exception {
     DatasetRequestModel request =
         jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class);
     String expectedName = request.getName() + UUID.randomUUID();
 
     GoogleRegion testSettingRegion = GoogleRegion.ASIA_NORTHEAST1;
     UUID datasetId = createDataset(request, expectedName, testSettingRegion);
-    Dataset fromDB = datasetDao.retrieve(datasetId);
+    Dataset fromDB = datasetDao.retrieve(datasetId, retrieveRelationship, retrieveAsset);
 
     assertThat("dataset name is set correctly", fromDB.getName(), equalTo(expectedName));
 
@@ -431,20 +445,28 @@ public class DatasetDaoTest {
     assertThat("correct number of tables created for dataset", fromDB.getTables(), hasSize(3));
     fromDB.getTables().forEach(this::assertDatasetTable);
 
-    assertThat(
-        "correct number of relationships are created for dataset",
-        fromDB.getRelationships(),
-        hasSize(2));
+    if (retrieveRelationship) {
+      assertThat(
+          "correct number of relationships are created for dataset",
+          fromDB.getRelationships(),
+          hasSize(2));
 
-    assertTablesInRelationship(fromDB);
+      assertTablesInRelationship(fromDB);
+    } else {
+      assertThat("Relationships are not retrieved", fromDB.getRelationships(), empty());
+    }
 
-    // verify assets
-    assertThat(
-        "correct number of assets created for dataset",
-        fromDB.getAssetSpecifications(),
-        hasSize(2));
+    if (retrieveAsset) {
+      // verify assets
+      assertThat(
+          "correct number of assets created for dataset",
+          fromDB.getAssetSpecifications(),
+          hasSize(2));
 
-    fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+      fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+    } else {
+      assertThat("Assets are not retrieved", fromDB.getAssetSpecifications(), empty());
+    }
 
     for (GoogleCloudResource resource : GoogleCloudResource.values()) {
       CloudRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);

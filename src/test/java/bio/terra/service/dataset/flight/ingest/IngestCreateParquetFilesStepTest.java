@@ -96,7 +96,7 @@ class IngestCreateParquetFilesStepTest {
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
     when(flightContext.getInputParameters()).thenReturn(inputParameters);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
-    when(datasetService.retrieve(DATASET_ID)).thenReturn(dataset);
+    when(datasetService.retrieveForIngest(DATASET_ID)).thenReturn(dataset);
   }
 
   @Test

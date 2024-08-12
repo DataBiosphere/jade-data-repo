@@ -18,8 +18,10 @@ public class PubSubService {
   public void createTopic(String projectId, String topicId) throws IOException {
     try (TopicAdminClient topicAdminClient = TopicAdminClient.create()) {
       TopicName topicName = TopicName.of(projectId, topicId);
-      Topic topic = topicAdminClient.createTopic(topicName);
-      logger.info("Created topic: {}", topic.getName());
+      if (topicAdminClient.getTopic(topicName) == null) {
+        Topic topic = topicAdminClient.createTopic(topicName);
+        logger.info("Created topic: {}", topic.getName());
+      }
     }
   }
 
@@ -27,6 +29,5 @@ public class PubSubService {
     TopicName topicName = TopicName.of(projectId, topicId);
     var publisher = Publisher.newBuilder(topicName).build();
     publisher.publish(PubsubMessage.newBuilder().setData(ByteString.copyFromUtf8(message)).build());
-    logger.info("Published message ID: {}", message);
   }
 }

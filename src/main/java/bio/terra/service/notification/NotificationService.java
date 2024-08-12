@@ -4,11 +4,16 @@ import bio.terra.app.configuration.NotificationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class NotificationService {
+
+  private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
   private final PubSubService pubSubService;
   private final NotificationConfiguration notificationConfiguration;
@@ -24,12 +29,13 @@ public class NotificationService {
   }
 
   @VisibleForTesting
+  @PostConstruct
   protected void createTopic() {
     try {
       pubSubService.createTopic(
           notificationConfiguration.projectId(), notificationConfiguration.topicId());
     } catch (IOException e) {
-      throw new NotificationException("Error creating notification topic", e);
+      logger.error("Error creating notification topic", e);
     }
   }
 
@@ -46,7 +52,7 @@ public class NotificationService {
               new SnapshotReadyNotification(
                   user.getSubjectId(), snapshotExportLink, snapshotName, snapshotSummary)));
     } catch (IOException e) {
-      throw new NotificationException("Error sending notification", e);
+      logger.error("Error sending notification", e);
     }
   }
 }

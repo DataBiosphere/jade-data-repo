@@ -37,7 +37,9 @@ plugins {
     id 'java'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
-    id 'com.diffplug.spotless' version '6.25.0'
+    // After merging a spotless version update which requires a large-scale code reformat, add the
+    // commit hash to .git-blame-ignore-revs to avoid cluttering git blame.
+    id 'com.diffplug.spotless' version '6.25.0'  // SEE ABOVE.
     id 'com.dorongold.task-tree' version '4.0.0'
     // enables release info in sentry events
     id 'com.gorylenko.gradle-git-properties' version '2.4.2'

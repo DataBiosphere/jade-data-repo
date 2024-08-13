@@ -842,14 +842,12 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public UserIdInfo getUserIds(AuthenticatedUserRequest userReq, String userEmail)
-      throws InterruptedException {
-    return SamRetry.retry(configurationService, () -> getUserIdsInner(userReq, userEmail));
+  public UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getUserIdsInner(accessToken, userEmail));
   }
 
-  private UserIdInfo getUserIdsInner(AuthenticatedUserRequest userRequest, String userEmail)
-      throws ApiException {
-    return samApiService.usersApi(userRequest.getToken()).getUserIds(userEmail);
+  private UserIdInfo getUserIdsInner(String accessToken, String userEmail) throws ApiException {
+    return samApiService.usersApi(accessToken).getUserIds(userEmail);
   }
 
   /**

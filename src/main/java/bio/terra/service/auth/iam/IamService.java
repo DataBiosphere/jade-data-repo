@@ -524,7 +524,8 @@ public class IamService {
     return callProvider(() -> iamProvider.signUrlForBlob(userReq, project, path, duration));
   }
 
-  public UserIdInfo getUserIds(AuthenticatedUserRequest userReq, String userEmail) {
-    return callProvider(() -> iamProvider.getUserIds(userReq, userEmail));
+  public UserIdInfo getUserIds(String userEmail) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getUserIds(tdrSaAccessToken, userEmail));
   }
 }

@@ -333,6 +333,5 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
       throws InterruptedException;
 
-  UserIdInfo getUserIds(AuthenticatedUserRequest userReq, String userEmail)
-      throws InterruptedException;
+  UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException;
 }

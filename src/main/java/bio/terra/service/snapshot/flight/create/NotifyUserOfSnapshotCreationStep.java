@@ -30,7 +30,7 @@ public class NotifyUserOfSnapshotCreationStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     var request = snapshotRequestDao.getById(snapshotRequestId);
-    var user = iamService.getUserIds(null, request.createdBy());
+    var user = iamService.getUserIds(request.createdBy());
     snapshotBuilderService.notifySnapshotReady(user.getUserSubjectId(), snapshotRequestId);
     return StepResult.getStepResultSuccess();
   }

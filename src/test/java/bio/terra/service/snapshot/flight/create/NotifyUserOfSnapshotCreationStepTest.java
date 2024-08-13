@@ -35,7 +35,7 @@ class NotifyUserOfSnapshotCreationStepTest {
     var request = SnapshotServiceTest.createRequestModel();
     var user = new UserIdInfo().userSubjectId("subjectId");
     when(snapshotRequestDao.getById(id)).thenReturn(request);
-    when(iamService.getUserIds(null, request.createdBy())).thenReturn(user);
+    when(iamService.getUserIds(request.createdBy())).thenReturn(user);
     assertThat(step.doStep(null).getStepStatus(), is(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotBuilderService).notifySnapshotReady(user.getUserSubjectId(), id);
   }

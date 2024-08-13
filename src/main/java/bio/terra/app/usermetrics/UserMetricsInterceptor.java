@@ -68,7 +68,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 BardEventProperties.METHOD_FIELD_NAME, method,
                 BardEventProperties.PATH_FIELD_NAME, path));
     addToPropertiesIfPresentInHeader(
-        request, properties, "x-transaction-id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
+        request, properties, "X-Transaction-Id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
     eventProperties.setAll(properties);
     HashMap<String, Object> bardEventProperties = eventProperties.get();
 

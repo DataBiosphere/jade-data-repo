@@ -106,7 +106,6 @@ class UserMetricsInterceptorTest {
   @Test
   void testSendEvent() throws Exception {
     mockRequestAuth(request);
-
     runAndWait();
 
     verify(bardClient)
@@ -170,7 +169,7 @@ class UserMetricsInterceptorTest {
   @Test
   void testSendEventWithTransactionIdHeader() throws Exception {
     String transactionId = UUID.randomUUID().toString();
-    when(request.getHeader("x-transaction-id")).thenReturn(transactionId);
+    when(request.getHeader("X-Transaction-Id")).thenReturn(transactionId);
     mockRequestAuth(request);
 
     runAndWait();

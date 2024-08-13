@@ -7244,12 +7244,18 @@ components:
       description: >
         ⚠️ The configuration describing how select criteria for issuing a snapshot builder request is generated
       required:
+        - name
+        - description
         - domainOptions
         - programDataOptions
         - featureValueGroups
         - datasetConceptSets
         - rootTable
       properties:
+        name:
+          type: string
+        description:
+          type: string
         domainOptions:
           type: array
           items:

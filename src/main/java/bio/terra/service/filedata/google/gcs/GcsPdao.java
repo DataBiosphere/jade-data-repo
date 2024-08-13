@@ -243,6 +243,7 @@ public class GcsPdao implements CloudFileReader {
       writeStreamToCloudFile(path, stream, projectId);
     }
   }
+
   /**
    * Write a {@link Stream} to a GCS file separated by newlines
    *

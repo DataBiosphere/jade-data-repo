@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +12,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.OidcApi;
+import bio.terra.externalcreds.model.PassportProvider;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.OidcApiService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
@@ -56,7 +56,7 @@ class EcmServiceTest {
     String passport = "passportJwt";
     HttpClientErrorException shouldCatch = new HttpClientErrorException(HttpStatus.NOT_FOUND);
     HttpClientErrorException shouldThrow = new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
-    when(oidcApi.getProviderPassport(any()))
+    when(oidcApi.getProviderPassport(PassportProvider.RAS))
         .thenReturn(passport)
         .thenThrow(shouldCatch)
         .thenThrow(shouldThrow);
@@ -75,7 +75,7 @@ class EcmServiceTest {
 
   @Test
   void testGetRasDbgapPermissionsNoPassport() throws Exception {
-    when(oidcApi.getProviderPassport(any()))
+    when(oidcApi.getProviderPassport(PassportProvider.RAS))
         .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
     assertThat(
         "No RAS dbGaP permissions when a user doesn't have a passport",
@@ -85,7 +85,7 @@ class EcmServiceTest {
 
   @Test
   void testGetRasDbgapPermissionsNoVisaClaim() throws Exception {
-    when(oidcApi.getProviderPassport(any())).thenReturn(toJwtToken("{}"));
+    when(oidcApi.getProviderPassport(PassportProvider.RAS)).thenReturn(toJwtToken("{}"));
     assertThat(
         "No RAS dbGaP permissions when a user's passport has no visa claim'",
         ecmService.getRasDbgapPermissions(TEST_USER),
@@ -94,7 +94,7 @@ class EcmServiceTest {
 
   @Test
   void testGetRasDbgapPermissionsNoVisas() throws Exception {
-    when(oidcApi.getProviderPassport(any())).thenReturn(toPassportJwt(null));
+    when(oidcApi.getProviderPassport(PassportProvider.RAS)).thenReturn(toPassportJwt(null));
     assertThat(
         "No RAS dbGaP permissions when a user's passport has no visas",
         ecmService.getRasDbgapPermissions(TEST_USER),
@@ -110,7 +110,7 @@ class EcmServiceTest {
         "ras_dbgap_permissions": "should throw InvalidDefinitionException"
       }
       """;
-    when(oidcApi.getProviderPassport(any())).thenReturn(toPassportJwt(invalidVisa));
+    when(oidcApi.getProviderPassport(PassportProvider.RAS)).thenReturn(toPassportJwt(invalidVisa));
 
     assertThat(
         "No RAS dbGaP permissions when a user's passport has invalid visas",
@@ -143,7 +143,7 @@ class EcmServiceTest {
         ]
       }
       """;
-    when(oidcApi.getProviderPassport(any())).thenReturn(toPassportJwt(validVisa));
+    when(oidcApi.getProviderPassport(PassportProvider.RAS)).thenReturn(toPassportJwt(validVisa));
 
     assertThat(
         "Passport visa permissions are successfully decoded and unknown properties ignored",

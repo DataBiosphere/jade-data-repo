@@ -4,6 +4,7 @@ import bio.terra.common.FutureUtils;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -35,7 +36,8 @@ public class TableDependencyDao {
 
   @Autowired
   public TableDependencyDao(
-      @Qualifier("azureTableThreadpool") AsyncTaskExecutor azureTableThreadpool) {
+      @Qualifier(AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
+          AsyncTaskExecutor azureTableThreadpool) {
     this.azureTableThreadpool = azureTableThreadpool;
   }
 

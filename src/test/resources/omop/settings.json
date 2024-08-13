@@ -1,4 +1,6 @@
 {
+  "name": "Integration test settings",
+  "description": "Description for integration test settings",
   "domainOptions": [
     {
       "kind": "domain",

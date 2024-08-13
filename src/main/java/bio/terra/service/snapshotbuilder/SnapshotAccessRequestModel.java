@@ -86,12 +86,15 @@ public record SnapshotAccessRequestModel(
             .map(
                 criteria ->
                     switch (criteria.getKind()) {
-                      case LIST -> generateSummaryForCriteria(
-                          (SnapshotBuilderProgramDataListCriteria) criteria, settings);
-                      case RANGE -> generateSummaryForCriteria(
-                          (SnapshotBuilderProgramDataRangeCriteria) criteria, settings);
-                      case DOMAIN -> generateSummaryForCriteria(
-                          (SnapshotBuilderDomainCriteria) criteria, settings);
+                      case LIST ->
+                          generateSummaryForCriteria(
+                              (SnapshotBuilderProgramDataListCriteria) criteria, settings);
+                      case RANGE ->
+                          generateSummaryForCriteria(
+                              (SnapshotBuilderProgramDataRangeCriteria) criteria, settings);
+                      case DOMAIN ->
+                          generateSummaryForCriteria(
+                              (SnapshotBuilderDomainCriteria) criteria, settings);
                     })
             .collect(Collectors.joining("\n")));
   }

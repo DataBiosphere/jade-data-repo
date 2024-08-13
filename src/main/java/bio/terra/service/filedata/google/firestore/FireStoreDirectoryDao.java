@@ -332,6 +332,7 @@ public class FireStoreDirectoryDao {
     CollectionReference dirColl = firestore.collection(collectionId);
     return query(dirColl.orderBy("path"));
   }
+
   // -- private methods --
 
   List<FireStoreDirectoryEntry> enumerateDirectory(

@@ -4,7 +4,6 @@ import static org.mockito.Mockito.verify;
 
 import bio.terra.app.configuration.NotificationConfiguration;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -34,13 +33,12 @@ class NotificationServiceTest {
 
   @Test
   void snapshotReady() throws Exception {
-    var user = AuthenticationFixtures.randomUserRequest();
-    notificationService.snapshotReady(user, "link", "name", "summary");
+    notificationService.snapshotReady("id", "link", "name", "summary");
     verify(pubSubService)
         .publishMessage(
             configuration.projectId(),
             configuration.topicId(),
             """
-            {"notificationType":"SnapshotReadyNotification","recipientUserId":"subjectid","snapshotExportLink":"link","snapshotName":"name","snapshotSummary":"summary"}""");
+            {"notificationType":"SnapshotReadyNotification","recipientUserId":"id","snapshotExportLink":"link","snapshotName":"name","snapshotSummary":"summary"}""");
   }
 }

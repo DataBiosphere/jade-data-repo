@@ -130,7 +130,7 @@ import org.springframework.web.client.HttpClientErrorException;
 @ActiveProfiles({"google", "unittest"})
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class SnapshotServiceTest {
+public class SnapshotServiceTest {
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
@@ -615,24 +615,27 @@ class SnapshotServiceTest {
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContents));
   }
 
+  public static SnapshotAccessRequestModel createRequestModel() {
+    return new SnapshotAccessRequestModel(
+        null,
+        null,
+        null,
+        null,
+        null,
+        "email@a.com",
+        null,
+        null,
+        SnapshotAccessRequestStatus.APPROVED,
+        null,
+        null);
+  }
+
   @Test
   void validateForByRequestIdModeApproved() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel(
-            null,
-            null,
-            null,
-            null,
-            null,
-            "email@a.com",
-            null,
-            null,
-            SnapshotAccessRequestStatus.APPROVED,
-            null,
-            null);
+    SnapshotAccessRequestModel accessRequestResponse = createRequestModel();
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));

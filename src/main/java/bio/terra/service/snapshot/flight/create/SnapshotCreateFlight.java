@@ -438,7 +438,8 @@ public class SnapshotCreateFlight extends Flight {
               snapshotRequestDao, snapshotRequestId, snapshotId));
       // Notify user that snapshot is ready to use.
       addStep(
-          new NotifyUserOfSnapshotCreationStep(snapshotBuilderService, userReq, snapshotRequestId));
+          new NotifyUserOfSnapshotCreationStep(
+              snapshotBuilderService, snapshotRequestDao, iamService, snapshotRequestId));
     }
   }
 }

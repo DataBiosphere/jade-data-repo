@@ -584,12 +584,10 @@ class SnapshotBuilderServiceTest {
     when(snapshotService.retrieve(request.createdSnapshotId())).thenReturn(snapshot);
     when(snapshotBuilderSettingsDao.getBySnapshotId(request.sourceSnapshotId()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
-    snapshotBuilderService.notifySnapshotReady(TEST_USER, request.id());
+    String id = "id";
+    snapshotBuilderService.notifySnapshotReady(id, request.id());
     verify(notificationService)
         .snapshotReady(
-            eq(TEST_USER),
-            anyString(),
-            eq(snapshot.getName()),
-            eq("No snapshot specification found"));
+            eq(id), anyString(), eq(snapshot.getName()), eq("No snapshot specification found"));
   }
 }

@@ -1,7 +1,6 @@
 package bio.terra.service.notification;
 
 import bio.terra.app.configuration.NotificationConfiguration;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import jakarta.annotation.PostConstruct;
@@ -40,17 +39,14 @@ public class NotificationService {
   }
 
   public void snapshotReady(
-      AuthenticatedUserRequest user,
-      String snapshotExportLink,
-      String snapshotName,
-      String snapshotSummary) {
+      String subjectId, String snapshotExportLink, String snapshotName, String snapshotSummary) {
     try {
       pubSubService.publishMessage(
           notificationConfiguration.projectId(),
           notificationConfiguration.topicId(),
           objectMapper.writeValueAsString(
               new SnapshotReadyNotification(
-                  user.getSubjectId(), snapshotExportLink, snapshotName, snapshotSummary)));
+                  subjectId, snapshotExportLink, snapshotName, snapshotSummary)));
     } catch (IOException e) {
       logger.warn("Error sending notification", e);
     }

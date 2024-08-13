@@ -115,15 +115,10 @@ class SnapshotBuilderServiceTest {
             terraConfiguration);
   }
 
-  private static SnapshotAccessRequestModel createRequestModel() {
-    return new SnapshotAccessRequestModel(
-        UUID.randomUUID(), null, null, null, null, null, null, null, null, UUID.randomUUID(), null);
-  }
-
   @Test
   void createRequest() {
     UUID snapshotId = UUID.randomUUID();
-    SnapshotAccessRequestModel model = createRequestModel();
+    SnapshotAccessRequestModel model = SnapshotBuilderTestData.createAccessRequest();
     when(snapshotRequestDao.create(
             SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
         .thenReturn(model);
@@ -141,7 +136,7 @@ class SnapshotBuilderServiceTest {
   @Test
   void createRequestRollsBackIfSamFails() {
     UUID snapshotId = UUID.randomUUID();
-    SnapshotAccessRequestModel model = createRequestModel();
+    SnapshotAccessRequestModel model = SnapshotBuilderTestData.createAccessRequest();
     SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId);
     when(snapshotRequestDao.create(request, TEST_USER.getEmail())).thenReturn(model);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
@@ -444,7 +439,7 @@ class SnapshotBuilderServiceTest {
   @Test
   void testRejectRequest() {
     UUID id = UUID.randomUUID();
-    var response = createRequestModel();
+    var response = SnapshotBuilderTestData.createAccessRequest();
     when(snapshotRequestDao.getById(id)).thenReturn(response);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -456,10 +451,8 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void testApproveRequest() {
-    UUID id = UUID.randomUUID();
-    var response =
-        new SnapshotAccessRequestModel(
-            id, null, null, null, null, null, null, null, null, null, null);
+    var response = SnapshotBuilderTestData.createAccessRequest();
+    UUID id = response.id();
     when(snapshotRequestDao.getById(id)).thenReturn(response);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -471,10 +464,8 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void testGetRequest() {
-    UUID id = UUID.randomUUID();
-    SnapshotAccessRequestModel daoResponse =
-        new SnapshotAccessRequestModel(
-            id, null, null, null, null, null, null, null, null, null, null);
+    var daoResponse = SnapshotBuilderTestData.createAccessRequest();
+    UUID id = daoResponse.id();
     when(snapshotRequestDao.getById(id)).thenReturn(daoResponse);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -494,7 +485,8 @@ class SnapshotBuilderServiceTest {
   @Test
   void testEnumerateRequestsBySnapshot() {
     UUID id = UUID.randomUUID();
-    List<SnapshotAccessRequestModel> daoResponse = List.of(createRequestModel());
+    List<SnapshotAccessRequestModel> daoResponse =
+        List.of(SnapshotBuilderTestData.createAccessRequest());
     when(snapshotRequestDao.enumerateBySnapshot(id)).thenReturn(daoResponse);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -578,7 +570,7 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void notifySnapshotReady() {
-    var request = createRequestModel();
+    var request = SnapshotBuilderTestData.createAccessRequest();
     when(snapshotRequestDao.getById(request.id())).thenReturn(request);
     var snapshot = new Snapshot().name("name");
     when(snapshotService.retrieve(request.createdSnapshotId())).thenReturn(snapshot);

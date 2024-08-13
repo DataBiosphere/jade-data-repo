@@ -7,8 +7,8 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.snapshot.SnapshotServiceTest;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -32,7 +32,7 @@ class NotifyUserOfSnapshotCreationStepTest {
     var step =
         new NotifyUserOfSnapshotCreationStep(
             snapshotBuilderService, snapshotRequestDao, iamService, id);
-    var request = SnapshotServiceTest.createRequestModel();
+    var request = SnapshotBuilderTestData.createAccessRequest();
     var user = new UserIdInfo().userSubjectId("subjectId");
     when(snapshotRequestDao.getById(id)).thenReturn(request);
     when(iamService.getUserIds(request.createdBy())).thenReturn(user);

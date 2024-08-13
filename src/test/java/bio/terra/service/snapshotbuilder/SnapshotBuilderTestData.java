@@ -443,4 +443,19 @@ public class SnapshotBuilderTestData {
                     .requestIdSpec(
                         new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId))));
   }
+
+  public static SnapshotAccessRequestModel createAccessRequest() {
+    return new SnapshotAccessRequestModel(
+        UUID.randomUUID(),
+        null,
+        null,
+        UUID.randomUUID(),
+        null,
+        "email@a.com",
+        null,
+        null,
+        SnapshotAccessRequestStatus.APPROVED,
+        null,
+        null);
+  }
 }

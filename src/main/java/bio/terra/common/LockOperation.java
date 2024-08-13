@@ -22,6 +22,7 @@ public enum LockOperation {
   LockOperation(boolean isLock) {
     this(isLock, null, null);
   }
+
   /**
    * @return additional guidance for users investigating a failed lock operation, usually as part of
    *     a failed job / flight.

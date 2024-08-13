@@ -37,7 +37,7 @@ plugins {
     id 'java'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
-    id 'com.diffplug.spotless' version '6.7.1'
+    id 'com.diffplug.spotless' version '6.25.0'
     id 'com.dorongold.task-tree' version '4.0.0'
     // enables release info in sentry events
     id 'com.gorylenko.gradle-git-properties' version '2.4.2'

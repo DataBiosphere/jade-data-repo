@@ -67,8 +67,8 @@ public class SnapshotRequestValidator implements Validator {
               }
               case BYQUERY -> validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
               case BYROWID -> validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
-              case BYREQUESTID -> validateSnapshotRequestIdSpec(
-                  contents.getRequestIdSpec(), errors);
+              case BYREQUESTID ->
+                  validateSnapshotRequestIdSpec(contents.getRequestIdSpec(), errors);
             }
           });
     }

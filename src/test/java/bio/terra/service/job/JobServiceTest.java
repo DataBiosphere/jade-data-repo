@@ -19,6 +19,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
+import bio.terra.model.JobTargetResourceModel;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -300,6 +301,12 @@ class JobServiceTest {
         StairwayException.class, () -> jobService.retrieveJobResult("abcdef", Object.class, null));
   }
 
+  @Test
+  void testSubmissionAndRetrieval_noParameters() throws InterruptedException {
+    JobModel expectedJob = expectedJobModel(1, false);
+    testSingleRetrieval(expectedJob);
+  }
+
   private Matcher<JobModel> getJobMatcher(JobModel jobModel) {
     return samePropertyValuesAs(jobModel, "submitted", "completed");
   }
@@ -310,24 +317,70 @@ class JobServiceTest {
   }
 
   /**
+   * Submit a flight with optional input parameters and wait for it to finish.
+   *
+   * @param i an integer used to construct distinct flight descriptions, determine the flight class
+   * @param shouldAddParameters whether the job should be submitted with additional input params
+   * @return the expected JobModel representation of the completed flight
+   */
+  private JobModel expectedJobModel(int i, boolean shouldAddParameters) {
+    String description = makeDescription(i);
+    Class<? extends Flight> flightClass = makeFlightClass(i);
+    JobTargetResourceModel targetResource = new JobTargetResourceModel();
+    if (shouldAddParameters) {
+      targetResource
+          .type(IAM_RESOURCE_TYPE.getSamResourceName())
+          .id(IAM_RESOURCE_ID)
+          .action(IAM_RESOURCE_ACTION.toString());
+    }
+
+    return new JobModel()
+        .id(runFlight(description, flightClass, testUser, IAM_RESOURCE_ID, shouldAddParameters))
+        .jobStatus(JobStatusEnum.SUCCEEDED)
+        .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+        .description(description)
+        .className(flightClass.getName())
+        .targetIamResource(targetResource);
+  }
+
+  /**
    * Submit a flight with input parameters and wait for it to finish.
    *
    * @param i an integer used to construct distinct flight descriptions, determine the flight class
    * @return the expected JobModel representation of the completed flight
    */
   private JobModel expectedJobModel(int i) {
-    String description = makeDescription(i);
-    Class<? extends Flight> flightClass = makeFlightClass(i);
+    return expectedJobModel(i, true);
+  }
 
-    return new JobModel()
-        .id(runFlight(description, flightClass, testUser, IAM_RESOURCE_ID))
-        .jobStatus(JobStatusEnum.SUCCEEDED)
-        .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
-        .description(description)
-        .className(flightClass.getName())
-        .iamResourceType(IAM_RESOURCE_TYPE.getSamResourceName())
-        .iamResourceId(IAM_RESOURCE_ID)
-        .iamResourceAction(IAM_RESOURCE_ACTION.toString());
+  /**
+   * Submit a flight with optional input parameters and wait for it to finish.
+   *
+   * @param description flight description
+   * @param clazz flight to submit
+   * @param testUser user initiating the flight
+   * @param resourceId ID of the resource targeted by this flight
+   * @param shouldAddParameters whether the job should be submitted with additional input params
+   * @return the job ID of the completed flight.
+   */
+  private String runFlight(
+      String description,
+      Class<? extends Flight> clazz,
+      AuthenticatedUserRequest testUser,
+      String resourceId,
+      boolean shouldAddParameters) {
+    JobBuilder jobBuilder = jobService.newJob(description, clazz, null, testUser);
+    if (shouldAddParameters) {
+      jobBuilder
+          .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IAM_RESOURCE_TYPE)
+          .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), resourceId)
+          .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IAM_RESOURCE_ACTION);
+    }
+    String jobId = jobBuilder.submit();
+    // Poll repeatedly with no breaks: we expect the job to complete quickly.
+    jobService.waitForJob(jobId, 0);
+    jobIds.add(jobId);
+    return jobId;
   }
 
   /**
@@ -344,17 +397,7 @@ class JobServiceTest {
       Class<? extends Flight> clazz,
       AuthenticatedUserRequest testUser,
       String resourceId) {
-    String jobId =
-        jobService
-            .newJob(description, clazz, null, testUser)
-            .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IAM_RESOURCE_TYPE)
-            .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), resourceId)
-            .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IAM_RESOURCE_ACTION)
-            .submit();
-    // Poll repeatedly with no breaks: we expect the job to complete quickly.
-    jobService.waitForJob(jobId, 0);
-    jobIds.add(jobId);
-    return jobId;
+    return runFlight(description, clazz, testUser, resourceId, true);
   }
 
   /**

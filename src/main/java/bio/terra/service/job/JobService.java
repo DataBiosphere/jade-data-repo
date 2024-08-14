@@ -15,6 +15,7 @@ import bio.terra.common.stairway.MonitoringHook;
 import bio.terra.common.stairway.StairwayComponent;
 import bio.terra.common.stairway.StairwayLoggingHook;
 import bio.terra.model.JobModel;
+import bio.terra.model.JobTargetResourceModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -264,12 +265,6 @@ public class JobService {
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
     FlightMap inputParameters = flightState.getInputParameters();
     String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
-    IamResourceType iamResourceType =
-        inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
-    String iamResourceId =
-        inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
-    IamAction iamResourceAction =
-        inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
     String submittedDate = flightState.getSubmitted().toString();
     JobModel.JobStatusEnum jobStatus = getJobStatus(flightState);
 
@@ -288,23 +283,34 @@ public class JobService {
       completedDate = flightState.getCompleted().get().toString();
     }
 
-    var jobModel =
-        new JobModel()
-            .id(flightState.getFlightId())
-            .className(flightState.getClassName())
-            .description(description)
-            .jobStatus(jobStatus)
-            .statusCode(statusCode.value())
-            .submitted(submittedDate)
-            .completed(completedDate)
-            .iamResourceId(iamResourceId);
+    return new JobModel()
+        .id(flightState.getFlightId())
+        .className(flightState.getClassName())
+        .description(description)
+        .jobStatus(jobStatus)
+        .statusCode(statusCode.value())
+        .submitted(submittedDate)
+        .completed(completedDate)
+        .targetIamResource(createTargetResource(flightState));
+  }
+
+  private JobTargetResourceModel createTargetResource(FlightState flightState) {
+    FlightMap inputParameters = flightState.getInputParameters();
+    IamResourceType iamResourceType =
+        inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+    String iamResourceId =
+        inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+    IamAction iamResourceAction =
+        inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+
+    JobTargetResourceModel targetResource = new JobTargetResourceModel().id(iamResourceId);
     if (iamResourceType != null) {
-      jobModel.iamResourceType(iamResourceType.getSamResourceName());
+      targetResource.setType(iamResourceType.getSamResourceName());
     }
     if (iamResourceAction != null) {
-      jobModel.iamResourceAction(iamResourceAction.toString());
+      targetResource.setAction(iamResourceAction.toString());
     }
-    return jobModel;
+    return targetResource;
   }
 
   private JobModel.JobStatusEnum getJobStatus(FlightState flightState) {

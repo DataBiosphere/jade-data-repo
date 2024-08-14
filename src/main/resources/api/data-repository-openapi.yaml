@@ -6709,6 +6709,17 @@ components:
         class_name:
           type: string
           description: Class name of the flight
+        iam_resource_type:
+          type: string
+          description: Type of the flight's target resource
+        iam_resource_id:
+          type: string
+          description: Unique identifier for the flight's target resource
+        iam_resource_action:
+          type: string
+          description: >
+            The Sam action which a caller must hold on the flight's target resource in order to
+            retrieve information about this flight
       description: >
         Status of job
     ErrorModel:

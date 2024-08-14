@@ -84,6 +84,10 @@ class JobServiceTest {
           .setToken("token")
           .build();
 
+  private static final IamResourceType IAM_RESOURCE_TYPE = IamResourceType.DATASET;
+  private static final String IAM_RESOURCE_ID = UUID.randomUUID().toString();
+  private static final IamAction IAM_RESOURCE_ACTION = IamAction.SHARE_POLICY_READER;
+
   private final List<String> jobIds = new ArrayList<>();
 
   @Autowired private StairwayJdbcConfiguration stairwayJdbcConfiguration;
@@ -120,16 +124,7 @@ class JobServiceTest {
   void enumerateTooLongBackFilterTest() throws Exception {
     int numVisibleJobs = 3;
     List<JobModel> expectedJobs =
-        IntStream.range(0, numVisibleJobs)
-            .mapToObj(
-                i ->
-                    new JobModel()
-                        .id(runFlight(makeDescription(i), makeFlightClass(i), testUser))
-                        .jobStatus(JobStatusEnum.SUCCEEDED)
-                        .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
-                        .description(makeDescription(i))
-                        .className(makeFlightClass(i).getName()))
-            .toList();
+        IntStream.range(0, numVisibleJobs).mapToObj(this::expectedJobModel).toList();
     assertThat(
         "All jobs are returned",
         jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
@@ -150,17 +145,7 @@ class JobServiceTest {
     // We perform 7 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
-    List<JobModel> expectedJobs =
-        IntStream.range(0, 7)
-            .mapToObj(
-                i ->
-                    new JobModel()
-                        .id(runFlight(makeDescription(i), makeFlightClass(i), testUser))
-                        .jobStatus(JobStatusEnum.SUCCEEDED)
-                        .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
-                        .description(makeDescription(i))
-                        .className(makeFlightClass(i).getName()))
-            .toList();
+    List<JobModel> expectedJobs = IntStream.range(0, 7).mapToObj(this::expectedJobModel).toList();
 
     // Test single retrieval
     testSingleRetrieval(expectedJobs.get(2));
@@ -215,7 +200,7 @@ class JobServiceTest {
     UUID privateDatasetId = UUID.randomUUID();
     for (int i = 0; i < 2; i++) {
       allJobs.add(
-          runFlightWithParameters(
+          runFlightAndRetrieveJob(
               makeDescription(i), makeFlightClass(i), testUser, String.valueOf(privateDatasetId)));
     }
 
@@ -236,7 +221,7 @@ class JobServiceTest {
     UUID sharedDatasetId = UUID.randomUUID();
     for (int i = 0; i < 2; i++) {
       allJobs.add(
-          runFlightWithParameters(
+          runFlightAndRetrieveJob(
               makeDescription(i), makeFlightClass(i), testUser, String.valueOf(sharedDatasetId)));
     }
 
@@ -247,7 +232,7 @@ class JobServiceTest {
     // Launch 5 jobs as the testUser2
     for (int i = 0; i < 5; i++) {
       allJobs.add(
-          runFlightWithParameters(
+          runFlightAndRetrieveJob(
               makeDescription(i), makeFlightClass(i), testUser2, String.valueOf(sharedDatasetId)));
     }
 
@@ -324,17 +309,37 @@ class JobServiceTest {
     return jobModels.stream().map(this::getJobMatcher).toArray(Matcher[]::new);
   }
 
-  // Submit a flight; wait for it to finish; return the flight id
-  private String runFlight(
-      String description, Class<? extends Flight> clazz, AuthenticatedUserRequest testUser) {
-    String jobId = jobService.newJob(description, clazz, null, testUser).submit();
-    // Poll repeatedly with no breaks: we expect the job to complete quickly.
-    jobService.waitForJob(jobId, 0);
-    jobIds.add(jobId);
-    return jobId;
+  /**
+   * Submit a flight with input parameters and wait for it to finish.
+   *
+   * @param i an integer used to construct distinct flight descriptions, determine the flight class
+   * @return the expected JobModel representation of the completed flight
+   */
+  private JobModel expectedJobModel(int i) {
+    String description = makeDescription(i);
+    Class<? extends Flight> flightClass = makeFlightClass(i);
+
+    return new JobModel()
+        .id(runFlight(description, flightClass, testUser, IAM_RESOURCE_ID))
+        .jobStatus(JobStatusEnum.SUCCEEDED)
+        .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+        .description(description)
+        .className(flightClass.getName())
+        .iamResourceType(IAM_RESOURCE_TYPE.getSamResourceName())
+        .iamResourceId(IAM_RESOURCE_ID)
+        .iamResourceAction(IAM_RESOURCE_ACTION.toString());
   }
 
-  private JobModel runFlightWithParameters(
+  /**
+   * Submit a flight with input parameters and wait for it to finish.
+   *
+   * @param description flight description
+   * @param clazz flight to submit
+   * @param testUser user initiating the flight
+   * @param resourceId ID of the resource targeted by this flight
+   * @return the job ID of the completed flight.
+   */
+  private String runFlight(
       String description,
       Class<? extends Flight> clazz,
       AuthenticatedUserRequest testUser,
@@ -342,14 +347,32 @@ class JobServiceTest {
     String jobId =
         jobService
             .newJob(description, clazz, null, testUser)
-            .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+            .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IAM_RESOURCE_TYPE)
             .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), resourceId)
-            .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
+            .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IAM_RESOURCE_ACTION)
             .submit();
     // Poll repeatedly with no breaks: we expect the job to complete quickly.
     jobService.waitForJob(jobId, 0);
     jobIds.add(jobId);
-    return jobService.retrieveJob(jobId, testUser);
+    return jobId;
+  }
+
+  /**
+   * Submit a flight with input parameters and wait for it to finish.
+   *
+   * @param description flight description
+   * @param clazz flight to submit
+   * @param testUser user initiating the flight
+   * @param resourceId ID of the resource targeted by this flight
+   * @return the job representation of the completed flight.
+   */
+  private JobModel runFlightAndRetrieveJob(
+      String description,
+      Class<? extends Flight> clazz,
+      AuthenticatedUserRequest testUser,
+      String resourceId) {
+    String completedJobId = runFlight(description, clazz, testUser, resourceId);
+    return jobService.retrieveJob(completedJobId, testUser);
   }
 
   private String makeDescription(int ii) {

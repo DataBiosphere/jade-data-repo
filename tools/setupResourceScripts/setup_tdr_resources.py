@@ -161,32 +161,20 @@ def add_billing_profile_members(clients, profile_id):
     )
 
 
-def create_ingest_request_csv(table, upload_prefix):
+def create_ingest_request(table, upload_prefix, format):
     return {
-        "csv_skip_leading_rows": 1,  # change to 0 if there is not a header row
-        "format": "csv",
-        "path": f"{upload_prefix}/{table}.csv",
+        # change to 0 if there is not a header row for csv, ignored for json
+        "csv_skip_leading_rows": 1,
+        "format": format,
+        "path": f"{upload_prefix}/{table}.{format}",
         "table": table
     }
-
-
-def create_ingest_request_json(table, upload_prefix):
-    return {
-        "format": "json",
-        "path": f"{upload_prefix}/{table}.json",
-        "table": table
-    }
-
 
 def dataset_ingest(clients, dataset_id, dataset_to_upload, format):
-    ingest_request = {}
     jobs = []
     for table in dataset_to_upload["tables"]:
         upload_prefix = dataset_to_upload["upload_prefix"]
-        if format == "json":
-            ingest_request = create_ingest_request_json(table, upload_prefix)
-        elif format == "csv":
-            ingest_request = create_ingest_request_csv(table, upload_prefix)
+        ingest_request = create_ingest_request(table, upload_prefix, format)
         print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
         jobs.append(
             clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request),
@@ -228,10 +216,10 @@ def create_dataset(clients, dataset_to_upload, profile_id):
         )
         print(f"Created dataset {dataset_name} with id: {dataset['id']}")
 
-    if dataset_to_upload["format"] == "json" or dataset_to_upload["format"] == "csv":
-        dataset_ingest(clients, dataset["id"], dataset_to_upload,
-                       dataset_to_upload["format"])
-    elif dataset_to_upload["format"] == "array":
+    format = dataset_to_upload["format"]
+    if format == "json" or format == "csv":
+        dataset_ingest(clients, dataset["id"], dataset_to_upload, format)
+    elif format == "array":
         dataset_ingest_array(clients, dataset["id"], dataset_to_upload)
     else:
         raise Exception(

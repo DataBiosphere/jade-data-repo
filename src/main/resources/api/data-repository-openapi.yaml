@@ -6709,8 +6709,28 @@ components:
         class_name:
           type: string
           description: Class name of the flight
+        target_iam_resource:
+          $ref: '#/components/schemas/JobTargetResourceModel'
       description: >
         Status of job
+    JobTargetResourceModel:
+      required:
+        - type
+        - id
+      type: object
+      description: The IAM resource targeted by a flight
+      properties:
+        type:
+          type: string
+          description: Type of the flight's target resource
+        id:
+          type: string
+          description: Unique identifier for the flight's target resource
+        action:
+          type: string
+          description: >
+            The Sam action which a caller must hold on the flight's target resource in order to
+            retrieve information about this flight
     ErrorModel:
       required:
         - message

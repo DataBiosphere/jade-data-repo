@@ -125,7 +125,9 @@ class JobServiceTest {
   void enumerateTooLongBackFilterTest() throws Exception {
     int numVisibleJobs = 3;
     List<JobModel> expectedJobs =
-        IntStream.range(0, numVisibleJobs).mapToObj(this::expectedJobModel).toList();
+        IntStream.range(0, numVisibleJobs)
+            .mapToObj(this::runFlightAndReturnExpectedJobModel)
+            .toList();
     assertThat(
         "All jobs are returned",
         jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
@@ -146,7 +148,8 @@ class JobServiceTest {
     // We perform 7 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
-    List<JobModel> expectedJobs = IntStream.range(0, 7).mapToObj(this::expectedJobModel).toList();
+    List<JobModel> expectedJobs =
+        IntStream.range(0, 7).mapToObj(this::runFlightAndReturnExpectedJobModel).toList();
 
     // Test single retrieval
     testSingleRetrieval(expectedJobs.get(2));
@@ -303,7 +306,7 @@ class JobServiceTest {
 
   @Test
   void testSubmissionAndRetrieval_noParameters() throws InterruptedException {
-    JobModel expectedJob = expectedJobModel(1, false);
+    JobModel expectedJob = runFlightAndReturnExpectedJobModel(1, false);
     testSingleRetrieval(expectedJob);
   }
 
@@ -323,7 +326,7 @@ class JobServiceTest {
    * @param shouldAddParameters whether the job should be submitted with additional input params
    * @return the expected JobModel representation of the completed flight
    */
-  private JobModel expectedJobModel(int i, boolean shouldAddParameters) {
+  private JobModel runFlightAndReturnExpectedJobModel(int i, boolean shouldAddParameters) {
     String description = makeDescription(i);
     Class<? extends Flight> flightClass = makeFlightClass(i);
     JobTargetResourceModel targetResource = new JobTargetResourceModel();
@@ -333,9 +336,12 @@ class JobServiceTest {
           .id(IAM_RESOURCE_ID)
           .action(IAM_RESOURCE_ACTION.toString());
     }
+    // Submit a flight with optional input parameters and wait for it to finish.
+    String jobId =
+        runFlight(description, flightClass, testUser, IAM_RESOURCE_ID, shouldAddParameters);
 
     return new JobModel()
-        .id(runFlight(description, flightClass, testUser, IAM_RESOURCE_ID, shouldAddParameters))
+        .id(jobId)
         .jobStatus(JobStatusEnum.SUCCEEDED)
         .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
         .description(description)
@@ -349,8 +355,8 @@ class JobServiceTest {
    * @param i an integer used to construct distinct flight descriptions, determine the flight class
    * @return the expected JobModel representation of the completed flight
    */
-  private JobModel expectedJobModel(int i) {
-    return expectedJobModel(i, true);
+  private JobModel runFlightAndReturnExpectedJobModel(int i) {
+    return runFlightAndReturnExpectedJobModel(i, true);
   }
 
   /**

@@ -431,6 +431,9 @@ public class SnapshotBuilderTestData {
         null,
         SnapshotAccessRequestStatus.SUBMITTED,
         null,
+        null,
+        null,
+        null,
         null);
   }
 

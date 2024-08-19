@@ -632,6 +632,9 @@ class SnapshotServiceTest {
             null,
             SnapshotAccessRequestStatus.APPROVED,
             null,
+            null,
+            null,
+            null,
             null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
@@ -656,7 +659,10 @@ class SnapshotServiceTest {
             null,
             SnapshotAccessRequestStatus.APPROVED,
             null,
-            flightId);
+            flightId,
+            null,
+            null,
+            null);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.ERROR);
@@ -668,20 +674,9 @@ class SnapshotServiceTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            SnapshotAccessRequestStatus.SUBMITTED,
-            null,
-            null);
-    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+    SnapshotAccessRequestModel accessRequestModel =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(UUID.randomUUID());
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestModel);
 
     assertThrows(
         ValidationException.class,
@@ -706,6 +701,9 @@ class SnapshotServiceTest {
             null,
             SnapshotAccessRequestStatus.APPROVED,
             UUID.randomUUID(),
+            null,
+            null,
+            null,
             null);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -733,7 +731,10 @@ class SnapshotServiceTest {
             null,
             SnapshotAccessRequestStatus.APPROVED,
             null,
-            flightId);
+            flightId,
+            null,
+            null,
+            null);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     // any flight status that isn't error or fatal
@@ -759,6 +760,9 @@ class SnapshotServiceTest {
             null,
             null,
             SnapshotAccessRequestStatus.APPROVED,
+            null,
+            null,
+            null,
             null,
             null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -1177,6 +1181,9 @@ class SnapshotServiceTest {
             null,
             SnapshotAccessRequestStatus.APPROVED,
             null,
+            null,
+            null,
+            null,
             null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
@@ -1431,6 +1438,9 @@ class SnapshotServiceTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null));
     when(settingsDao.getBySnapshotId(sourceSnapshotId))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -1480,8 +1490,7 @@ class SnapshotServiceTest {
         new SnapshotRequestModel().contents(List.of(contentsModel));
 
     SnapshotAccessRequestModel snapshotAccessRequest =
-        new SnapshotAccessRequestModel(
-            null, null, null, snapshotId, null, null, null, null, null, null, null);
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
     Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
@@ -1537,7 +1546,8 @@ class SnapshotServiceTest {
     when(snapshotRequestDao.getById(uuid))
         .thenReturn(
             new SnapshotAccessRequestModel(
-                uuid, " a$%", null, null, null, null, null, null, null, null, null));
+                uuid, " a$%", null, null, null, null, null, null, null, null, null, null, null,
+                null));
 
     assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
   }

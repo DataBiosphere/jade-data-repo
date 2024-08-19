@@ -140,7 +140,10 @@ class SnapshotAccessRequestModelTest {
         Instant.now(),
         SnapshotAccessRequestStatus.SUBMITTED,
         UUID.randomUUID(),
-        "flightid");
+        "flightid",
+        "samGroupName",
+        "samGroupName@firecloud.org",
+        "tdr@serviceaccount.com");
   }
 
   private void compareModelAndResponseFields(
@@ -159,5 +162,7 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.flightid(), is(response.getFlightid()));
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
     assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
+    assertThat(model.samGroupName(), is(response.getSamGroupName()));
+    assertThat(model.samGroupEmail(), is(response.getSamGroupEmail()));
   }
 }

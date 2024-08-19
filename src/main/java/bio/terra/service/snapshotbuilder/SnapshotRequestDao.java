@@ -221,6 +221,28 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void updateSamGroup(
+      UUID requestId, String samGroupName, String samGroupEmail, String createdByEmail) {
+    String sql =
+        """
+        UPDATE snapshot_request SET
+        sam_group_name = :sam_group_name,
+        sam_group_email = :sam_group_email,
+        sam_group_created_by = :sam_group_created_by
+        WHERE id = :id
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue(SAM_GROUP_NAME, samGroupName)
+            .addValue(SAM_GROUP_EMAIL, samGroupEmail)
+            .addValue(SAM_GROUP_CREATED_BY, createdByEmail)
+            .addValue(ID, requestId);
+    if (jdbcTemplate.update(sql, params) == 0) {
+      throw new NotFoundException(NOT_FOUND_MESSAGE);
+    }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void delete(UUID requestId) {
     String sql = "DELETE FROM snapshot_request WHERE id = :id";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue(ID, requestId);

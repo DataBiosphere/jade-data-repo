@@ -47,6 +47,9 @@ class SnapshotRequestDaoTest {
 
   private static final String EMAIL = "user@gmail.com";
   private static final String FLIGHT_ID = "flight_id";
+  private static final String SAM_GROUP_NAME = "samGroupName";
+  private static final String SAM_GROUP_EMAIL = "samGroupName@firecloud.org";
+  private static final String SAM_GROUP_CREATED_BY = "samGroupCreatedByUser@gmail.com";
 
   @BeforeEach
   void beforeEach() throws IOException {
@@ -66,14 +69,21 @@ class SnapshotRequestDaoTest {
     return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
   }
 
-  private void verifyResponseContents(SnapshotAccessRequestModel response) {
+  private void verifyResponseContents(
+      SnapshotAccessRequestModel response, String... ignoredFields) {
     SnapshotAccessRequestModel expected =
         SnapshotBuilderTestData.createSnapshotAccessRequestModel(sourceSnapshot.getId());
+
+    // always ignore id and createdDate which are unique
+    String[] allIgnoredFields = new String[ignoredFields.length + 2];
+    allIgnoredFields[0] = "id";
+    allIgnoredFields[1] = "createdDate";
+    System.arraycopy(ignoredFields, 0, allIgnoredFields, 2, ignoredFields.length);
 
     assertThat(
         "Given response is the same as expected.",
         response,
-        samePropertyValuesAs(expected, "id", "createdDate", "flightid", "createdSnapshotId"));
+        samePropertyValuesAs(expected, allIgnoredFields));
     assertNotNull(response.id(), "Snapshot Access Request Response should have an id");
     assertNotNull(
         response.createdDate(),
@@ -205,7 +215,7 @@ class SnapshotRequestDaoTest {
     SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());
 
     // only the flightId is updated
-    verifyResponseContents(updatedResponse);
+    verifyResponseContents(updatedResponse, "flightid");
     assertThat(
         "Updated Snapshot Access Request Response should have flight id",
         updatedResponse.flightid(),
@@ -227,7 +237,7 @@ class SnapshotRequestDaoTest {
     SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());
 
     // only the createdSnapshotId is updated
-    verifyResponseContents(updatedResponse);
+    verifyResponseContents(updatedResponse, "createdSnapshotId");
     assertThat(
         "Updated Snapshot Access Request Response should have created snapshot id",
         updatedResponse.createdSnapshotId(),
@@ -248,6 +258,39 @@ class SnapshotRequestDaoTest {
         NotFoundException.class,
         () ->
             snapshotRequestDao.updateCreatedSnapshotId(sourceSnapshot.getId(), UUID.randomUUID()));
+  }
+
+  @Test
+  void updateSamGroup() {
+    SnapshotAccessRequestModel response = createRequest();
+    verifyResponseContents(response);
+    snapshotRequestDao.updateSamGroup(
+        response.id(), SAM_GROUP_NAME, SAM_GROUP_EMAIL, SAM_GROUP_CREATED_BY);
+    SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());
+
+    // other fields remain unchanged
+    verifyResponseContents(updatedResponse, "samGroupName", "samGroupEmail", "samGroupCreatedBy");
+    assertThat(
+        "Updated Snapshot Access Request Response should have saved sam group name",
+        updatedResponse.samGroupName(),
+        equalTo(SAM_GROUP_NAME));
+    assertThat(
+        "Updated Snapshot Access Request Response should have saved sam group email",
+        updatedResponse.samGroupEmail(),
+        equalTo(SAM_GROUP_EMAIL));
+    assertThat(
+        "Updated Snapshot Access Request Response should have saved sam group created by email",
+        updatedResponse.samGroupCreatedByEmail(),
+        equalTo(SAM_GROUP_CREATED_BY));
+  }
+
+  @Test
+  void updateSamGroupRequestIdNotFound() {
+    assertThrows(
+        NotFoundException.class,
+        () ->
+            snapshotRequestDao.updateSamGroup(
+                UUID.randomUUID(), SAM_GROUP_NAME, SAM_GROUP_EMAIL, SAM_GROUP_CREATED_BY));
   }
 
   @Test

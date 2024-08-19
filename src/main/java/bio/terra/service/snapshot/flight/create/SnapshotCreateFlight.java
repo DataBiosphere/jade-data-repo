@@ -323,6 +323,13 @@ public class SnapshotCreateFlight extends Flight {
         new IfDataAccessControlGroupStep(
             new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId)));
 
+    // On the snapshot access request, save information about the Sam group that was added as a DAC
+    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
+      addStep(
+          new AddSamGroupToSnapshotRequestStep(
+              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId(), userReq));
+    }
+
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot
       addStep(

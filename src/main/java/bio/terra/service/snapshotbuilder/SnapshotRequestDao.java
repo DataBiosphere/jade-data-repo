@@ -37,10 +37,10 @@ public class SnapshotRequestDao {
   private static final String STATUS_UPDATED_DATE = "status_updated_date";
   private static final String STATUS = "status";
   private static final String FLIGHT_ID = "flightid";
-  private static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
-  private static final String SAM_GROUP_NAME = "sam_group_name";
-  private static final String SAM_GROUP_EMAIL = "sam_group_email";
-  private static final String SAM_GROUP_CREATED_BY = "sam_group_created_by";
+  public static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
+  public static final String SAM_GROUP_NAME = "sam_group_name";
+  public static final String SAM_GROUP_EMAIL = "sam_group_email";
+  public static final String SAM_GROUP_CREATED_BY = "sam_group_created_by";
   private static final String AUTHORIZED_RESOURCES = "authorized_resources";
   private static final String NOT_FOUND_MESSAGE =
       "Snapshot Access Request with given id does not exist.";

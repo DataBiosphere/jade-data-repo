@@ -323,13 +323,6 @@ public class SnapshotCreateFlight extends Flight {
         new IfDataAccessControlGroupStep(
             new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId)));
 
-    // On the snapshot access request, save information about the Sam group that was added as a DAC
-    if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
-      addStep(
-          new AddSamGroupToSnapshotRequestStep(
-              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId(), userReq));
-    }
-
     if (platform.isGcp()) {
       // Make the firestore file system for the snapshot
       addStep(
@@ -439,11 +432,15 @@ public class SnapshotCreateFlight extends Flight {
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
 
-    // at end of flight, add created snapshot id to the snapshot request
+    // on the snapshot request, save information about the Sam group that was added as a DAC
+    // and at end of flight, add the created snapshot id to the snapshot request
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       addStep(
-          new AddCreatedSnapshotIdToSnapshotRequestStep(
-              snapshotRequestDao, contents.getRequestIdSpec().getSnapshotRequestId(), snapshotId));
+          new AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep(
+              snapshotRequestDao,
+              contents.getRequestIdSpec().getSnapshotRequestId(),
+              snapshotId,
+              tdrServiceAccountEmail));
     }
   }
 }

@@ -6,8 +6,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
@@ -23,21 +21,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class AddSamGroupToSnapshotRequestStepTest {
-
+class AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStepTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
-  @Mock private FlightContext flightContext;
+  @Mock private FlightContext context;
   private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
+  private static final UUID CREATED_SNAPSHOT_ID = UUID.randomUUID();
   private static final String SAM_GROUP_NAME = "samGroupName";
   private static final String SAM_GROUP_EMAIL = "samGroupName@firecloud.org";
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
-  private AddSamGroupToSnapshotRequestStep step;
+  private static final String SAM_GROUP_CREATED_BY_EMAIL = "tdr@serviceaccount.com";
+  private AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep step;
   private FlightMap workingMap;
 
   @BeforeEach
-  void setUp() {
-    step = new AddSamGroupToSnapshotRequestStep(snapshotRequestDao, SNAPSHOT_REQUEST_ID, TEST_USER);
+  void beforeEach() {
+    step =
+        new AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep(
+            snapshotRequestDao,
+            SNAPSHOT_REQUEST_ID,
+            CREATED_SNAPSHOT_ID,
+            SAM_GROUP_CREATED_BY_EMAIL);
     workingMap = new FlightMap();
   }
 
@@ -45,24 +47,27 @@ class AddSamGroupToSnapshotRequestStepTest {
   void doStep() throws InterruptedException {
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, SAM_GROUP_NAME);
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SAM_GROUP_EMAIL);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    StepResult result = step.doStep(flightContext);
+    when(context.getWorkingMap()).thenReturn(workingMap);
+    StepResult result = step.doStep(context);
     verify(snapshotRequestDao)
-        .updateSamGroup(SNAPSHOT_REQUEST_ID, SAM_GROUP_NAME, SAM_GROUP_EMAIL, TEST_USER.getEmail());
+        .updateSamGroup(
+            SNAPSHOT_REQUEST_ID, SAM_GROUP_NAME, SAM_GROUP_EMAIL, SAM_GROUP_CREATED_BY_EMAIL);
+    verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 
   @Test
   void doStepFail() {
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, SAM_GROUP_NAME);
-    when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    assertThrows(IllegalArgumentException.class, () -> step.doStep(flightContext));
+    when(context.getWorkingMap()).thenReturn(workingMap);
+    assertThrows(IllegalArgumentException.class, () -> step.doStep(context));
   }
 
   @Test
   void undoStep() throws InterruptedException {
-    StepResult result = step.undoStep(flightContext);
+    StepResult result = step.undoStep(null);
     verify(snapshotRequestDao).updateSamGroup(SNAPSHOT_REQUEST_ID, null, null, null);
+    verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, null);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 }

@@ -142,7 +142,6 @@ class SnapshotCreateFlightTest {
             "CreateSnapshotSetDataAccessGroupsStep",
             "IfDataAccessControlGroupStep",
             "IfDataAccessControlGroupStep",
-            "AddSamGroupToSnapshotRequestStep",
             "CreateSnapshotFireStoreDataStep",
             "CreateSnapshotFireStoreComputeStep",
             "SnapshotAuthzTabularAclStep",
@@ -155,6 +154,6 @@ class SnapshotCreateFlightTest {
             "CreateSnapshotSetResponseStep",
             "CreateSnapshotJournalEntryStep",
             "JournalRecordUpdateEntryStep",
-            "AddCreatedSnapshotIdToSnapshotRequestStep"));
+            "AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep"));
   }
 }

@@ -3,3 +3,7 @@
 
 # DR-1850: Replace checkstyle with spotless
 c6a70ff75f408fcb8dc36cda777e91b7a27be535
+
+# DCJ-400: Upgrade com.diffplug.spotless 6.7.1 -> 6.25.0
+# https://github.com/DataBiosphere/jade-data-repo/pull/1771
+99e385bd48fc7ab62b83d21f18682fcbb7147fa7

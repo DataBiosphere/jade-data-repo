@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -79,5 +80,15 @@ class LoadLockStepTest {
     assertThrows(ConflictException.class, () -> step.doStep(flightContext));
 
     assertThat(workingMap.get(LoadMapKeys.LOAD_ID, UUID.class), equalTo(null));
+  }
+
+  @Test
+  void undoStep() {
+    StepResult undoResult = step.undoStep(flightContext);
+
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    assertThat(undoResult.getException().isPresent(), equalTo(false));
+
+    verify(loadService).unlockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID);
   }
 }

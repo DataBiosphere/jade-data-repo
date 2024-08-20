@@ -36,6 +36,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class LoadDao {
   private static final Logger logger = LoggerFactory.getLogger(LoadDao.class);
   private static final LoadDao.LoadMapper LOAD_MAPPER = new LoadDao.LoadMapper();
+  private static final String LOAD_TAG = "load_tag";
+  private static final String LOCKING_FLIGHT_ID = "locking_flight_id";
+  private static final String DATASET_ID = "dataset_id";
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -83,30 +86,28 @@ public class LoadDao {
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
 
     String upsert =
-        "INSERT INTO load (load_tag, locked, locking_flight_id, dataset_id)"
-            + " VALUES (:load_tag, true, :flight_id, :dataset_id)"
-            + " ON CONFLICT ON CONSTRAINT load_load_tag_dataset_id_key DO NOTHING";
+        """
+        INSERT INTO load (load_tag, locked, locking_flight_id, dataset_id)
+        VALUES (:load_tag, true, :locking_flight_id, :dataset_id)
+        ON CONFLICT ON CONSTRAINT load_load_tag_dataset_id_key DO NOTHING
+        """;
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue("load_tag", loadTag)
-            .addValue("flight_id", flightId)
-            .addValue("dataset_id", datasetId);
+            .addValue(LOAD_TAG, loadTag)
+            .addValue(LOCKING_FLIGHT_ID, flightId)
+            .addValue(DATASET_ID, datasetId);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
-    int rows = jdbcTemplate.update(upsert, params, keyHolder);
+    jdbcTemplate.update(upsert, params, keyHolder);
     Load load = lookupLoad(loadTag, datasetId);
     if (load == null) {
       throw new CorruptMetadataException(
-          "Load row should exist! Load tag: " + loadTag + ", dataset ID: " + datasetId);
+          "Load row should exist! Load tag: %s, dataset: %s".formatted(loadTag, datasetId));
     }
-    if (rows == 0) {
-      // We did not insert. Therefore, someone has the load tag locked for this dataset.
-      // It could be us re-locking.
-      if (!load.lockedBy(flightId, datasetId)) {
-        throw new LoadLockedException(
-            "Load '%s' to dataset %s is locked by flight %s"
-                .formatted(loadTag, datasetId, load.lockingFlightId()));
-      }
+    if (!load.lockedBy(flightId, datasetId)) {
+      throw new LoadLockedException(
+          "File ingest with load tag '%s' to dataset %s is locked by flight %s"
+              .formatted(loadTag, datasetId, load.lockingFlightId()));
     }
     return load;
   }
@@ -132,14 +133,14 @@ public class LoadDao {
         """
         DELETE FROM load
         WHERE load_tag = :load_tag
-        AND locking_flight_id = :flight_id
+        AND locking_flight_id = :locking_flight_id
         AND dataset_id = :dataset_id
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue("load_tag", loadTag)
-            .addValue("flight_id", flightId)
-            .addValue("dataset_id", datasetId);
+            .addValue(LOAD_TAG, loadTag)
+            .addValue(LOCKING_FLIGHT_ID, flightId)
+            .addValue(DATASET_ID, datasetId);
     jdbcTemplate.update(delete, params);
   }
 
@@ -151,7 +152,7 @@ public class LoadDao {
         WHERE load_tag = :load_tag AND dataset_id = :dataset_id
         """;
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("load_tag", loadTag).addValue("dataset_id", datasetId);
+        new MapSqlParameterSource().addValue(LOAD_TAG, loadTag).addValue(DATASET_ID, datasetId);
     return jdbcTemplate.queryForObject(sql, params, LOAD_MAPPER);
   }
 
@@ -159,10 +160,10 @@ public class LoadDao {
     public Load mapRow(ResultSet rs, int rowNum) throws SQLException {
       return new Load(
           rs.getObject("id", UUID.class),
-          rs.getString("load_tag"),
+          rs.getString(LOAD_TAG),
           rs.getBoolean("locked"),
-          rs.getString("locking_flight_id"),
-          rs.getObject("dataset_id", UUID.class),
+          rs.getString(LOCKING_FLIGHT_ID),
+          rs.getObject(DATASET_ID, UUID.class),
           DaoUtils.getInstant(rs, "created_date"));
     }
   }

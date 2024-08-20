@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -59,6 +60,12 @@ class LoadServiceTest {
     assertThrows(
         LoadLockedException.class,
         () -> loadService.lockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID));
+  }
+
+  @Test
+  void unlockLoad() {
+    loadService.unlockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID);
+    verify(loadDao).unlockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID);
   }
 
   @Test

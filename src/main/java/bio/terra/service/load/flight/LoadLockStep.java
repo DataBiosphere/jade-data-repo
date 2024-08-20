@@ -9,21 +9,24 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
-// This step is meant to be shared by dataset and filesystem flights for locking the load tag.
-// It expects to find LoadMapKeys.LOAD_TAG in the parameters or working map.
-
 public class LoadLockStep implements Step {
   private final LoadService loadService;
+  private final UUID datasetId;
 
-  public LoadLockStep(LoadService loadService) {
+  /**
+   * This step is meant to be shared by dataset and filesystem flights for locking the load tag. It
+   * expects to find LoadMapKeys.LOAD_TAG in the parameters or working map.
+   */
+  public LoadLockStep(LoadService loadService, UUID datasetId) {
     this.loadService = loadService;
+    this.datasetId = datasetId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     String loadTag = loadService.getLoadTag(context);
     try {
-      UUID loadId = loadService.lockLoad(loadTag, context.getFlightId());
+      UUID loadId = loadService.lockLoad(loadTag, context.getFlightId(), datasetId);
       FlightMap workingMap = context.getWorkingMap();
       workingMap.put(LoadMapKeys.LOAD_ID, loadId.toString());
       return StepResult.getStepResultSuccess();
@@ -35,7 +38,7 @@ public class LoadLockStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     String loadTag = loadService.getLoadTag(context);
-    loadService.unlockLoad(loadTag, context.getFlightId());
+    loadService.unlockLoad(loadTag, context.getFlightId(), datasetId);
     return StepResult.getStepResultSuccess();
   }
 }

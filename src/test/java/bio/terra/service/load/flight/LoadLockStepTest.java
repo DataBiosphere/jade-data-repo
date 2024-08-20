@@ -33,6 +33,7 @@ class LoadLockStepTest {
 
   private static final String FLIGHT_ID = "flightId";
   private static final String LOAD_TAG = "loadTag";
+  private static final UUID DATASET_ID = UUID.randomUUID();
   private static final UUID LOAD_ID = UUID.randomUUID();
 
   @BeforeEach
@@ -41,13 +42,13 @@ class LoadLockStepTest {
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
     when(loadService.getLoadTag(flightContext)).thenReturn(LOAD_TAG);
 
-    step = new LoadLockStep(loadService);
+    step = new LoadLockStep(loadService, DATASET_ID);
   }
 
   @Test
   void doStep_success() throws InterruptedException {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    when(loadService.lockLoad(LOAD_TAG, FLIGHT_ID)).thenReturn(LOAD_ID);
+    when(loadService.lockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID)).thenReturn(LOAD_ID);
 
     StepResult doResult = step.doStep(flightContext);
 
@@ -60,7 +61,7 @@ class LoadLockStepTest {
   @Test
   void doStep_retryLoadLockedException() throws InterruptedException {
     var exception = new LoadLockedException("Load tag is locked by another flight");
-    doThrow(exception).when(loadService).lockLoad(LOAD_TAG, FLIGHT_ID);
+    doThrow(exception).when(loadService).lockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID);
 
     StepResult doResult = step.doStep(flightContext);
 
@@ -72,8 +73,8 @@ class LoadLockStepTest {
   }
 
   @Test
-  void doStep_throwsUnhandledException() throws InterruptedException {
-    doThrow(ConflictException.class).when(loadService).lockLoad(LOAD_TAG, FLIGHT_ID);
+  void doStep_throwsUnhandledException() {
+    doThrow(ConflictException.class).when(loadService).lockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID);
 
     assertThrows(ConflictException.class, () -> step.doStep(flightContext));
 

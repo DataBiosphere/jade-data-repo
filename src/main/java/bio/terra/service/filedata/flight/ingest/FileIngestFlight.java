@@ -131,7 +131,7 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
-    addStep(new LoadLockStep(loadService), randomBackoffRetry);
+    addStep(new LoadLockStep(loadService, datasetId), randomBackoffRetry);
     addStep(new IngestFileIdStep());
 
     CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
@@ -164,7 +164,7 @@ public class FileIngestFlight extends FileIngestTypeFlight {
           azureBlobStorePdao, configService, azureTableDao, userReq, dataset, randomBackoffRetry);
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
     }
-    addStep(new LoadUnlockStep(loadService));
+    addStep(new LoadUnlockStep(loadService, datasetId));
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
   }
 }

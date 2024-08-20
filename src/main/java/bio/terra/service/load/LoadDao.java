@@ -1,6 +1,7 @@
 package bio.terra.service.load;
 
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.DaoUtils;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
@@ -10,19 +11,20 @@ import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.apache.commons.codec.binary.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -32,7 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class LoadDao {
-  private final Logger logger = LoggerFactory.getLogger(LoadDao.class);
+  private static final Logger logger = LoggerFactory.getLogger(LoadDao.class);
+  private static final LoadDao.LoadMapper LOAD_MAPPER = new LoadDao.LoadMapper();
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -72,83 +75,96 @@ public class LoadDao {
    *
    * @param loadTag tag identifying this load
    * @param flightId flight id taking the lock
+   * @param datasetId dataset to which this load is being applied
    * @return Load object including the load id
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public Load lockLoad(String loadTag, String flightId) throws InterruptedException {
+  public Load lockLoad(String loadTag, String flightId, UUID datasetId) {
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
 
     String upsert =
-        "INSERT INTO load (load_tag, locked, locking_flight_id)"
-            + " VALUES (:load_tag, true, :flight_id)"
-            + " ON CONFLICT ON CONSTRAINT load_load_tag_key DO NOTHING";
+        "INSERT INTO load (load_tag, locked, locking_flight_id, dataset_id)"
+            + " VALUES (:load_tag, true, :flight_id, :dataset_id)"
+            + " ON CONFLICT ON CONSTRAINT load_load_tag_dataset_id_key DO NOTHING";
 
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("load_tag", loadTag).addValue("flight_id", flightId);
+        new MapSqlParameterSource()
+            .addValue("load_tag", loadTag)
+            .addValue("flight_id", flightId)
+            .addValue("dataset_id", datasetId);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     int rows = jdbcTemplate.update(upsert, params, keyHolder);
-    Load load;
-    if (rows == 0) {
-      // We did not insert. Therefore, someone has the load tag locked.
-      // Retrieve it, in case it is us re-locking
-      load = lookupLoadByTag(loadTag);
-      if (load == null) {
-        throw new CorruptMetadataException("Load row should exist! Load tag: " + loadTag);
-      }
-
-      // It is locked by someone else
-      if (!StringUtils.equals(load.getLockingFlightId(), flightId)) {
-        throw new LoadLockedException(
-            "Load '" + loadTag + "' is locked by flight '" + load.getLockingFlightId() + "'");
-      }
-    } else {
-      load =
-          new Load()
-              .id(keyHolder.getId())
-              .loadTag(keyHolder.getString("load_tag"))
-              .locked(keyHolder.getField("locked", Boolean.class).orElse(false))
-              .lockingFlightId(keyHolder.getString("locking_flight_id"));
+    Load load = lookupLoad(loadTag, datasetId);
+    if (load == null) {
+      throw new CorruptMetadataException(
+          "Load row should exist! Load tag: " + loadTag + ", dataset ID: " + datasetId);
     }
-
+    if (rows == 0) {
+      // We did not insert. Therefore, someone has the load tag locked for this dataset.
+      // It could be us re-locking.
+      if (!load.lockedBy(flightId, datasetId)) {
+        throw new LoadLockedException(
+            "Load '%s' to dataset %s is locked by flight %s"
+                .formatted(loadTag, datasetId, load.lockingFlightId()));
+      }
+    }
     return load;
   }
 
   /**
-   * Unlocking means deleting the specific row for our load tag and flight id. If no row is deleted,
-   * we assume this is a redo of the unlock and is OK. That can happen if a flight successfully
-   * unlocks and then fails. When the first flight recovers it will retry unlocking. We don't want
-   * that to be an error.
+   * Unlocking means deleting the specific row for our load tag, flight id, and dataset. If no row
+   * is deleted, we assume this is a redo of the unlock and is OK. That can happen if a flight
+   * successfully unlocks and then fails. When the first flight recovers it will retry unlocking. We
+   * don't want that to be an error.
    *
    * <p>If a row is deleted, then we have performed the unlock. So we don't check the affected row
    * count.
    *
    * @param loadTag tag identifying this load
    * @param flightId flight id releasing the lock
+   * @param datasetId dataset to which this load is being applied
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void unlockLoad(String loadTag, String flightId) {
+  public void unlockLoad(String loadTag, String flightId, UUID datasetId) {
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
 
     String delete =
-        "DELETE FROM load WHERE load_tag = :load_tag AND locking_flight_id = :flight_id";
+        """
+        DELETE FROM load
+        WHERE load_tag = :load_tag
+        AND locking_flight_id = :flight_id
+        AND dataset_id = :dataset_id
+        """;
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("load_tag", loadTag).addValue("flight_id", flightId);
+        new MapSqlParameterSource()
+            .addValue("load_tag", loadTag)
+            .addValue("flight_id", flightId)
+            .addValue("dataset_id", datasetId);
     jdbcTemplate.update(delete, params);
   }
 
-  private Load lookupLoadByTag(String loadTag) {
+  private Load lookupLoad(String loadTag, UUID datasetId) {
     String sql =
-        "SELECT id, load_tag, locked, locking_flight_id FROM load WHERE load_tag = :load_tag";
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("load_tag", loadTag);
-    return jdbcTemplate.queryForObject(
-        sql,
-        params,
-        (rs, rowNum) ->
-            new Load()
-                .id(rs.getObject("id", UUID.class))
-                .loadTag(rs.getString("load_tag"))
-                .locked(rs.getBoolean("locked"))
-                .lockingFlightId(rs.getString("locking_flight_id")));
+        """
+        SELECT id, load_tag, locked, locking_flight_id, dataset_id, created_date
+        FROM load
+        WHERE load_tag = :load_tag AND dataset_id = :dataset_id
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("load_tag", loadTag).addValue("dataset_id", datasetId);
+    return jdbcTemplate.queryForObject(sql, params, LOAD_MAPPER);
+  }
+
+  private static class LoadMapper implements RowMapper<Load> {
+    public Load mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return new Load(
+          rs.getObject("id", UUID.class),
+          rs.getString("load_tag"),
+          rs.getBoolean("locked"),
+          rs.getString("locking_flight_id"),
+          rs.getObject("dataset_id", UUID.class),
+          DaoUtils.getInstant(rs, "created_date"));
+    }
   }
 
   // -- load files methods --

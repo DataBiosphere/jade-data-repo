@@ -45,6 +45,10 @@ public class DaoOperations {
     this.snapshotService = snapshotService;
   }
 
+  /**
+   * Create billing profile and GCP project records in the DB, then use them to create a dataset
+   * record in the DB.
+   */
   public Dataset createDataset(String path) throws IOException {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     BillingProfileModel billingProfile =
@@ -73,6 +77,18 @@ public class DaoOperations {
     datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     return datasetDao.retrieve(datasetId);
+  }
+
+  /**
+   * In the DB, delete the dataset record, its associated Google project record, and its billing
+   * profile record.
+   */
+  public void deleteDatasetCascade(Dataset dataset) {
+    if (dataset != null) {
+      datasetDao.delete(dataset.getId());
+      resourceDao.deleteProject(dataset.getProjectResourceId());
+      profileDao.deleteBillingProfileById(dataset.getDefaultProfileId());
+    }
   }
 
   public SnapshotRequestModel createSnapshotRequestFromDataset(Dataset dataset, String snapshotPath)

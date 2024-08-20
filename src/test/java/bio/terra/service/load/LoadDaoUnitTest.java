@@ -1,51 +1,57 @@
 package bio.terra.service.load;
 
+import static bio.terra.service.load.LoadLockedBy.loadLockedBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.model.BulkLoadFileModel;
-import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag(Unit.TAG)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EmbeddedDatabaseTest
-public class LoadDaoUnitTest {
+class LoadDaoUnitTest {
   private final Logger logger = LoggerFactory.getLogger(LoadDaoUnitTest.class);
 
+  @Autowired private DaoOperations daoOperations;
   @Autowired private LoadDao loadDao;
-
-  @Autowired private ConfigurationService configService;
 
   private enum LoadTagsUsedByTest {
     LOADTAG_MY("myLoadTag"),
     LOADTAG_SERIAL("serialLoadTag"),
     LOADTAG_CONCURRENT("concurrentLoadTag"),
     LOADTAG_CONFLICT("conflictLoadTag");
-    private String tag;
+    private final String tag;
 
     public String getTag() {
       return tag;
@@ -68,8 +74,9 @@ public class LoadDaoUnitTest {
     FLIGHT_G("flightIdG"),
     FLIGHT_H("flightIdH"),
     FLIGHT_X("flightIdX"),
-    FLIGHT_Y("flightIdY");
-    private String id;
+    FLIGHT_Y("flightIdY"),
+    FLIGHT_Z("flightIdZ");
+    private final String id;
 
     public String getId() {
       return id;
@@ -80,7 +87,16 @@ public class LoadDaoUnitTest {
     }
   }
 
+  private List<Dataset> datasets;
   private List<UUID> loadIdsWithFilesUsedByTest;
+
+  @BeforeAll
+  void beforeAll() throws IOException {
+    datasets =
+        List.of(
+            daoOperations.createDataset(DaoOperations.DATASET_MINIMAL),
+            daoOperations.createDataset(DaoOperations.DATASET_MINIMAL));
+  }
 
   /**
    * Any load tags and flight ids used in this class should be added to the enums above. Before each
@@ -90,16 +106,15 @@ public class LoadDaoUnitTest {
    * method to not worry about lock cleanup, and not worry about interactions with other test
    * methods.
    */
-  @Before
-  public void setup() throws Exception {
+  @BeforeEach
+  void beforeEach() {
     // try to unlock all load tags in the enum
     for (LoadTagsUsedByTest loadTag : LoadTagsUsedByTest.values()) {
-      // loop through all flight ids in the enum, since any one could have successfully locked the
-      // load last
+      // loop through all combos of flight id enum values and datasets, since any one could have
+      // successfully locked the load last
       for (FlightIdsUsedByTest flightId : FlightIdsUsedByTest.values()) {
-        try {
-          loadDao.unlockLoad(loadTag.getTag(), flightId.getId());
-        } catch (RuntimeException rEx) {
+        for (Dataset dataset : datasets) {
+          loadDao.unlockLoad(loadTag.getTag(), flightId.getId(), dataset.getId());
         }
       }
     }
@@ -113,8 +128,8 @@ public class LoadDaoUnitTest {
    * we try to clear all the files for each load id in the list. This is to prevent leftover state
    * from impacting test results, so that the tests are repeatable.
    */
-  @After
-  public void teardown() {
+  @AfterEach
+  void afterEach() {
     // try to clean files for all load ids in the list
     for (UUID loadId : loadIdsWithFilesUsedByTest) {
       try {
@@ -125,8 +140,13 @@ public class LoadDaoUnitTest {
     }
   }
 
+  @AfterAll
+  void afterAll() {
+    datasets.forEach(daoOperations::deleteDatasetCascade);
+  }
+
   @Test
-  public void loadFilesTest() throws Exception {
+  void loadFilesTest() {
     UUID loadId = populateFiles(8);
 
     // First set of candidates
@@ -188,78 +208,60 @@ public class LoadDaoUnitTest {
   }
 
   @Test
-  public void serialLockTest() throws Exception {
+  void serialLockTest() {
     final String loadTag = LoadTagsUsedByTest.LOADTAG_SERIAL.getTag();
     final String flightX = FlightIdsUsedByTest.FLIGHT_X.getId();
     final String flightY = FlightIdsUsedByTest.FLIGHT_Y.getId();
+    final String flightZ = FlightIdsUsedByTest.FLIGHT_Z.getId();
+    final UUID datasetIdA = datasets.get(0).getId();
+    final UUID datasetIdB = datasets.get(1).getId();
 
-    boolean xlocks = tryLockLoad(loadTag, flightX);
-    assertTrue("x gets lock", xlocks);
+    assertThat(
+        "[Flight=X,dataset=A] gets lock",
+        loadDao.lockLoad(loadTag, flightX, datasetIdA),
+        loadLockedBy(flightX, datasetIdA));
+    assertThat(
+        "[Flight=X,dataset=A] gets lock again",
+        loadDao.lockLoad(loadTag, flightX, datasetIdA),
+        loadLockedBy(flightX, datasetIdA));
+    assertThrows(
+        LoadLockedException.class,
+        () -> loadDao.lockLoad(loadTag, flightY, datasetIdA),
+        "[Flight=Y,dataset=A] does not get lock");
 
-    xlocks = tryLockLoad(loadTag, flightX);
-    assertTrue("x gets lock again", xlocks);
-
-    boolean ylocks = tryLockLoad(loadTag, flightY);
-    assertFalse("y does not get lock", ylocks);
-
-    loadDao.unlockLoad(loadTag, flightX);
-
-    ylocks = tryLockLoad(loadTag, flightY);
-    assertTrue("y gets lock", ylocks);
+    loadDao.unlockLoad(loadTag, flightX, datasetIdA);
+    assertThat(
+        "[Flight=Y,dataset=A] gets lock once [Flight=X,dataset=A] unlocks",
+        loadDao.lockLoad(loadTag, flightY, datasetIdA),
+        loadLockedBy(flightY, datasetIdA));
+    assertThat(
+        "[Flight=Z,dataset=B] gets lock even with [Flight=Y,dataset=A] lock",
+        loadDao.lockLoad(loadTag, flightZ, datasetIdB),
+        loadLockedBy(flightZ, datasetIdB));
 
     // No errors unlocking X again
-    loadDao.unlockLoad(loadTag, flightX);
+    loadDao.unlockLoad(loadTag, flightX, datasetIdA);
 
-    loadDao.unlockLoad(loadTag, flightY);
-  }
-
-  private boolean tryLockLoad(String loadTag, String flightId) throws InterruptedException {
-    try {
-      loadDao.lockLoad(loadTag, flightId);
-      return true;
-    } catch (LoadLockedException ex) {
-      return false;
-    }
-  }
-
-  @Test
-  public void conflictLockTest() throws Exception {
-    final String loadTag = LoadTagsUsedByTest.LOADTAG_CONFLICT.getTag();
-
-    loadDao.lockLoad(loadTag, FlightIdsUsedByTest.FLIGHT_INIT.getId());
-    loadDao.unlockLoad(loadTag, FlightIdsUsedByTest.FLIGHT_INIT.getId());
-
-    LoadLockUnlockLooper looperA =
-        new LoadLockUnlockLooper(loadDao, loadTag, FlightIdsUsedByTest.FLIGHT_A.getId(), 100);
-    LoadLockUnlockLooper looperB =
-        new LoadLockUnlockLooper(loadDao, loadTag, FlightIdsUsedByTest.FLIGHT_B.getId(), 100);
-
-    Thread threadA = new Thread(looperA);
-    Thread threadB = new Thread(looperB);
-
-    threadA.start();
-    threadB.start();
-    threadA.join();
-    threadB.join();
-
-    logger.info("A conflicts: " + looperA.getConflicts());
-    logger.info("B conflicts: " + looperB.getConflicts());
+    loadDao.unlockLoad(loadTag, flightY, datasetIdA);
+    loadDao.unlockLoad(loadTag, flightZ, datasetIdB);
   }
 
   private void testLoadCandidates(
       LoadCandidates candidates, int failures, int running, int notTried) {
     assertThat("right number of failures", candidates.getFailedLoads(), equalTo(failures));
-    assertThat("right number of running", candidates.getRunningLoads().size(), equalTo(running));
-    assertThat(
-        "right number of not_tried", candidates.getCandidateFiles().size(), equalTo(notTried));
+    assertThat("right number of running", candidates.getRunningLoads(), hasSize(running));
+    assertThat("right number of not_tried", candidates.getCandidateFiles(), hasSize(notTried));
   }
 
-  private UUID populateFiles(int n) throws InterruptedException {
+  private UUID populateFiles(int n) {
+    UUID datasetId = datasets.get(0).getId();
     Load load =
         loadDao.lockLoad(
-            LoadTagsUsedByTest.LOADTAG_MY.getTag(), FlightIdsUsedByTest.FLIGHT_MY.getId());
-    loadIdsWithFilesUsedByTest.add(
-        load.getId()); // add load id to test class list, for cleanup afterwards
+            LoadTagsUsedByTest.LOADTAG_MY.getTag(),
+            FlightIdsUsedByTest.FLIGHT_MY.getId(),
+            datasetId);
+    // add load id to test class list, for cleanup afterwards
+    loadIdsWithFilesUsedByTest.add(load.id());
 
     List<BulkLoadFileModel> loadList = new ArrayList<>();
 
@@ -271,7 +273,7 @@ public class LoadDaoUnitTest {
               .description("number " + i));
     }
 
-    loadDao.populateFiles(load.getId(), loadList);
-    return load.getId();
+    loadDao.populateFiles(load.id(), loadList);
+    return load.id();
   }
 }

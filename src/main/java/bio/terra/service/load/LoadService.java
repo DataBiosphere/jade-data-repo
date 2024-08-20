@@ -31,13 +31,13 @@ public class LoadService {
     this.loadDao = loadDao;
   }
 
-  public UUID lockLoad(String loadTag, String flightId) throws InterruptedException {
-    Load load = loadDao.lockLoad(loadTag, flightId);
-    return load.getId();
+  public UUID lockLoad(String loadTag, String flightId, UUID datasetId) {
+    Load load = loadDao.lockLoad(loadTag, flightId, datasetId);
+    return load.id();
   }
 
-  public void unlockLoad(String loadTag, String flightId) {
-    loadDao.unlockLoad(loadTag, flightId);
+  public void unlockLoad(String loadTag, String flightId, UUID datasetId) {
+    loadDao.unlockLoad(loadTag, flightId, datasetId);
   }
 
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {

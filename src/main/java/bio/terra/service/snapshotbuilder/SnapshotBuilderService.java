@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder;
 
+import bio.terra.app.configuration.TerraConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
@@ -23,6 +24,7 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.notification.NotificationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshotbuilder.query.Query;
@@ -61,9 +63,10 @@ public class SnapshotBuilderService {
   private final IamService iamService;
   private final SnapshotService snapshotService;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
-
   private final AzureSynapsePdao azureSynapsePdao;
   private final QueryBuilderFactory queryBuilderFactory;
+  private final NotificationService notificationService;
+  private final TerraConfiguration terraConfiguration;
 
   public SnapshotBuilderService(
       SnapshotRequestDao snapshotRequestDao,
@@ -72,16 +75,20 @@ public class SnapshotBuilderService {
       IamService iamService,
       SnapshotService snapshotService,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
+      NotificationService notificationService,
       AzureSynapsePdao azureSynapsePdao,
-      QueryBuilderFactory queryBuilderFactory) {
+      QueryBuilderFactory queryBuilderFactory,
+      TerraConfiguration terraConfiguration) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotBuilderSettingsDao = snapshotBuilderSettingsDao;
     this.datasetService = datasetService;
     this.iamService = iamService;
     this.snapshotService = snapshotService;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
+    this.notificationService = notificationService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.queryBuilderFactory = queryBuilderFactory;
+    this.terraConfiguration = terraConfiguration;
   }
 
   public SnapshotAccessRequestResponse createRequest(
@@ -413,5 +420,21 @@ public class SnapshotBuilderService {
     // this does not work for the metadata domain
     String domainId = getDomainId(conceptId, snapshot, userRequest);
     return getDomainOptionFromSettingsByName(domainId, snapshot.getId());
+  }
+
+  public String createExportSnapshotLink(UUID snapshotId) {
+    return "%s/import-data?snapshotId=%s&format=tdrexport&tdrSyncPermissions=false"
+        .formatted(terraConfiguration.basePath(), snapshotId);
+  }
+
+  public void notifySnapshotReady(String subjectId, UUID snapshotRequestId) {
+    var snapshotAccessRequest = snapshotRequestDao.getById(snapshotRequestId);
+    UUID snapshotId = snapshotAccessRequest.createdSnapshotId();
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
+    notificationService.snapshotReady(
+        subjectId,
+        createExportSnapshotLink(snapshotId),
+        snapshot.getName(),
+        convertModelToApiResponse(snapshotAccessRequest).getSummary());
   }
 }

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.model.ManagedResourceGroupCoordinates;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -332,4 +333,6 @@ public interface IamProviderInterface {
   boolean getResourceTypeAdminPermission(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, IamAction action)
       throws InterruptedException;
+
+  UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException;
 }

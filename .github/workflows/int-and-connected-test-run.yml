@@ -39,16 +39,6 @@ jobs:
     name: Connected tests
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -75,20 +65,11 @@ jobs:
           # required for testAzureBillingProfile
           # uses an azure marketplace app with this hardcoded deployment email
           JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
-          # postgres connection details
-          PGHOST: 127.0.0.1
-          PGPASSWORD: postgres
           # required for rbs tests
           RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
           # output plain logs instead of json
           TDR_LOG_APPENDER: 'Console-Standard'
         run: |
-          # wait for postgres to be ready
-          until pg_isready -h ${PGHOST} -p 5432; do
-            sleep 1
-          done
-          # create the datarepo and stairway databases
-          psql -U postgres -f ./db/create-data-repo-db
           # extract service account credentials
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}

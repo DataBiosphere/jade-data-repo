@@ -96,6 +96,24 @@ public class SnapshotRequestDao {
   }
 
   /**
+   * Get the Snapshot Request associated with the given created snapshot id.
+   *
+   * @param createdSnapshotId associated with one snapshot request.
+   * @return the specified snapshot request or exception if it does not exist.
+   */
+  public SnapshotAccessRequestModel getByCreatedSnapshotId(UUID createdSnapshotId) {
+    String sql = "SELECT * FROM snapshot_request WHERE created_snapshot_id = :created_snapshot_id";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue(CREATED_SNAPSHOT_ID, createdSnapshotId);
+    try {
+      return jdbcTemplate.queryForObject(sql, params, modelMapper);
+    } catch (EmptyResultDataAccessException ex) {
+      throw new NotFoundException(
+          "No snapshot access requests found for given created snapshot id", ex);
+    }
+  }
+
+  /**
    * Return the list of Snapshot Requests associated with the given snapshot id.
    *
    * @param authorizedResources snapshot requests that the user has permission to see.

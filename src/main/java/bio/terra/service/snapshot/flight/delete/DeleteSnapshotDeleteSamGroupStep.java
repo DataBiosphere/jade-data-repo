@@ -4,6 +4,7 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
   private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotDeleteSamGroupStep.class);
   private final IamService iamService;
+  private final SnapshotRequestDao snapshotRequestDao;
   private final UUID snapshotId;
 
   /**
@@ -27,8 +29,10 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
    * @param iamService
    * @param snapshotId
    */
-  public DeleteSnapshotDeleteSamGroupStep(IamService iamService, UUID snapshotId) {
+  public DeleteSnapshotDeleteSamGroupStep(
+      IamService iamService, SnapshotRequestDao snapshotRequestDao, UUID snapshotId) {
     this.iamService = iamService;
+    this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotId = snapshotId;
   }
 
@@ -38,8 +42,8 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
         context
             .getWorkingMap()
             .get(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, new TypeReference<>() {});
-    // Only delete the Sam group if it matches the expected naming pattern
-    var expectedName = IamService.constructSamGroupName(snapshotId.toString());
+    // Only delete the Sam group if it matches the expected name
+    var expectedName = snapshotRequestDao.getByCreatedSnapshotId(snapshotId).samGroupName();
     if (Objects.nonNull(authDomains) && authDomains.contains(expectedName)) {
       try {
         iamService.deleteGroup(expectedName);

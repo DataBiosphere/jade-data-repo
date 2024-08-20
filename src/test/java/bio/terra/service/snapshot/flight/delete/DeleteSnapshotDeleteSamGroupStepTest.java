@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepStatus;
@@ -27,26 +29,44 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Tag(Unit.TAG)
 class DeleteSnapshotDeleteSamGroupStepTest {
   @Mock IamService iamService;
+  @Mock SnapshotRequestDao snapshotRequestDao;
   private UUID snapshotId;
   @Mock private FlightContext flightContext;
   private DeleteSnapshotDeleteSamGroupStep step;
+  private static final String expectedName = "samGroupName";
+  private static final SnapshotAccessRequestModel snapshotAccessRequestModel =
+      new SnapshotAccessRequestModel(
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          expectedName,
+          null,
+          null);
 
   @BeforeEach
   void beforeEach() {
     snapshotId = UUID.randomUUID();
-    step = new DeleteSnapshotDeleteSamGroupStep(iamService, snapshotId);
+    step = new DeleteSnapshotDeleteSamGroupStep(iamService, snapshotRequestDao, snapshotId);
   }
 
   @Test
   void doStep() throws InterruptedException {
     var doNotDeleteGroupName = "group1";
-    var expectedName = IamService.constructSamGroupName(snapshotId.toString());
 
     var flightMap = new FlightMap();
     var groups = new ArrayList<>(List.of(doNotDeleteGroupName, expectedName));
     flightMap.put(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, groups);
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
-
+    when(snapshotRequestDao.getByCreatedSnapshotId(snapshotId))
+        .thenReturn(snapshotAccessRequestModel);
     var result = step.doStep(flightContext);
     verify(iamService).deleteGroup(expectedName);
     verify(iamService, never()).deleteGroup(doNotDeleteGroupName);
@@ -57,6 +77,8 @@ class DeleteSnapshotDeleteSamGroupStepTest {
   void doStepNullGroups() throws InterruptedException {
     var flightMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
+    when(snapshotRequestDao.getByCreatedSnapshotId(snapshotId))
+        .thenReturn(snapshotAccessRequestModel);
     var result = step.doStep(flightContext);
     verify(iamService, never()).deleteGroup(any());
     assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));

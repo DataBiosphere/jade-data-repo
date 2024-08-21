@@ -162,7 +162,7 @@ public class FileIngestBulkFlight extends Flight {
     // If loading in bulk mode, request an exclusive lock on the dataset
     addStep(new LockDatasetStep(datasetService, datasetUuid, !isBulkMode), randomBackoffRetry);
     if (!isBulkMode) {
-      addStep(new LoadLockStep(loadService, datasetUuid), randomBackoffRetry);
+      addStep(new LoadLockStep(loadService), randomBackoffRetry);
     }
     CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     addStep(
@@ -292,7 +292,7 @@ public class FileIngestBulkFlight extends Flight {
     }
     if (!isBulkMode) {
       addStep(new IngestCleanFileStateStep(loadService));
-      addStep(new LoadUnlockStep(loadService, datasetUuid));
+      addStep(new LoadUnlockStep(loadService));
     }
 
     addStep(new UnlockDatasetStep(datasetService, datasetUuid, !isBulkMode), randomBackoffRetry);

@@ -384,8 +384,7 @@ public class DatasetIngestFlight extends Flight {
     addOptionalCombinedIngestStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
     // Lock the load.
-    addOptionalCombinedIngestStep(
-        new LoadLockStep(loadService, dataset.getId()), randomBackoffRetry);
+    addOptionalCombinedIngestStep(new LoadLockStep(loadService), randomBackoffRetry);
 
     if (!dataset.isSelfHosted()) {
       // Get or create a Google project for files to be ingested into.
@@ -485,7 +484,7 @@ public class DatasetIngestFlight extends Flight {
     addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));
 
     // Unlock the load.
-    addOptionalCombinedIngestStep(new LoadUnlockStep(loadService, dataset.getId()));
+    addOptionalCombinedIngestStep(new LoadUnlockStep(loadService));
   }
 
   private void addAzureJsonSteps(
@@ -525,8 +524,7 @@ public class DatasetIngestFlight extends Flight {
             appConfig.getMaxBadLoadFileLineErrorsReported()));
 
     // Lock the load.
-    addOptionalCombinedIngestStep(
-        new LoadLockStep(loadService, dataset.getId()), randomBackoffRetry);
+    addOptionalCombinedIngestStep(new LoadLockStep(loadService), randomBackoffRetry);
 
     // Make a link between the Storage Account and Dataset in our database.
     addOptionalCombinedIngestStep(
@@ -589,6 +587,6 @@ public class DatasetIngestFlight extends Flight {
     addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));
 
     // Unlock the load.
-    addOptionalCombinedIngestStep(new LoadUnlockStep(loadService, dataset.getId()));
+    addOptionalCombinedIngestStep(new LoadUnlockStep(loadService));
   }
 }

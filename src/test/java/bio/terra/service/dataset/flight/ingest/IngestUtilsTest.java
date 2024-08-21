@@ -22,6 +22,7 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.BlobUrlParts;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,14 +41,42 @@ class IngestUtilsTest {
   private static final Dataset DATASET = new Dataset().id(DATASET_ID);
   @Mock private FlightContext context;
   @Mock private DatasetService datasetService;
+  private FlightMap inputParameters;
+
+  @BeforeEach
+  void beforeEach() {
+    inputParameters = new FlightMap();
+  }
+
+  private void initializeDatasetIdParameter() {
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
+    when(context.getInputParameters()).thenReturn(inputParameters);
+  }
+
+  @Test
+  void getDatasetId() {
+    initializeDatasetIdParameter();
+    assertThat(IngestUtils.getDatasetId(context), equalTo(DATASET_ID));
+  }
+
+  @Test
+  void getDatasetId_IllegalStateException() {
+    when(context.getInputParameters()).thenReturn(inputParameters);
+    assertThrows(IllegalStateException.class, () -> IngestUtils.getDatasetId(context));
+  }
 
   @Test
   void getDataset() {
-    FlightMap inputParameters = new FlightMap();
-    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID.toString());
-    when(context.getInputParameters()).thenReturn(inputParameters);
+    initializeDatasetIdParameter();
     when(datasetService.retrieveForIngest(DATASET_ID)).thenReturn(DATASET);
     assertThat(IngestUtils.getDataset(context, datasetService), equalTo(DATASET));
+  }
+
+  @Test
+  void getDataset_IllegalStateException() {
+    when(context.getInputParameters()).thenReturn(inputParameters);
+    assertThrows(
+        IllegalStateException.class, () -> IngestUtils.getDataset(context, datasetService));
   }
 
   @ParameterizedTest

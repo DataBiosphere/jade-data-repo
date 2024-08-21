@@ -6,8 +6,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -34,7 +36,11 @@ class LoadUnlockStepTest {
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
     when(loadService.getLoadTag(flightContext)).thenReturn(LOAD_TAG);
 
-    step = new LoadUnlockStep(loadService, DATASET_ID);
+    FlightMap inputParams = new FlightMap();
+    inputParams.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
+    when(flightContext.getInputParameters()).thenReturn(inputParams);
+
+    step = new LoadUnlockStep(loadService);
   }
 
   @Test

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.ConflictException;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.stairway.FlightContext;
@@ -43,7 +44,11 @@ class LoadLockStepTest {
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
     when(loadService.getLoadTag(flightContext)).thenReturn(LOAD_TAG);
 
-    step = new LoadLockStep(loadService, DATASET_ID);
+    FlightMap inputParams = new FlightMap();
+    inputParams.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
+    when(flightContext.getInputParameters()).thenReturn(inputParams);
+
+    step = new LoadLockStep(loadService);
   }
 
   @Test

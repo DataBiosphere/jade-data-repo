@@ -71,13 +71,14 @@ public class LoadService {
 
   public String getLoadTag(FlightContext context) {
     FlightMap inputParameters = context.getInputParameters();
-    String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
+    String key = LoadMapKeys.LOAD_TAG;
+    String loadTag = inputParameters.get(key, String.class);
     if (StringUtils.isEmpty(loadTag)) {
       FlightMap workingMap = context.getWorkingMap();
-      loadTag = workingMap.get(LoadMapKeys.LOAD_TAG, String.class);
+      loadTag = workingMap.get(key, String.class);
       if (StringUtils.isEmpty(loadTag)) {
         throw new LoadLockFailureException(
-            "Expected LOAD_TAG in working map or inputs, but did not find it");
+            "Expected %s in working map or inputs, but did not find it".formatted(key));
       }
     }
     return loadTag;

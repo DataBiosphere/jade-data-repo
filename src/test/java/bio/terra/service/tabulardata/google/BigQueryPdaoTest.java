@@ -90,6 +90,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -397,6 +398,8 @@ public class BigQueryPdaoTest {
     when(samService.getGroup(any(), any()))
         .thenThrow(new IamNotFoundException(new Throwable("Group not found")));
     when(samService.createGroup(any(), any())).thenReturn("group@firecloud.org");
+    when(samService.getUserIds(any(), any()))
+        .thenReturn(new UserIdInfo().userSubjectId("subjectId"));
 
     Snapshot sourceSnapshot = stageOmopData();
     SnapshotAccessRequestResponse approvedAccessRequest =

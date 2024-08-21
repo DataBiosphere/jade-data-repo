@@ -1,18 +1,22 @@
 package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.configuration.TerraConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.ApiException;
@@ -39,6 +43,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.notification.NotificationService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -85,11 +90,14 @@ class SnapshotBuilderServiceTest {
   @Mock private SnapshotService snapshotService;
   @Mock private DatasetService datasetService;
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
+  @Mock private NotificationService notificationService;
   @Mock private AzureSynapsePdao azureSynapsePdao;
   @Mock private QueryBuilderFactory queryBuilderFactory;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
+
+  private static final TerraConfiguration terraConfiguration = new TerraConfiguration("basepath");
 
   @BeforeEach
   public void beforeEach() {
@@ -101,15 +109,16 @@ class SnapshotBuilderServiceTest {
             iamService,
             snapshotService,
             bigQuerySnapshotPdao,
+            notificationService,
             azureSynapsePdao,
-            queryBuilderFactory);
+            queryBuilderFactory,
+            terraConfiguration);
   }
 
   @Test
   void createRequest() {
     UUID snapshotId = UUID.randomUUID();
-    SnapshotAccessRequestModel model =
-        SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
+    SnapshotAccessRequestModel model = SnapshotBuilderTestData.createAccessRequest();
     when(snapshotRequestDao.create(
             SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId), TEST_USER.getEmail()))
         .thenReturn(model);
@@ -127,14 +136,12 @@ class SnapshotBuilderServiceTest {
   @Test
   void createRequestRollsBackIfSamFails() {
     UUID snapshotId = UUID.randomUUID();
-    SnapshotAccessRequestModel model =
-        SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
-    UUID snapshotRequestId = model.id();
+    SnapshotAccessRequestModel model = SnapshotBuilderTestData.createAccessRequest();
     SnapshotAccessRequest request = SnapshotBuilderTestData.createSnapshotAccessRequest(snapshotId);
     when(snapshotRequestDao.create(request, TEST_USER.getEmail())).thenReturn(model);
     when(iamService.createSnapshotBuilderRequestResource(eq(TEST_USER), any(), any()))
         .thenThrow(new ApiException("Error"));
-    doNothing().when(snapshotRequestDao).delete(snapshotRequestId);
+    doNothing().when(snapshotRequestDao).delete(model.id());
     assertThrows(
         InternalServerErrorException.class,
         () -> snapshotBuilderService.createRequest(TEST_USER, request));
@@ -432,7 +439,7 @@ class SnapshotBuilderServiceTest {
   @Test
   void testRejectRequest() {
     UUID id = UUID.randomUUID();
-    var response = SnapshotBuilderTestData.createSnapshotAccessRequestModel(id);
+    var response = SnapshotBuilderTestData.createAccessRequest();
     when(snapshotRequestDao.getById(id)).thenReturn(response);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -444,8 +451,8 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void testApproveRequest() {
-    UUID id = UUID.randomUUID();
-    var response = SnapshotBuilderTestData.createSnapshotAccessRequestModel(id);
+    var response = SnapshotBuilderTestData.createAccessRequest();
+    UUID id = response.id();
     when(snapshotRequestDao.getById(id)).thenReturn(response);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -457,9 +464,8 @@ class SnapshotBuilderServiceTest {
 
   @Test
   void testGetRequest() {
-    UUID id = UUID.randomUUID();
-    SnapshotAccessRequestModel daoResponse =
-        SnapshotBuilderTestData.createSnapshotAccessRequestModel(id);
+    var daoResponse = SnapshotBuilderTestData.createAccessRequest();
+    UUID id = daoResponse.id();
     when(snapshotRequestDao.getById(id)).thenReturn(daoResponse);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -480,7 +486,7 @@ class SnapshotBuilderServiceTest {
   void testEnumerateRequestsBySnapshot() {
     UUID id = UUID.randomUUID();
     List<SnapshotAccessRequestModel> daoResponse =
-        List.of(SnapshotBuilderTestData.createSnapshotAccessRequestModel(id));
+        List.of(SnapshotBuilderTestData.createAccessRequest());
     when(snapshotRequestDao.enumerateBySnapshot(id)).thenReturn(daoResponse);
     when(snapshotBuilderSettingsDao.getBySnapshotId(any()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -550,5 +556,30 @@ class SnapshotBuilderServiceTest {
         concept.getCode(),
         concept.getCount(),
         concept.isHasChildren());
+  }
+
+  @Test
+  void createExportSnapshotLink() {
+    UUID snapshotId = UUID.randomUUID();
+    var link = snapshotBuilderService.createExportSnapshotLink(snapshotId);
+    assertThat(
+        link,
+        allOf(
+            containsString(terraConfiguration.basePath()), containsString(snapshotId.toString())));
+  }
+
+  @Test
+  void notifySnapshotReady() {
+    var request = SnapshotBuilderTestData.createAccessRequest();
+    when(snapshotRequestDao.getById(request.id())).thenReturn(request);
+    var snapshot = new Snapshot().name("name");
+    when(snapshotService.retrieve(request.createdSnapshotId())).thenReturn(snapshot);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(request.sourceSnapshotId()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
+    String id = "id";
+    snapshotBuilderService.notifySnapshotReady(id, request.id());
+    verify(notificationService)
+        .snapshotReady(
+            eq(id), anyString(), eq(snapshot.getName()), eq("No snapshot specification found"));
   }
 }

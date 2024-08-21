@@ -58,6 +58,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrl
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -840,6 +841,15 @@ public class SamIam implements IamProviderInterface {
     return membership;
   }
 
+  @Override
+  public UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getUserIdsInner(accessToken, userEmail));
+  }
+
+  private UserIdInfo getUserIdsInner(String accessToken, String userEmail) throws ApiException {
+    return samApiService.usersApi(accessToken).getUserIds(userEmail);
+  }
+
   /**
    * Syncing a policy with SAM results in a Google group being created that is tied to that policy.
    * The response is an object with one key that is the policy group email and a value that is a
@@ -867,7 +877,7 @@ public class SamIam implements IamProviderInterface {
     logger.warn("Sam client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
-    String message = null;
+    String message;
     try {
       ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
       message = extractErrorMessage(errorReport);
@@ -875,34 +885,16 @@ public class SamIam implements IamProviderInterface {
       message = Objects.requireNonNullElse(samEx.getMessage(), "Sam client exception");
     }
 
-    switch (samEx.getCode()) {
-      case HttpStatusCodes.STATUS_CODE_BAD_REQUEST:
-        {
-          return new IamBadRequestException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED:
-        {
-          return new IamUnauthorizedException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_FORBIDDEN:
-        {
-          return new IamForbiddenException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_NOT_FOUND:
-        {
-          return new IamNotFoundException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_CONFLICT:
-        {
-          return new IamConflictException(message, samEx);
-        }
+    return switch (samEx.getCode()) {
+      case HttpStatusCodes.STATUS_CODE_BAD_REQUEST -> new IamBadRequestException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED -> new IamUnauthorizedException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_FORBIDDEN -> new IamForbiddenException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_NOT_FOUND -> new IamNotFoundException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_CONFLICT -> new IamConflictException(message, samEx);
         // SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
         // A 401 error will only occur when OpenDJ is down and should be raised as a 500 error
-      default:
-        {
-          return new IamInternalServerErrorException(message, samEx);
-        }
-    }
+      default -> new IamInternalServerErrorException(message, samEx);
+    };
   }
 
   @VisibleForTesting

@@ -621,49 +621,39 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel(
-            null,
-            null,
-            null,
-            null,
-            null,
-            "email@a.com",
-            null,
-            null,
-            SnapshotAccessRequestStatus.APPROVED,
-            null,
-            null,
-            null,
-            null);
+        SnapshotBuilderTestData.createAccessRequest();
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
   }
 
+  static SnapshotAccessRequestModel createAccessRequestWithFlightid() {
+    return new SnapshotAccessRequestModel(
+        null,
+        null,
+        null,
+        null,
+        null,
+        "email@a.com",
+        null,
+        null,
+        SnapshotAccessRequestStatus.APPROVED,
+        null,
+        "flightId",
+        null,
+        null);
+  }
+
   @Test
   void validateForByRequestIdModeJobFailed() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
-    String flightId = "flightId";
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel(
-            null,
-            null,
-            null,
-            null,
-            null,
-            "email@a.com",
-            null,
-            null,
-            SnapshotAccessRequestStatus.APPROVED,
-            null,
-            flightId,
-            null,
-            null);
+    SnapshotAccessRequestModel accessRequestResponse = createAccessRequestWithFlightid();
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
-    when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.ERROR);
+    when(jobService.unauthRetrieveJobState(accessRequestResponse.flightid()))
+        .thenReturn(FlightStatus.ERROR);
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
   }
 
@@ -713,28 +703,14 @@ class SnapshotServiceTest {
   @Test
   void validateForByRequestIdModeJobRunning() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
-    String flightId = "flightId";
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestModel accessRequestResponse =
-        new SnapshotAccessRequestModel(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            SnapshotAccessRequestStatus.APPROVED,
-            null,
-            flightId,
-            null,
-            null);
+    SnapshotAccessRequestModel accessRequestResponse = createAccessRequestWithFlightid();
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     // any flight status that isn't error or fatal
-    when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.READY);
+    when(jobService.unauthRetrieveJobState(accessRequestResponse.flightid()))
+        .thenReturn(FlightStatus.READY);
     assertThrows(
         ValidationException.class,
         () -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -1157,28 +1133,15 @@ class SnapshotServiceTest {
 
   @Test
   void testCreateSnapshotWithByRequestId() {
-    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotAccessRequestModel snapshotAccessRequest =
+        SnapshotBuilderTestData.createAccessRequest();
+    UUID snapshotAccessRequestId = snapshotAccessRequest.id();
     SnapshotRequestContentsModel contentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotRequestModel request = new SnapshotRequestModel().contents(List.of(contentsModel));
     request.profileId(UUID.randomUUID());
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
-    SnapshotAccessRequestModel snapshotAccessRequest =
-        new SnapshotAccessRequestModel(
-            snapshotAccessRequestId,
-            null,
-            null,
-            UUID.randomUUID(),
-            null,
-            "email@a.com",
-            null,
-            null,
-            SnapshotAccessRequestStatus.APPROVED,
-            null,
-            null,
-            null,
-            null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
         .thenReturn(
@@ -1483,13 +1446,14 @@ class SnapshotServiceTest {
         new SnapshotRequestModel().contents(List.of(contentsModel));
 
     SnapshotAccessRequestModel snapshotAccessRequest =
-        SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
+        SnapshotBuilderTestData.createAccessRequest();
     Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
-    when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
+    when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
+        .thenReturn(snapshot);
 
     Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 

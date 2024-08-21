@@ -37,7 +37,9 @@ plugins {
     id 'java'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
-    id 'com.diffplug.spotless' version '6.25.0'
+    // After merging a spotless version update which requires a large-scale code reformat, add the
+    // commit hash to .git-blame-ignore-revs to avoid cluttering git blame.
+    id 'com.diffplug.spotless' version '6.25.0'  // SEE ABOVE.
     id 'com.dorongold.task-tree' version '4.0.0'
     // enables release info in sentry events
     id 'com.gorylenko.gradle-git-properties' version '2.4.2'
@@ -47,7 +49,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '2.132.0-SNAPSHOT'
+    version '2.138.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -175,7 +177,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.5.0'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.5.1'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.0' // For srcclr, jib plugin conflict
@@ -205,8 +207,8 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.14.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.14.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.15.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.15.0'
 
     implementation 'bio.terra:terra-common-lib:1.1.17-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
@@ -233,12 +235,12 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.20.0'
     implementation 'com.azure:azure-data-tables:12.4.3'
 
-    implementation platform('io.sentry:sentry-bom:7.13.0') //import bom
+    implementation platform('io.sentry:sentry-bom:7.14.0') //import bom
     implementation('io.sentry:sentry-spring-boot-starter-jakarta')
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.6.0'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.7.0'
 
     testImplementation 'org.apache.parquet:parquet-common:1.14.1'
     testImplementation 'org.apache.parquet:parquet-hadoop:1.14.1'

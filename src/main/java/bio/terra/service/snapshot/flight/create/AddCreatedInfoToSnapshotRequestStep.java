@@ -30,22 +30,20 @@ public class AddCreatedInfoToSnapshotRequestStep implements Step {
     var workingMap = context.getWorkingMap();
     String samGroupName =
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
-    String samGroupEmail =
-        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, String.class);
-    if (samGroupName == null || samGroupEmail == null || samGroupCreatedByEmail == null) {
+    if (samGroupName == null || samGroupCreatedByEmail == null) {
       throw new IllegalArgumentException(
           "Sam group name, group email, and created by email are required.");
     }
 
     snapshotRequestDao.updateCreatedInfo(
-        snapshotRequestId, createdSnapshotId, samGroupName, samGroupEmail, samGroupCreatedByEmail);
+        snapshotRequestId, createdSnapshotId, samGroupName, samGroupCreatedByEmail);
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     // remove the written information if the flight fails
-    snapshotRequestDao.updateCreatedInfo(snapshotRequestId, null, null, null, null);
+    snapshotRequestDao.updateCreatedInfo(snapshotRequestId, null, null, null);
     return StepResult.getStepResultSuccess();
   }
 }

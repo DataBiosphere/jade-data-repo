@@ -634,7 +634,6 @@ class SnapshotServiceTest {
             null,
             null,
             null,
-            null,
             null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
@@ -660,7 +659,6 @@ class SnapshotServiceTest {
             SnapshotAccessRequestStatus.APPROVED,
             null,
             flightId,
-            null,
             null,
             null);
 
@@ -703,7 +701,6 @@ class SnapshotServiceTest {
             UUID.randomUUID(),
             null,
             null,
-            null,
             null);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -733,7 +730,6 @@ class SnapshotServiceTest {
             null,
             flightId,
             null,
-            null,
             null);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
@@ -760,7 +756,6 @@ class SnapshotServiceTest {
             null,
             null,
             SnapshotAccessRequestStatus.APPROVED,
-            null,
             null,
             null,
             null,
@@ -1183,7 +1178,6 @@ class SnapshotServiceTest {
             null,
             null,
             null,
-            null,
             null);
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
     when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
@@ -1440,7 +1434,6 @@ class SnapshotServiceTest {
                 null,
                 null,
                 null,
-                null,
                 null));
     when(settingsDao.getBySnapshotId(sourceSnapshotId))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
@@ -1546,8 +1539,7 @@ class SnapshotServiceTest {
     when(snapshotRequestDao.getById(uuid))
         .thenReturn(
             new SnapshotAccessRequestModel(
-                uuid, " a$%", null, null, null, null, null, null, null, null, null, null, null,
-                null));
+                uuid, " a$%", null, null, null, null, null, null, null, null, null, null, null));
 
     assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
   }

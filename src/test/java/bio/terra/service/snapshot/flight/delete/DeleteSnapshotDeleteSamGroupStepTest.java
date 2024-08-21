@@ -36,20 +36,7 @@ class DeleteSnapshotDeleteSamGroupStepTest {
   private static final String expectedName = "samGroupName";
   private static final SnapshotAccessRequestModel snapshotAccessRequestModel =
       new SnapshotAccessRequestModel(
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          expectedName,
-          null,
-          null);
+          null, null, null, null, null, null, null, null, null, null, null, expectedName, null);
 
   @BeforeEach
   void beforeEach() {

@@ -30,7 +30,6 @@ public record SnapshotAccessRequestModel(
     UUID createdSnapshotId,
     String flightid,
     String samGroupName,
-    String samGroupEmail,
     String samGroupCreatedByEmail) {
 
   @VisibleForTesting
@@ -141,7 +140,6 @@ public record SnapshotAccessRequestModel(
         .statusUpdatedDate(statusUpdatedDate != null ? statusUpdatedDate.toString() : null)
         .createdSnapshotId(createdSnapshotId)
         .summary(generateSummaryFromSnapshotSpecification(settings))
-        .samGroupName(samGroupName)
-        .samGroupEmail(samGroupEmail);
+        .samGroupName(samGroupName);
   }
 }

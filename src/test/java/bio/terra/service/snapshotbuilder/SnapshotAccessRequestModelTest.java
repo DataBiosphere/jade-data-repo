@@ -142,7 +142,6 @@ class SnapshotAccessRequestModelTest {
         UUID.randomUUID(),
         "flightid",
         "samGroupName",
-        "samGroupName@firecloud.org",
         "tdr@serviceaccount.com");
   }
 
@@ -163,6 +162,5 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
     assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
     assertThat(model.samGroupName(), is(response.getSamGroupName()));
-    assertThat(model.samGroupEmail(), is(response.getSamGroupEmail()));
   }
 }

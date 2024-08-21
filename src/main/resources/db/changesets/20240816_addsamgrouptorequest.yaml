@@ -10,9 +10,6 @@ databaseChangeLog:
                   name: sam_group_name
                   type: varchar(100)
               - column:
-                  name: sam_group_email
-                  type: varchar(256)
-              - column:
                   name: sam_group_created_by
                   type: varchar(256)
 

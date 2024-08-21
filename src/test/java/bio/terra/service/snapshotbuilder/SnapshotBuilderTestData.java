@@ -433,7 +433,6 @@ public class SnapshotBuilderTestData {
         null,
         null,
         null,
-        null,
         null);
   }
 

@@ -39,7 +39,6 @@ public class SnapshotRequestDao {
   private static final String FLIGHT_ID = "flightid";
   public static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
   public static final String SAM_GROUP_NAME = "sam_group_name";
-  public static final String SAM_GROUP_EMAIL = "sam_group_email";
   public static final String SAM_GROUP_CREATED_BY = "sam_group_created_by";
   private static final String AUTHORIZED_RESOURCES = "authorized_resources";
   private static final String NOT_FOUND_MESSAGE =
@@ -60,7 +59,6 @@ public class SnapshotRequestDao {
               rs.getObject(CREATED_SNAPSHOT_ID, UUID.class),
               rs.getString(FLIGHT_ID),
               rs.getString(SAM_GROUP_NAME),
-              rs.getString(SAM_GROUP_EMAIL),
               rs.getString(SAM_GROUP_CREATED_BY));
 
   public SnapshotRequestDao(
@@ -223,17 +221,12 @@ public class SnapshotRequestDao {
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void updateCreatedInfo(
-      UUID requestId,
-      UUID snapshotId,
-      String samGroupName,
-      String samGroupEmail,
-      String groupCreatedByEmail) {
+      UUID requestId, UUID snapshotId, String samGroupName, String groupCreatedByEmail) {
     String sql =
         """
         UPDATE snapshot_request SET
         created_snapshot_id = :created_snapshot_id,
         sam_group_name = :sam_group_name,
-        sam_group_email = :sam_group_email,
         sam_group_created_by = :sam_group_created_by
         WHERE id = :id
         """;
@@ -241,7 +234,6 @@ public class SnapshotRequestDao {
         new MapSqlParameterSource()
             .addValue(CREATED_SNAPSHOT_ID, snapshotId)
             .addValue(SAM_GROUP_NAME, samGroupName)
-            .addValue(SAM_GROUP_EMAIL, samGroupEmail)
             .addValue(SAM_GROUP_CREATED_BY, groupCreatedByEmail)
             .addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {

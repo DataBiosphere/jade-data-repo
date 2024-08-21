@@ -27,7 +27,6 @@ class AddCreatedInfoToSnapshotRequestStepTest {
   private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
   private static final UUID CREATED_SNAPSHOT_ID = UUID.randomUUID();
   private static final String SAM_GROUP_NAME = "samGroupName";
-  private static final String SAM_GROUP_EMAIL = "samGroupName@firecloud.org";
   private static final String SAM_GROUP_CREATED_BY_EMAIL = "tdr@serviceaccount.com";
   private AddCreatedInfoToSnapshotRequestStep step;
   private FlightMap workingMap;
@@ -46,22 +45,16 @@ class AddCreatedInfoToSnapshotRequestStepTest {
   @Test
   void doStep() throws InterruptedException {
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, SAM_GROUP_NAME);
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_EMAIL, SAM_GROUP_EMAIL);
     when(context.getWorkingMap()).thenReturn(workingMap);
     StepResult result = step.doStep(context);
     verify(snapshotRequestDao)
         .updateCreatedInfo(
-            SNAPSHOT_REQUEST_ID,
-            CREATED_SNAPSHOT_ID,
-            SAM_GROUP_NAME,
-            SAM_GROUP_EMAIL,
-            SAM_GROUP_CREATED_BY_EMAIL);
+            SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID, SAM_GROUP_NAME, SAM_GROUP_CREATED_BY_EMAIL);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 
   @Test
   void doStepFail() {
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, SAM_GROUP_NAME);
     when(context.getWorkingMap()).thenReturn(workingMap);
     assertThrows(IllegalArgumentException.class, () -> step.doStep(context));
   }
@@ -69,7 +62,7 @@ class AddCreatedInfoToSnapshotRequestStepTest {
   @Test
   void undoStep() throws InterruptedException {
     StepResult result = step.undoStep(null);
-    verify(snapshotRequestDao).updateCreatedInfo(SNAPSHOT_REQUEST_ID, null, null, null, null);
+    verify(snapshotRequestDao).updateCreatedInfo(SNAPSHOT_REQUEST_ID, null, null, null);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 }

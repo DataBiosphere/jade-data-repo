@@ -2,10 +2,11 @@ package bio.terra.service.snapshot.flight.delete;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
@@ -13,14 +14,16 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.StepStatus;
-import com.fasterxml.jackson.core.type.TypeReference;
+import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +41,7 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
   @Mock DatasetService datasetService;
   private Snapshot snapshot;
   private UUID snapshotId;
+  private UUID datasetId;
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
   private final boolean sharedLock = true;
@@ -47,44 +51,74 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
   @BeforeEach
   void setUp() {
     snapshotId = UUID.randomUUID();
+    datasetId = UUID.randomUUID();
     snapshot =
         new Snapshot()
             .id(snapshotId)
-            .snapshotSources(
-                List.of(new SnapshotSource().dataset(new Dataset().id(UUID.randomUUID()))));
+            .snapshotSources(List.of(new SnapshotSource().dataset(new Dataset().id(datasetId))));
     step =
         new DeleteSnapshotPopAndLockDatasetStep(
             snapshotId, snapshotService, datasetService, TEST_USER, sharedLock);
   }
 
+  // snapshot and dataset exist
   @Test
-  void setAuthDomainGroups() {
+  void doStep() {
     when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
-    when(snapshotService.retrieveAuthDomains(eq(snapshotId), any()))
-        .thenReturn(List.of("group1", "group2"));
     var flightMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
-    step.doStep(flightContext);
+    assertThat(
+        "Step is successful",
+        step.doStep(flightContext),
+        equalTo(StepResult.getStepResultSuccess()));
 
     FlightMap map = flightContext.getWorkingMap();
-    List<String> authDomains =
-        map.get(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, new TypeReference<>() {});
-    assertThat(
-        "Auth domain list is populated", authDomains, containsInAnyOrder("group1", "group2"));
+    assertEquals(true, map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class));
+    assertEquals(false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, Boolean.class));
+    assertEquals(
+        false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, Boolean.class));
+    assertEquals(datasetId, map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class));
+    verify(datasetService).lock(eq(datasetId), any(), eq(sharedLock));
+    assertEquals(true, map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class));
   }
 
+  // snapshot does not exist
   @Test
-  void noAuthDomainGroups() {
-    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
-    when(snapshotService.retrieveAuthDomains(eq(snapshotId), any())).thenReturn(null);
+  void doStepSnapshotNotFound() {
+    when(snapshotService.retrieve(snapshotId))
+        .thenThrow(new SnapshotNotFoundException("not found"));
     var flightMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(flightMap);
-    var result = step.doStep(flightContext);
+    assertThat(
+        "Step is successful",
+        step.doStep(flightContext),
+        equalTo(StepResult.getStepResultSuccess()));
 
     FlightMap map = flightContext.getWorkingMap();
-    List<String> authDomains =
-        map.get(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, new TypeReference<>() {});
-    assertNull(authDomains);
-    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    assertEquals(false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class));
+    assertEquals(false, map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class));
+
+    assertEquals(false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, Boolean.class));
+    assertEquals(
+        false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, Boolean.class));
+  }
+
+  // dataset does not exist
+  @Test
+  void doStepDatasetNotFound() {
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+    var flightMap = new FlightMap();
+    when(flightContext.getWorkingMap()).thenReturn(flightMap);
+    doThrow(new DatasetNotFoundException("not found"))
+        .when(datasetService)
+        .lock(eq(datasetId), any(), eq(sharedLock));
+    assertThat(
+        "Step is successful",
+        step.doStep(flightContext),
+        equalTo(StepResult.getStepResultSuccess()));
+
+    FlightMap map = flightContext.getWorkingMap();
+    assertEquals(true, map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class));
+    assertEquals(false, map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class));
   }
 }

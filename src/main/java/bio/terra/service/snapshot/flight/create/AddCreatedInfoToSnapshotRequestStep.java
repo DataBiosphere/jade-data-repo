@@ -31,8 +31,7 @@ public class AddCreatedInfoToSnapshotRequestStep implements Step {
     String samGroupName =
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
     if (samGroupName == null || samGroupCreatedByEmail == null) {
-      throw new IllegalArgumentException(
-          "Sam group name, group email, and created by email are required.");
+      throw new IllegalArgumentException("Sam group name and group created by email are required.");
     }
 
     snapshotRequestDao.updateCreatedInfo(

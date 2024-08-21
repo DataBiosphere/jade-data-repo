@@ -3,13 +3,11 @@ package bio.terra.service.snapshot.flight.delete;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.job.DefaultUndoStep;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -38,13 +36,10 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    List<String> authDomains =
-        context
-            .getWorkingMap()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, new TypeReference<>() {});
     // Only delete the Sam group if it matches the expected name
-    var expectedName = snapshotRequestDao.getByCreatedSnapshotId(snapshotId).samGroupName();
-    if (Objects.nonNull(authDomains) && authDomains.contains(expectedName)) {
+    SnapshotAccessRequestModel request = snapshotRequestDao.getByCreatedSnapshotId(snapshotId);
+    if (Objects.nonNull(request)) {
+      var expectedName = request.samGroupName();
       try {
         iamService.deleteGroup(expectedName);
       } catch (IamNotFoundException ex) {

@@ -82,7 +82,6 @@ class IngestUtilsTest {
   @ParameterizedTest
   @EnumSource(names = {"CSV", "ARRAY", "JSON"})
   void testJsonTypeIngest(FormatEnum format) {
-    FlightMap inputParameters = new FlightMap();
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), new IngestRequestModel().format(format));
     if (format == FormatEnum.CSV) {
       assertFalse(
@@ -190,7 +189,6 @@ class IngestUtilsTest {
    * @return a new FlightMap whose ingest request contains the provided update strategy
    */
   private FlightMap createFlightMap(IngestRequestModel.UpdateStrategyEnum updateStrategy) {
-    FlightMap inputParameters = new FlightMap();
     IngestRequestModel ingestRequest = new IngestRequestModel().updateStrategy(updateStrategy);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), ingestRequest);
     return inputParameters;

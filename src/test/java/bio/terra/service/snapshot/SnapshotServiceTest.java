@@ -621,7 +621,7 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotAccessRequestModel accessRequestResponse =
-        SnapshotBuilderTestData.createAccessRequest();
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -1134,7 +1134,7 @@ class SnapshotServiceTest {
   @Test
   void testCreateSnapshotWithByRequestId() {
     SnapshotAccessRequestModel snapshotAccessRequest =
-        SnapshotBuilderTestData.createAccessRequest();
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
     UUID snapshotAccessRequestId = snapshotAccessRequest.id();
     SnapshotRequestContentsModel contentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
@@ -1446,7 +1446,7 @@ class SnapshotServiceTest {
         new SnapshotRequestModel().contents(List.of(contentsModel));
 
     SnapshotAccessRequestModel snapshotAccessRequest =
-        SnapshotBuilderTestData.createAccessRequest();
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
     Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));

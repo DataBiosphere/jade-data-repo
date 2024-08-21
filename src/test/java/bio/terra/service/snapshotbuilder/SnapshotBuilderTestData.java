@@ -448,7 +448,7 @@ public class SnapshotBuilderTestData {
                         new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId))));
   }
 
-  public static SnapshotAccessRequestModel createAccessRequest() {
+  public static SnapshotAccessRequestModel createAccessRequestModelApproved() {
     return new SnapshotAccessRequestModel(
         UUID.randomUUID(),
         null,

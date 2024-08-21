@@ -47,6 +47,14 @@ public class DaoOperations {
 
   /**
    * Create billing profile and GCP project records in the DB, then use them to create a dataset
+   * record in the DB from {@value DATASET_MINIMAL}.
+   */
+  public Dataset createDataset() throws IOException {
+    return createDataset(DATASET_MINIMAL);
+  }
+
+  /**
+   * Create billing profile and GCP project records in the DB, then use them to create a dataset
    * record in the DB.
    */
   public Dataset createDataset(String path) throws IOException {
@@ -77,18 +85,6 @@ public class DaoOperations {
     datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     return datasetDao.retrieve(datasetId);
-  }
-
-  /**
-   * In the DB, delete the dataset record, its associated Google project record, and its billing
-   * profile record.
-   */
-  public void deleteDatasetCascade(Dataset dataset) {
-    if (dataset != null) {
-      datasetDao.delete(dataset.getId());
-      resourceDao.deleteProject(dataset.getProjectResourceId());
-      profileDao.deleteBillingProfileById(dataset.getDefaultProfileId());
-    }
   }
 
   public SnapshotRequestModel createSnapshotRequestFromDataset(Dataset dataset, String snapshotPath)

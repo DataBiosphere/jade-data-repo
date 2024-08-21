@@ -56,10 +56,7 @@ class LoadLockStepTest {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     when(loadService.lockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID)).thenReturn(LOAD_ID);
 
-    StepResult doResult = step.doStep(flightContext);
-
-    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    assertThat(doResult.getException().isPresent(), equalTo(false));
+    assertThat(step.doStep(flightContext), equalTo(StepResult.getStepResultSuccess()));
 
     assertThat(workingMap.get(LoadMapKeys.LOAD_ID, UUID.class), equalTo(LOAD_ID));
   }
@@ -89,10 +86,7 @@ class LoadLockStepTest {
 
   @Test
   void undoStep() {
-    StepResult undoResult = step.undoStep(flightContext);
-
-    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    assertThat(undoResult.getException().isPresent(), equalTo(false));
+    assertThat(step.undoStep(flightContext), equalTo(StepResult.getStepResultSuccess()));
 
     verify(loadService).unlockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID);
   }

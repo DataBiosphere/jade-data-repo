@@ -17,7 +17,6 @@ import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -46,8 +45,7 @@ class LoadServiceTest {
 
   @Test
   void lockLoad() {
-    Load expectedLoad =
-        new Load(LOAD_ID, LOAD_TAG, true, LOCKING_FLIGHT_ID, DATASET_ID, Instant.now());
+    Load expectedLoad = new Load(LOAD_ID, LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID);
     when(loadDao.lockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID)).thenReturn(expectedLoad);
     assertThat(loadService.lockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID), equalTo(LOAD_ID));
   }

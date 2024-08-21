@@ -4,7 +4,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Unit;
-import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,12 +16,11 @@ class LoadTest {
   private static final UUID DATASET_ID_2 = UUID.randomUUID();
 
   @Test
-  void lockedBy() {
-    Load load =
-        new Load(UUID.randomUUID(), "a-load-tag", true, FLIGHT_ID_1, DATASET_ID_1, Instant.now());
-    assertTrue(load.lockedBy(FLIGHT_ID_1, DATASET_ID_1));
-    assertFalse(load.lockedBy(FLIGHT_ID_1, DATASET_ID_2));
-    assertFalse(load.lockedBy(FLIGHT_ID_2, DATASET_ID_1));
-    assertFalse(load.lockedBy(FLIGHT_ID_2, DATASET_ID_2));
+  void isLockedBy() {
+    Load load = new Load(UUID.randomUUID(), "a-load-tag", FLIGHT_ID_1, DATASET_ID_1);
+    assertTrue(load.isLockedBy(FLIGHT_ID_1, DATASET_ID_1));
+    assertFalse(load.isLockedBy(FLIGHT_ID_1, DATASET_ID_2));
+    assertFalse(load.isLockedBy(FLIGHT_ID_2, DATASET_ID_1));
+    assertFalse(load.isLockedBy(FLIGHT_ID_2, DATASET_ID_2));
   }
 }

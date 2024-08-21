@@ -5,18 +5,18 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
-public class LoadLockedBy extends TypeSafeMatcher<Load> {
+public class LoadIsLockedBy extends TypeSafeMatcher<Load> {
 
   private final String lockingFlightId;
   private final UUID datasetId;
 
-  public LoadLockedBy(String lockingFlightId, UUID datasetId) {
+  public LoadIsLockedBy(String lockingFlightId, UUID datasetId) {
     this.lockingFlightId = lockingFlightId;
     this.datasetId = datasetId;
   }
 
-  public static Matcher<Load> loadLockedBy(String lockingFlightId, UUID datasetId) {
-    return new LoadLockedBy(lockingFlightId, datasetId);
+  public static Matcher<Load> loadIsLockedBy(String lockingFlightId, UUID datasetId) {
+    return new LoadIsLockedBy(lockingFlightId, datasetId);
   }
 
   /**
@@ -25,7 +25,7 @@ public class LoadLockedBy extends TypeSafeMatcher<Load> {
    */
   @Override
   protected boolean matchesSafely(Load item) {
-    return item.lockedBy(lockingFlightId, datasetId);
+    return item.isLockedBy(lockingFlightId, datasetId);
   }
 
   /**

@@ -1,7 +1,6 @@
 package bio.terra.service.load;
 
 import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.DaoUtils;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
@@ -104,7 +103,7 @@ public class LoadDao {
       throw new CorruptMetadataException(
           "Load row should exist! Load tag: %s, dataset: %s".formatted(loadTag, datasetId));
     }
-    if (!load.lockedBy(flightId, datasetId)) {
+    if (!load.isLockedBy(flightId, datasetId)) {
       throw new LoadLockedException(
           "File ingest with load tag '%s' to dataset %s is locked by flight %s"
               .formatted(loadTag, datasetId, load.lockingFlightId()));
@@ -147,7 +146,7 @@ public class LoadDao {
   private Load lookupLoad(String loadTag, UUID datasetId) {
     String sql =
         """
-        SELECT id, load_tag, locked, locking_flight_id, dataset_id, created_date
+        SELECT id, load_tag, locking_flight_id, dataset_id
         FROM load
         WHERE load_tag = :load_tag AND dataset_id = :dataset_id
         """;
@@ -161,10 +160,8 @@ public class LoadDao {
       return new Load(
           rs.getObject("id", UUID.class),
           rs.getString(LOAD_TAG),
-          rs.getBoolean("locked"),
           rs.getString(LOCKING_FLIGHT_ID),
-          rs.getObject(DATASET_ID, UUID.class),
-          DaoUtils.getInstant(rs, "created_date"));
+          rs.getObject(DATASET_ID, UUID.class));
     }
   }
 

@@ -11,7 +11,6 @@ import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -45,10 +44,7 @@ class LoadUnlockStepTest {
 
   @Test
   void doStep() {
-    StepResult doResult = step.doStep(flightContext);
-
-    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    assertThat(doResult.getException().isPresent(), equalTo(false));
+    assertThat(step.doStep(flightContext), equalTo(StepResult.getStepResultSuccess()));
 
     verify(loadService).unlockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID);
   }

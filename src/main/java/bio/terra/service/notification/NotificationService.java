@@ -2,6 +2,7 @@ package bio.terra.service.notification;
 
 import bio.terra.app.configuration.NotificationConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.gax.rpc.ApiException;
 import com.google.common.annotations.VisibleForTesting;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
@@ -33,7 +34,7 @@ public class NotificationService {
     try {
       pubSubService.createTopic(
           notificationConfiguration.projectId(), notificationConfiguration.topicId());
-    } catch (IOException e) {
+    } catch (IOException | ApiException e) {
       logger.warn("Error creating notification topic", e);
     }
   }
@@ -47,7 +48,7 @@ public class NotificationService {
           objectMapper.writeValueAsString(
               new SnapshotReadyNotification(
                   subjectId, snapshotExportLink, snapshotName, snapshotSummary)));
-    } catch (IOException e) {
+    } catch (IOException | ApiException e) {
       logger.warn("Error sending notification", e);
     }
   }

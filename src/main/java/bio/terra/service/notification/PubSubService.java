@@ -26,7 +26,8 @@ public class PubSubService {
     }
   }
 
-  public void publishMessage(String projectId, String topicId, String message) throws IOException, ApiException {
+  public void publishMessage(String projectId, String topicId, String message)
+      throws IOException, ApiException {
     TopicName topicName = TopicName.of(projectId, topicId);
     var publisher = Publisher.newBuilder(topicName).build();
     publisher.publish(PubsubMessage.newBuilder().setData(ByteString.copyFromUtf8(message)).build());

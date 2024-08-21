@@ -432,11 +432,10 @@ public class SnapshotCreateFlight extends Flight {
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
 
-    // on the snapshot request, save information about the created snapshot and about
-    // the Sam group that was added as a DAC.
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       UUID snapshotRequestId = contents.getRequestIdSpec().getSnapshotRequestId();
-      // Add created snapshot id to the snapshot request.
+      // On the snapshot access request, save information about the created snapshot and about
+      // the Sam group that was added as a DAC.
       addStep(
           new AddCreatedInfoToSnapshotRequestStep(
               snapshotRequestDao, snapshotRequestId, snapshotId, tdrServiceAccountEmail));

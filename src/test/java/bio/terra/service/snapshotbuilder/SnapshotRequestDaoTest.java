@@ -71,6 +71,10 @@ class SnapshotRequestDaoTest {
     return snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
   }
 
+  private void verifyResponseContents(SnapshotAccessRequestModel response) {
+    verifyResponseContents(response, List.of());
+  }
+
   private void verifyResponseContents(
       SnapshotAccessRequestModel response, List<String> ignoredFields) {
     SnapshotAccessRequestModel expected =
@@ -96,7 +100,7 @@ class SnapshotRequestDaoTest {
   void getById() {
     SnapshotAccessRequestModel response = createRequest();
     SnapshotAccessRequestModel retrieved = snapshotRequestDao.getById(response.id());
-    verifyResponseContents(retrieved, List.of());
+    verifyResponseContents(retrieved);
   }
 
   @Test
@@ -179,7 +183,7 @@ class SnapshotRequestDaoTest {
   @Test
   void create() {
     SnapshotAccessRequestModel response = createRequest();
-    verifyResponseContents(response, List.of());
+    verifyResponseContents(response);
 
     SnapshotAccessRequestModel response1 = snapshotRequestDao.create(snapshotAccessRequest, EMAIL);
 
@@ -206,7 +210,7 @@ class SnapshotRequestDaoTest {
   void updateStatus() {
     SnapshotAccessRequestModel response = createRequest();
     assertNull(response.statusUpdatedDate(), "Status was never updated.");
-    verifyResponseContents(response, List.of());
+    verifyResponseContents(response);
     snapshotRequestDao.updateStatus(response.id(), SnapshotAccessRequestStatus.APPROVED);
     SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());
     assertThat(
@@ -230,7 +234,7 @@ class SnapshotRequestDaoTest {
   @Test
   void updateFlightId() {
     SnapshotAccessRequestModel response = createRequest();
-    verifyResponseContents(response, List.of());
+    verifyResponseContents(response);
     snapshotRequestDao.updateFlightId(response.id(), FLIGHT_ID);
     SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());
 
@@ -252,7 +256,7 @@ class SnapshotRequestDaoTest {
   @Test
   void updateCreatedInfo() {
     SnapshotAccessRequestModel response = createRequest();
-    verifyResponseContents(response, List.of());
+    verifyResponseContents(response);
     snapshotRequestDao.updateCreatedInfo(
         response.id(), createdSnapshot.getId(), SAM_GROUP_NAME, SAM_GROUP_CREATED_BY);
     SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());

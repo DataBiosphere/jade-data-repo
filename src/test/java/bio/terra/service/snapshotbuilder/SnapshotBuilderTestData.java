@@ -460,6 +460,8 @@ public class SnapshotBuilderTestData {
         null,
         SnapshotAccessRequestStatus.APPROVED,
         null,
+        null,
+        null,
         null);
   }
 }

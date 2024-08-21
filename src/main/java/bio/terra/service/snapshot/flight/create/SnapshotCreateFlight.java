@@ -439,10 +439,7 @@ public class SnapshotCreateFlight extends Flight {
       // Add created snapshot id to the snapshot request.
       addStep(
           new AddCreatedInfoToSnapshotRequestStep(
-              snapshotRequestDao,
-              snapshotRequestId,
-              snapshotId,
-              tdrServiceAccountEmail));
+              snapshotRequestDao, snapshotRequestId, snapshotId, tdrServiceAccountEmail));
       // Notify user that snapshot is ready to use.
       addStep(
           new NotifyUserOfSnapshotCreationStep(

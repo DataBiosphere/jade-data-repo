@@ -8,13 +8,13 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep implements Step {
+public class AddCreatedInfoToSnapshotRequestStep implements Step {
   private final SnapshotRequestDao snapshotRequestDao;
   private final UUID snapshotRequestId;
   private final UUID createdSnapshotId;
   private final String samGroupCreatedByEmail;
 
-  public AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep(
+  public AddCreatedInfoToSnapshotRequestStep(
       SnapshotRequestDao snapshotRequestDao,
       UUID snapshotRequestId,
       UUID snapshotId,
@@ -37,17 +37,15 @@ public class AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep implements Ste
           "Sam group name, group email, and created by email are required.");
     }
 
-    snapshotRequestDao.updateSamGroup(
-        snapshotRequestId, samGroupName, samGroupEmail, samGroupCreatedByEmail);
-    snapshotRequestDao.updateCreatedSnapshotId(snapshotRequestId, createdSnapshotId);
+    snapshotRequestDao.updateCreatedInfo(
+        snapshotRequestId, createdSnapshotId, samGroupName, samGroupEmail, samGroupCreatedByEmail);
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     // remove the written information if the flight fails
-    snapshotRequestDao.updateSamGroup(snapshotRequestId, null, null, null);
-    snapshotRequestDao.updateCreatedSnapshotId(snapshotRequestId, null);
+    snapshotRequestDao.updateCreatedInfo(snapshotRequestId, null, null, null, null);
     return StepResult.getStepResultSuccess();
   }
 }

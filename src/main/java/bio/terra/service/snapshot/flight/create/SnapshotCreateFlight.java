@@ -436,7 +436,7 @@ public class SnapshotCreateFlight extends Flight {
     // and at end of flight, add the created snapshot id to the snapshot request
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       addStep(
-          new AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep(
+          new AddCreatedInfoToSnapshotRequestStep(
               snapshotRequestDao,
               contents.getRequestIdSpec().getSnapshotRequestId(),
               snapshotId,

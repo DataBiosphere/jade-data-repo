@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -107,10 +108,13 @@ class SnapshotRequestDaoTest {
   @Test
   void getByCreatedSnapshotId() {
     SnapshotAccessRequestModel response = createRequest();
-    snapshotRequestDao.updateCreatedSnapshotId(response.id(), createdSnapshot.getId());
+    snapshotRequestDao.updateCreatedInfo(
+        response.id(), createdSnapshot.getId(), "name", "email", "userEmail");
     SnapshotAccessRequestModel retrieved =
         snapshotRequestDao.getByCreatedSnapshotId(createdSnapshot.getId());
-    verifyResponseContents(retrieved, List.of("createdSnapshotId"));
+    verifyResponseContents(
+        retrieved,
+        List.of("createdSnapshotId", "samGroupName", "samGroupEmail", "samGroupCreatedBy"));
   }
 
   @Test
@@ -248,47 +252,25 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void updateCreatedSnapshotId() {
-    SnapshotAccessRequestModel response = createRequest();
-    verifyResponseContents(response, List.of());
-    snapshotRequestDao.updateCreatedSnapshotId(response.id(), createdSnapshot.getId());
-    SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());
-
-    // only the createdSnapshotId is updated
-    verifyResponseContents(updatedResponse, List.of("createdSnapshotId"));
-    assertThat(
-        "Updated Snapshot Access Request Response should have created snapshot id",
-        updatedResponse.createdSnapshotId(),
-        equalTo(createdSnapshot.getId()));
-  }
-
-  @Test
-  void updateCreatedSnapshotSourceIdNotFound() {
-    assertThrows(
-        NotFoundException.class,
-        () ->
-            snapshotRequestDao.updateCreatedSnapshotId(UUID.randomUUID(), createdSnapshot.getId()));
-  }
-
-  @Test
-  void updateCreatedSnapshotIdNotFound() {
-    assertThrows(
-        NotFoundException.class,
-        () ->
-            snapshotRequestDao.updateCreatedSnapshotId(sourceSnapshot.getId(), UUID.randomUUID()));
-  }
-
-  @Test
   void updateSamGroup() {
     SnapshotAccessRequestModel response = createRequest();
     verifyResponseContents(response, List.of());
-    snapshotRequestDao.updateSamGroup(
-        response.id(), SAM_GROUP_NAME, SAM_GROUP_EMAIL, SAM_GROUP_CREATED_BY);
+    snapshotRequestDao.updateCreatedInfo(
+        response.id(),
+        createdSnapshot.getId(),
+        SAM_GROUP_NAME,
+        SAM_GROUP_EMAIL,
+        SAM_GROUP_CREATED_BY);
     SnapshotAccessRequestModel updatedResponse = snapshotRequestDao.getById(response.id());
 
     // other fields remain unchanged
     verifyResponseContents(
-        updatedResponse, List.of("samGroupName", "samGroupEmail", "samGroupCreatedBy"));
+        updatedResponse,
+        List.of("createdSnapshotId", "samGroupName", "samGroupEmail", "samGroupCreatedBy"));
+    assertThat(
+        "Updated Snapshot Access Request Response should have the created snapshot id",
+        updatedResponse.createdSnapshotId(),
+        equalTo(createdSnapshot.getId()));
     assertThat(
         "Updated Snapshot Access Request Response should have saved sam group name",
         updatedResponse.samGroupName(),
@@ -308,8 +290,26 @@ class SnapshotRequestDaoTest {
     assertThrows(
         NotFoundException.class,
         () ->
-            snapshotRequestDao.updateSamGroup(
-                UUID.randomUUID(), SAM_GROUP_NAME, SAM_GROUP_EMAIL, SAM_GROUP_CREATED_BY));
+            snapshotRequestDao.updateCreatedInfo(
+                UUID.randomUUID(),
+                createdSnapshot.getId(),
+                SAM_GROUP_NAME,
+                SAM_GROUP_EMAIL,
+                SAM_GROUP_CREATED_BY));
+  }
+
+  @Test
+  void updateSamGroupSnapshotIdNotFound() {
+    SnapshotAccessRequestModel response = createRequest();
+    assertThrows(
+        DataIntegrityViolationException.class,
+        () ->
+            snapshotRequestDao.updateCreatedInfo(
+                response.id(),
+                UUID.randomUUID(),
+                SAM_GROUP_NAME,
+                SAM_GROUP_EMAIL,
+                SAM_GROUP_CREATED_BY));
   }
 
   @Test

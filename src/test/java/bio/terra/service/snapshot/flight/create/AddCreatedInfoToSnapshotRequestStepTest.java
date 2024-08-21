@@ -21,7 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-class AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStepTest {
+class AddCreatedInfoToSnapshotRequestStepTest {
   @Mock private SnapshotRequestDao snapshotRequestDao;
   @Mock private FlightContext context;
   private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
@@ -29,13 +29,13 @@ class AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStepTest {
   private static final String SAM_GROUP_NAME = "samGroupName";
   private static final String SAM_GROUP_EMAIL = "samGroupName@firecloud.org";
   private static final String SAM_GROUP_CREATED_BY_EMAIL = "tdr@serviceaccount.com";
-  private AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep step;
+  private AddCreatedInfoToSnapshotRequestStep step;
   private FlightMap workingMap;
 
   @BeforeEach
   void beforeEach() {
     step =
-        new AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStep(
+        new AddCreatedInfoToSnapshotRequestStep(
             snapshotRequestDao,
             SNAPSHOT_REQUEST_ID,
             CREATED_SNAPSHOT_ID,
@@ -50,9 +50,12 @@ class AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStepTest {
     when(context.getWorkingMap()).thenReturn(workingMap);
     StepResult result = step.doStep(context);
     verify(snapshotRequestDao)
-        .updateSamGroup(
-            SNAPSHOT_REQUEST_ID, SAM_GROUP_NAME, SAM_GROUP_EMAIL, SAM_GROUP_CREATED_BY_EMAIL);
-    verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID);
+        .updateCreatedInfo(
+            SNAPSHOT_REQUEST_ID,
+            CREATED_SNAPSHOT_ID,
+            SAM_GROUP_NAME,
+            SAM_GROUP_EMAIL,
+            SAM_GROUP_CREATED_BY_EMAIL);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 
@@ -66,8 +69,7 @@ class AddCreatedSnapshotIdAndSamGroupToSnapshotRequestStepTest {
   @Test
   void undoStep() throws InterruptedException {
     StepResult result = step.undoStep(null);
-    verify(snapshotRequestDao).updateSamGroup(SNAPSHOT_REQUEST_ID, null, null, null);
-    verify(snapshotRequestDao).updateCreatedSnapshotId(SNAPSHOT_REQUEST_ID, null);
+    verify(snapshotRequestDao).updateCreatedInfo(SNAPSHOT_REQUEST_ID, null, null, null, null);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 }

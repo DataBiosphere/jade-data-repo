@@ -222,28 +222,16 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void updateCreatedSnapshotId(UUID requestId, UUID snapshotId) {
+  public void updateCreatedInfo(
+      UUID requestId,
+      UUID snapshotId,
+      String samGroupName,
+      String samGroupEmail,
+      String groupCreatedByEmail) {
     String sql =
         """
         UPDATE snapshot_request SET
-        created_snapshot_id = :created_snapshot_id
-        WHERE id = :id
-        """;
-    MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue(CREATED_SNAPSHOT_ID, snapshotId)
-            .addValue(ID, requestId);
-    if (jdbcTemplate.update(sql, params) == 0) {
-      throw new NotFoundException(NOT_FOUND_MESSAGE);
-    }
-  }
-
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void updateSamGroup(
-      UUID requestId, String samGroupName, String samGroupEmail, String createdByEmail) {
-    String sql =
-        """
-        UPDATE snapshot_request SET
+        created_snapshot_id = :created_snapshot_id,
         sam_group_name = :sam_group_name,
         sam_group_email = :sam_group_email,
         sam_group_created_by = :sam_group_created_by
@@ -251,9 +239,10 @@ public class SnapshotRequestDao {
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
+            .addValue(CREATED_SNAPSHOT_ID, snapshotId)
             .addValue(SAM_GROUP_NAME, samGroupName)
             .addValue(SAM_GROUP_EMAIL, samGroupEmail)
-            .addValue(SAM_GROUP_CREATED_BY, createdByEmail)
+            .addValue(SAM_GROUP_CREATED_BY, groupCreatedByEmail)
             .addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);

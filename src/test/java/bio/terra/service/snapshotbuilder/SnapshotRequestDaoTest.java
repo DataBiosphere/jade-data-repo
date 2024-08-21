@@ -250,7 +250,7 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void updateSamGroup() {
+  void updateCreatedInfo() {
     SnapshotAccessRequestModel response = createRequest();
     verifyResponseContents(response, List.of());
     snapshotRequestDao.updateCreatedInfo(
@@ -275,7 +275,7 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void updateSamGroupRequestIdNotFound() {
+  void updateCreatedInfoRequestIdNotFound() {
     assertThrows(
         NotFoundException.class,
         () ->
@@ -284,7 +284,7 @@ class SnapshotRequestDaoTest {
   }
 
   @Test
-  void updateSamGroupSnapshotIdNotFound() {
+  void updateCreatedInfoSnapshotIdNotFound() {
     SnapshotAccessRequestModel response = createRequest();
     assertThrows(
         DataIntegrityViolationException.class,

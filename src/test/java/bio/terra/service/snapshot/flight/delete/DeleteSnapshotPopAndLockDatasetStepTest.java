@@ -16,6 +16,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
@@ -25,6 +27,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -55,7 +58,9 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
     snapshot =
         new Snapshot()
             .id(snapshotId)
-            .snapshotSources(List.of(new SnapshotSource().dataset(new Dataset().id(datasetId))));
+            .snapshotSources(List.of(new SnapshotSource().dataset(new Dataset().id(datasetId))))
+            .projectResource(new GoogleProjectResource().googleProjectId("projectId"))
+            .storageAccountResource(new AzureStorageAccountResource());
     step =
         new DeleteSnapshotPopAndLockDatasetStep(
             snapshotId, snapshotService, datasetService, TEST_USER, sharedLock);
@@ -73,13 +78,21 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
         equalTo(StepResult.getStepResultSuccess()));
 
     FlightMap map = flightContext.getWorkingMap();
-    assertEquals(true, map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class));
-    assertEquals(false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, Boolean.class));
-    assertEquals(
-        false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, Boolean.class));
+    assertTrue(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class), false));
+    assertTrue(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, Boolean.class), false));
+    assertTrue(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, Boolean.class),
+            false));
     assertEquals(datasetId, map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class));
     verify(datasetService).lock(eq(datasetId), any(), eq(sharedLock));
-    assertEquals(true, map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class));
+    assertTrue(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class), false));
   }
 
   // snapshot does not exist
@@ -95,12 +108,20 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
         equalTo(StepResult.getStepResultSuccess()));
 
     FlightMap map = flightContext.getWorkingMap();
-    assertEquals(false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class));
-    assertEquals(false, map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class));
+    assertFalse(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class), true));
+    assertFalse(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class), true));
 
-    assertEquals(false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, Boolean.class));
-    assertEquals(
-        false, map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, Boolean.class));
+    assertFalse(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, Boolean.class), true));
+    assertFalse(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, Boolean.class),
+            true));
   }
 
   // dataset does not exist
@@ -118,7 +139,11 @@ class DeleteSnapshotPopAndLockDatasetStepTest {
         equalTo(StepResult.getStepResultSuccess()));
 
     FlightMap map = flightContext.getWorkingMap();
-    assertEquals(true, map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class));
-    assertEquals(false, map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class));
+    assertTrue(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class), false));
+    assertFalse(
+        Objects.requireNonNullElse(
+            map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class), true));
   }
 }

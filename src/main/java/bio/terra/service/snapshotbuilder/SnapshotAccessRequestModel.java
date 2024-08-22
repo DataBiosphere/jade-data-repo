@@ -30,7 +30,7 @@ public record SnapshotAccessRequestModel(
     UUID createdSnapshotId,
     String flightid,
     String samGroupName,
-    String samGroupCreatedByEmail) {
+    String samGroupCreatedByTerraId) {
 
   @VisibleForTesting
   static String generateSummaryForCriteria(
@@ -140,6 +140,6 @@ public record SnapshotAccessRequestModel(
         .statusUpdatedDate(statusUpdatedDate != null ? statusUpdatedDate.toString() : null)
         .createdSnapshotId(createdSnapshotId)
         .summary(generateSummaryFromSnapshotSpecification(settings))
-        .samGroupName(samGroupName);
+        .authGroupName(samGroupName);
   }
 }

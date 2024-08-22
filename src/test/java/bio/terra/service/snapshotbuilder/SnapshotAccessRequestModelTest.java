@@ -161,6 +161,6 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.flightid(), is(response.getFlightid()));
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
     assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
-    assertThat(model.samGroupName(), is(response.getSamGroupName()));
+    assertThat(model.samGroupName(), is(response.getAuthGroupName()));
   }
 }

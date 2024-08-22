@@ -29,10 +29,10 @@ class DeleteSnapshotDeleteSamGroupStepTest {
   private UUID snapshotId;
   @Mock private FlightContext flightContext;
   private DeleteSnapshotDeleteSamGroupStep step;
-  private static final String expectedName = "samGroupName";
-  private static final SnapshotAccessRequestModel snapshotAccessRequestModel =
+  private static final String EXPECTED_NAME = "samGroupName";
+  private static final SnapshotAccessRequestModel SNAPSHOT_ACCESS_REQUEST_MODEL =
       new SnapshotAccessRequestModel(
-          null, null, null, null, null, null, null, null, null, null, null, expectedName, null);
+          null, null, null, null, null, null, null, null, null, null, null, EXPECTED_NAME, null);
 
   @BeforeEach
   void beforeEach() {
@@ -43,9 +43,9 @@ class DeleteSnapshotDeleteSamGroupStepTest {
   @Test
   void doStep() throws InterruptedException {
     when(snapshotRequestDao.getByCreatedSnapshotId(snapshotId))
-        .thenReturn(snapshotAccessRequestModel);
+        .thenReturn(SNAPSHOT_ACCESS_REQUEST_MODEL);
     var result = step.doStep(flightContext);
-    verify(iamService).deleteGroup(expectedName);
+    verify(iamService).deleteGroup(EXPECTED_NAME);
     assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
   }
 

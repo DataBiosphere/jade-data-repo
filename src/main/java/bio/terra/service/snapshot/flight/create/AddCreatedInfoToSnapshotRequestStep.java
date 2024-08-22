@@ -6,36 +6,36 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import java.util.Objects;
 import java.util.UUID;
 
 public class AddCreatedInfoToSnapshotRequestStep implements Step {
   private final SnapshotRequestDao snapshotRequestDao;
   private final UUID snapshotRequestId;
   private final UUID createdSnapshotId;
-  private final String samGroupCreatedByEmail;
+  private final String samGroupCreatedBy;
 
   public AddCreatedInfoToSnapshotRequestStep(
       SnapshotRequestDao snapshotRequestDao,
       UUID snapshotRequestId,
       UUID snapshotId,
-      String samGroupCreatedByEmail) {
+      String samGroupCreatedBy) {
     this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotRequestId = snapshotRequestId;
     this.createdSnapshotId = snapshotId;
-    this.samGroupCreatedByEmail = samGroupCreatedByEmail;
+    this.samGroupCreatedBy = samGroupCreatedBy;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     var workingMap = context.getWorkingMap();
     String samGroupName =
-        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
-    if (samGroupName == null || samGroupCreatedByEmail == null) {
-      throw new IllegalArgumentException("Sam group name and group created by email are required.");
-    }
+        Objects.requireNonNull(
+            workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class),
+            "Sam group name is required.");
 
     snapshotRequestDao.updateCreatedInfo(
-        snapshotRequestId, createdSnapshotId, samGroupName, samGroupCreatedByEmail);
+        snapshotRequestId, createdSnapshotId, samGroupName, samGroupCreatedBy);
     return StepResult.getStepResultSuccess();
   }
 

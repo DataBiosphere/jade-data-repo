@@ -8,7 +8,6 @@ import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +35,10 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    // Only delete the Sam group if it matches the expected name
+    // The request will only exist if the snapshot was created with byRequestId mode
+    // If it exists, the request will have the sam group name to be deleted for this snapshot
     SnapshotAccessRequestModel request = snapshotRequestDao.getByCreatedSnapshotId(snapshotId);
-    if (Objects.nonNull(request)) {
+    if (request != null) {
       var expectedName = request.samGroupName();
       try {
         iamService.deleteGroup(expectedName);

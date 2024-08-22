@@ -27,7 +27,7 @@ class AddCreatedInfoToSnapshotRequestStepTest {
   private static final UUID SNAPSHOT_REQUEST_ID = UUID.randomUUID();
   private static final UUID CREATED_SNAPSHOT_ID = UUID.randomUUID();
   private static final String SAM_GROUP_NAME = "samGroupName";
-  private static final String SAM_GROUP_CREATED_BY_EMAIL = "tdr@serviceaccount.com";
+  private static final String SAM_GROUP_CREATED_BY = "tdr@serviceaccount.com";
   private AddCreatedInfoToSnapshotRequestStep step;
   private FlightMap workingMap;
 
@@ -35,10 +35,7 @@ class AddCreatedInfoToSnapshotRequestStepTest {
   void beforeEach() {
     step =
         new AddCreatedInfoToSnapshotRequestStep(
-            snapshotRequestDao,
-            SNAPSHOT_REQUEST_ID,
-            CREATED_SNAPSHOT_ID,
-            SAM_GROUP_CREATED_BY_EMAIL);
+            snapshotRequestDao, SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID, SAM_GROUP_CREATED_BY);
     workingMap = new FlightMap();
   }
 
@@ -49,7 +46,7 @@ class AddCreatedInfoToSnapshotRequestStepTest {
     StepResult result = step.doStep(context);
     verify(snapshotRequestDao)
         .updateCreatedInfo(
-            SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID, SAM_GROUP_NAME, SAM_GROUP_CREATED_BY_EMAIL);
+            SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID, SAM_GROUP_NAME, SAM_GROUP_CREATED_BY);
     assertEquals(StepResult.getStepResultSuccess(), result);
   }
 

@@ -53,7 +53,7 @@ class AddCreatedInfoToSnapshotRequestStepTest {
   @Test
   void doStepFail() {
     when(context.getWorkingMap()).thenReturn(workingMap);
-    assertThrows(IllegalArgumentException.class, () -> step.doStep(context));
+    assertThrows(NullPointerException.class, () -> step.doStep(context));
   }
 
   @Test

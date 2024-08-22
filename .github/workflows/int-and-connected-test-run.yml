@@ -90,6 +90,13 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      # this must be defined for the bash redirection
+      GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+      # this must be defined for the bash redirection
+      GOOGLE_SA_CERT: 'jade-dev-account.pem'
+      # required for locking and deployment to integration namespace
+      K8_CLUSTER: 'integration-master'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -99,3 +106,82 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
+      - name: Whitelist Runner IP
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        with:
+          actions_subcommand: 'gcp_whitelist'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+      - name: Check for an available namespace to deploy API to and set state lock
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        with:
+          actions_subcommand: 'k8_checknamespace'
+          k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+      - name: Build docker container via Gradle
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        env:
+          # unset the GitHub Action default JAVA_HOME to build with JDK 17
+          JAVA_HOME:
+        with:
+          actions_subcommand: 'gradlebuild' # creates gcr build with git_hash tag
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+      - name: Deploy to cluster with Helm
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        with:
+          actions_subcommand: 'helmdeploy'
+          helm_create_secret_manager_secret_version: 0.0.8
+          helm_datarepo_api_chart_version: 0.0.739
+          helm_datarepo_ui_chart_version: 0.0.360
+          helm_gcloud_sqlproxy_chart_version: 0.19.13
+          helm_oidc_proxy_chart_version: 0.0.44
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+      - name: Fetch gitHash for deployed integration version
+        id: configuration
+        run: |
+          git_hash=$(git rev-parse --short HEAD)
+          echo "git_hash=${git_hash}" >> $GITHUB_OUTPUT
+          echo "Latest git hash for this branch: $git_hash"
+      - name: Wait for deployment to come back online
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.74.0
+        timeout-minutes: 20
+        env:
+          DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
+          DEPLOYMENT_TYPE: 'api'
+      - name: Run test runner smoke tests via Gradle
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        env:
+          # unset the GitHub Action default JAVA_HOME to run with JDK 17
+          JAVA_HOME:
+          # output plain logs instead of json
+          TDR_LOG_APPENDER: 'Console-Standard'
+        with:
+          actions_subcommand: 'gradletestrunnersmoketest'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+      - name: Run integration tests via Gradle
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        env:
+          # required for azure tests
+          AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
+          AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
+          AZURE_CREDENTIALS_SECRET: ${{ secrets.AZURE_CREDENTIALS_SECRET }}
+          # unset the GitHub Action default JAVA_HOME to run with JDK 17
+          JAVA_HOME:
+          # output plain logs instead of json
+          TDR_LOG_APPENDER: 'Console-Standard'
+        with:
+          actions_subcommand: 'gradleinttest'
+          pgport: ${{ job.services.postgres.ports[5432] }}
+          test_to_run: 'testIntegration'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+      - name: Clean state lock from used Namespace on API deploy
+        if: always()
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        with:
+          actions_subcommand: 'k8_checknamespace_clean'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+      - name: Clean whitelisted Runner IP
+        if: always()
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        with:
+          actions_subcommand: 'gcp_whitelist_clean'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}

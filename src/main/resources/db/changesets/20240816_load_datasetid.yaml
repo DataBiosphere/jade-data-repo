@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: load_datasetid
+      author: okotsopo
+      changes:
+        - addColumn:
+            tableName: load
+            columns:
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  remarks: |
+                    The dataset to which the files are being loaded.
+                  constraints:
+                    foreignKeyName: fk_dataset_load
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  remarks: |
+                    Useful for debugging when a load tag was locked.
+        - dropUniqueConstraint:
+            tableName: load
+            constraintName: load_load_tag_key
+        - addUniqueConstraint:
+            tableName: load
+            columnNames: load_tag, dataset_id
+            remarks: |
+              A load tag's lock should only extend to the destination dataset.
+              Attempts to reuse a load tag for a different dataset should succeed.

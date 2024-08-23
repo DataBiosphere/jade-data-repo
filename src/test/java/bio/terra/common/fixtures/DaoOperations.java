@@ -45,6 +45,18 @@ public class DaoOperations {
     this.snapshotService = snapshotService;
   }
 
+  /**
+   * Create billing profile and GCP project records in the DB, then use them to create a dataset
+   * record in the DB from {@value DATASET_MINIMAL}.
+   */
+  public Dataset createDataset() throws IOException {
+    return createDataset(DATASET_MINIMAL);
+  }
+
+  /**
+   * Create billing profile and GCP project records in the DB, then use them to create a dataset
+   * record in the DB.
+   */
   public Dataset createDataset(String path) throws IOException {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     BillingProfileModel billingProfile =

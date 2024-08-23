@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: load_rename_to_load_lock
+      author: okotsopo
+      remarks: |
+        A row's presence in the `load` table indicates that the combination of load tag and dataset
+        are currently locked.
+        The presence of a `locked` column (whose value was always true) along with the table name
+        did not make this behavior clear.
+      changes:
+        - dropColumn:
+            tableName: load
+            columnName: locked
+        - renameTable:
+            oldTableName: load
+            newTableName: load_lock

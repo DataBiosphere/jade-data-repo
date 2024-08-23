@@ -108,13 +108,14 @@ public class LoadDao {
       if (loadLock == null) {
         throw new CorruptMetadataException("Load lock row should exist! %s".formatted(loadLockKey));
       }
-      // We did not insert. Therefore, some flight is actively using the load tag to load files into
-      // this dataset. It could be this flight attempting to take out the same lock, or a different
-      // flight.
+      // We did not insert. Therefore, some flight is actively using the load tag to perform a load
+      // operation in this dataset. It could be this flight attempting to take out the same lock, or
+      // a different flight.
       String lockingFlightId = loadLock.lockingFlightId();
       if (!Objects.equals(lockingFlightId, flightId)) {
         throw new LoadLockedException(
-            "File ingest with %s is locked by flight %s".formatted(loadLockKey, lockingFlightId));
+            "File load operation with %s is locked by flight %s"
+                .formatted(loadLockKey, lockingFlightId));
       }
     }
     return loadLock;

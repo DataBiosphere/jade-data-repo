@@ -1,6 +1,5 @@
 package bio.terra.service.load;
 
-import static bio.terra.service.load.LoadIsLockedBy.loadIsLockedBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -47,7 +46,8 @@ class LoadDaoUnitTest {
 
   @Test
   void loadFilesTest() {
-    UUID loadId = loadDao.lockLoad("myLoadTag", "myFlightId", dataset.getId()).id();
+    LoadLockKey loadLockKey = new LoadLockKey("myLoadTag", dataset.getId());
+    UUID loadId = loadDao.lockLoad(loadLockKey, "myFlightId").id();
     List<BulkLoadFileModel> loadList = new ArrayList<>();
     for (int i = 0; i < 8; i++) {
       loadList.add(
@@ -117,37 +117,42 @@ class LoadDaoUnitTest {
     final String flightY = "flightIdY";
     final String flightZ = "flightIdZ";
     final UUID datasetIdA = dataset.getId();
+    final LoadLockKey loadTag_datasetA = new LoadLockKey(loadTag, datasetIdA);
 
     assertThat(
-        "[Flight=X,dataset=A] gets lock",
-        loadDao.lockLoad(loadTag, flightX, datasetIdA),
-        loadIsLockedBy(flightX, datasetIdA));
+        "flightX gets lock on " + loadTag_datasetA,
+        loadDao.lockLoad(loadTag_datasetA, flightX).lockingFlightId(),
+        equalTo(flightX));
     assertThat(
-        "[Flight=X,dataset=A] gets lock again",
-        loadDao.lockLoad(loadTag, flightX, datasetIdA),
-        loadIsLockedBy(flightX, datasetIdA));
+        "flightX gets lock on " + loadTag_datasetA + " again",
+        loadDao.lockLoad(loadTag_datasetA, flightX).lockingFlightId(),
+        equalTo(flightX));
     assertThrows(
         LoadLockedException.class,
-        () -> loadDao.lockLoad(loadTag, flightY, datasetIdA),
-        "[Flight=Y,dataset=A] does not get lock");
+        () -> loadDao.lockLoad(loadTag_datasetA, flightY),
+        "flightY does not get lock while flightX locks " + loadTag_datasetA);
 
-    loadDao.unlockLoad(loadTag, flightX, datasetIdA);
+    loadDao.unlockLoad(loadTag_datasetA, flightX);
     assertThat(
-        "[Flight=Y,dataset=A] gets lock once [Flight=X,dataset=A] unlocks",
-        loadDao.lockLoad(loadTag, flightY, datasetIdA),
-        loadIsLockedBy(flightY, datasetIdA));
+        "flightY gets lock once flightX unlocks " + loadTag_datasetA,
+        loadDao.lockLoad(loadTag_datasetA, flightY).lockingFlightId(),
+        equalTo(flightY));
 
     final UUID datasetIdB = daoOperations.createDataset().getId();
+    final LoadLockKey loadTag_datasetB = new LoadLockKey(loadTag, datasetIdB);
     assertThat(
-        "[Flight=Z,dataset=B] gets lock even with [Flight=Y,dataset=A] lock",
-        loadDao.lockLoad(loadTag, flightZ, datasetIdB),
-        loadIsLockedBy(flightZ, datasetIdB));
+        "flightZ gets lock on "
+            + loadTag_datasetB
+            + " even with flightY's lock on "
+            + loadTag_datasetA,
+        loadDao.lockLoad(loadTag_datasetB, flightZ).lockingFlightId(),
+        equalTo(flightZ));
 
     // No errors unlocking X again
-    loadDao.unlockLoad(loadTag, flightX, datasetIdA);
+    loadDao.unlockLoad(loadTag_datasetA, flightX);
 
-    loadDao.unlockLoad(loadTag, flightY, datasetIdA);
-    loadDao.unlockLoad(loadTag, flightZ, datasetIdB);
+    loadDao.unlockLoad(loadTag_datasetA, flightY);
+    loadDao.unlockLoad(loadTag_datasetB, flightZ);
   }
 
   private void testLoadCandidates(

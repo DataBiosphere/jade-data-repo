@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService.LoadHistoryIterator;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
@@ -35,8 +36,9 @@ class LoadServiceTest {
   private LoadService loadService;
   private static final UUID LOAD_ID = UUID.randomUUID();
   private static final String LOAD_TAG = "a-load-tag";
-  private static final String LOCKING_FLIGHT_ID = "a-locking-flight-id";
   private static final UUID DATASET_ID = UUID.randomUUID();
+  private static final LoadLockKey LOAD_LOCK_KEY = new LoadLockKey(LOAD_TAG, DATASET_ID);
+  private static final String LOCKING_FLIGHT_ID = "a-locking-flight-id";
 
   @BeforeEach
   void setup() {
@@ -45,25 +47,22 @@ class LoadServiceTest {
 
   @Test
   void lockLoad() {
-    Load expectedLoad = new Load(LOAD_ID, LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID);
-    when(loadDao.lockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID)).thenReturn(expectedLoad);
-    assertThat(loadService.lockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID), equalTo(LOAD_ID));
+    LoadLock expectedLoadLock = new LoadLock(LOAD_ID, LOAD_LOCK_KEY, LOCKING_FLIGHT_ID);
+    when(loadDao.lockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID)).thenReturn(expectedLoadLock);
+    assertThat(loadService.lockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID), equalTo(LOAD_ID));
   }
 
   @Test
   void lockLoad_LoadLockedException() {
-    doThrow(LoadLockedException.class)
-        .when(loadDao)
-        .lockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID);
+    doThrow(LoadLockedException.class).when(loadDao).lockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID);
     assertThrows(
-        LoadLockedException.class,
-        () -> loadService.lockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID));
+        LoadLockedException.class, () -> loadService.lockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID));
   }
 
   @Test
   void unlockLoad() {
-    loadService.unlockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID);
-    verify(loadDao).unlockLoad(LOAD_TAG, LOCKING_FLIGHT_ID, DATASET_ID);
+    loadService.unlockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID);
+    verify(loadDao).unlockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID);
   }
 
   @Test
@@ -74,36 +73,48 @@ class LoadServiceTest {
     assertThat("pass through load tag", loadTag, equalTo(LOAD_TAG));
   }
 
+  private void mockInputParams(boolean hasLoadTag) {
+    FlightMap inputParams = new FlightMap();
+    inputParams.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
+    if (hasLoadTag) {
+      inputParams.put(LoadMapKeys.LOAD_TAG, LOAD_TAG);
+    }
+    when(flightContext.getInputParameters()).thenReturn(inputParams);
+  }
+
   @Test
-  void getLoadTag_workingMap() {
-    // No load tag present in input params
-    when(flightContext.getInputParameters()).thenReturn(new FlightMap());
+  void getLoadLockKey_workingMap() {
+    mockInputParams(false);
 
     FlightMap workingMap = new FlightMap();
     workingMap.put(LoadMapKeys.LOAD_TAG, LOAD_TAG);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
-    String actualTag = loadService.getLoadTag(flightContext);
-    assertThat("Load tag retrieved from working map", actualTag, equalTo(LOAD_TAG));
+    LoadLockKey actualLoadLockKey = loadService.getLoadLockKey(flightContext);
+    assertThat(
+        "Load tag retrieved from working map",
+        actualLoadLockKey,
+        equalTo(new LoadLockKey(LOAD_TAG, DATASET_ID)));
   }
 
   @Test
-  void getLoadTag_inputParameters() {
-    FlightMap inputParams = new FlightMap();
-    inputParams.put(LoadMapKeys.LOAD_TAG, LOAD_TAG);
-    when(flightContext.getInputParameters()).thenReturn(inputParams);
+  void getLoadLockKey_inputParameters() {
+    mockInputParams(true);
 
-    String actualTag = loadService.getLoadTag(flightContext);
-    assertThat("Load tag retrieved from input params", actualTag, equalTo(LOAD_TAG));
+    LoadLockKey actualLoadLockKey = loadService.getLoadLockKey(flightContext);
+    assertThat(
+        "Load tag retrieved from input params",
+        actualLoadLockKey,
+        equalTo(new LoadLockKey(LOAD_TAG, DATASET_ID)));
   }
 
   @Test
-  void getLoadTag_LoadLockFailureException() {
-    when(flightContext.getInputParameters()).thenReturn(new FlightMap());
+  void getLoadLockKey_LoadLockFailureException() {
+    mockInputParams(false);
     when(flightContext.getWorkingMap()).thenReturn(new FlightMap());
     assertThrows(
         LoadLockFailureException.class,
-        () -> loadService.getLoadTag(flightContext),
+        () -> loadService.getLoadLockKey(flightContext),
         "Fails when load tag can't be found in input or working maps");
   }
 

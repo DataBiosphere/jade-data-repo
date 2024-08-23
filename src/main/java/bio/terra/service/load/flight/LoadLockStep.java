@@ -1,7 +1,7 @@
 package bio.terra.service.load.flight;
 
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.load.LoadLockKey;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.stairway.FlightContext;
@@ -30,10 +30,9 @@ public class LoadLockStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    String loadTag = loadService.getLoadTag(context);
-    UUID datasetId = IngestUtils.getDatasetId(context);
+    LoadLockKey loadLockKey = loadService.getLoadLockKey(context);
     try {
-      UUID loadId = loadService.lockLoad(loadTag, context.getFlightId(), datasetId);
+      UUID loadId = loadService.lockLoad(loadLockKey, context.getFlightId());
       FlightMap workingMap = context.getWorkingMap();
       workingMap.put(LoadMapKeys.LOAD_ID, loadId.toString());
       return StepResult.getStepResultSuccess();
@@ -44,9 +43,8 @@ public class LoadLockStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    String loadTag = loadService.getLoadTag(context);
-    UUID datasetId = IngestUtils.getDatasetId(context);
-    loadService.unlockLoad(loadTag, context.getFlightId(), datasetId);
+    LoadLockKey loadLockKey = loadService.getLoadLockKey(context);
+    loadService.unlockLoad(loadLockKey, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 }

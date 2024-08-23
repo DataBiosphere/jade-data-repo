@@ -1,12 +1,11 @@
 package bio.terra.service.load.flight;
 
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.load.LoadLockKey;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
-import java.util.UUID;
 
 public class LoadUnlockStep extends DefaultUndoStep {
   private final LoadService loadService;
@@ -27,9 +26,8 @@ public class LoadUnlockStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    String loadTag = loadService.getLoadTag(context);
-    UUID datasetId = IngestUtils.getDatasetId(context);
-    loadService.unlockLoad(loadTag, context.getFlightId(), datasetId);
+    LoadLockKey loadLockKey = loadService.getLoadLockKey(context);
+    loadService.unlockLoad(loadLockKey, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 }

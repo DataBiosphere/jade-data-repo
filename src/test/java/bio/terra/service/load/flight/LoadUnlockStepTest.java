@@ -6,10 +6,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.load.LoadLockKey;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,17 +26,12 @@ class LoadUnlockStepTest {
   private LoadUnlockStep step;
 
   private static final String FLIGHT_ID = "flightId";
-  private static final String LOAD_TAG = "loadTag";
-  private static final UUID DATASET_ID = UUID.randomUUID();
+  private static final LoadLockKey LOAD_LOCK_KEY = new LoadLockKey("loadTag", UUID.randomUUID());
 
   @BeforeEach
   void setup() {
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
-    when(loadService.getLoadTag(flightContext)).thenReturn(LOAD_TAG);
-
-    FlightMap inputParams = new FlightMap();
-    inputParams.put(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
-    when(flightContext.getInputParameters()).thenReturn(inputParams);
+    when(loadService.getLoadLockKey(flightContext)).thenReturn(LOAD_LOCK_KEY);
 
     step = new LoadUnlockStep(loadService);
   }
@@ -46,6 +40,6 @@ class LoadUnlockStepTest {
   void doStep() {
     assertThat(step.doStep(flightContext), equalTo(StepResult.getStepResultSuccess()));
 
-    verify(loadService).unlockLoad(LOAD_TAG, FLIGHT_ID, DATASET_ID);
+    verify(loadService).unlockLoad(LOAD_LOCK_KEY, FLIGHT_ID);
   }
 }

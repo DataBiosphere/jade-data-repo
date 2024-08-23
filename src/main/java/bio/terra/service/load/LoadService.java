@@ -5,7 +5,9 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadResultModel;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -31,13 +33,13 @@ public class LoadService {
     this.loadDao = loadDao;
   }
 
-  public UUID lockLoad(String loadTag, String flightId, UUID datasetId) {
-    Load load = loadDao.lockLoad(loadTag, flightId, datasetId);
+  public UUID lockLoad(LoadLockKey loadLockKey, String flightId) {
+    LoadLock load = loadDao.lockLoad(loadLockKey, flightId);
     return load.id();
   }
 
-  public void unlockLoad(String loadTag, String flightId, UUID datasetId) {
-    loadDao.unlockLoad(loadTag, flightId, datasetId);
+  public void unlockLoad(LoadLockKey loadLockKey, String flightId) {
+    loadDao.unlockLoad(loadLockKey, flightId);
   }
 
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
@@ -69,7 +71,21 @@ public class LoadService {
     return inputTag;
   }
 
-  public String getLoadTag(FlightContext context) {
+  /**
+   * @param context Flight context with the following:
+   *     <ul>
+   *       <li>{@link LoadMapKeys#LOAD_TAG} in the input parameters or working map
+   *       <li>{@link JobMapKeys#DATASET_ID} in the input parameters
+   *     </ul>
+   *
+   * @return a {@link LoadLockKey} constructed from the flight's context, which this flight will
+   *     attempt to lock while loading files.
+   */
+  public LoadLockKey getLoadLockKey(FlightContext context) {
+    return new LoadLockKey(getLoadTag(context), IngestUtils.getDatasetId(context));
+  }
+
+  private String getLoadTag(FlightContext context) {
     FlightMap inputParameters = context.getInputParameters();
     String key = LoadMapKeys.LOAD_TAG;
     String loadTag = inputParameters.get(key, String.class);

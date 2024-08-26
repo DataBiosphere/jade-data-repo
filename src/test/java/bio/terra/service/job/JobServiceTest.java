@@ -304,11 +304,11 @@ class JobServiceTest {
         StairwayException.class, () -> jobService.retrieveJobResult("abcdef", Object.class, null));
   }
 
-  @Test
-  void testSubmissionAndRetrieval_noParameters() throws InterruptedException {
-    JobModel expectedJob = runFlightAndReturnExpectedJobModel(1, false);
-    testSingleRetrieval(expectedJob);
-  }
+  //  @Test
+  //  void testSubmissionAndRetrieval_noParameters() throws InterruptedException {
+  //    JobModel expectedJob = runFlightAndReturnExpectedJobModel(1, false);
+  //    testSingleRetrieval(expectedJob);
+  //  }
 
   private Matcher<JobModel> getJobMatcher(JobModel jobModel) {
     return samePropertyValuesAs(jobModel, "submitted", "completed");

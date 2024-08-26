@@ -6,7 +6,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import java.util.Objects;
 import java.util.UUID;
 
 public class AddCreatedInfoToSnapshotRequestStep implements Step {
@@ -30,9 +29,7 @@ public class AddCreatedInfoToSnapshotRequestStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     var workingMap = context.getWorkingMap();
     String samGroupName =
-        Objects.requireNonNull(
-            workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class),
-            "Sam group name is required.");
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_FIRECLOUD_GROUP_NAME, String.class);
 
     snapshotRequestDao.updateCreatedInfo(
         snapshotRequestId, createdSnapshotId, samGroupName, samGroupCreatedBy);

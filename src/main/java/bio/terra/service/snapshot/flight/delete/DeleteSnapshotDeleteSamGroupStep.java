@@ -38,24 +38,24 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     // The request will only exist if the snapshot was created with byRequestId mode
     // If it exists, the request will have the sam group name to be deleted for this snapshot
-    SnapshotAccessRequestModel request = null;
+    SnapshotAccessRequestModel request;
     try {
       request = snapshotRequestDao.getByCreatedSnapshotId(snapshotId);
     } catch (NotFoundException ex) {
       // If the request does not exist, nothing to delete
+      return StepResult.getStepResultSuccess();
     }
 
-    if (request != null) {
-      var samGroupName = request.samGroupName();
-      try {
-        iamService.deleteGroup(samGroupName);
-      } catch (IamNotFoundException ex) {
-        // If group does not exist, nothing to delete
-      } catch (Exception ex) {
-        // If there is some other error, log and continue
-        logger.error("Error deleting Sam group: {}", samGroupName, ex);
-      }
+    var samGroupName = request.samGroupName();
+    try {
+      iamService.deleteGroup(samGroupName);
+    } catch (IamNotFoundException ex) {
+      // If group does not exist, nothing to delete
+    } catch (Exception ex) {
+      // If there is some other error, log and continue
+      logger.error("Error deleting Sam group: {}", samGroupName, ex);
     }
+
     return StepResult.getStepResultSuccess();
   }
 }

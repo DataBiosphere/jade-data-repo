@@ -15,6 +15,7 @@ import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,9 +23,10 @@ import org.junit.jupiter.api.Test;
 @Tag(Unit.TAG)
 class SnapshotAccessRequestModelTest {
   private static final String EXPECTED_LIST_SUMMARY_STRING =
-      "The following concepts from Race: 0, 1, 2";
+      "The following concepts from Race: name 0, name 1, name 2";
   private static final String EXPECTED_RANGE_SUMMARY_STRING = "Year of birth between 1960 and 1980";
-  private static final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept Id: 401";
+  private static final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept Id: name 401";
+  private static final Map<Integer, String> conceptIdsToNames = Map.of(401, "name 401");
 
   @Test
   void toApiResponse() {
@@ -55,7 +57,7 @@ class SnapshotAccessRequestModelTest {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCriteria(
-            domainCriteria, SnapshotBuilderTestData.SETTINGS),
+            domainCriteria, SnapshotBuilderTestData.SETTINGS, conceptIdsToNames),
         equalToCompressingWhiteSpace(EXPECTED_DOMAIN_SUMMARY_STRING));
   }
 
@@ -69,7 +71,7 @@ class SnapshotAccessRequestModelTest {
                 List.of(generateRangeCriteria(), generateListCriteria(), generateDomainCriteria()));
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCriteriaGroup(
-            criteriaGroup, SnapshotBuilderTestData.SETTINGS),
+            criteriaGroup, SnapshotBuilderTestData.SETTINGS, conceptIdsToNames),
         equalToCompressingWhiteSpace(
             String.format(
                 "Must meet all of:%n%s%n%s%n%s",
@@ -91,7 +93,7 @@ class SnapshotAccessRequestModelTest {
                     new SnapshotBuilderCriteriaGroup().mustMeet(false).meetAll(false)));
     assertThat(
         SnapshotAccessRequestModel.generateSummaryForCohort(
-            cohort, SnapshotBuilderTestData.SETTINGS),
+            cohort, SnapshotBuilderTestData.SETTINGS, conceptIdsToNames),
         equalToCompressingWhiteSpace(
             String.format(
                 "Name: %s%nGroups:%n%s%n%s",

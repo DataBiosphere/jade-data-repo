@@ -9,6 +9,7 @@ import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestDetailsResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -35,6 +36,7 @@ import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import com.google.cloud.Tuple;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
@@ -230,6 +232,11 @@ public class SnapshotBuilderService {
     return convertModelToApiResponse(snapshotRequestDao.getById(id));
   }
 
+  public SnapshotAccessRequestDetailsResponse getRequestDetails(
+      AuthenticatedUserRequest userRequest, UUID id) {
+    return generateModelDetails(userRequest, snapshotRequestDao.getById(id));
+  }
+
   public void deleteRequest(AuthenticatedUserRequest user, UUID id) {
     iamService.deleteSnapshotBuilderRequest(user, id);
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.DELETED);
@@ -412,6 +419,27 @@ public class SnapshotBuilderService {
       SnapshotAccessRequestModel model) {
     return model.toApiResponse(
         snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()));
+  }
+
+  private SnapshotAccessRequestDetailsResponse generateModelDetails(
+      AuthenticatedUserRequest userRequest, SnapshotAccessRequestModel model) {
+    List<Integer> conceptIds = model.generateConceptIds();
+    SnapshotBuilderSettings settings =
+        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId());
+    List<Tuple<Integer, String>> concepts =
+        conceptIds.size() > 0
+            ? runSnapshotBuilderQuery(
+                queryBuilderFactory
+                    .enumerateConceptsQueryBuilder()
+                    .getConceptsFromConceptIds(conceptIds),
+                snapshotService.retrieve(model.sourceSnapshotId()),
+                userRequest,
+                AggregateBQQueryResultsUtils::toConceptIdNamePair,
+                AggregateSynapseQueryResultsUtils::toConceptIdNamePair)
+            : List.of();
+
+    return model.generateModelDetails(
+        settings, concepts.stream().collect(Collectors.toMap(Tuple::x, Tuple::y)));
   }
 
   private SnapshotBuilderDomainOption getDomainOption(

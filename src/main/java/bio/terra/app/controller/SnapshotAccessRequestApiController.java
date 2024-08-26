@@ -5,6 +5,7 @@ import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SnapshotAccessRequestApi;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestDetailsResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -68,6 +69,15 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.GET);
     return ResponseEntity.ok(snapshotBuilderService.getRequest(id));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotAccessRequestDetailsResponse> getSnapshotAccessRequestDetails(
+      UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.GET);
+    return ResponseEntity.ok(snapshotBuilderService.getRequestDetails(userRequest, id));
   }
 
   @Override

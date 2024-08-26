@@ -3,9 +3,16 @@ package bio.terra.service.snapshotbuilder.utils;
 import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.query.table.Concept;
+import com.google.cloud.Tuple;
 import com.google.cloud.bigquery.FieldValueList;
 
 public class AggregateBQQueryResultsUtils {
+  public static Tuple<Integer, String> toConceptIdNamePair(FieldValueList row) {
+    return Tuple.of(
+        (int) (row.get(Concept.CONCEPT_ID).getLongValue()),
+        row.get(Concept.CONCEPT_NAME).getStringValue());
+  }
+
   public static SnapshotBuilderConcept toConcept(FieldValueList row) {
     return new SnapshotBuilderConcept()
         .id((int) (row.get(Concept.CONCEPT_ID).getLongValue()))

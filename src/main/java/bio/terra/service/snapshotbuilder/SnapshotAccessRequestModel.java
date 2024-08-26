@@ -1,18 +1,11 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.common.exception.InternalServerErrorException;
-import bio.terra.model.SnapshotAccessRequestResponse;
-import bio.terra.model.SnapshotAccessRequestStatus;
-import bio.terra.model.SnapshotBuilderCohort;
-import bio.terra.model.SnapshotBuilderCriteriaGroup;
-import bio.terra.model.SnapshotBuilderDomainCriteria;
-import bio.terra.model.SnapshotBuilderOutputTable;
-import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
-import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
-import bio.terra.model.SnapshotBuilderRequest;
-import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.model.*;
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,18 +26,35 @@ public record SnapshotAccessRequestModel(
   @VisibleForTesting
   static String generateSummaryForCriteria(
       SnapshotBuilderProgramDataListCriteria criteria, SnapshotBuilderSettings settings) {
+    SnapshotBuilderProgramDataListOption listOption =
+        (SnapshotBuilderProgramDataListOption)
+            settings.getProgramDataOptions().stream()
+                .filter(
+                    programDataOption ->
+                        Objects.equals(programDataOption.getId(), criteria.getId())
+                            && programDataOption.getKind() == SnapshotBuilderOption.KindEnum.LIST)
+                .findFirst()
+                .orElseThrow(
+                    () ->
+                        new InternalServerErrorException(
+                            String.format("No value found for criteria ID %d", criteria.getId())));
     return String.format(
         "The following concepts from %s: %s",
-        settings.getProgramDataOptions().stream()
-            .filter(
-                programDataOption -> Objects.equals(programDataOption.getId(), criteria.getId()))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new InternalServerErrorException(
-                        String.format("No value found for criteria ID %d", criteria.getId())))
-            .getName(),
-        criteria.getValues().stream().map(Object::toString).collect(Collectors.joining(", ")));
+        listOption.getName(),
+        criteria.getValues().stream()
+            .map(
+                criteriaValue ->
+                    listOption.getValues().stream()
+                        .filter(listValue -> Objects.equals(listValue.getId(), criteriaValue))
+                        .findFirst()
+                        .orElseThrow(
+                            () ->
+                                new InternalServerErrorException(
+                                    String.format(
+                                        "No value found for criteria concept ID %d",
+                                        criteriaValue)))
+                        .getName())
+            .collect(Collectors.joining(", ")));
   }
 
   @VisibleForTesting
@@ -64,20 +74,24 @@ public record SnapshotAccessRequestModel(
 
   @VisibleForTesting
   static String generateSummaryForCriteria(
-      SnapshotBuilderDomainCriteria criteria, SnapshotBuilderSettings settings) {
+      SnapshotBuilderDomainCriteria criteria,
+      SnapshotBuilderSettings settings,
+      Map<Integer, String> conceptIdsToName) {
     return String.format(
-        "%s Concept Id: %s",
+        "%s Concept: %s",
         settings.getDomainOptions().stream()
             .filter(domainOption -> domainOption.getId().equals(criteria.getId()))
             .findFirst()
             .orElseThrow()
             .getName(),
-        criteria.getConceptId());
+        conceptIdsToName.get(criteria.getConceptId()));
   }
 
   @VisibleForTesting
   static String generateSummaryForCriteriaGroup(
-      SnapshotBuilderCriteriaGroup criteriaGroup, SnapshotBuilderSettings settings) {
+      SnapshotBuilderCriteriaGroup criteriaGroup,
+      SnapshotBuilderSettings settings,
+      Map<Integer, String> conceptIdsToName) {
     return String.format(
         "Must %s %s:%n%s",
         criteriaGroup.isMustMeet() ? "meet" : "not meet",
@@ -94,34 +108,65 @@ public record SnapshotAccessRequestModel(
                               (SnapshotBuilderProgramDataRangeCriteria) criteria, settings);
                       case DOMAIN ->
                           generateSummaryForCriteria(
-                              (SnapshotBuilderDomainCriteria) criteria, settings);
+                              (SnapshotBuilderDomainCriteria) criteria, settings, conceptIdsToName);
                     })
             .collect(Collectors.joining("\n")));
   }
 
   @VisibleForTesting
   static String generateSummaryForCohort(
-      SnapshotBuilderCohort cohort, SnapshotBuilderSettings settings) {
+      SnapshotBuilderCohort cohort,
+      SnapshotBuilderSettings settings,
+      Map<Integer, String> conceptIdsToName) {
     return String.format(
         "Name: %s%nGroups:%n%s",
         cohort.getName(),
         cohort.getCriteriaGroups().stream()
-            .map(criteriaGroup -> generateSummaryForCriteriaGroup(criteriaGroup, settings))
+            .map(
+                criteriaGroup ->
+                    generateSummaryForCriteriaGroup(criteriaGroup, settings, conceptIdsToName))
             .collect(Collectors.joining("\n")));
   }
 
   @VisibleForTesting
-  String generateSummaryFromSnapshotSpecification(SnapshotBuilderSettings settings) {
+  String generateSummaryFromSnapshotSpecification(
+      SnapshotBuilderSettings settings, Map<Integer, String> conceptIdsToName) {
     return snapshotSpecification != null
         ? String.format(
             "Participants included:%n%s%nTables included:%s%n",
             snapshotSpecification.getCohorts().stream()
-                .map(cohort -> generateSummaryForCohort(cohort, settings))
+                .map(cohort -> generateSummaryForCohort(cohort, settings, conceptIdsToName))
                 .collect(Collectors.joining("\n")),
             snapshotSpecification.getOutputTables().stream()
                 .map(SnapshotBuilderOutputTable::getName)
                 .collect(Collectors.joining(", ")))
         : "No snapshot specification found";
+  }
+
+  @VisibleForTesting
+  List<Integer> generateCriteriaGroupConceptIds(SnapshotBuilderCriteriaGroup criteriaGroup) {
+    return criteriaGroup.getCriteria().stream()
+        // Program data options include the string value in the settings,
+        // so we don't need to fetch their names.
+        .filter(criteria -> criteria.getKind() == SnapshotBuilderCriteria.KindEnum.DOMAIN)
+        .map(criteria -> ((SnapshotBuilderDomainCriteria) criteria).getConceptId())
+        .toList();
+  }
+
+  @VisibleForTesting
+  List<Integer> generateCohortConceptIds(SnapshotBuilderCohort cohort) {
+    return cohort.getCriteriaGroups().stream()
+        .map(this::generateCriteriaGroupConceptIds)
+        .flatMap(List::stream)
+        .toList();
+  }
+
+  public List<Integer> generateConceptIds() {
+    return snapshotSpecification.getCohorts().stream()
+        .map(this::generateCohortConceptIds)
+        .flatMap(List::stream)
+        .distinct()
+        .toList();
   }
 
   public SnapshotAccessRequestResponse toApiResponse(SnapshotBuilderSettings settings) {
@@ -136,7 +181,12 @@ public record SnapshotAccessRequestModel(
         .status(status)
         .createdDate(createdDate != null ? createdDate.toString() : null)
         .statusUpdatedDate(statusUpdatedDate != null ? statusUpdatedDate.toString() : null)
-        .createdSnapshotId(createdSnapshotId)
-        .summary(generateSummaryFromSnapshotSpecification(settings));
+        .createdSnapshotId(createdSnapshotId);
+  }
+
+  public SnapshotAccessRequestDetailsResponse generateModelDetails(
+      SnapshotBuilderSettings settings, Map<Integer, String> conceptIdsToName) {
+    return new SnapshotAccessRequestDetailsResponse()
+        .summary(generateSummaryFromSnapshotSpecification(settings, conceptIdsToName));
   }
 }

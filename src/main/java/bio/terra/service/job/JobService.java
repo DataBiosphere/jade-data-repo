@@ -303,12 +303,18 @@ public class JobService {
     IamAction iamResourceAction =
         inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
 
-    JobTargetResourceModel targetResource = new JobTargetResourceModel().id(iamResourceId);
+    JobTargetResourceModel targetResource = new JobTargetResourceModel();
+    if (iamResourceId != null) {
+      targetResource.setId(iamResourceId);
+    }
     if (iamResourceType != null) {
       targetResource.setType(iamResourceType.getSamResourceName());
     }
     if (iamResourceAction != null) {
       targetResource.setAction(iamResourceAction.toString());
+    }
+    if (iamResourceId == null && iamResourceAction == null && iamResourceType == null) {
+      return null;
     }
     return targetResource;
   }

@@ -38,6 +38,7 @@ build/
 
 # generated source files
 src/generated/
+src/main/resources/swagger-ui.properties
 src/main/resources/version.properties
 .swagger-codegen/
 .swagger-codegen-ignore

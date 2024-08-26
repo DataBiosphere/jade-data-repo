@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.job.DefaultUndoStep;
@@ -37,15 +38,22 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     // The request will only exist if the snapshot was created with byRequestId mode
     // If it exists, the request will have the sam group name to be deleted for this snapshot
-    SnapshotAccessRequestModel request = snapshotRequestDao.getByCreatedSnapshotId(snapshotId);
+    SnapshotAccessRequestModel request = null;
+    try {
+      request = snapshotRequestDao.getByCreatedSnapshotId(snapshotId);
+    } catch (NotFoundException ex) {
+      // If the request does not exist, nothing to delete
+    }
+
     if (request != null) {
-      var expectedName = request.samGroupName();
+      var samGroupName = request.samGroupName();
       try {
-        iamService.deleteGroup(expectedName);
+        iamService.deleteGroup(samGroupName);
       } catch (IamNotFoundException ex) {
-        // if group does not exist, nothing to delete)
+        // If group does not exist, nothing to delete
       } catch (Exception ex) {
-        logger.error("Error deleting Sam group: {}", expectedName, ex);
+        // If there is some other error, log and continue
+        logger.error("Error deleting Sam group: {}", samGroupName, ex);
       }
     }
     return StepResult.getStepResultSuccess();

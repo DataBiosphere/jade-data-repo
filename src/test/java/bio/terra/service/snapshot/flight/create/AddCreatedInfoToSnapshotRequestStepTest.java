@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,12 +47,6 @@ class AddCreatedInfoToSnapshotRequestStepTest {
         .updateCreatedInfo(
             SNAPSHOT_REQUEST_ID, CREATED_SNAPSHOT_ID, SAM_GROUP_NAME, SAM_GROUP_CREATED_BY);
     assertEquals(StepResult.getStepResultSuccess(), result);
-  }
-
-  @Test
-  void doStepFail() {
-    when(context.getWorkingMap()).thenReturn(workingMap);
-    assertThrows(NullPointerException.class, () -> step.doStep(context));
   }
 
   @Test

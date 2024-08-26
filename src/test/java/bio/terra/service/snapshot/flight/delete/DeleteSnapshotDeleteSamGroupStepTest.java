@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
@@ -51,7 +52,7 @@ class DeleteSnapshotDeleteSamGroupStepTest {
 
   @Test
   void doStepSnapshotNotByRequestId() throws InterruptedException {
-    when(snapshotRequestDao.getByCreatedSnapshotId(snapshotId)).thenReturn(null);
+    when(snapshotRequestDao.getByCreatedSnapshotId(snapshotId)).thenThrow(NotFoundException.class);
     var result = step.doStep(flightContext);
     verify(iamService, never()).deleteGroup(any());
     assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));

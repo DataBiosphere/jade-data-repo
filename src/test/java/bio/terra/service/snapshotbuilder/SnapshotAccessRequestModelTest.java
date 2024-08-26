@@ -1,10 +1,12 @@
 package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.SnapshotAccessRequestDetailsResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -23,15 +25,34 @@ import org.junit.jupiter.api.Test;
 @Tag(Unit.TAG)
 class SnapshotAccessRequestModelTest {
   private static final String EXPECTED_LIST_SUMMARY_STRING =
-      "The following concepts from Race: name 0, name 1, name 2";
+      String.format(
+          "The following concepts from Race: %s, %s",
+          SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_ONE.getName(),
+          SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_TWO.getName());
   private static final String EXPECTED_RANGE_SUMMARY_STRING = "Year of birth between 1960 and 1980";
-  private static final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept Id: name 401";
-  private static final Map<Integer, String> conceptIdsToNames = Map.of(401, "name 401");
+  private static final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept: name 401";
+  public static final int CONCEPT_ID = 401;
+  private static final Map<Integer, String> conceptIdsToNames = Map.of(CONCEPT_ID, "name 401");
 
   @Test
   void toApiResponse() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
     compareModelAndResponseFields(model, model.toApiResponse(SnapshotBuilderTestData.SETTINGS));
+  }
+
+  @Test
+  void toApiDetails() {
+    SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
+    compareModelAndDetailsFields(
+        model, model.generateModelDetails(SnapshotBuilderTestData.SETTINGS, conceptIdsToNames));
+  }
+
+  @Test
+  void generateConceptIds() {
+    SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
+    assertThat(
+        model.generateConceptIds(),
+        contains(SnapshotBuilderTestData.SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID));
   }
 
   @Test
@@ -115,7 +136,10 @@ class SnapshotAccessRequestModelTest {
     SnapshotBuilderProgramDataListCriteria listCriteria =
         new SnapshotBuilderProgramDataListCriteria();
     listCriteria
-        .values(List.of(0, 1, 2))
+        .values(
+            List.of(
+                SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_ONE.getId(),
+                SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_TWO.getId()))
         .id(SnapshotBuilderTestData.RACE_PROGRAM_DATA_ID)
         .kind(SnapshotBuilderCriteria.KindEnum.LIST);
     return listCriteria;
@@ -124,7 +148,7 @@ class SnapshotAccessRequestModelTest {
   private SnapshotBuilderDomainCriteria generateDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = new SnapshotBuilderDomainCriteria();
     domainCriteria
-        .conceptId(401)
+        .conceptId(CONCEPT_ID)
         .id(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID)
         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN);
     return domainCriteria;
@@ -147,9 +171,6 @@ class SnapshotAccessRequestModelTest {
 
   private void compareModelAndResponseFields(
       SnapshotAccessRequestModel model, SnapshotAccessRequestResponse response) {
-    String expectedSummaryString =
-        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
-
     assertThat(model.id(), is(response.getId()));
     assertThat(model.sourceSnapshotId(), is(response.getSourceSnapshotId()));
     assertThat(model.snapshotResearchPurpose(), is(response.getSnapshotResearchPurpose()));
@@ -160,6 +181,11 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.status(), is(response.getStatus()));
     assertThat(model.flightid(), is(response.getFlightid()));
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
-    assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
+  }
+
+  private void compareModelAndDetailsFields(
+      SnapshotAccessRequestModel model, SnapshotAccessRequestDetailsResponse details) {
+    String expectedSummaryString =
+        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
   }
 }

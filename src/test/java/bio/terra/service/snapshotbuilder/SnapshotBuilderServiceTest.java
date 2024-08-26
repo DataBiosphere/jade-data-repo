@@ -57,6 +57,7 @@ import bio.terra.service.snapshotbuilder.utils.EnumerateConceptsQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import com.google.cloud.Tuple;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -66,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -472,6 +474,33 @@ class SnapshotBuilderServiceTest {
     assertThat(
         snapshotBuilderService.getRequest(id),
         is(daoResponse.toApiResponse(SnapshotBuilderTestData.SETTINGS)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CloudPlatform.class)
+  void testGetRequestDetails(CloudPlatform platform) {
+    Snapshot snapshot = makeSnapshot(platform);
+    var daoResponse = SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshot.getId());
+    List<Integer> conceptIds = daoResponse.generateConceptIds();
+    UUID id = daoResponse.id();
+    var queryBuilder = mock(EnumerateConceptsQueryBuilder.class);
+    when(queryBuilderFactory.enumerateConceptsQueryBuilder()).thenReturn(queryBuilder);
+    when(queryBuilder.getConceptsFromConceptIds(conceptIds)).thenReturn(mock(Query.class));
+    when(snapshotRequestDao.getById(id)).thenReturn(daoResponse);
+    when(snapshotBuilderSettingsDao.getBySnapshotId(daoResponse.sourceSnapshotId()))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
+    when(snapshotService.retrieve(daoResponse.sourceSnapshotId())).thenReturn(snapshot);
+    List<Tuple<Integer, String>> conceptIdsAndNames =
+        conceptIds.stream()
+            .map(conceptId -> Tuple.of(conceptId, String.format("Concept name %d", conceptId)))
+            .toList();
+    mockRunQuery(snapshot).thenReturn(List.copyOf(conceptIdsAndNames));
+    assertThat(
+        snapshotBuilderService.getRequestDetails(TEST_USER, id),
+        is(
+            daoResponse.generateModelDetails(
+                SnapshotBuilderTestData.SETTINGS,
+                conceptIdsAndNames.stream().collect(Collectors.toMap(Tuple::x, Tuple::y)))));
   }
 
   @Test

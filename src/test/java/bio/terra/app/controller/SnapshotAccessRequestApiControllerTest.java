@@ -18,6 +18,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestDetailsResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -52,7 +53,8 @@ class SnapshotAccessRequestApiControllerTest {
   @MockBean private IamService iamService;
 
   private static final String ENDPOINT = "/api/repository/v1/snapshotAccessRequests";
-  private static final String GET_ENDPOINT = "/api/repository/v1/snapshotAccessRequests/{id}";
+  private static final String GET_ENDPOINT = ENDPOINT + "/{id}";
+  private static final String DETAILS_ENDPOINT = GET_ENDPOINT + "/details";
 
   private static final String REJECT_ENDPOINT = GET_ENDPOINT + "/reject";
   private static final String APPROVE_ENDPOINT = GET_ENDPOINT + "/approve";
@@ -144,6 +146,32 @@ class SnapshotAccessRequestApiControllerTest {
             TEST_USER,
             IamResourceType.SNAPSHOT_BUILDER_REQUEST,
             expectedResponse.getId().toString(),
+            IamAction.GET);
+  }
+
+  @Test
+  void testGetSnapshotRequestDetails() throws Exception {
+    var model = SnapshotBuilderTestData.createSnapshotAccessRequestModel(SNAPSHOT_ID);
+    var expectedResponse =
+        model.generateModelDetails(
+            SnapshotBuilderTestData.SETTINGS,
+            Map.of(SnapshotBuilderTestData.SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID, "unused"));
+    when(snapshotBuilderService.getRequestDetails(TEST_USER, model.id()))
+        .thenReturn(expectedResponse);
+    String actualJson =
+        mvc.perform(get(DETAILS_ENDPOINT, model.id()))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotAccessRequestDetailsResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestDetailsResponse.class);
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
+    verify(iamService)
+        .verifyAuthorization(
+            TEST_USER,
+            IamResourceType.SNAPSHOT_BUILDER_REQUEST,
+            model.id().toString(),
             IamAction.GET);
   }
 

@@ -80,6 +80,8 @@ jobs:
     name: Integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    outputs:
+      api_image_tag: ${{ steps.configuration.outputs.git_hash }}
     services:
       postgres:
         image: postgres:11
@@ -185,3 +187,24 @@ jobs:
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+  report-to-sherlock:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs: test_integration
+    # Always attempt to run if pull_request, as we want to report the appVersion even if the tests fail.
+    # never run on cron or other runs as we don't want extranaeous build reporting.
+    if: github.event_name == 'pull_request'
+    with:
+      new-version: ${{ needs.test_integration.outputs.api_image_tag }}
+      chart-name: 'datarepo'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+  report-workflow:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    if: ${{ github.ref == 'refs/heads/develop' }}
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

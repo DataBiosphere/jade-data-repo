@@ -36,7 +36,8 @@ public class WebConfig implements WebMvcConfigurer {
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
     registry
         .addResourceHandler("/webjars/swagger-ui-dist/**")
-        // See https://broadworkbench.atlassian.net/browse/DCJ-641 for reading the version dynamically
+        // See https://broadworkbench.atlassian.net/browse/DCJ-641 for reading the version
+        // dynamically
         .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui-dist/5.17.14/");
   }
 }

@@ -86,5 +86,7 @@
     <include file="changesets/20240604_renameupdateddateonrequest.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240723_updatesnapshotbuilderrequestspecifications.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240731_updatespecificationsagain.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20240816_load_datasetid.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20240822_load_rename_to_load_lock.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20240816_addsamgrouptorequest.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

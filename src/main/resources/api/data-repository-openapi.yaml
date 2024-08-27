@@ -7570,6 +7570,8 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         summary:
           type: string
+        authGroupName:
+          type: string
 
     SnapshotAccessRequestDetailsResponse:
       type: object

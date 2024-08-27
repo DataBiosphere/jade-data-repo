@@ -107,8 +107,7 @@ public class SnapshotBuilderService {
       throw e;
     }
 
-    return snapshotAccessRequestModel.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequestModel.sourceSnapshotId()));
+    return snapshotAccessRequestModel.toApiResponse();
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -216,15 +215,10 @@ public class SnapshotBuilderService {
 
   private EnumerateSnapshotAccessRequest generateResponseFromRequestModels(
       List<SnapshotAccessRequestModel> models) {
-    Map<UUID, SnapshotBuilderSettings> settings =
-        models.stream()
-            .map(SnapshotAccessRequestModel::sourceSnapshotId)
-            .distinct()
-            .collect(Collectors.toMap(id -> id, snapshotBuilderSettingsDao::getBySnapshotId));
     return new EnumerateSnapshotAccessRequest()
         .items(
             models.stream()
-                .map(model -> model.toApiResponse(settings.get(model.sourceSnapshotId())))
+                .map(SnapshotAccessRequestModel::toApiResponse)
                 .toList());
   }
 
@@ -417,8 +411,7 @@ public class SnapshotBuilderService {
 
   private SnapshotAccessRequestResponse convertModelToApiResponse(
       SnapshotAccessRequestModel model) {
-    return model.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()));
+    return model.toApiResponse();
   }
 
   private SnapshotAccessRequestDetailsResponse generateModelDetails(

@@ -37,7 +37,7 @@ class NotifyUserOfSnapshotCreationStepTest {
     var step =
         new NotifyUserOfSnapshotCreationStep(
             TEST_USER, snapshotBuilderService, snapshotRequestDao, iamService, id);
-    var request = SnapshotBuilderTestData.createAccessRequest();
+    var request = SnapshotBuilderTestData.createAccessRequestModelApproved();
     var user = new UserIdInfo().userSubjectId("subjectId");
     when(snapshotRequestDao.getById(id)).thenReturn(request);
     when(iamService.getUserIds(request.createdBy())).thenReturn(user);

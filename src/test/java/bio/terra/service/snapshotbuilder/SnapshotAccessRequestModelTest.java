@@ -37,7 +37,7 @@ class SnapshotAccessRequestModelTest {
   @Test
   void toApiResponse() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
-    compareModelAndResponseFields(model, model.toApiResponse(SnapshotBuilderTestData.SETTINGS));
+    compareModelAndResponseFields(model, model.toApiResponse());
   }
 
   @Test
@@ -166,7 +166,9 @@ class SnapshotAccessRequestModelTest {
         Instant.now(),
         SnapshotAccessRequestStatus.SUBMITTED,
         UUID.randomUUID(),
-        "flightid");
+        "flightid",
+        "samGroupName",
+        "tdr@serviceaccount.com");
   }
 
   private void compareModelAndResponseFields(
@@ -181,11 +183,13 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.status(), is(response.getStatus()));
     assertThat(model.flightid(), is(response.getFlightid()));
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
+    assertThat(model.samGroupName(), is(response.getAuthGroupName()));
   }
 
   private void compareModelAndDetailsFields(
       SnapshotAccessRequestModel model, SnapshotAccessRequestDetailsResponse details) {
     String expectedSummaryString =
         "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
+    assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
   }
 }

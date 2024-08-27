@@ -434,10 +434,11 @@ public class SnapshotCreateFlight extends Flight {
 
     if (mode == SnapshotRequestContentsModel.ModeEnum.BYREQUESTID) {
       UUID snapshotRequestId = contents.getRequestIdSpec().getSnapshotRequestId();
-      // Add created snapshot id to the snapshot request.
+      // On the snapshot access request, save information about the created snapshot and about
+      // the Sam group that was added as a DAC.
       addStep(
-          new AddCreatedSnapshotIdToSnapshotRequestStep(
-              snapshotRequestDao, snapshotRequestId, snapshotId));
+          new AddCreatedInfoToSnapshotRequestStep(
+              snapshotRequestDao, snapshotRequestId, snapshotId, tdrServiceAccountEmail));
       // Notify user that snapshot is ready to use.
       addStep(
           new NotifyUserOfSnapshotCreationStep(

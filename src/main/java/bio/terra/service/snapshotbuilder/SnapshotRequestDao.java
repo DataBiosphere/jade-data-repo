@@ -37,7 +37,9 @@ public class SnapshotRequestDao {
   private static final String STATUS_UPDATED_DATE = "status_updated_date";
   private static final String STATUS = "status";
   private static final String FLIGHT_ID = "flightid";
-  private static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
+  public static final String CREATED_SNAPSHOT_ID = "created_snapshot_id";
+  public static final String SAM_GROUP_NAME = "sam_group_name";
+  public static final String SAM_GROUP_CREATED_BY = "sam_group_created_by";
   private static final String AUTHORIZED_RESOURCES = "authorized_resources";
   private static final String NOT_FOUND_MESSAGE =
       "Snapshot Access Request with given id does not exist.";
@@ -55,7 +57,9 @@ public class SnapshotRequestDao {
               DaoUtils.getInstant(rs, STATUS_UPDATED_DATE),
               SnapshotAccessRequestStatus.valueOf(rs.getString(STATUS)),
               rs.getObject(CREATED_SNAPSHOT_ID, UUID.class),
-              rs.getString(FLIGHT_ID));
+              rs.getString(FLIGHT_ID),
+              rs.getString(SAM_GROUP_NAME),
+              rs.getString(SAM_GROUP_CREATED_BY));
 
   public SnapshotRequestDao(
       NamedParameterJdbcTemplate jdbcTemplate,
@@ -86,6 +90,24 @@ public class SnapshotRequestDao {
       return jdbcTemplate.queryForObject(sql, params, modelMapper);
     } catch (EmptyResultDataAccessException ex) {
       throw new NotFoundException("No snapshot access requests found for given id", ex);
+    }
+  }
+
+  /**
+   * Get the Snapshot Request associated with the given created snapshot id.
+   *
+   * @param createdSnapshotId associated with one snapshot request.
+   * @return the specified snapshot request or exception if it does not exist.
+   */
+  public SnapshotAccessRequestModel getByCreatedSnapshotId(UUID createdSnapshotId) {
+    String sql = "SELECT * FROM snapshot_request WHERE created_snapshot_id = :created_snapshot_id";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue(CREATED_SNAPSHOT_ID, createdSnapshotId);
+    try {
+      return jdbcTemplate.queryForObject(sql, params, modelMapper);
+    } catch (EmptyResultDataAccessException ex) {
+      throw new NotFoundException(
+          "No snapshot access requests found for given created snapshot id", ex);
     }
   }
 
@@ -198,16 +220,21 @@ public class SnapshotRequestDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void updateCreatedSnapshotId(UUID requestId, UUID snapshotId) {
+  public void updateCreatedInfo(
+      UUID requestId, UUID snapshotId, String samGroupName, String groupCreatedByEmail) {
     String sql =
         """
         UPDATE snapshot_request SET
-        created_snapshot_id = :created_snapshot_id
+        created_snapshot_id = :created_snapshot_id,
+        sam_group_name = :sam_group_name,
+        sam_group_created_by = :sam_group_created_by
         WHERE id = :id
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(CREATED_SNAPSHOT_ID, snapshotId)
+            .addValue(SAM_GROUP_NAME, samGroupName)
+            .addValue(SAM_GROUP_CREATED_BY, groupCreatedByEmail)
             .addValue(ID, requestId);
     if (jdbcTemplate.update(sql, params) == 0) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);

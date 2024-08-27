@@ -154,7 +154,7 @@ class SnapshotCreateFlightTest {
             "CreateSnapshotSetResponseStep",
             "CreateSnapshotJournalEntryStep",
             "JournalRecordUpdateEntryStep",
-            "AddCreatedSnapshotIdToSnapshotRequestStep",
+            "AddCreatedInfoToSnapshotRequestStep",
             "NotifyUserOfSnapshotCreationStep"));
   }
 }

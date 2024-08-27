@@ -27,6 +27,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -45,6 +46,7 @@ public class SnapshotDeleteFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     SnapshotBuilderService snapshotBuilderService =
         appContext.getBean(SnapshotBuilderService.class);
+    SnapshotRequestDao snapshotRequestDao = appContext.getBean(SnapshotRequestDao.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     BigQuerySnapshotPdao bigQuerySnapshotPdao = appContext.getBean(BigQuerySnapshotPdao.class);
@@ -113,7 +115,7 @@ public class SnapshotDeleteFlight extends Flight {
 
     // Now that we no longer have the resources in SAM, we can delete the underlying Sam group
     // that was created for snapshots byRequestId
-    addStep(new DeleteSnapshotDeleteSamGroupStep(iamClient, snapshotId));
+    addStep(new DeleteSnapshotDeleteSamGroupStep(iamClient, snapshotRequestDao, snapshotId));
 
     // Primary Data Deletion
     // Note: Must delete primary data before metadata; it relies on being able to retrieve the

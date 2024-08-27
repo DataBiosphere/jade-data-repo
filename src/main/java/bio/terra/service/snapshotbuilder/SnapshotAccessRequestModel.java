@@ -28,7 +28,9 @@ public record SnapshotAccessRequestModel(
     Instant statusUpdatedDate,
     SnapshotAccessRequestStatus status,
     UUID createdSnapshotId,
-    String flightid) {
+    String flightid,
+    String samGroupName,
+    String samGroupCreatedByTerraId) {
 
   @VisibleForTesting
   static String generateSummaryForCriteria(
@@ -137,6 +139,7 @@ public record SnapshotAccessRequestModel(
         .createdDate(createdDate != null ? createdDate.toString() : null)
         .statusUpdatedDate(statusUpdatedDate != null ? statusUpdatedDate.toString() : null)
         .createdSnapshotId(createdSnapshotId)
-        .summary(generateSummaryFromSnapshotSpecification(settings));
+        .summary(generateSummaryFromSnapshotSpecification(settings))
+        .authGroupName(samGroupName);
   }
 }

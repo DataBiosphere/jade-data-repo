@@ -1,15 +1,14 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.job.DefaultUndoStep;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +16,7 @@ import org.slf4j.LoggerFactory;
 public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
   private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotDeleteSamGroupStep.class);
   private final IamService iamService;
+  private final SnapshotRequestDao snapshotRequestDao;
   private final UUID snapshotId;
 
   /**
@@ -27,28 +27,35 @@ public class DeleteSnapshotDeleteSamGroupStep extends DefaultUndoStep {
    * @param iamService
    * @param snapshotId
    */
-  public DeleteSnapshotDeleteSamGroupStep(IamService iamService, UUID snapshotId) {
+  public DeleteSnapshotDeleteSamGroupStep(
+      IamService iamService, SnapshotRequestDao snapshotRequestDao, UUID snapshotId) {
     this.iamService = iamService;
+    this.snapshotRequestDao = snapshotRequestDao;
     this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    List<String> authDomains =
-        context
-            .getWorkingMap()
-            .get(SnapshotWorkingMapKeys.SNAPSHOT_AUTH_DOMAIN_GROUPS, new TypeReference<>() {});
-    // Only delete the Sam group if it matches the expected naming pattern
-    var expectedName = IamService.constructSamGroupName(snapshotId.toString());
-    if (Objects.nonNull(authDomains) && authDomains.contains(expectedName)) {
-      try {
-        iamService.deleteGroup(expectedName);
-      } catch (IamNotFoundException ex) {
-        // if group does not exist, nothing to delete)
-      } catch (Exception ex) {
-        logger.error("Error deleting Sam group: {}", expectedName, ex);
-      }
+    // The request will only exist if the snapshot was created with byRequestId mode
+    // If it exists, the request will have the sam group name to be deleted for this snapshot
+    SnapshotAccessRequestModel request;
+    try {
+      request = snapshotRequestDao.getByCreatedSnapshotId(snapshotId);
+    } catch (NotFoundException ex) {
+      // If the request does not exist, nothing to delete
+      return StepResult.getStepResultSuccess();
     }
+
+    var samGroupName = request.samGroupName();
+    try {
+      iamService.deleteGroup(samGroupName);
+    } catch (IamNotFoundException ex) {
+      // If group does not exist, nothing to delete
+    } catch (Exception ex) {
+      // If there is some other error, log and continue
+      logger.error("Error deleting Sam group: {}", samGroupName, ex);
+    }
+
     return StepResult.getStepResultSuccess();
   }
 }

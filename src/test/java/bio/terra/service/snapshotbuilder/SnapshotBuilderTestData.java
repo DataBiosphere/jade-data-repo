@@ -431,6 +431,8 @@ public class SnapshotBuilderTestData {
         null,
         SnapshotAccessRequestStatus.SUBMITTED,
         null,
+        null,
+        null,
         null);
   }
 
@@ -446,17 +448,20 @@ public class SnapshotBuilderTestData {
                         new SnapshotRequestIdModel().snapshotRequestId(snapshotAccessRequestId))));
   }
 
-  public static SnapshotAccessRequestModel createAccessRequest() {
+  public static SnapshotAccessRequestModel createAccessRequestModelApproved() {
+    SnapshotAccessRequest request = createSnapshotAccessRequest(UUID.randomUUID());
     return new SnapshotAccessRequestModel(
         UUID.randomUUID(),
+        request.getName(),
+        request.getResearchPurposeStatement(),
+        request.getSourceSnapshotId(),
         null,
-        null,
-        UUID.randomUUID(),
-        null,
-        "email@a.com",
-        null,
-        null,
+        "user@gmail.com",
+        Instant.now(),
+        Instant.now(),
         SnapshotAccessRequestStatus.APPROVED,
+        null,
+        null,
         null,
         null);
   }

@@ -8,6 +8,7 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Optional;
 
 public class LoadUnlockStep extends DefaultUndoStep {
@@ -47,6 +48,11 @@ public class LoadUnlockStep extends DefaultUndoStep {
    */
   public LoadUnlockStep(LoadService loadService) {
     this(loadService, null);
+  }
+
+  @VisibleForTesting
+  public String getUserSuppliedLockName() {
+    return this.userSuppliedLockName;
   }
 
   @Override

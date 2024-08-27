@@ -8,6 +8,7 @@ import bio.terra.model.BulkLoadResultModel;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -122,10 +123,16 @@ public class LoadDao {
   }
 
   /**
-   * Unlocking means deleting the specific row for our load tag, dataset, and flight id. If no row
-   * is deleted, we assume this is a redo of the unlock and is OK. That can happen if a flight
-   * successfully unlocks and then fails. When the first flight recovers it will retry unlocking. We
-   * don't want that to be an error.
+   * Unlocking means deleting the specific row for our load lock key and flight id. The load lock
+   * key identifies the dataset targeted by a load operation, and may also identify the load tag
+   * used. Callers may not know the name of the load tag to clear (e.g. when clearing a stuck lock
+   * on a dataset, we also want to clear any locks stuck on load tags in the dataset). In such
+   * cases, when the load tag is unspecified then this unlock will delete any row present for the
+   * dataset and flight ID, making no attempt to filter on load tag.
+   *
+   * <p>If no row is deleted, we assume this is a redo of the unlock and is OK. That can happen if a
+   * flight successfully unlocks and then fails. When the first flight recovers it will retry
+   * unlocking. We don't want that to be an error.
    *
    * <p>If a row is deleted, then we have performed the unlock. So we don't check the affected row
    * count.
@@ -140,15 +147,18 @@ public class LoadDao {
     String delete =
         """
         DELETE FROM load_lock
-        WHERE load_tag = :load_tag
-        AND dataset_id = :dataset_id
+        WHERE dataset_id = :dataset_id
         AND locking_flight_id = :locking_flight_id
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue(LOAD_TAG, loadLockKey.loadTag())
             .addValue(DATASET_ID, loadLockKey.datasetId())
             .addValue(LOCKING_FLIGHT_ID, flightId);
+    String loadTag = loadLockKey.loadTag();
+    if (loadTag != null) {
+      delete += " AND load_tag = :load_tag";
+      params.addValue(LOAD_TAG, loadTag);
+    }
     jdbcTemplate.update(delete, params);
   }
 
@@ -164,6 +174,22 @@ public class LoadDao {
             .addValue(LOAD_TAG, loadTagLockKey.loadTag())
             .addValue(DATASET_ID, loadTagLockKey.datasetId());
     return jdbcTemplate.queryForObject(sql, params, LOAD_LOCK_MAPPER);
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  @VisibleForTesting
+  List<LoadLock> lookupLoadLocks(UUID datasetId) {
+    String sql =
+        """
+        SELECT id, load_tag, dataset_id, locking_flight_id
+        FROM load_lock
+        WHERE dataset_id = :dataset_id
+        """;
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue(DATASET_ID, datasetId);
+    return jdbcTemplate.query(sql, params, LOAD_LOCK_MAPPER);
   }
 
   private static class LoadLockMapper implements RowMapper<LoadLock> {

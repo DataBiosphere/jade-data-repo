@@ -1,6 +1,7 @@
 package bio.terra.service.load;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -160,5 +161,40 @@ class LoadDaoUnitTest {
     assertThat("right number of failures", candidates.getFailedLoads(), equalTo(failures));
     assertThat("right number of running", candidates.getRunningLoads(), hasSize(running));
     assertThat("right number of not_tried", candidates.getCandidateFiles(), hasSize(notTried));
+  }
+
+  @Test
+  void unlockLoadByDatasetIdOnly() {
+    final String loadTag1 = "loadTag1";
+    final String loadTag2 = "loadTag2";
+    final String flightX = "flightIdX";
+    final String flightY = "flightIdY";
+    final UUID datasetId = dataset.getId();
+    final LoadLockKey loadTag1_dataset = new LoadLockKey(loadTag1, datasetId);
+    final LoadLockKey loadTag2_dataset = new LoadLockKey(loadTag2, datasetId);
+
+    assertThat(loadDao.lookupLoadLocks(datasetId), empty());
+
+    loadDao.lockLoad(loadTag1_dataset, flightX);
+    loadDao.lockLoad(loadTag2_dataset, flightY);
+    List<LoadLock> loadLocks = loadDao.lookupLoadLocks(datasetId);
+    assertThat(loadLocks, hasSize(2));
+    verifyLoadLock(loadLocks.get(0), loadTag1_dataset, flightX);
+    verifyLoadLock(loadLocks.get(1), loadTag2_dataset, flightY);
+
+    // Remove flightX's lock on the dataset without supplying the loadTag: it should still unlock.
+    loadDao.unlockLoad(new LoadLockKey(null, datasetId), flightX);
+    loadLocks = loadDao.lookupLoadLocks(datasetId);
+    assertThat(loadLocks, hasSize(1));
+    verifyLoadLock(loadLocks.get(0), loadTag2_dataset, flightY);
+  }
+
+  private void verifyLoadLock(
+      LoadLock actual, LoadLockKey expectedKey, String expectedLockingFlightId) {
+    assertThat("Lock held on expected dataset and load tag", actual.key(), equalTo(expectedKey));
+    assertThat(
+        "Lock held by expected flight ID",
+        actual.lockingFlightId(),
+        equalTo(expectedLockingFlightId));
   }
 }

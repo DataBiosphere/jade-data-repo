@@ -162,11 +162,13 @@ public record SnapshotAccessRequestModel(
   }
 
   public List<Integer> generateConceptIds() {
-    return snapshotSpecification.getCohorts().stream()
-        .map(this::generateCohortConceptIds)
-        .flatMap(List::stream)
-        .distinct()
-        .toList();
+    return snapshotSpecification != null
+        ? snapshotSpecification.getCohorts().stream()
+            .map(this::generateCohortConceptIds)
+            .flatMap(List::stream)
+            .distinct()
+            .toList()
+        : List.of();
   }
 
   public SnapshotAccessRequestResponse toApiResponse(SnapshotBuilderSettings settings) {

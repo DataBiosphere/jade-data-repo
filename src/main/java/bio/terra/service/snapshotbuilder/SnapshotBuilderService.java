@@ -455,7 +455,8 @@ public class SnapshotBuilderService {
         .formatted(terraConfiguration.basePath(), snapshotId);
   }
 
-  public void notifySnapshotReady(String subjectId, UUID snapshotRequestId) {
+  public void notifySnapshotReady(
+      AuthenticatedUserRequest userRequest, String subjectId, UUID snapshotRequestId) {
     var snapshotAccessRequest = snapshotRequestDao.getById(snapshotRequestId);
     UUID snapshotId = snapshotAccessRequest.createdSnapshotId();
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
@@ -463,6 +464,6 @@ public class SnapshotBuilderService {
         subjectId,
         createExportSnapshotLink(snapshotId),
         snapshot.getName(),
-        convertModelToApiResponse(snapshotAccessRequest).getSummary());
+        generateModelDetails(userRequest, snapshotAccessRequest).getSummary());
   }
 }

@@ -606,7 +606,7 @@ class SnapshotBuilderServiceTest {
     when(snapshotBuilderSettingsDao.getBySnapshotId(request.sourceSnapshotId()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
     String id = "id";
-    snapshotBuilderService.notifySnapshotReady(id, request.id());
+    snapshotBuilderService.notifySnapshotReady(TEST_USER, id, request.id());
     verify(notificationService)
         .snapshotReady(
             eq(id), anyString(), eq(snapshot.getName()), eq("No snapshot specification found"));

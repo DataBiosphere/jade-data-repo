@@ -140,7 +140,9 @@ class SnapshotAccessRequestModelTest {
         Instant.now(),
         SnapshotAccessRequestStatus.SUBMITTED,
         UUID.randomUUID(),
-        "flightid");
+        "flightid",
+        "samGroupName",
+        "tdr@serviceaccount.com");
   }
 
   private void compareModelAndResponseFields(
@@ -159,5 +161,6 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.flightid(), is(response.getFlightid()));
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
     assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
+    assertThat(model.samGroupName(), is(response.getAuthGroupName()));
   }
 }

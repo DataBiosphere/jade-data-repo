@@ -154,8 +154,7 @@ class SnapshotBuilderServiceTest {
     List<SnapshotAccessRequestModel> response = List.of(responseItem);
     when(snapshotRequestDao.enumerate(Set.of(responseItem.id()))).thenReturn(response);
     EnumerateSnapshotAccessRequest expected =
-        new EnumerateSnapshotAccessRequest()
-            .addItemsItem(responseItem.toApiResponse());
+        new EnumerateSnapshotAccessRequest().addItemsItem(responseItem.toApiResponse());
 
     assertThat(
         "EnumerateByDatasetId returns the expected response",
@@ -439,9 +438,7 @@ class SnapshotBuilderServiceTest {
     UUID id = UUID.randomUUID();
     var response = SnapshotBuilderTestData.createAccessRequestModelApproved();
     when(snapshotRequestDao.getById(id)).thenReturn(response);
-    assertThat(
-        snapshotBuilderService.rejectRequest(id),
-        is(response.toApiResponse()));
+    assertThat(snapshotBuilderService.rejectRequest(id), is(response.toApiResponse()));
     verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
   }
 
@@ -450,9 +447,7 @@ class SnapshotBuilderServiceTest {
     var response = SnapshotBuilderTestData.createAccessRequestModelApproved();
     UUID id = response.id();
     when(snapshotRequestDao.getById(id)).thenReturn(response);
-    assertThat(
-        snapshotBuilderService.approveRequest(id),
-        is(response.toApiResponse()));
+    assertThat(snapshotBuilderService.approveRequest(id), is(response.toApiResponse()));
     verify(snapshotRequestDao).updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
   }
 
@@ -461,9 +456,7 @@ class SnapshotBuilderServiceTest {
     var daoResponse = SnapshotBuilderTestData.createAccessRequestModelApproved();
     UUID id = daoResponse.id();
     when(snapshotRequestDao.getById(id)).thenReturn(daoResponse);
-    assertThat(
-        snapshotBuilderService.getRequest(id),
-        is(daoResponse.toApiResponse()));
+    assertThat(snapshotBuilderService.getRequest(id), is(daoResponse.toApiResponse()));
   }
 
   @ParameterizedTest
@@ -512,9 +505,7 @@ class SnapshotBuilderServiceTest {
         is(
             new EnumerateSnapshotAccessRequest()
                 .items(
-                    daoResponse.stream()
-                        .map(SnapshotAccessRequestModel::toApiResponse)
-                        .toList())));
+                    daoResponse.stream().map(SnapshotAccessRequestModel::toApiResponse).toList())));
   }
 
   static SnapshotBuilderConcept concept(String name, int id, boolean hasChildren) {

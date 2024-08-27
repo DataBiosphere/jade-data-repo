@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Unit;
-import bio.terra.model.SnapshotAccessRequestDetailsResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -43,8 +42,13 @@ class SnapshotAccessRequestModelTest {
   @Test
   void toApiDetails() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
-    compareModelAndDetailsFields(
-        model, model.generateModelDetails(SnapshotBuilderTestData.SETTINGS, conceptIdsToNames));
+    String expectedSummaryString =
+        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
+    assertThat(
+        model
+            .generateModelDetails(SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+            .getSummary(),
+        equalToCompressingWhiteSpace(expectedSummaryString));
   }
 
   @Test
@@ -184,12 +188,5 @@ class SnapshotAccessRequestModelTest {
     assertThat(model.flightid(), is(response.getFlightid()));
     assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
     assertThat(model.samGroupName(), is(response.getAuthGroupName()));
-  }
-
-  private void compareModelAndDetailsFields(
-      SnapshotAccessRequestModel model, SnapshotAccessRequestDetailsResponse details) {
-    String expectedSummaryString =
-        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
-    assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
   }
 }

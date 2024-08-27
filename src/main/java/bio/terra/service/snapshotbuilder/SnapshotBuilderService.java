@@ -216,10 +216,7 @@ public class SnapshotBuilderService {
   private EnumerateSnapshotAccessRequest generateResponseFromRequestModels(
       List<SnapshotAccessRequestModel> models) {
     return new EnumerateSnapshotAccessRequest()
-        .items(
-            models.stream()
-                .map(SnapshotAccessRequestModel::toApiResponse)
-                .toList());
+        .items(models.stream().map(SnapshotAccessRequestModel::toApiResponse).toList());
   }
 
   public SnapshotAccessRequestResponse getRequest(UUID id) {

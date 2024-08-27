@@ -57,7 +57,6 @@ import bio.terra.service.snapshotbuilder.utils.EnumerateConceptsQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.HierarchyQueryBuilder;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
-import com.google.cloud.Tuple;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -473,9 +472,9 @@ class SnapshotBuilderServiceTest {
     when(snapshotBuilderSettingsDao.getBySnapshotId(daoResponse.sourceSnapshotId()))
         .thenReturn(SnapshotBuilderTestData.SETTINGS);
     when(snapshotService.retrieve(daoResponse.sourceSnapshotId())).thenReturn(snapshot);
-    List<Tuple<Integer, String>> conceptIdsAndNames =
+    List<Map.Entry<Integer, String>> conceptIdsAndNames =
         conceptIds.stream()
-            .map(conceptId -> Tuple.of(conceptId, String.format("Concept name %d", conceptId)))
+            .map(conceptId -> Map.entry(conceptId, String.format("Concept name %d", conceptId)))
             .toList();
     mockRunQuery(snapshot).thenReturn(List.copyOf(conceptIdsAndNames));
     assertThat(
@@ -483,7 +482,8 @@ class SnapshotBuilderServiceTest {
         is(
             daoResponse.generateModelDetails(
                 SnapshotBuilderTestData.SETTINGS,
-                conceptIdsAndNames.stream().collect(Collectors.toMap(Tuple::x, Tuple::y)))));
+                conceptIdsAndNames.stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))));
   }
 
   @Test

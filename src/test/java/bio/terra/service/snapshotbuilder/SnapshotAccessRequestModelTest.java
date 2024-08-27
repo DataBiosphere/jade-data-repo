@@ -67,8 +67,8 @@ class SnapshotAccessRequestModelTest {
   void generateSummaryForListCriteria() {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria();
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteria(
-            listCriteria, SnapshotBuilderTestData.SETTINGS),
+        new SnapshotAccessRequestModel.SummaryGenerator(SnapshotBuilderTestData.SETTINGS, Map.of())
+            .generateSummaryForCriteria(listCriteria),
         equalToCompressingWhiteSpace(EXPECTED_LIST_SUMMARY_STRING));
   }
 
@@ -76,8 +76,8 @@ class SnapshotAccessRequestModelTest {
   void generateSummaryForRangeCriteria() {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteria(
-            rangeCriteria, SnapshotBuilderTestData.SETTINGS),
+        new SnapshotAccessRequestModel.SummaryGenerator(SnapshotBuilderTestData.SETTINGS, Map.of())
+            .generateSummaryForCriteria(rangeCriteria),
         equalToCompressingWhiteSpace(EXPECTED_RANGE_SUMMARY_STRING));
   }
 
@@ -85,8 +85,8 @@ class SnapshotAccessRequestModelTest {
   void generateSummaryForDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteria(
-            domainCriteria, SnapshotBuilderTestData.SETTINGS, conceptIdsToNames),
+        new SnapshotAccessRequestModel.SummaryGenerator(SnapshotBuilderTestData.SETTINGS, Map.of())
+            .generateSummaryForCriteria(domainCriteria),
         equalToCompressingWhiteSpace(EXPECTED_DOMAIN_SUMMARY_STRING));
   }
 
@@ -99,8 +99,9 @@ class SnapshotAccessRequestModelTest {
             .criteria(
                 List.of(generateRangeCriteria(), generateListCriteria(), generateDomainCriteria()));
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteriaGroup(
-            criteriaGroup, SnapshotBuilderTestData.SETTINGS, conceptIdsToNames),
+        new SnapshotAccessRequestModel.SummaryGenerator(
+                SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+            .generateSummaryForCriteriaGroup(criteriaGroup),
         equalToCompressingWhiteSpace(
             String.format(
                 "Must meet all of:%n%s%n%s%n%s",
@@ -121,8 +122,9 @@ class SnapshotAccessRequestModelTest {
                     new SnapshotBuilderCriteriaGroup().mustMeet(false).meetAll(false),
                     new SnapshotBuilderCriteriaGroup().mustMeet(false).meetAll(false)));
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCohort(
-            cohort, SnapshotBuilderTestData.SETTINGS, conceptIdsToNames),
+        new SnapshotAccessRequestModel.SummaryGenerator(
+                SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+            .generateSummaryForCohort(cohort),
         equalToCompressingWhiteSpace(
             String.format(
                 "Name: %s%nGroups:%n%s%n%s",

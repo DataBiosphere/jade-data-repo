@@ -219,7 +219,7 @@ public class SnapshotBuilderService {
   }
 
   public SnapshotAccessRequestResponse getRequest(UUID id) {
-    return convertModelToApiResponse(snapshotRequestDao.getById(id));
+    return snapshotRequestDao.getById(id).toApiResponse();
   }
 
   public SnapshotAccessRequestDetailsResponse getRequestDetails(
@@ -395,19 +395,12 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestResponse rejectRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return convertModelToApiResponse(model);
+    return snapshotRequestDao.getById(id).toApiResponse();
   }
 
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return convertModelToApiResponse(model);
-  }
-
-  private SnapshotAccessRequestResponse convertModelToApiResponse(
-      SnapshotAccessRequestModel model) {
-    return model.toApiResponse();
+    return snapshotRequestDao.getById(id).toApiResponse();
   }
 
   private SnapshotAccessRequestDetailsResponse generateModelDetails(
@@ -416,8 +409,9 @@ public class SnapshotBuilderService {
     SnapshotBuilderSettings settings =
         snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId());
     Map<Integer, String> concepts =
-        conceptIds.size() > 0
-            ? runSnapshotBuilderQuery(
+        conceptIds.isEmpty()
+            ? Map.of()
+            : runSnapshotBuilderQuery(
                     queryBuilderFactory
                         .enumerateConceptsQueryBuilder()
                         .getConceptsFromConceptIds(conceptIds),
@@ -426,8 +420,7 @@ public class SnapshotBuilderService {
                     AggregateBQQueryResultsUtils::toConceptIdNamePair,
                     AggregateSynapseQueryResultsUtils::toConceptIdNamePair)
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
-            : Map.of();
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     return model.generateModelDetails(settings, concepts);
   }

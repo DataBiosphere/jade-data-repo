@@ -1,5 +1,6 @@
 package bio.terra.service.snapshotbuilder;
 
+import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
@@ -42,11 +43,16 @@ class SnapshotAccessRequestModelTest {
   @Test
   void toApiDetails() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
+    String conditionConceptName = "Condition Concept Name";
     String expectedSummaryString =
-        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
+        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept: "
+            + conditionConceptName
+            + "\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
     assertThat(
         model
-            .generateModelDetails(SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+            .generateModelDetails(
+                SnapshotBuilderTestData.SETTINGS,
+                Map.of(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID, conditionConceptName))
             .getSummary(),
         equalToCompressingWhiteSpace(expectedSummaryString));
   }
@@ -54,9 +60,7 @@ class SnapshotAccessRequestModelTest {
   @Test
   void generateConceptIds() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
-    assertThat(
-        model.generateConceptIds(),
-        contains(SnapshotBuilderTestData.SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID));
+    assertThat(model.generateConceptIds(), contains(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID));
   }
 
   @Test

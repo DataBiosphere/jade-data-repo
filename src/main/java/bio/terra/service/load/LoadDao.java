@@ -176,10 +176,6 @@ public class LoadDao {
     return jdbcTemplate.queryForObject(sql, params, LOAD_LOCK_MAPPER);
   }
 
-  @Transactional(
-      propagation = Propagation.REQUIRED,
-      isolation = Isolation.SERIALIZABLE,
-      readOnly = true)
   @VisibleForTesting
   List<LoadLock> lookupLoadLocks(UUID datasetId) {
     String sql =

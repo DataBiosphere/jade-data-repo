@@ -36,7 +36,6 @@ import bio.terra.service.snapshotbuilder.utils.AggregateBQQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.AggregateSynapseQueryResultsUtils;
 import bio.terra.service.snapshotbuilder.utils.QueryBuilderFactory;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
-import com.google.cloud.Tuple;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
@@ -416,20 +415,21 @@ public class SnapshotBuilderService {
     List<Integer> conceptIds = model.generateConceptIds();
     SnapshotBuilderSettings settings =
         snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId());
-    List<Tuple<Integer, String>> concepts =
+    Map<Integer, String> concepts =
         conceptIds.size() > 0
             ? runSnapshotBuilderQuery(
-                queryBuilderFactory
-                    .enumerateConceptsQueryBuilder()
-                    .getConceptsFromConceptIds(conceptIds),
-                snapshotService.retrieve(model.sourceSnapshotId()),
-                userRequest,
-                AggregateBQQueryResultsUtils::toConceptIdNamePair,
-                AggregateSynapseQueryResultsUtils::toConceptIdNamePair)
-            : List.of();
+                    queryBuilderFactory
+                        .enumerateConceptsQueryBuilder()
+                        .getConceptsFromConceptIds(conceptIds),
+                    snapshotService.retrieve(model.sourceSnapshotId()),
+                    userRequest,
+                    AggregateBQQueryResultsUtils::toConceptIdNamePair,
+                    AggregateSynapseQueryResultsUtils::toConceptIdNamePair)
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+            : Map.of();
 
-    return model.generateModelDetails(
-        settings, concepts.stream().collect(Collectors.toMap(Tuple::x, Tuple::y)));
+    return model.generateModelDetails(settings, concepts);
   }
 
   private SnapshotBuilderDomainOption getDomainOption(

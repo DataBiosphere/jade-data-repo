@@ -4,9 +4,9 @@ import bio.terra.model.SnapshotBuilderConcept;
 import bio.terra.service.filedata.exception.ProcessResultSetException;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.query.table.Concept;
-import com.google.cloud.Tuple;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 public class AggregateSynapseQueryResultsUtils {
 
@@ -22,8 +22,8 @@ public class AggregateSynapseQueryResultsUtils {
     }
   }
 
-  public static Tuple<Integer, String> toConceptIdNamePair(ResultSet rs) {
-    return Tuple.of(
+  public static Map.Entry<Integer, String> toConceptIdNamePair(ResultSet rs) {
+    return Map.entry(
         getField(rs::getLong, Concept.CONCEPT_ID).intValue(),
         getField(rs::getString, Concept.CONCEPT_NAME));
   }

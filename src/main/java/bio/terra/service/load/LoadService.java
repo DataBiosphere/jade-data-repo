@@ -34,12 +34,16 @@ public class LoadService {
   }
 
   public UUID lockLoad(LoadLockKey loadLockKey, String flightId) {
-    LoadLock load = loadDao.lockLoad(loadLockKey, flightId);
-    return load.id();
+    LoadLock loadLock = loadDao.lockLoad(loadLockKey, flightId);
+    return loadLock.id();
   }
 
   public void unlockLoad(LoadLockKey loadLockKey, String flightId) {
     loadDao.unlockLoad(loadLockKey, flightId);
+  }
+
+  public void unlockLoad(UUID datasetId, String flightId) {
+    loadDao.unlockLoad(new LoadLockKey(null, datasetId), flightId);
   }
 
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
@@ -80,12 +84,13 @@ public class LoadService {
    *
    * @return a {@link LoadLockKey} constructed from the flight's context, which this flight will
    *     attempt to lock while loading files.
+   * @throws LoadLockFailureException if no load tag can be found in the flight context
    */
-  public LoadLockKey getLoadLockKey(FlightContext context) {
+  public LoadLockKey getLoadLockKey(FlightContext context) throws LoadLockFailureException {
     return new LoadLockKey(getLoadTag(context), IngestUtils.getDatasetId(context));
   }
 
-  private String getLoadTag(FlightContext context) {
+  private String getLoadTag(FlightContext context) throws LoadLockFailureException {
     FlightMap inputParameters = context.getInputParameters();
     String key = LoadMapKeys.LOAD_TAG;
     String loadTag = inputParameters.get(key, String.class);

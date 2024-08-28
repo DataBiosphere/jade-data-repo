@@ -118,42 +118,42 @@ class LoadDaoUnitTest {
     final String flightY = "flightIdY";
     final String flightZ = "flightIdZ";
     final UUID datasetIdA = dataset.getId();
-    final LoadLockKey loadTag_datasetA = new LoadLockKey(loadTag, datasetIdA);
+    final LoadLockKey loadTagDatasetA = new LoadLockKey(loadTag, datasetIdA);
 
     assertThat(
-        "flightX gets lock on " + loadTag_datasetA,
-        loadDao.lockLoad(loadTag_datasetA, flightX).lockingFlightId(),
+        "flightX gets lock on " + loadTagDatasetA,
+        loadDao.lockLoad(loadTagDatasetA, flightX).lockingFlightId(),
         equalTo(flightX));
     assertThat(
-        "flightX gets lock on " + loadTag_datasetA + " again",
-        loadDao.lockLoad(loadTag_datasetA, flightX).lockingFlightId(),
+        "flightX gets lock on " + loadTagDatasetA + " again",
+        loadDao.lockLoad(loadTagDatasetA, flightX).lockingFlightId(),
         equalTo(flightX));
     assertThrows(
         LoadLockedException.class,
-        () -> loadDao.lockLoad(loadTag_datasetA, flightY),
-        "flightY does not get lock while flightX locks " + loadTag_datasetA);
+        () -> loadDao.lockLoad(loadTagDatasetA, flightY),
+        "flightY does not get lock while flightX locks " + loadTagDatasetA);
 
-    loadDao.unlockLoad(loadTag_datasetA, flightX);
+    loadDao.unlockLoad(loadTagDatasetA, flightX);
     assertThat(
-        "flightY gets lock once flightX unlocks " + loadTag_datasetA,
-        loadDao.lockLoad(loadTag_datasetA, flightY).lockingFlightId(),
+        "flightY gets lock once flightX unlocks " + loadTagDatasetA,
+        loadDao.lockLoad(loadTagDatasetA, flightY).lockingFlightId(),
         equalTo(flightY));
 
     final UUID datasetIdB = daoOperations.createDataset().getId();
-    final LoadLockKey loadTag_datasetB = new LoadLockKey(loadTag, datasetIdB);
+    final LoadLockKey loadTagDatasetB = new LoadLockKey(loadTag, datasetIdB);
     assertThat(
         "flightZ gets lock on "
-            + loadTag_datasetB
+            + loadTagDatasetB
             + " even with flightY's lock on "
-            + loadTag_datasetA,
-        loadDao.lockLoad(loadTag_datasetB, flightZ).lockingFlightId(),
+            + loadTagDatasetA,
+        loadDao.lockLoad(loadTagDatasetB, flightZ).lockingFlightId(),
         equalTo(flightZ));
 
     // No errors unlocking X again
-    loadDao.unlockLoad(loadTag_datasetA, flightX);
+    loadDao.unlockLoad(loadTagDatasetA, flightX);
 
-    loadDao.unlockLoad(loadTag_datasetA, flightY);
-    loadDao.unlockLoad(loadTag_datasetB, flightZ);
+    loadDao.unlockLoad(loadTagDatasetA, flightY);
+    loadDao.unlockLoad(loadTagDatasetB, flightZ);
   }
 
   private void testLoadCandidates(
@@ -170,23 +170,23 @@ class LoadDaoUnitTest {
     final String flightX = "flightIdX";
     final String flightY = "flightIdY";
     final UUID datasetId = dataset.getId();
-    final LoadLockKey loadTag1_dataset = new LoadLockKey(loadTag1, datasetId);
-    final LoadLockKey loadTag2_dataset = new LoadLockKey(loadTag2, datasetId);
+    final LoadLockKey loadTag1Dataset = new LoadLockKey(loadTag1, datasetId);
+    final LoadLockKey loadTag2Dataset = new LoadLockKey(loadTag2, datasetId);
 
     assertThat(loadDao.lookupLoadLocks(datasetId), empty());
 
-    loadDao.lockLoad(loadTag1_dataset, flightX);
-    loadDao.lockLoad(loadTag2_dataset, flightY);
+    loadDao.lockLoad(loadTag1Dataset, flightX);
+    loadDao.lockLoad(loadTag2Dataset, flightY);
     List<LoadLock> loadLocks = loadDao.lookupLoadLocks(datasetId);
     assertThat(loadLocks, hasSize(2));
-    verifyLoadLock(loadLocks.get(0), loadTag1_dataset, flightX);
-    verifyLoadLock(loadLocks.get(1), loadTag2_dataset, flightY);
+    verifyLoadLock(loadLocks.get(0), loadTag1Dataset, flightX);
+    verifyLoadLock(loadLocks.get(1), loadTag2Dataset, flightY);
 
     // Remove flightX's lock on the dataset without supplying the loadTag: it should still unlock.
     loadDao.unlockLoad(new LoadLockKey(null, datasetId), flightX);
     loadLocks = loadDao.lookupLoadLocks(datasetId);
     assertThat(loadLocks, hasSize(1));
-    verifyLoadLock(loadLocks.get(0), loadTag2_dataset, flightY);
+    verifyLoadLock(loadLocks.get(0), loadTag2Dataset, flightY);
   }
 
   private void verifyLoadLock(

@@ -11,6 +11,7 @@ import bio.terra.service.snapshotbuilder.query.SourceVariable;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContext;
 import bio.terra.service.snapshotbuilder.query.SqlRenderContextProvider;
 import bio.terra.service.snapshotbuilder.query.TablePointer;
+import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -23,11 +24,9 @@ class FunctionFilterVariableTest {
   void renderSQL(SqlRenderContext context) {
     SourceVariable table = SourceVariable.forPrimary(TablePointer.fromTableName("table"));
     var filterVariable =
-        new FunctionFilterVariable(
-            FunctionFilterVariable.FunctionTemplate.IN,
+        FunctionFilterVariable.in(
             new FieldVariable(new FieldPointer(null, "column"), table),
-            new Literal("value1"),
-            new Literal("value2"));
+            List.of(new Literal("value1"), new Literal("value2")));
     assertThat(filterVariable.renderSQL(context), is("t.column IN ('value1','value2')"));
   }
 }

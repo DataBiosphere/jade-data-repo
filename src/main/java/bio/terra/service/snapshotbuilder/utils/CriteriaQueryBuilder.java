@@ -54,10 +54,9 @@ public class CriteriaQueryBuilder {
       // select all values of list criteria
       return FilterVariable.alwaysTrueFilter();
     }
-    return new FunctionFilterVariable(
-        FunctionFilterVariable.FunctionTemplate.IN,
+    return FunctionFilterVariable.in(
         person.variableForOption(getProgramDataOptionColumnName(listCriteria.getId())),
-        listCriteria.getValues().stream().map(Literal::new).toArray(Literal[]::new));
+        Literal.fromList(listCriteria.getValues()));
   }
 
   SnapshotBuilderProgramDataOption getProgramDataOptionColumnName(int id) {

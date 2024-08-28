@@ -123,19 +123,12 @@ public class EnumerateConceptsQueryBuilder {
     return new Query.Builder()
         .select(select)
         .tables(List.of(concept))
-        .where(
-            new FunctionFilterVariable(
-                FunctionFilterVariable.FunctionTemplate.IN,
-                conceptId,
-                conceptIds.stream().map(Literal::new).toArray(Literal[]::new)))
+        .where(FunctionFilterVariable.in(conceptId, Literal.fromList(conceptIds)))
         .build();
   }
 
   static FunctionFilterVariable createFilterConceptClause(FieldVariable fieldVariable) {
-    return new FunctionFilterVariable(
-        FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,
-        fieldVariable,
-        new SubstituteVariable(FILTER_TEXT));
+    return FunctionFilterVariable.exactMatch(fieldVariable, new SubstituteVariable(FILTER_TEXT));
   }
 
   static FilterVariable createDomainClause(Concept concept, String domainId) {

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder.query;
 
 import java.sql.Date;
+import java.util.List;
 
 public class Literal implements SelectExpression {
   private final DataType dataType;
@@ -32,6 +33,10 @@ public class Literal implements SelectExpression {
     this.booleanVal = booleanVal;
     this.dateVal = dateVal;
     this.doubleVal = doubleVal;
+  }
+
+  public static List<Literal> fromList(List<Integer> list) {
+    return list.stream().map(Literal::new).toList();
   }
 
   public Literal(String stringVal) {

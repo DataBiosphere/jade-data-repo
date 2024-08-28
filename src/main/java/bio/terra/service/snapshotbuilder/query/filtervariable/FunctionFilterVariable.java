@@ -14,20 +14,30 @@ public class FunctionFilterVariable implements FilterVariable {
   private final FunctionTemplate functionTemplate;
   private final List<SelectExpression> values;
 
-  public FunctionFilterVariable(
-      FunctionTemplate functionTemplate, FieldVariable fieldVariable, SelectExpression... values) {
+  private FunctionFilterVariable(
+      FunctionTemplate functionTemplate,
+      FieldVariable fieldVariable,
+      List<SelectExpression> values) {
     this.functionTemplate = functionTemplate;
     this.fieldVariable = fieldVariable;
-    this.values = List.of(values);
-    if (values.length == 0) {
+    this.values = values;
+    if (values.isEmpty()) {
       throw new IllegalArgumentException("Function filter values must have at least one value");
     }
-    if (values.length != 1
-        && (functionTemplate == FunctionTemplate.TEXT_EXACT_MATCH
-            || functionTemplate == FunctionTemplate.TEXT_FUZZY_MATCH)) {
-      throw new IllegalArgumentException(
-          "TEXT_EXACT_MATCH/TEXT_FUZZY_MATCH filter can only match one value");
-    }
+  }
+
+  public static FunctionFilterVariable exactMatch(
+      FieldVariable fieldVariable, SelectExpression value) {
+    return new FunctionFilterVariable(
+        FunctionTemplate.TEXT_EXACT_MATCH, fieldVariable, List.of(value));
+  }
+
+  public static <T extends SelectExpression> FunctionFilterVariable in(
+      FieldVariable fieldVariable, List<T> values) {
+    return new FunctionFilterVariable(
+        FunctionTemplate.IN,
+        fieldVariable,
+        values.stream().map(SelectExpression.class::cast).toList());
   }
 
   @Override

@@ -304,11 +304,11 @@ class JobServiceTest {
         StairwayException.class, () -> jobService.retrieveJobResult("abcdef", Object.class, null));
   }
 
-  //  @Test
-  //  void testSubmissionAndRetrieval_noParameters() throws InterruptedException {
-  //    JobModel expectedJob = runFlightAndReturnExpectedJobModel(1, false);
-  //    testSingleRetrieval(expectedJob);
-  //  }
+  @Test
+  void testSubmissionAndRetrieval_noParameters() throws InterruptedException {
+    JobModel expectedJob = runFlightAndReturnExpectedJobModel(1, false);
+    testSingleRetrieval(expectedJob);
+  }
 
   private Matcher<JobModel> getJobMatcher(JobModel jobModel) {
     return samePropertyValuesAs(jobModel, "submitted", "completed");
@@ -329,12 +329,13 @@ class JobServiceTest {
   private JobModel runFlightAndReturnExpectedJobModel(int i, boolean shouldAddParameters) {
     String description = makeDescription(i);
     Class<? extends Flight> flightClass = makeFlightClass(i);
-    JobTargetResourceModel targetResource = new JobTargetResourceModel();
+    JobTargetResourceModel targetResource = null;
     if (shouldAddParameters) {
-      targetResource
-          .type(IAM_RESOURCE_TYPE.getSamResourceName())
-          .id(IAM_RESOURCE_ID)
-          .action(IAM_RESOURCE_ACTION.toString());
+      targetResource =
+          new JobTargetResourceModel()
+              .type(IAM_RESOURCE_TYPE.getSamResourceName())
+              .id(IAM_RESOURCE_ID)
+              .action(IAM_RESOURCE_ACTION.toString());
     }
     // Submit a flight with optional input parameters and wait for it to finish.
     String jobId =

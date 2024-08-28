@@ -10,7 +10,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +53,7 @@ class DatasetUnlockFlightTest {
           contains(
               "UnlockDatasetCheckLockNameStep",
               "UnlockDatasetStep",
-              "LoadUnlockStep",
+              "LoadManualUnlockStep",
               "JournalRecordUpdateEntryStep",
               "DatasetLockSetResponseStep"));
     } else {
@@ -64,7 +63,7 @@ class DatasetUnlockFlightTest {
               "UnlockDatasetCheckLockNameStep",
               "UnlockResourceCheckJobStateStep",
               "UnlockDatasetStep",
-              "LoadUnlockStep",
+              "LoadManualUnlockStep",
               "JournalRecordUpdateEntryStep",
               "DatasetLockSetResponseStep"));
     }
@@ -83,19 +82,6 @@ class DatasetUnlockFlightTest {
     assertThat(
         "The lock name is passed to the unlock method",
         unlockDatasetStep.getLockName(),
-        equalTo(LOCK_NAME));
-  }
-
-  @Test
-  void testParameters_LoadUnlockStep() {
-    inputParameters.put(
-        JobMapKeys.REQUEST.getKeyName(),
-        new UnlockResourceRequest().lockName(LOCK_NAME).forceUnlock(false));
-    var flight = new DatasetUnlockFlight(inputParameters, context);
-    LoadUnlockStep loadUnlockStep = FlightTestUtils.getStepWithClass(flight, LoadUnlockStep.class);
-    assertThat(
-        "The lock name is supplied to the constructor",
-        loadUnlockStep.getUserSuppliedLockName(),
         equalTo(LOCK_NAME));
   }
 }

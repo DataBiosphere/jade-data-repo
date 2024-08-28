@@ -42,10 +42,6 @@ public class LoadService {
     loadDao.unlockLoad(loadLockKey, flightId);
   }
 
-  public void unlockLoad(UUID datasetId, String flightId) {
-    loadDao.unlockLoad(new LoadLockKey(null, datasetId), flightId);
-  }
-
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
     loadDao.populateFiles(loadId, loadFileModelList);
   }

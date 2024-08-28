@@ -15,7 +15,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.load.LoadService;
-import bio.terra.service.load.flight.LoadUnlockStep;
+import bio.terra.service.load.flight.LoadManualUnlockStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -54,7 +54,7 @@ public class DatasetUnlockFlight extends Flight {
 
     // A lock that's stuck on a dataset may also be stuck on a load tag used for file ingestion:
     // clear it if it exists so that it can be used again.
-    addStep(new LoadUnlockStep(loadService, lockName));
+    addStep(new LoadManualUnlockStep(loadService, lockName));
 
     addStep(
         new JournalRecordUpdateEntryStep(

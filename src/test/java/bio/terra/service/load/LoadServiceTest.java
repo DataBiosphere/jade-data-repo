@@ -60,15 +60,9 @@ class LoadServiceTest {
   }
 
   @Test
-  void unlockLoad_LoadLockKey() {
+  void unlockLoad() {
     loadService.unlockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID);
     verify(loadDao).unlockLoad(LOAD_LOCK_KEY, LOCKING_FLIGHT_ID);
-  }
-
-  @Test
-  void unlockLoad_datasetId() {
-    loadService.unlockLoad(DATASET_ID, LOCKING_FLIGHT_ID);
-    verify(loadDao).unlockLoad(new LoadLockKey(null, DATASET_ID), LOCKING_FLIGHT_ID);
   }
 
   @Test

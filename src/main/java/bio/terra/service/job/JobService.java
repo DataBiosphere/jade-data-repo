@@ -303,20 +303,13 @@ public class JobService {
     IamAction iamResourceAction =
         inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
 
-    JobTargetResourceModel targetResource = new JobTargetResourceModel();
-    if (iamResourceId != null) {
-      targetResource.setId(iamResourceId);
-    }
-    if (iamResourceType != null) {
-      targetResource.setType(iamResourceType.getSamResourceName());
-    }
-    if (iamResourceAction != null) {
-      targetResource.setAction(iamResourceAction.toString());
-    }
-    if (iamResourceId == null && iamResourceAction == null && iamResourceType == null) {
+    if (iamResourceId == null || iamResourceType == null || iamResourceAction == null) {
       return null;
     }
-    return targetResource;
+    return new JobTargetResourceModel()
+        .id(iamResourceId)
+        .type(iamResourceType.getSamResourceName())
+        .action(iamResourceAction.toString());
   }
 
   private JobModel.JobStatusEnum getJobStatus(FlightState flightState) {

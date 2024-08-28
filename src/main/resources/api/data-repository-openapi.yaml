@@ -6717,6 +6717,7 @@ components:
       required:
         - type
         - id
+        - action
       type: object
       description: The IAM resource targeted by a flight
       properties:

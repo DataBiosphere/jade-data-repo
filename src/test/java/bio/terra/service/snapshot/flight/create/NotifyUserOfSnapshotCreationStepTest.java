@@ -27,9 +27,8 @@ class NotifyUserOfSnapshotCreationStepTest {
   @Mock private SnapshotBuilderService snapshotBuilderService;
   @Mock private SnapshotRequestDao snapshotRequestDao;
   @Mock private IamService iamService;
-  private static final String TOKEN = "some-access-token";
   private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.userRequest(TOKEN);
+      AuthenticationFixtures.randomUserRequest();
 
   @Test
   void doStep() throws InterruptedException {

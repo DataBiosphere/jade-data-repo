@@ -3103,7 +3103,7 @@ paths:
     get:
       tags:
         - SnapshotAccessRequest
-      description: Get a snapshot access request you have access to read
+      description: Get the details about a snapshot access request you have access to read
       operationId: getSnapshotAccessRequestDetails
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -7575,7 +7575,9 @@ components:
 
     SnapshotAccessRequestDetailsResponse:
       type: object
-      description: The response object for a submitted SnapshotAccessRequest.
+      required:
+        - summary
+      description: The details about a snapshot access request.
       properties:
         summary:
           type: string

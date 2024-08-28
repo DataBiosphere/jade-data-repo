@@ -1,6 +1,5 @@
 package bio.terra.service.snapshotbuilder;
 
-import static bio.terra.service.snapshotbuilder.SnapshotBuilderTestData.SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
@@ -37,7 +36,18 @@ class SnapshotAccessRequestModelTest {
   @Test
   void toApiResponse() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
-    compareModelAndResponseFields(model, model.toApiResponse());
+    SnapshotAccessRequestResponse response = model.toApiResponse();
+    assertThat(model.id(), is(response.getId()));
+    assertThat(model.sourceSnapshotId(), is(response.getSourceSnapshotId()));
+    assertThat(model.snapshotResearchPurpose(), is(response.getSnapshotResearchPurpose()));
+    assertThat(model.snapshotSpecification(), is(response.getSnapshotSpecification()));
+    assertThat(model.createdBy(), is(response.getCreatedBy()));
+    assertThat(model.createdDate().toString(), is(response.getCreatedDate()));
+    assertThat(model.statusUpdatedDate().toString(), is(response.getStatusUpdatedDate()));
+    assertThat(model.status(), is(response.getStatus()));
+    assertThat(model.flightid(), is(response.getFlightid()));
+    assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
+    assertThat(model.samGroupName(), is(response.getAuthGroupName()));
   }
 
   @Test
@@ -45,14 +55,22 @@ class SnapshotAccessRequestModelTest {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
     String conditionConceptName = "Condition Concept Name";
     String expectedSummaryString =
-        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept: "
-            + conditionConceptName
-            + "\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
+        """
+            Participants included:
+            Name: cohort
+            Groups:
+            Must meet all of:
+            The following concepts from Race:
+            Condition Concept: %s
+            Year of birth between 1950 and 2000
+            Tables included:Drug, Condition
+            """
+            .formatted(conditionConceptName);
     assertThat(
         model
             .generateModelDetails(
                 SnapshotBuilderTestData.SETTINGS,
-                Map.of(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID, conditionConceptName))
+                Map.of(model.generateConceptIds().get(0), conditionConceptName))
             .getSummary(),
         equalToCompressingWhiteSpace(expectedSummaryString));
   }
@@ -60,7 +78,7 @@ class SnapshotAccessRequestModelTest {
   @Test
   void generateConceptIds() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
-    assertThat(model.generateConceptIds(), contains(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID));
+    assertThat(model.generateConceptIds(), contains(SnapshotBuilderTestData.CONDITION_CONCEPT_ID));
   }
 
   @Test
@@ -180,20 +198,5 @@ class SnapshotAccessRequestModelTest {
         "flightid",
         "samGroupName",
         "tdr@serviceaccount.com");
-  }
-
-  private void compareModelAndResponseFields(
-      SnapshotAccessRequestModel model, SnapshotAccessRequestResponse response) {
-    assertThat(model.id(), is(response.getId()));
-    assertThat(model.sourceSnapshotId(), is(response.getSourceSnapshotId()));
-    assertThat(model.snapshotResearchPurpose(), is(response.getSnapshotResearchPurpose()));
-    assertThat(model.snapshotSpecification(), is(response.getSnapshotSpecification()));
-    assertThat(model.createdBy(), is(response.getCreatedBy()));
-    assertThat(model.createdDate().toString(), is(response.getCreatedDate()));
-    assertThat(model.statusUpdatedDate().toString(), is(response.getStatusUpdatedDate()));
-    assertThat(model.status(), is(response.getStatus()));
-    assertThat(model.flightid(), is(response.getFlightid()));
-    assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
-    assertThat(model.samGroupName(), is(response.getAuthGroupName()));
   }
 }

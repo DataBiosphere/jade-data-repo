@@ -89,12 +89,8 @@ class SnapshotAccessRequestApiControllerTest {
     SnapshotAccessRequestResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
     assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
-    verify(iamService)
-        .verifyAuthorization(
-            TEST_USER,
-            IamResourceType.DATASNAPSHOT,
-            SNAPSHOT_ID.toString(),
-            IamAction.CREATE_SNAPSHOT_REQUEST);
+    verifyAuthorization(
+        IamResourceType.DATASNAPSHOT, SNAPSHOT_ID, IamAction.CREATE_SNAPSHOT_REQUEST);
   }
 
   @Test
@@ -137,25 +133,17 @@ class SnapshotAccessRequestApiControllerTest {
     SnapshotAccessRequestResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
     assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
-    verify(iamService)
-        .verifyAuthorization(
-            TEST_USER,
-            IamResourceType.SNAPSHOT_BUILDER_REQUEST,
-            expectedResponse.getId().toString(),
-            IamAction.GET);
+    verifyAuthorization(
+        IamResourceType.SNAPSHOT_BUILDER_REQUEST, expectedResponse.getId(), IamAction.GET);
   }
 
   @Test
   void testGetSnapshotRequestDetails() throws Exception {
-    var model = SnapshotBuilderTestData.createSnapshotAccessRequestModel(SNAPSHOT_ID);
-    var expectedResponse =
-        model.generateModelDetails(
-            SnapshotBuilderTestData.SETTINGS,
-            Map.of(SnapshotBuilderTestData.SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID, "unused"));
-    when(snapshotBuilderService.getRequestDetails(TEST_USER, model.id()))
-        .thenReturn(expectedResponse);
+    var modelId = UUID.randomUUID();
+    var expectedResponse = new SnapshotAccessRequestDetailsResponse().summary("Summary");
+    when(snapshotBuilderService.getRequestDetails(TEST_USER, modelId)).thenReturn(expectedResponse);
     String actualJson =
-        mvc.perform(get(DETAILS_ENDPOINT, model.id()))
+        mvc.perform(get(DETAILS_ENDPOINT, modelId))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -163,12 +151,11 @@ class SnapshotAccessRequestApiControllerTest {
     SnapshotAccessRequestDetailsResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestDetailsResponse.class);
     assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
-    verify(iamService)
-        .verifyAuthorization(
-            TEST_USER,
-            IamResourceType.SNAPSHOT_BUILDER_REQUEST,
-            model.id().toString(),
-            IamAction.GET);
+    verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, modelId, IamAction.GET);
+  }
+
+  private void verifyAuthorization(IamResourceType resourceType, UUID modelId, IamAction action) {
+    verify(iamService).verifyAuthorization(TEST_USER, resourceType, modelId.toString(), action);
   }
 
   @Test
@@ -180,9 +167,7 @@ class SnapshotAccessRequestApiControllerTest {
         .getResponse()
         .getContentAsString();
     verify(snapshotBuilderService).deleteRequest(TEST_USER, id);
-    verify(iamService)
-        .verifyAuthorization(
-            TEST_USER, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.DELETE);
+    verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, id, IamAction.DELETE);
   }
 
   @Test
@@ -212,8 +197,6 @@ class SnapshotAccessRequestApiControllerTest {
     SnapshotAccessRequestResponse actual =
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestResponse.class);
     assertThat("The updated response is returned", actual, equalTo(response));
-    verify(iamService)
-        .verifyAuthorization(
-            TEST_USER, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
+    verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, id, IamAction.APPROVE);
   }
 }

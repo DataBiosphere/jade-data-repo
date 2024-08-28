@@ -42,15 +42,15 @@ import java.util.UUID;
 
 public class SnapshotBuilderTestData {
 
-  public static final int SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID = 100;
+  public static final int CONDITION_CONCEPT_ID = 100;
 
   private static SnapshotBuilderDomainOption generateSnapshotBuilderDomainOption(
       int id, String tableName, String columnName, String name, SnapshotBuilderConcept root) {
     SnapshotBuilderDomainOption domainOption = new SnapshotBuilderDomainOption();
     domainOption
         .root(root)
-        .conceptCount(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
-        .participantCount(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
+        .conceptCount(CONDITION_CONCEPT_ID)
+        .participantCount(CONDITION_CONCEPT_ID)
         .id(id)
         .tableName(tableName)
         .columnName(columnName)
@@ -117,9 +117,9 @@ public class SnapshotBuilderTestData {
                       ConditionOccurrence.CONDITION_CONCEPT_ID,
                       "Condition",
                       new SnapshotBuilderConcept()
-                          .id(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
+                          .id(CONDITION_CONCEPT_ID)
                           .name("Condition")
-                          .count(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       PROCEDURE_OCCURRENCE_DOMAIN_ID,
@@ -129,7 +129,7 @@ public class SnapshotBuilderTestData {
                       new SnapshotBuilderConcept()
                           .id(200)
                           .name("Procedure")
-                          .count(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true)),
                   generateSnapshotBuilderDomainOption(
                       OBSERVATION_DOMAIN_ID,
@@ -139,7 +139,7 @@ public class SnapshotBuilderTestData {
                       new SnapshotBuilderConcept()
                           .id(300)
                           .name("Observation")
-                          .count(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true)),
                   // add option for Drug table
                   generateSnapshotBuilderDomainOption(
@@ -150,7 +150,7 @@ public class SnapshotBuilderTestData {
                       new SnapshotBuilderConcept()
                           .id(400)
                           .name("Drug")
-                          .count(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
+                          .count(CONDITION_CONCEPT_ID)
                           .hasChildren(true))))
           .programDataOptions(
               List.of(
@@ -160,7 +160,7 @@ public class SnapshotBuilderTestData {
                       Person.YEAR_OF_BIRTH,
                       "Year of birth",
                       0,
-                      SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID),
+                      CONDITION_CONCEPT_ID),
                   generateSnapshotBuilderProgramDataListOption(
                       ETHNICITY_PROGRAM_DATA_ID,
                       Person.TABLE_NAME,
@@ -399,7 +399,7 @@ public class SnapshotBuilderTestData {
                         .kind(SnapshotBuilderCriteria.KindEnum.LIST))
                 .addCriteriaItem(
                     new SnapshotBuilderDomainCriteria()
-                        .conceptId(SNAPSHOT_BUILDER_COHORT_CONDITION_CONCEPT_ID)
+                        .conceptId(CONDITION_CONCEPT_ID)
                         .id(CONDITION_OCCURRENCE_DOMAIN_ID)
                         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN))
                 .addCriteriaItem(

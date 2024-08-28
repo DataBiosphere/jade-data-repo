@@ -85,7 +85,8 @@ class SnapshotAccessRequestModelTest {
   void generateSummaryForDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     assertThat(
-        new SnapshotAccessRequestModel.SummaryGenerator(SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+        new SnapshotAccessRequestModel.SummaryGenerator(
+                SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
             .generateSummaryForCriteria(domainCriteria),
         equalToCompressingWhiteSpace(EXPECTED_DOMAIN_SUMMARY_STRING));
   }

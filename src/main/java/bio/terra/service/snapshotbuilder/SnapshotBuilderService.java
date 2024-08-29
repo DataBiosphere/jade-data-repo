@@ -9,6 +9,7 @@ import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestDetailsResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -105,8 +106,7 @@ public class SnapshotBuilderService {
       throw e;
     }
 
-    return snapshotAccessRequestModel.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(snapshotAccessRequestModel.sourceSnapshotId()));
+    return snapshotAccessRequestModel.toApiResponse();
   }
 
   private <T> List<T> runSnapshotBuilderQuery(
@@ -214,20 +214,17 @@ public class SnapshotBuilderService {
 
   private EnumerateSnapshotAccessRequest generateResponseFromRequestModels(
       List<SnapshotAccessRequestModel> models) {
-    Map<UUID, SnapshotBuilderSettings> settings =
-        models.stream()
-            .map(SnapshotAccessRequestModel::sourceSnapshotId)
-            .distinct()
-            .collect(Collectors.toMap(id -> id, snapshotBuilderSettingsDao::getBySnapshotId));
     return new EnumerateSnapshotAccessRequest()
-        .items(
-            models.stream()
-                .map(model -> model.toApiResponse(settings.get(model.sourceSnapshotId())))
-                .toList());
+        .items(models.stream().map(SnapshotAccessRequestModel::toApiResponse).toList());
   }
 
   public SnapshotAccessRequestResponse getRequest(UUID id) {
-    return convertModelToApiResponse(snapshotRequestDao.getById(id));
+    return snapshotRequestDao.getById(id).toApiResponse();
+  }
+
+  public SnapshotAccessRequestDetailsResponse getRequestDetails(
+      AuthenticatedUserRequest userRequest, UUID id) {
+    return generateModelDetails(userRequest, snapshotRequestDao.getById(id));
   }
 
   public void deleteRequest(AuthenticatedUserRequest user, UUID id) {
@@ -398,20 +395,34 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestResponse rejectRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.REJECTED);
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return convertModelToApiResponse(model);
+    return snapshotRequestDao.getById(id).toApiResponse();
   }
 
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    return convertModelToApiResponse(model);
+    return snapshotRequestDao.getById(id).toApiResponse();
   }
 
-  private SnapshotAccessRequestResponse convertModelToApiResponse(
-      SnapshotAccessRequestModel model) {
-    return model.toApiResponse(
-        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId()));
+  private SnapshotAccessRequestDetailsResponse generateModelDetails(
+      AuthenticatedUserRequest userRequest, SnapshotAccessRequestModel model) {
+    List<Integer> conceptIds = model.generateConceptIds();
+    SnapshotBuilderSettings settings =
+        snapshotBuilderSettingsDao.getBySnapshotId(model.sourceSnapshotId());
+    Map<Integer, String> concepts =
+        conceptIds.isEmpty()
+            ? Map.of()
+            : runSnapshotBuilderQuery(
+                    queryBuilderFactory
+                        .enumerateConceptsQueryBuilder()
+                        .getConceptsFromConceptIds(conceptIds),
+                    snapshotService.retrieve(model.sourceSnapshotId()),
+                    userRequest,
+                    AggregateBQQueryResultsUtils::toConceptIdNamePair,
+                    AggregateSynapseQueryResultsUtils::toConceptIdNamePair)
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    return model.generateModelDetails(settings, concepts);
   }
 
   private SnapshotBuilderDomainOption getDomainOption(
@@ -427,7 +438,8 @@ public class SnapshotBuilderService {
         .formatted(terraConfiguration.basePath(), snapshotId);
   }
 
-  public void notifySnapshotReady(String subjectId, UUID snapshotRequestId) {
+  public void notifySnapshotReady(
+      AuthenticatedUserRequest userRequest, String subjectId, UUID snapshotRequestId) {
     var snapshotAccessRequest = snapshotRequestDao.getById(snapshotRequestId);
     UUID snapshotId = snapshotAccessRequest.createdSnapshotId();
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
@@ -435,6 +447,6 @@ public class SnapshotBuilderService {
         subjectId,
         createExportSnapshotLink(snapshotId),
         snapshot.getName(),
-        convertModelToApiResponse(snapshotAccessRequest).getSummary());
+        generateModelDetails(userRequest, snapshotAccessRequest).getSummary());
   }
 }

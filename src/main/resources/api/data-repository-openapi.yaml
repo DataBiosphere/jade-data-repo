@@ -3100,6 +3100,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/details:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get the details about a snapshot access request you have access to read
+      operationId: getSnapshotAccessRequestDetails
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestDetailsResponse'
+        404:
+          description: The request cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshotAccessRequests/{id}/reject:
     put:
       tags:
@@ -7546,6 +7573,15 @@ components:
         summary:
           type: string
         authGroupName:
+          type: string
+
+    SnapshotAccessRequestDetailsResponse:
+      type: object
+      required:
+        - summary
+      description: The details about a snapshot access request.
+      properties:
+        summary:
           type: string
 
 

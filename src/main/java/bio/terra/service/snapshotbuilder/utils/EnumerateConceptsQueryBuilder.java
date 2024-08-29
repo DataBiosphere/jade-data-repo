@@ -114,6 +114,23 @@ public class EnumerateConceptsQueryBuilder {
         .build();
   }
 
+  public Query getConceptsFromConceptIds(List<Integer> conceptIds) {
+    Concept concept = Concept.asPrimary();
+    FieldVariable nameField = concept.name();
+    FieldVariable conceptId = concept.conceptId();
+    List<SelectExpression> select = List.of(nameField, conceptId);
+
+    return new Query.Builder()
+        .select(select)
+        .tables(List.of(concept))
+        .where(
+            new FunctionFilterVariable(
+                FunctionFilterVariable.FunctionTemplate.IN,
+                conceptId,
+                conceptIds.stream().map(Literal::new).toArray(Literal[]::new)))
+        .build();
+  }
+
   static FunctionFilterVariable createFilterConceptClause(FieldVariable fieldVariable) {
     return new FunctionFilterVariable(
         FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH,

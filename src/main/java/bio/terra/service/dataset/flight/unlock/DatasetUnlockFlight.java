@@ -14,6 +14,8 @@ import bio.terra.service.dataset.flight.lock.DatasetLockSetResponseStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.journal.JournalService;
+import bio.terra.service.load.LoadService;
+import bio.terra.service.load.flight.LoadManualUnlockStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -28,6 +30,7 @@ public class DatasetUnlockFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
     JobService jobService = appContext.getBean(JobService.class);
+    LoadService loadService = appContext.getBean(LoadService.class);
 
     // Input parameters
     UUID datasetId =
@@ -48,6 +51,11 @@ public class DatasetUnlockFlight extends Flight {
       addStep(new UnlockResourceCheckJobStateStep(jobService, lockName));
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, lockName, true), unlockDatasetRetry);
+
+    // A lock that's stuck on a dataset may also be stuck on a load tag used for file ingestion:
+    // clear it if it exists so that it can be used again.
+    addStep(new LoadManualUnlockStep(loadService, lockName));
+
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService, userReq, datasetId, IamResourceType.DATASET, "Dataset unlocked."));

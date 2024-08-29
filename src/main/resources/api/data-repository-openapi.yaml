@@ -2071,7 +2071,8 @@ paths:
         - datasets
         - repository
       description: >
-        Remove an exclusive or shared lock on the dataset.
+        Remove an exclusive or shared lock on the dataset.  If any load tag in the dataset is also
+        locked by the same lock ID, it will also be unlocked.
       operationId: unlockDataset
       parameters:
         - $ref: '#/components/parameters/Id'

@@ -138,6 +138,9 @@ jobs:
           AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
           AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
           AZURE_CREDENTIALS_SECRET: ${{ secrets.AZURE_CREDENTIALS_SECRET }}
+          AZURE_SYNAPSE_SQLADMINUSER: ${{ secrets.AZURE_SYNAPSE_SQLADMINUSER }}
+          AZURE_SYNAPSE_SQLADMINPASSWORD: ${{ secrets.AZURE_SYNAPSE_SQLADMINPASSWORD }}
+          AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
           # required for integration tests
           GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
           GOOGLE_SA_CERT: jade-dev-account.pem
@@ -147,6 +150,8 @@ jobs:
           PGPASSWORD: postgres
           # required for integration tests
           RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+          RBS_INSTANCEURL: https://buffer.tools.integ.envs.broadinstitute.org
+          RBS_POOLID: datarepo_v1
           # output plain logs instead of json
           TDR_LOG_APPENDER: 'Console-Standard'
         run: |

@@ -5,8 +5,6 @@ import bio.terra.app.usermetrics.UserMetricsInterceptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -17,7 +15,6 @@ import org.springframework.web.util.UrlPathHelper;
 
 @Component
 public class WebConfig implements WebMvcConfigurer {
-  private final Logger logger = LoggerFactory.getLogger(WebConfig.class);
 
   @Autowired private LoggerInterceptor loggerInterceptor;
   @Autowired private UserMetricsInterceptor metricsInterceptor;

@@ -10,7 +10,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -50,11 +50,9 @@ class CreateSnapshotAddEmailsToSamGroupStepTest {
 
   @Test
   void doStep() throws InterruptedException {
-    var researcherEmail = "researcher@gmail.com";
+    var request = SnapshotBuilderTestData.createSnapshotAccessRequestModel(UUID.randomUUID());
+    var researcherEmail = request.createdBy();
     var emailsToAdd = List.of(researcherEmail);
-    var request =
-        new SnapshotAccessRequestModel(
-            null, null, null, null, null, researcherEmail, null, null, null, null, null);
     when(snapshotRequestDao.getById(snapshotRequestId)).thenReturn(request);
     assertEquals(step.doStep(flightContext), StepResult.getStepResultSuccess());
     verify(iamService)

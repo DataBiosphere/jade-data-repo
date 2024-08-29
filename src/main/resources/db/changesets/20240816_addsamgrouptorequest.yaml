@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_sam_group_to_request
+      author: rjohanek
+      changes:
+        - addColumn:
+            tableName: snapshot_request
+            columns:
+              - column:
+                  name: sam_group_name
+                  type: varchar(100)
+              - column:
+                  name: sam_group_created_by
+                  type: varchar(256)
+

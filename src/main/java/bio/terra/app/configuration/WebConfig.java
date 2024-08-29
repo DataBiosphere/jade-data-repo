@@ -4,7 +4,6 @@ import bio.terra.app.logging.LoggerInterceptor;
 import bio.terra.app.usermetrics.UserMetricsInterceptor;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Optional;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +18,6 @@ import org.springframework.web.util.UrlPathHelper;
 @Component
 public class WebConfig implements WebMvcConfigurer {
   private final Logger logger = LoggerFactory.getLogger(WebConfig.class);
-  private static final String DEFAULT_SWAGGER_UI = "5.17.14";
 
   @Autowired private LoggerInterceptor loggerInterceptor;
   @Autowired private UserMetricsInterceptor metricsInterceptor;
@@ -47,15 +45,19 @@ public class WebConfig implements WebMvcConfigurer {
     try (InputStream propsFile =
         getClass().getClassLoader().getResourceAsStream("swagger-ui.properties")) {
       properties.load(propsFile);
+      String swaggerUIVersion = properties.getProperty("swagger-ui");
+      if (swaggerUIVersion == null) {
+        throw new RuntimeException(
+            "Cannot find Swagger UI version from swagger-ui.properties, please make sure it is configured correctly in build.gradle.");
+      }
+      registry
+          .addResourceHandler("/webjars/swagger-ui-dist/**")
+          .addResourceLocations(
+              "classpath:/META-INF/resources/webjars/swagger-ui-dist/%s/"
+                  .formatted(swaggerUIVersion));
     } catch (IOException e) {
-      logger.warn("Could not access swagger-ui.properties file, using default version.");
+      throw new RuntimeException(
+          "Cannot read swagger-ui.properties file, please make sure it is configured correctly in build.gradle.");
     }
-    String swaggerUIVersion =
-        Optional.ofNullable(properties.getProperty("swagger-ui")).orElse(DEFAULT_SWAGGER_UI);
-    registry
-        .addResourceHandler("/webjars/swagger-ui-dist/**")
-        .addResourceLocations(
-            "classpath:/META-INF/resources/webjars/swagger-ui-dist/%s/"
-                .formatted(swaggerUIVersion));
   }
 }

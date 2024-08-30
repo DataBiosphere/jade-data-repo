@@ -179,3 +179,37 @@ jobs:
           name: api-logs
           path: local-api-output.log
           retention-days: 7
+  git_hash:
+    name: Extract git hash
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.config.outputs.GIT_HASH }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Get the latest git hash
+        id: config
+        run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_OUTPUT
+          echo "Latest git hash in branch is ${GIT_HASH}"
+  report-to-sherlock:
+    if: github.event_name == 'pull_request'
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs: git_hash
+    with:
+      new-version: ${{ needs.git_hash.outputs.version }}
+      chart-name: 'datarepo'
+    permissions:
+      contents: read
+      id-token: write
+  report-workflow:
+    if: github.ref == 'refs/heads/develop'
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    needs: git_hash
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

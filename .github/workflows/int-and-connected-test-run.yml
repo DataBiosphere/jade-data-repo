@@ -144,7 +144,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: api-logs
+          name: integration-test-api-logs
           path: local-api-output.log
           retention-days: 7
   git_hash:
@@ -162,6 +162,7 @@ jobs:
           echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_OUTPUT
           echo "Latest git hash in branch is ${GIT_HASH}"
   report-to-sherlock:
+    # only runs on pull requests and reports the appVersion even if tests fail
     if: github.event_name == 'pull_request'
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
     needs: git_hash
@@ -174,6 +175,7 @@ jobs:
   report-workflow:
     if: github.ref == 'refs/heads/develop'
     uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    # dependency is not required but makes the action run page more readable
     needs: git_hash
     with:
       relates-to-chart-releases: 'datarepo-dev'

@@ -20,7 +20,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.61')
+        classpath('io.swagger.codegen.v3:swagger-codegen:3.0.62')
         // Required for gradle liquibase plugin
         classpath ('org.liquibase:liquibase-core:4.29.1')
     }
@@ -62,8 +62,8 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.22'
-            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.61'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.23'
+            dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.62'
         }
     }
 }
@@ -170,14 +170,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.44.0')
+    implementation platform('com.google.cloud:libraries-bom:26.45.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.5.1'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.6.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -207,8 +207,8 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.15.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.15.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.15.1'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.15.1'
 
     implementation 'bio.terra:terra-common-lib:1.1.18-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
@@ -242,11 +242,11 @@ dependencies {
     // OpenTelemetry @WithSpan annotations:
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.7.0'
 
-    testImplementation 'org.apache.parquet:parquet-common:1.14.1'
-    testImplementation 'org.apache.parquet:parquet-hadoop:1.14.1'
-    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.14.1'
-    testImplementation 'org.apache.parquet:parquet-encoding:1.14.1'
-    testImplementation 'org.apache.parquet:parquet-column:1.14.1'
+    testImplementation 'org.apache.parquet:parquet-common:1.14.2'
+    testImplementation 'org.apache.parquet:parquet-hadoop:1.14.2'
+    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.14.2'
+    testImplementation 'org.apache.parquet:parquet-encoding:1.14.2'
+    testImplementation 'org.apache.parquet:parquet-column:1.14.2'
     testImplementation ('org.apache.hadoop:hadoop-common:3.4.0')  {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'
@@ -262,8 +262,8 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-reload4j'
     }
 
-    testImplementation 'au.com.dius.pact.provider:junit5:4.6.13'
-    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.13'
+    testImplementation 'au.com.dius.pact.provider:junit5:4.6.14'
+    testImplementation 'au.com.dius.pact.provider:junit5spring:4.6.14'
 
     antlr 'org.antlr:antlr4:4.13.2'
 

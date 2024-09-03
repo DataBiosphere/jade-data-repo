@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# run the service in one of different deployment modes
+set -e #-x
+
+usage() {
+  cat <<-'EOF'
+usage: run [-h|--help] RUNTYPE
+
+[-h|--help]       print this help text
+
+RUNTYPE is one of:
+- tests           run tests against repo
+- integration     run integration tests against running instance;
+                  either `local` or `docker`
+- local           run as a local terminal process
+- docker          run in a docker container
+EOF
+}
+
+# script variables and defaults
+source $(dirname $0)/init.sh
+source "${SCRIPTS_DIR}"/render_configs.sh
+
+JADE_USER_EMAIL=<PUT EMAIL HERE>
+
+IT_JADE_API_URL=http://localhost:8080
+
+GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
+GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
+
+AZURE_SYNAPSE_WORKSPACENAME=$(cat /tmp/azure-synapse-workspacename.txt)
+AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
+AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
+AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
+AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
+AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
+AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
+AZURE_SYNAPSE_INITIALIZE=false
+
+RBS_POOLID=$(cat /tmp/rbs-pool-id.txt)
+RBS_INSTANCEURL=$(cat /tmp/rbs-instance-url.txt)
+
+GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
+
+# process command-line options (if any)
+die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
+needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
+
+while getopts h-: OPT; do
+  # support long options: https://stackoverflow.com/a/28466267/519360
+  if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    OPT="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+  fi
+  case "$OPT" in
+    h | help )     usage; exit 0 ;;
+    \? )           usage; exit 2 ;;  # bad short option (error reported via getopts)
+    * )            die "Illegal option --$OPT" ;;            # bad long option
+  esac
+done
+shift $((OPTIND-1)) # remove parsed options and args from $@ list
+
+
+# process positional arguments (if any)
+RUNTYPE=${1}
+
+run_tests() {
+  cd "${ROOT_DIR}"
+  ./gradlew ${GRADLE_OPTS} test jacocoTestReport
+
+#./gradlew --build-cache srcclr
+}
+
+run_integration_tests() {
+  # NOTE: interesting - no integration-tests.yml have been triggered or run
+  # this is run via both:
+  # - ./github/workflows/build-and-test.yml
+  # - ./github/workflows/integration-tests.yml
+  #
+  # please see integration-tests.yml for more information re: inputs.environment and TEST_ENV
+  TEST_ENV=${TEST_ENV:-local}
+
+  cd "${ROOT_DIR}"
+  ./gradlew ${GRADLE_OPTS} runTest \
+    --args="suites/${TEST_ENV}/FullIntegration.json build/reports"
+
+  # for developer runs, build an integration report locally
+  if [ -z "$CI" ]; then
+    log_debug "TODO: how do we build a report?"
+  fi
+}
+
+run_local() {
+  cd "$ROOT_DIR"
+  ./gradlew ${GRADLE_OPTS} bootRun
+}
+
+run_docker() {
+  "$SCRIPTS_DIR/build" docker
+  docker compose -f "$SCRIPTS_DIR/compose.yaml" up service -d
+}
+
+case "$RUNTYPE" in
+  tests )        run_tests ;;
+  integration )  run_integration_tests ;;
+  local )        run_local;;
+  docker )       run_docker;;
+  * )            usage; exit 2;
+esac

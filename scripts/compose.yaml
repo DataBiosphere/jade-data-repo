@@ -1,0 +1,24 @@
+name: terradatarepo
+
+services:
+
+  service:
+    image: jade-data-repo
+    depends_on:
+      - database
+    environment:
+      - DATABASE_HOSTNAME=database
+    ports:
+      - "8080:8080"
+
+  database:
+    image: postgres:14
+    environment:
+      - POSTGRES_PASSWORD=drpasswd
+      - POSTGRES_USER=drmanager    # default: postgres
+#      - POSTGRES_DB=javatemplate_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../build/tmp/postgres-data:/var/lib/postgresql/data
+      - ./init-db/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql

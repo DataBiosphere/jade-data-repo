@@ -1,22 +1,22 @@
 #!/bin/bash
 ### How to call this script
 # To write secrets to tmp files:
-# ./render-configs.sh (defaults to dev azure, tools RBS)
+# ./render_configs.sh (defaults to dev azure, tools RBS)
 
 # There are three optional arguments:
-# ./render-configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i)
-# e.g.: ./render-configs.sh -a dev -r tools -i
+# ./render_configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i)
+# e.g.: ./render_configs.sh -a dev -r tools -i
 # This would set azure synapse to dev, RBS to tools, and put the variables in your clipboard
 
 # If you're running Azure Integration Tests you should use the following settings:
-# ./render-configs.sh -a integration -r tools
+# ./render_configs.sh -a integration -r tools
 # Then, refresh your z-shell configuration (`source ~./zshrc`) (follow getting started doc to set env variables)
 # Alternatively, if you use the -i flag, it copies the environment variables to your clipboard and you can paste them into your Intellij test profile.
-# ./render-configs.sh -a integration -r tools -i
+# ./render_configs.sh -a integration -r tools -i
 
 # If you want a set up locally, you can use the following settings:
-# ./render-configs.sh -a dev -r dev
-# Then, refresh your z-shell configuration (`source ~./zshrc`)
+# ./render_configs.sh -a dev -r dev
+# Then, refresh your z-shell configuration (`source ~/.zshrc`)
 # ./gradlew bootRun
 
 set -eu

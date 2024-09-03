@@ -46,9 +46,9 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobWriteOption;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -472,7 +472,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     try (WriteChannel writer = storage.writer(blob, options)) {
       for (String line : contents) {
-        writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
+        writer.write(ByteBuffer.wrap((line + "\n").getBytes(StandardCharsets.UTF_8)));
       }
     }
     return String.format("gs://%s/%s", blob.getBucket(), targetPath);

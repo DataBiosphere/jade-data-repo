@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# execute all of the steps necessary to build the project
+set -e #-x
+
+usage() {
+  cat <<-'EOF'
+usage: build [-t|--skip-tests] [-h|--help] BUILDTYPE
+[-t|--skip-tests]       skip running unit tests;
+                        this is used in the CI process
+[-h|--help]             print this help text
+BUILDTYPE is one of the following:
+- project               the default build command
+- docker                build a docker image
+EOF
+}
+
+# script variables and defaults
+source $(dirname $0)/init.sh
+skip_tests=""
+
+
+# process command-line options (if any)
+die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
+needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
+
+while getopts h-: OPT; do  # allow -h and -- "with arg"
+  # support long options: https://stackoverflow.com/a/28466267/519360
+  if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    OPT="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+  fi
+  case "$OPT" in
+    t | skip-tests )       skip_tests="-x test" ;;
+    h | help )             usage; exit 0 ;;
+    \? )                   usage; exit 2 ;;  # bad short option (error reported via getopts)
+    * )                    die "Illegal option --$OPT" ;;            # bad long option
+  esac
+done
+shift $((OPTIND-1)) # remove parsed options and args from $@ list
+
+
+# process positional arguments (if any)
+BUILDTYPE=$1
+shift 1
+
+# use all trailing arguments as caveats to BUILD command
+GRADLE_BUILD_OPTS=${GRADLE_BUILD_OPTS:-"$@"}
+log_debug "add'l commandline gradle build opts: ${GRADLE_BUILD_OPTS}"
+
+
+build_project() {
+  cd "${ROOT_DIR}"
+  ./gradlew ${GRADLE_OPTS} build ${skip_tests} ${GRADLE_BUILD_OPTS}
+#./gradlew --build-cache build -x test
+#./gradlew --build-cache build -x test -x spotlessCheck
+#./gradlew --build-cache :service:build -x test
+}
+
+build_docker() {
+  GIT_REPO_NAME=$(basename "${ROOT_DIR}")
+  GIT_SHA_SHORT=$(git rev-parse --short HEAD)
+
+  DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME:-${GIT_REPO_NAME}}
+  DOCKER_IMAGE_NAME_AND_TAG=${DOCKER_IMAGE_NAME_AND_TAG:-"${DOCKER_IMAGE_NAME}:${GIT_SHA_SHORT}"}
+
+  cd "${ROOT_DIR}"
+  ./gradlew ${GRADLE_OPTS} :jibDockerBuild \
+            --image="${DOCKER_IMAGE_NAME_AND_TAG}" \
+            -Djib.console=plain ${skip_tests}
+
+  # the latest tag will allow `docker compose` to work correctly for developers
+  if [ -z "$CI" ]; then
+    docker image tag "${DOCKER_IMAGE_NAME_AND_TAG}" "${DOCKER_IMAGE_NAME}:latest"
+  fi
+#./gradlew --build-cache :service:jibDockerBuild \
+}
+
+case "$BUILDTYPE" in
+  project )       build_project ;;
+  docker )        build_docker ;;
+  * )             die "Missing or invalid positional command: '${BUILDTYPE}'" ;;
+esac

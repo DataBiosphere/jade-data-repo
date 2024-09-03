@@ -30,7 +30,7 @@ before_install:
   - source $HOME/google-cloud-sdk/path.bash.inc
   - gcloud config set project $INTEGRATION_PROJECT
   - gcloud config set compute/zone $INTEGRATION_ZONE
-  - ./render-configs.sh $TRAVIS_TOKEN
+  - ./scripts/render_configs.sh $TRAVIS_TOKEN
   - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud auth configure-docker
   - gcloud components install kubectl
@@ -39,7 +39,7 @@ before_install:
 
 script:
   - set -e
-  - psql -U postgres -f ./db/create-data-repo-db
+  - psql -U postgres -f ./scripts/init-db/postgres-init.sql
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace temp set image
     deployment/temp-jade-datarepo-api

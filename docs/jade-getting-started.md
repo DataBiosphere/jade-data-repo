@@ -276,13 +276,13 @@ There are several ways to go about this, but here is one way that works. You can
 configuration to keep your system environment variables. If you don't already have one created, you
 can create one by running `touch ~/.zshrc`. Then, you can open the file in a text editor with `open ~/.zshrc`.
 Below you'll find a list of environment variables needed to run TDR and tests locally. When you run
-`./render-configs.sh`, it populates key and txt files with secrets from vault and environment-specific
+`./scripts/render_configs.sh`, it populates key and txt files with secrets from vault and environment-specific
 values. On daily setup, you'll need to run the following two commands *in order*:
 ```
-./render-configs.sh
+./scripts/render_configs.sh
 source ~/.zshrc
 ```
-An alternate is to run `./render-configs.sh -i` which will put the variables into your clipboard. You
+An alternate is to run `./scripts/render_configs.sh -i` which will put the variables into your clipboard. You
 can then paste these values into an intellij bootRun or test run profile.
 
 ### Environment Variables
@@ -301,7 +301,7 @@ export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
 # Integration test setting
 export IT_JADE_API_URL=http://localhost:8080
 
-# This file will be populated when you run ./render-configs.sh
+# This file will be populated when you run ./scripts/render_configs.sh
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 
@@ -317,7 +317,7 @@ export AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.ke
 export AZURE_SYNAPSE_INITIALIZE=false
 
 # RBS
-# Defaults to RBS tools; you can switch to dev by running `./render-configs.sh -r dev`
+# Defaults to RBS tools; you can switch to dev by running `./scripts/render_configs.sh -r dev`
 export RBS_POOLID=$(cat /tmp/rbs-pool-id.txt)
 export RBS_INSTANCEURL=$(cat /tmp/rbs-instance-url.txt)
 
@@ -339,8 +339,8 @@ export HOST=localhost
 
 * Start postgres
 * Ensure docker is running
-* You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
-* Run `./render-configs.sh` to pull secrets from vault
+* You may need to auth as your broadinstitute.org to pull from Google Secrets Manager
+* Run `./scripts/render_configs.sh` to pull secrets from Google Secrets Manager
 * Refresh your Z-shell configuration by running `source ~/.zshrc`
 * Build the code and run the unit tests:
 
@@ -357,7 +357,7 @@ First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
-* Run `./render-configs.sh` to pull secrets from vault
+* Run `./scripts/render_configs.sh` to pull secrets from vault
 * Refresh your Z-shell configuration by running `source ~/.zshrc`
 * Note: `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false for connected tests to pass
 
@@ -367,7 +367,7 @@ First, make sure you have run through the following steps:
 ** Run or Debug test in Intellij **
 * If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
 environment variables to populate the Intellij run configurations. Alternatively, you can run
-`./render-configs.sh -i` which will put all the environment variables into your clipboard and then you
+`./scripts/render_configs.sh -i` which will put all the environment variables into your clipboard and then you
 can paste them into the Intellij test setup.
 * Select test in intellij UI, select 'testConnected' and run or debug it
 
@@ -378,7 +378,7 @@ First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
 * You may need to re-auth with vault every so often. Run `vault login -method=github token=$(cat ~/.gh_token)`
-* Run `./render-configs.sh -a integration` to pull secrets from vault. For Azure Integration tests,
+* Run `./scripts/render_configs.sh -a integration` to pull secrets from vault. For Azure Integration tests,
 we must point to the integration environment.
 * Make sure you have this environment variable set in the context of the test run:
 `export IT_JADE_API_URL=http://localhost:8080`
@@ -392,7 +392,7 @@ we must point to the integration environment.
 ** Run or Debug test in Intellij **
 * If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
   environment variables to populate the Intellij run configurations. Alternatively, you can run
-  `./render-configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
+  `./scripts/render_configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
   can paste them into the Intellij test setup.
 * Start application by running `./gradlew bootRun`
 * Select test in intellij UI, select 'testIntegration' and run or debug it
@@ -465,7 +465,7 @@ Ensure that:
 
 ## Resources
 * [Stairway Flight Developer Guide](https://github.com/DataBiosphere/stairway/blob/develop/FLIGHT_DEVELOPER_GUIDE.md) - Data Repo utilizes Stairway to run asynchronous operations throughout the code base.
-* [Data Repo Service](https://ga4gh.github.io/data-repository-service-schemas/docs/) - The Data Repo implements parts of the The Data Repository Service (DRS) specification. 
+* [Data Repo Service](https://ga4gh.github.io/data-repository-service-schemas/docs/) - The Data Repo implements parts of the The Data Repository Service (DRS) specification.
 
 ## Appendix
 

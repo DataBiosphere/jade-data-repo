@@ -28,7 +28,14 @@ public class DatasetRelationshipDao {
     this.jdbcTemplate = jdbcTemplate;
   }
 
-  // part of a transaction propagated from DatasetDao
+  /**
+   * When creating new relationships, callers should note that relationships are assumed to exist
+   * only between tables in the same dataset. The query powering relationship retrieval relies on
+   * this assumption -- see {@link #retrieve(Dataset)}.
+   *
+   * @param relationships Dataset relationships to create in {@code dataset_relationship} table.
+   *     Each relationship is assumed to only exist between tables in the same dataset.
+   */
   public void createDatasetRelationships(List<Relationship> relationships) {
     for (Relationship rel : relationships) {
       create(rel);
@@ -54,6 +61,16 @@ public class DatasetRelationshipDao {
     relationship.id(relationshipId);
   }
 
+  /**
+   * Enrich the supplied dataset with its associated relationships.
+   *
+   * <p>Callers should note that relationships are assumed to exist only between tables in the same
+   * dataset. The query powering this method relies on this assumption.
+   *
+   * @param dataset Dataset whose relationships will be populated from the {@code
+   *     dataset_relationship} table. Each relationship is assumed to only exist between tables in
+   *     the same dataset.
+   */
   public void retrieve(Dataset dataset) {
     List<Relationship> relationships = retrieveDatasetRelationships(dataset);
     dataset.relationships(relationships);

@@ -208,5 +208,3 @@ jobs:
       notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
     permissions:
       id-token: write
-  deploy_test_integration:
-    steps: {}

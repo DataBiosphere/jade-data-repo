@@ -22,7 +22,7 @@ buildscript {
     dependencies {
         classpath('io.swagger.codegen.v3:swagger-codegen:3.0.62')
         // Required for gradle liquibase plugin
-        classpath ('org.liquibase:liquibase-core:4.29.1')
+        classpath ('org.liquibase:liquibase-core:4.29.2')
     }
 }
 

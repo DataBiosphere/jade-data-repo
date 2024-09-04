@@ -11,7 +11,8 @@ public class LoadUnlockStep extends DefaultUndoStep {
   private final LoadService loadService;
 
   /**
-   * This step is meant to be shared by dataset and filesystem flights for unlocking the load tag.
+   * This step is meant to be shared by dataset and filesystem flights for removing this flight's
+   * lock on the load tag in the targeted dataset.
    *
    * <p>It expects the following to be available in the flight context:
    *

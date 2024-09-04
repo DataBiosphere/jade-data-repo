@@ -2071,7 +2071,8 @@ paths:
         - datasets
         - repository
       description: >
-        Remove an exclusive or shared lock on the dataset.
+        Remove an exclusive or shared lock on the dataset.  If any load tag in the dataset is also
+        locked by the same lock ID, it will also be unlocked.
       operationId: unlockDataset
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -3093,6 +3094,33 @@ paths:
       responses:
         204:
           description: The request has been deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/details:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get the details about a snapshot access request you have access to read
+      operationId: getSnapshotAccessRequestDetails
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestDetailsResponse'
+        404:
+          description: The request cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
         default:
           description: Unexpected error
           content:
@@ -7545,6 +7573,15 @@ components:
         summary:
           type: string
         authGroupName:
+          type: string
+
+    SnapshotAccessRequestDetailsResponse:
+      type: object
+      required:
+        - summary
+      description: The details about a snapshot access request.
+      properties:
+        summary:
           type: string
 
 

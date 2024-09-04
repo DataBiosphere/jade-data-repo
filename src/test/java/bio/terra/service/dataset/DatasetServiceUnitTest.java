@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -30,14 +31,19 @@ import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.TableDataType;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.dataset.flight.unlock.DatasetUnlockFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.job.JobBuilder;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
@@ -385,5 +391,26 @@ class DatasetServiceUnitTest {
                         .name(DATASET_TABLE_NAME)
                         .columns(List.of(new Column().name("column1").type(columnDataType)))));
     when(datasetDao.retrieve(any())).thenReturn(mockDataset);
+  }
+
+  private ResourceLocks mockSubmitAndWait(UnlockResourceRequest request, JobBuilder jobBuilder) {
+    when(jobService.newJob(anyString(), eq(DatasetUnlockFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    ResourceLocks resourceLocks = new ResourceLocks().exclusive("an-exclusive-lock");
+    when(jobBuilder.submitAndWait(ResourceLocks.class)).thenReturn(resourceLocks);
+    return resourceLocks;
+  }
+
+  @Test
+  void manualUnlock() {
+    UnlockResourceRequest request = new UnlockResourceRequest().lockName("flightId");
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    ResourceLocks expected = mockSubmitAndWait(request, jobBuilder);
+
+    ResourceLocks actual = datasetService.manualUnlock(TEST_USER, DATASET_ID, request);
+    assertThat("Job is submitted and ResourceLocks returned", actual, equalTo(expected));
+    // Dataset ID is supplied as an input parameter
+    verify(jobBuilder).addParameter(JobMapKeys.DATASET_ID.getKeyName(), DATASET_ID);
   }
 }

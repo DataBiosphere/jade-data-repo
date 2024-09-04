@@ -6,6 +6,7 @@ import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.query.table.Concept;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 public class AggregateSynapseQueryResultsUtils {
 
@@ -19,6 +20,12 @@ public class AggregateSynapseQueryResultsUtils {
     } catch (SQLException e) {
       throw new ProcessResultSetException("Error processing result set", e);
     }
+  }
+
+  public static Map.Entry<Integer, String> toConceptIdNamePair(ResultSet rs) {
+    return Map.entry(
+        getField(rs::getLong, Concept.CONCEPT_ID).intValue(),
+        getField(rs::getString, Concept.CONCEPT_NAME));
   }
 
   public static SnapshotBuilderConcept toConcept(ResultSet rs) {

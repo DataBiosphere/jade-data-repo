@@ -53,6 +53,7 @@ class DatasetUnlockFlightTest {
           contains(
               "UnlockDatasetCheckLockNameStep",
               "UnlockDatasetStep",
+              "LoadManualUnlockStep",
               "JournalRecordUpdateEntryStep",
               "DatasetLockSetResponseStep"));
     } else {
@@ -62,19 +63,20 @@ class DatasetUnlockFlightTest {
               "UnlockDatasetCheckLockNameStep",
               "UnlockResourceCheckJobStateStep",
               "UnlockDatasetStep",
+              "LoadManualUnlockStep",
               "JournalRecordUpdateEntryStep",
               "DatasetLockSetResponseStep"));
     }
   }
 
   @Test
-  void testParametersForUnlockStep() {
+  void testParameters_UnlockDatasetStep() {
     inputParameters.put(
         JobMapKeys.REQUEST.getKeyName(),
         new UnlockResourceRequest().lockName(LOCK_NAME).forceUnlock(false));
     var flight = new DatasetUnlockFlight(inputParameters, context);
-    var thirdStep = flight.getSteps().get(2);
-    UnlockDatasetStep unlockDatasetStep = (UnlockDatasetStep) thirdStep;
+    UnlockDatasetStep unlockDatasetStep =
+        FlightTestUtils.getStepWithClass(flight, UnlockDatasetStep.class);
     assertThat("Unlock the Exclusive lock on dataset", unlockDatasetStep.isSharedLock(), is(false));
     assertThat("Throw lock exception", unlockDatasetStep.isThrowLockException());
     assertThat(

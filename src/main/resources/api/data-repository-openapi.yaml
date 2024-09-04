@@ -665,8 +665,8 @@ paths:
       responses:
         200:
           description: >
-            Unlock successful. ResourceLocks object is returned with a "null" value
-            showing that there is no longer an exclusive lock on this resource.
+            Unlock successful. The snapshot's current lock state is returned, which should show no
+            exclusive lock present.
           content:
             application/json:
               schema:
@@ -2084,8 +2084,8 @@ paths:
       responses:
         200:
           description: >
-            Unlock successful. ResourceLocks object is returned with a "null" value
-            if there are no locks on the resource.
+            Unlock successful. The dataset's current lock state is returned, which should no longer
+            include the lock removed.
           content:
             application/json:
               schema:

@@ -750,6 +750,11 @@ class DrsServiceTest {
         assertThrows(
             DrsObjectNotFoundException.class,
             () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
+    // The user is authorized to read the snapshot, so we can share diagnostic information about the
+    // failure to obtain the bucket in our response.
+    verify(samService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
     assertThat(
         exception.getMessage(), startsWith("GCS bucket from %s not found".formatted(sourcePath)));
   }

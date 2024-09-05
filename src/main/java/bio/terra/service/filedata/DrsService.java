@@ -716,11 +716,15 @@ public class DrsService {
     if (cachedSnapshot.isSelfHosted) {
       // Authorize using the dataset's service account...
       Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
-      Bucket bucket =
-          storage.get(
-              GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket(),
-              // ...but bill to the snapshot's project
-              BucketGetOption.userProject(cachedSnapshot.googleProjectId));
+      // ...but bill to the snapshot's project.
+      BucketGetOption userProject = BucketGetOption.userProject(cachedSnapshot.googleProjectId);
+      String cloudPath = fsFile.getCloudPath();
+      Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(cloudPath).getBucket(), userProject);
+      if (bucket == null) {
+        throw new DrsObjectNotFoundException(
+            "GCS bucket %s not found (diagnostics returned in error details)".formatted(cloudPath),
+            List.of(cachedSnapshot.toString(), fsFile.toString()));
+      }
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {
       GoogleBucketResource bucketResource =
@@ -1068,6 +1072,32 @@ public class DrsService {
 
     public CloudPlatform getCloudPlatform() {
       return this.cloudPlatform;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("class SnapshotCacheResult {\n");
+      sb.append("  snapshot: {\n");
+      sb.append("    id: ").append(this.id).append("\n");
+      sb.append("    name: ").append(this.name).append("\n");
+      sb.append("    isSelfHosted: ").append(this.isSelfHosted).append("\n");
+      sb.append("    globalFileIds: ").append(this.globalFileIds).append("\n");
+      sb.append("    billingProfileId: ").append(this.snapshotBillingProfileId).append("\n");
+      sb.append("    cloudPlatform: ").append(this.cloudPlatform).append("\n");
+      if (this.googleProjectId != null) {
+        sb.append("    googleProjectId: ").append(this.googleProjectId).append("\n");
+      }
+      sb.append("  }\n");
+      sb.append("  rootDataset: {\n");
+      sb.append("    id: ").append(this.datasetId).append("\n");
+      sb.append("    name: ").append(this.datasetName).append("\n");
+      if (this.datasetProjectId != null) {
+        sb.append("    datasetProjectId: ").append(this.datasetProjectId).append("\n");
+      }
+      sb.append("  }\n");
+      sb.append("}");
+      return sb.toString();
     }
   }
 }

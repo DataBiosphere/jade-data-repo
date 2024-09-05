@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -123,7 +124,7 @@ class DrsServiceTest {
           .build();
 
   private static final String RAS_ISSUER = "https://stsstg.nih.gov";
-  private static final String SNAPSHOT_DATA_PROJECT = "google-project";
+  private static final String SNAPSHOT_DATA_PROJECT = "snapshot-google-project";
 
   @Mock private SnapshotService snapshotService;
   @Mock private FileService fileService;
@@ -721,6 +722,36 @@ class DrsServiceTest {
         () ->
             drsService.postAccessUrlForObjectId(
                 googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel, null));
+  }
+
+  @Test
+  void lookupObjectByDrsId_bucketNotFoundForGcpSelfHostedSnapshot() {
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).selfHosted(true);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    // A snapshot's self-hosted designation is set by its root dataset:
+    snapshot.getSourceDataset().getDatasetSummary().selfHosted(true);
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+
+    String datasetProject = snapshot.getSourceDataset().getProjectResource().getGoogleProjectId();
+    Storage storage = mock(Storage.class);
+    when(gcsProjectFactory.getStorage(datasetProject)).thenReturn(storage);
+
+    String sourcePath = googleFsFile.getCloudPath();
+    when(storage.get(
+            BlobId.fromGsUtilUri(sourcePath).getBucket(),
+            Storage.BucketGetOption.userProject(SNAPSHOT_DATA_PROJECT)))
+        .thenReturn(null);
+
+    DrsObjectNotFoundException exception =
+        assertThrows(
+            DrsObjectNotFoundException.class,
+            () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
+    assertThat(
+        exception.getMessage(), startsWith("GCS bucket from %s not found".formatted(sourcePath)));
   }
 
   private static Stream<Arguments> testSignGcpUrl() {

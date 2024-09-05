@@ -722,7 +722,8 @@ public class DrsService {
       Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(cloudPath).getBucket(), userProject);
       if (bucket == null) {
         throw new DrsObjectNotFoundException(
-            "GCS bucket %s not found (diagnostics returned in error details)".formatted(cloudPath),
+            "GCS bucket from %s not found (diagnostics returned in error details)"
+                .formatted(cloudPath),
             List.of(cachedSnapshot.toString(), fsFile.toString()));
       }
       region = GoogleRegion.fromValue(bucket.getLocation());
@@ -1085,16 +1086,12 @@ public class DrsService {
       sb.append("    globalFileIds: ").append(this.globalFileIds).append("\n");
       sb.append("    billingProfileId: ").append(this.snapshotBillingProfileId).append("\n");
       sb.append("    cloudPlatform: ").append(this.cloudPlatform).append("\n");
-      if (this.googleProjectId != null) {
-        sb.append("    googleProjectId: ").append(this.googleProjectId).append("\n");
-      }
+      sb.append("    googleProjectId: ").append(this.googleProjectId).append("\n");
       sb.append("  }\n");
       sb.append("  rootDataset: {\n");
       sb.append("    id: ").append(this.datasetId).append("\n");
       sb.append("    name: ").append(this.datasetName).append("\n");
-      if (this.datasetProjectId != null) {
-        sb.append("    datasetProjectId: ").append(this.datasetProjectId).append("\n");
-      }
+      sb.append("    datasetProjectId: ").append(this.datasetProjectId).append("\n");
       sb.append("  }\n");
       sb.append("}");
       return sb.toString();

@@ -18,6 +18,7 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.BucketInfo.Autoclass;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
@@ -381,7 +382,11 @@ public class GoogleBucketService {
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
-            .setAutoclass(Autoclass.newBuilder().setEnabled(enableAutoclass).build())
+            .setAutoclass(
+                Autoclass.newBuilder()
+                    .setEnabled(enableAutoclass)
+                    .setTerminalStorageClass(StorageClass.ARCHIVE)
+                    .build())
             .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)
             .setLifecycleRules(lifecycleRules)

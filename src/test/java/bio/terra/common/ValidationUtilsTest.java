@@ -59,6 +59,40 @@ class ValidationUtilsTest {
   }
 
   @Test
+  void testIsValidBucketName() {
+    assertThat(ValidationUtils.isValidBucketName("bucket")).isTrue();
+    assertThat(ValidationUtils.isValidBucketName("bucket-1")).isTrue();
+    assertThat(ValidationUtils.isValidBucketName("1-bucket")).isTrue();
+    assertThat(
+            ValidationUtils.isValidBucketName(
+                "bucket-123456789-123456789-123456789-123456789-123456789"))
+        .isTrue();
+    assertThat(ValidationUtils.isValidBucketName("bucket-")).isFalse();
+    assertThat(ValidationUtils.isValidBucketName("-bucket")).isFalse();
+    assertThat(
+            ValidationUtils.isValidBucketName(
+                "bucket-123456789-123456789-123456789-123456789-123456789-123456789-123456789"))
+        .isFalse();
+  }
+
+  @Test
+  void testConvertToBucketName() {
+    assertThat(ValidationUtils.convertToBucketName("bucket")).isPresent();
+    assertThat(ValidationUtils.convertToBucketName("bucket-1")).isPresent();
+    assertThat(ValidationUtils.convertToBucketName("1-bucket")).isPresent();
+    assertThat(
+            ValidationUtils.convertToBucketName(
+                "bucket-123456789-123456789-123456789-123456789-123456789"))
+        .isPresent();
+    assertThat(ValidationUtils.convertToBucketName("bucket-")).isEmpty();
+    assertThat(ValidationUtils.convertToBucketName("-bucket")).isEmpty();
+    assertThat(
+            ValidationUtils.convertToBucketName(
+                "bucket-123456789-123456789-123456789-123456789-123456789-123456789-123456789"))
+        .isEmpty();
+  }
+
+  @Test
   void testValidationOfEmptyBlankAndNullStrings() {
 
     assertThatExceptionOfType(IllegalArgumentException.class)

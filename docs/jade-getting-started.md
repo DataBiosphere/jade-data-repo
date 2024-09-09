@@ -308,16 +308,14 @@ First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
 * Auth as your broadinstitute.org to pull from Google Secrets Manager
-* Run `./scripts/render_configs.sh` to pull secrets from Google Secrets Manager
-* Refresh your Z-shell configuration by running `source ~/.zshrc`
+* Run `eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"` to populate your environment variables
 * Note: `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false for connected tests to pass
 
 ** Run test in the Command Line **
 * Run `./gradlew :testConnected --tests '*<test name>'` to run a specific connected test
 
 ** Run or Debug test in Intellij **
-* If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
-environment variables to populate the Intellij run configurations. Alternatively, you can run
+* Run
 `./scripts/render_configs.sh -i` which will put all the environment variables into your clipboard and then you
 can paste them into the Intellij test setup.
 * Select test in intellij UI, select 'testConnected' and run or debug it
@@ -329,11 +327,12 @@ First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
 * Auth as your broadinstitute.org to pull from Google Secrets Manager
-* Run `./scripts/render_configs.sh -a integration` to pull secrets from vault. For Azure Integration tests,
+* For Azure Integration tests,
 we must point to the integration environment.
 * Make sure you have this environment variable set in the context of the test run:
 `export IT_JADE_API_URL=http://localhost:8080`
-* Refresh your Z-shell configuration by running `source ~/.zshrc`
+* For Azure Integration tests,
+  we must point to the integration environment. Run `eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"` (Optionally with the `-a` flag) to populate your environment variables
 
 ** Run test in the Command Line **
 * Start the app locally with `./scripts/run local` (or in docker)
@@ -341,8 +340,7 @@ we must point to the integration environment.
 * Run `./gradlew :testIntegration --tests '*<test name>'` to run a specific integration test (e.g `./gradlew :testIntegration --tests '*testSnapshotBuilder'`)
 
 ** Run or Debug test in Intellij **
-* If you just refreshed your Z-shell configuration, you may need to restart intellij to get the
-  environment variables to populate the Intellij run configurations. Alternatively, you can run
+* Run
   `./scripts/render_configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
   can paste them into the Intellij test setup.
 * Start application by running `./scripts/run local` (or in docker)

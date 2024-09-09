@@ -13,7 +13,7 @@ EOF
 }
 
 # script variables and defaults
-source $(dirname $0)/init.sh
+source "$(dirname "$0")"/init.sh
 
 # the list of tools required to be installed to interact with this repo
 # this is meant to verify what is also in the ./README.md#environment-setup section
@@ -25,11 +25,11 @@ clean_db_opt=""
 die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts h-: OPT; do  # allow -h and -- "with arg"
+while getopts h-c: OPT; do  # allow -h and -- "with arg"
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
-    OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#"$OPT"}"   # extract long option argument (may be empty)
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
@@ -44,9 +44,9 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 # process positional arguments (if any)
 
-MSG_PREFIX="[$(basename $SCRIPTS_DIR)/$(basename $0)]"
+MSG_PREFIX="[$(basename "$SCRIPTS_DIR")/$(basename "$0")]"
 log() {
-  log_info "$MSG_PREFIX ${@}"
+  log_info "$MSG_PREFIX ${*}"
 }
 
 log "verifying required tools are installed"
@@ -54,5 +54,5 @@ check_required_tools "${TOOLS[@]}" || exit 1;
 log_info ""
 
 log "setting up service database"
-$(dirname $0)/run-db ${clean_db_opt} start
+"$(dirname "$0")"/run-db ${clean_db_opt} start
 log "... database setup COMPLETE"

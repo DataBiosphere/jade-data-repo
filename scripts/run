@@ -17,8 +17,8 @@ EOF
 }
 
 # script variables and defaults
-source $(dirname $0)/init.sh
-eval $("${SCRIPTS_DIR}"/render_configs.sh -e)
+source "$(dirname "$0")"/init.sh
+eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"
 
 # process command-line options (if any)
 die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
@@ -28,7 +28,7 @@ while getopts h-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
-    OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#"$OPT"}"   # extract long option argument (may be empty)
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
@@ -45,7 +45,7 @@ RUNTYPE=${1}
 
 run_tests() {
   cd "${ROOT_DIR}"
-  ./gradlew ${GRADLE_OPTS} test jacocoTestReport
+  ./gradlew "${GRADLE_OPTS}" test jacocoTestReport
 
 #./gradlew --build-cache srcclr
 }
@@ -62,7 +62,7 @@ run_integration_tests() {
   TEST_ENV=${TEST_ENV:-local}
 
   cd "${ROOT_DIR}"
-  ./gradlew ${GRADLE_OPTS} testIntegration
+  ./gradlew "${GRADLE_OPTS}" testIntegration
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -72,7 +72,7 @@ run_integration_tests() {
 
 run_local() {
   cd "$ROOT_DIR"
-  ./gradlew ${GRADLE_OPTS} bootRun
+  ./gradlew "${GRADLE_OPTS}" bootRun
 }
 
 run_docker() {
@@ -82,7 +82,7 @@ run_docker() {
 
 run_check() {
   cd "$ROOT_DIR"
-  ./gradlew ${GRADLE_OPTS} check
+  ./gradlew "${GRADLE_OPTS}" check
 }
 
 case "$RUNTYPE" in

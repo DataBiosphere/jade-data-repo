@@ -24,9 +24,10 @@ set -eu
 AZURE_ENV=dev
 RBS_ENV=tools
 COPY_INTELLIJ_ENV_VARS=n
+ECHO_SETTINGS_TO_OUTPUT=n
 USE_VAULT="${USE_VAULT:-false}"
 
-while getopts ":a:r:i" option; do
+while getopts ":a:r:ie" option; do
   case $option in
     a)
       AZURE_ENV=$OPTARG
@@ -37,8 +38,11 @@ while getopts ":a:r:i" option; do
     i)
       COPY_INTELLIJ_ENV_VARS=y
       ;;
+    e)
+      ECHO_SETTINGS_TO_OUTPUT=y
+      ;;
     *)
-      echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-i]"
+      echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-i] [-e]"
       exit 1
       ;;
   esac
@@ -130,25 +134,35 @@ else
 fi
 
 
+VARIABLE_NAMES=(AZURE_SYNAPSE_WORKSPACENAME AZURE_CREDENTIALS_HOMETENANTID AZURE_CREDENTIALS_APPLICATIONID AZURE_CREDENTIALS_SECRET AZURE_SYNAPSE_SQLADMINUSER AZURE_SYNAPSE_SQLADMINPASSWORD AZURE_SYNAPSE_ENCRYPTIONKEY GOOGLE_APPLICATION_CREDENTIALS GOOGLE_SA_CERT RBS_POOLID RBS_INSTANCEURL)
+
 if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
-  VARIABLE_NAMES=(AZURE_SYNAPSE_WORKSPACENAME AZURE_CREDENTIALS_HOMETENANTID AZURE_CREDENTIALS_APPLICATIONID AZURE_CREDENTIALS_SECRET AZURE_SYNAPSE_SQLADMINUSER AZURE_SYNAPSE_SQLADMINPASSWORD AZURE_SYNAPSE_ENCRYPTIONKEY GOOGLE_APPLICATION_CREDENTIALS GOOGLE_SA_CERT RBS_POOLID RBS_INSTANCEURL)
-
-  # Initialize an empty string
   SETTINGS=""
-
-  # Loop over the array
-  for VAR_NAME in "${VARIABLE_NAMES[@]}"
-  do
+  for VAR_NAME in "${VARIABLE_NAMES[@]}"; do
     # Append the variable name and its value to the string
     SETTINGS+="$VAR_NAME=${!VAR_NAME};"
   done
 
   # Copy variables to clipboard
+  echo "# Environment variables copied to clipboard"
   echo "$SETTINGS"  | pbcopy
-  echo "Environment variables copied to clipboard"
+fi
+
+if [[ "${ECHO_SETTINGS_TO_OUTPUT}" == "y" ]]; then
+  # Initialize an empty string
+  OUTPUT=""
+
+  # Loop over the array
+  for VAR_NAME in "${VARIABLE_NAMES[@]}"; do
+    # Append the variable name and its value to the string
+    OUTPUT+="export $VAR_NAME='${!VAR_NAME}';"
+  done
+
+  echo "$OUTPUT"
 fi
 
 unset AZURE_ENV
 unset RBS_ENV
 unset COPY_INTELLIJ_ENV_VARS
+unset ECHO_SETTINGS_TO_OUTPUT
 

@@ -22,7 +22,7 @@ Follow our getting [started guide](docs/jade-getting-started.md) to get set up.
 ### Run linters and unit tests
 
 If you are making code changes, run:
-`./gradlew check`
+`./scripts/run check`
 
 ### Verify Pact contracts
 
@@ -38,13 +38,14 @@ Results of Pact verification are only published when running in a CI environment
 
 ### Run TDR locally
 
-Before you run for the first time, you need to generate the credentials file by running `./render-configs.sh`
-
 To run TDR locally:
-`./gradlew bootRun`
+`./scripts/run local`
+
+To run TDR in docker:
+`./scripts/run docker`
 
 To run TDR locally and wait for debugger to attach on port 5005:
-`./gradlew bootRun --debug-jvm`
+`./scripts/run local --debug-jvm`
 
 To have the code hot reload, enable automatic builds in intellij, go to:
 `Preferences -> Build, Execution, Deployment -> Compiler`
@@ -63,7 +64,7 @@ https://local.broadinstitute.org:8080
 
 The integration tests will hit the data repo running in the  broad-jade-integration environment by default. To use a
 different data-repo, edit the src/main/resources/application-integration.properties file and specify the URL. Before
-you run the integration tests, you need to generate the correct pem file by running `./render-configs.sh`
+you run the integration tests, you need to generate the correct pem file by running `./scripts/render_configs.sh`
 
 To run the tests, use: `./gradlew testIntegration`
 

@@ -12,33 +12,13 @@ RUNTYPE is one of:
                   either `local` or `docker`
 - local           run as a local terminal process
 - docker          run in a docker container
+- check           run linter and checks
 EOF
 }
 
 # script variables and defaults
 source $(dirname $0)/init.sh
-source "${SCRIPTS_DIR}"/render_configs.sh
-
-JADE_USER_EMAIL=<PUT EMAIL HERE>
-
-IT_JADE_API_URL=http://localhost:8080
-
-GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
-GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
-
-AZURE_SYNAPSE_WORKSPACENAME=$(cat /tmp/azure-synapse-workspacename.txt)
-AZURE_CREDENTIALS_HOMETENANTID=$(cat /tmp/jade-dev-tenant-id.key)
-AZURE_CREDENTIALS_APPLICATIONID=$(cat /tmp/jade-dev-client-id.key)
-AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
-AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
-AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
-AZURE_SYNAPSE_ENCRIPTIONKEY=$(cat /tmp/jade-dev-synapse-encryption-key.key)
-AZURE_SYNAPSE_INITIALIZE=false
-
-RBS_POOLID=$(cat /tmp/rbs-pool-id.txt)
-RBS_INSTANCEURL=$(cat /tmp/rbs-instance-url.txt)
-
-GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
+eval $("${SCRIPTS_DIR}"/render_configs.sh -e)
 
 # process command-line options (if any)
 die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
@@ -80,8 +60,7 @@ run_integration_tests() {
   TEST_ENV=${TEST_ENV:-local}
 
   cd "${ROOT_DIR}"
-  ./gradlew ${GRADLE_OPTS} runTest \
-    --args="suites/${TEST_ENV}/FullIntegration.json build/reports"
+  ./gradlew ${GRADLE_OPTS} testIntegration
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -99,10 +78,16 @@ run_docker() {
   docker compose -f "$SCRIPTS_DIR/compose.yaml" up service -d
 }
 
+run_check() {
+  cd "$ROOT_DIR"
+  ./gradlew ${GRADLE_OPTS} check
+}
+
 case "$RUNTYPE" in
   tests )        run_tests ;;
   integration )  run_integration_tests ;;
   local )        run_local;;
   docker )       run_docker;;
+  check )        run_check;;
   * )            usage; exit 2;
 esac

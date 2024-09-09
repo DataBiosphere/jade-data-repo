@@ -19,9 +19,14 @@ updates:
           - "*"
         exclude-patterns:
           - "com.diffplug.spotless" # likely to require reformatting of code
+          - "io.swagger.codegen.v3" # patch upgrades have lately included breaking changes
         update-types:
           - "minor"
           - "patch"
+      # We want Swagger codegen dep versions to stay in sync with each other, and be PRed together.
+      io.swagger.codegen.v3:
+        patterns:
+          - "io.swagger.codegen.v3"
     schedule:
       interval: "weekly"
       time: "06:00"

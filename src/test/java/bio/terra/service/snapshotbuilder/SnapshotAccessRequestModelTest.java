@@ -1,6 +1,7 @@
 package bio.terra.service.snapshotbuilder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.is;
 
@@ -15,6 +16,7 @@ import bio.terra.model.SnapshotBuilderProgramDataListCriteria;
 import bio.terra.model.SnapshotBuilderProgramDataRangeCriteria;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,22 +24,69 @@ import org.junit.jupiter.api.Test;
 @Tag(Unit.TAG)
 class SnapshotAccessRequestModelTest {
   private static final String EXPECTED_LIST_SUMMARY_STRING =
-      "The following concepts from Race: 0, 1, 2";
+      String.format(
+          "The following concepts from Race: %s, %s",
+          SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_ONE.getName(),
+          SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_TWO.getName());
   private static final String EXPECTED_RANGE_SUMMARY_STRING = "Year of birth between 1960 and 1980";
-  private static final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept Id: 401";
+  private static final String EXPECTED_DOMAIN_SUMMARY_STRING = "Condition Concept: name 401";
+  public static final int CONCEPT_ID = 401;
+  private static final Map<Integer, String> conceptIdsToNames = Map.of(CONCEPT_ID, "name 401");
 
   @Test
   void toApiResponse() {
     SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
-    compareModelAndResponseFields(model, model.toApiResponse(SnapshotBuilderTestData.SETTINGS));
+    SnapshotAccessRequestResponse response = model.toApiResponse();
+    assertThat(model.id(), is(response.getId()));
+    assertThat(model.sourceSnapshotId(), is(response.getSourceSnapshotId()));
+    assertThat(model.snapshotResearchPurpose(), is(response.getSnapshotResearchPurpose()));
+    assertThat(model.snapshotSpecification(), is(response.getSnapshotSpecification()));
+    assertThat(model.createdBy(), is(response.getCreatedBy()));
+    assertThat(model.createdDate().toString(), is(response.getCreatedDate()));
+    assertThat(model.statusUpdatedDate().toString(), is(response.getStatusUpdatedDate()));
+    assertThat(model.status(), is(response.getStatus()));
+    assertThat(model.flightid(), is(response.getFlightid()));
+    assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
+    assertThat(model.samGroupName(), is(response.getAuthGroupName()));
+  }
+
+  @Test
+  void toApiDetails() {
+    SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
+    String conditionConceptName = "Condition Concept Name";
+    String expectedSummaryString =
+        """
+            Participants included:
+            Name: cohort
+            Groups:
+            Must meet all of:
+            The following concepts from Race:
+            Condition Concept: %s
+            Year of birth between 1950 and 2000
+            Tables included:Drug, Condition
+            """
+            .formatted(conditionConceptName);
+    assertThat(
+        model
+            .generateModelDetails(
+                SnapshotBuilderTestData.SETTINGS,
+                Map.of(model.generateConceptIds().get(0), conditionConceptName))
+            .getSummary(),
+        equalToCompressingWhiteSpace(expectedSummaryString));
+  }
+
+  @Test
+  void generateConceptIds() {
+    SnapshotAccessRequestModel model = generateSnapshotAccessRequestModel();
+    assertThat(model.generateConceptIds(), contains(SnapshotBuilderTestData.CONDITION_CONCEPT_ID));
   }
 
   @Test
   void generateSummaryForListCriteria() {
     SnapshotBuilderProgramDataListCriteria listCriteria = generateListCriteria();
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteria(
-            listCriteria, SnapshotBuilderTestData.SETTINGS),
+        new SnapshotAccessRequestModel.SummaryGenerator(SnapshotBuilderTestData.SETTINGS, Map.of())
+            .generateSummaryForCriteria(listCriteria),
         equalToCompressingWhiteSpace(EXPECTED_LIST_SUMMARY_STRING));
   }
 
@@ -45,8 +94,8 @@ class SnapshotAccessRequestModelTest {
   void generateSummaryForRangeCriteria() {
     SnapshotBuilderProgramDataRangeCriteria rangeCriteria = generateRangeCriteria();
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteria(
-            rangeCriteria, SnapshotBuilderTestData.SETTINGS),
+        new SnapshotAccessRequestModel.SummaryGenerator(SnapshotBuilderTestData.SETTINGS, Map.of())
+            .generateSummaryForCriteria(rangeCriteria),
         equalToCompressingWhiteSpace(EXPECTED_RANGE_SUMMARY_STRING));
   }
 
@@ -54,8 +103,9 @@ class SnapshotAccessRequestModelTest {
   void generateSummaryForDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = generateDomainCriteria();
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteria(
-            domainCriteria, SnapshotBuilderTestData.SETTINGS),
+        new SnapshotAccessRequestModel.SummaryGenerator(
+                SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+            .generateSummaryForCriteria(domainCriteria),
         equalToCompressingWhiteSpace(EXPECTED_DOMAIN_SUMMARY_STRING));
   }
 
@@ -68,8 +118,9 @@ class SnapshotAccessRequestModelTest {
             .criteria(
                 List.of(generateRangeCriteria(), generateListCriteria(), generateDomainCriteria()));
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCriteriaGroup(
-            criteriaGroup, SnapshotBuilderTestData.SETTINGS),
+        new SnapshotAccessRequestModel.SummaryGenerator(
+                SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+            .generateSummaryForCriteriaGroup(criteriaGroup),
         equalToCompressingWhiteSpace(
             String.format(
                 "Must meet all of:%n%s%n%s%n%s",
@@ -90,8 +141,9 @@ class SnapshotAccessRequestModelTest {
                     new SnapshotBuilderCriteriaGroup().mustMeet(false).meetAll(false),
                     new SnapshotBuilderCriteriaGroup().mustMeet(false).meetAll(false)));
     assertThat(
-        SnapshotAccessRequestModel.generateSummaryForCohort(
-            cohort, SnapshotBuilderTestData.SETTINGS),
+        new SnapshotAccessRequestModel.SummaryGenerator(
+                SnapshotBuilderTestData.SETTINGS, conceptIdsToNames)
+            .generateSummaryForCohort(cohort),
         equalToCompressingWhiteSpace(
             String.format(
                 "Name: %s%nGroups:%n%s%n%s",
@@ -113,7 +165,10 @@ class SnapshotAccessRequestModelTest {
     SnapshotBuilderProgramDataListCriteria listCriteria =
         new SnapshotBuilderProgramDataListCriteria();
     listCriteria
-        .values(List.of(0, 1, 2))
+        .values(
+            List.of(
+                SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_ONE.getId(),
+                SnapshotBuilderTestData.RACE_PROGRAM_DATA_LIST_ITEM_TWO.getId()))
         .id(SnapshotBuilderTestData.RACE_PROGRAM_DATA_ID)
         .kind(SnapshotBuilderCriteria.KindEnum.LIST);
     return listCriteria;
@@ -122,7 +177,7 @@ class SnapshotAccessRequestModelTest {
   private SnapshotBuilderDomainCriteria generateDomainCriteria() {
     SnapshotBuilderDomainCriteria domainCriteria = new SnapshotBuilderDomainCriteria();
     domainCriteria
-        .conceptId(401)
+        .conceptId(CONCEPT_ID)
         .id(SnapshotBuilderTestData.CONDITION_OCCURRENCE_DOMAIN_ID)
         .kind(SnapshotBuilderCriteria.KindEnum.DOMAIN);
     return domainCriteria;
@@ -143,24 +198,5 @@ class SnapshotAccessRequestModelTest {
         "flightid",
         "samGroupName",
         "tdr@serviceaccount.com");
-  }
-
-  private void compareModelAndResponseFields(
-      SnapshotAccessRequestModel model, SnapshotAccessRequestResponse response) {
-    String expectedSummaryString =
-        "Participants included:\nName: cohort\nGroups:\nMust meet all of:\nThe following concepts from Race: \nCondition Concept Id: 100\nYear of birth between 1950 and 2000\nTables included:Drug, Condition\n";
-
-    assertThat(model.id(), is(response.getId()));
-    assertThat(model.sourceSnapshotId(), is(response.getSourceSnapshotId()));
-    assertThat(model.snapshotResearchPurpose(), is(response.getSnapshotResearchPurpose()));
-    assertThat(model.snapshotSpecification(), is(response.getSnapshotSpecification()));
-    assertThat(model.createdBy(), is(response.getCreatedBy()));
-    assertThat(model.createdDate().toString(), is(response.getCreatedDate()));
-    assertThat(model.statusUpdatedDate().toString(), is(response.getStatusUpdatedDate()));
-    assertThat(model.status(), is(response.getStatus()));
-    assertThat(model.flightid(), is(response.getFlightid()));
-    assertThat(model.createdSnapshotId(), is(response.getCreatedSnapshotId()));
-    assertThat(response.getSummary(), equalToCompressingWhiteSpace(expectedSummaryString));
-    assertThat(model.samGroupName(), is(response.getAuthGroupName()));
   }
 }

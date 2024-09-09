@@ -329,12 +329,13 @@ class JobServiceTest {
   private JobModel runFlightAndReturnExpectedJobModel(int i, boolean shouldAddParameters) {
     String description = makeDescription(i);
     Class<? extends Flight> flightClass = makeFlightClass(i);
-    JobTargetResourceModel targetResource = new JobTargetResourceModel();
+    JobTargetResourceModel targetResource = null;
     if (shouldAddParameters) {
-      targetResource
-          .type(IAM_RESOURCE_TYPE.getSamResourceName())
-          .id(IAM_RESOURCE_ID)
-          .action(IAM_RESOURCE_ACTION.toString());
+      targetResource =
+          new JobTargetResourceModel()
+              .type(IAM_RESOURCE_TYPE.getSamResourceName())
+              .id(IAM_RESOURCE_ID)
+              .action(IAM_RESOURCE_ACTION.toString());
     }
     // Submit a flight with optional input parameters and wait for it to finish.
     String jobId =

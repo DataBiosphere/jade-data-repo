@@ -30,7 +30,7 @@ clean_db=false
 die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts h-c: OPT; do  # allow -h and -- "with arg"
+while getopts hc-: OPT; do  # allow -h and -- "with arg"
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name

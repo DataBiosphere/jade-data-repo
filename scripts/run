@@ -51,6 +51,8 @@ run_tests() {
 }
 
 run_integration_tests() {
+  echo 'Not implemented yet for TDR, run via gradlew on the command line via instructions in jade-getting-started.md'
+  return
   # NOTE: interesting - no integration-tests.yml have been triggered or run
   # this is run via both:
   # - ./github/workflows/build-and-test.yml

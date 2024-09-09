@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -48,17 +47,17 @@ public class GoogleBucketService {
   private final GoogleResourceDao resourceDao;
   private final GcsProjectFactory gcsProjectFactory;
   private final ConfigurationService configService;
+  private final Environment env;
 
-  @Autowired private Environment env;
-
-  @Autowired
   public GoogleBucketService(
       GoogleResourceDao resourceDao,
       GcsProjectFactory gcsProjectFactory,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      Environment env) {
     this.resourceDao = resourceDao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.configService = configService;
+    this.env = env;
   }
 
   /**
@@ -350,12 +349,13 @@ public class GoogleBucketService {
    *     with the dataset that this bucket will be associated with
    * @return a reference to the bucket as a GCS Bucket object
    */
-  private Bucket newCloudBucket(
+  @VisibleForTesting
+  protected Bucket newCloudBucket(
       GoogleBucketResource bucketResource,
       Duration daysToLive,
-      Callable<List<String>> getReaderGroups,
+      Callable<? extends List<String>> getReaderGroups,
       String dedicatedServiceAccount,
-      Boolean enableAutoclass) {
+      boolean enableAutoclass) {
     final List<String> readerGroups;
     try {
       if (getReaderGroups != null) {

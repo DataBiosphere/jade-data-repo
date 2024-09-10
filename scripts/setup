@@ -13,7 +13,7 @@ EOF
 }
 
 # script variables and defaults
-source "$(dirname "$0")"/init.sh
+source $(dirname $0)/init.sh
 
 # the list of tools required to be installed to interact with this repo
 # this is meant to verify what is also in the ./README.md#environment-setup section
@@ -29,7 +29,7 @@ while getopts hc-: OPT; do  # allow -h and -- "with arg"
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
-    OPTARG="${OPTARG#"$OPT"}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in

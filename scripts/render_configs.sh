@@ -72,12 +72,18 @@ if $USE_VAULT; then
 else
   AZURE_SECRETS=$(gcloud secrets versions access latest --project $GCLOUD_PROJECT --secret azure-secrets)
 fi
-
+# These are used in the variable echoing or setting to clipboard below
+# shellcheck disable=SC2034
 AZURE_CREDENTIALS_HOMETENANTID=$(echo "$AZURE_SECRETS" | jq -r '."tenant-id"' | tee /tmp/jade-dev-tenant-id.key)
+# shellcheck disable=SC2034
 AZURE_CREDENTIALS_APPLICATIONID=$(echo "$AZURE_SECRETS" | jq -r '."client-id"' | tee /tmp/jade-dev-client-id.key)
+# shellcheck disable=SC2034
 AZURE_CREDENTIALS_SECRET=$(echo "$AZURE_SECRETS" | jq -r '."client-secret"' | tee /tmp/jade-dev-azure.key)
+# shellcheck disable=SC2034
 AZURE_SYNAPSE_SQLADMINUSER=$(echo "$AZURE_SECRETS" | jq -r '."synapse-sql-admin-user"' | tee /tmp/jade-dev-synapse-admin-user.key)
+# shellcheck disable=SC2034
 AZURE_SYNAPSE_SQLADMINPASSWORD=$(echo "$AZURE_SECRETS" | jq -r '."synapse-sql-admin-password"' | tee /tmp/jade-dev-synapse-admin-password.key)
+# shellcheck disable=SC2034
 AZURE_SYNAPSE_ENCRYPTIONKEY=$(echo "$AZURE_SECRETS" | jq -r '."synapse-encryption-key"' | tee /tmp/jade-dev-synapse-encryption-key.key)
 
 # ========================
@@ -95,7 +101,9 @@ else
     | jq -r .private_key > /tmp/jade-dev-account.pem
 fi
 
+# shellcheck disable=SC2034
 GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
+# shellcheck disable=SC2034
 GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 
 # ========================

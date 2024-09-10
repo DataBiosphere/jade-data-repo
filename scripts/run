@@ -45,7 +45,8 @@ RUNTYPE=${1}
 
 run_tests() {
   cd "${ROOT_DIR}"
-  ./gradlew "${GRADLE_OPTS}" test jacocoTestReport
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew ${GRADLE_OPTS} test jacocoTestReport
 
 #./gradlew --build-cache srcclr
 }
@@ -62,7 +63,8 @@ run_integration_tests() {
   TEST_ENV=${TEST_ENV:-local}
 
   cd "${ROOT_DIR}"
-  ./gradlew "${GRADLE_OPTS}" testIntegration
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew ${GRADLE_OPTS} testIntegration
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -72,7 +74,8 @@ run_integration_tests() {
 
 run_local() {
   cd "$ROOT_DIR"
-  ./gradlew "${GRADLE_OPTS}" bootRun
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew ${GRADLE_OPTS} bootRun
 }
 
 run_docker() {
@@ -82,7 +85,8 @@ run_docker() {
 
 run_check() {
   cd "$ROOT_DIR"
-  ./gradlew "${GRADLE_OPTS}" check
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew ${GRADLE_OPTS} check
 }
 
 case "$RUNTYPE" in

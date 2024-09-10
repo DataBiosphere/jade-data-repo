@@ -115,8 +115,6 @@ upgrading Kubernetes deployments, which are otherwise challenging to manage.
 Some manual configuration is required below.
 5. [Helmfile](https://github.com/roboll/helmfile) streamlines deploying multiple
 helm charts.
-6. [Vault](https://www.vaultproject.io/) is an encrypted database used to store
-many of the team's secrets such as keys and passwords.
 7. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
 to Google Cloud services. Once it is installed, you'll need to allow auth access
 and configure Docker to connect to the appropriate Google Cloud endpoint when
@@ -135,9 +133,6 @@ used to test local changes against personal environments.
 Unfortunately, some manual configuration is also necessary:
 
 ```
-# configure vault
-export VAULT_ADDR=https://clotho.broadinstitute.org:8200
-
 # configure helm
 helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm
 helm plugin install https://github.com/thomastaylor312/helm-namespace
@@ -161,33 +156,7 @@ gcloud auth configure-docker
 gcloud components install gke-gcloud-auth-plugin
 ```
 
-## 6. Create GitHub token
-
-The GitHub token verifies team permissions. This token is necessary for the next
-step, [Login to Vault](#6-login-to-vault). To create a token:
-
-1. Go to the [GitHub Personal Access Token](https://github.com/settings/tokens)
-page and click **Generate new token**.
-2. Give the token a descriptive name, **only** give it the following two scopes and then click **Generate token**.
-  *  `read:org` scope under `admin:org`
-  *  `workflow` (this will give you access to kick off github actions from the command line)
-3. Store this token in a file:
-
-```
-GH_VAULT_TOKEN=<<GITHUB TOKEN VALUE>>
-echo $GH_VAULT_TOKEN > ~/.gh_token
-```
-
-## 7. Login to Vault
-
-Vault access tokens can be obtained using the GitHub token from earlier as
-follows:
-
-```
-vault login -method=github token=$(cat ~/.gh_token)
-```
-
-## 8. Code Checkout
+## 6. Code Checkout
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
@@ -206,7 +175,7 @@ git clone git@github.com:broadinstitute/terraform-ap-deployments.git
 git clone git@github.com:broadinstitute/terraform-jade.git
 ```
 
-## 9. Google Cloud Platform setup
+## 7. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com).
    In the top-left corner, select the **BROADINSTITUTE.ORG** organization.
@@ -224,7 +193,7 @@ git clone git@github.com:broadinstitute/terraform-jade.git
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-## 10. Configure Azure
+## 8. Configure Azure
 
 ### 1. Get Azure Account
 You will need to have an Azure account created (see https://docs.google.com/spreadsheets/d/1Q6CldqVPrATkWCAXljKrwlLz8oFsCQwcfOz_io-gcrA)
@@ -247,11 +216,11 @@ Create a "tdr-dev" managed application:
 you must log in as in order to create a TDR billing profile***. It should be a gmail account.
 * Hit create!
 
-## 11. Setup Environment Variable
+## 9. Setup Environment Variable
 There are several ways to go about this, but here is one way that works. You can set up a Z-shell
 configuration to keep your system environment variables. If you don't already have one created, you
 can create one by running `touch ~/.zshrc`. Then, you can open the file in a text editor with `open ~/.zshrc`. When you run
-`./scripts/render_configs.sh`, it populates key and txt files with secrets from vault and environment-specific
+`./scripts/render_configs.sh`, it populates key and txt files with secrets from Google Cloud Secrets and environment-specific
 values. If you are using the setup script, `./scripts/render_configs.sh` should automatically run.
 An alternate is to run `./scripts/render_configs.sh -i` which will put the variables into your clipboard. You
 can then paste these values into an intellij bootRun or test run profile.
@@ -286,12 +255,12 @@ export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 export HOST=localhost
 ```
 
-## 12. Repository Setup
+## 10. Repository Setup
 
 ### 1. Build, run and Unit Test `jade-data-repo`
 
 * Ensure docker is running
-* Auth as your broadinstitute.org to pull from Google Secrets Manager
+* Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
 * Run `./scripts/run-db start` to start the DB in a docker container
 * Run `./scripts/run local` to run TDR locally or `./scripts/run docker` to run TDR in a docker container
 * To Build the code and run the unit tests:
@@ -307,7 +276,7 @@ Instead, you can select a specific test to run either in Intellij or the command
 First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
-* Auth as your broadinstitute.org to pull from Google Secrets Manager
+* Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
 * Run `eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"` to populate your environment variables
 * Note: `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false for connected tests to pass
 
@@ -326,7 +295,7 @@ Instead, you can select a specific test to run either in Intellij or the command
 First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
-* Auth as your broadinstitute.org to pull from Google Secrets Manager
+* Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
 * For Azure Integration tests,
 we must point to the integration environment.
 * Make sure you have this environment variable set in the context of the test run:
@@ -335,7 +304,7 @@ we must point to the integration environment.
   we must point to the integration environment. Run `eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"` (Optionally with the `-a` flag) to populate your environment variables
 
 ** Run test in the Command Line **
-* Start the app locally with `./scripts/run local` (or in docker)
+* Start the app locally with `./scripts/run local` (or in docker with `./scripts/run docker`)
 * Open a new command line window, while bootRun runs in the background
 * Run `./gradlew :testIntegration --tests '*<test name>'` to run a specific integration test (e.g `./gradlew :testIntegration --tests '*testSnapshotBuilder'`)
 
@@ -343,7 +312,7 @@ we must point to the integration environment.
 * Run
   `./scripts/render_configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
   can paste them into the Intellij test setup.
-* Start application by running `./scripts/run local` (or in docker)
+* Start application by running `./scripts/run local` (or in docker with `./scripts/run docker`)
 * Select test in intellij UI, select 'testIntegration' and run or debug it
 
 
@@ -373,7 +342,7 @@ export PROXY_URL=http://localhost:8080
 ```
 You need to have data repo running with `./gradlew bootRun` and the UI running with `npm start`.
 
-## 13. Set up TDR resources
+## 11. Set up TDR resources
 
 After running bootRun, you may want to create some datasets locally for use in testing.
 To do this, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py)
@@ -383,13 +352,13 @@ See the [README](https://github.com/DataBiosphere/jade-data-repo/blob/develop/to
 You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
 such as `AzureY1Demo.ipynb`
 
-## 14. Set up TDR on BEEs
+## 12. Set up TDR on BEEs
 
 You can follow [these instructions](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit?usp=sharing) to get a BEE setup to work with TDR.
 
 Additionally, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py) to your BEE by setting the --host flag to the BEE url.
 
-## 15. Running locally with other locally running services
+## 13. Running locally with other locally running services
 1. Sam - set environment variable `SAM_BASEPATH` to `https://local.broadinstitute.org:50443`
 
 ## Common Issues
@@ -399,14 +368,10 @@ Ensure that:
 1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started). (Note: This is not needed for most operations)
 2. Docker is running.
 3. Postgres database is started.
-4. Logged in with vault (see above instructions for more details:
-    ```
-    vault login -method=github token=$(cat ~/.gh_token)
-    ```
-5. Authed as your broadinstitute.org account
-6. Environment variables are set. See list of environment variables [above](#12-repository-setup).
-7. Ensure `./scripts/render_configs.sh` has been run and sourced to the command line
-8. **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
+4. Authed as your broadinstitute.org account
+5. Environment variables are set. See list of environment variables [above](#12-repository-setup).
+6. Ensure `./scripts/render_configs.sh` has been run and sourced to the command line
+7. **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
      project.
   * File -> Project Structure -> Project -> SDKs -> add SDK -> Download JDK -> Version: 17, Vendor - AdoptOpenJDK 17 ( I used Termurin)
      ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/a1e7fe17-92ba-4e17-bf3b-523afe61e099)

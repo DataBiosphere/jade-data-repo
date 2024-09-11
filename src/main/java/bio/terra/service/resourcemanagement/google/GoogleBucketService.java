@@ -488,6 +488,17 @@ public class GoogleBucketService {
   }
 
   /**
+   * Set the autoclass settings for bucket metadata in the bucket_resource table.
+   *
+   * @param bucketName name of the bucket to update
+   * @param enable whether autoclass should be enabled
+   * @return the number of rows updated
+   */
+  public int setBucketAutoclassMetadata(String bucketName, boolean enable) {
+    return resourceDao.updateBucketAutoclassByName(bucketName, enable);
+  }
+
+  /**
    * Fetch an existing bucket cloud resource. Note this method does not check any associated
    * metadata in the bucket_resource table.
    *

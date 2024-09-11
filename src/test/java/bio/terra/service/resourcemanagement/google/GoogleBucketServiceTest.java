@@ -207,4 +207,11 @@ public class GoogleBucketServiceTest {
     assertThat(actual.getAutoclass(), is(autoclassSetting));
     assertThat(actual.getAutoclass().getTerminalStorageClass(), is(storageClass));
   }
+
+  @Test
+  void testSetBucketAutoclassMetadata() {
+    when(googleResourceDao.updateBucketAutoclassByName(BUCKET_NAME, true)).thenReturn(1);
+    int rows = googleBucketService.setBucketAutoclassMetadata(BUCKET_NAME, true);
+    assertThat(rows, is(1));
+  }
 }

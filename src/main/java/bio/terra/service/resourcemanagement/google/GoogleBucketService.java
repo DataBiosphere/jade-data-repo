@@ -316,6 +316,16 @@ public class GoogleBucketService {
   }
 
   /**
+   * Fetch metadata for an existing bucket.
+   *
+   * @param bucketName name of the bucket
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   */
+  public GoogleBucketResource getBucketMetadata(String bucketName) {
+    return resourceDao.retrieveBucketByName(bucketName);
+  }
+
+  /**
    * Update the bucket_resource metadata table to match the state of the underlying cloud. - If the
    * bucket exists, then the metadata row should also exist and be unlocked. - If the bucket does
    * not exist, then the metadata row should not exist. If the metadata row is locked, then only the
@@ -334,6 +344,18 @@ public class GoogleBucketService {
       // bucket DOES NOT EXIST. delete the metadata row
       resourceDao.deleteBucketMetadata(bucketName, flightId);
     }
+  }
+
+  /**
+   * Get the Storage object using the project id from the bucket resource.
+   *
+   * @param bucketResource the bucket resource to get the project id from
+   * @return the Storage object for the bucket resource
+   */
+  public Storage getStorageForBucketResource(GoogleBucketResource bucketResource) {
+    String googleProjectId = bucketResource.projectIdForBucket();
+    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId, true);
+    return gcsProject.getStorage();
   }
 
   /**
@@ -392,13 +414,11 @@ public class GoogleBucketService {
             .setLifecycleRules(lifecycleRules)
             .build();
 
-    GoogleProjectResource projectResource = bucketResource.getProjectResource();
-    String googleProjectId = projectResource.getGoogleProjectId();
-    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId, true);
+    String googleProjectId = bucketResource.projectIdForBucket();
 
     // the project will have been created before this point, so no need to fetch it
     logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
-    Storage storage = gcsProject.getStorage();
+    Storage storage = getStorageForBucketResource(bucketResource);
     Bucket createdBucket = storage.create(bucketInfo);
 
     grantBucketReaderIam(createdBucket, storage, readerGroups, dedicatedServiceAccount);
@@ -435,6 +455,36 @@ public class GoogleBucketService {
     Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
     updatedPolicyBuilder.setBindings(bindings).setVersion(3);
     storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
+  }
+
+  /**
+   * Set the autoclass settings for a bucket.
+   *
+   * @param bucketResource description of the bucket resource to be updated
+   * @param enable whether autoclass should be enabled
+   * @param terminalStorageClass the terminal storage class to use for autoclass
+   * @return a reference to the bucket as a GCS Bucket object
+   */
+  public Bucket setBucketAutoclass(
+      GoogleBucketResource bucketResource, boolean enable, StorageClass terminalStorageClass) {
+    Storage storage = getStorageForBucketResource(bucketResource);
+    Bucket bucket = storage.get(bucketResource.getName());
+    Autoclass.Builder autoclassBuilder = Autoclass.newBuilder().setEnabled(enable);
+    if (enable) {
+      autoclassBuilder.setTerminalStorageClass(terminalStorageClass);
+    }
+    Bucket bucketUpdate = bucket.toBuilder().setAutoclass(autoclassBuilder.build()).build();
+    return storage.update(bucketUpdate);
+  }
+
+  /**
+   * Enable the autoclass settings for a bucket with the terminal storage class set to ARCHIVE.
+   *
+   * @param bucketResource description of the bucket resource to be updated
+   * @return a reference to the bucket as a GCS Bucket object
+   */
+  public Bucket setBucketAutoclassToArchive(GoogleBucketResource bucketResource) {
+    return setBucketAutoclass(bucketResource, true, StorageClass.ARCHIVE);
   }
 
   /**

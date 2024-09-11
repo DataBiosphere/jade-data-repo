@@ -463,6 +463,21 @@ public class IamService {
     return callProvider(() -> iamProvider.getGroup(tdrSaAccessToken, groupName));
   }
 
+  public List<String> getGroupPolicyEmails(String groupName, String policyName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getGroupPolicyEmails(tdrSaAccessToken, groupName, policyName));
+  }
+
+  public List<String> addEmailToGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.addGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  public List<String> removeEmailFromGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.removeGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
   /**
    * Overwrite group membership to include listed emails AND the current user's email
    *

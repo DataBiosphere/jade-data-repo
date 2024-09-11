@@ -9,6 +9,7 @@ import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestMembersResponse;
 import bio.terra.model.SnapshotAccessRequestDetailsResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
@@ -401,6 +402,21 @@ public class SnapshotBuilderService {
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
     return snapshotRequestDao.getById(id).toApiResponse();
+  }
+
+  public SnapshotAccessRequestMembersResponse getGroupMembers(UUID id) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    return new SnapshotAccessRequestMembersResponse().members(iamService.getGroupPolicyEmails(model.samGroupName(), "member"));
+  }
+
+  public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    return new SnapshotAccessRequestMembersResponse().members(iamService.addEmailToGroup(model.samGroupName(), "member", memberEmail));
+  }
+
+  public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    return new SnapshotAccessRequestMembersResponse().members(iamService.removeEmailFromGroup(model.samGroupName(), "member", memberEmail));
   }
 
   private SnapshotAccessRequestDetailsResponse generateModelDetails(

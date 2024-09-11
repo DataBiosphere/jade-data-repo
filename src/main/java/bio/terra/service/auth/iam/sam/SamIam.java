@@ -709,6 +709,36 @@ public class SamIam implements IamProviderInterface {
     return samApiService.groupApi(accessToken).getGroup(groupName);
   }
 
+
+  @Override
+  public List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getGroupPolicyEmailsInner(accessToken, groupName, policyName));
+  }
+
+  private List<String> getGroupPolicyEmailsInner(String accessToken, String groupName, String policyName) throws ApiException {
+    return samApiService.groupApi(accessToken).getGroupPolicyEmails(groupName, policyName);
+  }
+
+  @Override
+  public List<String> addGroupPolicyEmail(String accessToken, String groupName, String policyName, String memberEmail) throws InterruptedException {
+    SamRetry.retry(configurationService, () -> addGroupPolicyEmailInner(accessToken, groupName, policyName, memberEmail));
+    return getGroupPolicyEmails(accessToken, groupName, policyName);
+  }
+
+  private void addGroupPolicyEmailInner(String accessToken, String groupName, String policyName, String memberEmail) throws ApiException {
+    samApiService.groupApi(accessToken).addEmailToGroup(groupName, policyName, memberEmail, new Object()); // Not sure what should be here for object
+  }
+
+  @Override
+  public List<String> removeGroupPolicyEmail(String accessToken, String groupName, String policyName, String memberEmail) throws InterruptedException {
+    SamRetry.retry(configurationService, () -> removeGroupPolicyEmailInner(accessToken, groupName, policyName, memberEmail));
+    return getGroupPolicyEmails(accessToken, groupName, policyName);
+  }
+
+  private void removeGroupPolicyEmailInner(String accessToken, String groupName, String policyName, String memberEmail) throws ApiException {
+    samApiService.groupApi(accessToken).removeEmailFromGroup(groupName, policyName, memberEmail);
+  }
+
   @Override
   public void overwriteGroupPolicyEmailsIncludeRequestingUser(
       String accessToken,

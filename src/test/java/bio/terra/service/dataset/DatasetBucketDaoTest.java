@@ -321,6 +321,20 @@ public class DatasetBucketDaoTest {
     assertFalse("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
   }
 
+  @Test(expected = Exception.class)
+  public void testRetrieveBucketByIdException() {
+    UUID bucketId = UUID.randomUUID();
+    // this should fail -> no bucket with this id
+    resourceDao.retrieveBucketById(bucketId);
+  }
+
+  @Test(expected = Exception.class)
+  public void testRetrieveBucketByNameException() {
+    bucketName = "bucketDoesNotExist";
+    // this should fail -> no bucket with this name
+    resourceDao.retrieveBucketByName(bucketName);
+  }
+
   @Test
   public void testGetAndUpdateBucketAutoclassByName() {
     bucketName = "bucket";

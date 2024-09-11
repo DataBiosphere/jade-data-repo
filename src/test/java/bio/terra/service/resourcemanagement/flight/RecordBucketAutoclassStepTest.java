@@ -3,12 +3,15 @@ package bio.terra.service.resourcemanagement.flight;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.stairway.FlightContext;
@@ -66,20 +69,26 @@ class RecordBucketAutoclassStepTest {
 
   @Test
   void testDoStepBucketNotFound() throws InterruptedException {
-    when(googleBucketService.getCloudBucket(BUCKET_NAME)).thenReturn(null);
+    String errorMessage = "Bucket not found";
+    when(googleBucketService.getCloudBucket(BUCKET_NAME))
+        .thenThrow(new GoogleResourceException(errorMessage));
 
-    StepResult result = step.doStep(flightContext);
-    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
+    GoogleResourceException thrown =
+        assertThrows(GoogleResourceException.class, () -> step.doStep(flightContext));
+    assertEquals(thrown.getMessage(), errorMessage);
   }
 
   @Test
   void testDoStepBucketResourceNotFound() throws InterruptedException {
     Bucket bucket = mock(Bucket.class);
     when(googleBucketService.getCloudBucket(BUCKET_NAME)).thenReturn(bucket);
-    when(googleBucketService.getBucketMetadata(BUCKET_NAME)).thenReturn(null);
+    String errorMessage = "Bucket resource not found";
+    when(googleBucketService.getBucketMetadata(BUCKET_NAME))
+        .thenThrow(new GoogleResourceException(errorMessage));
 
-    StepResult result = step.doStep(flightContext);
-    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
+    GoogleResourceException thrown =
+        assertThrows(GoogleResourceException.class, () -> step.doStep(flightContext));
+    assertEquals(thrown.getMessage(), errorMessage);
   }
 
   @Test

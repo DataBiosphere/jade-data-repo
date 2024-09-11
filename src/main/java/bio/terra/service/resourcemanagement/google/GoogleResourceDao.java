@@ -444,7 +444,7 @@ public class GoogleResourceDao {
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", bucketName);
     GoogleBucketResource bucketResource = retrieveBucketBy(sqlBucketRetrievedByName, params);
     if (bucketResource == null) {
-      throw new GoogleResourceNotFoundException("Bucket not found for name: " + bucketName);
+      throw new GoogleResourceNotFoundException("Bucket resource not found: " + bucketName);
     }
     return bucketResource;
   }

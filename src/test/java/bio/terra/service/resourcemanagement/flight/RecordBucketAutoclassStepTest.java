@@ -92,6 +92,21 @@ class RecordBucketAutoclassStepTest {
   }
 
   @Test
+  void testDoStepBucketAutoclassIsNull() throws InterruptedException {
+    Bucket bucket = mock(Bucket.class);
+    GoogleBucketResource bucketResource = new GoogleBucketResource().name(BUCKET_NAME);
+    when(googleBucketService.getCloudBucket(BUCKET_NAME)).thenReturn(bucket);
+    when(googleBucketService.getBucketMetadata(BUCKET_NAME)).thenReturn(bucketResource);
+    when(bucket.getAutoclass()).thenReturn(null);
+
+    StepResult result = step.doStep(flightContext);
+    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    assertThat(
+        workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class),
+        samePropertyValuesAs(bucketResource));
+  }
+
+  @Test
   void testDoStepBucketAutoclassAlreadySetToNearline() throws InterruptedException {
     Bucket bucket = mock(Bucket.class);
     GoogleBucketResource bucketResource =

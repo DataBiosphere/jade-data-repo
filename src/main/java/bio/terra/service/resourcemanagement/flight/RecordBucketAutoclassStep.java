@@ -34,14 +34,16 @@ public class RecordBucketAutoclassStep implements Step {
     Bucket bucket = googleBucketService.getCloudBucket(bucketName);
     GoogleBucketResource bucketResource = googleBucketService.getBucketMetadata(bucketName);
     Autoclass autoclass = bucket.getAutoclass();
-    if (autoclass.getEnabled() && autoclass.getTerminalStorageClass() == StorageClass.ARCHIVE) {
-      return stepResultFailure("Bucket autoclass already set to ARCHIVE: " + bucketName);
-    }
-    if (autoclass.getEnabled() ^ bucketResource.getAutoclassEnabled()) {
-      return stepResultFailure("Bucket autoclass mismatch in metadata: " + bucketName);
-    }
-    if (autoclass.getEnabled()) {
-      bucketResource = bucketResource.terminalStorageClass(autoclass.getTerminalStorageClass());
+    if (autoclass != null) {
+      if (autoclass.getEnabled() && autoclass.getTerminalStorageClass() == StorageClass.ARCHIVE) {
+        return stepResultFailure("Bucket autoclass already set to ARCHIVE: " + bucketName);
+      }
+      if (autoclass.getEnabled() ^ bucketResource.getAutoclassEnabled()) {
+        return stepResultFailure("Bucket autoclass mismatch in metadata: " + bucketName);
+      }
+      if (autoclass.getEnabled()) {
+        bucketResource = bucketResource.terminalStorageClass(autoclass.getTerminalStorageClass());
+      }
     }
     workingMap.put(FileMapKeys.BUCKET_INFO, bucketResource);
     return StepResult.getStepResultSuccess();

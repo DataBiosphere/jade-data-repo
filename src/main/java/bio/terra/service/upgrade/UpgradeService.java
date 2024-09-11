@@ -15,6 +15,7 @@ import bio.terra.service.dataset.flight.upgrade.predictableFileIds.ConvertToPred
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.resourcemanagement.flight.BucketAutoclassUpdateFlight;
 import bio.terra.service.upgrade.exception.InvalidCustomNameException;
 import bio.terra.stairway.Flight;
 import com.google.common.base.Preconditions;
@@ -69,7 +70,22 @@ public class UpgradeService {
               datasetId.isPresent(), "Custom argument's single value is not a valid UUID");
 
           return Map.of(JobMapKeys.DATASET_ID.getKeyName(), datasetId.get());
+        }),
+    SET_BUCKET_AUTOCLASS_ARCHIVE(
+        BucketAutoclassUpdateFlight.class,
+        request -> {
+          Preconditions.checkArgument(
+              request.getCustomArgs().size() == 1,
+              "Custom argument must have a single row: a valid bucket name");
+
+          Optional<String> bucketName =
+              ValidationUtils.convertToBucketName(request.getCustomArgs().get(0));
+          Preconditions.checkArgument(
+              bucketName.isPresent(), "Custom argument's single value is not a valid bucket name");
+
+          return Map.of(JobMapKeys.BUCKET_NAME.getKeyName(), bucketName.get());
         });
+
     private final Class<? extends Flight> flightClass;
     private final Function<UpgradeModel, Map<String, Object>> inputParameterSupplier;
 

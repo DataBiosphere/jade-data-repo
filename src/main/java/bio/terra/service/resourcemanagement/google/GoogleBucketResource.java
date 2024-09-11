@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.cloud.storage.StorageClass;
 import java.util.UUID;
 
 public class GoogleBucketResource {
@@ -12,6 +13,7 @@ public class GoogleBucketResource {
   private String name;
   private GoogleRegion region;
   private boolean autoclassEnabled;
+  private String terminalStorageClassAsString;
 
   public GoogleBucketResource() {}
 
@@ -75,6 +77,31 @@ public class GoogleBucketResource {
 
   public GoogleBucketResource autoclassEnabled(boolean autoclassEnabled) {
     this.autoclassEnabled = autoclassEnabled;
+    return this;
+  }
+
+  // Required to avoid serialization/deserialization issues with Stairway
+  public String getTerminalStorageClassAsString() {
+    return terminalStorageClassAsString;
+  }
+
+  // Required to avoid serialization/deserialization issues with Stairway
+  public GoogleBucketResource terminalStorageClassAsString(String terminalStorageClassAsString) {
+    this.terminalStorageClassAsString = terminalStorageClassAsString;
+    return this;
+  }
+
+  @JsonIgnore
+  public StorageClass getTerminalStorageClass() {
+    return terminalStorageClassAsString == null
+        ? null
+        : StorageClass.valueOf(terminalStorageClassAsString);
+  }
+
+  @JsonIgnore
+  public GoogleBucketResource terminalStorageClass(StorageClass terminalStorageClass) {
+    this.terminalStorageClassAsString =
+        terminalStorageClass == null ? null : terminalStorageClass.toString();
     return this;
   }
 

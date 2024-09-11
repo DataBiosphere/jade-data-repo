@@ -323,7 +323,7 @@ public class DatasetBucketDaoTest {
 
   @Test
   public void testGetAndUpdateBucketAutoclassByName() {
-    String bucketName = "bucketName";
+    bucketName = "bucket";
     GoogleProjectResource resource = dataset.getProjectResource();
     String flightId = UUID.randomUUID().toString();
     GoogleRegion region =

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 
 @Tag(Unit.TAG)
-public class BucketAutoclassUpdateTest {
+class BucketAutoclassUpdateTest {
 
   @Test
   void testBucketAutoclassUpdate() {

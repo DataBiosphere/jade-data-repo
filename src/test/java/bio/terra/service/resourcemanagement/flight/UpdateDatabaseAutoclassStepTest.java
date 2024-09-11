@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @Tag(Unit.TAG)
-public class UpdateDatabaseAutoclassStepTest {
+class UpdateDatabaseAutoclassStepTest {
   @Mock private GoogleBucketService googleBucketService;
   @Mock private FlightContext flightContext;
 

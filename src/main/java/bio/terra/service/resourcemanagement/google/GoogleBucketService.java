@@ -505,7 +505,6 @@ public class GoogleBucketService {
    * @param bucketName name of the bucket to retrieve
    * @return a reference to the bucket as a GCS Bucket object, null if not found
    */
-  @VisibleForTesting
   public Bucket getCloudBucket(String bucketName) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
     try {

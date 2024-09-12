@@ -23,8 +23,8 @@ set -eu
 
 AZURE_ENV=dev
 RBS_ENV=tools
-COPY_INTELLIJ_ENV_VARS=n
-ECHO_SETTINGS_TO_OUTPUT=n
+COPY_INTELLIJ_ENV_VARS=false
+ECHO_SETTINGS_TO_OUTPUT=false
 USE_VAULT="${USE_VAULT:-false}"
 
 while getopts ":a:r:ie" option; do
@@ -36,10 +36,10 @@ while getopts ":a:r:ie" option; do
       RBS_ENV=$OPTARG
       ;;
     i)
-      COPY_INTELLIJ_ENV_VARS=y
+      COPY_INTELLIJ_ENV_VARS=true
       ;;
     e)
-      ECHO_SETTINGS_TO_OUTPUT=y
+      ECHO_SETTINGS_TO_OUTPUT=true
       ;;
     *)
       echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-i] [-e]"
@@ -144,7 +144,7 @@ fi
 
 VARIABLE_NAMES=(AZURE_SYNAPSE_WORKSPACENAME AZURE_CREDENTIALS_HOMETENANTID AZURE_CREDENTIALS_APPLICATIONID AZURE_CREDENTIALS_SECRET AZURE_SYNAPSE_SQLADMINUSER AZURE_SYNAPSE_SQLADMINPASSWORD AZURE_SYNAPSE_ENCRYPTIONKEY GOOGLE_APPLICATION_CREDENTIALS GOOGLE_SA_CERT RBS_POOLID RBS_INSTANCEURL)
 
-if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
+if "${COPY_INTELLIJ_ENV_VARS}"; then
   SETTINGS=""
   for VAR_NAME in "${VARIABLE_NAMES[@]}"; do
     # Append the variable name and its value to the string
@@ -156,7 +156,7 @@ if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
   echo "$SETTINGS"  | pbcopy
 fi
 
-if [[ "${ECHO_SETTINGS_TO_OUTPUT}" == "y" ]]; then
+if "${ECHO_SETTINGS_TO_OUTPUT}"; then
   # Initialize an empty string
   OUTPUT=""
 

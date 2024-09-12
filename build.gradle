@@ -27,7 +27,7 @@ buildscript {
 }
 
 plugins {
-    id 'com.google.cloud.tools.jib' version '3.4.3'
+    id 'com.google.cloud.tools.jib' version '3.4.2'
     id 'org.liquibase.gradle' version '3.0.0'
     id 'org.gradle.test-retry' version '1.5.10'
     id 'antlr'

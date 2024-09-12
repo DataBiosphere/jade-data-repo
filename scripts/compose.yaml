@@ -25,6 +25,7 @@ services:
     volumes:
       - /tmp/jade-dev-account.pem:/tmp/jade-dev-account.pem
       - /tmp/jade-dev-account.json:/tmp/jade-dev-account.json
+      - /tmp/buffer-client-sa-account.json:/tmp/buffer-client-sa-account.json
 
   database:
     image: postgres:14

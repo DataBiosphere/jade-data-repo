@@ -52,8 +52,6 @@ run_tests() {
 }
 
 run_integration_tests() {
-  echo 'Not implemented yet for TDR, run via gradlew on the command line via instructions in jade-getting-started.md'
-  return
   # NOTE: interesting - no integration-tests.yml have been triggered or run
   # this is run via both:
   # - ./github/workflows/build-and-test.yml
@@ -63,8 +61,12 @@ run_integration_tests() {
   TEST_ENV=${TEST_ENV:-local}
 
   cd "${ROOT_DIR}"
+  export IT_JADE_API_URL=http://localhost:8080
+  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a integration -e)"
+  run_docker
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testIntegration
+  ./gradlew ${GRADLE_OPTS} testIntegration --tests '*datasetsHappyPath'
+  docker compose -f "$SCRIPTS_DIR/compose.yaml" down service
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then

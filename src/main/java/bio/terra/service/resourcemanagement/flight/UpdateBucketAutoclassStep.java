@@ -36,6 +36,7 @@ public class UpdateBucketAutoclassStep implements Step {
     googleBucketService.setBucketAutoclass(
         bucketResource,
         bucketResource.getAutoclassEnabled(),
+        bucketResource.getStorageClass(),
         bucketResource.getTerminalStorageClass());
 
     return StepResult.getStepResultSuccess();

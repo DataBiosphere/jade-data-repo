@@ -38,12 +38,14 @@ class UpdateBucketAutoclassStepTest {
     step = new UpdateBucketAutoclassStep(googleBucketService);
   }
 
-  void setBucketInfo(boolean autoclassEnabled, StorageClass storageClass) {
+  void setBucketInfo(
+      boolean autoclassEnabled, StorageClass storageClass, StorageClass terminalStorageClass) {
     bucketResource =
         new GoogleBucketResource()
             .name(BUCKET_NAME)
+            .storageClass(storageClass)
             .autoclassEnabled(autoclassEnabled)
-            .terminalStorageClass(storageClass);
+            .terminalStorageClass(terminalStorageClass);
 
     workingMap = new FlightMap();
     workingMap.put(FileMapKeys.BUCKET_INFO, bucketResource);
@@ -53,15 +55,18 @@ class UpdateBucketAutoclassStepTest {
   @Test
   void testDoAndUndoStep() throws InterruptedException {
     boolean autoclassEnabled = true;
-    StorageClass storageClass = StorageClass.NEARLINE;
-    setBucketInfo(autoclassEnabled, storageClass);
+    StorageClass storageClass = StorageClass.REGIONAL;
+    StorageClass terminalStorageClass = StorageClass.NEARLINE;
+    setBucketInfo(autoclassEnabled, storageClass, terminalStorageClass);
     GoogleBucketResource bucketResourceGet =
         workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
 
     step.doStep(flightContext);
     verify(googleBucketService).setBucketAutoclassToArchive(any());
     step.undoStep(flightContext);
-    verify(googleBucketService).setBucketAutoclass(any(), eq(autoclassEnabled), eq(storageClass));
+    verify(googleBucketService)
+        .setBucketAutoclass(
+            any(), eq(autoclassEnabled), eq(storageClass), eq(terminalStorageClass));
     // Ensure that the bucketResource contents are the same since `any()` is used
     assertThat(bucketResourceGet, samePropertyValuesAs(bucketResource));
   }
@@ -69,15 +74,18 @@ class UpdateBucketAutoclassStepTest {
   @Test
   void testDoAndUndoStepAutoclassDisabled() throws InterruptedException {
     boolean autoclassEnabled = false;
-    StorageClass storageClass = null;
-    setBucketInfo(autoclassEnabled, storageClass);
+    StorageClass storageClass = StorageClass.STANDARD;
+    StorageClass terminalStorageClass = null;
+    setBucketInfo(autoclassEnabled, storageClass, terminalStorageClass);
     GoogleBucketResource bucketResourceGet =
         workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
 
     step.doStep(flightContext);
     verify(googleBucketService).setBucketAutoclassToArchive(any());
     step.undoStep(flightContext);
-    verify(googleBucketService).setBucketAutoclass(any(), eq(autoclassEnabled), eq(storageClass));
+    verify(googleBucketService)
+        .setBucketAutoclass(
+            any(), eq(autoclassEnabled), eq(storageClass), eq(terminalStorageClass));
     // Ensure that the bucketResource contents are the same since `any()` is used
     assertThat(bucketResourceGet, samePropertyValuesAs(bucketResource));
   }

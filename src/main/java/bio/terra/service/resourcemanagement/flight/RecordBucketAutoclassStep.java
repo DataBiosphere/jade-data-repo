@@ -31,8 +31,9 @@ public class RecordBucketAutoclassStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    Bucket bucket = googleBucketService.getCloudBucket(bucketName);
     GoogleBucketResource bucketResource = googleBucketService.getBucketMetadata(bucketName);
+    Bucket bucket = googleBucketService.getCloudBucket(bucketName);
+    bucketResource = bucketResource.storageClass(bucket.getStorageClass());
     Autoclass autoclass = bucket.getAutoclass();
     if (autoclass != null) {
       if (autoclass.getEnabled() && autoclass.getTerminalStorageClass() == StorageClass.ARCHIVE) {

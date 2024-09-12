@@ -108,17 +108,19 @@ public class GoogleBucketServiceTest {
   void testSetBucketAutoclassEnable() {
     // Set up the bucket resources
     boolean enableAutoclass = true;
-    StorageClass storageClass = StorageClass.ARCHIVE;
+    StorageClass storageClass = StorageClass.STANDARD;
+    StorageClass terminalStorageClass = StorageClass.ARCHIVE;
     GoogleBucketResource bucketResource =
         new GoogleBucketResource()
             .name(BUCKET_NAME)
             .region(GoogleRegion.DEFAULT_GOOGLE_REGION)
             .projectResource(new GoogleProjectResource().googleProjectId(PROJECT_ID))
-            .autoclassEnabled(enableAutoclass);
+            .autoclassEnabled(enableAutoclass)
+            .storageClass(storageClass);
     Autoclass autoclassSetting =
         Autoclass.newBuilder()
             .setEnabled(enableAutoclass)
-            .setTerminalStorageClass(storageClass)
+            .setTerminalStorageClass(terminalStorageClass)
             .build();
 
     // Mock the storage and bucket
@@ -127,6 +129,7 @@ public class GoogleBucketServiceTest {
     when(storage.get(BUCKET_NAME)).thenReturn(expected);
     Bucket.Builder bucketBuilder = mock(Bucket.Builder.class);
     when(expected.toBuilder()).thenReturn(bucketBuilder);
+    when(bucketBuilder.setStorageClass(storageClass)).thenReturn(bucketBuilder);
     when(bucketBuilder.setAutoclass(autoclassSetting)).thenReturn(bucketBuilder);
     when(bucketBuilder.build()).thenReturn(expected);
     when(storage.update(expected)).thenReturn(expected);
@@ -135,22 +138,24 @@ public class GoogleBucketServiceTest {
     // Check that the bucket has the correct autoclass setting
     Bucket actual =
         googleBucketService.setBucketAutoclass(
-            bucketResource, enableAutoclass, StorageClass.ARCHIVE);
+            bucketResource, enableAutoclass, storageClass, terminalStorageClass);
     assertThat(actual, is(expected));
     assertThat(actual.getAutoclass(), is(autoclassSetting));
-    assertThat(actual.getAutoclass().getTerminalStorageClass(), is(storageClass));
+    assertThat(actual.getAutoclass().getTerminalStorageClass(), is(terminalStorageClass));
   }
 
   @Test
   void testSetBucketAutoclassDisable() {
     // Set up the bucket resources
     boolean enableAutoclass = false;
+    StorageClass storageClass = StorageClass.STANDARD;
     GoogleBucketResource bucketResource =
         new GoogleBucketResource()
             .name(BUCKET_NAME)
             .region(GoogleRegion.DEFAULT_GOOGLE_REGION)
             .projectResource(new GoogleProjectResource().googleProjectId(PROJECT_ID))
-            .autoclassEnabled(enableAutoclass);
+            .autoclassEnabled(enableAutoclass)
+            .storageClass(storageClass);
     Autoclass autoclassSetting = Autoclass.newBuilder().setEnabled(enableAutoclass).build();
 
     // Mock the storage and bucket
@@ -159,6 +164,7 @@ public class GoogleBucketServiceTest {
     when(storage.get(BUCKET_NAME)).thenReturn(expected);
     Bucket.Builder bucketBuilder = mock(Bucket.Builder.class);
     when(expected.toBuilder()).thenReturn(bucketBuilder);
+    when(bucketBuilder.setStorageClass(storageClass)).thenReturn(bucketBuilder);
     when(bucketBuilder.setAutoclass(autoclassSetting)).thenReturn(bucketBuilder);
     when(bucketBuilder.build()).thenReturn(expected);
     when(storage.update(expected)).thenReturn(expected);
@@ -167,7 +173,7 @@ public class GoogleBucketServiceTest {
     // Check that the bucket has no autoclass setting
     Bucket actual =
         googleBucketService.setBucketAutoclass(
-            bucketResource, enableAutoclass, StorageClass.ARCHIVE);
+            bucketResource, enableAutoclass, storageClass, StorageClass.ARCHIVE);
     assertThat(actual, is(expected));
     assertThat(actual.getAutoclass(), is(autoclassSetting));
     assertThat(actual.getAutoclass().getTerminalStorageClass(), nullValue());
@@ -177,7 +183,8 @@ public class GoogleBucketServiceTest {
   void testSetBucketAutoclassToArchive() {
     // Set up the bucket resources
     boolean enableAutoclass = true;
-    StorageClass storageClass = StorageClass.ARCHIVE;
+    StorageClass storageClass = StorageClass.STANDARD;
+    StorageClass terminalStorageClass = StorageClass.ARCHIVE;
     GoogleBucketResource bucketResource =
         new GoogleBucketResource()
             .name(BUCKET_NAME)
@@ -187,7 +194,7 @@ public class GoogleBucketServiceTest {
     Autoclass autoclassSetting =
         Autoclass.newBuilder()
             .setEnabled(enableAutoclass)
-            .setTerminalStorageClass(storageClass)
+            .setTerminalStorageClass(terminalStorageClass)
             .build();
 
     // Mock the storage and bucket
@@ -196,6 +203,7 @@ public class GoogleBucketServiceTest {
     when(storage.get(BUCKET_NAME)).thenReturn(expected);
     Bucket.Builder bucketBuilder = mock(Bucket.Builder.class);
     when(expected.toBuilder()).thenReturn(bucketBuilder);
+    when(bucketBuilder.setStorageClass(storageClass)).thenReturn(bucketBuilder);
     when(bucketBuilder.setAutoclass(autoclassSetting)).thenReturn(bucketBuilder);
     when(bucketBuilder.build()).thenReturn(expected);
     when(storage.update(expected)).thenReturn(expected);
@@ -205,7 +213,7 @@ public class GoogleBucketServiceTest {
     Bucket actual = googleBucketService.setBucketAutoclassToArchive(bucketResource);
     assertThat(actual, is(expected));
     assertThat(actual.getAutoclass(), is(autoclassSetting));
-    assertThat(actual.getAutoclass().getTerminalStorageClass(), is(storageClass));
+    assertThat(actual.getAutoclass().getTerminalStorageClass(), is(terminalStorageClass));
   }
 
   @Test

@@ -13,6 +13,7 @@ public class GoogleBucketResource {
   private String name;
   private GoogleRegion region;
   private boolean autoclassEnabled;
+  private String storageClassAsString;
   private String terminalStorageClassAsString;
 
   public GoogleBucketResource() {}
@@ -77,6 +78,28 @@ public class GoogleBucketResource {
 
   public GoogleBucketResource autoclassEnabled(boolean autoclassEnabled) {
     this.autoclassEnabled = autoclassEnabled;
+    return this;
+  }
+
+  // Required to avoid serialization/deserialization issues with Stairway
+  public String getStorageClassAsString() {
+    return storageClassAsString;
+  }
+
+  // Required to avoid serialization/deserialization issues with Stairway
+  public GoogleBucketResource storageClassAsString(String storageClassAsString) {
+    this.storageClassAsString = storageClassAsString;
+    return this;
+  }
+
+  @JsonIgnore
+  public StorageClass getStorageClass() {
+    return storageClassAsString == null ? null : StorageClass.valueOf(storageClassAsString);
+  }
+
+  @JsonIgnore
+  public GoogleBucketResource storageClass(StorageClass storageClass) {
+    this.storageClassAsString = storageClass == null ? null : storageClass.toString();
     return this;
   }
 

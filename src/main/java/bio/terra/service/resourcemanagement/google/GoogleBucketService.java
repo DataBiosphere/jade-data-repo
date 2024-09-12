@@ -466,14 +466,21 @@ public class GoogleBucketService {
    * @return a reference to the bucket as a GCS Bucket object
    */
   public Bucket setBucketAutoclass(
-      GoogleBucketResource bucketResource, boolean enable, StorageClass terminalStorageClass) {
+      GoogleBucketResource bucketResource,
+      boolean enable,
+      StorageClass defaultStorageClass,
+      StorageClass terminalStorageClass) {
     Storage storage = getStorageForBucketResource(bucketResource);
     Bucket bucket = storage.get(bucketResource.getName());
     Autoclass.Builder autoclassBuilder = Autoclass.newBuilder().setEnabled(enable);
     if (enable) {
       autoclassBuilder.setTerminalStorageClass(terminalStorageClass);
     }
-    Bucket bucketUpdate = bucket.toBuilder().setAutoclass(autoclassBuilder.build()).build();
+    Bucket bucketUpdate =
+        bucket.toBuilder()
+            .setStorageClass(defaultStorageClass)
+            .setAutoclass(autoclassBuilder.build())
+            .build();
     return storage.update(bucketUpdate);
   }
 
@@ -484,7 +491,7 @@ public class GoogleBucketService {
    * @return a reference to the bucket as a GCS Bucket object
    */
   public Bucket setBucketAutoclassToArchive(GoogleBucketResource bucketResource) {
-    return setBucketAutoclass(bucketResource, true, StorageClass.ARCHIVE);
+    return setBucketAutoclass(bucketResource, true, StorageClass.STANDARD, StorageClass.ARCHIVE);
   }
 
   /**

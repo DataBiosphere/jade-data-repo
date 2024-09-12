@@ -80,8 +80,6 @@ class RecordBucketAutoclassStepTest {
 
   @Test
   void testDoStepBucketResourceNotFound() throws InterruptedException {
-    Bucket bucket = mock(Bucket.class);
-    when(googleBucketService.getCloudBucket(BUCKET_NAME)).thenReturn(bucket);
     String errorMessage = "Bucket resource not found";
     when(googleBucketService.getBucketMetadata(BUCKET_NAME))
         .thenThrow(new GoogleResourceException(errorMessage));

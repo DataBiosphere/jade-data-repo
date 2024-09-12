@@ -46,7 +46,7 @@ RUNTYPE=${1}
 run_tests() {
   cd "${ROOT_DIR}"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} test jacocoTestReport
+  ./gradlew ${GRADLE_OPTS} testUnit jacocoTestReport
 
 #./gradlew --build-cache srcclr
 }
@@ -66,6 +66,29 @@ run_integration_tests() {
   run_docker
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} testIntegration --tests '*datasetsHappyPath'
+  docker compose -f "$SCRIPTS_DIR/compose.yaml" down service
+
+  # for developer runs, build an integration report locally
+  if [ -z "$CI" ]; then
+    log_debug "TODO: how do we build a report?"
+  fi
+}
+
+run_connected_tests() {
+  # NOTE: interesting - no integration-tests.yml have been triggered or run
+  # this is run via both:
+  # - ./github/workflows/build-and-test.yml
+  # - ./github/workflows/integration-tests.yml
+  #
+  # please see integration-tests.yml for more information re: inputs.environment and TEST_ENV
+  TEST_ENV=${TEST_ENV:-local}
+
+  cd "${ROOT_DIR}"
+  export IT_JADE_API_URL=http://localhost:8080
+  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a integration -e)"
+  run_docker
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew ${GRADLE_OPTS} testConnected
   docker compose -f "$SCRIPTS_DIR/compose.yaml" down service
 
   # for developer runs, build an integration report locally
@@ -94,6 +117,7 @@ run_check() {
 case "$RUNTYPE" in
   tests )        run_tests ;;
   integration )  run_integration_tests ;;
+  connected )    run_connected_tests ;;
   local )        run_local;;
   docker )       run_docker;;
   check )        run_check;;

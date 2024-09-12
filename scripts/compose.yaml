@@ -30,8 +30,6 @@ services:
     image: postgres:14
     environment:
       - POSTGRES_PASSWORD=drpasswd
-      - POSTGRES_USER=drmanager    # default: postgres
-    #      - POSTGRES_DB=javatemplate_db
     ports:
       - "5432:5432"
     volumes:

@@ -3,8 +3,8 @@
 # To write secrets to tmp files:
 # ./render_configs.sh (defaults to dev azure, tools RBS)
 
-# There are three optional arguments:
-# ./render_configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i)
+# There are four optional arguments:
+# ./render_configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i) (Echo the output to eval into env variables: -e)
 # e.g.: ./render_configs.sh -a dev -r tools -i
 # This would set azure synapse to dev, RBS to tools, and put the variables in your clipboard
 

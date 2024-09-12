@@ -18,7 +18,8 @@ EOF
 
 # script variables and defaults
 source "$(dirname "$0")"/init.sh
-eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"
+
+AZURE_ENV=dev
 
 # process command-line options (if any)
 die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
@@ -44,6 +45,7 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 RUNTYPE=${1}
 
 run_tests() {
+  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
   cd "${ROOT_DIR}"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} testUnit jacocoTestReport
@@ -62,11 +64,10 @@ run_integration_tests() {
 
   cd "${ROOT_DIR}"
   export IT_JADE_API_URL=http://localhost:8080
-  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a integration -e)"
+  AZURE_ENV=integration
   run_docker
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testIntegration --tests '*datasetsHappyPath'
-  docker compose -f "$SCRIPTS_DIR/compose.yaml" down service
+  ./gradlew ${GRADLE_OPTS} testIntegration
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -85,11 +86,9 @@ run_connected_tests() {
 
   cd "${ROOT_DIR}"
   export IT_JADE_API_URL=http://localhost:8080
-  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a integration -e)"
   run_docker
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} testConnected
-  docker compose -f "$SCRIPTS_DIR/compose.yaml" down service
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -98,17 +97,20 @@ run_connected_tests() {
 }
 
 run_local() {
+  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
   cd "$ROOT_DIR"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} bootRun
 }
 
 run_docker() {
+  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
   "$SCRIPTS_DIR/build" docker
   docker compose -f "$SCRIPTS_DIR/compose.yaml" up service -d
 }
 
 run_check() {
+  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
   cd "$ROOT_DIR"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} check

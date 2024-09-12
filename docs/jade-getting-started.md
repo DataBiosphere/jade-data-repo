@@ -220,15 +220,15 @@ you must log in as in order to create a TDR billing profile***. It should be a g
 There are several ways to go about this, but here is one way that works. You can set up a Z-shell
 configuration to keep your system environment variables. If you don't already have one created, you
 can create one by running `touch ~/.zshrc`. Then, you can open the file in a text editor with `open ~/.zshrc`. When you run
-`./scripts/render_configs.sh`, it populates key and txt files with secrets from Google Cloud Secrets and environment-specific
-values. If you are using the setup script, `./scripts/render_configs.sh` should automatically run.
-An alternate is to run `./scripts/render_configs.sh -i` which will put the variables into your clipboard. You
+`./scripts/render-configs.sh`, it populates key and txt files with secrets from Google Cloud Secrets and environment-specific
+values. If you are using the setup script, `./scripts/render-configs.sh` should automatically run.
+An alternate is to run `./scripts/render-configs.sh -i` which will put the variables into your clipboard. You
 can then paste these values into an intellij bootRun or test run profile.
 
 ### Environment Variables
 
 While not exhaustive, here's a list that notes the important environment variables to set when running
-`jade-data-repo` locally that are not set by `./scripts/render_configs.sh`. These variables override settings in jade-data-repo/application.properties.
+`jade-data-repo` locally that are not set by `./scripts/render-configs.sh`. These variables override settings in jade-data-repo/application.properties.
 You can convert any application.property to an environment variable by switching to upper case and
 every "." to "_".
 
@@ -277,7 +277,7 @@ First, make sure you have run through the following steps:
 * Start postgres
 * Ensure docker is running
 * Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
-* Run `eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"` to populate your environment variables
+* Run `eval "$("${SCRIPTS_DIR}"/render-configs.sh -e)"` to populate your environment variables
 * Note: `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false for connected tests to pass
 
 ** Run test in the Command Line **
@@ -285,7 +285,7 @@ First, make sure you have run through the following steps:
 
 ** Run or Debug test in Intellij **
 * Run
-`./scripts/render_configs.sh -i` which will put all the environment variables into your clipboard and then you
+`./scripts/render-configs.sh -i` which will put all the environment variables into your clipboard and then you
 can paste them into the Intellij test setup.
 * Select test in intellij UI, select 'testConnected' and run or debug it
 
@@ -301,7 +301,7 @@ we must point to the integration environment.
 * Make sure you have this environment variable set in the context of the test run:
 `export IT_JADE_API_URL=http://localhost:8080`
 * For Azure Integration tests,
-  we must point to the integration environment. Run `eval "$("${SCRIPTS_DIR}"/render_configs.sh -e)"` (Optionally with the `-a` flag) to populate your environment variables
+  we must point to the integration environment. Run `eval "$("${SCRIPTS_DIR}"/render-configs.sh -e)"` (Optionally with the `-a` flag) to populate your environment variables
 
 ** Run test in the Command Line **
 * Start the app locally with `./scripts/run local` (or in docker with `./scripts/run docker`)
@@ -310,7 +310,7 @@ we must point to the integration environment.
 
 ** Run or Debug test in Intellij **
 * Run
-  `./scripts/render_configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
+  `./scripts/render-configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
   can paste them into the Intellij test setup.
 * Start application by running `./scripts/run local` (or in docker with `./scripts/run docker`)
 * Select test in intellij UI, select 'testIntegration' and run or debug it
@@ -370,7 +370,7 @@ Ensure that:
 3. Postgres database is started.
 4. Authed as your broadinstitute.org account
 5. Environment variables are set. See list of environment variables [above](#12-repository-setup).
-6. Ensure `./scripts/render_configs.sh` has been run and sourced to the command line
+6. Ensure `./scripts/render-configs.sh` has been run and sourced to the command line
 7. **Set Java Version in Intellij**: You may need to manually set the java version in Intellij for the jade-data-repo
      project.
   * File -> Project Structure -> Project -> SDKs -> add SDK -> Download JDK -> Version: 17, Vendor - AdoptOpenJDK 17 ( I used Termurin)

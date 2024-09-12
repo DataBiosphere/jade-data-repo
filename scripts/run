@@ -45,7 +45,7 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 RUNTYPE=${1}
 
 run_tests() {
-  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
+  eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   cd "${ROOT_DIR}"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} testUnit jacocoTestReport
@@ -97,20 +97,20 @@ run_connected_tests() {
 }
 
 run_local() {
-  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
+  eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   cd "$ROOT_DIR"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} bootRun
 }
 
 run_docker() {
-  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
+  eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   "$SCRIPTS_DIR/build" docker
   docker compose -f "$SCRIPTS_DIR/compose.yaml" up service -d
 }
 
 run_check() {
-  eval "$("${SCRIPTS_DIR}"/render_configs.sh -a "$AZURE_ENV" -e)"
+  eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   cd "$ROOT_DIR"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
   ./gradlew ${GRADLE_OPTS} check

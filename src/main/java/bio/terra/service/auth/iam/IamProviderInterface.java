@@ -260,11 +260,16 @@ public interface IamProviderInterface {
    */
   String getGroup(String accessToken, String groupName) throws InterruptedException;
 
-  List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName) throws InterruptedException;
+  List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName)
+      throws InterruptedException;
 
-  List<String> addGroupPolicyEmail(String accessToken, String groupName, String policyName, String memberEmail) throws InterruptedException;
+  List<String> addGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException;
 
-  List<String> removeGroupPolicyEmail(String accessToken, String groupName, String policyName, String memberEmail) throws InterruptedException;
+  List<String> removeGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException;
 
   /**
    * @param accessToken valid oauth token for the account modifying the group policy members

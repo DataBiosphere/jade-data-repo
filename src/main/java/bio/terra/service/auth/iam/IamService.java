@@ -465,17 +465,20 @@ public class IamService {
 
   public List<String> getGroupPolicyEmails(String groupName, String policyName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
-    return callProvider(() -> iamProvider.getGroupPolicyEmails(tdrSaAccessToken, groupName, policyName));
+    return callProvider(
+        () -> iamProvider.getGroupPolicyEmails(tdrSaAccessToken, groupName, policyName));
   }
 
   public List<String> addEmailToGroup(String groupName, String policyName, String email) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
-    return callProvider(() -> iamProvider.addGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+    return callProvider(
+        () -> iamProvider.addGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
   }
 
   public List<String> removeEmailFromGroup(String groupName, String policyName, String email) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
-    return callProvider(() -> iamProvider.removeGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+    return callProvider(
+        () -> iamProvider.removeGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
   }
 
   /**

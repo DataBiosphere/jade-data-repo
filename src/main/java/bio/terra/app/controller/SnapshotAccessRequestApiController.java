@@ -6,8 +6,8 @@ import bio.terra.controller.SnapshotAccessRequestApi;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotAccessRequest;
-import bio.terra.model.SnapshotAccessRequestMembersResponse;
 import bio.terra.model.SnapshotAccessRequestDetailsResponse;
+import bio.terra.model.SnapshotAccessRequestMembersResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -108,7 +108,8 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
   }
 
   @Override
-  public ResponseEntity<SnapshotAccessRequestMembersResponse> getSnapshotAccessRequestGroupMembers(UUID id) {
+  public ResponseEntity<SnapshotAccessRequestMembersResponse> getSnapshotAccessRequestGroupMembers(
+      UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.GET);
@@ -116,7 +117,8 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
   }
 
   @Override
-  public ResponseEntity<SnapshotAccessRequestMembersResponse> addSnapshotAccessRequestGroupMember(String memberEmail, UUID id, PolicyMemberRequest body) {
+  public ResponseEntity<SnapshotAccessRequestMembersResponse> addSnapshotAccessRequestGroupMember(
+      String memberEmail, UUID id, PolicyMemberRequest body) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
@@ -124,7 +126,8 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
   }
 
   @Override
-  public ResponseEntity<SnapshotAccessRequestMembersResponse> deleteSnapshotAccessRequestGroupMember(UUID id, String memberEmail) {
+  public ResponseEntity<SnapshotAccessRequestMembersResponse>
+      deleteSnapshotAccessRequestGroupMember(UUID id, String memberEmail) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);

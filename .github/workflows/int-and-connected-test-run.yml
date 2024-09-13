@@ -126,7 +126,7 @@ jobs:
           # wait for postgres to be ready
           pg_isready -h ${PGHOST} -t 30
           # create the datarepo and stairway databases
-          psql -U postgres -f ./db/create-data-repo-db
+          psql -U postgres -f ./scripts/init-db/postgres-init.sql
           # extract service account credentials
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}

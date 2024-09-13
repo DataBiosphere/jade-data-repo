@@ -261,7 +261,7 @@ export HOST=localhost
 
 ```
 ./scripts/build project   # build jade-data-repo and run unit tests
-./scripts/run check       # linters and unit tests
+./scripts/run tests       # linters and unit tests
 ```
 
 ### 2. Run connected tests

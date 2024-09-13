@@ -52,7 +52,7 @@ log_debug "add'l commandline gradle build opts: ${GRADLE_BUILD_OPTS}"
 build_project() {
   cd "${ROOT_DIR}"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} build ${skip_tests} ${GRADLE_BUILD_OPTS}
+  ./gradlew build ${skip_tests} ${GRADLE_BUILD_OPTS}
 #./gradlew --build-cache build -x test
 #./gradlew --build-cache build -x test -x spotlessCheck
 #./gradlew --build-cache :service:build -x test
@@ -67,9 +67,9 @@ build_docker() {
 
   cd "${ROOT_DIR}"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} :jibDockerBuild \
+  ./gradlew :jibDockerBuild \
             --image="${DOCKER_IMAGE_NAME_AND_TAG}" \
-            -Djib.console=plain ${skip_tests}
+            -Djib.console=plain ${skip_tests} ${GRADLE_OPTS}
 
   # the latest tag will allow `docker compose` to work correctly for developers
   if [ -z "$CI" ]; then

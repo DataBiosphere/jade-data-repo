@@ -15,7 +15,7 @@ RUNTYPE is one of:
 - docker          run in a docker container
 - check           run linter and checks
 GRADLE_ARGS is used to had arguments to the gradle commands. One common usage for this is to set specific tests.
-For example: `GRADLE_ARGS='--tests *testSnapshotBuilder'`
+For example: `GRADLE_ARGS='--tests *testSnapshotBuilder'`. Tests can be passed using:
 - A fully-qualified class name or fully qualified method name, e.g. org.gradle.SomeTest, org.gradle.SomeTest.someMethod
 - A simple class name or method name if the pattern starts with an upper-case letter, e.g. SomeTest, SomeTest.someMethod (since Gradle 4.7)
 - '*' wildcard matching (e.g. '*someMethod')

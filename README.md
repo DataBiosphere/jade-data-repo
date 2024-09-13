@@ -55,8 +55,8 @@ http://localhost:8080
 #### Connected and Integration tests by command line
 We don't recommend running the full suite of connected and integration tests locally, as it will
 take a long. Instead, you can run a specific test by using the following commands:
-- Connected tests: `./scripts/run connected --tests '*<specific test name>'`
-- Integration tests: `./scripts/run integration --tests '*<specific test name>'`
+- Connected tests: `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run connected`
+- Integration tests: `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run integration`
 
 #### Connected and Integration tests in Intellij
 * Copy the needed environment variables to your clipboard.

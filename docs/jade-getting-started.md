@@ -279,7 +279,7 @@ First, make sure you have run through the following steps:
 * Run `./scripts/run-db start` to start the DB in a docker container
 
 ** Run test in the Command Line **
-* Run `./scripts/run connected --tests '*<test name>'` to run a specific connected test
+* Run `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run connected` to run a specific connected test
 
 ** Run or Debug test in Intellij **
 * Run
@@ -296,7 +296,7 @@ First, make sure you have run through the following steps:
 * Run `./scripts/run-db start` to start the DB in a docker container
 
 ** Run test in the Command Line **
-* Run `./scripts/run integration '*<test name>'` to run a specific integration test (e.g `./scripts/run integration '*testSnapshotBuilder'`)
+* Run `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run integration` to run a specific integration test
 
 ** Run or Debug test in Intellij **
 * Run

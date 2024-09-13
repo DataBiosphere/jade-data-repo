@@ -47,8 +47,7 @@ RUNTYPE=${1}
 run_tests() {
   eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   cd "${ROOT_DIR}"
-  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testUnit jacocoTestReport
+  ./gradlew testUnit "${GRADLE_ARGS}"
 
 #./gradlew --build-cache srcclr
 }
@@ -66,8 +65,8 @@ run_integration_tests() {
   export IT_JADE_API_URL=http://localhost:8080
   AZURE_ENV=integration
   run_docker
-  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testIntegration
+    # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew testIntegration ${GRADLE_ARGS}
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -87,8 +86,7 @@ run_connected_tests() {
   cd "${ROOT_DIR}"
   export IT_JADE_API_URL=http://localhost:8080
   run_docker
-  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testConnected
+  ./gradlew testConnected "${GRADLE_ARGS}"
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -99,8 +97,7 @@ run_connected_tests() {
 run_local() {
   eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   cd "$ROOT_DIR"
-  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} bootRun
+  ./gradlew bootRun "${GRADLE_ARGS}"
 }
 
 run_docker() {
@@ -113,7 +110,7 @@ run_check() {
   eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   cd "$ROOT_DIR"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} check
+  ./gradlew check "${GRADLE_ARGS}"
 }
 
 case "$RUNTYPE" in

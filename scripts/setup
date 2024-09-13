@@ -13,7 +13,7 @@ EOF
 }
 
 # script variables and defaults
-source $(dirname $0)/init.sh
+source "$(dirname "$0")"/init.sh
 
 # the list of tools required to be installed to interact with this repo
 # this is meant to verify what is also in the ./README.md#environment-setup section

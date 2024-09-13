@@ -49,21 +49,6 @@ setting the environment variable:
 The swagger page is:
 http://localhost:8080
 
-### Run tests
-#### Unit tests
-`./scripts/run test`
-#### Connected and Integration tests by command line
-We don't recommend running the full suite of connected and integration tests locally, as it will
-take a long. Instead, you can run a specific test by using the following commands:
-- Connected tests: `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run connected`
-- Integration tests: `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run integration`
-
-#### Connected and Integration tests in Intellij
-* Copy the needed environment variables to your clipboard.
-`./scripts/render-configs -a integration -i`
-* Run a test in Intellij by right-clicking on the test and selecting
-'Modify Run Configurations' and pasting your clipboard into the environment variables.
-
 ### Verify Pact contracts
 
 To verify that TDR adheres to the contracts published by its consumers, run:

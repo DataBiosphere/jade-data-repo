@@ -107,26 +107,23 @@ The Brewfile automatically installs the following tools:
 1. [Git](https://git-scm.com/) is a version control tool for tracking changes in
 projects and code.
 2. [jq](https://stedolan.github.io/jq/) is a command line JSON processing tool.
-3. [Docker](https://www.docker.com/) is a tool to deliver software in packages
-called containers. Docker for MacOS also includes [Kubernetes](https://kubernetes.io/),
-which deploys groups of containers together in clusters.
-4. [Helm](https://helm.sh/) streamlines the process of defining, installing, and
+3. [Helm](https://helm.sh/) streamlines the process of defining, installing, and
 upgrading Kubernetes deployments, which are otherwise challenging to manage.
 Some manual configuration is required below.
-5. [Helmfile](https://github.com/roboll/helmfile) streamlines deploying multiple
+4. [Helmfile](https://github.com/roboll/helmfile) streamlines deploying multiple
 helm charts.
-7. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
+5. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
 to Google Cloud services. Once it is installed, you'll need to allow auth access
 and configure Docker to connect to the appropriate Google Cloud endpoint when
 necessary, which is done with the configuration below.
-8. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
+6. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
 environment (IDE) for Java. There are two versions available: **Ultimate** (paid)
 and **Community** (open-source). We recommend the Ultimate Edition to Broad
 employees for its database navigation capabilities (Please reach out to a team member
 for the Broad server license address). Alternatively, the Community
 Edition has all the features needed for development, and this version can be
 installed by switching `intellij-idea` with `intellij-idea-ce` in the Brewfile.
-9. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line
+7. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line
 tool that facilitates continuous development for Kubernetes applications.  It is
 used to test local changes against personal environments.
 
@@ -238,9 +235,6 @@ every "." to "_".
 ```
 export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
 
-# Integration test setting
-export IT_JADE_API_URL=http://localhost:8080
-
 export AZURE_SYNAPSE_INITIALIZE=false
 
 # Pact contract test settings
@@ -279,7 +273,7 @@ First, make sure you have run through the following steps:
 * Run `./scripts/run-db start` to start the DB in a docker container
 
 ** Run test in the Command Line **
-* Run `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run connected` to run a specific connected test
+* Run `GRADLE_ARGS='--tests *<specific test name>' ./scripts/run connected` to run a specific connected test
 
 ** Run or Debug test in Intellij **
 * Run
@@ -296,7 +290,7 @@ First, make sure you have run through the following steps:
 * Run `./scripts/run-db start` to start the DB in a docker container
 
 ** Run test in the Command Line **
-* Run `GRADLE_ARGS='--tests '*<specific test name>' ./scripts/run integration` to run a specific integration test
+* Run `GRADLE_ARGS='--tests *<specific test name>' ./scripts/run integration` to run a specific integration test
 
 ** Run or Debug test in Intellij **
 * Run

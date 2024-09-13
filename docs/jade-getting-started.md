@@ -274,39 +274,29 @@ export HOST=localhost
 We don't recommend running the entire connected test suite locally, as it takes over an hour to run.
 Instead, you can select a specific test to run either in Intellij or the command line.
 First, make sure you have run through the following steps:
-* Start postgres
 * Ensure docker is running
 * Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
-* Run `eval "$("${SCRIPTS_DIR}"/render-configs.sh -e)"` to populate your environment variables
-* Note: `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false for connected tests to pass
+* Run `./scripts/run-db start` to start the DB in a docker container
 
 ** Run test in the Command Line **
-* Run `./gradlew :testConnected --tests '*<test name>'` to run a specific connected test
+* Run `./scripts/run connected --tests '*<test name>'` to run a specific connected test
 
 ** Run or Debug test in Intellij **
 * Run
-`./scripts/render-configs.sh -i` which will put all the environment variables into your clipboard and then you
-can paste them into the Intellij test setup.
+`./scripts/render-configs.sh -i` which will put all the environment variables into your clipboard
+and then you can paste them into the Intellij test setup.
 * Select test in intellij UI, select 'testConnected' and run or debug it
 
 ### 3. Run Integration tests
-We don't recommend running the entire integrated test suite locally, as it takes over two hours to run.
+We don't recommend running the entire integrated test suite locally, as it takes an hour to run.
 Instead, you can select a specific test to run either in Intellij or the command line.
 First, make sure you have run through the following steps:
-* Start postgres
 * Ensure docker is running
 * Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
-* For Azure Integration tests,
-we must point to the integration environment.
-* Make sure you have this environment variable set in the context of the test run:
-`export IT_JADE_API_URL=http://localhost:8080`
-* For Azure Integration tests,
-  we must point to the integration environment. Run `eval "$("${SCRIPTS_DIR}"/render-configs.sh -e)"` (Optionally with the `-a` flag) to populate your environment variables
+* Run `./scripts/run-db start` to start the DB in a docker container
 
 ** Run test in the Command Line **
-* Start the app locally with `./scripts/run local` (or in docker with `./scripts/run docker`)
-* Open a new command line window, while bootRun runs in the background
-* Run `./gradlew :testIntegration --tests '*<test name>'` to run a specific integration test (e.g `./gradlew :testIntegration --tests '*testSnapshotBuilder'`)
+* Run `./scripts/run integration '*<test name>'` to run a specific integration test (e.g `./scripts/run integration '*testSnapshotBuilder'`)
 
 ** Run or Debug test in Intellij **
 * Run
@@ -378,6 +368,7 @@ Ensure that:
      ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/d55f9883-0997-4b1f-979f-f011e78cec58)
   * You can also make sure this is correctly set under Intellij IDEA -> Preferences -> Build, Execution, Deployment -> Gradle -> Gradle JVM
    ![image](https://github.com/DataBiosphere/jade-data-repo/assets/13254229/e25bc825-3c3c-4ce0-9f1c-bed603db12f6)
+8. `TERRA_COMMON_STAIRWAY_FORCECLEANSTART` needs to be set to false for tests to pass
 
 ## Resources
 * [Stairway Flight Developer Guide](https://github.com/DataBiosphere/stairway/blob/develop/FLIGHT_DEVELOPER_GUIDE.md) - Data Repo utilizes Stairway to run asynchronous operations throughout the code base.

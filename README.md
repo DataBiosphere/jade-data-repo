@@ -24,17 +24,7 @@ Follow our getting [started guide](docs/jade-getting-started.md) to get set up.
 If you are making code changes, run:
 `./scripts/run check`
 
-### Verify Pact contracts
-
-To verify that TDR adheres to the contracts published by its consumers, run:
-```
-./src/test/render-pact-configs.sh
-# Reload your environment variables, e.g. src ~/.zshrc
-./gradlew verifyPacts     # verify contracts published with TDR as the provider
-```
-
-By default, this will fetch published contracts from the live Pact broker.
-Results of Pact verification are only published when running in a CI environment (not locally).
+See [started guide](docs/jade-getting-started.md) for information on running connected and integraiton tests.
 
 ### Run TDR locally
 
@@ -57,17 +47,36 @@ setting the environment variable:
 (the default is "Console-Stackdriver")
 
 The swagger page is:
-https://local.broadinstitute.org:8080
+http://localhost:8080
 
-### Run connected and integration tests
-`./gradlew testConnected`
+### Run tests
+#### Unit tests
+`./scripts/run test`
+#### Connected and Integration tests by command line
+We don't recommend running the full suite of connected and integration tests locally, as it will
+take a long. Instead, you can run a specific test by using the following commands:
+- Connected tests: `./scripts/run connected --tests '*<specific test name>'`
+- Integration tests: `./scripts/run integration --tests '*<specific test name>'`
 
-The integration tests will hit the data repo running in the  broad-jade-integration environment by default. To use a
-different data-repo, edit the src/main/resources/application-integration.properties file and specify the URL. Before
-you run the integration tests, you need to generate the correct pem file by running `./scripts/render-configs.sh`
+#### Connected and Integration tests in Intellij
+* Copy the needed environment variables to your clipboard.
+`./scripts/render-configs -a integration -i`
+* Run a test in Intellij by right-clicking on the test and selecting
+'Modify Run Configurations' and pasting your clipboard into the environment variables.
 
-To run the tests, use: `./gradlew testIntegration`
+### Verify Pact contracts
 
+To verify that TDR adheres to the contracts published by its consumers, run:
+```
+./src/test/render-pact-configs.sh
+# set environment variables
+export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
+export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
+./gradlew verifyPacts     # verify contracts published with TDR as the provider
+```
+
+By default, this will fetch published contracts from the live Pact broker.
+Results of Pact verification are only published when running in a CI environment (not locally).
 
 ### SourceClear
 
@@ -125,7 +134,7 @@ in a directory other than a git cloned workspace, run:
 
 Then copy the files you want into the source tree
 
-## skaffold
+## skaffold (deprecated - we use BEE test environments primarily now)
 To render your own local skaffold.yaml run the following with your initials
 ```
 sed -e 's/TEMP/<initials>/g' skaffold.yaml.template > skaffold.yaml

@@ -4,15 +4,21 @@ set -e #-x
 
 usage() {
   cat <<-'EOF'
-usage: run [-h|--help] RUNTYPE
+usage: run [-h|--help] RUNTYPE [TESTNAME]
 [-h|--help]       print this help text
 RUNTYPE is one of:
-- tests           run tests against repo
+- tests           run tests against repo. Optionally provide a specific test to run.
+- connected       run connected tests; Optionally provide a specific test to run.
 - integration     run integration tests against running instance;
-                  either `local` or `docker`
+                  either `local` or `docker`. Optionally provide a specific test to run.
 - local           run as a local terminal process
 - docker          run in a docker container
 - check           run linter and checks
+TESTNAME is the name of the test to run for tests. It can be in any of the following formats:
+- A fully-qualified class name or fully qualified method name, e.g. org.gradle.SomeTest, org.gradle.SomeTest.someMethod
+- A simple class name or method name if the pattern starts with an upper-case letter, e.g. SomeTest, SomeTest.someMethod (since Gradle 4.7)
+- '*' wildcard matching (e.g. '*someMethod')
+
 EOF
 }
 
@@ -43,12 +49,19 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 # process positional arguments (if any)
 RUNTYPE=${1}
+TESTNAME=${2}
+if [[ -z "$TESTNAME" ]]
+then
+  TEST_ARG=""
+else
+  TEST_ARG="--tests $TESTNAME"
+fi
 
 run_tests() {
   eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$AZURE_ENV" -e)"
   cd "${ROOT_DIR}"
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testUnit jacocoTestReport
+  ./gradlew ${GRADLE_OPTS} testUnit ${TEST_ARG}
 
 #./gradlew --build-cache srcclr
 }
@@ -67,7 +80,7 @@ run_integration_tests() {
   AZURE_ENV=integration
   run_docker
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testIntegration
+  ./gradlew ${GRADLE_OPTS} testIntegration ${TEST_ARG}
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then
@@ -88,7 +101,7 @@ run_connected_tests() {
   export IT_JADE_API_URL=http://localhost:8080
   run_docker
   # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
-  ./gradlew ${GRADLE_OPTS} testConnected
+  ./gradlew ${GRADLE_OPTS} testConnected ${TEST_ARG}
 
   # for developer runs, build an integration report locally
   if [ -z "$CI" ]; then

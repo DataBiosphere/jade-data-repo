@@ -76,23 +76,6 @@ class ValidationUtilsTest {
   }
 
   @Test
-  void testConvertToBucketName() {
-    assertThat(ValidationUtils.convertToBucketName("bucket")).isPresent();
-    assertThat(ValidationUtils.convertToBucketName("bucket-1")).isPresent();
-    assertThat(ValidationUtils.convertToBucketName("1-bucket")).isPresent();
-    assertThat(
-            ValidationUtils.convertToBucketName(
-                "bucket-123456789-123456789-123456789-123456789-123456789"))
-        .isPresent();
-    assertThat(ValidationUtils.convertToBucketName("bucket-")).isEmpty();
-    assertThat(ValidationUtils.convertToBucketName("-bucket")).isEmpty();
-    assertThat(
-            ValidationUtils.convertToBucketName(
-                "bucket-123456789-123456789-123456789-123456789-123456789-123456789-123456789"))
-        .isEmpty();
-  }
-
-  @Test
   void testValidationOfEmptyBlankAndNullStrings() {
 
     assertThatExceptionOfType(IllegalArgumentException.class)

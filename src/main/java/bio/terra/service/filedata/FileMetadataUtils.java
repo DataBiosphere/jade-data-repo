@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.IntStream;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 
@@ -196,17 +195,23 @@ public class FileMetadataUtils {
   public static List<FileModel> toFileModel(
       List<FireStoreDirectoryEntry> directoryEntries,
       List<FireStoreFile> files,
-      String collectionId) {
-    if (directoryEntries.size() != files.size()) {
+      String collectionId,
+      boolean enforceMatchingDirectoryEntries) {
+    if (enforceMatchingDirectoryEntries && (directoryEntries.size() != files.size())) {
       throw new FileSystemExecutionException("List sizes should be identical");
     }
 
-    return IntStream.range(0, files.size())
-        .mapToObj(
-            i -> {
-              FireStoreFile file = files.get(i);
-              FireStoreDirectoryEntry entry = directoryEntries.get(i);
-
+    return files.stream()
+        .map(
+            file -> {
+              FireStoreDirectoryEntry entry =
+                  directoryEntries.stream()
+                      .filter(e -> e.getFileId().equals(file.getFileId()))
+                      .findFirst()
+                      .orElseThrow(
+                          () ->
+                              new FileSystemExecutionException(
+                                  "There should be a matching directory entry for every file."));
               return new FileModel()
                   .fileId(entry.getFileId())
                   .collectionId(collectionId)

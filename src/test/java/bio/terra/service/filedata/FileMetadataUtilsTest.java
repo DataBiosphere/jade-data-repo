@@ -233,44 +233,14 @@ class FileMetadataUtilsTest {
   void testToFileModel() {
     UUID fileId = UUID.randomUUID();
     String collectionId = UUID.randomUUID().toString();
-    FireStoreDirectoryEntry entry =
-        new FireStoreDirectoryEntry()
-            .fileId(fileId.toString())
-            .datasetId(UUID.randomUUID().toString())
-            .path("/files/foo.txt")
-            .name("foo.txt");
-    FireStoreFile file =
-        new FireStoreFile()
-            .fileId(fileId.toString())
-            .fileCreatedDate(Instant.now().toString())
-            .checksumCrc32c("25f9e794323b453885f5181f1b624d0b")
-            .checksumMd5("0xCBF43926")
-            .size(300L)
-            .description("Test file")
-            .gspath("gs://testbucket/files/foo.txt")
-            .mimeType("text/plain")
-            .bucketResourceId("bucketResourceId")
-            .loadTag("loadTag");
+    FireStoreDirectoryEntry entry = mockFileRefDirectoryEntry(fileId);
+    FireStoreFile file = mockFileRefFireStoreFile(fileId);
 
-    FileModel fileModel =
-        new FileModel()
-            .fileId(entry.getFileId())
-            .collectionId(collectionId)
-            .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
-            .size(file.getSize())
-            .created(file.getFileCreatedDate())
-            .description(file.getDescription())
-            .fileType(FileModelType.FILE)
-            .checksums(FileService.makeChecksums(file))
-            .fileDetail(
-                new FileDetailModel()
-                    .datasetId(entry.getDatasetId())
-                    .accessUrl(file.getGspath())
-                    .mimeType(file.getMimeType())
-                    .loadTag(file.getLoadTag()));
+    FileModel fileModel = mockExpectedFileModel(entry, file, collectionId);
+
     assertEquals(
         List.of(fileModel),
-        FileMetadataUtils.toFileModel(List.of(entry), List.of(file), collectionId));
+        FileMetadataUtils.toFileModel(List.of(entry), List.of(file), collectionId, true));
   }
 
   @Test
@@ -279,7 +249,22 @@ class FileMetadataUtilsTest {
     List<FireStoreFile> files = List.of(new FireStoreFile(), new FireStoreFile());
     assertThrows(
         FileSystemExecutionException.class,
-        () -> FileMetadataUtils.toFileModel(entries, files, UUID.randomUUID().toString()));
+        () -> FileMetadataUtils.toFileModel(entries, files, UUID.randomUUID().toString(), true));
+  }
+
+  @Test
+  void testIgnoreMismatchedSize() {
+    UUID fileId1 = UUID.randomUUID();
+    UUID fileId2 = UUID.randomUUID();
+    String collectionId = UUID.randomUUID().toString();
+    FireStoreDirectoryEntry entry1 = mockFileRefDirectoryEntry(fileId1);
+    FireStoreDirectoryEntry entry2 = mockFileRefDirectoryEntry(fileId2);
+    FireStoreFile file1 = mockFileRefFireStoreFile(fileId1);
+    FileModel expectedFileModel = mockExpectedFileModel(entry1, file1, collectionId);
+    assertEquals(
+        List.of(expectedFileModel),
+        FileMetadataUtils.toFileModel(
+            List.of(entry1, entry2), List.of(file1), collectionId, false));
   }
 
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {
@@ -294,5 +279,46 @@ class FileMetadataUtilsTest {
     }
 
     return testEntries;
+  }
+
+  private FireStoreDirectoryEntry mockFileRefDirectoryEntry(UUID fileId) {
+    return new FireStoreDirectoryEntry()
+        .fileId(fileId.toString())
+        .datasetId(UUID.randomUUID().toString())
+        .path("/files/foo.txt")
+        .name("foo.txt");
+  }
+
+  private FireStoreFile mockFileRefFireStoreFile(UUID fileId) {
+    return new FireStoreFile()
+        .fileId(fileId.toString())
+        .fileCreatedDate(Instant.now().toString())
+        .checksumCrc32c("25f9e794323b453885f5181f1b624d0b")
+        .checksumMd5("0xCBF43926")
+        .size(300L)
+        .description("Test file")
+        .gspath("gs://testbucket/files/foo.txt")
+        .mimeType("text/plain")
+        .bucketResourceId("bucketResourceId")
+        .loadTag("loadTag");
+  }
+
+  private FileModel mockExpectedFileModel(
+      FireStoreDirectoryEntry entry, FireStoreFile file, String collectionId) {
+    return new FileModel()
+        .fileId(entry.getFileId())
+        .collectionId(collectionId)
+        .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+        .size(file.getSize())
+        .created(file.getFileCreatedDate())
+        .description(file.getDescription())
+        .fileType(FileModelType.FILE)
+        .checksums(FileService.makeChecksums(file))
+        .fileDetail(
+            new FileDetailModel()
+                .datasetId(entry.getDatasetId())
+                .accessUrl(file.getGspath())
+                .mimeType(file.getMimeType())
+                .loadTag(file.getLoadTag()));
   }
 }

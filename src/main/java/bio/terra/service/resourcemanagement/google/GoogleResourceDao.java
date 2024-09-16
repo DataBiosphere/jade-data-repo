@@ -431,6 +431,25 @@ public class GoogleResourceDao {
   }
 
   /**
+   * Fetch an existing bucket_resource metadata row using the name. This method expects that there
+   * is exactly one row matching the provided name.
+   *
+   * @param bucketName name of the bucket
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   * @throws GoogleResourceNotFoundException if no bucket_resource metadata row is found
+   * @throws CorruptMetadataException if multiple buckets have the same name
+   */
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public GoogleBucketResource retrieveBucketByName(String bucketName) {
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", bucketName);
+    GoogleBucketResource bucketResource = retrieveBucketBy(sqlBucketRetrievedByName, params);
+    if (bucketResource == null) {
+      throw new GoogleResourceNotFoundException("Bucket resource not found: " + bucketName);
+    }
+    return bucketResource;
+  }
+
+  /**
    * Fetch an existing bucket_resource metadata row using the id. This method expects that there is
    * exactly one row matching the provided resource id.
    *
@@ -446,6 +465,22 @@ public class GoogleResourceDao {
       throw new GoogleResourceNotFoundException("Bucket not found for id:" + bucketResourceId);
     }
     return bucketResource;
+  }
+
+  /**
+   * Update the autoclass_enabled column in the bucket_resource metadata table for the bucket with
+   * the provided name.
+   *
+   * @param bucketName name of the bucket
+   * @param autoclass new value for the autoclass_enabled column
+   * @return number of rows updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public int updateBucketAutoclassByName(String bucketName, boolean autoclass) {
+    String sql = "UPDATE bucket_resource SET autoclass_enabled = :autoclass WHERE name = :name";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("name", bucketName).addValue("autoclass", autoclass);
+    return jdbcTemplate.update(sql, params);
   }
 
   /**

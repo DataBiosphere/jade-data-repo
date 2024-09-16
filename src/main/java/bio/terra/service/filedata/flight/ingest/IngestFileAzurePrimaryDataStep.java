@@ -100,8 +100,9 @@ public class IngestFileAzurePrimaryDataStep implements Step {
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE,
             AzureStorageAccountResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
-    if (!azureBlobStorePdao.deleteDataFileById(
-        fileId, fileName, storageAccountResource, userRequest)) {
+    try {
+      azureBlobStorePdao.deleteDataFileById(fileId, fileName, storageAccountResource, userRequest);
+    } catch (Exception ex) {
       logger.warn(
           "File {} {} in storage account {} was not deleted.  It could ne non-existent",
           fileId,

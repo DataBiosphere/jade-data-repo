@@ -33,7 +33,7 @@ public class RecordBucketAutoclassStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     GoogleBucketResource bucketResource = googleBucketService.getBucketMetadata(bucketName);
     Bucket bucket = googleBucketService.getCloudBucket(bucketName);
-    bucketResource = bucketResource.storageClass(bucket.getStorageClass());
+    bucketResource.setStorageClass(bucket.getStorageClass());
     Autoclass autoclass = bucket.getAutoclass();
     if (autoclass != null) {
       if (autoclass.getEnabled() && autoclass.getTerminalStorageClass() == StorageClass.ARCHIVE) {
@@ -43,7 +43,7 @@ public class RecordBucketAutoclassStep implements Step {
         return stepResultFailure("Bucket autoclass mismatch in metadata: " + bucketName);
       }
       if (autoclass.getEnabled()) {
-        bucketResource = bucketResource.terminalStorageClass(autoclass.getTerminalStorageClass());
+        bucketResource.setTerminalStorageClass(autoclass.getTerminalStorageClass());
       }
     }
     workingMap.put(FileMapKeys.BUCKET_INFO, bucketResource);

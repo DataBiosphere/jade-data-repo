@@ -85,6 +85,11 @@ set_vars_from_env() {
       NAMESPACE="terra-staging"
       SECRET="sql-db"
       ;;
+    prod)
+      PROJECT="terra-datarepo-production"
+      NAMESPACE="terra-prod"
+      SECRET="sql-db"
+      ;;
     *)
       error "Unknown environment: $ENV"
       ;;
@@ -128,6 +133,7 @@ connect_cloud_sql_db() {
     error "Could not retrieve password for project '$PROJECT' with secret path '$SECRET'"
   fi
 
+  sleep 3
   psql "postgresql://$USERNAME:$PASSWORD@localhost:$PORT/$DATABASE"
 }
 

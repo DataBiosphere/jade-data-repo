@@ -39,7 +39,7 @@ public class RecordBucketAutoclassStep implements Step {
       if (autoclass.getEnabled() && autoclass.getTerminalStorageClass() == StorageClass.ARCHIVE) {
         return stepResultFailure("Bucket autoclass already set to ARCHIVE: " + bucketName);
       }
-      if (autoclass.getEnabled() ^ bucketResource.getAutoclassEnabled()) {
+      if (autoclass.getEnabled() != bucketResource.getAutoclassEnabled()) {
         return stepResultFailure("Bucket autoclass mismatch in metadata: " + bucketName);
       }
       if (autoclass.getEnabled()) {

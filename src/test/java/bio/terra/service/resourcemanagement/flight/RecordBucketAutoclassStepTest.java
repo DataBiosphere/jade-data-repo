@@ -68,7 +68,7 @@ class RecordBucketAutoclassStepTest {
   }
 
   @Test
-  void testDoStepBucketNotFound() throws InterruptedException {
+  void testDoStepBucketNotFound() {
     String errorMessage = "Bucket not found";
     when(googleBucketService.getCloudBucket(BUCKET_NAME))
         .thenThrow(new GoogleResourceException(errorMessage));
@@ -79,7 +79,7 @@ class RecordBucketAutoclassStepTest {
   }
 
   @Test
-  void testDoStepBucketResourceNotFound() throws InterruptedException {
+  void testDoStepBucketResourceNotFound() {
     String errorMessage = "Bucket resource not found";
     when(googleBucketService.getBucketMetadata(BUCKET_NAME))
         .thenThrow(new GoogleResourceException(errorMessage));

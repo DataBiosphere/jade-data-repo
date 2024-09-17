@@ -78,12 +78,12 @@ public class UpgradeService {
               request.getCustomArgs().size() == 1,
               "Custom argument must have a single row: a valid bucket name");
 
-          Optional<String> bucketName =
-              ValidationUtils.convertToBucketName(request.getCustomArgs().get(0));
+          String bucketName = request.getCustomArgs().get(0);
           Preconditions.checkArgument(
-              bucketName.isPresent(), "Custom argument's single value is not a valid bucket name");
+              ValidationUtils.isValidBucketName(bucketName),
+              "Custom argument's single value is not a valid bucket name");
 
-          return Map.of(JobMapKeys.BUCKET_NAME.getKeyName(), bucketName.get());
+          return Map.of(JobMapKeys.BUCKET_NAME.getKeyName(), bucketName);
         });
 
     private final Class<? extends Flight> flightClass;

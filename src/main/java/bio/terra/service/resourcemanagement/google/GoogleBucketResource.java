@@ -98,8 +98,13 @@ public class GoogleBucketResource {
   }
 
   @JsonIgnore
-  public GoogleBucketResource storageClass(StorageClass storageClass) {
+  public void setStorageClass(StorageClass storageClass) {
     this.storageClassAsString = storageClass == null ? null : storageClass.toString();
+  }
+
+  @JsonIgnore
+  public GoogleBucketResource storageClass(StorageClass storageClass) {
+    setStorageClass(storageClass);
     return this;
   }
 
@@ -122,9 +127,14 @@ public class GoogleBucketResource {
   }
 
   @JsonIgnore
-  public GoogleBucketResource terminalStorageClass(StorageClass terminalStorageClass) {
+  public void setTerminalStorageClass(StorageClass terminalStorageClass) {
     this.terminalStorageClassAsString =
         terminalStorageClass == null ? null : terminalStorageClass.toString();
+  }
+
+  @JsonIgnore
+  public GoogleBucketResource terminalStorageClass(StorageClass terminalStorageClass) {
+    setTerminalStorageClass(terminalStorageClass);
     return this;
   }
 

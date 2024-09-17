@@ -80,13 +80,6 @@ public final class ValidationUtils {
     return VALID_BUCKET_NAME_REGEX.matcher(bucketName).matches();
   }
 
-  public static Optional<String> convertToBucketName(String bucketName) {
-    if (isValidBucketName(bucketName)) {
-      return Optional.of(bucketName);
-    }
-    return Optional.empty();
-  }
-
   public static String requireNotBlank(String value, String errorMsg) {
     if (StringUtils.isBlank(value)) {
       throw new IllegalArgumentException(errorMsg);

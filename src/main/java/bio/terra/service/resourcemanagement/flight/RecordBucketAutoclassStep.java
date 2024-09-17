@@ -33,17 +33,17 @@ public class RecordBucketAutoclassStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     GoogleBucketResource bucketResource = googleBucketService.getBucketMetadata(bucketName);
     Bucket bucket = googleBucketService.getCloudBucket(bucketName);
-    bucketResource = bucketResource.storageClass(bucket.getStorageClass());
+    bucketResource.setStorageClass(bucket.getStorageClass());
     Autoclass autoclass = bucket.getAutoclass();
     if (autoclass != null) {
       if (autoclass.getEnabled() && autoclass.getTerminalStorageClass() == StorageClass.ARCHIVE) {
         return stepResultFailure("Bucket autoclass already set to ARCHIVE: " + bucketName);
       }
-      if (autoclass.getEnabled() ^ bucketResource.getAutoclassEnabled()) {
+      if (autoclass.getEnabled() != bucketResource.getAutoclassEnabled()) {
         return stepResultFailure("Bucket autoclass mismatch in metadata: " + bucketName);
       }
       if (autoclass.getEnabled()) {
-        bucketResource = bucketResource.terminalStorageClass(autoclass.getTerminalStorageClass());
+        bucketResource.setTerminalStorageClass(autoclass.getTerminalStorageClass());
       }
     }
     workingMap.put(FileMapKeys.BUCKET_INFO, bucketResource);

@@ -9,8 +9,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
+import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.SnapshotCompute;
@@ -24,7 +31,6 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -33,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -40,7 +47,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
-@Ignore
 @Category(Connected.class)
 @EmbeddedDatabaseTest
 public class FireStoreDaoTest {
@@ -55,23 +61,37 @@ public class FireStoreDaoTest {
   @Autowired private FireStoreUtils fireStoreUtils;
 
   @Autowired private FireStoreDependencyDao fireStoreDependencyDao;
+  @Autowired private ConnectedOperations connectedOperations;
+  @Autowired private ConnectedTestConfiguration testConfig;
+  @Autowired private JsonLoader jsonLoader;
+  @MockBean private IamProviderInterface samService;
+  @Autowired private ConfigurationService configService;
 
+  private DatasetSummaryModel summaryModel;
   private Firestore firestore;
   private UUID datasetId;
   private UUID snapshotId;
 
   @Before
   public void setup() throws Exception {
-    firestore = TestFirestoreProvider.getFirestore();
-    datasetId = UUID.randomUUID();
+    connectedOperations.stubOutSamCalls(samService);
+    configService.reset();
+
+    // Create dataset so that we have a firestore instance to test with
+    BillingProfileModel billingProfile =
+        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    summaryModel = connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
+    datasetId = summaryModel.getId();
+
+    // real case will have separate dataset and snapshot instances
+    // But, we can share this firestore instance for this test
+    firestore = TestFirestoreProvider.getFirestore(summaryModel.getDataProject());
     snapshotId = UUID.randomUUID();
   }
 
   @After
   public void cleanup() throws Exception {
-    directoryDao.deleteDirectoryEntriesFromCollection(firestore, snapshotId.toString());
-    directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId.toString());
-    fileDao.deleteFilesFromDataset(firestore, datasetId.toString(), i -> {});
+    connectedOperations.teardown();
   }
 
   // Test for snapshot file system
@@ -84,7 +104,7 @@ public class FireStoreDaoTest {
   @Test
   public void snapshotTest() throws Exception {
     GoogleProjectResource projectResource =
-        new GoogleProjectResource().googleProjectId(System.getenv("GOOGLE_CLOUD_DATA_PROJECT"));
+        new GoogleProjectResource().googleProjectId(summaryModel.getDataProject());
     Dataset dataset = new Dataset().id(datasetId).projectResource(projectResource);
     Snapshot snapshot = new Snapshot().id(snapshotId).projectResource(projectResource);
     // Make files that will be in the snapshot

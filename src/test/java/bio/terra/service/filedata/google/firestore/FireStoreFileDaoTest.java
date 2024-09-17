@@ -12,13 +12,19 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
@@ -41,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -62,21 +69,36 @@ public class FireStoreFileDaoTest {
 
   @Autowired private ConfigurationService configurationService;
 
+  @Autowired private ConnectedOperations connectedOperations;
+  @Autowired private ConnectedTestConfiguration testConfig;
+  @Autowired private JsonLoader jsonLoader;
+  @MockBean private IamProviderInterface samService;
+  @Autowired private ConfigurationService configService;
+
+  private DatasetSummaryModel summaryModel;
   private String datasetId;
   private Firestore firestore;
   private String collectionId;
 
   @Before
   public void setup() throws Exception {
-    configurationService.reset();
-    datasetId = UUID.randomUUID().toString();
+    connectedOperations.stubOutSamCalls(samService);
+    configService.reset();
+
+    // Create dataset so that we have a firestore instance to test with
+    BillingProfileModel billingProfile =
+        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    summaryModel = connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
+    datasetId = summaryModel.getId().toString();
+
     collectionId = String.format("%s-files", datasetId);
-    firestore = TestFirestoreProvider.getFirestore();
+    firestore = TestFirestoreProvider.getFirestore(summaryModel.getDataProject());
   }
 
   @After
-  public void cleanup() {
+  public void cleanup() throws Exception {
     configurationService.reset();
+    connectedOperations.teardown();
   }
 
   @Test

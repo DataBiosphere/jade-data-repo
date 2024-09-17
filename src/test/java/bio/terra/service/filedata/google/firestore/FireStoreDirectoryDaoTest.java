@@ -12,10 +12,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.StringListCompare;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
@@ -28,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -36,6 +43,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -52,15 +60,35 @@ public class FireStoreDirectoryDaoTest {
 
   @Autowired private ConfigurationService configurationService;
 
-  private String pretendDatasetId;
+  @Autowired private ConnectedOperations connectedOperations;
+  @Autowired private ConnectedTestConfiguration testConfig;
+  @Autowired private JsonLoader jsonLoader;
+  @MockBean private IamProviderInterface samService;
+  @Autowired private ConfigurationService configService;
+
+  private DatasetSummaryModel summaryModel;
+  private String datasetId;
   private String collectionId;
   private Firestore firestore;
 
   @Before
   public void setup() throws Exception {
-    pretendDatasetId = UUID.randomUUID().toString();
-    collectionId = "directoryDaoTest_" + pretendDatasetId;
-    firestore = TestFirestoreProvider.getFirestore();
+    connectedOperations.stubOutSamCalls(samService);
+    configService.reset();
+
+    // Create dataset so that we have a firestore instance to test with
+    BillingProfileModel billingProfile =
+        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    summaryModel = connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
+
+    datasetId = summaryModel.getId().toString();
+    collectionId = "directoryDaoTest_" + datasetId;
+    firestore = TestFirestoreProvider.getFirestore(summaryModel.getDataProject());
+  }
+
+  @After
+  public void cleanup() throws Exception {
+    connectedOperations.teardown();
   }
 
   @Test
@@ -78,10 +106,10 @@ public class FireStoreDirectoryDaoTest {
     testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
     assertNotNull("Object id exists", testFileA);
     assertTrue("Is file object", testFileA.getIsFileRef());
-    assertThat("Dataset id matches", pretendDatasetId, equalTo(testFileA.getDatasetId()));
+    assertThat("Dataset id matches", datasetId, equalTo(testFileA.getDatasetId()));
 
     // Test overwrite semantics - a second create acts as an update
-    String updatedDatasetId = pretendDatasetId + "X";
+    String updatedDatasetId = datasetId + "X";
     fileA.datasetId(updatedDatasetId);
     directoryDao.createDirectoryEntry(firestore, collectionId, fileA);
     testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
@@ -315,6 +343,6 @@ public class FireStoreDirectoryDaoTest {
         .isFileRef(true)
         .path(FileMetadataUtils.getDirectoryPath(fullPath))
         .name(FileMetadataUtils.getName(fullPath))
-        .datasetId(pretendDatasetId);
+        .datasetId(datasetId);
   }
 }

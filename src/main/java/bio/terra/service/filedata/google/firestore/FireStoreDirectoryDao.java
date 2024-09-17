@@ -307,23 +307,26 @@ public class FireStoreDirectoryDao {
   }
 
   public List<String> validateRefIds(
-      Firestore firestore, String collectionId, List<String> refIdArray)
+      Firestore firestore, String collectionId, List<String> refIdArray, String columnName)
       throws InterruptedException {
-
-    int batchSize = configurationService.getParameterValue(FIRESTORE_VALIDATE_BATCH_SIZE);
-    List<List<String>> batches = ListUtils.partition(refIdArray, batchSize);
-    logger.info(
-        "validateRefIds on {} file ids, in {} batches of {}",
-        refIdArray.size(),
-        batches.size(),
-        batchSize);
-
     List<String> missingIds = new ArrayList<>();
-    for (List<String> batch : batches) {
-      List<String> missingBatch = batchValidateIds(firestore, collectionId, batch);
-      missingIds.addAll(missingBatch);
-    }
+    if (!refIdArray.isEmpty()) {
+      int batchSize = configurationService.getParameterValue(FIRESTORE_VALIDATE_BATCH_SIZE);
+      List<List<String>> batches = ListUtils.partition(refIdArray, batchSize);
+      logger.info(
+          "validateRefIds from column {} on {} file ids, in {} batches of {}",
+          columnName,
+          refIdArray.size(),
+          batches.size(),
+          batchSize);
 
+      for (List<String> batch : batches) {
+        List<String> missingBatch = batchValidateIds(firestore, collectionId, batch);
+        missingIds.addAll(missingBatch);
+      }
+    } else {
+      logger.info("No refIds to check from column {}", columnName);
+    }
     return missingIds;
   }
 

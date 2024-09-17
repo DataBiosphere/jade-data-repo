@@ -33,6 +33,9 @@ public class RecordBucketAutoclassStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     GoogleBucketResource bucketResource = googleBucketService.getBucketMetadata(bucketName);
     Bucket bucket = googleBucketService.getCloudBucket(bucketName);
+    if (bucket == null) {
+      return stepResultFailure("Bucket not found: " + bucketName);
+    }
     bucketResource.setStorageClass(bucket.getStorageClass());
     Autoclass autoclass = bucket.getAutoclass();
     if (autoclass != null) {

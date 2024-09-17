@@ -68,7 +68,15 @@ class RecordBucketAutoclassStepTest {
   }
 
   @Test
-  void testDoStepBucketNotFound() {
+  void testDoStepBucketNotFoundNull() throws InterruptedException {
+    when(googleBucketService.getCloudBucket(BUCKET_NAME)).thenReturn(null);
+
+    StepResult result = step.doStep(flightContext);
+    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
+  }
+
+  @Test
+  void testDoStepBucketNotFoundThrow() {
     String errorMessage = "Bucket not found";
     when(googleBucketService.getCloudBucket(BUCKET_NAME))
         .thenThrow(new GoogleResourceException(errorMessage));

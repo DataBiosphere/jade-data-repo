@@ -29,8 +29,8 @@ buildscript {
 plugins {
     // This is set back to 3.4.2 because of: https://github.com/GoogleContainerTools/jib/issues/4265
     id 'com.google.cloud.tools.jib' version '3.4.2'
-    id 'org.liquibase.gradle' version '3.0.0'
-    id 'org.gradle.test-retry' version '1.5.10'
+    id 'org.liquibase.gradle' version '3.0.1'
+    id 'org.gradle.test-retry' version '1.6.0'
     id 'antlr'
     id 'org.hidetake.swagger.generator' version '2.19.2'
     id 'org.springframework.boot' version '3.3.3'
@@ -208,10 +208,10 @@ dependencies {
     implementation 'com.microsoft.sqlserver:mssql-jdbc:12.3.0.jre17-preview'
 
     // For distributed locking of Spring @Scheduled tasks across multiple instances
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.15.1'
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.15.1'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.18-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.19-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.15-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
@@ -228,7 +228,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.13.2'
+    implementation 'com.azure:azure-identity:1.13.3'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.42.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.4'
@@ -241,7 +241,7 @@ dependencies {
     implementation('io.sentry:sentry-logback')
 
     // OpenTelemetry @WithSpan annotations:
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.7.0'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.8.0'
 
     testImplementation 'org.apache.parquet:parquet-common:1.14.2'
     testImplementation 'org.apache.parquet:parquet-hadoop:1.14.2'

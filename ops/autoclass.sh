@@ -30,6 +30,10 @@ error() {
   exit 1
 }
 
+log() {
+  echo "$1" | tee -a output.log
+}
+
 # default values that may be overridden by command line options
 BUCKET_FILE="${BUCKET_FILE:-}"
 TDR_ENV="${TDR_ENV:-dev}"
@@ -109,6 +113,7 @@ EOF
     AUTOCLASS_REQUEST=$(echo "$AUTOCLASS_REQUEST" | jq --arg bucket "$BUCKET" '.customArgs[0] = $bucket')
     AUTOCLASS_JOB_ID=$(curl_post "${TDR_URL}/api/repository/v1/upgrade" "$AUTOCLASS_REQUEST" | jq -r .id)
     AUTOCLASS_JOBS+=("$AUTOCLASS_JOB_ID")
+    log "Submitted $BUCKET with job id: $AUTOCLASS_JOB_ID"
   done < "$BUCKET_FILE"
   printf "%s\n" "${AUTOCLASS_JOBS[@]}" > jobs.txt
 }
@@ -118,11 +123,11 @@ autoclass_check_responses() {
     while true; do
       AUTOCLASS_STATUS=$(curl_get "${TDR_URL}/api/repository/v1/jobs/${JOB_ID}" | jq -r .job_status)
       if [ "$AUTOCLASS_STATUS" == "succeeded" ]; then
-        echo "Bucket autoclass upgrade succeeded for job ${JOB_ID}"
+        log "Autoclass upgrade succeeded for job ${JOB_ID}"
         break
       elif [ "$AUTOCLASS_STATUS" == "failed" ]; then
         AUTOCLASS_FAILURE=$(curl_get "${TDR_URL}/api/repository/v1/jobs/${JOB_ID}/result" | jq -r .message)
-        echo "Bucket upgrade failed for job ${JOB_ID}: ${AUTOCLASS_FAILURE}"
+        log "Upgrade failed for job ${JOB_ID}: ${AUTOCLASS_FAILURE}"
         break
       else
         sleep 1

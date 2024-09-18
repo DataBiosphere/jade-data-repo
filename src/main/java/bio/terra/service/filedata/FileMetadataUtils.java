@@ -201,7 +201,8 @@ public class FileMetadataUtils {
       String collectionId,
       boolean enforceMatchingDirectoryEntries) {
     if (enforceMatchingDirectoryEntries && (directoryEntries.size() != files.size())) {
-      throw new FileSystemExecutionException("List sizes should be identical");
+      throw new FileSystemExecutionException(
+          "Unexpected discrepancy in retrieving file metadata. When enforceMatchingDirectoryEntries is enabled, the number of directory entries should match the number of files.");
     }
 
     Map<String, FireStoreDirectoryEntry> fileIdDirectoryMap =
@@ -214,7 +215,7 @@ public class FileMetadataUtils {
               FireStoreDirectoryEntry entry = fileIdDirectoryMap.get(file.getFileId());
               if (entry == null) {
                 throw new FileSystemExecutionException(
-                    "There should be a matching directory entry for every file.");
+                    "Unexpected discrepancy in retrieving file metadata. There should be a matching directory entry for every file.");
               }
               return new FileModel()
                   .fileId(entry.getFileId())

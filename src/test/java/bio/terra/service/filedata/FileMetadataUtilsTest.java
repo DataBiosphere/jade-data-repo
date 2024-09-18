@@ -253,6 +253,20 @@ class FileMetadataUtilsTest {
   }
 
   @Test
+  void testMissingDirectoryEntry() {
+    UUID fileId1 = UUID.randomUUID();
+    UUID fileId2 = UUID.randomUUID();
+    FireStoreDirectoryEntry entry1 = mockFileRefDirectoryEntry(fileId1);
+    FireStoreFile file1 = mockFileRefFireStoreFile(fileId1);
+    FireStoreFile file2 = mockFileRefFireStoreFile(fileId2);
+    assertThrows(
+        FileSystemExecutionException.class,
+        () ->
+            FileMetadataUtils.toFileModel(
+                List.of(entry1), List.of(file1, file2), UUID.randomUUID().toString(), false));
+  }
+
+  @Test
   void testIgnoreMismatchedSize() {
     UUID fileId1 = UUID.randomUUID();
     UUID fileId2 = UUID.randomUUID();

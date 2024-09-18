@@ -16,9 +16,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 
@@ -201,17 +204,18 @@ public class FileMetadataUtils {
       throw new FileSystemExecutionException("List sizes should be identical");
     }
 
+    Map<String, FireStoreDirectoryEntry> fileIdDirectoryMap =
+        directoryEntries.stream()
+            .collect(Collectors.toMap(FireStoreDirectoryEntry::getFileId, Function.identity()));
+
     return files.stream()
         .map(
             file -> {
-              FireStoreDirectoryEntry entry =
-                  directoryEntries.stream()
-                      .filter(e -> e.getFileId().equals(file.getFileId()))
-                      .findFirst()
-                      .orElseThrow(
-                          () ->
-                              new FileSystemExecutionException(
-                                  "There should be a matching directory entry for every file."));
+              FireStoreDirectoryEntry entry = fileIdDirectoryMap.get(file.getFileId());
+              if (entry == null) {
+                throw new FileSystemExecutionException(
+                    "There should be a matching directory entry for every file.");
+              }
               return new FileModel()
                   .fileId(entry.getFileId())
                   .collectionId(collectionId)

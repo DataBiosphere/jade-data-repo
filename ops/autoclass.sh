@@ -111,7 +111,16 @@ EOF
 )
   while IFS= read -r BUCKET; do
     AUTOCLASS_REQUEST=$(echo "$AUTOCLASS_REQUEST" | jq --arg bucket "$BUCKET" '.customArgs[0] = $bucket')
-    AUTOCLASS_JOB_ID=$(curl_post "${TDR_URL}/api/repository/v1/upgrade" "$AUTOCLASS_REQUEST" | jq -r .id)
+    AUTOCLASS_RESPONSE=$(curl_post "${TDR_URL}/api/repository/v1/upgrade" "$AUTOCLASS_REQUEST")
+    AUTOCLASS_JOB_ID=$(echo "$AUTOCLASS_RESPONSE" | jq -r .id)
+    if [ "$AUTOCLASS_JOB_ID" == "null" ]; then
+      AUTOCLASS_ERROR=$(echo "$AUTOCLASS_RESPONSE" | jq -r .message)
+      if [ "$AUTOCLASS_ERROR" == "null" ]; then
+        AUTOCLASS_ERROR="$AUTOCLASS_RESPONSE"
+      fi
+      log "Failed to submit $BUCKET: $AUTOCLASS_ERROR"
+      continue
+    fi
     AUTOCLASS_JOBS+=("$AUTOCLASS_JOB_ID")
     log "Submitted $BUCKET with job id: $AUTOCLASS_JOB_ID"
   done < "$BUCKET_FILE"

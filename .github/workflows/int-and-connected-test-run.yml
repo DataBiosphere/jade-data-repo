@@ -62,8 +62,6 @@ jobs:
           AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
           # required for connected tests
           GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
-          # required data project for snapshotTest
-          GOOGLE_CLOUD_DATA_PROJECT: broad-jade-integration-data
           # required for testAzureBillingProfile
           # uses an azure marketplace app with this hardcoded deployment email
           JADE_USER_EMAIL: connected-tdr-user@notarealemail.org

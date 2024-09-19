@@ -159,11 +159,6 @@ class FireStoreFileDao {
         xn -> {
           DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
 
-          // Fault insertion to test retry
-          if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
-            throw new StatusRuntimeException(Status.fromCodeValue(500));
-          }
-
           return Optional.ofNullable(docSnap)
               .map(d -> docSnap.toObject(FireStoreFile.class))
               .orElse(null);

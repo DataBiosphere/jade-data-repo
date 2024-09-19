@@ -173,53 +173,6 @@ public class FireStoreFileDaoTest {
     }
   }
 
-  // Default settings of the thought should result in a retry failure
-  @Test(expected = StatusRuntimeException.class)
-  public void faultRetrieveRetryFail() throws Exception {
-    configurationService.setFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name(), true);
-
-    TestUtils.setConfigParameterValue(
-        configurationService, ConfigEnum.FIRESTORE_RETRIES, "1", "setRetryParameter");
-
-    FireStoreFile file1 = makeFile();
-    String objectId = file1.getFileId();
-
-    fileDao.upsertFileMetadata(firestore, datasetId, file1);
-    fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
-  }
-
-  @Test()
-  public void faultRetrieveRetrySuccess() throws Exception {
-    ConfigFaultCountedModel countedModel =
-        new ConfigFaultCountedModel()
-            .skipFor(0)
-            .insert(3)
-            .rate(100)
-            .rateStyle(ConfigFaultCountedModel.RateStyleEnum.FIXED);
-
-    ConfigFaultModel configFaultModel =
-        new ConfigFaultModel()
-            .enabled(true)
-            .faultType(ConfigFaultModel.FaultTypeEnum.COUNTED)
-            .counted(countedModel);
-
-    ConfigModel configModel =
-        new ConfigModel()
-            .name(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name())
-            .configType(ConfigModel.ConfigTypeEnum.FAULT)
-            .fault(configFaultModel);
-
-    ConfigGroupModel configGroupModel =
-        new ConfigGroupModel().label("faultRetrieveRetrySuccess").addGroupItem(configModel);
-    configurationService.setConfig(configGroupModel);
-
-    FireStoreFile file1 = makeFile();
-    String objectId = file1.getFileId();
-
-    fileDao.upsertFileMetadata(firestore, datasetId, file1);
-    fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
-  }
-
   @Test
   public void createFileWithConflictingLoadTagsTest() throws Exception {
     FireStoreFile file1 = makeFile();

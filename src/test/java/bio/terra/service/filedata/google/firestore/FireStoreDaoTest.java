@@ -13,7 +13,6 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
@@ -34,8 +33,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,20 +47,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 @EmbeddedDatabaseTest
 public class FireStoreDaoTest {
-  private final Logger logger = LoggerFactory.getLogger(FireStoreDaoTest.class);
-
   @Autowired private FireStoreDirectoryDao directoryDao;
-
   @Autowired private FireStoreFileDao fileDao;
-
   @Autowired private FireStoreDao dao;
-
   @Autowired private FireStoreUtils fireStoreUtils;
-
   @Autowired private FireStoreDependencyDao fireStoreDependencyDao;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private JsonLoader jsonLoader;
   @MockBean private IamProviderInterface samService;
   @Autowired private ConfigurationService configService;
 

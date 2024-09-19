@@ -1,6 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
@@ -14,8 +13,6 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.Transaction;
 import com.google.cloud.firestore.WriteResult;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

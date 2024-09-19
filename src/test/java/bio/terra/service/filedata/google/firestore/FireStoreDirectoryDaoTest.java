@@ -17,10 +17,8 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -36,7 +34,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -52,7 +49,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-@Ignore
 @EmbeddedDatabaseTest
 public class FireStoreDirectoryDaoTest {
 
@@ -62,11 +58,9 @@ public class FireStoreDirectoryDaoTest {
 
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private JsonLoader jsonLoader;
   @MockBean private IamProviderInterface samService;
   @Autowired private ConfigurationService configService;
 
-  private DatasetSummaryModel summaryModel;
   private String datasetId;
   private String collectionId;
   private Firestore firestore;
@@ -79,7 +73,7 @@ public class FireStoreDirectoryDaoTest {
     // Create dataset so that we have a firestore instance to test with
     BillingProfileModel billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    summaryModel = connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
+    var summaryModel = connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
 
     datasetId = summaryModel.getId().toString();
     collectionId = "directoryDaoTest_" + datasetId;

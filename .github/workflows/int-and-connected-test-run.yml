@@ -73,8 +73,8 @@ jobs:
           # extract service account credentials
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
-          # assemble code and run connected tests
-          ./gradlew assemble -w testConnected --scan
+          # run connected tests
+          ./gradlew --scan -w testConnected
   test_integration:
     name: Integration tests
     runs-on: ubuntu-latest
@@ -137,7 +137,7 @@ jobs:
           # wait until api is ready
           timeout 30 bash -c 'until curl -s ${IT_JADE_API_URL}/status; do sleep 1; done'
           # run integration tests
-          ./gradlew -w testIntegration --scan
+          ./gradlew --scan -w testIntegration
       - name: Upload API logs
         if: always()
         uses: actions/upload-artifact@v4

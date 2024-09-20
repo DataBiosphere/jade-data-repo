@@ -734,13 +734,7 @@ public class SamIam implements IamProviderInterface {
   private void addGroupPolicyEmailInner(
       String accessToken, String groupName, String policyName, String memberEmail)
       throws ApiException {
-    samApiService
-        .groupApi(accessToken)
-        .addEmailToGroup(
-            groupName,
-            policyName,
-            memberEmail,
-            null);
+    samApiService.groupApi(accessToken).addEmailToGroup(groupName, policyName, memberEmail, null);
   }
 
   @Override

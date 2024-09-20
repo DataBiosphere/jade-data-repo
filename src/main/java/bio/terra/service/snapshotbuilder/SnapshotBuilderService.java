@@ -414,13 +414,17 @@ public class SnapshotBuilderService {
   public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
     return new SnapshotAccessRequestMembersResponse()
-        .members(iamService.addEmailToGroup(model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
+        .members(
+            iamService.addEmailToGroup(
+                model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
   }
 
   public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
     return new SnapshotAccessRequestMembersResponse()
-        .members(iamService.removeEmailFromGroup(model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
+        .members(
+            iamService.removeEmailFromGroup(
+                model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
   }
 
   private SnapshotAccessRequestDetailsResponse generateModelDetails(

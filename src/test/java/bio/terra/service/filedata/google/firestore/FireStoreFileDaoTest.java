@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -81,7 +82,7 @@ class FireStoreFileDaoTest {
     assertThat(
         "Cleanup from previous test successful",
         fileDao.enumerateAllWithEmptyField(firestore, datasetId, "fileId"),
-        hasSize(0));
+        empty());
     directoryEntries = null;
     files = null;
     objects = null;

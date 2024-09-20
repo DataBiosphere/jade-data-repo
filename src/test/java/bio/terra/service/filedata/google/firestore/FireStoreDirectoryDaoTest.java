@@ -155,10 +155,9 @@ class FireStoreDirectoryDaoTest {
     }
 
     // Test all valid file references
-    List<String> fileRefs =
-        fileObjects.stream().map(FireStoreDirectoryEntry::getFileId).toList();
+    List<String> fileRefs = fileObjects.stream().map(FireStoreDirectoryEntry::getFileId).toList();
     List<String> mismatches = directoryDao.validateRefIds(firestore, collectionId, fileRefs);
-    assertThat("No invalid file refs", mismatches.size(), equalTo(0));
+    assertThat("No invalid file refs", mismatches, empty());
 
     List<String> badids = Arrays.asList("badid1", "badid2");
 
@@ -182,8 +181,7 @@ class FireStoreDirectoryDaoTest {
         directoryDao.enumerateDirectory(firestore, collectionId, "/adir");
     assertThat("Correct number of object returned", enumList.size(), equalTo(3));
     List<String> expectedNames = Arrays.asList("A1", "A2", "bdir");
-    List<String> enumNames =
-        enumList.stream().map(FireStoreDirectoryEntry::getName).toList();
+    List<String> enumNames = enumList.stream().map(FireStoreDirectoryEntry::getName).toList();
 
     StringListCompare enumCompare = new StringListCompare(expectedNames, enumNames);
     assertThat("Enum names match", enumCompare.compare());
@@ -270,7 +268,7 @@ class FireStoreDirectoryDaoTest {
 
     Map<UUID, UUID> initialConflicts =
         directoryDao.upsertDirectoryEntries(firestore, collectionId, initialFileObjects);
-    assertThat("the correct number were inserted", initialConflicts.entrySet(), hasSize(0));
+    assertThat("the correct number were inserted", initialConflicts.entrySet(), empty());
 
     // Insert a subset of objects (only the B3 directory should be new) using the same load tag
     List<FireStoreDirectoryEntry> nextFileObjects =

@@ -4,13 +4,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -32,25 +30,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ActiveProfiles({"google", "connectedtest"})
-@Category(Connected.class)
+@Tag(Connected.TAG)
 @EmbeddedDatabaseTest
-public class FireStoreDirectoryDaoTest {
+class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 
@@ -65,10 +66,9 @@ public class FireStoreDirectoryDaoTest {
   private String collectionId;
   private Firestore firestore;
 
-  @Before
+  @BeforeAll
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
-    configService.reset();
 
     // Create dataset so that we have a firestore instance to test with
     BillingProfileModel billingProfile =
@@ -80,26 +80,33 @@ public class FireStoreDirectoryDaoTest {
     firestore = TestFirestoreProvider.getFirestore(summaryModel.getDataProject());
   }
 
-  @After
+  @AfterEach
+  public void cleanupAfterEachTest() throws Exception {
+    if (datasetId != null) {
+      directoryDao.deleteDirectoryEntriesFromCollection(firestore, collectionId);
+    }
+  }
+
+  @AfterAll
   public void cleanup() throws Exception {
+    connectedOperations.stubOutSamCalls(samService);
     connectedOperations.teardown();
   }
 
   @Test
   // Tests createFileRef, deleteDirectoryEntry, retrieveById, retrieveByPath
-  public void createDeleteTest() throws Exception {
+  void createDeleteTest() throws Exception {
     FireStoreDirectoryEntry fileA = makeFileObject("/adir/A");
 
     // Verify file A should not exist
     FireStoreDirectoryEntry testFileA =
         directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
-    assertNull("Object id does not exist", testFileA);
+    assertThat("Object id does not exist", testFileA, is(nullValue()));
 
     // Create the file
     directoryDao.createDirectoryEntry(firestore, collectionId, fileA);
     testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
-    assertNotNull("Object id exists", testFileA);
-    assertTrue("Is file object", testFileA.getIsFileRef());
+    assertThat("Object exists and is file object", testFileA.getIsFileRef());
     assertThat("Dataset id matches", datasetId, equalTo(testFileA.getDatasetId()));
 
     // Test overwrite semantics - a second create acts as an update
@@ -107,35 +114,35 @@ public class FireStoreDirectoryDaoTest {
     fileA.datasetId(updatedDatasetId);
     directoryDao.createDirectoryEntry(firestore, collectionId, fileA);
     testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
-    assertNotNull("Object id exists", testFileA);
-    assertTrue("Is file object", testFileA.getIsFileRef());
+    assertThat("Object id exists", testFileA, is(notNullValue()));
+    assertThat("Is file object", testFileA.getIsFileRef());
     assertThat("Updated id matches", testFileA.getDatasetId(), equalTo(updatedDatasetId));
 
     // Lookup the directory by path to get its object id so that we can make sure
     // it goes away when we delete the file.
     FireStoreDirectoryEntry dirA = directoryDao.retrieveByPath(firestore, collectionId, "/adir");
-    assertNotNull("Directory exists", dirA);
-    assertFalse("Is dir object", dirA.getIsFileRef());
+    assertThat("Directory exists", dirA, is(notNullValue()));
+    assertThat("Is dir object", dirA.getIsFileRef(), is(false));
 
     // Delete file and verify everything is gone
     boolean objectExisted =
         directoryDao.deleteDirectoryEntry(firestore, collectionId, fileA.getFileId());
-    assertTrue("Object existed", objectExisted);
+    assertThat("Object existed", objectExisted);
     testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
-    assertNull("File was deleted", testFileA);
+    assertThat("File was deleted", testFileA, is(nullValue()));
     FireStoreDirectoryEntry testDirA =
         directoryDao.retrieveById(firestore, collectionId, dirA.getFileId());
-    assertNull("Directory was deleted", testDirA);
+    assertThat("Directory was deleted", testDirA, is(nullValue()));
 
     // Delete again. Should succeed and let us know the object didn't exist
     objectExisted = directoryDao.deleteDirectoryEntry(firestore, collectionId, fileA.getFileId());
-    assertFalse("Object did not exist", objectExisted);
+    assertThat("Object did not exist", objectExisted, is(false));
   }
 
   @Test
   // Tests validateRefIds, enumerateDirectory, deleteDirectoryEntriesFromCollection, retrieveById,
   // retrieveByPath
-  public void directoryOperationsTest() throws Exception {
+  void directoryOperationsTest() throws Exception {
     List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>();
     fileObjects.add(makeFileObject("/adir/A1"));
     fileObjects.add(makeFileObject("/adir/bdir/B1"));
@@ -150,9 +157,7 @@ public class FireStoreDirectoryDaoTest {
 
     // Test all valid file references
     List<String> fileRefs =
-        fileObjects.stream()
-            .map(fireStoreObject -> fireStoreObject.getFileId())
-            .collect(Collectors.toList());
+        fileObjects.stream().map(FireStoreDirectoryEntry::getFileId).collect(Collectors.toList());
     List<String> mismatches = directoryDao.validateRefIds(firestore, collectionId, fileRefs);
     assertThat("No invalid file refs", mismatches.size(), equalTo(0));
 
@@ -167,7 +172,7 @@ public class FireStoreDirectoryDaoTest {
     assertThat("Caught invalid file refs", mismatches.size(), equalTo(badids.size()));
 
     StringListCompare listCompare = new StringListCompare(mismatches, badids);
-    assertTrue("Bad ids match", listCompare.compare());
+    assertThat("Bad ids match", listCompare.compare());
 
     // Test FireStoreBatchQueryIterator by making the batch size small
     TestUtils.setConfigParameterValue(
@@ -179,12 +184,10 @@ public class FireStoreDirectoryDaoTest {
     assertThat("Correct number of object returned", enumList.size(), equalTo(3));
     List<String> expectedNames = Arrays.asList("A1", "A2", "bdir");
     List<String> enumNames =
-        enumList.stream()
-            .map(fireStoreObject -> fireStoreObject.getName())
-            .collect(Collectors.toList());
+        enumList.stream().map(FireStoreDirectoryEntry::getName).collect(Collectors.toList());
 
     StringListCompare enumCompare = new StringListCompare(expectedNames, enumNames);
-    assertTrue("Enum names match", enumCompare.compare());
+    assertThat("Enum names match", enumCompare.compare());
 
     // Now add to the ref list all of the valid file object ids and then include the directory ids.
     // We'll use that
@@ -197,14 +200,14 @@ public class FireStoreDirectoryDaoTest {
 
     for (String objectId : fileRefs) {
       FireStoreDirectoryEntry fso = directoryDao.retrieveById(firestore, collectionId, objectId);
-      assertNull("File or dir object is deleted", fso);
+      assertThat("File or dir object is deleted", fso, is(nullValue()));
     }
   }
 
   @Test
   // Tests that bulk filesystem ingest works  initially and when there are collisions with the same
   // load tag and failures when there are collisions with different load tags
-  public void bulkDirectoryEntryOperationsTest() throws Exception {
+  void bulkDirectoryEntryOperationsTest() throws Exception {
     List<FireStoreDirectoryEntry> initDirectories =
         List.of(
             makeFileObject("/adir/A1"),
@@ -251,7 +254,7 @@ public class FireStoreDirectoryDaoTest {
   @Test
   // Tests that bulk directory ingest works  initially and when there are collisions with the same
   // load tag and failures when there are collisions with different load tags
-  public void bulkDirectoryOperationsFSObjectsTest() throws Exception {
+  void bulkDirectoryOperationsFSObjectsTest() throws Exception {
     List<FireStoreDirectoryEntry> initialFileObjects =
         List.of(
             makeFileObject("/m/adir/A1/file"),
@@ -293,10 +296,10 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
-  public void testEnumerateFileRefEntries() throws InterruptedException {
+  void testEnumerateFileRefEntries() throws InterruptedException {
     List<FireStoreDirectoryEntry> noFiles =
         directoryDao.enumerateFileRefEntries(firestore, collectionId, 0, 10);
-    assertEquals(noFiles.size(), 0);
+    assertThat(noFiles.size(), equalTo(0));
 
     List<FireStoreDirectoryEntry> fireStoreDirectoryEntries =
         List.of(

@@ -740,7 +740,7 @@ public class SamIam implements IamProviderInterface {
             groupName,
             policyName,
             memberEmail,
-            new Object()); // Not sure what should be here for object
+            null);
   }
 
   @Override

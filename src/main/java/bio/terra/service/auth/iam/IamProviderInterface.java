@@ -260,13 +260,42 @@ public interface IamProviderInterface {
    */
   String getGroup(String accessToken, String groupName) throws InterruptedException;
 
+  /**
+   * List the members of a DAC group on a SnapshotAccessRequest
+   *
+   * @param accessToken valid oauth token for the account getting the group
+   * @param groupName name of the Sam group to get
+   * @param policyName name of the Sam policy
+   * @return the list of emails in the group
+   * @throws InterruptedException
+   */
   List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName)
       throws InterruptedException;
 
+  /**
+   * Add a member to the DAC group on a SnapshotAccessRequest
+   *
+   * @param accessToken valid oauth token for the account adding to the group
+   * @param groupName name of the Sam group being added to
+   * @param policyName name of the Sam policy
+   * @param memberEmail the email to be added to the group
+   * @return the list of emails in the group after adding the member
+   * @throws InterruptedException
+   */
   List<String> addGroupPolicyEmail(
       String accessToken, String groupName, String policyName, String memberEmail)
       throws InterruptedException;
 
+  /**
+   * Remove a member from the DAC group on a SnapshotAccessRequest
+   *
+   * @param accessToken valid oauth token for the account removing from the group
+   * @param groupName name of the Sam group being removed from
+   * @param policyName name of the Sam policy
+   * @param memberEmail the email to be removed from the group
+   * @return the list of emails in the group after removing the member
+   * @throws InterruptedException
+   */
   List<String> removeGroupPolicyEmail(
       String accessToken, String groupName, String policyName, String memberEmail)
       throws InterruptedException;

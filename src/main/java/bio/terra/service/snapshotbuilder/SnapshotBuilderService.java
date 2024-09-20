@@ -22,6 +22,7 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -407,19 +408,19 @@ public class SnapshotBuilderService {
   public SnapshotAccessRequestMembersResponse getGroupMembers(UUID id) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
     return new SnapshotAccessRequestMembersResponse()
-        .members(iamService.getGroupPolicyEmails(model.samGroupName(), "member"));
+        .members(iamService.getGroupPolicyEmails(model.samGroupName(), IamRole.MEMBER.toString()));
   }
 
   public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
     return new SnapshotAccessRequestMembersResponse()
-        .members(iamService.addEmailToGroup(model.samGroupName(), "member", memberEmail));
+        .members(iamService.addEmailToGroup(model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
   }
 
   public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
     return new SnapshotAccessRequestMembersResponse()
-        .members(iamService.removeEmailFromGroup(model.samGroupName(), "member", memberEmail));
+        .members(iamService.removeEmailFromGroup(model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
   }
 
   private SnapshotAccessRequestDetailsResponse generateModelDetails(

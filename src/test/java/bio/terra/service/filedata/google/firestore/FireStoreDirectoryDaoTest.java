@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -157,7 +156,7 @@ class FireStoreDirectoryDaoTest {
 
     // Test all valid file references
     List<String> fileRefs =
-        fileObjects.stream().map(FireStoreDirectoryEntry::getFileId).collect(Collectors.toList());
+        fileObjects.stream().map(FireStoreDirectoryEntry::getFileId).toList();
     List<String> mismatches = directoryDao.validateRefIds(firestore, collectionId, fileRefs);
     assertThat("No invalid file refs", mismatches.size(), equalTo(0));
 
@@ -184,7 +183,7 @@ class FireStoreDirectoryDaoTest {
     assertThat("Correct number of object returned", enumList.size(), equalTo(3));
     List<String> expectedNames = Arrays.asList("A1", "A2", "bdir");
     List<String> enumNames =
-        enumList.stream().map(FireStoreDirectoryEntry::getName).collect(Collectors.toList());
+        enumList.stream().map(FireStoreDirectoryEntry::getName).toList();
 
     StringListCompare enumCompare = new StringListCompare(expectedNames, enumNames);
     assertThat("Enum names match", enumCompare.compare());

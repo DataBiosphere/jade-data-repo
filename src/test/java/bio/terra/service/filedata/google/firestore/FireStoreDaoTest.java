@@ -3,11 +3,9 @@ package bio.terra.service.filedata.google.firestore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.nullValue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -28,25 +26,25 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
-@Category(Connected.class)
+@Tag(Connected.TAG)
 @EmbeddedDatabaseTest
-public class FireStoreDaoTest {
+class FireStoreDaoTest {
   @Autowired private FireStoreDirectoryDao directoryDao;
   @Autowired private FireStoreFileDao fileDao;
   @Autowired private FireStoreDao dao;
@@ -57,12 +55,13 @@ public class FireStoreDaoTest {
   @MockBean private IamProviderInterface samService;
   @Autowired private ConfigurationService configService;
 
-  private DatasetSummaryModel summaryModel;
   private Firestore firestore;
-  private UUID datasetId;
-  private UUID snapshotId;
+  private String datasetId;
+  private String snapshotId;
+  private Dataset dataset;
+  private Snapshot snapshot;
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
     configService.reset();
@@ -70,17 +69,29 @@ public class FireStoreDaoTest {
     // Create dataset so that we have a firestore instance to test with
     BillingProfileModel billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    summaryModel = connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
-    datasetId = summaryModel.getId();
+    DatasetSummaryModel summaryModel =
+        connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
+    GoogleProjectResource projectResource =
+        new GoogleProjectResource().googleProjectId(summaryModel.getDataProject());
+    dataset = new Dataset().id(summaryModel.getId()).projectResource(projectResource);
+    datasetId = summaryModel.getId().toString();
+    var snapshotIdUUID = UUID.randomUUID();
+    snapshotId = snapshotIdUUID.toString();
+    snapshot = new Snapshot().id(snapshotIdUUID).projectResource(projectResource);
 
     // real case will have separate dataset and snapshot instances
     // But, we can share this firestore instance for this test
     firestore = TestFirestoreProvider.getFirestore(summaryModel.getDataProject());
-    snapshotId = UUID.randomUUID();
   }
 
-  @After
+  @AfterEach
   public void cleanup() throws Exception {
+    if (datasetId != null) {
+      directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
+      directoryDao.deleteDirectoryEntriesFromCollection(firestore, snapshotId);
+      fireStoreDependencyDao.deleteSnapshotFileDependencies(dataset, snapshotId);
+      fileDao.deleteFilesFromDataset(firestore, datasetId, f -> {});
+    }
     connectedOperations.teardown();
   }
 
@@ -92,22 +103,19 @@ public class FireStoreDaoTest {
   // - do the compute and validate
   // Use binary for the sizes so each size combo will be unique
   @Test
-  public void snapshotTest() throws Exception {
-    GoogleProjectResource projectResource =
-        new GoogleProjectResource().googleProjectId(summaryModel.getDataProject());
-    Dataset dataset = new Dataset().id(datasetId).projectResource(projectResource);
-    Snapshot snapshot = new Snapshot().id(snapshotId).projectResource(projectResource);
+  void snapshotTest() throws Exception {
+
     // Make files that will be in the snapshot
     List<FireStoreDirectoryEntry> snapObjects = new ArrayList<>();
-    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/A1", 1));
-    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/B1", 2));
-    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/cdir/C1", 4));
-    snapObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/cdir/C2", 8));
+    snapObjects.add(makeFileObject(datasetId, "/adir/A1", 1));
+    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/B1", 2));
+    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/cdir/C1", 4));
+    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/cdir/C2", 8));
 
     // And some files that won't be in the snapshot
     List<FireStoreDirectoryEntry> dsetObjects = new ArrayList<>();
-    dsetObjects.add(makeFileObject(datasetId.toString(), "/adir/bdir/B2", 16));
-    dsetObjects.add(makeFileObject(datasetId.toString(), "/adir/A2", 32));
+    dsetObjects.add(makeFileObject(datasetId, "/adir/bdir/B2", 16));
+    dsetObjects.add(makeFileObject(datasetId, "/adir/A2", 32));
 
     List<String> dsfileIdList =
         Streams.concat(
@@ -119,26 +127,19 @@ public class FireStoreDaoTest {
     List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>(snapObjects);
     fileObjects.addAll(dsetObjects);
     for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fileObjects) {
-      directoryDao.createDirectoryEntry(firestore, datasetId.toString(), fireStoreDirectoryEntry);
+      directoryDao.createDirectoryEntry(firestore, datasetId, fireStoreDirectoryEntry);
     }
 
     // Make the snapshot file system
     List<String> snapfileIdList =
         snapObjects.stream().map(FireStoreDirectoryEntry::getFileId).toList();
     directoryDao.addEntriesToSnapshot(
-        firestore,
-        datasetId.toString(),
-        "dataset",
-        firestore,
-        snapshotId.toString(),
-        snapfileIdList,
-        false);
+        firestore, datasetId, "dataset", firestore, snapshotId, snapfileIdList, false);
 
     // Validate we can lookup files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : snapObjects) {
       FireStoreDirectoryEntry snapObject =
-          directoryDao.retrieveById(firestore, snapshotId.toString(), dsetObject.getFileId());
-      assertNotNull("object found in snapshot", snapObject);
+          directoryDao.retrieveById(firestore, snapshotId, dsetObject.getFileId());
       assertThat("objectId matches", snapObject.getFileId(), equalTo(dsetObject.getFileId()));
       assertThat("path does not match", snapObject.getPath(), not(equalTo(dsetObject.getPath())));
     }
@@ -147,45 +148,40 @@ public class FireStoreDaoTest {
     // Before setting up the dependency file system, assert datasetHasSnapshotReference returns
     // false
     boolean noDependencies = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
-    assertFalse("Dataset should not yet have dependencies", noDependencies);
+    assertThat("Dataset should not yet have dependencies", noDependencies, is(false));
 
     // Create dependency file system
-    fireStoreDependencyDao.storeSnapshotFileDependencies(
-        dataset, snapshotId.toString(), snapfileIdList);
+    fireStoreDependencyDao.storeSnapshotFileDependencies(dataset, snapshotId, snapfileIdList);
 
     // Snapshot and File Dependency should now exist for dataset
     boolean hasReference = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
-    assertTrue("Dataset should have dependencies", hasReference);
+    assertThat("Dataset should have dependencies", hasReference);
 
     boolean hasFileReference =
         fireStoreDependencyDao.fileHasSnapshotReference(dataset, snapObjects.get(0).getFileId());
-    assertTrue("File should be referenced in snapshot", hasFileReference);
+    assertThat("File should be referenced in snapshot", hasFileReference);
 
     // Validate dataset files do not have references
     boolean noFileReference =
         fireStoreDependencyDao.fileHasSnapshotReference(dataset, dsetObjects.get(0).getFileId());
-    assertFalse("No dependency on files not referenced in snapshot", noFileReference);
+    assertThat("No dependency on files not referenced in snapshot", noFileReference, is(false));
 
     // Validate we cannot lookup dataset files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : dsetObjects) {
       FireStoreDirectoryEntry snapObject =
-          directoryDao.retrieveById(firestore, snapshotId.toString(), dsetObject.getFileId());
-      assertNull("object not found in snapshot", snapObject);
+          directoryDao.retrieveById(firestore, snapshotId, dsetObject.getFileId());
+      assertThat("object not found in snapshot", snapObject, is(nullValue()));
     }
 
     // Compute the size and checksums
-    FireStoreDirectoryEntry topDir =
-        directoryDao.retrieveByPath(firestore, snapshotId.toString(), "/");
+    FireStoreDirectoryEntry topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
     List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
-    FireStoreDao.FirestoreComputeHelper helper =
-        dao.getHelper(firestore, firestore, snapshotId.toString());
+    FireStoreDao.FirestoreComputeHelper helper = dao.getHelper(firestore, firestore, snapshotId);
     SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
-    directoryDao.batchStoreDirectoryEntry(firestore, snapshotId.toString(), updateBatch);
+    directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
 
     // Check the accumulated size on the root dir
-    FireStoreDirectoryEntry snapObject =
-        directoryDao.retrieveByPath(firestore, snapshotId.toString(), "/");
-    assertNotNull("root exists", snapObject);
+    FireStoreDirectoryEntry snapObject = directoryDao.retrieveByPath(firestore, snapshotId, "/");
     assertThat("Total size is correct", snapObject.getSize(), equalTo(15L));
 
     // Check that we can retrieve all with or without directories

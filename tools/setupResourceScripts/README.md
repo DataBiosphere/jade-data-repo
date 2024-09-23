@@ -21,7 +21,7 @@ The script outputs are written to a JSON file in the format:
 ```
 
 ### Set up data repo UI test datasets
-* Run the script against dev to set up the datasets for the UI tests. You'll need to run it for both the azure and gcp datasets. So, a total of 4 runs.
+* Run the script against dev to set up the datasets for the UI tests. You'll need to run it for both the azure and gcp datasets. So, a total of 2 runs.
 * Authenticate as the test user that created the azure managed application. Password for account can be found on our slack channel.
 * `gcloud auth login dumbledore.admin@test.firecloud.org`
 * `python3 setup_tdr_resources.py --host=https://jade.datarepo-dev.broadinstitute.org --datasets='datarepo_datasets.json'`

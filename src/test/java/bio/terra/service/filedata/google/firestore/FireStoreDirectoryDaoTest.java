@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -155,7 +156,8 @@ class FireStoreDirectoryDaoTest {
     }
 
     // Test all valid file references
-    List<String> fileRefs = fileObjects.stream().map(FireStoreDirectoryEntry::getFileId).toList();
+    List<String> fileRefs =
+        fileObjects.stream().map(FireStoreDirectoryEntry::getFileId).collect(Collectors.toList());
     List<String> mismatches = directoryDao.validateRefIds(firestore, collectionId, fileRefs);
     assertThat("No invalid file refs", mismatches, empty());
 

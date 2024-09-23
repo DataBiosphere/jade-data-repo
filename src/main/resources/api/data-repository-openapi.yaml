@@ -3269,12 +3269,6 @@ paths:
       operationId: addSnapshotAccessRequestGroupMember
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: memberEmail
-          in: query
-          description: The email of the user to add
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json:

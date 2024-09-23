@@ -118,11 +118,11 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
 
   @Override
   public ResponseEntity<SnapshotAccessRequestMembersResponse> addSnapshotAccessRequestGroupMember(
-      String memberEmail, UUID id, PolicyMemberRequest body) {
+      UUID id, PolicyMemberRequest body) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
-    return ResponseEntity.ok(snapshotBuilderService.addGroupMember(id, memberEmail));
+    return ResponseEntity.ok(snapshotBuilderService.addGroupMember(id, body.getEmail()));
   }
 
   @Override

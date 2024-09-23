@@ -1,7 +1,9 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.app.configuration.TerraConfiguration;
+import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -413,6 +415,9 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    if (!ValidationUtils.isValidEmail(memberEmail)) {
+      throw new ValidationException("InvalidMemberEmail");
+    }
     return new SnapshotAccessRequestMembersResponse()
         .members(
             iamService.addEmailToGroup(
@@ -421,6 +426,9 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    if (!ValidationUtils.isValidEmail(memberEmail)) {
+      throw new ValidationException("InvalidMemberEmail");
+    }
     return new SnapshotAccessRequestMembersResponse()
         .members(
             iamService.removeEmailFromGroup(

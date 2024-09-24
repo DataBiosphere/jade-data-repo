@@ -4,21 +4,15 @@
     "cloud_platform": "gcp",
     "schema": "1000Genomes",
     "tables": [
-      "bam_file",
+      "pedigree",
       "sample_info",
       "vcf_file",
-      "pedigree"
+      "bam_file"
     ],
     "format": "array",
     "stewards": ["DataRepoTestResourceAccess@dev.test.firecloud.org"],
     "custodians": [],
     "snapshot_creators": [],
-    "snapshots": [
-      {
-        "name": "1000GenomesDataset_SelfHostedGoogleSnapshot",
-        "description": "Snapshot of 1000 genomes",
-        "readers": ["DataRepoTestResourceAccess@dev.test.firecloud.org"]
-      }
-    ]
+    "snapshots": []
   }
 ]

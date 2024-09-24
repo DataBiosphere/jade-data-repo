@@ -3498,5 +3498,4 @@
 {"Family_ID": "Y035", "Individual_ID": "NA19197", "Paternal_ID": "0", "Maternal_ID": "0", "Gender": "2", "Phenotype": "0", "Population": "YRI", "Relationship": "mother", "Siblings": "0", "Second_Order": "0", "Third_Order": "0", "Other_Comments": "0"}
 {"Family_ID": "Y025a", "Individual_ID": "NA18908", "Paternal_ID": "0", "Maternal_ID": "0", "Gender": "1", "Phenotype": "0", "Population": "YRI", "Relationship": "not father", "Siblings": "0", "Second_Order": "0", "Third_Order": "0", "Other_Comments": "0"}
 {"Family_ID": "Y010a", "Individual_ID": "NA18510", "Paternal_ID": "0", "Maternal_ID": "0", "Gender": "1", "Phenotype": "0", "Population": "YRI", "Relationship": "not father", "Siblings": "0", "Second_Order": "0", "Third_Order": "0", "Other_Comments": "0"}
-{"Family_ID": "Y080", "Individual_ID": "NA19105", "Paternal_ID": "0", "Maternal_ID": "0", "Gender": "2", "Phenotype": "0", "Population": "YRI", "Relationship": "paternal grandmother", "Siblings": "0", "Second_Order": "NA18863", "Third_Order": "0", "Other_Comments": "0"
-}
+{"Family_ID": "Y080", "Individual_ID": "NA19105", "Paternal_ID": "0", "Maternal_ID": "0", "Gender": "2", "Phenotype": "0", "Population": "YRI", "Relationship": "paternal grandmother", "Siblings": "0", "Second_Order": "NA18863", "Third_Order": "0", "Other_Comments": "0"}

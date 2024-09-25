@@ -373,50 +373,28 @@ Ensure that:
 ### Personal Dev Environment Setup
 We're moving away from setting up personal dev environments for every developer. Instead, we are moving
 towards using BEEs ([BEE url](https://beehive.dsp-devops.broadinstitute.org/environments/new), [TDR on BEEs](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit#heading=h.5gsyp5q4qds5))
-However, there are still some use cases for personal dev environments.
+However, there are still some use cases for personal dev environments. So, you should feel free to
+use one of the existing personal dev environments for your work (but check with the data repo team to
+see if anyone else is using a particular environment).
 
-Throughout these instructions, replace all instances of `ZZ` with your initials.
+Throughout these instructions, replace all instances of `ZZ` with the initials of the environment
+you are setting up (e.g. `sh`).
 
-> There is a video of us walking through
-these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing).
+NOTE: As a cost savings measure, we expect for you to tear down the personal development environment
+when you finish testing. This can be done by running `helmfile destroy` in the `datarepo-helm-definitions/dev/ZZ` directory.
 
-1. Follow the
-   [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
-   to add your initials to the terraform templates and generate the static resources needed
-   to deploy your personal development environment.
-   Apply the changes and create a pull request to merge your additions to `terraform-jade`.
-
-2. Create your datarepo helm definition:
--  In `datarepo-helm-definitions/dev` directory,
-   copy an existing developer definition and change all initials to your own.
-   Double-check with the team if you're not sure what to use, but the most recently added
-   is probably the best choice.
+1. Connect to the non-split VPN
+2. Connect to the dev cluster
+```
+gcloud auth login
+gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
+```
+3. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
+   bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
 -  By default, leave release chart versions unspecified in your `helmfile.yaml` so that
    latest versions are automatically picked up when running helmfile commands.
    Otherwise, verify that specified versions match the
    [latest dependency versions](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo/Chart.lock).
--  Create a pull request with these changes in
-   [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions).
-
-
-3. Log in to [Google Cloud Platform](https://console.cloud.google.com).
-   In the top-left corner, select the **BROADINSTITUTE.ORG** organization.
-   Select **broad-jade-dev** from the list of projects.
-
-4. From the left hand sidebar, select **Kubernetes Engine -> Clusters** under
-   **COMPUTE**.
-
-5. Click **Connect** on the **dev-master** cluster.
-   (You can also navigate here via
-   [direct link](https://console.cloud.google.com/kubernetes/clusters/details/us-central1/dev-master/details?project=broad-jade-dev).)
-   This gives you a `kubectl` command to copy and paste into the terminal:
-
-```
-gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
-```
-
-6. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
-   bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
 
 Note: Make sure you are on the VPN, otherwise the helmfile apply will fail.
 
@@ -428,31 +406,17 @@ helmfile apply
 helm list --namespace ZZ
 ```
 
-7. Update the following authorized domains within the
-   [Jade Data Repository OAuth2 Client configuration](https://console.cloud.google.com/apis/credentials/oauthclient/970791974390-1581mjhtp2b3jmg4avhor1vabs13b7ur.apps.googleusercontent.com?authuser=0&project=broad-jade-dev):
-
-- Under Authorized JavaScript origins, add `https://jade-ZZ.datarepo-dev.broadinstitute.org`
-- Under Authorized redirect URIs, add `https://jade-ZZ.datarepo-dev.broadinstitute.org/login/google` and
-  `https://jade-ZZ.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
-
-8. Connect to your new dev postgres database instance:
+4. You can access the instance at the following address: `https://jade-ZZ.datarepo-dev.broadinstitute.org`
+5. Connect to your new dev postgres database instance:
    Note that this is a different instance than the local one you will configure in [step 10](#10-install-postgres-11).
    The following command connects to the database via a proxy.
-
 ```
 cd jade-data-repo/ops
 DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 ```
 
-9. Now that you're connected to your dev database, run the following command
-   (Once [DR-1156](https://broadworkbench.atlassian.net/browse/DR-1156) is done, this will no longer be needed):
-
+**When finished testing, shut down the environment by running `helmfile destroy`**
 ```
-create extension pgcrypto;
+cd datarepo-helm-definitions/dev/ZZ
+helmfile destory
 ```
-
-10. Create a pull request to `terraform-ap-deployments` to add
-   `https://jade-ZZ.datarepo-dev.broadinstitute.org` under the
-   ['personal deployments'](https://github.com/broadinstitute/terraform-ap-deployments/blob/e9ecc7a637fe4a7743011b568f76a296a4e85ed2/azure/b2c/tfvars/dev.tfvars#L20)
-   section of `dev.tfvars/b2c_tdr_hosts`.  This allows B2C as a means of authentication, which is
-   the default across environments.

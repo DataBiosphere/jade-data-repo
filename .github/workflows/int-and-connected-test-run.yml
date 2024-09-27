@@ -62,8 +62,6 @@ jobs:
           AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
           # required for connected tests
           GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
-          # required data project for snapshotTest
-          GOOGLE_CLOUD_DATA_PROJECT: broad-jade-integration-data
           # required for testAzureBillingProfile
           # uses an azure marketplace app with this hardcoded deployment email
           JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
@@ -75,8 +73,8 @@ jobs:
           # extract service account credentials
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
-          # assemble code and run connected tests
-          ./gradlew --scan assemble testConnected
+          # run connected tests
+          ./gradlew --scan --warn testConnected
   test_integration:
     name: Integration tests
     runs-on: ubuntu-latest
@@ -126,7 +124,7 @@ jobs:
           # wait for postgres to be ready
           pg_isready -h ${PGHOST} -t 30
           # create the datarepo and stairway databases
-          psql -U postgres -f ./db/create-data-repo-db
+          psql -U postgres -f ./scripts/init-db/postgres-init.sql
           # extract service account credentials
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
@@ -139,7 +137,7 @@ jobs:
           # wait until api is ready
           timeout 30 bash -c 'until curl -s ${IT_JADE_API_URL}/status; do sleep 1; done'
           # run integration tests
-          ./gradlew --scan testIntegration
+          ./gradlew --scan --warn testIntegration
       - name: Upload API logs
         if: always()
         uses: actions/upload-artifact@v4

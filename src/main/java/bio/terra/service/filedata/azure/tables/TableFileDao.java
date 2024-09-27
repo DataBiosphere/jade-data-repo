@@ -3,7 +3,6 @@ package bio.terra.service.filedata.azure.tables;
 import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
 
 import bio.terra.common.FutureUtils;
-import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.ApiFutureGenerator;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
@@ -18,7 +17,6 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.google.api.core.SettableApiFuture;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
@@ -81,8 +79,10 @@ public class TableFileDao {
       TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
       return FireStoreFile.fromTableEntity(entity);
     } catch (TableServiceException ex) {
-      logger.error("Error retrieving file metadata for fileId: {}", fileId);
-      throw ex;
+      // enable listFiles to work that have file ingests before the DC-1259 fix
+      // This is a temporary fix to ignore directory entries that do not have matching file entries
+      logger.warn("Error retrieving file metadata for fileId: {}", fileId);
+      return null;
     }
   }
 
@@ -104,13 +104,7 @@ public class TableFileDao {
                 f ->
                     azureTableThreadpool.submit(
                         () ->
-                            Optional.ofNullable(
-                                    retrieveFileMetadata(
-                                        tableServiceClient, collectionId, f.getFileId()))
-                                .orElseThrow(
-                                    () ->
-                                        new FileSystemCorruptException(
-                                            "Directory entry refers to non-existent file"))))
+                            retrieveFileMetadata(tableServiceClient, collectionId, f.getFileId())))
             .toList());
   }
 

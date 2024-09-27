@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# run the service in one of different deployment modes
+set -e #-x
+
+usage() {
+  cat <<-'EOF'
+usage: [GRADLE_ARGS] run [-h|--help] RUNTYPE
+[-h|--help]       print this help text
+RUNTYPE is one of:
+- tests           run tests against repo. Optionally provide a specific test to run.
+- connected       run connected tests; Optionally provide a specific test to run.
+- integration     run integration tests against running instance;
+                  either `local` or `docker`. Optionally provide a specific test to run.
+- start_local     start as a local terminal process
+- start_docker    start in a docker container
+- check           run linter, checks, and unit tests
+GRADLE_ARGS is used to had arguments to the gradle commands. One common usage for this is to set specific tests.
+For example: `GRADLE_ARGS='--tests *testSnapshotBuilder'`. Tests can be passed using:
+- A fully-qualified class name or fully qualified method name, e.g. org.gradle.SomeTest, org.gradle.SomeTest.someMethod
+- A simple class name or method name if the pattern starts with an upper-case letter, e.g. SomeTest, SomeTest.someMethod (since Gradle 4.7)
+- '*' wildcard matching (e.g. '*someMethod')
+
+EOF
+}
+
+# script variables and defaults
+source "$(dirname "$0")"/init.sh
+
+# process command-line options (if any)
+die() { log_error "$*" >&2; echo ""; usage; exit 2; }  # complain to STDERR and exit with error
+needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
+
+while getopts h-: OPT; do
+  # support long options: https://stackoverflow.com/a/28466267/519360
+  if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
+    OPT="${OPTARG%%=*}"       # extract long option name
+    OPTARG="${OPTARG#"$OPT"}"   # extract long option argument (may be empty)
+    OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+  fi
+  case "$OPT" in
+    h | help )     usage; exit 0 ;;
+    \? )           usage; exit 2 ;;  # bad short option (error reported via getopts)
+    * )            die "Illegal option --$OPT" ;;            # bad long option
+  esac
+done
+shift $((OPTIND-1)) # remove parsed options and args from $@ list
+
+
+# process positional arguments (if any)
+RUNTYPE=${1}
+
+run_tests() {
+  cd "${ROOT_DIR}"
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew testUnit ${GRADLE_ARGS}
+
+#./gradlew --build-cache srcclr
+}
+
+run_integration_tests() {
+  TEST_ENV=${TEST_ENV:-local}
+
+  cd "${ROOT_DIR}"
+  start_docker integration
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew testIntegration ${GRADLE_ARGS}
+
+  # for developer runs, build an integration report locally
+  if [ -z "$CI" ]; then
+    log_debug "TODO: how do we build a report?"
+  fi
+}
+
+run_connected_tests() {
+  TEST_ENV=${TEST_ENV:-local}
+
+  cd "${ROOT_DIR}"
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew testConnected ${GRADLE_ARGS}
+
+  # for developer runs, build an integration report locally
+  if [ -z "$CI" ]; then
+    log_debug "TODO: how do we build a report?"
+  fi
+}
+
+start_local() {
+  eval "$("${SCRIPTS_DIR}"/render-configs.sh -e)"
+  cd "$ROOT_DIR"
+  ./gradlew bootRun ${GRADLE_ARGS}
+}
+
+start_docker() {
+  eval "$("${SCRIPTS_DIR}"/render-configs.sh -a "$1" -e)"
+  "$SCRIPTS_DIR/build" docker
+  docker compose -f "$SCRIPTS_DIR/compose.yaml" up service -d
+}
+
+run_check() {
+  eval "$("${SCRIPTS_DIR}"/render-configs.sh -e)"
+  cd "$ROOT_DIR"
+  # shellcheck disable=SC2086 # The array syntax and quoting seems to break gradle
+  ./gradlew check ${GRADLE_ARGS}
+}
+
+case "$RUNTYPE" in
+  tests)        run_tests;;
+  integration)  run_integration_tests;;
+  connected)    run_connected_tests;;
+  start_local)  start_local;;
+  start_docker) start_docker dev;;
+  check)        run_check;;
+  *)            usage; exit 2;
+esac

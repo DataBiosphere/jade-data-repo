@@ -261,6 +261,15 @@
           "fpk_observation_type_concept",
           "fpk_observation_value"]
       }
+    },
+    {
+      "name": "Sample",
+      "table": {
+        "datasetTableName": "sample",
+        "columns": [],
+        "primaryTableRelationship": "fpk_person_observation",
+        "secondaryTableRelationships": []
+      }
     }
   ],
   "rootTable":  {

@@ -18,6 +18,7 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.BucketInfo.Autoclass;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
@@ -31,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -47,17 +47,17 @@ public class GoogleBucketService {
   private final GoogleResourceDao resourceDao;
   private final GcsProjectFactory gcsProjectFactory;
   private final ConfigurationService configService;
+  private final Environment env;
 
-  @Autowired private Environment env;
-
-  @Autowired
   public GoogleBucketService(
       GoogleResourceDao resourceDao,
       GcsProjectFactory gcsProjectFactory,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      Environment env) {
     this.resourceDao = resourceDao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.configService = configService;
+    this.env = env;
   }
 
   /**
@@ -316,6 +316,16 @@ public class GoogleBucketService {
   }
 
   /**
+   * Fetch metadata for an existing bucket.
+   *
+   * @param bucketName name of the bucket
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   */
+  public GoogleBucketResource getBucketMetadata(String bucketName) {
+    return resourceDao.retrieveBucketByName(bucketName);
+  }
+
+  /**
    * Update the bucket_resource metadata table to match the state of the underlying cloud. - If the
    * bucket exists, then the metadata row should also exist and be unlocked. - If the bucket does
    * not exist, then the metadata row should not exist. If the metadata row is locked, then only the
@@ -337,6 +347,18 @@ public class GoogleBucketService {
   }
 
   /**
+   * Get the Storage object using the project id from the bucket resource.
+   *
+   * @param bucketResource the bucket resource to get the project id from
+   * @return the Storage object for the bucket resource
+   */
+  public Storage getStorageForBucketResource(GoogleBucketResource bucketResource) {
+    String googleProjectId = bucketResource.projectIdForBucket();
+    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId, true);
+    return gcsProject.getStorage();
+  }
+
+  /**
    * Create a new bucket cloud resource. Note this method does not create any associated metadata in
    * the bucket_resource table.
    *
@@ -349,12 +371,13 @@ public class GoogleBucketService {
    *     with the dataset that this bucket will be associated with
    * @return a reference to the bucket as a GCS Bucket object
    */
-  private Bucket newCloudBucket(
+  @VisibleForTesting
+  protected Bucket newCloudBucket(
       GoogleBucketResource bucketResource,
       Duration daysToLive,
-      Callable<List<String>> getReaderGroups,
+      Callable<? extends List<String>> getReaderGroups,
       String dedicatedServiceAccount,
-      Boolean enableAutoclass) {
+      boolean enableAutoclass) {
     final List<String> readerGroups;
     try {
       if (getReaderGroups != null) {
@@ -381,19 +404,21 @@ public class GoogleBucketService {
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
-            .setAutoclass(Autoclass.newBuilder().setEnabled(enableAutoclass).build())
+            .setAutoclass(
+                Autoclass.newBuilder()
+                    .setEnabled(enableAutoclass)
+                    .setTerminalStorageClass(StorageClass.ARCHIVE)
+                    .build())
             .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)
             .setLifecycleRules(lifecycleRules)
             .build();
 
-    GoogleProjectResource projectResource = bucketResource.getProjectResource();
-    String googleProjectId = projectResource.getGoogleProjectId();
-    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId, true);
+    String googleProjectId = bucketResource.projectIdForBucket();
 
     // the project will have been created before this point, so no need to fetch it
     logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
-    Storage storage = gcsProject.getStorage();
+    Storage storage = getStorageForBucketResource(bucketResource);
     Bucket createdBucket = storage.create(bucketInfo);
 
     grantBucketReaderIam(createdBucket, storage, readerGroups, dedicatedServiceAccount);
@@ -433,13 +458,60 @@ public class GoogleBucketService {
   }
 
   /**
+   * Set the autoclass settings for a bucket.
+   *
+   * @param bucketResource description of the bucket resource to be updated
+   * @param enable whether autoclass should be enabled
+   * @param terminalStorageClass the terminal storage class to use for autoclass
+   * @return a reference to the bucket as a GCS Bucket object
+   */
+  public Bucket setBucketAutoclass(
+      GoogleBucketResource bucketResource,
+      boolean enable,
+      StorageClass defaultStorageClass,
+      StorageClass terminalStorageClass) {
+    Storage storage = getStorageForBucketResource(bucketResource);
+    Bucket bucket = storage.get(bucketResource.getName());
+    Autoclass.Builder autoclassBuilder = Autoclass.newBuilder().setEnabled(enable);
+    if (enable) {
+      autoclassBuilder.setTerminalStorageClass(terminalStorageClass);
+    }
+    Bucket bucketUpdate =
+        bucket.toBuilder()
+            .setStorageClass(defaultStorageClass)
+            .setAutoclass(autoclassBuilder.build())
+            .build();
+    return storage.update(bucketUpdate);
+  }
+
+  /**
+   * Enable the autoclass settings for a bucket with the terminal storage class set to ARCHIVE.
+   *
+   * @param bucketResource description of the bucket resource to be updated
+   * @return a reference to the bucket as a GCS Bucket object
+   */
+  public Bucket setBucketAutoclassToArchive(GoogleBucketResource bucketResource) {
+    return setBucketAutoclass(bucketResource, true, StorageClass.STANDARD, StorageClass.ARCHIVE);
+  }
+
+  /**
+   * Set the autoclass settings for bucket metadata in the bucket_resource table.
+   *
+   * @param bucketName name of the bucket to update
+   * @param enable whether autoclass should be enabled
+   * @return the number of rows updated
+   */
+  public int setBucketAutoclassMetadata(String bucketName, boolean enable) {
+    return resourceDao.updateBucketAutoclassByName(bucketName, enable);
+  }
+
+  /**
    * Fetch an existing bucket cloud resource. Note this method does not check any associated
    * metadata in the bucket_resource table.
    *
    * @param bucketName name of the bucket to retrieve
    * @return a reference to the bucket as a GCS Bucket object, null if not found
    */
-  @VisibleForTesting
   public Bucket getCloudBucket(String bucketName) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
     try {

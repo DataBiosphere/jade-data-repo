@@ -436,7 +436,8 @@ public class FireStoreDao {
     List<FireStoreFile> files =
         fileDao.batchRetrieveFileMetadata(
             datasetFirestore, dataset.getId().toString(), directoryEntries);
-    return FileMetadataUtils.toFileModel(directoryEntries, files, container.getId().toString());
+    return FileMetadataUtils.toFileModel(
+        directoryEntries, files, container.getId().toString(), true);
   }
 
   /**

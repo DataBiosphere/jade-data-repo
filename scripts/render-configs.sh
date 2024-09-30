@@ -3,30 +3,31 @@
 # To write secrets to tmp files:
 # ./render-configs.sh (defaults to dev azure, tools RBS)
 
-# There are three optional arguments:
-# ./render-configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i)
+# There are four optional arguments:
+# ./render-configs.sh (Azure Synapse: -a dev|integration) (RBS: -r tools|dev)  (Put string of env variables in your clipboard to copy to intellij: -i) (Echo the output to eval into env variables: -e)
 # e.g.: ./render-configs.sh -a dev -r tools -i
 # This would set azure synapse to dev, RBS to tools, and put the variables in your clipboard
 
 # If you're running Azure Integration Tests you should use the following settings:
 # ./render-configs.sh -a integration -r tools
-# Then, refresh your z-shell configuration (`source ~./zshrc`) (follow getting started doc to set env variables)
+# Then, refresh your z-shell configuration (`source ~/.zshrc`) (follow getting started doc to set env variables)
 # Alternatively, if you use the -i flag, it copies the environment variables to your clipboard and you can paste them into your Intellij test profile.
 # ./render-configs.sh -a integration -r tools -i
 
 # If you want a set up locally, you can use the following settings:
 # ./render-configs.sh -a dev -r dev
-# Then, refresh your z-shell configuration (`source ~./zshrc`)
+# Then, refresh your z-shell configuration (`source ~/.zshrc`)
 # ./gradlew bootRun
 
 set -eu
 
 AZURE_ENV=dev
 RBS_ENV=tools
-COPY_INTELLIJ_ENV_VARS=n
+COPY_INTELLIJ_ENV_VARS=false
+ECHO_SETTINGS_TO_OUTPUT=false
 USE_VAULT="${USE_VAULT:-false}"
 
-while getopts ":a:r:i" option; do
+while getopts ":a:r:ie" option; do
   case $option in
     a)
       AZURE_ENV=$OPTARG
@@ -35,10 +36,13 @@ while getopts ":a:r:i" option; do
       RBS_ENV=$OPTARG
       ;;
     i)
-      COPY_INTELLIJ_ENV_VARS=y
+      COPY_INTELLIJ_ENV_VARS=true
+      ;;
+    e)
+      ECHO_SETTINGS_TO_OUTPUT=true
       ;;
     *)
-      echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-i]"
+      echo "Usage: $0 [-a (dev|integration)] [-r (tools|dev)] [-i] [-e]"
       exit 1
       ;;
   esac
@@ -68,12 +72,18 @@ if $USE_VAULT; then
 else
   AZURE_SECRETS=$(gcloud secrets versions access latest --project $GCLOUD_PROJECT --secret azure-secrets)
 fi
-
+# These are used in the variable echoing or setting to clipboard below
+# shellcheck disable=SC2034
 AZURE_CREDENTIALS_HOMETENANTID=$(echo "$AZURE_SECRETS" | jq -r '."tenant-id"' | tee /tmp/jade-dev-tenant-id.key)
+# shellcheck disable=SC2034
 AZURE_CREDENTIALS_APPLICATIONID=$(echo "$AZURE_SECRETS" | jq -r '."client-id"' | tee /tmp/jade-dev-client-id.key)
+# shellcheck disable=SC2034
 AZURE_CREDENTIALS_SECRET=$(echo "$AZURE_SECRETS" | jq -r '."client-secret"' | tee /tmp/jade-dev-azure.key)
+# shellcheck disable=SC2034
 AZURE_SYNAPSE_SQLADMINUSER=$(echo "$AZURE_SECRETS" | jq -r '."synapse-sql-admin-user"' | tee /tmp/jade-dev-synapse-admin-user.key)
+# shellcheck disable=SC2034
 AZURE_SYNAPSE_SQLADMINPASSWORD=$(echo "$AZURE_SECRETS" | jq -r '."synapse-sql-admin-password"' | tee /tmp/jade-dev-synapse-admin-password.key)
+# shellcheck disable=SC2034
 AZURE_SYNAPSE_ENCRYPTIONKEY=$(echo "$AZURE_SECRETS" | jq -r '."synapse-encryption-key"' | tee /tmp/jade-dev-synapse-encryption-key.key)
 
 # ========================
@@ -91,7 +101,9 @@ else
     | jq -r .private_key > /tmp/jade-dev-account.pem
 fi
 
+# shellcheck disable=SC2034
 GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
+# shellcheck disable=SC2034
 GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 
 # ========================
@@ -130,25 +142,35 @@ else
 fi
 
 
-if [[ "${COPY_INTELLIJ_ENV_VARS}" == "y" ]]; then
-  VARIABLE_NAMES=(AZURE_SYNAPSE_WORKSPACENAME AZURE_CREDENTIALS_HOMETENANTID AZURE_CREDENTIALS_APPLICATIONID AZURE_CREDENTIALS_SECRET AZURE_SYNAPSE_SQLADMINUSER AZURE_SYNAPSE_SQLADMINPASSWORD AZURE_SYNAPSE_ENCRYPTIONKEY GOOGLE_APPLICATION_CREDENTIALS GOOGLE_SA_CERT RBS_POOLID RBS_INSTANCEURL)
+VARIABLE_NAMES=(AZURE_SYNAPSE_WORKSPACENAME AZURE_CREDENTIALS_HOMETENANTID AZURE_CREDENTIALS_APPLICATIONID AZURE_CREDENTIALS_SECRET AZURE_SYNAPSE_SQLADMINUSER AZURE_SYNAPSE_SQLADMINPASSWORD AZURE_SYNAPSE_ENCRYPTIONKEY GOOGLE_APPLICATION_CREDENTIALS GOOGLE_SA_CERT RBS_POOLID RBS_INSTANCEURL)
 
-  # Initialize an empty string
+if "${COPY_INTELLIJ_ENV_VARS}"; then
   SETTINGS=""
-
-  # Loop over the array
-  for VAR_NAME in "${VARIABLE_NAMES[@]}"
-  do
+  for VAR_NAME in "${VARIABLE_NAMES[@]}"; do
     # Append the variable name and its value to the string
     SETTINGS+="$VAR_NAME=${!VAR_NAME};"
   done
 
   # Copy variables to clipboard
+  echo "# Environment variables copied to clipboard"
   echo "$SETTINGS"  | pbcopy
-  echo "Environment variables copied to clipboard"
+fi
+
+if "${ECHO_SETTINGS_TO_OUTPUT}"; then
+  # Initialize an empty string
+  OUTPUT=""
+
+  # Loop over the array
+  for VAR_NAME in "${VARIABLE_NAMES[@]}"; do
+    # Append the variable name and its value to the string
+    OUTPUT+="export $VAR_NAME='${!VAR_NAME}';"
+  done
+
+  echo "$OUTPUT"
 fi
 
 unset AZURE_ENV
 unset RBS_ENV
 unset COPY_INTELLIJ_ENV_VARS
+unset ECHO_SETTINGS_TO_OUTPUT
 

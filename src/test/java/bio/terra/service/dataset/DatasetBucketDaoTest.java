@@ -321,6 +321,47 @@ public class DatasetBucketDaoTest {
     assertFalse("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
   }
 
+  @Test(expected = Exception.class)
+  public void testRetrieveBucketByIdException() {
+    UUID bucketId = UUID.randomUUID();
+    // this should fail -> no bucket with this id
+    resourceDao.retrieveBucketById(bucketId);
+  }
+
+  @Test(expected = Exception.class)
+  public void testRetrieveBucketByNameException() {
+    bucketName = "bucketDoesNotExist";
+    // this should fail -> no bucket with this name
+    resourceDao.retrieveBucketByName(bucketName);
+  }
+
+  @Test
+  public void testGetAndUpdateBucketAutoclassByName() {
+    bucketName = "bucket";
+    GoogleProjectResource resource = dataset.getProjectResource();
+    String flightId = UUID.randomUUID().toString();
+    GoogleRegion region =
+        (GoogleRegion)
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET);
+
+    GoogleBucketResource bucketResource0 =
+        resourceDao.createAndLockBucket(bucketName, resource, region, flightId, false);
+    datasetBucketDao.createDatasetBucketLink(dataset.getId(), bucketResource0.getResourceId());
+
+    GoogleBucketResource bucketResource1 = resourceDao.retrieveBucketByName(bucketName);
+    assertFalse("Autoclass should be disabled", bucketResource1.getAutoclassEnabled());
+    assertEquals(
+        "Autoclass setting should be the same",
+        bucketResource0.getAutoclassEnabled(),
+        bucketResource1.getAutoclassEnabled());
+
+    int rows = resourceDao.updateBucketAutoclassByName(bucketName, true);
+    assertEquals("One row should be updated", 1, rows);
+
+    GoogleBucketResource bucketResource2 = resourceDao.retrieveBucketByName(bucketName);
+    assertTrue("Autoclass should be enabled", bucketResource2.getAutoclassEnabled());
+  }
+
   private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {
     return createBucketDbEntry(projectResource2, true);
   }

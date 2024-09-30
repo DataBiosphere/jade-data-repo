@@ -1,0 +1,38 @@
+
+name: terradatarepo
+
+services:
+
+  service:
+    image: jade-data-repo
+    depends_on:
+      - database
+    environment:
+      - HOST_NAME=database
+      - AZURE_SYNAPSE_WORKSPACENAME
+      - AZURE_CREDENTIALS_HOMETENANTID
+      - AZURE_CREDENTIALS_APPLICATIONID
+      - AZURE_CREDENTIALS_SECRET
+      - AZURE_SYNAPSE_SQLADMINUSER
+      - AZURE_SYNAPSE_SQLADMINPASSWORD
+      - AZURE_SYNAPSE_ENCRYPTIONKEY
+      - GOOGLE_APPLICATION_CREDENTIALS
+      - GOOGLE_SA_CERT
+      - RBS_POOLID
+      - RBS_INSTANCEURL
+    ports:
+      - "8080:8080"
+    volumes:
+      - /tmp/jade-dev-account.pem:/tmp/jade-dev-account.pem
+      - /tmp/jade-dev-account.json:/tmp/jade-dev-account.json
+      - /tmp/buffer-client-sa-account.json:/tmp/buffer-client-sa-account.json
+
+  database:
+    image: postgres:14
+    environment:
+      - POSTGRES_PASSWORD=drpasswd
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../build/tmp/postgres-data:/var/lib/postgresql/data
+      - ./init-db/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql

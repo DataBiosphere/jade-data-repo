@@ -272,10 +272,10 @@ First, make sure you have run through the following steps:
 * Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
 * Run `./scripts/run-db start` to start the DB in a docker container
 
-** Run test in the Command Line **
+**Run test in the Command Line**
 * Run `GRADLE_ARGS='--tests *<specific test name>' ./scripts/run connected` to run a specific connected test
 
-** Run or Debug test in Intellij **
+**Run or Debug test in Intellij**
 * Run
 `./scripts/render-configs.sh -i` which will put all the environment variables into your clipboard
 and then you can paste them into the Intellij test setup.
@@ -289,10 +289,10 @@ First, make sure you have run through the following steps:
 * Auth as your broadinstitute.org to pull from Google Secrets Manager `gcloud auth login <you>@broadinstitute.org`
 * Run `./scripts/run-db start` to start the DB in a docker container
 
-** Run test in the Command Line **
+**Run test in the Command Line**
 * Run `GRADLE_ARGS='--tests *<specific test name>' ./scripts/run integration` to run a specific integration test
 
-** Run or Debug test in Intellij **
+**Run or Debug test in Intellij**
 * Run
   `./scripts/render-configs.sh -i -a integration` which will put all the environment variables into your clipboard and then you
   can paste them into the Intellij test setup.
@@ -326,6 +326,14 @@ export PROXY_URL=http://localhost:8080
 ```
 You need to have data repo running with `./gradlew bootRun` and the UI running with `npm start`.
 
+### 6. Testing in a deployed environment
+**Testing in a BEE (Branch Engineering Environment)**
+* You can test your changes in a BEE by following the instructions [here](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit?usp=sharing)
+* You can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py) to your BEE by setting the --host flag to the BEE url.
+
+**Testing Helm Chart Changes (holdover until datarepo-helm moves to terra-helmfile)**
+* Helm chart changes in datarepo-helm can be tested by spinning up a personal dev environment. See [instructions in datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions) for more information.
+
 ## 11. Set up TDR resources
 
 After running bootRun, you may want to create some datasets locally for use in testing.
@@ -335,12 +343,6 @@ See the [README](https://github.com/DataBiosphere/jade-data-repo/blob/develop/to
 
 You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
 such as `AzureY1Demo.ipynb`
-
-## 12. Set up TDR on BEEs
-
-You can follow [these instructions](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit?usp=sharing) to get a BEE setup to work with TDR.
-
-Additionally, you can point the [python setup script](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/setup_tdr_resources.py) to your BEE by setting the --host flag to the BEE url.
 
 ## 13. Running locally with other locally running services
 1. Sam - set environment variable `SAM_BASEPATH` to `https://local.broadinstitute.org:50443`
@@ -367,56 +369,3 @@ Ensure that:
 ## Resources
 * [Stairway Flight Developer Guide](https://github.com/DataBiosphere/stairway/blob/develop/FLIGHT_DEVELOPER_GUIDE.md) - Data Repo utilizes Stairway to run asynchronous operations throughout the code base.
 * [Data Repo Service](https://ga4gh.github.io/data-repository-service-schemas/docs/) - The Data Repo implements parts of the The Data Repository Service (DRS) specification.
-
-## Appendix
-
-### Personal Dev Environment Setup
-We're moving away from setting up personal dev environments for every developer. Instead, we are moving
-towards using BEEs ([BEE url](https://beehive.dsp-devops.broadinstitute.org/environments/new), [TDR on BEEs](https://docs.google.com/document/d/1kyjrOKzUthwKu-m38Da2niNEh-IkbUzxtfT29EWw8ag/edit#heading=h.5gsyp5q4qds5))
-However, there are still some use cases for personal dev environments. So, you should feel free to
-use one of the existing personal dev environments for your work (but check with the data repo team to
-see if anyone else is using a particular environment).
-
-Throughout these instructions, replace all instances of `ZZ` with the initials of the environment
-you are setting up (e.g. `sh`).
-
-NOTE: As a cost savings measure, we expect for you to tear down the personal development environment
-when you finish testing. This can be done by running `helmfile destroy` in the `datarepo-helm-definitions/dev/ZZ` directory.
-
-1. Connect to the non-split VPN
-2. Connect to the dev cluster
-```
-gcloud auth login
-gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
-```
-3. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
-   bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
--  By default, leave release chart versions unspecified in your `helmfile.yaml` so that
-   latest versions are automatically picked up when running helmfile commands.
-   Otherwise, verify that specified versions match the
-   [latest dependency versions](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo/Chart.lock).
-
-Note: Make sure you are on the VPN, otherwise the helmfile apply will fail.
-
-```
-cd datarepo-helm-definitions/dev/ZZ
-helmfile apply
-
-# check that the deployments were created
-helm list --namespace ZZ
-```
-
-4. You can access the instance at the following address: `https://jade-ZZ.datarepo-dev.broadinstitute.org`
-5. Connect to your new dev postgres database instance:
-   Note that this is a different instance than the local one you will configure in [step 10](#10-install-postgres-11).
-   The following command connects to the database via a proxy.
-```
-cd jade-data-repo/ops
-DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
-```
-
-**When finished testing, shut down the environment by running `helmfile destroy`**
-```
-cd datarepo-helm-definitions/dev/ZZ
-helmfile destory
-```

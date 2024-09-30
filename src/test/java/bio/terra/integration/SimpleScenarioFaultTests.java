@@ -46,8 +46,6 @@ public class SimpleScenarioFaultTests extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
-  @Rule @Autowired public TestJobWatcher testWatcher;
-
   private UUID profileId;
   private UUID datasetId;
   private UUID snapshotId;

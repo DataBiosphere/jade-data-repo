@@ -1758,7 +1758,7 @@ public class DataRepoFixtures {
                   }
                 })
             .flatMap(file -> Optional.ofNullable(file).stream())
-            .collect(Collectors.toList());
+            .toList();
 
     var fileIds =
         loadResult.getLoadFileResults().stream()
@@ -1793,12 +1793,8 @@ public class DataRepoFixtures {
               .map(JobModel::getId)
               .orElse(null);
 
-      String addedLink =
-          (testConfig.getIntegrationServerNumber() != null)
-              ? String.format("%nFor more information, see: %s", getStackdriverUrl(jobId))
-              : "no int server number";
       throw new AssertionError(
-          String.format("Error validating %s.  Got response: %s%s", action, response, addedLink));
+          String.format("Error validating %s.  Got response: %s", action, response));
     }
   }
 
@@ -1816,23 +1812,6 @@ public class DataRepoFixtures {
       throw new AssertionError(
           String.format("Error validating %s.  Got response: %s", action, response));
     }
-  }
-
-  private String getStackdriverUrl(final String jobId) {
-    String query =
-        URLEncoder.encode(
-            new ST(QUERY_TEMPLATE)
-                .add("intNumber", testConfig.getIntegrationServerNumber())
-                .add("flightId", jobId)
-                .add("hasFlightId", !StringUtils.isEmpty(jobId))
-                .render(),
-            StandardCharsets.UTF_8);
-    return "https://console.cloud.google.com/logs/query;"
-        + query
-        + ";cursorTimestamp="
-        + Instant.now().minus(Duration.ofSeconds(30)).toString()
-        + "?project="
-        + testConfig.getGoogleProjectId();
   }
 
   // Jobs

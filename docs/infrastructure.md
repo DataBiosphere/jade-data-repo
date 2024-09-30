@@ -66,18 +66,17 @@ Some actions can be defined within a yaml passing bash to it or it can be abstra
   - On Pull request
   - terraform lint/format
   - simple logic test
-  - Runs plan against current dev/integration  environment
+  - Runs plan against current dev environment
 - [Terraform PR merge](https://github.com/broadinstitute/terraform-jade/blob/master/.github/workflows/terraformMerge.yml)
   - On merge to master
   - terraform lint/format
   - simple logic test
-  - Applies plan against current dev/integration environment
+  - Applies plan against current dev environment
 
 #### Helm Actions
 - [Helm lint and simple test](https://github.com/broadinstitute/datarepo-helm/blob/master/.github/workflows/lint.yaml)
   - on pull request
   - lints helm charts
-  - deploys core datarepo charts to integration and tests for successful pod deployments and fails on 5 or more pod restarts or crashloops
 - [Chart Releaser](https://github.com/broadinstitute/datarepo-helm/blob/master/.github/workflows/cr.yaml)
   - on merge to master
   - Searches for new version bumps in `Chart.yaml` within all the charts then cuts a github release zip/tarball

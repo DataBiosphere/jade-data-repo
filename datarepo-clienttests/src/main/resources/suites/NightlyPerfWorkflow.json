@@ -1,7 +1,7 @@
 {
   "name": "NightlyPerfWorkflow",
   "description": "Performance tests to run on nightly github action",
-  "serverSpecificationFile": "integration-6.json",
+  "serverSpecificationFile": "localhost.json",
   "testConfigurationFiles": [
     "basicexamples/BasicAuthenticated.json",
     "basicexamples/BasicUnauthenticated.json",

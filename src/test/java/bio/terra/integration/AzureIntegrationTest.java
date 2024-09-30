@@ -158,7 +158,6 @@ public class AzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private JsonLoader jsonLoader;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private User steward;
   private User admin;

@@ -157,7 +157,7 @@ skaffold run
       googleAllowreuseexistingbuckets:
     ```
     - Release a new version of the chart. Talk to DevOps to do this.
-3. To override properties for specific environments (e.g. integration), modify the
+3. To override properties for specific environments (e.g. dev), modify the
 [environment-specific override Data Repo charts](https://github.com/broadinstitute/datarepo-helm-definitions).
     - Find the [deployment.yaml](https://github.com/broadinstitute/datarepo-helm-definitions/blob/master/integration/integration-1/integration-1Deployment.yaml)
     for the specific environment.
@@ -166,7 +166,6 @@ skaffold run
     googleAllowreuseexistingbuckets: true
     ```
    - It's a good idea to test out changes on your developer-namespace before making a PR.
-   - Changes to integration, temp, or developer-namespace environments are good with regular PR approval (1 thumb for this repository).
    - Changes to dev or prod need more eyes, and perhaps a group discussion to discuss possible side effects or failure modes.
 
 ## Developer Notes

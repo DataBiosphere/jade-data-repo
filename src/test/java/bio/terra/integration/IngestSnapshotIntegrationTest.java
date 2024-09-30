@@ -41,7 +41,6 @@ public class IngestSnapshotIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
-  @Rule @Autowired public TestJobWatcher testWatcher;
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID profileId;

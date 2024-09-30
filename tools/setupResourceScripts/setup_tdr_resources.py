@@ -332,7 +332,7 @@ def main():
     parser.add_argument(
         "--host",
         required=True,
-        help="The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade-4.datarepo-integration.broadinstitute.org`",
+        help="The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade.datarepo-dev.broadinstitute.org`",
     )
     parser.add_argument(
         "--datasets",
@@ -363,7 +363,7 @@ def main():
     args = parser.parse_args()
     clients = Clients(args.host)
 
-    add_jade_stewards = "dev" in args.host or "integration" in args.host
+    add_jade_stewards = "dev" in args.host
     gcp_profile_id = args.gcp_profile_id
     azure_profile_id = args.azure_profile_id
 

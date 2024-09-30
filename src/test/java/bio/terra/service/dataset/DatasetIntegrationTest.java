@@ -21,7 +21,6 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
@@ -57,7 +56,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -85,7 +83,6 @@ public class DatasetIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
-  @Rule @Autowired public TestJobWatcher testWatcher;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
 

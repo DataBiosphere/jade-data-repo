@@ -1,7 +1,7 @@
 {
   "name": "LookupDataset",
   "description": "Two users retrieve a dataset repeatedly, concurrently.",
-  "serverSpecificationFile": "integration-6.json",
+  "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 2

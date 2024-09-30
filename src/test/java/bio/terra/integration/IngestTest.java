@@ -59,7 +59,6 @@ public class IngestTest extends UsersBase {
 
   @Autowired private JsonLoader jsonLoader;
 
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private UUID datasetId;
   private UUID profileId;

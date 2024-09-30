@@ -88,8 +88,6 @@ public class FileTest extends UsersBase {
 
   @MockBean private JobService jobService;
 
-  @Rule @Autowired public TestJobWatcher testWatcher;
-
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
   private ObjectMapper objectMapper;

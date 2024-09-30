@@ -710,12 +710,22 @@ public class DrsService {
     return fileObject;
   }
 
-  private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile) {
+  /**
+   * @param cachedSnapshot a cached snapshot entry for a GCP-backed snapshot
+   * @param fsFile a file entry for a file within the snapshot specifying a Google Cloud Storage URI
+   * @return the GCP region associated with the GCS URI, with lookup billed to the snapshot's
+   *     project if self-hosted
+   * @throws DrsObjectNotFoundException if the snapshot is self-hosted and TDR cannot retrieve the
+   *     bucket specified by the GCS URI
+   */
+  private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile)
+      throws DrsObjectNotFoundException {
     final GoogleRegion region;
     if (cachedSnapshot.isSelfHosted) {
       // Authorize using the dataset's service account...
       Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
-      // ...but bill to the snapshot's project.
+      // ...but bill to the snapshot's project (available for all GCP-backed snapshots, regardless
+      // of their self-hosted status).
       BucketGetOption userProject = BucketGetOption.userProject(cachedSnapshot.googleProjectId);
       String cloudPath = fsFile.getCloudPath();
       Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(cloudPath).getBucket(), userProject);

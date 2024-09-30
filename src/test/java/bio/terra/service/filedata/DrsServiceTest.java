@@ -510,7 +510,7 @@ class DrsServiceTest {
     List<SnapshotCacheResult> cacheResults =
         drsService.lookupSnapshotsForDRSObject(drsIdService.fromObjectId(googleDrsObjectId));
     assertThat("retrieves correct number of snapshots", cacheResults, hasSize(1));
-    assertThat("retrieves correct snapshot", cacheResults.get(0).getId(), equalTo(snapshotId));
+    assertThat("retrieves correct snapshot", cacheResults.get(0).id(), equalTo(snapshotId));
   }
 
   @Test
@@ -735,6 +735,7 @@ class DrsServiceTest {
     // A snapshot's self-hosted designation is set by its root dataset:
     snapshot.getSourceDataset().getDatasetSummary().selfHosted(true);
     when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+    SnapshotCacheResult snapshotCacheResult = new SnapshotCacheResult(snapshot);
 
     String datasetProject = snapshot.getSourceDataset().getProjectResource().getGoogleProjectId();
     Storage storage = mock(Storage.class);
@@ -757,6 +758,9 @@ class DrsServiceTest {
             TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
     assertThat(
         exception.getMessage(), startsWith("GCS bucket from %s not found".formatted(sourcePath)));
+    assertThat(
+        exception.getCauses(),
+        containsInAnyOrder(snapshotCacheResult.toString(), googleFsFile.toString()));
   }
 
   private static Stream<Arguments> testSignGcpUrl() {

@@ -61,18 +61,6 @@ Some actions can be defined within a yaml passing bash to it or it can be abstra
   - On Merge to develop
   - This action takes the passed code from Jade-Datarepo-ui integration testing and builds a develop approved container specifically for the develop branch meaning the built container has passed integration tests and now has a tag containing the "commit hash+-develop". Once the container is build it will checkout the datarepo-helm-definitions repo and bump the ui version tag in the dev values.
 
-#### Terraform Actions
-- [Terraform PR testing](https://github.com/broadinstitute/terraform-jade/blob/master/.github/workflows/terraformPr.yml)
-  - On Pull request
-  - terraform lint/format
-  - simple logic test
-  - Runs plan against current dev environment
-- [Terraform PR merge](https://github.com/broadinstitute/terraform-jade/blob/master/.github/workflows/terraformMerge.yml)
-  - On merge to master
-  - terraform lint/format
-  - simple logic test
-  - Applies plan against current dev environment
-
 #### Helm Actions
 - [Helm lint and simple test](https://github.com/broadinstitute/datarepo-helm/blob/master/.github/workflows/lint.yaml)
   - on pull request

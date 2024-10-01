@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.exception;
 
 import bio.terra.common.exception.NotFoundException;
+import java.util.List;
 
 /*
  * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and
@@ -11,11 +12,7 @@ public class DrsObjectNotFoundException extends NotFoundException {
     super(message);
   }
 
-  public DrsObjectNotFoundException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-  public DrsObjectNotFoundException(Throwable cause) {
-    super(cause);
+  public DrsObjectNotFoundException(String message, List<String> causes) {
+    super(message, causes);
   }
 }

@@ -416,7 +416,7 @@ public class SnapshotBuilderService {
   public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
     if (!ValidationUtils.isValidEmail(memberEmail)) {
-      throw new ValidationException("InvalidMemberEmail");
+      throw new ValidationException("Invalid member email");
     }
     return new SnapshotAccessRequestMembersResponse()
         .members(
@@ -427,7 +427,7 @@ public class SnapshotBuilderService {
   public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
     if (!ValidationUtils.isValidEmail(memberEmail)) {
-      throw new ValidationException("InvalidMemberEmail");
+      throw new ValidationException("Invalid member email");
     }
     return new SnapshotAccessRequestMembersResponse()
         .members(

@@ -29,6 +29,8 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestMembersResponse;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -62,6 +64,7 @@ import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -589,5 +592,72 @@ class SnapshotBuilderServiceTest {
     verify(notificationService)
         .snapshotReady(
             eq(id), anyString(), eq(snapshot.getName()), eq("No snapshot specification found"));
+  }
+
+  @Test
+  void testGetRequestGroupMembers() {
+    SnapshotAccessRequestMembersResponse expected = new SnapshotAccessRequestMembersResponse();
+    expected.members(new ArrayList<>());
+    UUID requestId = new SnapshotAccessRequestResponse().getId();
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
+    when(iamService.getGroupPolicyEmails(requestModel.samGroupName(), IamRole.MEMBER.toString()))
+        .thenReturn(new ArrayList<>());
+    assertThat(snapshotBuilderService.getGroupMembers(requestId), is(expected));
+  }
+
+  @Test
+  void testAddRequestGroupMember() {
+    SnapshotAccessRequestMembersResponse expected = new SnapshotAccessRequestMembersResponse();
+    String memberEmail = "user@gmail.com";
+    expected.members(new ArrayList<>(List.of(memberEmail)));
+    UUID requestId = new SnapshotAccessRequestResponse().getId();
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
+    when(iamService.addEmailToGroup(
+            requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
+        .thenReturn(new ArrayList<>(List.of("user@gmail.com")));
+    assertThat(snapshotBuilderService.addGroupMember(requestId, memberEmail), is(expected));
+  }
+
+  @Test
+  void testAddRequestGroupMemberInvalidEmail() {
+    String badEmail = "badEmail";
+    UUID requestId = new SnapshotAccessRequestResponse().getId();
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
+    assertThrows(
+        bio.terra.app.controller.exception.ValidationException.class,
+        () -> snapshotBuilderService.addGroupMember(requestId, badEmail));
+  }
+
+  @Test
+  void testDeleteRequestGroupMembers() {
+    SnapshotAccessRequestMembersResponse expected = new SnapshotAccessRequestMembersResponse();
+    String memberEmail = "user@gmail.com";
+    expected.members(new ArrayList<>());
+    UUID requestId = new SnapshotAccessRequestResponse().getId();
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
+    when(iamService.removeEmailFromGroup(
+            requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
+        .thenReturn(new ArrayList<>());
+    assertThat(snapshotBuilderService.deleteGroupMember(requestId, memberEmail), is(expected));
+  }
+
+  @Test
+  void testDeleteRequestGroupMemberInvalidEmail() {
+    String badEmail = "badEmail";
+    UUID requestId = new SnapshotAccessRequestResponse().getId();
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
+    assertThrows(
+        bio.terra.app.controller.exception.ValidationException.class,
+        () -> snapshotBuilderService.deleteGroupMember(requestId, badEmail));
   }
 }

@@ -17,8 +17,10 @@ import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
+import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestDetailsResponse;
+import bio.terra.model.SnapshotAccessRequestMembersResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -26,6 +28,7 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +61,9 @@ class SnapshotAccessRequestApiControllerTest {
 
   private static final String REJECT_ENDPOINT = GET_ENDPOINT + "/reject";
   private static final String APPROVE_ENDPOINT = GET_ENDPOINT + "/approve";
+
+  private static final String MEMBERS_ENDPOINT = GET_ENDPOINT + "/members";
+  private static final String DELETE_MEMBERS_ENDPOINT = MEMBERS_ENDPOINT + "/{memberEmail}";
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -184,6 +190,80 @@ class SnapshotAccessRequestApiControllerTest {
     SnapshotAccessRequestResponse response = new SnapshotAccessRequestResponse().id(id);
     when(snapshotBuilderService.approveRequest(id)).thenReturn(response);
     testUpdateStatus(id, response, APPROVE_ENDPOINT);
+  }
+
+  @Test
+  void testGetSnapshotRequestGroupMembers() throws Exception {
+    UUID id = UUID.randomUUID();
+    UUID createdId = UUID.randomUUID();
+    SnapshotAccessRequestResponse accessRequest =
+        new SnapshotAccessRequestResponse().createdSnapshotId(createdId);
+    SnapshotAccessRequestMembersResponse expectedResponse =
+        new SnapshotAccessRequestMembersResponse();
+    when(snapshotBuilderService.getRequest(id)).thenReturn(accessRequest);
+    when(snapshotBuilderService.getGroupMembers(id)).thenReturn(expectedResponse);
+    String actualJson =
+        mvc.perform(get(MEMBERS_ENDPOINT, id))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotAccessRequestMembersResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestMembersResponse.class);
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
+    verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, id, IamAction.GET);
+  }
+
+  @Test
+  void testAddSnapshotRequestGroupMember() throws Exception {
+    PolicyMemberRequest requestBody = new PolicyMemberRequest();
+    requestBody.setEmail("user@gmail.com");
+    UUID id = UUID.randomUUID();
+    UUID createdId = UUID.randomUUID();
+    SnapshotAccessRequestResponse accessRequest =
+        new SnapshotAccessRequestResponse().createdSnapshotId(createdId);
+    SnapshotAccessRequestMembersResponse expectedResponse =
+        new SnapshotAccessRequestMembersResponse();
+    expectedResponse.setMembers(new ArrayList<>(List.of("user@gmail.com")));
+    when(snapshotBuilderService.getRequest(id)).thenReturn(accessRequest);
+    when(snapshotBuilderService.addGroupMember(id, requestBody.getEmail()))
+        .thenReturn(expectedResponse);
+    String actualJson =
+        mvc.perform(
+                post(MEMBERS_ENDPOINT, id, requestBody)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(requestBody)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotAccessRequestMembersResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestMembersResponse.class);
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
+    verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, id, IamAction.APPROVE);
+  }
+
+  @Test
+  void testDeleteSnapshotRequestGroupMember() throws Exception {
+    UUID id = UUID.randomUUID();
+    UUID createdId = UUID.randomUUID();
+    String memberEmail = "user@gmail.com";
+    SnapshotAccessRequestResponse accessRequest =
+        new SnapshotAccessRequestResponse().createdSnapshotId(createdId);
+    SnapshotAccessRequestMembersResponse expectedResponse =
+        new SnapshotAccessRequestMembersResponse();
+    when(snapshotBuilderService.getRequest(id)).thenReturn(accessRequest);
+    when(snapshotBuilderService.deleteGroupMember(id, memberEmail)).thenReturn(expectedResponse);
+    String actualJson =
+        mvc.perform(delete(DELETE_MEMBERS_ENDPOINT, id, memberEmail))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    SnapshotAccessRequestMembersResponse actual =
+        TestUtils.mapFromJson(actualJson, SnapshotAccessRequestMembersResponse.class);
+    assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
+    verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, id, IamAction.APPROVE);
   }
 
   private void testUpdateStatus(UUID id, SnapshotAccessRequestResponse response, String endpoint)

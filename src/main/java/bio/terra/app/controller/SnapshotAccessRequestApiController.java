@@ -113,6 +113,11 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.GET);
+    SnapshotAccessRequestResponse request = snapshotBuilderService.getRequest(id);
+    if (request != null && request.getCreatedSnapshotId() == null) {
+      throw new IllegalArgumentException(
+          "Snapshot must be created from this request in order to manage group membership.");
+    }
     return ResponseEntity.ok(snapshotBuilderService.getGroupMembers(id));
   }
 
@@ -122,6 +127,11 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
+    SnapshotAccessRequestResponse request = snapshotBuilderService.getRequest(id);
+    if (request != null && request.getCreatedSnapshotId() == null) {
+      throw new IllegalArgumentException(
+          "Snapshot must be created from this request in order to manage group membership.");
+    }
     return ResponseEntity.ok(snapshotBuilderService.addGroupMember(id, body.getEmail()));
   }
 
@@ -131,6 +141,11 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
+    SnapshotAccessRequestResponse request = snapshotBuilderService.getRequest(id);
+    if (request != null && request.getCreatedSnapshotId() == null) {
+      throw new IllegalArgumentException(
+          "Snapshot must be created from this request in order to manage group membership.");
+    }
     return ResponseEntity.ok(snapshotBuilderService.deleteGroupMember(id, memberEmail));
   }
 

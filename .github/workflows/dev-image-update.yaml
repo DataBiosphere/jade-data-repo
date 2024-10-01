@@ -85,12 +85,18 @@ jobs:
           ref: ${{ needs.bump_version.outputs.api_image_tag }}
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: 'Release Candidate Container Build: Create release candidate images'
-        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
-        with:
-          actions_subcommand: 'alpharelease'
-          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-          alpharelease: ${{ needs.bump_version.outputs.api_image_tag }} # creates gcr build with semver tag
-          gcr_google_project: 'broad-jade-dev'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
+          GOOGLE_SA_CERT: jade-dev-account.pem
+        run: |
+          # extract service account credentials
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+          chmod 644 ${GOOGLE_SA_CERT}
+          # Set tag to semver version
+          export GCR_TAG=${{ needs.bump_version.outputs.api_image_tag }}
+          # Build, tag and push the image
+          ./gradlew jib
 
 
 #  cherry_pick_image_to_production_gcr:

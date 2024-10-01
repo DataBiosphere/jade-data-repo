@@ -267,7 +267,7 @@
       "table": {
         "datasetTableName": "sample",
         "columns": [],
-        "primaryTableRelationship": "fpk_person_observation",
+        "primaryTableRelationship": "fpk_person_sample",
         "secondaryTableRelationships": []
       }
     }

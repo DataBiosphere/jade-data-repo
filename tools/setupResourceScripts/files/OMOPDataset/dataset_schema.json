@@ -1932,7 +1932,7 @@
             {
                 "name": "sample",
                 "columns": [
-                  {"name":  "collaborator_participant_id", "datatype": "string"},
+                  {"name":  "collaborator_participant_id", "datatype": "int64"},
                   {"name":  "collaborator_sample_id", "datatype": "string"},
                   {"name":  "bge_single_sample_vcf_index_path", "datatype": "fileref"},
                   {"name":  "bge_single_sample_vcf_md5_path", "datatype": "fileref"},
@@ -3955,7 +3955,7 @@
                 },
                 "to": {
                   "table": "sample",
-                  "column": "collaborator_sample_id"
+                  "column": "collaborator_participant_id"
                 }
             }
         ],

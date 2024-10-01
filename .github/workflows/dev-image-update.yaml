@@ -76,11 +76,15 @@ jobs:
     needs:
       - bump_version
     steps:
-      - name: Checkout Develop branch of jade-data-repo
-        uses: actions/checkout@v3
+      - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
+        uses: broadinstitute/retry@v2.8.3 #forked from nick-fields/retry
         with:
-          ref: develop
-          token: ${{ secrets.BROADBOT_TOKEN }}
+          timeout_minutes: 1
+          polling_interval_seconds: 5
+          max_attempts: 5
+          command: |
+            git fetch --all --tags
+            git checkout ${{ needs.bump_version.outputs.api_image_tag }}
       - name: 'Release Candidate Container Build: Create release candidate images'
         uses: broadinstitute/datarepo-actions/actions/main@0.74.0
         with:

@@ -112,15 +112,6 @@ public class DataRepoFixtures {
 
   private static final Logger logger = LoggerFactory.getLogger(DataRepoFixtures.class);
 
-  private static final String QUERY_TEMPLATE =
-      "resource.type=\"k8s_container\"\n"
-          + "resource.labels.project_id=\"broad-jade-integration\"\n"
-          + "resource.labels.location=\"us-central1\"\n"
-          + "resource.labels.cluster_name=\"integration-master\"\n"
-          + "resource.labels.namespace_name=\"integration-<intNumber>\"\n"
-          + "labels.k8s-pod/component=\"integration-<intNumber>-jade-datarepo-api\"\n"
-          + "<if(hasFlightId)>jsonPayload.flightId=\"<flightId>\"<endif>";
-
   /** Roles which must be held by a dataset's SA to facilitate an ingestion * */
   private static final List<Role> INGEST_ROLES =
       List.of(StorageRoles.objectViewer(), StorageRoles.legacyBucketReader());

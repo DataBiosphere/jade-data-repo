@@ -7,11 +7,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
+import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.SamFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -20,6 +22,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
@@ -44,9 +47,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Integration.class)
 public class DatasetControlFilesIntegrationTest extends UsersBase {
 
+  @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private SamFixtures samFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
 
   private UUID datasetId;
   private UUID profileId;

@@ -906,8 +906,7 @@ class SamIamTest {
     void testGetGroupPolicyEmails() throws ApiException, InterruptedException {
       String accessToken = TEST_USER.getToken();
       String policyName = IamRole.MEMBER.toString();
-      when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName))
-          .thenReturn(new ArrayList<>());
+      when(samGroupApi.getGroupPolicyEmails(GROUP_NAME, policyName)).thenReturn(new ArrayList<>());
       assertThat(
           "Group emails are returned",
           samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName),
@@ -931,12 +930,13 @@ class SamIamTest {
       String accessToken = TEST_USER.getToken();
       String policyName = IamRole.MEMBER.toString();
       String memberEmail = "user@gmail.com";
-      when(samIam.addGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail))
+      when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName))
           .thenReturn(new ArrayList<>(List.of("user@gmail.com")));
       assertThat(
           "Group emails are returned and email has been added",
           samIam.addGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail),
           equalTo(new ArrayList<>(List.of("user@gmail.com"))));
+      verify(samGroupApi).addEmailToGroup(GROUP_NAME, policyName, memberEmail, null);
     }
 
     @Test
@@ -957,12 +957,13 @@ class SamIamTest {
       String accessToken = TEST_USER.getToken();
       String policyName = IamRole.MEMBER.toString();
       String memberEmail = "user@gmail.com";
-      when(samIam.removeGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail))
+      when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName))
           .thenReturn(new ArrayList<>());
       assertThat(
           "Group emails are returned and email has been removed",
           samIam.removeGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail),
           equalTo(new ArrayList<>()));
+      verify(samGroupApi).removeEmailFromGroup(GROUP_NAME, policyName, memberEmail);
     }
 
     @Test

@@ -47,12 +47,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Integration.class)
 public class DatasetControlFilesIntegrationTest extends UsersBase {
 
-  @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private SamFixtures samFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
-  @Autowired private GoogleResourceManagerService resourceManagerService;
 
   private UUID datasetId;
   private UUID profileId;

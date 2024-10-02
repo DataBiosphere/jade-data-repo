@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.24'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.25'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.62'
         }
     }
@@ -204,7 +204,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.18-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.19-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.15-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'

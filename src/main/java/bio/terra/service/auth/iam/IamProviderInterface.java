@@ -287,7 +287,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
-   * Remove a member from the DAC group on a SnapshotAccessRequest
+   * Remove a member from a Sam group
    *
    * @param accessToken valid oauth token for the account removing from the group
    * @param groupName name of the Sam group being removed from

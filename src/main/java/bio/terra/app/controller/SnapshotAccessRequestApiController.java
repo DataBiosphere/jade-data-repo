@@ -114,7 +114,7 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.GET);
     SnapshotAccessRequestResponse request = snapshotBuilderService.getRequest(id);
-    if (request != null && request.getCreatedSnapshotId() == null) {
+    if (request.getCreatedSnapshotId() == null) {
       throw new IllegalArgumentException(
           "Snapshot must be created from this request in order to manage group membership.");
     }
@@ -128,7 +128,7 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
     SnapshotAccessRequestResponse request = snapshotBuilderService.getRequest(id);
-    if (request != null && request.getCreatedSnapshotId() == null) {
+    if (request.getCreatedSnapshotId() == null) {
       throw new IllegalArgumentException(
           "Snapshot must be created from this request in order to manage group membership.");
     }
@@ -142,7 +142,7 @@ public class SnapshotAccessRequestApiController implements SnapshotAccessRequest
     iamService.verifyAuthorization(
         userRequest, IamResourceType.SNAPSHOT_BUILDER_REQUEST, id.toString(), IamAction.APPROVE);
     SnapshotAccessRequestResponse request = snapshotBuilderService.getRequest(id);
-    if (request != null && request.getCreatedSnapshotId() == null) {
+    if (request.getCreatedSnapshotId() == null) {
       throw new IllegalArgumentException(
           "Snapshot must be created from this request in order to manage group membership.");
     }

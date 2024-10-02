@@ -261,7 +261,7 @@ public interface IamProviderInterface {
   String getGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
-   * List the members of a DAC group on a SnapshotAccessRequest
+   * List the members of a Sam group
    *
    * @param accessToken valid oauth token for the account getting the group
    * @param groupName name of the Sam group to get

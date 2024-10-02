@@ -1,7 +1,7 @@
 {
   "name": "BulkLoadScaleByReplicas",
   "description": "Test bulk load at different number of pods",
-  "serverSpecificationFile": "integration-6.json",
+  "serverSpecificationFile": "localhost.json",
   "testConfigurationFiles": [
     "profiling/BulkLoadScale500_80_1.json",
     "profiling/BulkLoadScale500_80_2.json",

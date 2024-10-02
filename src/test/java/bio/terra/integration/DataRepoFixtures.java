@@ -88,10 +88,6 @@ import com.google.cloud.Role;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.cloud.storage.StorageRoles;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -110,21 +106,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.stringtemplate.v4.ST;
 
 @Component
 public class DataRepoFixtures {
 
   private static final Logger logger = LoggerFactory.getLogger(DataRepoFixtures.class);
-
-  private static final String QUERY_TEMPLATE =
-      "resource.type=\"k8s_container\"\n"
-          + "resource.labels.project_id=\"broad-jade-integration\"\n"
-          + "resource.labels.location=\"us-central1\"\n"
-          + "resource.labels.cluster_name=\"integration-master\"\n"
-          + "resource.labels.namespace_name=\"integration-<intNumber>\"\n"
-          + "labels.k8s-pod/component=\"integration-<intNumber>-jade-datarepo-api\"\n"
-          + "<if(hasFlightId)>jsonPayload.flightId=\"<flightId>\"<endif>";
 
   /** Roles which must be held by a dataset's SA to facilitate an ingestion * */
   private static final List<Role> INGEST_ROLES =
@@ -1758,7 +1744,7 @@ public class DataRepoFixtures {
                   }
                 })
             .flatMap(file -> Optional.ofNullable(file).stream())
-            .collect(Collectors.toList());
+            .toList();
 
     var fileIds =
         loadResult.getLoadFileResults().stream()
@@ -1793,12 +1779,8 @@ public class DataRepoFixtures {
               .map(JobModel::getId)
               .orElse(null);
 
-      String addedLink =
-          (testConfig.getIntegrationServerNumber() != null)
-              ? String.format("%nFor more information, see: %s", getStackdriverUrl(jobId))
-              : "no int server number";
       throw new AssertionError(
-          String.format("Error validating %s.  Got response: %s%s", action, response, addedLink));
+          String.format("Error validating %s.  Got response: %s", action, response));
     }
   }
 
@@ -1816,23 +1798,6 @@ public class DataRepoFixtures {
       throw new AssertionError(
           String.format("Error validating %s.  Got response: %s", action, response));
     }
-  }
-
-  private String getStackdriverUrl(final String jobId) {
-    String query =
-        URLEncoder.encode(
-            new ST(QUERY_TEMPLATE)
-                .add("intNumber", testConfig.getIntegrationServerNumber())
-                .add("flightId", jobId)
-                .add("hasFlightId", !StringUtils.isEmpty(jobId))
-                .render(),
-            StandardCharsets.UTF_8);
-    return "https://console.cloud.google.com/logs/query;"
-        + query
-        + ";cursorTimestamp="
-        + Instant.now().minus(Duration.ofSeconds(30)).toString()
-        + "?project="
-        + testConfig.getGoogleProjectId();
   }
 
   // Jobs

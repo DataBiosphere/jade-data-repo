@@ -17,7 +17,6 @@ import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.SamFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -51,7 +50,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -78,8 +76,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   @Autowired private GcsUtils gcsUtils;
   @Autowired private SamFixtures samFixtures;
   @Autowired private GoogleResourceManagerService resourceManagerService;
-
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   // Disabling check while we debug failing tests.
   // See https://broadworkbench.atlassian.net/browse/DR-2858

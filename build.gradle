@@ -92,16 +92,9 @@ if (hasProperty('buildScan')) {
         uploadInBackground = false
         publishAlways()
         def project = ""; def cluster = ""; def nschunk = ""
-        if (System.getenv("NAMESPACEINUSE")) {
-            project = "broad-jade-integration"
-            cluster = "integration-master"
-            def ns = System.getenv("NAMESPACEINUSE")
-            nschunk = "%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
-        } else {
-            project = System.getenv("GOOGLE_CLOUD_PROJECT")
-            cluster = "jade-master-us-central1"
-            nschunk = ""
-        }
+        project = System.getenv("GOOGLE_CLOUD_PROJECT")
+        cluster = "jade-master-us-central1"
+        nschunk = ""
         def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
         buildFinished { ->
             def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))

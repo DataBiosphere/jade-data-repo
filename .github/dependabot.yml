@@ -3,13 +3,6 @@ updates:
   # Enable version updates for Gradle
   - package-ecosystem: "gradle"
     directory: "/"
-    # See workflows/int-and-connected-test-run.yml for the current list of k8s namespaces available
-    # for integration testing.
-    # Presently, there are only 4, and these tests often take 2 hours to run.
-    # Keeping the open PR limit low at 4 so that concurrent Dependabot PR integration test runs all
-    # stand a chance at success rather than some being likely to time out waiting for an available
-    # namespace.
-    open-pull-requests-limit: 4
     groups:
       # We group minor and patch updates together because they are less likely to break things.
       # Major updates will be PR-ed individually: they are more likely to need developer

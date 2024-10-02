@@ -273,7 +273,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
-   * Add a member to the DAC group on a SnapshotAccessRequest
+   * Add a member to a Sam group
    *
    * @param accessToken valid oauth token for the account adding to the group
    * @param groupName name of the Sam group being added to

@@ -261,7 +261,7 @@ public interface IamProviderInterface {
   String getGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
-   * List the members of a DAC group on a SnapshotAccessRequest
+   * List the members of a Sam group
    *
    * @param accessToken valid oauth token for the account getting the group
    * @param groupName name of the Sam group to get
@@ -273,7 +273,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
-   * Add a member to the DAC group on a SnapshotAccessRequest
+   * Add a member to a Sam group
    *
    * @param accessToken valid oauth token for the account adding to the group
    * @param groupName name of the Sam group being added to
@@ -287,7 +287,7 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
-   * Remove a member from the DAC group on a SnapshotAccessRequest
+   * Remove a member from a Sam group
    *
    * @param accessToken valid oauth token for the account removing from the group
    * @param groupName name of the Sam group being removed from

@@ -187,7 +187,7 @@ git clone git@github.com:broadinstitute/terraform-ap-deployments.git
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-## 8. Configure Azure
+## 8. Optional: Configure Azure
 In order to do Azure development, do the following steps:
 
 ### 1. Get Azure Account

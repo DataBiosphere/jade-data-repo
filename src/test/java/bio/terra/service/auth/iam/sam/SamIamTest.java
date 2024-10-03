@@ -38,7 +38,6 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.client.http.HttpStatusCodes;
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -906,11 +905,11 @@ class SamIamTest {
     void testGetGroupPolicyEmails() throws ApiException, InterruptedException {
       String accessToken = TEST_USER.getToken();
       String policyName = IamRole.MEMBER.toString();
-      when(samGroupApi.getGroupPolicyEmails(GROUP_NAME, policyName)).thenReturn(new ArrayList<>());
+      when(samGroupApi.getGroupPolicyEmails(GROUP_NAME, policyName)).thenReturn(List.of());
       assertThat(
           "Group emails are returned",
           samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName),
-          equalTo(new ArrayList<>()));
+          equalTo(List.of()));
     }
 
     @Test
@@ -931,11 +930,11 @@ class SamIamTest {
       String policyName = IamRole.MEMBER.toString();
       String memberEmail = "user@gmail.com";
       when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName))
-          .thenReturn(new ArrayList<>(List.of("user@gmail.com")));
+          .thenReturn(List.of(memberEmail));
       assertThat(
           "Group emails are returned and email has been added",
           samIam.addGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail),
-          equalTo(new ArrayList<>(List.of("user@gmail.com"))));
+          equalTo(List.of(memberEmail)));
       verify(samGroupApi).addEmailToGroup(GROUP_NAME, policyName, memberEmail, null);
     }
 
@@ -957,12 +956,11 @@ class SamIamTest {
       String accessToken = TEST_USER.getToken();
       String policyName = IamRole.MEMBER.toString();
       String memberEmail = "user@gmail.com";
-      when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName))
-          .thenReturn(new ArrayList<>());
+      when(samIam.getGroupPolicyEmails(accessToken, GROUP_NAME, policyName)).thenReturn(List.of());
       assertThat(
           "Group emails are returned and email has been removed",
           samIam.removeGroupPolicyEmail(accessToken, GROUP_NAME, policyName, memberEmail),
-          equalTo(new ArrayList<>()));
+          equalTo(List.of()));
       verify(samGroupApi).removeEmailFromGroup(GROUP_NAME, policyName, memberEmail);
     }
 

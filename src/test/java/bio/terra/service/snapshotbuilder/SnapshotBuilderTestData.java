@@ -472,4 +472,22 @@ public class SnapshotBuilderTestData {
         null,
         null);
   }
+
+  public static SnapshotAccessRequestModel createAccessRequestModelSnapshotCreated() {
+    SnapshotAccessRequest request = createSnapshotAccessRequest(UUID.randomUUID());
+    return new SnapshotAccessRequestModel(
+        UUID.randomUUID(),
+        request.getName(),
+        request.getResearchPurposeStatement(),
+        request.getSourceSnapshotId(),
+        null,
+        "user@gmail.com",
+        Instant.now(),
+        Instant.now(),
+        SnapshotAccessRequestStatus.APPROVED,
+        UUID.randomUUID(),
+        "Flight ID",
+        "Group name",
+        "Group created by Terra ID");
+  }
 }

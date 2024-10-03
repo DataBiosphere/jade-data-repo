@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -29,7 +28,6 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -216,16 +214,6 @@ class SnapshotAccessRequestApiControllerTest {
   }
 
   @Test
-  void testGetSnapshotRequestGroupMembersNotCreated() throws Exception {
-    UUID id = UUID.randomUUID();
-    SnapshotAccessRequestResponse accessRequest =
-        new SnapshotAccessRequestResponse().createdSnapshotId(null);
-    when(snapshotBuilderService.getRequest(id)).thenReturn(accessRequest);
-    mvc.perform(get(MEMBERS_ENDPOINT, id));
-    verify(snapshotBuilderService, never()).getGroupMembers(id);
-  }
-
-  @Test
   void testAddSnapshotRequestGroupMember() throws Exception {
     PolicyMemberRequest requestBody = new PolicyMemberRequest();
     requestBody.setEmail("user@gmail.com");
@@ -235,7 +223,7 @@ class SnapshotAccessRequestApiControllerTest {
         new SnapshotAccessRequestResponse().createdSnapshotId(createdId);
     SnapshotAccessRequestMembersResponse expectedResponse =
         new SnapshotAccessRequestMembersResponse();
-    expectedResponse.setMembers(new ArrayList<>(List.of("user@gmail.com")));
+    expectedResponse.setMembers((List.of("user@gmail.com")));
     when(snapshotBuilderService.getRequest(id)).thenReturn(accessRequest);
     when(snapshotBuilderService.addGroupMember(id, requestBody.getEmail()))
         .thenReturn(expectedResponse);
@@ -252,18 +240,6 @@ class SnapshotAccessRequestApiControllerTest {
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestMembersResponse.class);
     assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
     verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, id, IamAction.APPROVE);
-  }
-
-  @Test
-  void testAddSnapshotRequestGroupMemberNotCreated() throws Exception {
-    PolicyMemberRequest requestBody = new PolicyMemberRequest();
-    requestBody.setEmail("user@gmail.com");
-    UUID id = UUID.randomUUID();
-    SnapshotAccessRequestResponse accessRequest =
-        new SnapshotAccessRequestResponse().createdSnapshotId(null);
-    when(snapshotBuilderService.getRequest(id)).thenReturn(accessRequest);
-    mvc.perform(post(MEMBERS_ENDPOINT, id, requestBody));
-    verify(snapshotBuilderService, never()).addGroupMember(id, requestBody.getEmail());
   }
 
   @Test
@@ -287,17 +263,6 @@ class SnapshotAccessRequestApiControllerTest {
         TestUtils.mapFromJson(actualJson, SnapshotAccessRequestMembersResponse.class);
     assertThat("The method returned the expected response", actual, equalTo(expectedResponse));
     verifyAuthorization(IamResourceType.SNAPSHOT_BUILDER_REQUEST, id, IamAction.APPROVE);
-  }
-
-  @Test
-  void testDeleteSnapshotRequestGroupMemberNotCreated() throws Exception {
-    UUID id = UUID.randomUUID();
-    String memberEmail = "user@gmail.com";
-    SnapshotAccessRequestResponse accessRequest =
-        new SnapshotAccessRequestResponse().createdSnapshotId(null);
-    when(snapshotBuilderService.getRequest(id)).thenReturn(accessRequest);
-    mvc.perform(delete(DELETE_MEMBERS_ENDPOINT, id, memberEmail));
-    verify(snapshotBuilderService, never()).deleteGroupMember(id, memberEmail);
   }
 
   private void testUpdateStatus(UUID id, SnapshotAccessRequestResponse response, String endpoint)

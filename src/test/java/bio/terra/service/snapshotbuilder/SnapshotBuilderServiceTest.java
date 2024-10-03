@@ -64,7 +64,6 @@ import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,6 +71,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -594,70 +594,98 @@ class SnapshotBuilderServiceTest {
             eq(id), anyString(), eq(snapshot.getName()), eq("No snapshot specification found"));
   }
 
-  @Test
-  void testGetRequestGroupMembers() {
-    SnapshotAccessRequestMembersResponse expected = new SnapshotAccessRequestMembersResponse();
-    expected.members(new ArrayList<>());
-    UUID requestId = new SnapshotAccessRequestResponse().getId();
-    SnapshotAccessRequestModel requestModel =
-        SnapshotBuilderTestData.createAccessRequestModelApproved();
-    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
-    when(iamService.getGroupPolicyEmails(requestModel.samGroupName(), IamRole.MEMBER.toString()))
-        .thenReturn(new ArrayList<>());
-    assertThat(snapshotBuilderService.getGroupMembers(requestId), is(expected));
-  }
+  @Nested
+  class GroupMemberApis {
 
-  @Test
-  void testAddRequestGroupMember() {
-    SnapshotAccessRequestMembersResponse expected = new SnapshotAccessRequestMembersResponse();
-    String memberEmail = "user@gmail.com";
-    expected.members(new ArrayList<>(List.of(memberEmail)));
-    UUID requestId = new SnapshotAccessRequestResponse().getId();
     SnapshotAccessRequestModel requestModel =
-        SnapshotBuilderTestData.createAccessRequestModelApproved();
-    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
-    when(iamService.addEmailToGroup(
-            requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
-        .thenReturn(new ArrayList<>(List.of("user@gmail.com")));
-    assertThat(snapshotBuilderService.addGroupMember(requestId, memberEmail), is(expected));
-  }
+        SnapshotBuilderTestData.createAccessRequestModelSnapshotCreated();
+    UUID requestId = new SnapshotAccessRequestResponse().getId();
 
-  @Test
-  void testAddRequestGroupMemberInvalidEmail() {
-    String badEmail = "badEmail";
-    UUID requestId = new SnapshotAccessRequestResponse().getId();
-    SnapshotAccessRequestModel requestModel =
-        SnapshotBuilderTestData.createAccessRequestModelApproved();
-    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
-    assertThrows(
-        bio.terra.app.controller.exception.ValidationException.class,
-        () -> snapshotBuilderService.addGroupMember(requestId, badEmail));
-  }
+    @BeforeEach
+    void beforeEach() {
+      when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
+    }
 
-  @Test
-  void testDeleteRequestGroupMembers() {
-    SnapshotAccessRequestMembersResponse expected = new SnapshotAccessRequestMembersResponse();
-    String memberEmail = "user@gmail.com";
-    expected.members(new ArrayList<>());
-    UUID requestId = new SnapshotAccessRequestResponse().getId();
-    SnapshotAccessRequestModel requestModel =
-        SnapshotBuilderTestData.createAccessRequestModelApproved();
-    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
-    when(iamService.removeEmailFromGroup(
-            requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
-        .thenReturn(new ArrayList<>());
-    assertThat(snapshotBuilderService.deleteGroupMember(requestId, memberEmail), is(expected));
-  }
+    @Nested
+    class BlankSamGroup {
+      SnapshotAccessRequestModel requestModelBlankGroup =
+          SnapshotBuilderTestData.createAccessRequestModelApproved();
+      UUID requestIdBlankGroup = new SnapshotAccessRequestResponse().getId();
 
-  @Test
-  void testDeleteRequestGroupMemberInvalidEmail() {
-    String badEmail = "badEmail";
-    UUID requestId = new SnapshotAccessRequestResponse().getId();
-    SnapshotAccessRequestModel requestModel =
-        SnapshotBuilderTestData.createAccessRequestModelApproved();
-    when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
-    assertThrows(
-        bio.terra.app.controller.exception.ValidationException.class,
-        () -> snapshotBuilderService.deleteGroupMember(requestId, badEmail));
+      @BeforeEach
+      void beforeEach() {
+        when(snapshotRequestDao.getById(requestIdBlankGroup)).thenReturn(requestModelBlankGroup);
+      }
+
+      @Test
+      void testGetGroupMembersNotCreated() {
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> snapshotBuilderService.getGroupMembers(requestIdBlankGroup));
+      }
+
+      @Test
+      void testAddGroupMemberNotCreated() {
+        String memberEmail = "user@gmail.com";
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> snapshotBuilderService.addGroupMember(requestIdBlankGroup, memberEmail));
+      }
+
+      @Test
+      void testDeleteGroupMemberNotCreated() {
+        String memberEmail = "user@gmail.com";
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> snapshotBuilderService.deleteGroupMember(requestIdBlankGroup, memberEmail));
+      }
+    }
+
+    @Test
+    void testGetRequestGroupMembers() {
+      SnapshotAccessRequestMembersResponse expected =
+          new SnapshotAccessRequestMembersResponse().members(List.of());
+      when(iamService.getGroupPolicyEmails(requestModel.samGroupName(), IamRole.MEMBER.toString()))
+          .thenReturn(expected.getMembers());
+      assertThat(snapshotBuilderService.getGroupMembers(requestId), is(expected));
+    }
+
+    @Test
+    void testAddRequestGroupMember() {
+      String memberEmail = "user@gmail.com";
+      SnapshotAccessRequestMembersResponse expected =
+          new SnapshotAccessRequestMembersResponse().members(List.of(memberEmail));
+      when(iamService.addEmailToGroup(
+              requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
+          .thenReturn(expected.getMembers());
+      assertThat(snapshotBuilderService.addGroupMember(requestId, memberEmail), is(expected));
+    }
+
+    @Test
+    void testAddRequestGroupMemberInvalidEmail() {
+      String badEmail = "badEmail";
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> snapshotBuilderService.addGroupMember(requestId, badEmail));
+    }
+
+    @Test
+    void testDeleteRequestGroupMembers() {
+      String memberEmail = "user@gmail.com";
+      SnapshotAccessRequestMembersResponse expected =
+          new SnapshotAccessRequestMembersResponse().members(List.of());
+      when(iamService.removeEmailFromGroup(
+              requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
+          .thenReturn(expected.getMembers());
+      assertThat(snapshotBuilderService.deleteGroupMember(requestId, memberEmail), is(expected));
+    }
+
+    @Test
+    void testDeleteRequestGroupMemberInvalidEmail() {
+      String badEmail = "badEmail";
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> snapshotBuilderService.deleteGroupMember(requestId, badEmail));
+    }
   }
 }

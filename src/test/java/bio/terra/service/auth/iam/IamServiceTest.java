@@ -265,8 +265,8 @@ class IamServiceTest {
     String accessToken = "accessToken";
     when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
     when(iamProvider.getGroupPolicyEmails(accessToken, groupName, policyName))
-        .thenReturn(new ArrayList<>());
-    assertEquals(iamService.getGroupPolicyEmails(groupName, policyName), new ArrayList<>());
+        .thenReturn(List.of());
+    assertEquals(iamService.getGroupPolicyEmails(groupName, policyName), List.of());
   }
 
   @Test
@@ -277,10 +277,8 @@ class IamServiceTest {
     String accessToken = "accessToken";
     when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
     when(iamProvider.addGroupPolicyEmail(accessToken, groupName, policyName, email))
-        .thenReturn(new ArrayList<>(List.of("user@gmail.com")));
-    assertEquals(
-        iamService.addEmailToGroup(groupName, policyName, email),
-        new ArrayList<>(List.of("user@gmail.com")));
+        .thenReturn(List.of(email));
+    assertEquals(iamService.addEmailToGroup(groupName, policyName, email), List.of(email));
   }
 
   @Test
@@ -291,7 +289,7 @@ class IamServiceTest {
     String accessToken = "accessToken";
     when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
     when(iamProvider.removeGroupPolicyEmail(accessToken, groupName, policyName, email))
-        .thenReturn(new ArrayList<>());
-    assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), new ArrayList<>());
+        .thenReturn(List.of());
+    assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), List.of());
   }
 }

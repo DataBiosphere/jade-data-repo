@@ -1,7 +1,6 @@
 package bio.terra.service.snapshotbuilder;
 
 import bio.terra.app.configuration.TerraConfiguration;
-import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.ApiException;
@@ -409,15 +408,19 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestMembersResponse getGroupMembers(UUID id) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    ValidationUtils.requireNotBlank(
+        model.samGroupName(),
+        "Snapshot must be created from this request in order to manage group membership.");
     return new SnapshotAccessRequestMembersResponse()
         .members(iamService.getGroupPolicyEmails(model.samGroupName(), IamRole.MEMBER.toString()));
   }
 
   public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    if (!ValidationUtils.isValidEmail(memberEmail)) {
-      throw new ValidationException("Invalid member email");
-    }
+    ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
+    ValidationUtils.requireNotBlank(
+        model.samGroupName(),
+        "Snapshot must be created from this request in order to manage group membership.");
     return new SnapshotAccessRequestMembersResponse()
         .members(
             iamService.addEmailToGroup(
@@ -426,9 +429,10 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    if (!ValidationUtils.isValidEmail(memberEmail)) {
-      throw new ValidationException("Invalid member email");
-    }
+    ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
+    ValidationUtils.requireNotBlank(
+        model.samGroupName(),
+        "Snapshot must be created from this request in order to manage group membership.");
     return new SnapshotAccessRequestMembersResponse()
         .members(
             iamService.removeEmailFromGroup(

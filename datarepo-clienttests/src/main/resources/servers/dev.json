@@ -1,0 +1,16 @@
+{
+  "name": "dev",
+  "description": "Dev performance smoke tests",
+  "datarepoUri": "https://jade.datarepo-dev.broadinstitute.org/",
+  "samUri": "https://sam.dsde-dev.broadinstitute.org",
+  "samResourceIdForDatarepo": "broad-jade-dev",
+  "clusterName": "gke_broad-jade-dev_us-central1_dev-master",
+  "clusterShortName": "dev-master",
+  "region": "us-central1",
+  "project": "broad-jade-dev",
+  "namespace": "dev",
+  "containerName": "datarepo-datarepo-api",
+  "testRunnerServiceAccountFile": "jade-k8-sa.json",
+  "skipDeployment": true,
+  "skipKubernetes": true
+}

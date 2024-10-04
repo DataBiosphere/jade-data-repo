@@ -731,9 +731,12 @@ public class DrsService {
       Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(cloudPath).getBucket(), userProject);
       if (bucket == null) {
         throw new DrsObjectNotFoundException(
-            "GCS bucket from %s not found (diagnostics returned in error details)"
-                .formatted(cloudPath),
-            List.of(cachedSnapshot.toString(), fsFile.toString()));
+            """
+                Could not access GCS URI %s found in self-hosted GCP snapshot.
+                Source snapshot: %s
+                File entry: %s
+                """
+                .formatted(cloudPath, cachedSnapshot, fsFile));
       }
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {

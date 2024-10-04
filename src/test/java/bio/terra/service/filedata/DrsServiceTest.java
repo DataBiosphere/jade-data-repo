@@ -10,7 +10,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -756,11 +755,14 @@ class DrsServiceTest {
     verify(samService)
         .verifyAuthorization(
             TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
-    assertThat(
-        exception.getMessage(), startsWith("GCS bucket from %s not found".formatted(sourcePath)));
-    assertThat(
-        exception.getCauses(),
-        containsInAnyOrder(snapshotCacheResult.toString(), googleFsFile.toString()));
+    String expectedMessage =
+        """
+            Could not access GCS URI %s found in self-hosted GCP snapshot.
+            Source snapshot: %s
+            File entry: %s
+            """
+            .formatted(sourcePath, snapshotCacheResult, googleFsFile);
+    assertThat(exception.getMessage(), equalTo(expectedMessage));
   }
 
   private static Stream<Arguments> testSignGcpUrl() {

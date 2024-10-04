@@ -72,10 +72,12 @@ class DataRepositoryServiceApiControllerTest {
         .thenThrow(DrsObjectNotFoundException.class);
     mvc.perform(get(GET_DRS_OBJECT_ENDPOINT, DRS_ID)).andExpect(status().isNotFound());
 
+    String errorMsg = "DRS object not found";
     when(drsService.getAccessUrlForObjectId(TEST_USER, DRS_ID, DRS_ACCESS_ID, null))
-        .thenThrow(DrsObjectNotFoundException.class);
+        .thenThrow(new DrsObjectNotFoundException(errorMsg));
     mvc.perform(get(GET_DRS_OBJECT_ACCESS_ENDPOINT, DRS_ID, DRS_ACCESS_ID))
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.msg").value(errorMsg));
   }
 
   @Test

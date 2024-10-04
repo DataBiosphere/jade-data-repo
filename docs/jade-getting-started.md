@@ -72,8 +72,6 @@ specifically be used for development purposes in our non-prod environments.
 BITS requires that these development accounts have multi-factor authentication (MFA) enabled.
 Follow Google's instructions for enabling
 [two-step authentication](https://support.google.com/accounts/answer/185839).
-When complete, document your development account with a screenshot showing that it has MFA enabled
-[here](https://docs.google.com/document/d/1FS_DC1ysF861ZZhgGXNM-KB8_smalVeDjz1SxyOr9GM/edit#).
 
 Next, to register as a new user, click the `Sign in with Google` button in each
 of the environments with the newly created email address and follow the prompts:
@@ -169,7 +167,6 @@ git clone git@github.com:broadinstitute/datarepo-helm.git
 git clone git@github.com:broadinstitute/datarepo-helm-definitions.git
 git clone git@github.com:broadinstitute/terra-helmfile.git
 git clone git@github.com:broadinstitute/terraform-ap-deployments.git
-git clone git@github.com:broadinstitute/terraform-jade.git
 ```
 
 ## 7. Google Cloud Platform setup
@@ -190,11 +187,12 @@ git clone git@github.com:broadinstitute/terraform-jade.git
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-## 8. Configure Azure
+## 8. Optional: Configure Azure
+In order to do Azure development, do the following steps:
 
 ### 1. Get Azure Account
 You will need to have an Azure account created (see https://docs.google.com/spreadsheets/d/1Q6CldqVPrATkWCAXljKrwlLz8oFsCQwcfOz_io-gcrA)
-and granted access to the TDR application in Azure and added to the jadedev group.
+and be granted access to the TDR application in Azure and added to the jadedev group.
 
 The Azure user should look like <your email id>@azure.dev.envs-terra.bio
 
@@ -318,7 +316,7 @@ the above test commands.  More specific examples are available in
 
 ### 5. Build `jade-data-repo-ui`
 
-Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) to build the `jade-data-repo-ui` repository.
+To do API and UI development simultaneously, Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) to build the `jade-data-repo-ui` repository.
 
 By setting the `PROXY_URL` environment variable, you can point the UI to your local data repo instance.
 ```
@@ -341,10 +339,7 @@ To do this, you can point the [python setup script](https://github.com/DataBiosp
 to your locally running data repo instance by setting the --host flag to http://localhost:8080.
 See the [README](https://github.com/DataBiosphere/jade-data-repo/blob/develop/tools/setupResourceScripts/README.md) for more information.
 
-You can also run some of the notebooks from [the Jade Client examples](https://github.com/broadinstitute/jade-data-repo-client-example/tree/master/src/main/python),
-such as `AzureY1Demo.ipynb`
-
-## 13. Running locally with other locally running services
+## 12. Running locally with other locally running services
 1. Sam - set environment variable `SAM_BASEPATH` to `https://local.broadinstitute.org:50443`
 
 ## Common Issues
@@ -369,3 +364,4 @@ Ensure that:
 ## Resources
 * [Stairway Flight Developer Guide](https://github.com/DataBiosphere/stairway/blob/develop/FLIGHT_DEVELOPER_GUIDE.md) - Data Repo utilizes Stairway to run asynchronous operations throughout the code base.
 * [Data Repo Service](https://ga4gh.github.io/data-repository-service-schemas/docs/) - The Data Repo implements parts of the The Data Repository Service (DRS) specification.
+* [Data Exploration Team Common Problems doc](https://docs.google.com/document/d/13b-zAw5tnBD40CYnJQu5G-hVIsvy2qH-tKJTHNElzGc/edit) - A document written by the Data Exploration team to help solve some common issues with TDR and Terra UI

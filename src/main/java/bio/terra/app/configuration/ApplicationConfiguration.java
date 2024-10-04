@@ -389,6 +389,8 @@ public class ApplicationConfiguration {
     return new NamedParameterJdbcTemplate(ds);
   }
 
+  // Use Primary to fix an issue with unqualified ObjectMapper injections in spring-hateoas.
+  @Primary
   @Bean("objectMapper")
   public ObjectMapper objectMapper() {
     return new ObjectMapper()

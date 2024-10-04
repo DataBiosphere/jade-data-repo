@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.configuration.UnitTestConfiguration;
 import bio.terra.app.controller.ApiValidationExceptionHandler;
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.controller.GlobalExceptionHandler;
@@ -25,7 +26,6 @@ import bio.terra.app.controller.converters.SqlSortDirectionAscDefaultConverter;
 import bio.terra.app.controller.converters.SqlSortDirectionDescDefaultConverter;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.UnitTestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
@@ -71,25 +71,27 @@ import org.springframework.test.web.servlet.MvcResult;
       SqlSortDirectionDescDefaultConverter.class,
       UnitTestConfiguration.class
     })
+@MockBean({
+  JobService.class,
+  DatasetService.class,
+  IamService.class,
+  FileService.class,
+  AuthenticatedUserRequestFactory.class,
+  SnapshotBuilderService.class,
+})
 @WebMvcTest
 @Tag(Unit.TAG)
 class DatasetRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
 
-  @MockBean private JobService jobService;
-  @MockBean private DatasetService datasetService;
-  @MockBean private IamService iamService;
-  @MockBean private FileService fileService;
-  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  @MockBean private SnapshotBuilderService snapshotBuilderService;
   @MockBean private IngestRequestValidator ingestRequestValidator;
   @MockBean private AssetModelValidator assetModelValidator;
   @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
   @MockBean private DataDeletionRequestValidator dataDeletionRequestValidator;
 
   @BeforeEach
-  void setup() throws Exception {
+  void setup() {
     when(ingestRequestValidator.supports(any())).thenReturn(true);
     when(dataDeletionRequestValidator.supports(any())).thenReturn(true);
     when(assetModelValidator.supports(any())).thenReturn(true);

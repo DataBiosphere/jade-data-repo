@@ -415,12 +415,18 @@ public class SnapshotBuilderService {
         .members(iamService.getGroupPolicyEmails(model.samGroupName(), IamRole.MEMBER.toString()));
   }
 
-  public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
+  static void validateGroupParams(SnapshotAccessRequestModel model, String memberEmail) {
+    if (memberEmail != null) {
+      ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
+    }
     ValidationUtils.requireNotBlank(
         model.samGroupName(),
         "Snapshot must be created from this request in order to manage group membership.");
+  }
+
+  public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, memberEmail);
     return new SnapshotAccessRequestMembersResponse()
         .members(
             iamService.addEmailToGroup(
@@ -429,10 +435,7 @@ public class SnapshotBuilderService {
 
   public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
     SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
-    ValidationUtils.requireNotBlank(
-        model.samGroupName(),
-        "Snapshot must be created from this request in order to manage group membership.");
+    validateGroupParams(model, memberEmail);
     return new SnapshotAccessRequestMembersResponse()
         .members(
             iamService.removeEmailFromGroup(

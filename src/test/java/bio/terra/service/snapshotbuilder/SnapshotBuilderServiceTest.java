@@ -1,10 +1,12 @@
 package bio.terra.service.snapshotbuilder;
 
+import static bio.terra.service.snapshotbuilder.SnapshotBuilderService.validateGroupParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -606,41 +608,6 @@ class SnapshotBuilderServiceTest {
       when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
     }
 
-    @Nested
-    class BlankSamGroup {
-      SnapshotAccessRequestModel requestModelBlankGroup =
-          SnapshotBuilderTestData.createAccessRequestModelApproved();
-      UUID requestIdBlankGroup = new SnapshotAccessRequestResponse().getId();
-
-      @BeforeEach
-      void beforeEach() {
-        when(snapshotRequestDao.getById(requestIdBlankGroup)).thenReturn(requestModelBlankGroup);
-      }
-
-      @Test
-      void testGetGroupMembersNotCreated() {
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> snapshotBuilderService.getGroupMembers(requestIdBlankGroup));
-      }
-
-      @Test
-      void testAddGroupMemberNotCreated() {
-        String memberEmail = "user@gmail.com";
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> snapshotBuilderService.addGroupMember(requestIdBlankGroup, memberEmail));
-      }
-
-      @Test
-      void testDeleteGroupMemberNotCreated() {
-        String memberEmail = "user@gmail.com";
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> snapshotBuilderService.deleteGroupMember(requestIdBlankGroup, memberEmail));
-      }
-    }
-
     @Test
     void testGetRequestGroupMembers() {
       SnapshotAccessRequestMembersResponse expected =
@@ -662,14 +629,6 @@ class SnapshotBuilderServiceTest {
     }
 
     @Test
-    void testAddRequestGroupMemberInvalidEmail() {
-      String badEmail = "badEmail";
-      assertThrows(
-          IllegalArgumentException.class,
-          () -> snapshotBuilderService.addGroupMember(requestId, badEmail));
-    }
-
-    @Test
     void testDeleteRequestGroupMembers() {
       String memberEmail = "user@gmail.com";
       SnapshotAccessRequestMembersResponse expected =
@@ -679,13 +638,40 @@ class SnapshotBuilderServiceTest {
           .thenReturn(expected.getMembers());
       assertThat(snapshotBuilderService.deleteGroupMember(requestId, memberEmail), is(expected));
     }
+  }
+
+  @Nested
+  class ValidateParameters {
+    String badEmail = "badEmail";
+    String validEmail = "user@gmail.com";
+    SnapshotAccessRequestModel requestModelBlankGroup =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelSnapshotCreated();
 
     @Test
-    void testDeleteRequestGroupMemberInvalidEmail() {
-      String badEmail = "badEmail";
+    void testInvalidEmail() {
+      assertThrows(
+          IllegalArgumentException.class, () -> validateGroupParams(requestModel, badEmail));
+    }
+
+    @Test
+    void testBlankSamGroup() {
       assertThrows(
           IllegalArgumentException.class,
-          () -> snapshotBuilderService.deleteGroupMember(requestId, badEmail));
+          () -> validateGroupParams(requestModelBlankGroup, validEmail));
+    }
+
+    @Test
+    void testInvalidEmailAndGroup() {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> validateGroupParams(requestModelBlankGroup, badEmail));
+    }
+
+    @Test
+    void testValidEmailAndGroup() {
+      assertDoesNotThrow(() -> validateGroupParams(requestModel, validEmail));
     }
   }
 }

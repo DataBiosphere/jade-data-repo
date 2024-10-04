@@ -406,15 +406,6 @@ public class SnapshotBuilderService {
     return snapshotRequestDao.getById(id).toApiResponse();
   }
 
-  public SnapshotAccessRequestMembersResponse getGroupMembers(UUID id) {
-    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
-    ValidationUtils.requireNotBlank(
-        model.samGroupName(),
-        "Snapshot must be created from this request in order to manage group membership.");
-    return new SnapshotAccessRequestMembersResponse()
-        .members(iamService.getGroupPolicyEmails(model.samGroupName(), IamRole.MEMBER.toString()));
-  }
-
   static void validateGroupParams(SnapshotAccessRequestModel model, String memberEmail) {
     if (memberEmail != null) {
       ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
@@ -422,6 +413,13 @@ public class SnapshotBuilderService {
     ValidationUtils.requireNotBlank(
         model.samGroupName(),
         "Snapshot must be created from this request in order to manage group membership.");
+  }
+
+  public SnapshotAccessRequestMembersResponse getGroupMembers(UUID id) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, null);
+    return new SnapshotAccessRequestMembersResponse()
+        .members(iamService.getGroupPolicyEmails(model.samGroupName(), IamRole.MEMBER.toString()));
   }
 
   public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {

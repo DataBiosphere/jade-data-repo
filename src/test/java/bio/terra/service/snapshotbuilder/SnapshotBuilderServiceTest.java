@@ -673,5 +673,16 @@ class SnapshotBuilderServiceTest {
     void testValidEmailAndGroup() {
       assertDoesNotThrow(() -> validateGroupParams(requestModel, validEmail));
     }
+
+    @Test
+    void testNoEmailAndValidGroup() {
+      assertDoesNotThrow(() -> validateGroupParams(requestModel, null));
+    }
+
+    @Test
+    void testNoEmailAndBlankGroup() {
+      assertThrows(
+          IllegalArgumentException.class, () -> validateGroupParams(requestModelBlankGroup, null));
+    }
   }
 }

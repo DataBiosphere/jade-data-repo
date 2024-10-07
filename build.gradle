@@ -63,7 +63,7 @@ allprojects {
             mavenBom SpringBootPlugin.BOM_COORDINATES
         }
         dependencies {
-            dependency 'io.swagger.core.v3:swagger-annotations:2.2.24'
+            dependency 'io.swagger.core.v3:swagger-annotations:2.2.25'
             dependency 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.62'
         }
     }
@@ -164,14 +164,14 @@ dependencies {
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
 
-    implementation platform('com.google.cloud:libraries-bom:26.47.0')
+    implementation platform('com.google.cloud:libraries-bom:26.48.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'
     implementation 'com.google.cloud:google-cloud-bigquery'
     implementation 'com.google.cloud:google-cloud-storage'
     implementation 'com.google.cloud:google-cloud-firestore'
     implementation 'com.google.cloud:google-cloud-pubsub'
-    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.6.1'
+    implementation 'com.google.cloud:spring-cloud-gcp-starter-logging:5.7.0'
     implementation 'com.google.http-client:google-http-client'
 
     implementation 'org.apache.commons:commons-compress:1.27.1' // For srcclr, jib plugin conflict
@@ -204,7 +204,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.16.0'
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.16.0'
 
-    implementation 'bio.terra:terra-common-lib:1.1.18-SNAPSHOT'
+    implementation 'bio.terra:terra-common-lib:1.1.19-SNAPSHOT'
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:v0.0.241'
     implementation 'bio.terra:terra-policy-client:1.0.15-SNAPSHOT'
     implementation 'bio.terra:terra-resource-buffer-client:0.198.42-SNAPSHOT'
@@ -221,7 +221,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.13.3'
+    implementation 'com.azure:azure-identity:1.14.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.43.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0'
     implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.4'
@@ -236,11 +236,11 @@ dependencies {
     // OpenTelemetry @WithSpan annotations:
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.8.0'
 
-    testImplementation 'org.apache.parquet:parquet-common:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-hadoop:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-encoding:1.14.2'
-    testImplementation 'org.apache.parquet:parquet-column:1.14.2'
+    testImplementation 'org.apache.parquet:parquet-common:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-hadoop:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-hadoop-bundle:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-encoding:1.14.3'
+    testImplementation 'org.apache.parquet:parquet-column:1.14.3'
     testImplementation ('org.apache.hadoop:hadoop-common:3.4.0')  {
         exclude group: 'com.sun.jersey', module: 'jersey-core'
         exclude group: 'com.sun.jersey', module: 'jersey-servlet'

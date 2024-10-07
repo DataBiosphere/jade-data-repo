@@ -406,6 +406,7 @@ public class SnapshotBuilderService {
     return snapshotRequestDao.getById(id).toApiResponse();
   }
 
+  @VisibleForTesting
   static void validateGroupParams(SnapshotAccessRequestModel model, String memberEmail) {
     if (memberEmail != null) {
       ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");

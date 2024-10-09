@@ -2,6 +2,7 @@ package bio.terra.service.snapshotbuilder;
 
 import bio.terra.app.configuration.TerraConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.ApiException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -10,6 +11,7 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequestDetailsResponse;
+import bio.terra.model.SnapshotAccessRequestMembersResponse;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -21,6 +23,7 @@ import bio.terra.model.SnapshotBuilderDomainOption;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
 import bio.terra.model.SnapshotBuilderSettings;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -401,6 +404,41 @@ public class SnapshotBuilderService {
   public SnapshotAccessRequestResponse approveRequest(UUID id) {
     snapshotRequestDao.updateStatus(id, SnapshotAccessRequestStatus.APPROVED);
     return snapshotRequestDao.getById(id).toApiResponse();
+  }
+
+  @VisibleForTesting
+  static void validateGroupParams(SnapshotAccessRequestModel model, String memberEmail) {
+    if (memberEmail != null) {
+      ValidationUtils.requireValidEmail(memberEmail, "Invalid member email");
+    }
+    ValidationUtils.requireNotBlank(
+        model.samGroupName(),
+        "Snapshot must be created from this request in order to manage group membership.");
+  }
+
+  public SnapshotAccessRequestMembersResponse getGroupMembers(UUID id) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, null);
+    return new SnapshotAccessRequestMembersResponse()
+        .members(iamService.getGroupPolicyEmails(model.samGroupName(), IamRole.MEMBER.toString()));
+  }
+
+  public SnapshotAccessRequestMembersResponse addGroupMember(UUID id, String memberEmail) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, memberEmail);
+    return new SnapshotAccessRequestMembersResponse()
+        .members(
+            iamService.addEmailToGroup(
+                model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
+  }
+
+  public SnapshotAccessRequestMembersResponse deleteGroupMember(UUID id, String memberEmail) {
+    SnapshotAccessRequestModel model = snapshotRequestDao.getById(id);
+    validateGroupParams(model, memberEmail);
+    return new SnapshotAccessRequestMembersResponse()
+        .members(
+            iamService.removeEmailFromGroup(
+                model.samGroupName(), IamRole.MEMBER.toString(), memberEmail));
   }
 
   private SnapshotAccessRequestDetailsResponse generateModelDetails(

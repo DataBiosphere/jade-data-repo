@@ -257,4 +257,39 @@ class IamServiceTest {
     when(iamProvider.getGroup(accessToken, groupName)).thenReturn(groupEmail);
     assertEquals(groupEmail, iamService.getGroup(groupName));
   }
+
+  @Test
+  void testGetGroupPolicyEmails() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.getGroupPolicyEmails(accessToken, groupName, policyName))
+        .thenReturn(List.of());
+    assertEquals(iamService.getGroupPolicyEmails(groupName, policyName), List.of());
+  }
+
+  @Test
+  void testAddEmailToGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String email = "user@gmail.com";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.addGroupPolicyEmail(accessToken, groupName, policyName, email))
+        .thenReturn(List.of(email));
+    assertEquals(iamService.addEmailToGroup(groupName, policyName, email), List.of(email));
+  }
+
+  @Test
+  void testRemoveEmailFromGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String email = "user@gmail.com";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.removeGroupPolicyEmail(accessToken, groupName, policyName, email))
+        .thenReturn(List.of());
+    assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), List.of());
+  }
 }

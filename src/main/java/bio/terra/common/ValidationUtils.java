@@ -136,4 +136,10 @@ public final class ValidationUtils {
     Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
     return columnModel.getDatatype() != null && invalidTypes.contains(columnModel.getDatatype());
   }
+
+  public static void requireValidEmail(String email, String errorMsg) {
+    if (!isValidEmail(email)) {
+      throw new IllegalArgumentException(errorMsg);
+    }
+  }
 }

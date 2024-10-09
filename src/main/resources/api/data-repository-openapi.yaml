@@ -3217,6 +3217,152 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/members:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get the members in the DAC group
+      operationId: getSnapshotAccessRequestGroupMembers
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The group members of this request has been fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestMembersResponse'
+        400:
+          description: Bad request - invalid id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot access request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to get group members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: The group members cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    post:
+      tags:
+        - SnapshotAccessRequest
+      description: Adds a member to the DAC group
+      operationId: addSnapshotAccessRequestGroupMember
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyMemberRequest'
+        required: true
+      responses:
+        200:
+          description: The member has been added to the group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestMembersResponse'
+        400:
+          description: Bad request - invalid id or member email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot access request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to add group members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: The group members cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/members/{memberEmail}:
+    delete:
+      tags:
+        - SnapshotAccessRequest
+      description: Removes a member from the DAC group
+      operationId: deleteSnapshotAccessRequestGroupMember
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: memberEmail
+          in: path
+          description: The email of the user to remove
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: The member has been deleted from the group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestMembersResponse'
+        400:
+          description: Bad request - invalid id or member email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot access request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to remove group members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: The group members cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/register/user:
     get:
       tags:
@@ -7584,6 +7730,13 @@ components:
         summary:
           type: string
 
+    SnapshotAccessRequestMembersResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            type: string
 
     SnapshotAccessRequestStatus:
       type: string

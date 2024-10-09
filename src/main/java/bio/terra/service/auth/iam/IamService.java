@@ -464,6 +464,41 @@ public class IamService {
   }
 
   /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @return list of emails on the group
+   */
+  public List<String> getGroupPolicyEmails(String groupName, String policyName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.getGroupPolicyEmails(tdrSaAccessToken, groupName, policyName));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to add to the group
+   * @return list of emails on the group after adding
+   */
+  public List<String> addEmailToGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.addGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to remove from the group
+   * @return list of emails on the group after removing
+   */
+  public List<String> removeEmailFromGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.removeGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
    * Overwrite group membership to include listed emails AND the current user's email
    *
    * @param userRequest current authenticated user - we'll use this to pull the requesting user's *

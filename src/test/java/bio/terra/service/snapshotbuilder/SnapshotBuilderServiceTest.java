@@ -1,10 +1,12 @@
 package bio.terra.service.snapshotbuilder;
 
+import static bio.terra.service.snapshotbuilder.SnapshotBuilderService.validateGroupParams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -29,6 +31,8 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSnapshotAccessRequest;
 import bio.terra.model.SnapshotAccessRequest;
+import bio.terra.model.SnapshotAccessRequestMembersResponse;
+import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
 import bio.terra.model.SnapshotBuilderConcept;
@@ -69,6 +73,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -589,5 +594,95 @@ class SnapshotBuilderServiceTest {
     verify(notificationService)
         .snapshotReady(
             eq(id), anyString(), eq(snapshot.getName()), eq("No snapshot specification found"));
+  }
+
+  @Nested
+  class GroupMemberApis {
+
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelSnapshotCreated();
+    UUID requestId = new SnapshotAccessRequestResponse().getId();
+
+    @BeforeEach
+    void beforeEach() {
+      when(snapshotRequestDao.getById(requestId)).thenReturn(requestModel);
+    }
+
+    @Test
+    void testGetRequestGroupMembers() {
+      SnapshotAccessRequestMembersResponse expected =
+          new SnapshotAccessRequestMembersResponse().members(List.of());
+      when(iamService.getGroupPolicyEmails(requestModel.samGroupName(), IamRole.MEMBER.toString()))
+          .thenReturn(expected.getMembers());
+      assertThat(snapshotBuilderService.getGroupMembers(requestId), is(expected));
+    }
+
+    @Test
+    void testAddRequestGroupMember() {
+      String memberEmail = "user@gmail.com";
+      SnapshotAccessRequestMembersResponse expected =
+          new SnapshotAccessRequestMembersResponse().members(List.of(memberEmail));
+      when(iamService.addEmailToGroup(
+              requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
+          .thenReturn(expected.getMembers());
+      assertThat(snapshotBuilderService.addGroupMember(requestId, memberEmail), is(expected));
+    }
+
+    @Test
+    void testDeleteRequestGroupMembers() {
+      String memberEmail = "user@gmail.com";
+      SnapshotAccessRequestMembersResponse expected =
+          new SnapshotAccessRequestMembersResponse().members(List.of());
+      when(iamService.removeEmailFromGroup(
+              requestModel.samGroupName(), IamRole.MEMBER.toString(), memberEmail))
+          .thenReturn(expected.getMembers());
+      assertThat(snapshotBuilderService.deleteGroupMember(requestId, memberEmail), is(expected));
+    }
+  }
+
+  @Nested
+  class ValidateParameters {
+    String badEmail = "badEmail";
+    String validEmail = "user@gmail.com";
+    SnapshotAccessRequestModel requestModelBlankGroup =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    SnapshotAccessRequestModel requestModel =
+        SnapshotBuilderTestData.createAccessRequestModelSnapshotCreated();
+
+    @Test
+    void testInvalidEmail() {
+      assertThrows(
+          IllegalArgumentException.class, () -> validateGroupParams(requestModel, badEmail));
+    }
+
+    @Test
+    void testBlankSamGroup() {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> validateGroupParams(requestModelBlankGroup, validEmail));
+    }
+
+    @Test
+    void testInvalidEmailAndGroup() {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> validateGroupParams(requestModelBlankGroup, badEmail));
+    }
+
+    @Test
+    void testValidEmailAndGroup() {
+      assertDoesNotThrow(() -> validateGroupParams(requestModel, validEmail));
+    }
+
+    @Test
+    void testNoEmailAndValidGroup() {
+      assertDoesNotThrow(() -> validateGroupParams(requestModel, null));
+    }
+
+    @Test
+    void testNoEmailAndBlankGroup() {
+      assertThrows(
+          IllegalArgumentException.class, () -> validateGroupParams(requestModelBlankGroup, null));
+    }
   }
 }

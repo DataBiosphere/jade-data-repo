@@ -76,51 +76,30 @@ jobs:
     needs:
       - bump_version
     steps:
-      - name: Checkout Develop branch of jade-data-repo
+      - name: Checkout tagged branch of jade-data-repo
         uses: actions/checkout@v3
         with:
-          ref: develop
+          ref: ${{ needs.bump_version.outputs.api_image_tag }}
           token: ${{ secrets.BROADBOT_TOKEN }}
-      - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.BROADBOT_TOKEN }}
-          path: datarepo-helm-definitions
-      - name: "Build new delevop docker image"
-        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
-        with:
-          actions_subcommand: 'gradlebuild'
-          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-      - name: "Update Version in helm for Dev Env"
-        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
-        with:
-          actions_subcommand: 'deploytagupdate'
-          helm_env_prefix: dev
-          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-      - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
-        uses: broadinstitute/retry@v2.8.3 #forked from nick-fields/retry
-        with:
-          timeout_minutes: 1
-          polling_interval_seconds: 5
-          max_attempts: 5
-          command: |
-            git fetch --all --tags
-            git checkout ${{ needs.bump_version.outputs.api_image_tag }}
-      - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
-        uses: actions/checkout@v3
-        with:
-          repository: 'DataBiosphere/jade-data-repo-ui'
-          token: ${{ secrets.BROADBOT_TOKEN }}
-          path: jade-data-repo-ui
-          ref: develop
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
       - name: 'Release Candidate Container Build: Create release candidate images'
-        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
-        with:
-          actions_subcommand: 'alpharelease'
-          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-          alpharelease: ${{ needs.bump_version.outputs.api_image_tag }} # creates gcr build with semver tag
-          gcr_google_project: 'broad-jade-dev'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
+          GOOGLE_SA_CERT: jade-dev-account.pem
+        run: |
+          # extract service account credentials
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+          chmod 644 ${GOOGLE_SA_CERT}
+          # Set tag to semver version
+          export GCR_TAG=${{ needs.bump_version.outputs.api_image_tag }}
+          # Build, tag and push the image
+          ./gradlew jib
 
   cherry_pick_image_to_production_gcr:
     needs: [bump_version, build_container_and_publish]

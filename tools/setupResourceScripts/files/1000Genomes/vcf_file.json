@@ -1,0 +1,6 @@
+{"VCF_File_Path": "/path/to/file3.csv", "VCF_File_Ref": null, "Description": "{\"fileName\":\"file3\", \"fileType\":\"csv\", \"favoriteColor\":\"purple\"}"}
+{"VCF_File_Path": "/path/to/file2.json", "VCF_File_Ref": null, "Description": "{\"fileName\":\"file1\", \"fileType\":\"txt\", \"favoriteColor\":\"blue\"}"}
+{"VCF_File_Path": "/path/to/file2.json", "VCF_File_Ref": null, "Description": "{\"fileName\":\"file2\", \"fileType\":\"json\", \"favoriteColor\":\"green\"}"}
+{"VCF_File_Path": "/path/to/file6.csv", "VCF_File_Ref": null, "Description": "{\"fileName\":\"file6\", \"fileType\":\"csv\", \"favoriteNumber\":\"6\"}"}
+{"VCF_File_Path": "/path/to/file5.json", "VCF_File_Ref": null, "Description": "{\"fileName\":\"file5\", \"fileType\":\"json\", \"favoriteNumber\":\"3\"}"}
+{"VCF_File_Path": "/path/to/file4.json", "VCF_File_Ref": null, "Description": "{\"fileName\":\"file4\", \"fileType\":\"txt\", \"favoriteNumber\":\"1\"}"}

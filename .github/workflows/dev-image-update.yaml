@@ -22,15 +22,14 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: "Bump the tag to a new version"
         id: bumperstep
-        run: echo "tag=2.160.0" >> "$GITHUB_OUTPUT"
-#        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
-#        with:
-#          actions_subcommand: 'bumper'
-#          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
-#          version_file_path: build.gradle
-#          version_variable_name: version
-#          # Sets the author of the version bump commit to broadbot. This is used in our skip job logic.
-#          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
+        uses: broadinstitute/datarepo-actions/actions/main@0.74.0
+        with:
+          actions_subcommand: 'bumper'
+          sa_b64_credentials: ${{ secrets.SA_B64_CREDENTIALS }}
+          version_file_path: build.gradle
+          version_variable_name: version
+          # Sets the author of the version bump commit to broadbot. This is used in our skip job logic.
+          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
 
   build_client_and_publish:
     runs-on: ubuntu-latest
@@ -85,45 +84,45 @@ jobs:
           # Build, tag and push the image
           ./gradlew jib
 
-#  cherry_pick_image_to_production_gcr:
-#    needs: [bump_version, build_container_and_publish]
-#    uses: ./.github/workflows/cherry-pick-image.yaml
-#    secrets: inherit
-#    with:
-#      gcr_tag: ${{ needs.bump_version.outputs.api_image_tag }}
-#      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
-#      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
-#
-#  report-to-sherlock:
-#    name: Report App Version to DevOps
-#    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
-#    needs: [bump_version, cherry_pick_image_to_production_gcr]
-#    with:
-#      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
-#      chart-name: datarepo
-#    permissions:
-#      contents: read
-#      id-token: write
-#
-#  set-app-version-in-dev:
-#    uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
-#    needs:
-#      - bump_version
-#      - report-to-sherlock
-#    with:
-#      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
-#      chart-name: datarepo
-#      environment-name: dev
-#    secrets:
-#      sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
-#    permissions:
-#      id-token: write
-#
-#  helm_tag_bumper:
-#    needs:
-#      - build_container_and_publish
-#      # We block bumping the tag in datarepo-helm because that will cause a deployment to datarepo-dev
-#      # too, and we don't want to be deploying to datarepo-dev twice simultaneously
-#      - set-app-version-in-dev
-#    uses: ./.github/workflows/helmtagbumper.yaml
-#    secrets: inherit
+  cherry_pick_image_to_production_gcr:
+    needs: [bump_version, build_container_and_publish]
+    uses: ./.github/workflows/cherry-pick-image.yaml
+    secrets: inherit
+    with:
+      gcr_tag: ${{ needs.bump_version.outputs.api_image_tag }}
+      source_gcr_url: 'gcr.io/broad-jade-dev/jade-data-repo'
+      target_gcr_url: 'gcr.io/datarepo-public-gcr/jade-data-repo'
+
+  report-to-sherlock:
+    name: Report App Version to DevOps
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs: [bump_version, cherry_pick_image_to_production_gcr]
+    with:
+      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
+      chart-name: datarepo
+    permissions:
+      contents: read
+      id-token: write
+
+  set-app-version-in-dev:
+    uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
+    needs:
+      - bump_version
+      - report-to-sherlock
+    with:
+      new-version: ${{ needs.bump_version.outputs.api_image_tag }}
+      chart-name: datarepo
+      environment-name: dev
+    secrets:
+      sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
+    permissions:
+      id-token: write
+
+  helm_tag_bumper:
+    needs:
+      - build_container_and_publish
+      # We block bumping the tag in datarepo-helm because that will cause a deployment to datarepo-dev
+      # too, and we don't want to be deploying to datarepo-dev twice simultaneously
+      - set-app-version-in-dev
+    uses: ./.github/workflows/helmtagbumper.yaml
+    secrets: inherit

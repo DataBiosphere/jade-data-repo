@@ -37,10 +37,10 @@ jobs:
     needs:
         - bump_version
     steps:
-      - name: Checkout Develop branch of jade-data-repo
+      - name: Checkout tagged branch of jade-data-repo
         uses: actions/checkout@v3
         with:
-          ref: develop
+          ref: ${{ needs.bump_version.outputs.api_image_tag }}
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:

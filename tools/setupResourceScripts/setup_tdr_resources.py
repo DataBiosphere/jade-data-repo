@@ -58,38 +58,23 @@ def wait_for_jobs(clients, jobs):
         wait_for_job(clients, job)
 
 
-# For dataset_ingest requests, each line in file is a json object
-# We need to convert to this to an array of json objects
-def convert_to_json_array(table_csv):
-    records = ""
-    for row in table_csv.readlines():
-        records += row.strip("\n") + ","
-    return json.loads("[" + records.strip(",") + "]")
-
-
 def dataset_ingest_array(clients, dataset_id, dataset_to_upload):
     jobs = []
     for table in dataset_to_upload["tables"]:
         with open(
             os.path.join("files", dataset_to_upload["schema"], f"{table}.json")
-        ) as table_csv:
-            records_array = convert_to_json_array(table_csv)
-            if len(records_array) > 0:
-                ingest_request = {
-                    "format": "array",
-                    "records": records_array,
-                    "table": table,
-                }
-                print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
-                jobs.append(
-                    clients.datasets_api.ingest_dataset(
-                        dataset_id, ingest=ingest_request
-                    ),
-                )
-            else:
-                print(
-                    f"Skipping ingest of {dataset_to_upload['name']}/{table} because it is empty"
-                )
+        ) as table_jsonl:
+            ingest_request = {
+                "format": "array",
+                "records": [json.loads(line) for line in table_jsonl],
+                "table": table,
+            }
+            print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
+            jobs.append(
+                clients.datasets_api.ingest_dataset(
+                    dataset_id, ingest=ingest_request
+                ),
+            )
     wait_for_jobs(clients, jobs)
 
 

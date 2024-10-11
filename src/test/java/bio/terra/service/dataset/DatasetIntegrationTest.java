@@ -115,7 +115,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Test
   public void datasetHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -260,7 +260,7 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.GCP, true, null);
+            steward(), profileId, "omop/it-dataset-omop.json", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -358,7 +358,7 @@ public class DatasetIntegrationTest extends UsersBase {
   public void testAssetCreationUndo() throws Exception {
     // create a dataset
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.json");
     datasetId = summaryModel.getId();
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
@@ -409,7 +409,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDatasetWithPolicies(
-            steward(), profileId, "omop/it-dataset-omop.jsonl", policiesRequest);
+            steward(), profileId, "omop/it-dataset-omop.json", policiesRequest);
     datasetId = summaryModel.getId();
 
     Map<String, List<String>> rolesToPolicies =

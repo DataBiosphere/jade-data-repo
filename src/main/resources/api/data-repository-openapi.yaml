@@ -733,8 +733,8 @@ paths:
       responses:
         200:
           description: >
-            Unlock successful. ResourceLocks object is returned with a "null" value
-            showing that there is no longer an exclusive lock on this resource.
+            Unlock successful. The snapshot's current lock state is returned, which should show no
+            exclusive lock present.
           content:
             application/json:
               schema:
@@ -2139,7 +2139,8 @@ paths:
         - datasets
         - repository
       description: >
-        Remove an exclusive or shared lock on the dataset.
+        Remove an exclusive or shared lock on the dataset.  If any load tag in the dataset is also
+        locked by the same lock ID, it will also be unlocked.
       operationId: unlockDataset
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -2151,8 +2152,8 @@ paths:
       responses:
         200:
           description: >
-            Unlock successful. ResourceLocks object is returned with a "null" value
-            if there are no locks on the resource.
+            Unlock successful. The dataset's current lock state is returned, which should no longer
+            include the lock removed.
           content:
             application/json:
               schema:
@@ -3124,6 +3125,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get a snapshot access request you have access to read
+      operationId: getSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestResponse'
+        404:
+          description: The request cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    delete:
+      tags:
+        - SnapshotAccessRequest
+      description: Delete a snapshot access request you have access to delete
+      operationId: deleteSnapshotAccessRequest
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        204:
+          description: The request has been deleted
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/details:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get the details about a snapshot access request you have access to read
+      operationId: getSnapshotAccessRequestDetails
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The request fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestDetailsResponse'
+        404:
+          description: The request cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshotAccessRequests/{id}/reject:
     put:
       tags:
@@ -3204,6 +3275,152 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: No snapshot request found that meets the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/members:
+    get:
+      tags:
+        - SnapshotAccessRequest
+      description: Get the members in the DAC group
+      operationId: getSnapshotAccessRequestGroupMembers
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: The group members of this request has been fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestMembersResponse'
+        400:
+          description: Bad request - invalid id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot access request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to get group members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: The group members cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    post:
+      tags:
+        - SnapshotAccessRequest
+      description: Adds a member to the DAC group
+      operationId: addSnapshotAccessRequestGroupMember
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyMemberRequest'
+        required: true
+      responses:
+        200:
+          description: The member has been added to the group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestMembersResponse'
+        400:
+          description: Bad request - invalid id or member email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot access request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to add group members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: The group members cannot be found or you do not have access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshotAccessRequests/{id}/members/{memberEmail}:
+    delete:
+      tags:
+        - SnapshotAccessRequest
+      description: Removes a member from the DAC group
+      operationId: deleteSnapshotAccessRequestGroupMember
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: memberEmail
+          in: path
+          description: The email of the user to remove
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: The member has been deleted from the group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotAccessRequestMembersResponse'
+        400:
+          description: Bad request - invalid id or member email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot access request does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - missing permissions to remove group members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: The group members cannot be found or you do not have access
           content:
             application/json:
               schema:
@@ -5086,8 +5303,6 @@ components:
             $ref: '#/components/schemas/Tag'
         resourceLocks:
           $ref: '#/components/schemas/ResourceLocks'
-        snapshotBuilderSettings:
-          $ref: '#/components/schemas/SnapshotBuilderSettings'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -5251,7 +5466,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE, SNAPSHOT_BUILDER_SETTINGS ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -5591,13 +5806,13 @@ components:
             - merge
           description: >
             Approach for how to treat updates to the target table:
-             * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
-             * `replace` - If a primary key is present on the table, treat rows with matching primary keys
+             * `append` (GCP, Azure) - Default: only ever insert rows, regardless of whether or not the primary key value exists
+             * `replace` (GCP only) - If a primary key is present on the table, treat rows with matching primary keys
                          as updates. If duplicate IDs are found in your ingest, the ingest job
                          will fail. If your rows specify `datarepo_row_id`, it will be ignored and
                          TDR will generate new row IDs for your new records. Note: the full new
                          record must be specified.
-             * `merge` - If a primary key is present on the table, treat rows with matching primary keys
+             * `merge` (GCP only) - If a primary key is present on the table, treat rows with matching primary keys
                          as partial updates. Any fields specified will overwrite their current values
                          in the matching table row. If your rows specify `datarepo_row_id`, it will
                          be ignored and TDR will generate new row IDs for your new records. Each
@@ -6736,8 +6951,29 @@ components:
         class_name:
           type: string
           description: Class name of the flight
+        target_iam_resource:
+          $ref: '#/components/schemas/JobTargetResourceModel'
       description: >
         Status of job
+    JobTargetResourceModel:
+      required:
+        - type
+        - id
+        - action
+      type: object
+      description: The IAM resource targeted by a flight
+      properties:
+        type:
+          type: string
+          description: Type of the flight's target resource
+        id:
+          type: string
+          description: Unique identifier for the flight's target resource
+        action:
+          type: string
+          description: >
+            The Sam action which a caller must hold on the flight's target resource in order to
+            retrieve information about this flight
     ErrorModel:
       required:
         - message
@@ -7271,11 +7507,18 @@ components:
       description: >
         ⚠️ The configuration describing how select criteria for issuing a snapshot builder request is generated
       required:
+        - name
+        - description
         - domainOptions
         - programDataOptions
         - featureValueGroups
         - datasetConceptSets
+        - rootTable
       properties:
+        name:
+          type: string
+        description:
+          type: string
         domainOptions:
           type: array
           items:
@@ -7284,15 +7527,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderProgramDataOption'
-        featureValueGroups:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
         datasetConceptSets:
           type: array
           items:
             $ref:
               '#/components/schemas/SnapshotBuilderDatasetConceptSet'
+        rootTable:
+          $ref: '#/components/schemas/SnapshotBuilderRootTable'
+        dictionaryTable:
+          $ref: '#/components/schemas/SnapshotBuilderTable'
 
     SnapshotBuilderOption:
       type: object
@@ -7376,14 +7619,11 @@ components:
         ⚠️ A concept set provided for the dataset, usually used to access tables that are not searchable as domains
       required:
         - name
-        - featureValueGroupName
       properties:
         name:
           type: string
-        featureValueGroupName:
-          type: string
-        concept:
-          $ref: '#/components/schemas/SnapshotBuilderConcept'
+        table:
+          $ref: '#/components/schemas/SnapshotBuilderTable'
 
     SnapshotBuilderDomainOption:
       allOf:
@@ -7459,20 +7699,53 @@ components:
           items:
             $ref: '#/components/schemas/SnapshotBuilderParentConcept'
 
-    SnapshotBuilderFeatureValueGroup:
+    SnapshotBuilderOutputTable:
       type: object
       description: >
         ⚠️ Describes a set of columns for a table with given name
       required:
         - name
-        - values
+        - columns
       properties:
         name:
           type: string
-        values:
+        columns:
           type: array
           items:
             type: string
+
+    SnapshotBuilderTable:
+      type: object
+      description: >
+        ⚠️ Describes the underlying table for a concept/value set
+      required:
+        - datasetTableName
+        - columns
+      properties:
+        datasetTableName:
+          type: string
+        columns:
+          type: array
+          items:
+            type: string
+        primaryTableRelationship:
+          type: string
+        secondaryTableRelationships:
+          type: array
+          items:
+            type: string
+
+    SnapshotBuilderRootTable:
+      allOf:
+        - $ref: '#/components/schemas/SnapshotBuilderTable'
+        - type: object
+          required:
+            - rootColumn
+          properties:
+            rootColumn:
+              type: string
+          description: >
+                The primary column in the root table that is used to join with other tables
 
     EnumerateSnapshotAccessRequest:
       type: object
@@ -7511,11 +7784,31 @@ components:
           $ref: '#/components/schemas/ShortIdProperty'
         createdSnapshotId:
           $ref: '#/components/schemas/UniqueIdProperty'
+        summary:
+          type: string
+        authGroupName:
+          type: string
 
+    SnapshotAccessRequestDetailsResponse:
+      type: object
+      required:
+        - summary
+      description: The details about a snapshot access request.
+      properties:
+        summary:
+          type: string
+
+    SnapshotAccessRequestMembersResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            type: string
 
     SnapshotAccessRequestStatus:
       type: string
-      enum: [ SUBMITTED, APPROVED, REJECTED ]
+      enum: [ SUBMITTED, APPROVED, REJECTED, DELETED ]
 
     SnapshotBuilderCountRequest:
       type: object
@@ -7557,14 +7850,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotBuilderCohort'
-        conceptSets:
+        outputTables:
           type: array
           items:
-            $ref: '#/components/schemas/SnapshotBuilderDatasetConceptSet'
-        valueSets:
-          type: array
-          items:
-            $ref: '#/components/schemas/SnapshotBuilderFeatureValueGroup'
+            $ref: '#/components/schemas/SnapshotBuilderOutputTable'
       description: Specification of cohort and participant data for a requested snapshot.
 
     SnapshotBuilderCohort:
@@ -7583,8 +7872,6 @@ components:
       type: object
       required: [ criteria, mustMeet, meetAll ]
       properties:
-        name:
-          type: string
         criteria:
           type: array
           items:
@@ -8065,7 +8352,7 @@ components:
           - steward
           - reader
           - discoverer
-          - aggregateDataReader
+          - aggregate_data_reader
     DatasetPolicyName:
       name: policyName
       in: path

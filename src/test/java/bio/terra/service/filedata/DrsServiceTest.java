@@ -31,6 +31,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.TestUtils;
 import bio.terra.common.UriUtils;
 import bio.terra.common.category.Unit;
@@ -122,7 +123,7 @@ class DrsServiceTest {
           .build();
 
   private static final String RAS_ISSUER = "https://stsstg.nih.gov";
-  private static final String SNAPSHOT_DATA_PROJECT = "google-project";
+  private static final String SNAPSHOT_DATA_PROJECT = "snapshot-google-project";
 
   @Mock private SnapshotService snapshotService;
   @Mock private FileService fileService;
@@ -137,6 +138,7 @@ class DrsServiceTest {
   @Mock private DrsDao drsDao;
   @Mock private ApplicationConfiguration appConfig;
   @Mock private DrsMetricsService drsMetricsService;
+  @Mock private UserLoggingMetrics loggingMetrics;
 
   private DrsIdService drsIdService;
   private DrsService drsService;
@@ -176,7 +178,8 @@ class DrsServiceTest {
                 ecmConfiguration,
                 drsDao,
                 drsMetricsService,
-                new SimpleAsyncTaskExecutor()));
+                new SimpleAsyncTaskExecutor(),
+                loggingMetrics));
     when(jobService.getActivePodCount()).thenReturn(1);
     when(drsConfiguration.maxDrsLookups()).thenReturn(1);
 
@@ -506,7 +509,7 @@ class DrsServiceTest {
     List<SnapshotCacheResult> cacheResults =
         drsService.lookupSnapshotsForDRSObject(drsIdService.fromObjectId(googleDrsObjectId));
     assertThat("retrieves correct number of snapshots", cacheResults, hasSize(1));
-    assertThat("retrieves correct snapshot", cacheResults.get(0).getId(), equalTo(snapshotId));
+    assertThat("retrieves correct snapshot", cacheResults.get(0).id(), equalTo(snapshotId));
   }
 
   @Test
@@ -718,6 +721,48 @@ class DrsServiceTest {
         () ->
             drsService.postAccessUrlForObjectId(
                 googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel, null));
+  }
+
+  @Test
+  void lookupObjectByDrsId_bucketNotFoundForGcpSelfHostedSnapshot() {
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).selfHosted(true);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    // A snapshot's self-hosted designation is set by its root dataset:
+    snapshot.getSourceDataset().getDatasetSummary().selfHosted(true);
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+    SnapshotCacheResult snapshotCacheResult = new SnapshotCacheResult(snapshot);
+
+    String datasetProject = snapshot.getSourceDataset().getProjectResource().getGoogleProjectId();
+    Storage storage = mock(Storage.class);
+    when(gcsProjectFactory.getStorage(datasetProject)).thenReturn(storage);
+
+    String sourcePath = googleFsFile.getCloudPath();
+    when(storage.get(
+            BlobId.fromGsUtilUri(sourcePath).getBucket(),
+            Storage.BucketGetOption.userProject(SNAPSHOT_DATA_PROJECT)))
+        .thenReturn(null);
+
+    DrsObjectNotFoundException exception =
+        assertThrows(
+            DrsObjectNotFoundException.class,
+            () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
+    // The user is authorized to read the snapshot, so we can share diagnostic information about the
+    // failure to obtain the bucket in our response.
+    verify(samService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    String expectedMessage =
+        """
+            Could not access GCS URI %s found in self-hosted GCP snapshot.
+            Source snapshot: %s
+            File entry: %s
+            """
+            .formatted(sourcePath, snapshotCacheResult, googleFsFile);
+    assertThat(exception.getMessage(), equalTo(expectedMessage));
   }
 
   private static Stream<Arguments> testSignGcpUrl() {

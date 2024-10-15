@@ -2394,14 +2394,25 @@
                 }
             },
             {
+              "name": "fpk_person_visit",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "visit_occurrence",
+                "column": "person_id"
+              }
+            },
+            {
                 "name": "fpk_visit_person",
                 "from": {
-                    "table": "person",
+                    "table": "visit_occurrence",
                     "column": "person_id"
                 },
                 "to": {
-                    "table": "visit_occurrence",
-                    "column": "person_id"
+                  "table": "person",
+                  "column": "person_id"
                 }
             },
             {
@@ -2592,6 +2603,17 @@
                 }
             },
             {
+              "name": "fpk_person_procedure",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "procedure_occurrence",
+                "column": "person_id"
+              }
+            },
+            {
                 "name": "fpk_procedure_person",
                 "from": {
                     "table": "procedure_occurrence",
@@ -2678,6 +2700,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_drug",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "drug_exposure",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_drug_person",
@@ -2768,6 +2801,17 @@
                 }
             },
             {
+              "name": "fpk_person_device",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "device_exposure",
+                "column": "person_id"
+              }
+            },
+            {
                 "name": "fpk_device_person",
                 "from": {
                     "table": "device_exposure",
@@ -2843,6 +2887,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_condition",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "condition_occurrence",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_condition_person",
@@ -2931,6 +2986,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_measurement",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "measurement",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_measurement_person",
@@ -3173,6 +3239,17 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_observation",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "observation",
+                "column": "person_id"
+              }
             },
             {
                 "name": "fpk_observation_person",

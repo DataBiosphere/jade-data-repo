@@ -8,6 +8,8 @@ import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.app.usermetrics.BardEventProperties;
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
@@ -44,6 +46,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -111,6 +114,7 @@ public class DrsService {
   private final DrsDao drsDao;
   private final DrsMetricsService drsMetricsService;
   private final AsyncTaskExecutor executor;
+  private final UserLoggingMetrics loggingMetrics;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -133,7 +137,8 @@ public class DrsService {
       EcmConfiguration ecmConfiguration,
       DrsDao drsDao,
       DrsMetricsService drsMetricsService,
-      @Qualifier("drsResolutionThreadpool") AsyncTaskExecutor executor) {
+      @Qualifier("drsResolutionThreadpool") AsyncTaskExecutor executor,
+      UserLoggingMetrics loggingMetrics) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -148,6 +153,7 @@ public class DrsService {
     this.drsDao = drsDao;
     this.drsMetricsService = drsMetricsService;
     this.executor = executor;
+    this.loggingMetrics = loggingMetrics;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -179,7 +185,7 @@ public class DrsService {
       DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
       List<SnapshotCacheResult> snapshots = lookupSnapshotsForDRSObject(resolvedDrsObjectId);
       List<SnapshotSummaryModel> snapshotSummaries =
-          snapshots.stream().map(SnapshotCacheResult::getId).map(this::getSnapshotSummary).toList();
+          snapshots.stream().map(SnapshotCacheResult::id).map(this::getSnapshotSummary).toList();
 
       return buildDRSAuth(
           snapshotSummaries.stream().anyMatch(SnapshotSummary::passportAuthorizationAvailable));
@@ -346,7 +352,7 @@ public class DrsService {
     // sorted by id
     Map<UUID, List<SnapshotCacheResult>> snapshotsByBillingId =
         cachedSnapshots.stream()
-            .collect(Collectors.groupingBy(SnapshotCacheResult::getSnapshotBillingProfileId))
+            .collect(Collectors.groupingBy(SnapshotCacheResult::snapshotBillingProfileId))
             .entrySet()
             .stream()
             .collect(
@@ -354,7 +360,7 @@ public class DrsService {
                     Entry::getKey,
                     e ->
                         e.getValue().stream()
-                            .sorted(Comparator.comparing(SnapshotCacheResult::getId))
+                            .sorted(Comparator.comparing(SnapshotCacheResult::id))
                             .toList()));
 
     // Create the map keyed on each snapshot id and whose value is the first snapshot for that
@@ -364,8 +370,7 @@ public class DrsService {
         .flatMap(e -> e.getValue().stream().map(v -> new BillingAndSnapshot(e.getKey(), v)))
         .collect(
             Collectors.toMap(
-                e -> e.snapshot().getId(),
-                e -> snapshotsByBillingId.get(e.billingId()).get(0).getId()));
+                e -> e.snapshot().id(), e -> snapshotsByBillingId.get(e.billingId()).get(0).id()));
   }
 
   @VisibleForTesting
@@ -486,6 +491,8 @@ public class DrsService {
 
     BillingProfileModel billingProfileModel = cachedSnapshot.datasetBillingProfileModel;
 
+    logAdditionalProperties(cachedSnapshot);
+
     assertAccessMethodMatchingAccessId(accessId, drsObject);
 
     FSFile fsFile;
@@ -508,6 +515,23 @@ public class DrsService {
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
+  }
+
+  /**
+   * Include additional properties in the event log sent to Bard
+   *
+   * @param cachedSnapshot
+   */
+  private void logAdditionalProperties(SnapshotCacheResult cachedSnapshot) {
+    loggingMetrics.set(BardEventProperties.DATASET_ID_FIELD_NAME, cachedSnapshot.datasetId());
+    loggingMetrics.set(BardEventProperties.DATASET_NAME_FIELD_NAME, cachedSnapshot.datasetName());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, cachedSnapshot.id());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, cachedSnapshot.name());
+    loggingMetrics.set(
+        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME,
+        cachedSnapshot.snapshotBillingProfileId());
+    loggingMetrics.set(
+        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cachedSnapshot.cloudPlatform());
   }
 
   @VisibleForTesting
@@ -686,16 +710,34 @@ public class DrsService {
     return fileObject;
   }
 
-  private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile) {
+  /**
+   * @param cachedSnapshot a cached snapshot entry for a GCP-backed snapshot
+   * @param fsFile a file entry for a file within the snapshot specifying a Google Cloud Storage URI
+   * @return the GCP region associated with the GCS URI, with lookup billed to the snapshot's
+   *     project if self-hosted
+   * @throws DrsObjectNotFoundException if the snapshot is self-hosted and TDR cannot retrieve the
+   *     bucket specified by the GCS URI
+   */
+  private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile)
+      throws DrsObjectNotFoundException {
     final GoogleRegion region;
     if (cachedSnapshot.isSelfHosted) {
       // Authorize using the dataset's service account...
       Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
-      Bucket bucket =
-          storage.get(
-              GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket(),
-              // ...but bill to the snapshot's project
-              BucketGetOption.userProject(cachedSnapshot.googleProjectId));
+      // ...but bill to the snapshot's project (available for all GCP-backed snapshots, regardless
+      // of their self-hosted status).
+      BucketGetOption userProject = BucketGetOption.userProject(cachedSnapshot.googleProjectId);
+      String cloudPath = fsFile.getCloudPath();
+      Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(cloudPath).getBucket(), userProject);
+      if (bucket == null) {
+        throw new DrsObjectNotFoundException(
+            """
+                Could not access GCS URI %s found in self-hosted GCP snapshot.
+                Source snapshot: %s
+                File entry: %s
+                """
+                .formatted(cloudPath, cachedSnapshot, fsFile));
+      }
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {
       GoogleBucketResource bucketResource =
@@ -809,7 +851,7 @@ public class DrsService {
     if (snapshot.globalFileIds) {
       drsId = drsIdService.makeDrsId(fsObject);
     } else {
-      drsId = drsIdService.makeDrsId(fsObject, snapshot.getId().toString());
+      drsId = drsIdService.makeDrsId(fsObject, snapshot.id().toString());
     }
 
     List<String> drsUris = new ArrayList<>();
@@ -982,45 +1024,35 @@ public class DrsService {
         .toList();
   }
 
-  @VisibleForTesting
-  static class SnapshotCacheResult {
-    private final UUID id;
-    private final boolean isSelfHosted;
-    private final BillingProfileModel datasetBillingProfileModel;
-    private final UUID snapshotBillingProfileId;
-    private final CloudPlatform cloudPlatform;
-    private final String googleProjectId;
-    private final String datasetProjectId;
-    private final boolean globalFileIds;
-
+  record SnapshotCacheResult(
+      UUID id,
+      String name,
+      boolean isSelfHosted,
+      boolean globalFileIds,
+      BillingProfileModel datasetBillingProfileModel,
+      UUID snapshotBillingProfileId,
+      CloudPlatform cloudPlatform,
+      String googleProjectId,
+      String datasetProjectId,
+      UUID datasetId,
+      String datasetName) {
     public SnapshotCacheResult(Snapshot snapshot) {
-      this.id = snapshot.getId();
-      this.isSelfHosted = snapshot.isSelfHosted();
-      this.globalFileIds = snapshot.hasGlobalFileIds();
-      this.datasetBillingProfileModel =
-          snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile();
-      this.snapshotBillingProfileId = snapshot.getProfileId();
-      this.cloudPlatform = snapshot.getCloudPlatform();
-      var projectResource = snapshot.getProjectResource();
-      if (projectResource != null) {
-        this.googleProjectId = projectResource.getGoogleProjectId();
-      } else {
-        this.googleProjectId = null;
-      }
-      var datasetProjectResource = snapshot.getSourceDataset().getProjectResource();
-      if (datasetProjectResource != null) {
-        this.datasetProjectId = datasetProjectResource.getGoogleProjectId();
-      } else {
-        this.datasetProjectId = null;
-      }
-    }
-
-    public UUID getId() {
-      return this.id;
-    }
-
-    public UUID getSnapshotBillingProfileId() {
-      return snapshotBillingProfileId;
+      this(
+          snapshot.getId(),
+          snapshot.getName(),
+          snapshot.isSelfHosted(),
+          snapshot.hasGlobalFileIds(),
+          snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile(),
+          snapshot.getProfileId(),
+          snapshot.getCloudPlatform(),
+          Optional.ofNullable(snapshot.getProjectResource())
+              .map(GoogleProjectResource::getGoogleProjectId)
+              .orElse(null),
+          Optional.ofNullable(snapshot.getSourceDataset().getProjectResource())
+              .map(GoogleProjectResource::getGoogleProjectId)
+              .orElse(null),
+          snapshot.getSourceDataset().getId(),
+          snapshot.getSourceDataset().getName());
     }
   }
 }

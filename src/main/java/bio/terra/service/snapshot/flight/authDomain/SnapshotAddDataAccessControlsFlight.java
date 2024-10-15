@@ -10,9 +10,9 @@ import bio.terra.service.policy.PolicyService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.snapshot.flight.create.CreateSnapshotSetDataAccessGroupsStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
@@ -39,14 +39,13 @@ public class SnapshotAddDataAccessControlsFlight extends Flight {
     UUID snapshotId =
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
     List<String> userGroups = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), List.class);
-    List<String> uniqueUserGroups = new HashSet<>(userGroups).stream().toList();
 
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
-    addStep(
-        new CreateSnapshotGroupConstraintPolicyStep(policyService, snapshotId, uniqueUserGroups));
+    addStep(new CreateSnapshotSetDataAccessGroupsStep(userGroups));
+    addStep(new CreateSnapshotGroupConstraintPolicyStep(policyService, snapshotId));
 
-    addStep(new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId, uniqueUserGroups));
+    addStep(new AddSnapshotAuthDomainStep(iamService, userReq, snapshotId));
 
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
 

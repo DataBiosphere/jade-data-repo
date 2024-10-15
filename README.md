@@ -22,29 +22,20 @@ Follow our getting [started guide](docs/jade-getting-started.md) to get set up.
 ### Run linters and unit tests
 
 If you are making code changes, run:
-`./gradlew check`
+`./scripts/run check`
 
-### Verify Pact contracts
-
-To verify that TDR adheres to the contracts published by its consumers, run:
-```
-./src/test/render-pact-configs.sh
-# Reload your environment variables, e.g. src ~/.zshrc
-./gradlew verifyPacts     # verify contracts published with TDR as the provider
-```
-
-By default, this will fetch published contracts from the live Pact broker.
-Results of Pact verification are only published when running in a CI environment (not locally).
+See [started guide](docs/jade-getting-started.md) for information on running connected and integraiton tests.
 
 ### Run TDR locally
 
-Before you run for the first time, you need to generate the credentials file by running `./render-configs.sh`
-
 To run TDR locally:
-`./gradlew bootRun`
+`./scripts/run local`
+
+To run TDR in docker:
+`./scripts/run docker`
 
 To run TDR locally and wait for debugger to attach on port 5005:
-`./gradlew bootRun --debug-jvm`
+`./scripts/run local --debug-jvm`
 
 To have the code hot reload, enable automatic builds in intellij, go to:
 `Preferences -> Build, Execution, Deployment -> Compiler`
@@ -56,17 +47,21 @@ setting the environment variable:
 (the default is "Console-Stackdriver")
 
 The swagger page is:
-https://local.broadinstitute.org:8080
+http://localhost:8080
 
-### Run connected and integration tests
-`./gradlew testConnected`
+### Verify Pact contracts
 
-The integration tests will hit the data repo running in the  broad-jade-integration environment by default. To use a
-different data-repo, edit the src/main/resources/application-integration.properties file and specify the URL. Before
-you run the integration tests, you need to generate the correct pem file by running `./render-configs.sh`
+To verify that TDR adheres to the contracts published by its consumers, run:
+```
+./src/test/render-pact-configs.sh
+# set environment variables
+export PACT_BROKER_USERNAME=$(cat /tmp/pact-ro-username.key)
+export PACT_BROKER_PASSWORD=$(cat /tmp/pact-ro-password.key)
+./gradlew verifyPacts     # verify contracts published with TDR as the provider
+```
 
-To run the tests, use: `./gradlew testIntegration`
-
+By default, this will fetch published contracts from the live Pact broker.
+Results of Pact verification are only published when running in a CI environment (not locally).
 
 ### SourceClear
 
@@ -124,7 +119,7 @@ in a directory other than a git cloned workspace, run:
 
 Then copy the files you want into the source tree
 
-## skaffold
+## skaffold (deprecated - we use BEE test environments primarily now)
 To render your own local skaffold.yaml run the following with your initials
 ```
 sed -e 's/TEMP/<initials>/g' skaffold.yaml.template > skaffold.yaml
@@ -162,7 +157,7 @@ skaffold run
       googleAllowreuseexistingbuckets:
     ```
     - Release a new version of the chart. Talk to DevOps to do this.
-3. To override properties for specific environments (e.g. integration), modify the
+3. To override properties for specific environments (e.g. dev), modify the
 [environment-specific override Data Repo charts](https://github.com/broadinstitute/datarepo-helm-definitions).
     - Find the [deployment.yaml](https://github.com/broadinstitute/datarepo-helm-definitions/blob/master/integration/integration-1/integration-1Deployment.yaml)
     for the specific environment.
@@ -171,7 +166,6 @@ skaffold run
     googleAllowreuseexistingbuckets: true
     ```
    - It's a good idea to test out changes on your developer-namespace before making a PR.
-   - Changes to integration, temp, or developer-namespace environments are good with regular PR approval (1 thumb for this repository).
    - Changes to dev or prod need more eyes, and perhaps a group discussion to discuss possible side effects or failure modes.
 
 ## Developer Notes

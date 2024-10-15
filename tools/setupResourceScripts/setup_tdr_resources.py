@@ -1,3 +1,8 @@
+import argparse
+import json
+import os
+import subprocess
+import time
 import uuid
 
 from data_repo_client import (
@@ -9,12 +14,6 @@ from data_repo_client import (
     JobsApi,
     SnapshotAccessRequestApi,
 )
-import argparse
-import subprocess
-import json
-import os
-import subprocess
-import time
 
 
 class Clients:
@@ -162,15 +161,20 @@ def add_billing_profile_members(clients, profile_id):
     )
 
 
-def dataset_ingest_json(clients, dataset_id, dataset_to_upload):
+def create_ingest_request(table, upload_prefix, format):
+    return {
+        # change to 0 if there is not a header row for csv, ignored for json
+        "csv_skip_leading_rows": 1,
+        "format": format,
+        "path": f"{upload_prefix}/{table}.{format}",
+        "table": table
+    }
+
+def dataset_ingest(clients, dataset_id, dataset_to_upload, format):
     jobs = []
     for table in dataset_to_upload["tables"]:
         upload_prefix = dataset_to_upload["upload_prefix"]
-        ingest_request = {
-            "format": "json",
-            "path": f"{upload_prefix}/{table}.json",
-            "table": table,
-        }
+        ingest_request = create_ingest_request(table, upload_prefix, format)
         print(f"Ingesting data into {dataset_to_upload['name']}/{table}")
         jobs.append(
             clients.datasets_api.ingest_dataset(dataset_id, ingest=ingest_request),
@@ -212,13 +216,14 @@ def create_dataset(clients, dataset_to_upload, profile_id):
         )
         print(f"Created dataset {dataset_name} with id: {dataset['id']}")
 
-    if dataset_to_upload["format"] == "json":
-        dataset_ingest_json(clients, dataset["id"], dataset_to_upload)
-    elif dataset_to_upload["format"] == "array":
+    format = dataset_to_upload["format"]
+    if format == "json" or format == "csv":
+        dataset_ingest(clients, dataset["id"], dataset_to_upload, format)
+    elif format == "array":
         dataset_ingest_array(clients, dataset["id"], dataset_to_upload)
     else:
         raise Exception(
-            "Must specify the ingest format. Right now we support json and array"
+            "Must specify the ingest format. Right now we support json, csv, and array"
         )
 
     add_dataset_policy_members(clients, dataset["id"], dataset_to_upload)
@@ -327,7 +332,7 @@ def main():
     parser.add_argument(
         "--host",
         required=True,
-        help="The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade-4.datarepo-integration.broadinstitute.org`",
+        help="The data repo root URL to point to. This is required flag. Examples include `http://localhost:8080` or `https://jade.datarepo-dev.broadinstitute.org`",
     )
     parser.add_argument(
         "--datasets",
@@ -358,7 +363,7 @@ def main():
     args = parser.parse_args()
     clients = Clients(args.host)
 
-    add_jade_stewards = "dev" in args.host or "integration" in args.host
+    add_jade_stewards = "dev" in args.host
     gcp_profile_id = args.gcp_profile_id
     azure_profile_id = args.azure_profile_id
 

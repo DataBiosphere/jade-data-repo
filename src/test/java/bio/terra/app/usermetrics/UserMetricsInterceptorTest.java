@@ -15,6 +15,7 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.model.CloudPlatform;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -69,6 +70,7 @@ class UserMetricsInterceptorTest {
 
   @BeforeEach
   void setUp() {
+    eventProperties.get().clear();
     when(metricsConfig.ignorePaths()).thenReturn(List.of());
     when(metricsConfig.appId()).thenReturn(APP_ID);
     when(metricsConfig.bardBasePath()).thenReturn(BARD_BASE_PATH);
@@ -104,7 +106,6 @@ class UserMetricsInterceptorTest {
   @Test
   void testSendEvent() throws Exception {
     mockRequestAuth(request);
-
     runAndWait();
 
     verify(bardClient)
@@ -125,9 +126,20 @@ class UserMetricsInterceptorTest {
   }
 
   @Test
-  void testSendEventWithBillingProfileId() throws Exception {
+  void testSendEventWithAdditionalProperties() throws Exception {
+    UUID datasetId = UUID.randomUUID();
+    String datasetName = "datasetName";
+    UUID snapshotId = UUID.randomUUID();
+    String snapshotName = "snapshotName";
     String billingProfileId = UUID.randomUUID().toString();
+    CloudPlatform cloudPlatform = CloudPlatform.GCP;
+
+    eventProperties.set(BardEventProperties.DATASET_ID_FIELD_NAME, datasetId);
+    eventProperties.set(BardEventProperties.DATASET_NAME_FIELD_NAME, datasetName);
+    eventProperties.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, snapshotId);
+    eventProperties.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName);
     eventProperties.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId);
+    eventProperties.set(BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cloudPlatform);
 
     mockRequestAuth(request);
 
@@ -142,7 +154,39 @@ class UserMetricsInterceptorTest {
                     Map.of(
                         BardEventProperties.METHOD_FIELD_NAME, METHOD.toUpperCase(),
                         BardEventProperties.PATH_FIELD_NAME, REQUEST_URI,
-                        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId),
+                        BardEventProperties.DATASET_ID_FIELD_NAME, datasetId,
+                        BardEventProperties.DATASET_NAME_FIELD_NAME, datasetName,
+                        BardEventProperties.SNAPSHOT_ID_FIELD_NAME, snapshotId,
+                        BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, snapshotName,
+                        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId,
+                        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cloudPlatform),
+                    APP_ID,
+                    DNS_NAME)));
+
+    assertThat("token is correct", authCaptor.getValue().getToken(), equalTo(TOKEN));
+  }
+
+  @Test
+  void testSendEventWithTransactionIdHeader() throws Exception {
+    String transactionId = UUID.randomUUID().toString();
+    when(request.getHeader("X-Transaction-Id")).thenReturn(transactionId);
+    mockRequestAuth(request);
+
+    runAndWait();
+
+    verify(bardClient)
+        .logEvent(
+            authCaptor.capture(),
+            eq(
+                new BardEvent(
+                    UserMetricsInterceptor.API_EVENT_NAME,
+                    Map.of(
+                        BardEventProperties.METHOD_FIELD_NAME,
+                        METHOD.toUpperCase(),
+                        BardEventProperties.PATH_FIELD_NAME,
+                        REQUEST_URI,
+                        BardEventProperties.TRANSACTION_ID_FIELD_NAME,
+                        transactionId),
                     APP_ID,
                     DNS_NAME)));
 

@@ -48,8 +48,9 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
+import bio.terra.model.SnapshotBuilderOutputTable;
+import bio.terra.model.SnapshotBuilderRequest;
 import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
@@ -73,7 +74,6 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
-import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -94,7 +94,9 @@ import bio.terra.service.snapshot.flight.authDomain.SnapshotAddDataAccessControl
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderSettingsDao;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderTestData;
 import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -158,6 +160,7 @@ class SnapshotServiceTest {
   @Mock private EcmService ecmService;
   @Mock private RawlsService rawlsService;
   @Mock private DuosClient duosClient;
+  @Mock private SnapshotBuilderSettingsDao settingsDao;
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
@@ -185,7 +188,7 @@ class SnapshotServiceTest {
             azureSynapsePdao,
             rawlsService,
             duosClient,
-            mock(SnapshotBuilderSettingsDao.class));
+            settingsDao);
   }
 
   @Test
@@ -617,26 +620,40 @@ class SnapshotServiceTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
+    SnapshotAccessRequestModel accessRequestResponse =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
   }
 
+  static SnapshotAccessRequestModel createAccessRequestWithFlightid() {
+    return new SnapshotAccessRequestModel(
+        null,
+        null,
+        null,
+        null,
+        null,
+        "email@a.com",
+        null,
+        null,
+        SnapshotAccessRequestStatus.APPROVED,
+        null,
+        "flightId",
+        null,
+        null);
+  }
+
   @Test
   void validateForByRequestIdModeJobFailed() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
-    String flightId = "flightId";
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .flightid(flightId);
+    SnapshotAccessRequestModel accessRequestResponse = createAccessRequestWithFlightid();
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
-    when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.ERROR);
+    when(jobService.unauthRetrieveJobState(accessRequestResponse.flightid()))
+        .thenReturn(FlightStatus.ERROR);
     assertDoesNotThrow(() -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
   }
 
@@ -645,9 +662,9 @@ class SnapshotServiceTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.SUBMITTED);
-    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
+    SnapshotAccessRequestModel accessRequestModel =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(UUID.randomUUID());
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestModel);
 
     assertThrows(
         ValidationException.class,
@@ -660,10 +677,21 @@ class SnapshotServiceTest {
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
 
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .createdSnapshotId(UUID.randomUUID());
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            UUID.randomUUID(),
+            null,
+            null,
+            null);
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
 
@@ -675,17 +703,40 @@ class SnapshotServiceTest {
   @Test
   void validateForByRequestIdModeJobRunning() {
     UUID snapshotAccessRequestId = UUID.randomUUID();
-    String flightId = "flightId";
     SnapshotRequestContentsModel snapshotRequestContentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
-    SnapshotAccessRequestResponse accessRequestResponse =
-        new SnapshotAccessRequestResponse()
-            .status(SnapshotAccessRequestStatus.APPROVED)
-            .flightid(flightId);
+    SnapshotAccessRequestModel accessRequestResponse = createAccessRequestWithFlightid();
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     // any flight status that isn't error or fatal
-    when(jobService.unauthRetrieveJobState(flightId)).thenReturn(FlightStatus.READY);
+    when(jobService.unauthRetrieveJobState(accessRequestResponse.flightid()))
+        .thenReturn(FlightStatus.READY);
+    assertThrows(
+        ValidationException.class,
+        () -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
+  }
+
+  @Test
+  void validateForByRequestIdIdModeCreatedByEmail() {
+    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotRequestContentsModel snapshotRequestContentsModel =
+        makeByRequestIdContentsModel(snapshotAccessRequestId);
+    SnapshotAccessRequestModel accessRequestResponse =
+        new SnapshotAccessRequestModel(
+            null,
+            null,
+            null,
+            null,
+            null,
+            "notanemail.com",
+            null,
+            null,
+            SnapshotAccessRequestStatus.APPROVED,
+            null,
+            null,
+            null,
+            null);
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(accessRequestResponse);
     assertThrows(
         ValidationException.class,
         () -> service.validateForByRequestIdMode(snapshotRequestContentsModel));
@@ -784,7 +835,7 @@ class SnapshotServiceTest {
             mock(InaccessibleWorkspacePolicyModel.class));
     List<String> userGroups = List.of("userGroup1", "userGroup2");
 
-    when(iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
         .thenReturn(userGroups);
     when(rawlsService.resolvePolicyEmails(spm1, TEST_USER))
         .thenReturn(
@@ -1082,18 +1133,17 @@ class SnapshotServiceTest {
 
   @Test
   void testCreateSnapshotWithByRequestId() {
-    UUID snapshotAccessRequestId = UUID.randomUUID();
+    SnapshotAccessRequestModel snapshotAccessRequest =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
+    UUID snapshotAccessRequestId = snapshotAccessRequest.id();
     SnapshotRequestContentsModel contentsModel =
         makeByRequestIdContentsModel(snapshotAccessRequestId);
     SnapshotRequestModel request = new SnapshotRequestModel().contents(List.of(contentsModel));
     request.profileId(UUID.randomUUID());
     JobBuilder jobBuilder = mock(JobBuilder.class);
     String jobId = mockJobService(request, jobBuilder);
-    SnapshotAccessRequestResponse snapshotAccessRequestResponse =
-        new SnapshotAccessRequestResponse().status(SnapshotAccessRequestStatus.APPROVED);
-    when(snapshotRequestDao.getById(snapshotAccessRequestId))
-        .thenReturn(snapshotAccessRequestResponse);
-    when(snapshotDao.retrieveSnapshot(snapshotAccessRequestResponse.getSourceSnapshotId()))
+    when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
+    when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
         .thenReturn(
             new Snapshot()
                 .snapshotSources(
@@ -1327,19 +1377,59 @@ class SnapshotServiceTest {
     contentsModel.requestIdSpec(requestIdModel);
     snapshotRequestModel.contents(List.of(contentsModel));
 
-    AssetSpecification asset = new AssetSpecification().name("concept_asset");
-    Dataset dataset = new Dataset().name("datasetName").assetSpecifications(List.of(asset));
-    when(datasetService.retrieveByName("datasetName")).thenReturn(dataset);
+    Dataset dataset = SnapshotBuilderTestData.DATASET;
+    dataset.name("datasetName");
+    UUID sourceSnapshotId = UUID.randomUUID();
+    when(snapshotRequestDao.getById(snapshotAccessRequestId))
+        .thenReturn(
+            new SnapshotAccessRequestModel(
+                null,
+                null,
+                null,
+                sourceSnapshotId,
+                new SnapshotBuilderRequest()
+                    .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Drug"))
+                    .addOutputTablesItem(new SnapshotBuilderOutputTable().name("Condition")),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+    when(settingsDao.getBySnapshotId(sourceSnapshotId))
+        .thenReturn(SnapshotBuilderTestData.SETTINGS);
 
-    Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
-    SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset).assetSpecification(asset);
+    Snapshot actual = service.makeSnapshotFromSnapshotRequest(snapshotRequestModel, dataset);
+    SnapshotSource snapshotSource = new SnapshotSource().dataset(dataset);
 
-    assertThat(actual.getTables().size(), is(0));
+    assertThat(actual.getTables(), hasSize(4));
     assertThat(actual.getName(), is(snapshotRequestModel.getName()));
     assertThat(actual.getDescription(), is(snapshotRequestModel.getDescription()));
-    assertThat(actual.getRelationships().size(), is(0));
+    assertThat(actual.getRelationships(), hasSize(10));
     assertThat(actual.getFirstSnapshotSource().getDataset(), is(snapshotSource.getDataset()));
     assertThat(actual.getCreationInformation(), is(contentsModel));
+    assertThat(
+        actual.getFirstSnapshotSource().getAssetSpecification().getAssetTables().stream()
+            .map(t -> t.getTable().getName())
+            .toList(),
+        containsInAnyOrder("person", "drug_exposure", "condition_occurrence", "concept"));
+    assertThat(
+        actual.getFirstSnapshotSource().getAssetSpecification().getAssetRelationships().stream()
+            .map(t -> t.getDatasetRelationship().getName())
+            .toList(),
+        containsInAnyOrder(
+            "fpk_person_drug",
+            "fpk_person_condition",
+            "fpk_drug_type_concept",
+            "fpk_drug_concept",
+            "fpk_drug_route_concept",
+            "fpk_drug_concept_s",
+            "fpk_condition_concept",
+            "fpk_condition_type_concept",
+            "fpk_condition_status_concept",
+            "fpk_condition_concept_s"));
   }
 
   @Test
@@ -1355,14 +1445,15 @@ class SnapshotServiceTest {
     SnapshotRequestModel snapshotRequestModel =
         new SnapshotRequestModel().contents(List.of(contentsModel));
 
-    SnapshotAccessRequestResponse snapshotAccessRequest =
-        new SnapshotAccessRequestResponse().sourceSnapshotId(snapshotId);
+    SnapshotAccessRequestModel snapshotAccessRequest =
+        SnapshotBuilderTestData.createAccessRequestModelApproved();
     Dataset dataset = new Dataset().id(datasetId).name(DATASET_NAME);
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
 
     when(snapshotRequestDao.getById(snapshotAccessRequestId)).thenReturn(snapshotAccessRequest);
-    when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
+    when(snapshotDao.retrieveSnapshot(snapshotAccessRequest.sourceSnapshotId()))
+        .thenReturn(snapshot);
 
     Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 
@@ -1383,6 +1474,93 @@ class SnapshotServiceTest {
     Dataset sourceDataset = service.getSourceDatasetFromSnapshotRequest(snapshotRequestModel);
 
     assertThat(sourceDataset, is(dataset));
+  }
+
+  @Test
+  void getSnapshotNameForNonRequest() {
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel().mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
+    String name = "a-e$2";
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
+
+    assertThat(service.getSnapshotName(snapshotRequestModel), is(name));
+  }
+
+  @Test
+  void getSnapshotNameForByRequest() {
+    String uuidAsString = "2c297e7c-b303-4243-af6a-76cd9d3b0ca8";
+    UUID uuid = UUID.fromString(uuidAsString);
+    SnapshotRequestContentsModel contentsModel =
+        new SnapshotRequestContentsModel()
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
+            .requestIdSpec(new SnapshotRequestIdModel().snapshotRequestId(uuid));
+    String name = " a-e$2-";
+    String expectedName = "a_2c297e7c_b303_4243_af6a_76cd9d3b0ca8";
+    SnapshotRequestModel snapshotRequestModel =
+        new SnapshotRequestModel().name(name).contents(List.of(contentsModel));
+
+    when(snapshotRequestDao.getById(uuid))
+        .thenReturn(
+            new SnapshotAccessRequestModel(
+                uuid, " a$%", null, null, null, null, null, null, null, null, null, null, null));
+
+    assertThat(service.getSnapshotName(snapshotRequestModel), is(expectedName));
+  }
+
+  @Test
+  void pullTables() {
+    UUID sourceSnapshotId = UUID.randomUUID();
+
+    var accessRequestResponse =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(sourceSnapshotId);
+    var firstTable =
+        service.pullTables(accessRequestResponse, SnapshotBuilderTestData.SETTINGS).get(0);
+    assertThat(firstTable.getDatasetTableName(), is("drug_exposure"));
+    // Must preserve relationship order
+    assertThat(firstTable.getPrimaryTableRelationship(), equalTo("fpk_person_drug"));
+    assertThat(
+        firstTable.getSecondaryTableRelationships(),
+        contains(
+            "fpk_drug_concept",
+            "fpk_drug_type_concept",
+            "fpk_drug_route_concept",
+            "fpk_drug_concept_s"));
+  }
+
+  @Test
+  void buildAssetFromSnapshotAccessRequest() {
+    Dataset sourceDataset = SnapshotBuilderTestData.DATASET;
+    sourceDataset.name("dataset_name");
+    sourceDataset.id(datasetId);
+    sourceDataset.defaultProfileId(profileId);
+    var accessRequestResponse =
+        SnapshotBuilderTestData.createSnapshotAccessRequestModel(snapshotId);
+    when(settingsDao.getBySnapshotId(snapshotId)).thenReturn(SnapshotBuilderTestData.SETTINGS);
+
+    var actualAssetSpec =
+        service.buildAssetFromSnapshotAccessRequest(sourceDataset, accessRequestResponse);
+    assertThat(actualAssetSpec.getName(), containsString("snapshot-by-request-asset"));
+    assertThat(actualAssetSpec.getRootTable().getTable().getName(), is("person"));
+    assertThat(actualAssetSpec.getRootColumn().getDatasetColumn().getName(), is("person_id"));
+    assertThat(
+        actualAssetSpec.getAssetRelationships().stream()
+            .map(r -> r.getDatasetRelationship().getName())
+            .toList(),
+        contains(
+            "fpk_person_drug",
+            "fpk_person_condition",
+            "fpk_drug_concept",
+            "fpk_drug_type_concept",
+            "fpk_drug_route_concept",
+            "fpk_drug_concept_s",
+            "fpk_condition_concept",
+            "fpk_condition_type_concept",
+            "fpk_condition_status_concept",
+            "fpk_condition_concept_s"));
+    assertThat(
+        actualAssetSpec.getAssetTables().stream().map(at -> at.getTable().getName()).toList(),
+        contains("person", "drug_exposure", "condition_occurrence", "concept"));
   }
 
   private void testPreview(int totalRowCount, int filteredRowCount) {
@@ -1469,5 +1647,13 @@ class SnapshotServiceTest {
     if (cloudPlatform == CloudPlatform.GCP) {
       when(snapshotTableDao.retrieveColumns(any())).thenReturn(columns);
     }
+  }
+
+  @Test
+  void retrieveAuthDomains() {
+    when(iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(List.of("group1", "group2"));
+    assertThat(
+        service.retrieveAuthDomains(snapshotId, TEST_USER), containsInAnyOrder("group1", "group2"));
   }
 }

@@ -7,6 +7,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,6 +47,8 @@ class IamServiceTest {
 
   @Mock private ConfigurationService configurationService;
 
+  @Mock private GoogleCredentialsService googleCredentialsService;
+
   private IamService iamService;
 
   @BeforeEach
@@ -58,17 +61,17 @@ class IamServiceTest {
             iamProvider,
             configurationService,
             mock(JournalService.class),
-            mock(GoogleCredentialsService.class));
+            googleCredentialsService);
   }
 
   @Test
   void testRetrieveAuthDomain() throws InterruptedException {
-    when(iamProvider.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID))
+    when(iamProvider.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID))
         .thenReturn(AUTH_DOMAIN);
 
     List<String> result =
-        iamService.retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
-    verify(iamProvider).retrieveAuthDomain(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+        iamService.retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
+    verify(iamProvider).retrieveAuthDomains(TEST_USER, IamResourceType.DATASNAPSHOT, ID);
     assertEquals(AUTH_DOMAIN, result);
   }
 
@@ -243,5 +246,50 @@ class IamServiceTest {
         () ->
             iamService.verifyResourceTypeAdminAuthorized(
                 TEST_USER, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION));
+  }
+
+  @Test
+  void testGetGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String groupEmail = "groupEmail";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.getGroup(accessToken, groupName)).thenReturn(groupEmail);
+    assertEquals(groupEmail, iamService.getGroup(groupName));
+  }
+
+  @Test
+  void testGetGroupPolicyEmails() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.getGroupPolicyEmails(accessToken, groupName, policyName))
+        .thenReturn(List.of());
+    assertEquals(iamService.getGroupPolicyEmails(groupName, policyName), List.of());
+  }
+
+  @Test
+  void testAddEmailToGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String email = "user@gmail.com";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.addGroupPolicyEmail(accessToken, groupName, policyName, email))
+        .thenReturn(List.of(email));
+    assertEquals(iamService.addEmailToGroup(groupName, policyName, email), List.of(email));
+  }
+
+  @Test
+  void testRemoveEmailFromGroup() throws InterruptedException {
+    String groupName = "groupName";
+    String policyName = IamRole.MEMBER.toString();
+    String email = "user@gmail.com";
+    String accessToken = "accessToken";
+    when(googleCredentialsService.getApplicationDefaultAccessToken(any())).thenReturn(accessToken);
+    when(iamProvider.removeGroupPolicyEmail(accessToken, groupName, policyName, email))
+        .thenReturn(List.of());
+    assertEquals(iamService.removeEmailFromGroup(groupName, policyName, email), List.of());
   }
 }

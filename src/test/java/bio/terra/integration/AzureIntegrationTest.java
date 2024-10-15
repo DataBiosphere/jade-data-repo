@@ -3,6 +3,7 @@ package bio.terra.integration;
 import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
@@ -55,6 +56,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.PolicyModel;
 import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotAccessRequestStatus;
 import bio.terra.model.SnapshotBuilderCohort;
@@ -73,6 +75,7 @@ import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
@@ -81,6 +84,9 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirectionAscDefault;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
@@ -120,7 +126,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -152,10 +157,10 @@ public class AzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private JsonLoader jsonLoader;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private User steward;
   private User admin;
+  private User researcher;
   private UUID datasetId;
   private UUID releaseSnapshotId;
   private String datasetName;
@@ -174,6 +179,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
     admin = admin("hermione");
+    researcher = reader("harry");
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     RequestRetryOptions retryOptions =
@@ -437,6 +443,8 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotRequestModel requestSnapshotRelease =
         jsonLoader.loadObject("omop/release-snapshot-request.json", SnapshotRequestModel.class);
     requestSnapshotRelease.getContents().get(0).datasetName(summaryModel.getName());
+    requestSnapshotRelease.setPolicies(
+        new SnapshotRequestModelPolicies().addAggregateDataReadersItem(researcher.getEmail()));
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -459,7 +467,7 @@ public class AzureIntegrationTest extends UsersBase {
         approveSnapshotAccessRequest(makeSnapshotAccessRequest().getId());
 
     SnapshotSummaryModel snapshotSummaryByRequest =
-        makeSnapshotFromRequest(approvedSnapshotAccessRequest.getId());
+        makeSnapshotFromRequest(approvedSnapshotAccessRequest);
 
     String columnName = "datarepo_row_id";
     List<Object> personSnapshotRows =
@@ -498,23 +506,66 @@ public class AzureIntegrationTest extends UsersBase {
         "Snapshot access request createdSnapshotId is correct",
         updatedSnapshotAccessRequest.getCreatedSnapshotId(),
         is(snapshotSummaryByRequest.getId()));
+
+    // ==== Confirm Sam group creation and policies were added as expected for snapshot byRequestId
+    // ===
+    var expectedSamGroup =
+        IamService.constructSamGroupName(snapshotSummaryByRequest.getId().toString());
+    // (1) Confirm that a Sam group was created for this snapshot and that both the steward and the
+    // researcher are on the group by successfully retrieving the group
+    var groupEmail = samFixtures.getGroup(steward, expectedSamGroup);
+    assertThat(
+        "Group was successfully created and the steward can access the group",
+        groupEmail,
+        containsString(expectedSamGroup));
+    assertThat(
+        "Group was successfully created and the researcher can access the group",
+        samFixtures.getGroup(researcher, expectedSamGroup),
+        containsString(expectedSamGroup));
+
+    // (2) Confirm that the Sam group was added a reader on the snapshot
+    var policies =
+        dataRepoFixtures.retrieveSnapshotPolicies(steward, snapshotSummaryByRequest.getId());
+    Map<String, List<String>> rolesToPolicies =
+        policies.getPolicies().stream()
+            .collect(Collectors.toMap(PolicyModel::getName, PolicyModel::getMembers));
+    assertThat(
+        "Group email should have been added as a reader",
+        rolesToPolicies.get(IamRole.READER.toString()),
+        containsInAnyOrder(groupEmail));
+
+    // (3) Confirm the Sam group was added as the DAC on the snapshot
+    assertThat(
+        "Group created for snapshot is added as a DAC on the snapshot",
+        policies.getAuthDomain(),
+        containsInAnyOrder(expectedSamGroup));
+
+    dataRepoFixtures.deleteSnapshot(steward, snapshotSummaryByRequest.getId());
+    snapshotIds.remove(snapshotSummaryByRequest.getId());
+    // (5) Sam group was also deleted as part of the snapshot delete
+    assertThrows(IamNotFoundException.class, () -> samFixtures.getGroup(steward, expectedSamGroup));
   }
 
   private SnapshotAccessRequestResponse makeSnapshotAccessRequest() throws Exception {
     String filename = "omop/snapshot-access-request.json";
     SnapshotAccessRequestResponse accessRequest =
-        dataRepoFixtures.createSnapshotAccessRequest(steward, releaseSnapshotId, filename);
+        dataRepoFixtures.createSnapshotAccessRequest(researcher, releaseSnapshotId, filename);
     assertThat("Snapshot access request exists", accessRequest, notNullValue());
     snapshotAccessRequestIds.add(accessRequest.getId());
     return accessRequest;
   }
 
-  private SnapshotSummaryModel makeSnapshotFromRequest(UUID requestSnapshotId) throws Exception {
+  private SnapshotSummaryModel makeSnapshotFromRequest(
+      SnapshotAccessRequestResponse snapshotAccessRequestResponse) throws Exception {
     SnapshotRequestModel requestSnapshot =
         jsonLoader.loadObject(
             "omop/snapshot-request-model-by-request-id.json", SnapshotRequestModel.class);
     requestSnapshot.getContents().get(0).setDatasetName(datasetName);
-    requestSnapshot.getContents().get(0).getRequestIdSpec().setSnapshotRequestId(requestSnapshotId);
+    requestSnapshot
+        .getContents()
+        .get(0)
+        .getRequestIdSpec()
+        .setSnapshotRequestId(snapshotAccessRequestResponse.getId());
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(
@@ -522,7 +573,15 @@ public class AzureIntegrationTest extends UsersBase {
     UUID snapshotByRequestId = snapshotSummary.getId();
     snapshotIds.add(snapshotByRequestId);
     recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRequestId);
-    assertThat("Snapshot exists", snapshotSummary.getName(), equalTo(requestSnapshot.getName()));
+    assertThat(
+        "Snapshot exists",
+        snapshotSummary.getName(),
+        equalTo(
+            String.format(
+                    "%s_%s",
+                    snapshotAccessRequestResponse.getSnapshotName(),
+                    snapshotAccessRequestResponse.getId())
+                .replace('-', '_')));
     return snapshotSummary;
   }
 
@@ -547,14 +606,14 @@ public class AzureIntegrationTest extends UsersBase {
         new SnapshotBuilderConcept().name("concept3").id(3).count(24).code("13").hasChildren(true);
 
     getConceptChildrenTest(concept1, concept3);
-    searchConceptTest(concept1);
+    enumerateConceptTest(concept1);
     getConceptHierarchyTest(concept1, concept3);
   }
 
-  private void searchConceptTest(SnapshotBuilderConcept concept1) throws Exception {
-    var searchConceptsResult =
+  private void enumerateConceptTest(SnapshotBuilderConcept concept1) throws Exception {
+    var enumerateConceptsResult =
         dataRepoFixtures.enumerateConcepts(steward, releaseSnapshotId, 19, concept1.getName());
-    // A concept returned by search concepts always has hasChildren = true, even if it doesn't
+    // A concept returned by enumerate concepts always has hasChildren = true, even if it doesn't
     // have children.
     var concept =
         new SnapshotBuilderConcept()
@@ -563,14 +622,15 @@ public class AzureIntegrationTest extends UsersBase {
             .count(concept1.getCount())
             .code(concept1.getCode())
             .hasChildren(true);
-    assertThat(searchConceptsResult.getResult(), CoreMatchers.is(List.of(concept)));
+    assertThat(enumerateConceptsResult.getResult(), CoreMatchers.is(List.of(concept)));
   }
 
   private void getConceptHierarchyTest(
       SnapshotBuilderConcept concept1, SnapshotBuilderConcept concept3) throws Exception {
-    var searchConceptsResult = dataRepoFixtures.getConceptHierarchy(steward, releaseSnapshotId, 3);
+    var enumerateConceptsResult =
+        dataRepoFixtures.getConceptHierarchy(steward, releaseSnapshotId, 3);
     assertThat(
-        searchConceptsResult.getResult(),
+        enumerateConceptsResult.getResult(),
         CoreMatchers.is(
             List.of(
                 new SnapshotBuilderParentConcept()

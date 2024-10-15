@@ -16,6 +16,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnStatisticsModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetDataModel;
@@ -51,7 +52,6 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetSchemaUpdateValidator;
 import bio.terra.service.dataset.DatasetService;
@@ -282,12 +282,12 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> ingestDataset(
       @PathVariable("id") UUID id, @Valid @RequestBody IngestRequestModel ingest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     // Set default strategy to append
     if (ingest.getUpdateStrategy() == null) {
       ingest.updateStrategy(UpdateStrategyEnum.APPEND);
     }
     validateIngestParams(ingest, id);
-    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -503,17 +503,21 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
-    Dataset dataset = datasetService.retrieve(datasetId);
-    CloudPlatformWrapper platform =
-        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
-
-    if (platform.isAzure()) {
+    CloudPlatform datasetPlatform =
+        datasetService.retrieveDatasetSummary(datasetId).getCloudPlatform();
+    if (CloudPlatformWrapper.of(datasetPlatform).isAzure()) {
       validateAzureIngestParams(ingestRequestModel);
     }
   }
 
   private void validateAzureIngestParams(IngestRequestModel ingestRequest) {
     List<String> errors = new ArrayList<>();
+    UpdateStrategyEnum updateStrategy = ingestRequest.getUpdateStrategy();
+    if (updateStrategy != UpdateStrategyEnum.APPEND) {
+      errors.add(
+          "Ingests to Azure datasets can only use 'append' as an update strategy, was '%s'."
+              .formatted(updateStrategy));
+    }
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV) {
       // validate CSV parameters
       if (ingestRequest.getCsvSkipLeadingRows() == null) {

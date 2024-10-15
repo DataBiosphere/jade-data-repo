@@ -3,57 +3,6 @@ on:
   workflow_dispatch: {}
   workflow_call: {}
 jobs:
-# new integration image updater
-  integration_helm_tag_update:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: develop
-      - name: 'Get Previous tag'
-        id: apiprevioustag
-        run: |
-          TAG=$(git for-each-ref --sort=-creatordate --count 1 --format="%(refname:short)" "refs/tags/")
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-      - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v3
-        with:
-          repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.BROADBOT_TOKEN}}
-          path: datarepo-helm-definitions
-      - name: "integration-1 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-1/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-2 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-2/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-3 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-3/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-4 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-4/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-5 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-5/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-6 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "[datarepo-helm-definitions] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.73.0
-        env:
-          COMMIT_MESSAGE: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          GITHUB_REPO: datarepo-helm-definitions
-          SWITCH_DIRECTORIES: true
-          MERGE_BRANCH: master
   datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
     steps:
@@ -95,7 +44,7 @@ jobs:
         with:
           args: yq w -i datarepo-helm/charts/datarepo-api/Chart.yaml version ${{ steps.chartversion.outputs.chartversion }}"
       - name: "[datarepo-helm] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.73.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.74.0
         env:
           COMMIT_MESSAGE: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm

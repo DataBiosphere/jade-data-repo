@@ -1,9 +1,9 @@
 package bio.terra.service.snapshot.flight;
 
+import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.PolicyService;
-import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -30,11 +30,7 @@ public abstract class SnapshotPolicyStep implements Step {
       UUID snapshotId = getSnapshotId(flightContext);
       TpsPolicyInput protectedDataPolicy = PolicyService.getProtectedDataPolicyInput();
       TpsPolicyInputs policyInputs = new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
-      try {
-        policyService.createSnapshotPao(snapshotId, policyInputs);
-      } catch (PolicyConflictException ex) {
-        logger.warn("Policy access object already exists for snapshot {}", snapshotId);
-      }
+      policyService.createOrUpdatePao(snapshotId, TpsObjectType.SNAPSHOT, policyInputs);
     }
     return StepResult.getStepResultSuccess();
   }

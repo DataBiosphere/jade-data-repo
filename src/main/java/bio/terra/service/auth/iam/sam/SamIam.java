@@ -58,6 +58,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.RequesterPaysSignedUrl
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -333,6 +334,13 @@ public class SamIam implements IamProviderInterface {
     return initialRoles;
   }
 
+  @Override
+  public void deleteSnapshotBuilderRequestResource(
+      AuthenticatedUserRequest userReq, UUID snapshotBuilderRequestId) throws InterruptedException {
+    deleteResource(
+        userReq, IamResourceType.SNAPSHOT_BUILDER_REQUEST, snapshotBuilderRequestId.toString());
+  }
+
   private void createSnapshotBuilderRequestResourceInner(
       AuthenticatedUserRequest userReq,
       UUID snapshotId,
@@ -426,7 +434,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {
     return SamRetry.retry(
@@ -626,7 +634,7 @@ public class SamIam implements IamProviderInterface {
           .userEmail(samInfo.getUserEmail())
           .enabled(samInfo.getEnabled());
     } catch (ApiException ex) {
-      throw convertSAMExToDataRepoEx(ex);
+      throw convertSamExToDataRepoEx(ex);
     }
   }
 
@@ -692,8 +700,71 @@ public class SamIam implements IamProviderInterface {
     samApiService.groupApi(accessToken).postGroup(groupName, null);
   }
 
+  @Override
+  public String getGroup(String accessToken, String groupName) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getGroupEmail(accessToken, groupName));
+  }
+
   private String getGroupEmail(String accessToken, String groupName) throws ApiException {
     return samApiService.groupApi(accessToken).getGroup(groupName);
+  }
+
+  @Override
+  public List<String> getGroupPolicyEmails(String accessToken, String groupName, String policyName)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService, () -> getGroupPolicyEmailsInner(accessToken, groupName, policyName));
+  }
+
+  private List<String> getGroupPolicyEmailsInner(
+      String accessToken, String groupName, String policyName) throws ApiException {
+    return samApiService.groupApi(accessToken).getGroupPolicyEmails(groupName, policyName);
+  }
+
+  @Override
+  public List<String> addGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> addGroupPolicyEmailInner(accessToken, groupName, policyName, memberEmail));
+    return getGroupPolicyEmails(accessToken, groupName, policyName);
+  }
+
+  private void addGroupPolicyEmailInner(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws ApiException {
+    samApiService.groupApi(accessToken).addEmailToGroup(groupName, policyName, memberEmail, null);
+  }
+
+  @Override
+  public List<String> removeGroupPolicyEmail(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> removeGroupPolicyEmailInner(accessToken, groupName, policyName, memberEmail));
+    return getGroupPolicyEmails(accessToken, groupName, policyName);
+  }
+
+  private void removeGroupPolicyEmailInner(
+      String accessToken, String groupName, String policyName, String memberEmail)
+      throws ApiException {
+    samApiService.groupApi(accessToken).removeEmailFromGroup(groupName, policyName, memberEmail);
+  }
+
+  @Override
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      String accessToken,
+      AuthenticatedUserRequest userReq,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses)
+      throws InterruptedException {
+    List<String> emails = new ArrayList<>(emailAddresses);
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    emails.add(userStatusInfo.getUserEmail());
+    overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
   }
 
   @Override
@@ -814,6 +885,15 @@ public class SamIam implements IamProviderInterface {
     return membership;
   }
 
+  @Override
+  public UserIdInfo getUserIds(String accessToken, String userEmail) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getUserIdsInner(accessToken, userEmail));
+  }
+
+  private UserIdInfo getUserIdsInner(String accessToken, String userEmail) throws ApiException {
+    return samApiService.usersApi(accessToken).getUserIds(userEmail);
+  }
+
   /**
    * Syncing a policy with SAM results in a Google group being created that is tied to that policy.
    * The response is an object with one key that is the policy group email and a value that is a
@@ -835,48 +915,30 @@ public class SamIam implements IamProviderInterface {
    * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP
    * status code.
    */
-  public static ErrorReportException convertSAMExToDataRepoEx(final ApiException samEx) {
-    logger.warn("SAM client exception code: {}", samEx.getCode());
-    logger.warn("SAM client exception message: {}", samEx.getMessage());
-    logger.warn("SAM client exception details: {}", samEx.getResponseBody());
+  public static ErrorReportException convertSamExToDataRepoEx(final ApiException samEx) {
+    logger.warn("Sam client exception code: {}", samEx.getCode());
+    logger.warn("Sam client exception message: {}", samEx.getMessage());
+    logger.warn("Sam client exception details: {}", samEx.getResponseBody());
 
     // Sometimes the sam message is buried several levels down inside of the error report object.
-    String message = null;
+    String message;
     try {
       ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
       message = extractErrorMessage(errorReport);
     } catch (JsonProcessingException | IllegalArgumentException ex) {
-      message = Objects.requireNonNullElse(samEx.getMessage(), "SAM client exception");
+      message = Objects.requireNonNullElse(samEx.getMessage(), "Sam client exception");
     }
 
-    switch (samEx.getCode()) {
-      case HttpStatusCodes.STATUS_CODE_BAD_REQUEST:
-        {
-          return new IamBadRequestException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED:
-        {
-          return new IamUnauthorizedException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_FORBIDDEN:
-        {
-          return new IamForbiddenException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_NOT_FOUND:
-        {
-          return new IamNotFoundException(message, samEx);
-        }
-      case HttpStatusCodes.STATUS_CODE_CONFLICT:
-        {
-          return new IamConflictException(message, samEx);
-        }
+    return switch (samEx.getCode()) {
+      case HttpStatusCodes.STATUS_CODE_BAD_REQUEST -> new IamBadRequestException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED -> new IamUnauthorizedException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_FORBIDDEN -> new IamForbiddenException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_NOT_FOUND -> new IamNotFoundException(message, samEx);
+      case HttpStatusCodes.STATUS_CODE_CONFLICT -> new IamConflictException(message, samEx);
         // SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
         // A 401 error will only occur when OpenDJ is down and should be raised as a 500 error
-      default:
-        {
-          return new IamInternalServerErrorException(message, samEx);
-        }
-    }
+      default -> new IamInternalServerErrorException(message, samEx);
+    };
   }
 
   @VisibleForTesting

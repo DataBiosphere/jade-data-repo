@@ -17,7 +17,6 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
@@ -41,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -75,8 +73,6 @@ public class SnapshotIntegrationTest extends UsersBase {
   private String stewardToken;
   String participantTableName;
   int participantTableRowCount;
-
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   @Before
   public void setup() throws Exception {

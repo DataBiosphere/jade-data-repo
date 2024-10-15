@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserIdInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -308,6 +309,10 @@ public class IamService {
                 userReq, snapshotId, snapshotBuilderRequestId));
   }
 
+  public void deleteSnapshotBuilderRequest(AuthenticatedUserRequest userReq, UUID requestId) {
+    callProvider(() -> iamProvider.deleteSnapshotBuilderRequestResource(userReq, requestId));
+  }
+
   /**
    * @param request snapshot creation request
    * @return user-defined snapshot policy object, supplemented with readers from deprecated input
@@ -336,9 +341,10 @@ public class IamService {
   }
 
   // -- auth domain support --
-  public List<String> retrieveAuthDomain(
+  public List<String> retrieveAuthDomains(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
-    return callProvider(() -> iamProvider.retrieveAuthDomain(userReq, iamResourceType, resourceId));
+    return callProvider(
+        () -> iamProvider.retrieveAuthDomains(userReq, iamResourceType, resourceId));
   }
 
   public void patchAuthDomain(
@@ -433,6 +439,14 @@ public class IamService {
 
   // -- managed group support --
 
+  public static String constructSamGroupName(String duosId) {
+    return String.format("%s-users", duosId);
+  }
+
+  public static String constructUniqueSamGroupName(String duosId) {
+    return String.format("%s-%s", constructSamGroupName(duosId), UUID.randomUUID());
+  }
+
   /**
    * @param groupName Firecloud managed group to create as the TDR SA
    * @return the email for the newly created group
@@ -440,6 +454,71 @@ public class IamService {
   public String createGroup(String groupName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     return callProvider(() -> iamProvider.createGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * @param groupName Firecloud managed group to retrieve as the TDR SA
+   * @return the email for the retrieved group
+   */
+  public String getGroup(String groupName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @return list of emails on the group
+   */
+  public List<String> getGroupPolicyEmails(String groupName, String policyName) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.getGroupPolicyEmails(tdrSaAccessToken, groupName, policyName));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to add to the group
+   * @return list of emails on the group after adding
+   */
+  public List<String> addEmailToGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.addGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
+   * @param groupName name of the Sam group
+   * @param policyName name of the Sam group policy
+   * @param email the email to remove from the group
+   * @return list of emails on the group after removing
+   */
+  public List<String> removeEmailFromGroup(String groupName, String policyName, String email) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(
+        () -> iamProvider.removeGroupPolicyEmail(tdrSaAccessToken, groupName, policyName, email));
+  }
+
+  /**
+   * Overwrite group membership to include listed emails AND the current user's email
+   *
+   * @param userRequest current authenticated user - we'll use this to pull the requesting user's *
+   *     email and add it to the group
+   * @param groupName Sam/Firecloud managed group
+   * @param policyName name of Sam/Firecloud managed group policy
+   * @param emailAddresses emails which the TDR SA will set as group policy members
+   */
+  public void overwriteGroupPolicyEmailsIncludeRequestingUser(
+      AuthenticatedUserRequest userRequest,
+      String groupName,
+      String policyName,
+      List<String> emailAddresses) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    callProvider(
+        () ->
+            iamProvider.overwriteGroupPolicyEmailsIncludeRequestingUser(
+                tdrSaAccessToken, userRequest, groupName, policyName, emailAddresses));
   }
 
   /**
@@ -480,5 +559,10 @@ public class IamService {
   public String signUrlForBlob(
       AuthenticatedUserRequest userReq, String project, String path, Duration duration) {
     return callProvider(() -> iamProvider.signUrlForBlob(userReq, project, path, duration));
+  }
+
+  public UserIdInfo getUserIds(String userEmail) {
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
+    return callProvider(() -> iamProvider.getUserIds(tdrSaAccessToken, userEmail));
   }
 }

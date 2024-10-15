@@ -37,6 +37,7 @@ public class ParquetUtils {
       throw new RuntimeException("Could not write " + url + " to local temp file", e);
     }
   }
+
   /**
    * Given a signed Azure URL, this method will read through the parquet data specified as list of
    * maps that are keyed on column name and whose values are string representations of the parquet

@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'com.jfrog.artifactory' version '4.32.0'
+    id 'com.jfrog.artifactory' version '5.2.5'
     id 'org.hidetake.swagger.generator'
 }
 
@@ -29,9 +29,9 @@ repositories {
 
 dependencies {
     ext {
-        jersey = "3.1.2"
-        jackson = "2.16.0"
-        swaggerAnnotations = "2.1.12"
+        jersey = "3.1.8"
+        jackson = "2.18.0"
+        swaggerAnnotations = "2.2.24"
 
     }
 

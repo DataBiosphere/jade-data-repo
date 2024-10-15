@@ -2,6 +2,7 @@ package bio.terra.service.policy;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -19,6 +20,7 @@ import bio.terra.policy.client.ApiException;
 import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
+import bio.terra.policy.model.TpsPaoGetResult;
 import bio.terra.policy.model.TpsPaoUpdateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
@@ -28,6 +30,7 @@ import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.policy.exception.PolicyServiceNotFoundException;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -76,7 +79,7 @@ class PolicyServiceTest {
             .name(PolicyService.GROUP_CONSTRAINT_POLICY_NAME)
             .addAdditionalDataItem(
                 new TpsPolicyPair().key(PolicyService.GROUP_CONSTRAINT_KEY_NAME).value(groupName));
-    TpsPolicyInput actualPolicy = PolicyService.getGroupConstraintPolicyInput(groupName);
+    TpsPolicyInput actualPolicy = PolicyService.getGroupConstraintPolicyInput(List.of(groupName));
     assertEquals(actualPolicy, groupConstraintPolicy);
   }
 
@@ -203,5 +206,13 @@ class PolicyServiceTest {
     RepositoryStatusModelSystems status = policyService.status();
     assertFalse(status.isOk());
     assertThat(status.getMessage(), containsString(exception.getMessage()));
+  }
+
+  @Test
+  void getPao() throws ApiException {
+    mockPolicyApi();
+    var expected = new TpsPaoGetResult().objectId(snapshotId);
+    when(tpsApi.getPao(snapshotId, false)).thenReturn(expected);
+    assertThat(policyService.getPao(snapshotId), equalTo(expected));
   }
 }

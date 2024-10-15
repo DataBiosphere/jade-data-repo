@@ -1061,7 +1061,8 @@ class BigQueryPdaoUnitTest {
 
     Page<FieldValueList> page = mockPage(listOfFieldValueList);
 
-    TableResult table = new TableResult(schema, 10, page);
+    TableResult table =
+        TableResult.newBuilder().setSchema(schema).setTotalRows(10L).setPageNoSchema(page).build();
 
     List<BigQueryDataResultModel> result = BigQueryPdao.aggregateTableData(table);
 
@@ -1091,7 +1092,8 @@ class BigQueryPdaoUnitTest {
                             "2"))))); // For some reason, it wants the numeric value passed in as a
     // string
 
-    TableResult table = new TableResult(schema, 10, page);
+    TableResult table =
+        TableResult.newBuilder().setSchema(schema).setTotalRows(10L).setPageNoSchema(page).build();
 
     List<ColumnStatisticsTextValue> result =
         BigQueryPdao.aggregateTextColumnStats(table, columnName);
@@ -1208,7 +1210,7 @@ class BigQueryPdaoUnitTest {
             List.of(
                 new SnapshotSource()
                     .dataset(mockDataset())
-                    .assetSpecification(
+                    .setAssetSpecification(
                         new AssetSpecification()
                             .rootTable(new AssetTable().datasetTable(tbl1))
                             .rootColumn(

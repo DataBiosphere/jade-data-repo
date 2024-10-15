@@ -3846,6 +3846,83 @@
                     "table": "concept",
                     "column": "concept_id"
                 }
+            },
+            {
+              "name": "fpk_person_visit",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "visit_occurrence",
+                "column": "person_id"
+              }
+            },
+            {
+              "name": "fpk_person_procedure",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "procedure_occurrence",
+                "column": "person_id"
+              }
+            },
+            {
+              "name": "fpk_person_drug",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "drug_exposure",
+                "column": "person_id"
+              }
+            },
+            {
+              "name": "fpk_person_device",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "device_exposure",
+                "column": "person_id"
+              }
+            },
+            {
+              "name": "fpk_person_condition",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "condition_occurrence",
+                "column": "person_id"
+              }
+            },
+            {
+              "name": "fpk_person_measurement",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "measurement",
+                "column": "person_id"
+              }
+            },
+            {
+              "name": "fpk_person_observation",
+              "from": {
+                "table": "person",
+                "column": "person_id"
+              },
+              "to": {
+                "table": "observation",
+                "column": "person_id"
+              }
             }
         ],
         "assets": [

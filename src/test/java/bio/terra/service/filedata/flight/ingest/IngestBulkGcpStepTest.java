@@ -35,6 +35,7 @@ import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.StorageException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.curator.shaded.com.google.common.base.Charsets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -325,7 +325,8 @@ class IngestBulkGcpStepTest {
                     fileLoadModel.getSourcePath() + fileLoadModel.getTargetPath();
                 if (dataset.hasPredictableFileIds()) {
                   fileId =
-                      UUID.nameUUIDFromBytes(hashingString.getBytes(Charsets.UTF_8)).toString();
+                      UUID.nameUUIDFromBytes(hashingString.getBytes(StandardCharsets.UTF_8))
+                          .toString();
                 }
                 return new FSFileInfo()
                     .fileId(fileId)
@@ -369,7 +370,8 @@ class IngestBulkGcpStepTest {
                     fileLoadModel.getSourcePath() + fileLoadModel.getTargetPath();
                 if (dataset.hasPredictableFileIds()) {
                   fileId =
-                      UUID.nameUUIDFromBytes(hashingString.getBytes(Charsets.UTF_8)).toString();
+                      UUID.nameUUIDFromBytes(hashingString.getBytes(StandardCharsets.UTF_8))
+                          .toString();
                 }
                 return new FSFileInfo()
                     .fileId(fileId)

@@ -37,7 +37,6 @@ import bio.terra.model.SnapshotBuilderCountResponse;
 import bio.terra.model.SnapshotBuilderCountResponseResult;
 import bio.terra.model.SnapshotBuilderGetConceptHierarchyResponse;
 import bio.terra.model.SnapshotBuilderParentConcept;
-import bio.terra.model.SnapshotBuilderSettings;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -497,7 +496,7 @@ class SnapshotsApiControllerTest {
   @Test
   void updateSnapshotSnapshotBuilderSettings() throws Exception {
     mockValidators();
-    var snapshotBuilderSettings = new SnapshotBuilderSettings();
+    var snapshotBuilderSettings = SnapshotBuilderTestData.SETTINGS;
     mvc.perform(
             put(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -516,7 +515,7 @@ class SnapshotsApiControllerTest {
     mvc.perform(
             put(SNAPSHOT_BUILDER_SETTINGS_ENDPOINT, SNAPSHOT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
+                .content(TestUtils.mapToJson(SnapshotBuilderTestData.SETTINGS)))
         .andExpect(status().isForbidden());
 
     verifyAuthorizationCall(iamAction);
@@ -584,18 +583,18 @@ class SnapshotsApiControllerTest {
 
   @ParameterizedTest
   @MethodSource
-  void testEnumerateConcepts(String searchText) throws Exception {
+  void testEnumerateConcepts(String filterText) throws Exception {
     SnapshotBuilderConceptsResponse expected = makeGetConceptChildrenResponse();
 
     var domainId = 1234;
 
-    when(snapshotBuilderService.enumerateConcepts(SNAPSHOT_ID, domainId, searchText, TEST_USER))
+    when(snapshotBuilderService.enumerateConcepts(SNAPSHOT_ID, domainId, filterText, TEST_USER))
         .thenReturn(expected);
     String actualJson =
         mvc.perform(
                 get(ENUMERATE_CONCEPTS_ENDPOINT, SNAPSHOT_ID)
                     .queryParam("domainId", String.valueOf(domainId))
-                    .queryParam("filterText", searchText))
+                    .queryParam("filterText", filterText))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()

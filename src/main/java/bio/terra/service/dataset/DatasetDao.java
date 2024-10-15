@@ -327,11 +327,11 @@ public class DatasetDao implements TaggableResourceDao {
       if (numRowsUpdated == 0 && lockType.lockAttempted()) {
         // this method checks if the dataset exists
         // if it does not exist, then the method throws a DatasetNotFoundException
-        // we don't need the result (dataset summary) here, just the existence check,
-        // so ignore the return value.
-        retrieveSummaryById(datasetId);
+        // if it does exist, get any locks that exist because this is helpful info for a user
+        DatasetSummary summary = retrieveSummaryById(datasetId);
 
-        throw new DatasetLockException("Failed to lock the dataset", lockType.getErrorDetails());
+        throw new DatasetLockException(
+            "Failed to lock the dataset", lockType.getErrorDetails(summary.getResourceLocks()));
       }
     } catch (DatasetNotFoundException notFound) {
       logger.error(
@@ -483,6 +483,11 @@ public class DatasetDao implements TaggableResourceDao {
     return rowsAffected > 0;
   }
 
+  public Dataset retrieve(UUID id, boolean retrieveRelationship, boolean retrieveAsset) {
+    DatasetSummary summary = retrieveSummaryById(id);
+    return retrieveWorker(summary, retrieveRelationship, retrieveAsset);
+  }
+
   public Dataset retrieve(UUID id) {
     DatasetSummary summary = retrieveSummaryById(id);
     return retrieveWorker(summary);
@@ -494,14 +499,25 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   private Dataset retrieveWorker(DatasetSummary summary) {
+    return retrieveWorker(summary, true, true);
+  }
+
+  private Dataset retrieveWorker(
+      DatasetSummary summary, boolean retrieveRelationship, boolean retrieveAsset) {
     Dataset dataset = null;
     try {
       if (summary != null) {
         summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId()));
         dataset = new Dataset(summary);
         dataset.tables(tableDao.retrieveTables(dataset.getId()));
-        relationshipDao.retrieve(dataset);
-        assetDao.retrieve(dataset);
+        if (retrieveRelationship) {
+          // This query is costly and should only be run when necessary.
+          relationshipDao.retrieve(dataset);
+        }
+        if (retrieveAsset) {
+          // This query is costly and should only be run when necessary.
+          assetDao.retrieve(dataset);
+        }
         // Retrieve the project and application deployment resource associated with the dataset
         // This is a bit sketchy filling in the object via a dao in another package.
         // It seemed like the cleanest thing to me at the time.

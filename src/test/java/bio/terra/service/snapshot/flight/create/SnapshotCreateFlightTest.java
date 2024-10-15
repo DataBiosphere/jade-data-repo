@@ -84,8 +84,9 @@ class SnapshotCreateFlightTest {
         containsInRelativeOrder(
             "LockDatasetStep",
             "CreateSnapshotMetadataStep", // Also locks the snapshot
-            "CreateSnapshotGroupConstraintPolicyStep",
-            "AddSnapshotAuthDomainStep",
+            "CreateSnapshotSetDataAccessGroupsStep",
+            "IfDataAccessControlGroupStep",
+            "IfDataAccessControlGroupStep",
             "UnlockSnapshotStep",
             "UnlockDatasetStep",
             "CreateSnapshotSetResponseStep"));
@@ -114,7 +115,6 @@ class SnapshotCreateFlightTest {
     UUID snapshotAccessRequestId = UUID.randomUUID();
     SnapshotRequestModel request =
         new SnapshotRequestModel()
-            .dataAccessControlGroups(DATA_ACCESS_CONTROL_GROUPS)
             .addContentsItem(
                 new SnapshotRequestContentsModel()
                     .mode(SnapshotRequestContentsModel.ModeEnum.BYREQUESTID)
@@ -133,11 +133,15 @@ class SnapshotCreateFlightTest {
             "GetResourceBufferProjectStep",
             "CreateSnapshotInitializeProjectStep",
             "CreateSnapshotMetadataStep",
+            "CreateSnapshotSamGroupNameStep",
+            "CreateSnapshotSamGroupStep",
+            "CreateSnapshotAddEmailsToSamGroupStep",
             "CreateSnapshotByRequestIdGcpStep",
             "CountSnapshotTableRowsStep",
             "SnapshotAuthzIamStep",
-            "CreateSnapshotGroupConstraintPolicyStep",
-            "AddSnapshotAuthDomainStep",
+            "CreateSnapshotSetDataAccessGroupsStep",
+            "IfDataAccessControlGroupStep",
+            "IfDataAccessControlGroupStep",
             "CreateSnapshotFireStoreDataStep",
             "CreateSnapshotFireStoreComputeStep",
             "SnapshotAuthzTabularAclStep",
@@ -150,6 +154,7 @@ class SnapshotCreateFlightTest {
             "CreateSnapshotSetResponseStep",
             "CreateSnapshotJournalEntryStep",
             "JournalRecordUpdateEntryStep",
-            "AddCreatedSnapshotIdToSnapshotRequestStep"));
+            "AddCreatedInfoToSnapshotRequestStep",
+            "NotifyUserOfSnapshotCreationStep"));
   }
 }

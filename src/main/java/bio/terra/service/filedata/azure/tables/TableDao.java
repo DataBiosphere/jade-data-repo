@@ -15,6 +15,7 @@ import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.SnapshotCompute;
 import bio.terra.service.filedata.SnapshotComputeHelper;
 import bio.terra.service.filedata.exception.FileNotFoundException;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
@@ -154,7 +155,9 @@ public class TableDao {
         azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
     List<FireStoreFile> files =
         fileDao.batchRetrieveFileMetadata(datasetTableServiceClient, datasetId, directoryEntries);
-    return FileMetadataUtils.toFileModel(directoryEntries, files, collectionId);
+    // setting enforceMatchingDirectoryEntries to false in order to ignore directory entries that
+    // do not have matching file entries (DC-1259)
+    return FileMetadataUtils.toFileModel(directoryEntries, files, collectionId, false);
   }
 
   public void snapshotCompute(
@@ -434,6 +437,9 @@ public class TableDao {
     // pointing to the files in one or more datasets.
     FireStoreFile fireStoreFile =
         fileDao.retrieveFileMetadata(datasetTableServiceClient, datasetId, fileId);
+    if (fireStoreFile == null) {
+      throw new FileSystemExecutionException("Error retrieving file metadata for file");
+    }
 
     FSFile fsFile = new FSFile();
     fsFile
@@ -451,7 +457,6 @@ public class TableDao {
         .mimeType(fireStoreFile.getMimeType())
         .bucketResourceId(fireStoreFile.getBucketResourceId())
         .loadTag(fireStoreFile.getLoadTag());
-
     return fsFile;
   }
 

@@ -45,6 +45,18 @@ public class DaoOperations {
     this.snapshotService = snapshotService;
   }
 
+  /**
+   * Create billing profile and GCP project records in the DB, then use them to create a dataset
+   * record in the DB from {@value DATASET_MINIMAL}.
+   */
+  public Dataset createDataset() throws IOException {
+    return createDataset(DATASET_MINIMAL);
+  }
+
+  /**
+   * Create billing profile and GCP project records in the DB, then use them to create a dataset
+   * record in the DB.
+   */
   public Dataset createDataset(String path) throws IOException {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     BillingProfileModel billingProfile =
@@ -88,10 +100,11 @@ public class DaoOperations {
   }
 
   public Snapshot createSnapshotFromSnapshotRequest(
-      SnapshotRequestModel snapshotRequest, UUID projectResourceId) {
-    Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+      SnapshotRequestModel snapshotRequest, Dataset sourceDataset) {
+    Snapshot snapshot =
+        snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest, sourceDataset);
     snapshot.id(UUID.randomUUID());
-    snapshot.projectResourceId(projectResourceId);
+    snapshot.projectResourceId(sourceDataset.getProjectResourceId());
     return snapshot;
   }
 
@@ -104,8 +117,7 @@ public class DaoOperations {
 
   public Snapshot createAndIngestSnapshot(Dataset dataset, String snapshotPath) throws IOException {
     SnapshotRequestModel snapshotRequest = createSnapshotRequestFromDataset(dataset, snapshotPath);
-    Snapshot snapshot =
-        createSnapshotFromSnapshotRequest(snapshotRequest, dataset.getProjectResourceId());
+    Snapshot snapshot = createSnapshotFromSnapshotRequest(snapshotRequest, dataset);
     return ingestSnapshot(snapshot);
   }
 

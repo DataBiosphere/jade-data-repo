@@ -146,7 +146,7 @@ public class Column {
     Column column = (Column) o;
     return arrayOf == column.arrayOf
         && required == column.required
-        && id.equals(column.id)
+        && Objects.equals(id, column.id)
         && Objects.equals(table, column.table)
         && Objects.equals(name, column.name)
         && type == column.type;

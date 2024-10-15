@@ -34,6 +34,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
   private final AuthenticatedUserRequest userRequest;
   private String sourceDatasetDataSourceName;
   private String targetDataSourceName;
+  private Dataset sourceDataset;
 
   public CreateSnapshotByQueryParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
@@ -42,12 +43,14 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
       SnapshotRequestModel snapshotReq,
       DatasetService datasetService,
       AuthenticatedUserRequest userRequest,
-      UUID snapshotId) {
+      UUID snapshotId,
+      Dataset sourceDataset) {
     super(azureSynapsePdao, snapshotService, snapshotId);
     this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
     this.datasetService = datasetService;
     this.userRequest = userRequest;
+    this.sourceDataset = sourceDataset;
   }
 
   @Override
@@ -55,7 +58,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
     sourceDatasetDataSourceName = IngestUtils.getSourceDatasetDataSourceName(context.getFlightId());
     targetDataSourceName = IngestUtils.getTargetDataSourceName(context.getFlightId());
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
+    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, sourceDataset);
   }
 
   @Override

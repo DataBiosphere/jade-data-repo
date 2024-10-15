@@ -32,6 +32,10 @@ public final class ValidationUtils {
   // more forgiving. Should we enforce this or fix it up, as is done in filesystem.
   private static final String VALID_PATH = "/.*";
 
+  // pattern translated from https://cloud.google.com/storage/docs/buckets#naming
+  private static final Pattern VALID_BUCKET_NAME_REGEX =
+      Pattern.compile("^[a-z0-9][a-z0-9\\-_]{1,61}[a-z0-9]$");
+
   private ValidationUtils() {}
 
   public static <T> boolean hasDuplicates(List<T> list) {
@@ -70,6 +74,10 @@ public final class ValidationUtils {
     } catch (IllegalArgumentException e) {
       return Optional.empty();
     }
+  }
+
+  public static boolean isValidBucketName(String bucketName) {
+    return VALID_BUCKET_NAME_REGEX.matcher(bucketName).matches();
   }
 
   public static String requireNotBlank(String value, String errorMsg) {
@@ -127,5 +135,11 @@ public final class ValidationUtils {
   public static boolean isInvalidPrimaryOrForeignKeyType(ColumnModel columnModel) {
     Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
     return columnModel.getDatatype() != null && invalidTypes.contains(columnModel.getDatatype());
+  }
+
+  public static void requireValidEmail(String email, String errorMsg) {
+    if (!isValidEmail(email)) {
+      throw new IllegalArgumentException(errorMsg);
+    }
   }
 }

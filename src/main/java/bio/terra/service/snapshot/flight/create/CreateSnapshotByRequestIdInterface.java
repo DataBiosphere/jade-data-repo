@@ -1,15 +1,14 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.SnapshotAccessRequestResponse;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshotbuilder.SnapshotAccessRequestModel;
 import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
-import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.time.Instant;
@@ -20,24 +19,26 @@ public interface CreateSnapshotByRequestIdInterface {
       FlightContext context,
       Snapshot snapshot,
       SnapshotRequestModel snapshotReq,
+      SnapshotService snapshotService,
       SnapshotBuilderService snapshotBuilderService,
-      SnapshotRequestDao snapshotRequestDao,
       SnapshotDao snapshotDao,
       AuthenticatedUserRequest userReq)
       throws InterruptedException {
     UUID accessRequestId =
         snapshotReq.getContents().get(0).getRequestIdSpec().getSnapshotRequestId();
-    SnapshotAccessRequestResponse accessRequest = snapshotRequestDao.getById(accessRequestId);
+    SnapshotAccessRequestModel accessRequest =
+        snapshotService.getSnapshotAccessRequestById(accessRequestId);
 
-    UUID sourceSnapshotId = accessRequest.getSourceSnapshotId();
+    UUID sourceSnapshotId = accessRequest.sourceSnapshotId();
     Snapshot sourceSnapshot = snapshotDao.retrieveSnapshot(sourceSnapshotId);
     Dataset dataset = sourceSnapshot.getSourceDataset();
-    AssetSpecification assetSpecification =
-        SnapshotService.getAssetByNameFromDataset(dataset, SnapshotService.ASSET_NAME);
+
+    AssetSpecification queryAssetSpecification =
+        snapshotService.buildAssetFromSnapshotAccessRequest(dataset, accessRequest);
     String sqlQuery =
         snapshotBuilderService.generateRowIdQuery(accessRequest, sourceSnapshot, userReq);
     Instant createdAt = sourceSnapshot.getCreatedDate();
-    return createSnapshot(context, assetSpecification, snapshot, sqlQuery, createdAt);
+    return createSnapshot(context, queryAssetSpecification, snapshot, sqlQuery, createdAt);
   }
 
   StepResult createSnapshot(

@@ -26,6 +26,8 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
+import bio.terra.service.snapshotbuilder.SnapshotRequestDao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -42,6 +44,9 @@ public class SnapshotDeleteFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
+    SnapshotBuilderService snapshotBuilderService =
+        appContext.getBean(SnapshotBuilderService.class);
+    SnapshotRequestDao snapshotRequestDao = appContext.getBean(SnapshotRequestDao.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     BigQuerySnapshotPdao bigQuerySnapshotPdao = appContext.getBean(BigQuerySnapshotPdao.class);
@@ -72,6 +77,11 @@ public class SnapshotDeleteFlight extends Flight {
     // Skip this step if the snapshot was already deleted
     // TODO note that with multi-dataset snapshots this will need to change
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
+
+    addStep(
+        new DeleteOutstandingSnapshotAccessRequestsStep(
+            userReq, snapshotId, snapshotBuilderService));
+
     addStep(
         new DeleteSnapshotPopAndLockDatasetStep(
             snapshotId, snapshotService, datasetService, userReq, false));
@@ -102,6 +112,10 @@ public class SnapshotDeleteFlight extends Flight {
     // Google auto-magically removes the ACLs from BQ objects when SAM
     // deletes the snapshot group, so no ACL cleanup is needed beyond that.
     addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
+
+    // Now that we no longer have the resources in SAM, we can delete the underlying Sam group
+    // that was created for snapshots byRequestId
+    addStep(new DeleteSnapshotDeleteSamGroupStep(iamClient, snapshotRequestDao, snapshotId));
 
     // Primary Data Deletion
     // Note: Must delete primary data before metadata; it relies on being able to retrieve the

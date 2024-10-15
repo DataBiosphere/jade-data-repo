@@ -327,11 +327,11 @@ public class DatasetDao implements TaggableResourceDao {
       if (numRowsUpdated == 0 && lockType.lockAttempted()) {
         // this method checks if the dataset exists
         // if it does not exist, then the method throws a DatasetNotFoundException
-        // we don't need the result (dataset summary) here, just the existence check,
-        // so ignore the return value.
-        retrieveSummaryById(datasetId);
+        // if it does exist, get any locks that exist because this is helpful info for a user
+        DatasetSummary summary = retrieveSummaryById(datasetId);
 
-        throw new DatasetLockException("Failed to lock the dataset", lockType.getErrorDetails());
+        throw new DatasetLockException(
+            "Failed to lock the dataset", lockType.getErrorDetails(summary.getResourceLocks()));
       }
     } catch (DatasetNotFoundException notFound) {
       logger.error(

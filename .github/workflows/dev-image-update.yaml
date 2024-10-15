@@ -1,11 +1,15 @@
 name: Update devs api image
+env:
+  # This must be defined for the bash redirection
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  # This must be defined for the bash redirection
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
 on:
   workflow_dispatch: {}
   push:
     branches:
       - develop
 jobs:
-
   bump_version:
     runs-on: ubuntu-latest
     outputs:
@@ -71,9 +75,6 @@ jobs:
           java-version: '17'
           cache: 'gradle'
       - name: 'Release Candidate Container Build: Create release candidate images'
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
-          GOOGLE_SA_CERT: jade-dev-account.pem
         run: |
           # extract service account credentials
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}

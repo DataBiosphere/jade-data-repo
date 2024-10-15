@@ -78,7 +78,7 @@ subprojects.each { s ->
     }
 }
 
-boolean isCiServer = System.getenv().containsKey("CI")
+boolean isCiServer = System.getenv().containsKey("GITHUB_ACTIONS")
 
 java {
     sourceCompatibility = 17

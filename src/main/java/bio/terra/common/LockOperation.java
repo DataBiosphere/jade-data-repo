@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.model.ResourceLocks;
+import java.util.ArrayList;
 import java.util.List;
 
 /** Actions which could be taken to modify the locks held on a resource (dataset, snapshot). */
@@ -38,13 +39,11 @@ public enum LockOperation {
                 + " Conflicting lock(s): %s. You can remove a lock by using the unlock API endpoint with the ID of the resource (Snapshot or Dataset), the name of the lock, and forceUnlock set to false.";
         if (this == LOCK_EXCLUSIVE) {
           // include any locks that exist both exclusive and shared (but only one will be populated)
-          if (isExclusive(conflictingLocks)) {
-            return List.of(
-                template.formatted(description, conflict, conflictingLocks.getExclusive()));
-          } else if (areShared(conflictingLocks)) {
-            String locks = String.join(", ", conflictingLocks.getShared());
-            return List.of(template.formatted(description, conflict, locks));
-          }
+          List<String> lockList = new ArrayList<>();
+          if (isExclusive(conflictingLocks)) lockList.add(conflictingLocks.getExclusive());
+          if (areShared(conflictingLocks)) lockList.addAll(conflictingLocks.getShared());
+          String locks = String.join(", ", lockList);
+          return List.of(template.formatted(description, conflict, locks));
         } else if (this == LOCK_SHARED) {
           // include only exclusive locks if the lock operation attempted was shared
           return List.of(

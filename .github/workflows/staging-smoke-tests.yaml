@@ -6,6 +6,9 @@ env:
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
   JADE_USER_EMAIL: staging-tdr-user@notarealemail.org
   TDR_LOG_APPENDER: Console-Standard
+permissions:
+  contents: 'read'
+  id-token: 'write'
 on:
   workflow_dispatch:
     inputs:
@@ -45,6 +48,13 @@ jobs:
         run: |
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'datarepo-jade-test-runner@terra-datarepo-staging.iam.gserviceaccount.com'
       - name: "Perform IAM policy cleanup for staging"
         run: |
           # write token

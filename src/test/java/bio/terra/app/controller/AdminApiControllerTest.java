@@ -83,11 +83,7 @@ class AdminApiControllerTest {
 
   @Test
   void testAdminRetrieveDatasetInvalidId() throws Exception {
-    mvc.perform(get(ADMIN_DATASETS_ENDPOINT, "not a UUID"))
-        .andExpect(status().isBadRequest())
-        .andReturn()
-        .getResponse()
-        .getStatus();
+    mvc.perform(get(ADMIN_DATASETS_ENDPOINT, "not a UUID")).andExpect(status().isBadRequest());
   }
 
   @Test
@@ -97,7 +93,7 @@ class AdminApiControllerTest {
         .verifyResourceTypeAdminAuthorized(any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_DATASETS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
-    assertThat("", status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
+    assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
   }
 
   @Test
@@ -132,16 +128,12 @@ class AdminApiControllerTest {
         .verifyResourceTypeAdminAuthorized(any(), any(), any());
     int status =
         mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, MODEL_ID)).andReturn().getResponse().getStatus();
-    assertThat("", status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
+    assertThat(status, equalTo(FORBIDDEN_EXCEPTION.getStatusCode().value()));
   }
 
   @Test
   void testAdminRetrieveSnapshotInvalidId() throws Exception {
-    mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, "not a UUID"))
-        .andExpect(status().isBadRequest())
-        .andReturn()
-        .getResponse()
-        .getStatus();
+    mvc.perform(get(ADMIN_SNAPSHOTS_ENDPOINT, "not a UUID")).andExpect(status().isBadRequest());
   }
 
   @Test

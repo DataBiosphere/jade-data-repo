@@ -40,7 +40,7 @@ public class AdminApiController implements AdminApi {
   private final DatasetService datasetService;
   private final SnapshotService snapshotService;
   private final ApplicationConfiguration appConfig;
-  private final Logger logger = LoggerFactory.getLogger(AdminApiController.class);
+  private static final Logger logger = LoggerFactory.getLogger(AdminApiController.class);
 
   @Autowired
   public AdminApiController(
@@ -89,13 +89,14 @@ public class AdminApiController implements AdminApi {
             DatasetRequestAccessIncludeModel.SCHEMA,
             DatasetRequestAccessIncludeModel.STORAGE);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(
-        String.format(
-            "Verifying resource type admin authorization: %s for resource type: %s and resource id: %s",
-            userReq.getEmail(), IamResourceType.DATASET, id));
+    logger.debug(
+        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        userReq.getEmail(),
+        IamResourceType.DATASET,
+        id);
     iamService.verifyResourceTypeAdminAuthorized(
         userReq, IamResourceType.DATASET, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
-    logger.info(String.format("Retrieving dataset id: %s", id));
+    logger.debug("Retrieving dataset id: {}", id);
     DatasetModel datasetModel = datasetService.retrieveDatasetModel(id, userReq, include);
     return ResponseEntity.ok(datasetModel);
   }
@@ -114,13 +115,14 @@ public class AdminApiController implements AdminApi {
             SnapshotRetrieveIncludeModel.CREATION_INFORMATION,
             SnapshotRetrieveIncludeModel.DUOS);
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    logger.info(
-        String.format(
-            "Verifying resource type admin authorization: %s for resource type: %s and resource id: %s",
-            userReq.getEmail(), IamResourceType.DATASNAPSHOT, id));
+    logger.debug(
+        "Verifying resource type admin authorization: {} for resource type: {} and resource id: {}",
+        userReq.getEmail(),
+        IamResourceType.DATASNAPSHOT,
+        id);
     iamService.verifyResourceTypeAdminAuthorized(
         userReq, IamResourceType.DATASNAPSHOT, IamAction.ADMIN_READ_SUMMARY_INFORMATION);
-    logger.info(String.format("Retrieving snapshot id: %s", id));
+    logger.debug("Retrieving snapshot id: {}", id);
     SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(id, include, userReq);
     return ResponseEntity.ok(snapshotModel);
   }

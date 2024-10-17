@@ -49,21 +49,15 @@ jobs:
 #        run: |
 #          git checkout ${{ steps.configuration.outputs.staging_version }}
 #          echo "Current branch is ${{ github.ref }}"
-      - name: 'Auth as Test Runner SA to perform IAM cleanup'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
-          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
-          service_account: 'datarepo-jade-test-runner@terra-datarepo-staging.iam.gserviceaccount.com'
-      - name: "Perform IAM policy cleanup for staging"
-        run: |
-          ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
-      - name: 'Auth as TDR SA'
+      - name: 'Auth as jade-k8-sa'
         uses: 'google-github-actions/auth@v2'
         with:
           # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
           workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
           service_account: 'jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com'
+      - name: "Set env variable for credential file"
+        run: |
+            echo TEST_RUNNER_SA_KEY_CRED_FILE_PATH=$( ${{env. }} > /tmp/staging-test-runner.json
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}
@@ -77,12 +71,6 @@ jobs:
 
           echo "Running test suite"
           ./gradlew runTest --args="suites/StagingSmokeTests.json tmp/TestRunnerResults"
-
-          echo "Collecting measurements"
-          ./gradlew collectMeasurements --args="StagingSmokeTests.json tmp/TestRunnerResults"
-
-          echo "Uploading results"
-          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
 

@@ -12,7 +12,8 @@ public class ServiceAccountSpecification implements SpecificationInterface {
   public File jsonKeyFile;
 
   public static final String resourceDirectory = "serviceaccounts";
-  public static final String keyCredFilePathEnvironmentVarName = "TEST_RUNNER_SA_KEY_CRED_FILE_PATH";
+  public static final String keyCredFilePathEnvironmentVarName =
+      "TEST_RUNNER_SA_KEY_CRED_FILE_PATH";
 
   ServiceAccountSpecification() {}
 
@@ -62,8 +63,7 @@ public class ServiceAccountSpecification implements SpecificationInterface {
     jsonKeyFile = new File(jsonKeyCredFilePath);
     if (!jsonKeyFile.exists()) {
       throw new IllegalArgumentException(
-          "JSON key file does not exist: (filePath)"
-              + jsonKeyCredFilePath;
+          "JSON key file does not exist: (filePath)" + jsonKeyCredFilePath);
     }
   }
 }

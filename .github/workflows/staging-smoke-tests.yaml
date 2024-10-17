@@ -58,13 +58,12 @@ jobs:
       - name: "Perform IAM policy cleanup for staging"
         run: |
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
-      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
-        env:
-          # note: hack to overwrite the env var to grab the dev credentials too
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-        run: |
-          # write token
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: 'Auth as TDR SA'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com'
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

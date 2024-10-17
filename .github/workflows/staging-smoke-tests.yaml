@@ -6,9 +6,6 @@ env:
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
   JADE_USER_EMAIL: staging-tdr-user@notarealemail.org
   TDR_LOG_APPENDER: Console-Standard
-permissions:
-  contents: 'read'
-  id-token: 'write'
 on:
   workflow_dispatch:
     inputs:
@@ -26,6 +23,9 @@ on:
 jobs:
   test-runner-staging:
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: "Checkout jade-data-repo"
         uses: actions/checkout@v3

@@ -23,6 +23,7 @@ on:
 jobs:
   test-runner-staging:
     runs-on: ubuntu-latest
+    # Needed for integration with workload identity
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -48,7 +49,7 @@ jobs:
         run: |
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
-      - id: 'auth'
+      - id: 'Auth as Test Runner SA to perform IAM cleanup'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
@@ -57,9 +58,6 @@ jobs:
           service_account: 'datarepo-jade-test-runner@terra-datarepo-staging.iam.gserviceaccount.com'
       - name: "Perform IAM policy cleanup for staging"
         run: |
-          # write token
-          base64 --decode <<< ${{ secrets.TEST_RUNNER_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
         env:

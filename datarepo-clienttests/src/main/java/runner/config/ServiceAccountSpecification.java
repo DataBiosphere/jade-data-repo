@@ -13,7 +13,7 @@ public class ServiceAccountSpecification implements SpecificationInterface {
 
   public static final String resourceDirectory = "serviceaccounts";
   public static final String keyCredFilePathEnvironmentVarName =
-      "GOOGLE_GHA_CREDS_PATH";
+      "GOOGLE_APPLICATION_CREDENTIALS";
 
   ServiceAccountSpecification() {}
 

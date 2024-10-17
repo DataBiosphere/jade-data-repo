@@ -49,8 +49,7 @@ jobs:
         run: |
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
-      - id: 'Auth as Test Runner SA to perform IAM cleanup'
-        name: 'Authenticate to Google Cloud'
+      - name: 'Auth as Test Runner SA to perform IAM cleanup'
         uses: 'google-github-actions/auth@v2'
         with:
           # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting

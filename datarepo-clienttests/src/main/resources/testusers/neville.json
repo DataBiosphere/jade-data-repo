@@ -1,5 +1,5 @@
 {
   "name": "neville",
   "userEmail": "neville.temp@test.firecloud.org",
-  "delegatorServiceAccountFile": "jade-k8-sa.json"
+  "delegatorServiceAccountFile": "staging-test-runner-sa.json"
 }

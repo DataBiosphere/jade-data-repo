@@ -51,13 +51,13 @@ jobs:
           base64 --decode <<< ${{ secrets.TEST_RUNNER_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
-      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
-        env:
-          # note: hack to overwrite the env var to grab the dev credentials too
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-        run: |
-          # write token
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+#      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
+#        env:
+#          # note: hack to overwrite the env var to grab the dev credentials too
+#          GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+#        run: |
+#          # write token
+#          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}
@@ -80,12 +80,12 @@ jobs:
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
 
-  report-workflow:
-    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
-    with:
-      relates-to-chart-releases: ${{ inputs.relates-to-chart-releases }}
-      notify-slack-channels-upon-workflow-completion: ${{ inputs.notify-slack-channels-upon-workflow-completion }}
-      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-    permissions:
-      id-token: write
+#  report-workflow:
+#    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+#    with:
+#      relates-to-chart-releases: ${{ inputs.relates-to-chart-releases }}
+#      notify-slack-channels-upon-workflow-completion: ${{ inputs.notify-slack-channels-upon-workflow-completion }}
+#      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#    permissions:
+#      id-token: write

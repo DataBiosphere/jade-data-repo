@@ -162,7 +162,9 @@ public class IamService {
     String userEmail = userReq.getEmail();
     if (!isResourceTypeAdminAuthorized(userReq, iamResourceType, action)) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have required action: " + action);
+          String.format(
+              "User '%s' does not have required action '%s' for resource type %s",
+              userEmail, action, iamResourceType));
     }
   }
 

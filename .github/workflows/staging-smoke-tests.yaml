@@ -1,7 +1,6 @@
 name: DataRepo Staging Smoke Tests
 env:
   K8_CLUSTER: jade-master-us-central1
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
   JADE_USER_EMAIL: staging-tdr-user@notarealemail.org

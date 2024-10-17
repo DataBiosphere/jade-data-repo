@@ -86,12 +86,12 @@ jobs:
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
 
-  report-workflow:
-    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
-    with:
-      relates-to-chart-releases: ${{ inputs.relates-to-chart-releases }}
-      notify-slack-channels-upon-workflow-completion: ${{ inputs.notify-slack-channels-upon-workflow-completion }}
-      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
-    permissions:
-      id-token: write
+#  report-workflow:
+#    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+#    with:
+#      relates-to-chart-releases: ${{ inputs.relates-to-chart-releases }}
+#      notify-slack-channels-upon-workflow-completion: ${{ inputs.notify-slack-channels-upon-workflow-completion }}
+#      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+#    permissions:
+#      id-token: write

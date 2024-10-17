@@ -52,9 +52,6 @@ jobs:
         run: |
           # write token
           base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-      - name: "Perform IAM policy cleanup for staging"
-        run: |
-          ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

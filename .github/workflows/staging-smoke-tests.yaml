@@ -33,17 +33,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      - name: "Fetch current staging version from /configuration endpoint"
-        id: configuration
-        run: |
-          staging_version=$(curl -s -X GET "https://data.staging.envs-terra.bio/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          echo "staging_version=${staging_version}" >> $GITHUB_OUTPUT
-          echo "Staging Version: $staging_version"
-      - name: "Checkout tag for DataBiosphere/jade-data-repo"
-        if: github.ref == 'refs/heads/develop'
-        run: |
-          git checkout ${{ steps.configuration.outputs.staging_version }}
-          echo "Current branch is ${{ github.ref }}"
+#      - name: "Fetch current staging version from /configuration endpoint"
+#        id: configuration
+#        run: |
+#          staging_version=$(curl -s -X GET "https://data.staging.envs-terra.bio/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+#          echo "staging_version=${staging_version}" >> $GITHUB_OUTPUT
+#          echo "Staging Version: $staging_version"
+#      - name: "Checkout tag for DataBiosphere/jade-data-repo"
+#        if: github.ref == 'refs/heads/develop'
+#        run: |
+#          git checkout ${{ steps.configuration.outputs.staging_version }}
+#          echo "Current branch is ${{ github.ref }}"
 
       - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
         env:

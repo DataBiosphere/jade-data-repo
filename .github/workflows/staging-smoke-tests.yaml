@@ -1,9 +1,8 @@
 name: DataRepo Staging Smoke Tests
 env:
   K8_CLUSTER: jade-master-us-central1
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
-  GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
   JADE_USER_EMAIL: staging-tdr-user@notarealemail.org
   TDR_LOG_APPENDER: Console-Standard
 on:
@@ -45,19 +44,17 @@ jobs:
         run: |
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
-      - name: "Perform IAM policy cleanup for staging"
+
+      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
+        env:
+          # note: hack to overwrite the env var to grab the dev credentials too
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
         run: |
           # write token
-          base64 --decode <<< ${{ secrets.TEST_RUNNER_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: "Perform IAM policy cleanup for staging"
+        run: |
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
-#      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
-#        env:
-#          # note: hack to overwrite the env var to grab the dev credentials too
-#          GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-#        run: |
-#          # write token
-#          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

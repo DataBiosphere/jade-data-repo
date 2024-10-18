@@ -126,6 +126,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -144,6 +145,7 @@ import org.springframework.util.ResourceUtils;
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
+@Ignore("DCJ-826: Temporarily disabled due to missing Azure resources")
 public class AzureIntegrationTest extends UsersBase {
   private static final Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 

@@ -32,7 +32,14 @@ on:
 jobs:
   cherry-pick-image:
     runs-on: ubuntu-latest
+    # Needed for integration with workload identity
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
+      # Needed for integration with workload identity
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: 'Auth as jade-k8-sa'
         uses: 'google-github-actions/auth@v2'
         with:

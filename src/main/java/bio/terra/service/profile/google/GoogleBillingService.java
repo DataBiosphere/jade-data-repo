@@ -44,7 +44,7 @@ public class GoogleBillingService {
         // Authentication is provided by the 'gcloud' tool when running locally
         // and by built-in service accounts when running on GAE, GCE, or GKE.
         GoogleCredentials serviceAccountCredentials =
-            ServiceAccountCredentials.getApplicationDefault();
+            GoogleCredentials.getApplicationDefault();
 
         // The createScopedRequired method returns true when running on GAE or a local developer
         // machine. In that case, the desired scopes must be passed in manually. When the code is

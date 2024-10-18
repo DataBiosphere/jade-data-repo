@@ -21,7 +21,7 @@ public record ResourceBufferServiceConfiguration(
   public String getAccessToken() throws IOException {
     try (FileInputStream fileInputStream = new FileInputStream(clientCredentialFilePath)) {
       GoogleCredentials credentials =
-          ServiceAccountCredentials.fromStream(fileInputStream).createScoped(BUFFER_SCOPES);
+          GoogleCredentials.fromStream(fileInputStream).createScoped(BUFFER_SCOPES);
       AccessToken token = credentials.refreshAccessToken();
       return token.getTokenValue();
     }

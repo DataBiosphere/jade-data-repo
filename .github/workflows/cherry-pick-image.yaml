@@ -33,13 +33,12 @@ jobs:
   cherry-pick-image:
     runs-on: ubuntu-latest
     steps:
-      - name: "Authenticate with GCR SA Credentials"
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
-        run: |
-          # write token
-          base64 --decode <<< ${{ secrets.GCR_SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: 'Auth as jade-k8-sa'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'gcr-sa@broad-jade-dev.iam.gserviceaccount.com'
       - name: "Perform cherry-pick"
         run: |
           SOURCE_IMAGE="${{ inputs.source_gcr_url }}:${{ inputs.gcr_tag }}"

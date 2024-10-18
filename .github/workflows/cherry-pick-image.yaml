@@ -40,7 +40,7 @@ jobs:
       # Needed for integration with workload identity
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: 'Auth as jade-k8-sa'
+      - name: 'Auth as gcr-sa'
         uses: 'google-github-actions/auth@v2'
         with:
           # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting

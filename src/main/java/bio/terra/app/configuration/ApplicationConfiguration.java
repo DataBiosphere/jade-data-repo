@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
@@ -432,8 +433,11 @@ public class ApplicationConfiguration {
   @Bean("tdrServiceAccountEmail")
   public @Nullable String tdrServiceAccountEmail() throws IOException {
     GoogleCredentials defaultCredentials = GoogleCredentials.getApplicationDefault();
-    if (defaultCredentials instanceof ServiceAccountCredentials) {
-      return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();
+    if (defaultCredentials instanceof ServiceAccountCredentials serviceAccountCredentials) {
+      return serviceAccountCredentials.getClientEmail();
+    }
+    if (defaultCredentials instanceof ExternalAccountCredentials externalAccountCredentials) {
+      return externalAccountCredentials.getServiceAccountEmail();
     }
     return null;
   }

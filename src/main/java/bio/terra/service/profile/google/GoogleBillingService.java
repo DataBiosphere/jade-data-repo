@@ -8,6 +8,7 @@ import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
 import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.billing.v1.BillingAccountName;
 import com.google.cloud.billing.v1.CloudBillingClient;
@@ -42,7 +43,8 @@ public class GoogleBillingService {
       if (user == null || user.getToken().isEmpty()) {
         // Authentication is provided by the 'gcloud' tool when running locally
         // and by built-in service accounts when running on GAE, GCE, or GKE.
-        GoogleCredentials serviceAccountCredentials = GoogleCredentials.getApplicationDefault();
+        GoogleCredentials serviceAccountCredentials =
+            ExternalAccountCredentials.getApplicationDefault();
 
         // The createScopedRequired method returns true when running on GAE or a local developer
         // machine. In that case, the desired scopes must be passed in manually. When the code is

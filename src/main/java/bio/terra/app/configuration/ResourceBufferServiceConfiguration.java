@@ -1,6 +1,7 @@
 package bio.terra.app.configuration;
 
 import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -20,7 +21,7 @@ public record ResourceBufferServiceConfiguration(
   public String getAccessToken() throws IOException {
     try (FileInputStream fileInputStream = new FileInputStream(clientCredentialFilePath)) {
       GoogleCredentials credentials =
-          GoogleCredentials.fromStream(fileInputStream).createScoped(BUFFER_SCOPES);
+          ExternalAccountCredentials.fromStream(fileInputStream).createScoped(BUFFER_SCOPES);
       AccessToken token = credentials.refreshAccessToken();
       return token.getTokenValue();
     }

@@ -12,6 +12,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +38,11 @@ public class CreateDatasetGetOrCreateStorageAccountStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel profileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+    UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
 
     AzureStorageAccountResource storageAccount =
         resourceService.getOrCreateDatasetStorageAccount(
-            DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel),
+            DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel, datasetId),
             profileModel,
             context.getFlightId());
 

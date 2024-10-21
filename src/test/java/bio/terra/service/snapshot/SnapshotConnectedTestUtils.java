@@ -154,10 +154,11 @@ public class SnapshotConnectedTestUtils {
       String tableName,
       int limit,
       int offset,
-      String filter)
+      String filter,
+      String sort)
       throws Exception {
     return connectedOperations.retrieveSnapshotPreviewByIdSuccess(
-        snapshotId, tableName, limit, offset, filter);
+        snapshotId, tableName, limit, offset, filter, sort);
   }
 
   static ErrorModel getTablePreviewFailure(
@@ -170,7 +171,7 @@ public class SnapshotConnectedTestUtils {
       HttpStatus expectedStatus)
       throws Exception {
     return connectedOperations.retrieveSnapshotPreviewByIdFailure(
-        snapshotId, tableName, limit, offset, filter, expectedStatus);
+        snapshotId, tableName, limit, offset, filter, null, expectedStatus);
   }
 
   static void loadCsvData(

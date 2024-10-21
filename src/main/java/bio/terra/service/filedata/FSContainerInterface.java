@@ -20,4 +20,8 @@ public interface FSContainerInterface {
   CollectionType getCollectionType();
 
   CloudPlatform getCloudPlatform();
+
+  boolean isDataset();
+
+  boolean isSnapshot();
 }

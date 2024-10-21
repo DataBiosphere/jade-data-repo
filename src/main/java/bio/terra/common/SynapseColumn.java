@@ -1,16 +1,19 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import jakarta.ws.rs.NotSupportedException;
 import java.util.Objects;
 import java.util.Set;
-import javax.ws.rs.NotSupportedException;
 
 public class SynapseColumn extends Column {
   private static final Set<TableDataType> FILE_TYPES =
       Set.of(TableDataType.FILEREF, TableDataType.DIRREF);
   private String synapseDataType;
+  private String synapseDataTypeForCsv;
   private boolean requiresCollate;
   private boolean requiresJSONCast;
+
+  private boolean requiresTypeCast;
 
   public SynapseColumn() {}
 
@@ -18,6 +21,7 @@ public class SynapseColumn extends Column {
     this.synapseDataType = fromColumn.synapseDataType;
     this.requiresCollate = fromColumn.requiresCollate;
     this.requiresJSONCast = fromColumn.requiresJSONCast;
+    this.requiresTypeCast = fromColumn.requiresTypeCast;
   }
 
   public String getSynapseDataType() {
@@ -26,6 +30,24 @@ public class SynapseColumn extends Column {
 
   public SynapseColumn synapseDataType(String synapseDataType) {
     this.synapseDataType = synapseDataType;
+    return this;
+  }
+
+  public String getSynapseDataTypeForCsv() {
+    return synapseDataTypeForCsv;
+  }
+
+  public SynapseColumn synapseDataTypeForCsv(String synapseDataTypeForCsv) {
+    this.synapseDataTypeForCsv = synapseDataTypeForCsv;
+    return this;
+  }
+
+  public boolean getRequiresTypeCast() {
+    return requiresTypeCast;
+  }
+
+  public SynapseColumn requiresTypeCast(boolean requiresTypeCast) {
+    this.requiresTypeCast = requiresTypeCast;
     return this;
   }
 
@@ -51,74 +73,66 @@ public class SynapseColumn extends Column {
     return FILE_TYPES.contains(getType());
   }
 
-  static String translateDataType(TableDataType datatype, boolean isArrayOf) {
+  public static String translateDataType(TableDataType datatype, boolean isArrayOf) {
+    return translateDataType(datatype, isArrayOf, false);
+  }
+
+  public static String translateDataType(
+      TableDataType datatype, boolean isArrayOf, boolean isForCsv) {
     if (isArrayOf) {
-      return "varchar(8000)";
+      return "varchar(%s)".formatted(isForCsv ? "8000" : "max");
     }
-    switch (datatype) {
-      case BOOLEAN:
-        return "bit";
-      case BYTES:
-        return "varbinary";
-      case DATE:
-        return "date";
-      case DATETIME:
-      case TIMESTAMP:
-        return "datetime2";
-      case DIRREF:
-      case FILEREF:
-        return "varchar(36)";
-      case FLOAT:
-        return "float";
-      case FLOAT64:
-        return "float";
-      case INTEGER:
-        return "int";
-      case INT64:
-        return "bigint";
-      case NUMERIC:
-        return "real";
-      case TEXT:
-      case STRING:
-        return "varchar(8000)";
-      case TIME:
-        return "time";
+    return switch (datatype) {
+      case BOOLEAN -> "bit";
+      case BYTES -> "varbinary";
+      case DATE -> "date";
+      case DATETIME, TIMESTAMP -> "datetime2";
+      case FLOAT, FLOAT64 -> "float";
+      case INTEGER -> "numeric(10, 0)";
+      case INT64 -> "numeric(19, 0)";
+      case NUMERIC -> "real";
+        // DIRREF and FILEREF store a UUID on ingest
+        // But, are translated to DRS URI on Snapshot Creation
+        // Note that the Synapse CSV parser does not support varchars larger than 8000 bytes
+      case DIRREF, FILEREF, TEXT, STRING -> "varchar(%s)".formatted(isForCsv ? "8000" : "max");
+      case TIME -> "time";
         // Data of type RECORD contains table-like that can be nested or repeated
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
-      case RECORD:
-        throw new NotSupportedException("RECORD type is not yet supported for synapse");
-      default:
-        throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+      case RECORD ->
+          throw new NotSupportedException("RECORD type is not yet supported for synapse");
+    };
+  }
+
+  // Cast needed for backwards compatibility after Synapse type change
+  // Sept 2023 int moved to numeric(10,0) and int64 moved to numeric(19,0)
+  static boolean checkForCastTypeArgRequirement(TableDataType dataType, boolean isArrayOf) {
+    if (isArrayOf) {
+      return false;
     }
+    return switch (dataType) {
+      case INTEGER, INT64 -> true;
+      default -> false;
+    };
   }
 
   static boolean checkForCollateArgRequirement(TableDataType dataType, boolean isArrayOf) {
     if (isArrayOf) {
       return true;
     }
-    switch (dataType) {
-      case DIRREF:
-      case FILEREF:
-      case TEXT:
-      case STRING:
-        return true;
-      default:
-        return false;
-    }
+    return switch (dataType) {
+      case DIRREF, FILEREF, TEXT, STRING -> true;
+      default -> false;
+    };
   }
 
   static boolean checkForJSONCastRequirement(TableDataType dataType, boolean isArrayOf) {
     if (isArrayOf) {
       return false;
-    }
-    switch (dataType) {
-      case DIRREF:
-      case FILEREF:
-      case TEXT:
-      case STRING:
-        return false;
-      default:
-        return true;
+    } else {
+      return switch (dataType) {
+        case TEXT, STRING -> true;
+        default -> false;
+      };
     }
   }
 

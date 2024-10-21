@@ -129,6 +129,12 @@ public class AzureStorageTablePdao {
         .collect(Collectors.toList());
   }
 
+  public void dropLoadHistoryTable(TableServiceClient tableServiceClient, UUID datasetId) {
+    tableServiceClient
+        .getTableClient(StorageTableName.LOAD_HISTORY.toTableName(datasetId))
+        .deleteTable();
+  }
+
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
       StorageTableLoadHistoryEntity entity, String loadTag, Instant loadTime) {
     var model = entity.model;

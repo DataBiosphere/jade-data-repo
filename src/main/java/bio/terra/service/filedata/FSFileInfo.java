@@ -12,6 +12,7 @@ public class FSFileInfo {
   private String cloudPath;
   private String checksumCrc32c;
   private String checksumMd5;
+  private boolean userSpecifiedMd5;
   private Long size;
   private String bucketResourceId;
 
@@ -60,6 +61,15 @@ public class FSFileInfo {
     return this;
   }
 
+  public boolean isUserSpecifiedMd5() {
+    return userSpecifiedMd5;
+  }
+
+  public FSFileInfo userSpecifiedMd5(boolean userSpecifiedMd5) {
+    this.userSpecifiedMd5 = userSpecifiedMd5;
+    return this;
+  }
+
   public Long getSize() {
     return size;
   }
@@ -85,6 +95,7 @@ public class FSFileInfo {
         .append("cloudPath", cloudPath)
         .append("checksumCrc32c", checksumCrc32c)
         .append("checksumMd5", checksumMd5)
+        .append("userSpecifiedMd5", userSpecifiedMd5)
         .append("size", size)
         .append("bucketResourceId", bucketResourceId)
         .toString();
@@ -96,6 +107,7 @@ public class FSFileInfo {
         .bucketResourceId(resourceId)
         .checksumCrc32c(null)
         .checksumMd5("baaaaaad")
+        .userSpecifiedMd5(false)
         .createdDate(Instant.now().toString())
         .cloudPath("https://path")
         .size(100L);

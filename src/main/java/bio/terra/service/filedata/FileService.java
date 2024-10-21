@@ -1,10 +1,12 @@
 package bio.terra.service.filedata;
 
+import static bio.terra.service.common.azure.StorageTableName.DATASET;
+import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT;
+
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -19,7 +21,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
@@ -34,7 +35,6 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
@@ -43,14 +43,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class FileService {
-  private final Logger logger = LoggerFactory.getLogger(FileService.class);
 
   private final JobService jobService;
   private final FireStoreDao fileDao;
@@ -180,6 +177,49 @@ public class FileService {
         .submit();
   }
 
+  public List<FileModel> listDatasetFiles(String datasetId, int offset, int limit) {
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        return fileDao.batchRetrieveFiles(dataset, dataset, offset, limit);
+      } catch (InterruptedException ex) {
+        throw new FileSystemExecutionException(ex);
+      }
+    } else {
+      String collectionId = DATASET.toTableName(dataset.getId());
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
+      return tableDao.batchRetrieveFiles(
+          collectionId, storageAuthInfo, datasetId, storageAuthInfo, offset, limit);
+    }
+  }
+
+  public List<FileModel> listSnapshotFiles(String snapshotId, int offset, int limit) {
+    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+    Dataset dataset = snapshot.getSourceDataset();
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(snapshot.getCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        return fileDao.batchRetrieveFiles(snapshot, dataset, offset, limit);
+      } catch (InterruptedException ex) {
+        throw new FileSystemExecutionException(ex);
+      }
+    } else {
+      String collectionId = SNAPSHOT.toTableName(snapshot.getId());
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getSnapshotStorageAuthInfo(snapshot);
+      AzureStorageAuthInfo datasetStorageAuthInfo =
+          resourceService.getDatasetStorageAuthInfo(dataset);
+      return tableDao.batchRetrieveFiles(
+          collectionId,
+          storageAuthInfo,
+          dataset.getId().toString(),
+          datasetStorageAuthInfo,
+          offset,
+          limit);
+    }
+  }
+
   // -- dataset lookups --
   // depth == -1 means expand the entire sub-tree from this node
   // depth == 0 means no expansion - just this node
@@ -188,8 +228,7 @@ public class FileService {
     try {
       return fileModelFromFSItem(lookupFSItem(datasetId, fileId, depth));
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
   }
 
@@ -198,14 +237,13 @@ public class FileService {
     try {
       fsItem = lookupFSItemByPath(datasetId, path, depth);
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
     return fileModelFromFSItem(fsItem);
   }
 
   public Optional<FileModel> lookupOptionalPath(String datasetId, String path, int depth) {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     final Optional<FSItem> file;
@@ -213,44 +251,27 @@ public class FileService {
       try {
         file = fileDao.lookupOptionalPath(dataset, path, depth);
       } catch (InterruptedException ex) {
-        throw new FileSystemExecutionException(
-            "Unexpected interruption during file system processing", ex);
+        throw new FileSystemExecutionException(ex);
       }
     } else {
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
       file = tableDao.lookupOptionalPath(dataset.getId(), path, storageAuthInfo, depth);
     }
     return file.map(this::fileModelFromFSItem);
   }
 
-  /**
-   * Note that this method will only return a file if the encompassing dataset is NOT exclusively
-   * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
-   * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
-   */
   FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveById(dataset, fileId, depth);
     } else if (cloudPlatformWrapper.isAzure()) {
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
 
       return tableDao.retrieveById(
           CollectionType.DATASET,
+          UUID.fromString(datasetId),
           UUID.fromString(datasetId),
           fileId,
           depth,
@@ -261,25 +282,14 @@ public class FileService {
     }
   }
 
-  /**
-   * Note that this method will only return a file if the encompassing dataset is NOT exclusively
-   * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
-   * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
-   */
   FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveByPath(dataset, path, depth);
     } else {
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo = resourceService.getDatasetStorageAuthInfo(dataset);
       return tableDao.retrieveByPath(UUID.fromString(datasetId), path, depth, storageAuthInfo);
     }
   }
@@ -290,11 +300,10 @@ public class FileService {
     try {
       // note: this method only returns snapshots that are NOT exclusively locked
       SnapshotProject snapshot =
-          snapshotService.retrieveAvailableSnapshotProject(UUID.fromString(snapshotId));
+          snapshotService.retrieveSnapshotProject(UUID.fromString(snapshotId));
       return fileModelFromFSItem(lookupSnapshotFSItem(snapshot, fileId, depth));
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
   }
 
@@ -303,8 +312,7 @@ public class FileService {
     try {
       fsItem = lookupSnapshotFSItemByPath(snapshotId, path, depth);
     } catch (InterruptedException ex) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", ex);
+      throw new FileSystemExecutionException(ex);
     }
     return fileModelFromFSItem(fsItem);
   }
@@ -317,34 +325,18 @@ public class FileService {
       return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth);
     } else {
       // TODO: this will get expensive if we query a lot.  We'll need to optimize this
-      BillingProfileModel billingProfileModel =
-          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
-      AzureStorageAccountResource storageAccountResource =
-          resourceService
-              .getSnapshotStorageAccount(snapshot.getId())
-              .orElseThrow(
-                  () ->
-                      new StorageResourceNotFoundException(
-                          "Snapshot storage account was not found"));
-
       AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
+          resourceService.getSnapshotStorageAuthInfo(snapshot.getProfileId(), snapshot.getId());
 
       // TODO Cache these values.  Very expensive lookups
-      BillingProfileModel datasetBillingProfileModel =
-          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       Dataset dataset =
           datasetService.retrieve(snapshot.getSourceDatasetProjects().iterator().next().getId());
-      AzureStorageAccountResource datasetStorageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
-
       AzureStorageAuthInfo datasetTableStorageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              datasetBillingProfileModel, datasetStorageAccountResource);
+          resourceService.getDatasetStorageAuthInfo(dataset);
 
       return tableDao.retrieveById(
           CollectionType.SNAPSHOT,
+          dataset.getId(),
           snapshot.getId(),
           fileId,
           depth,
@@ -355,8 +347,7 @@ public class FileService {
 
   FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth)
       throws InterruptedException {
-    // note: this method only returns snapshots that are NOT exclusively locked
-    Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
+    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     return fileDao.retrieveByPath(snapshot, path, depth);
   }
 
@@ -407,19 +398,18 @@ public class FileService {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
    */
-  List<DRSChecksum> makeChecksums(FSItem fsItem) {
+  static List<DRSChecksum> makeChecksums(ChecksumInterface checksum) {
+    String fsItemCrc32c = checksum.getChecksumCrc32c();
     List<DRSChecksum> checksums = new ArrayList<>();
-    if (fsItem.getChecksumCrc32c() != null) {
-      DRSChecksum checksumCrc32 =
-          new DRSChecksum().checksum(fsItem.getChecksumCrc32c()).type("crc32c");
+    if (fsItemCrc32c != null) {
+      DRSChecksum checksumCrc32 = new DRSChecksum().checksum(fsItemCrc32c).type("crc32c");
       checksums.add(checksumCrc32);
     }
-
-    if (fsItem.getChecksumMd5() != null) {
-      DRSChecksum checksumMd5 = new DRSChecksum().checksum(fsItem.getChecksumMd5()).type("md5");
+    String fsItemMd5 = checksum.getChecksumMd5();
+    if (fsItemMd5 != null) {
+      DRSChecksum checksumMd5 = new DRSChecksum().checksum(fsItemMd5).type("md5");
       checksums.add(checksumMd5);
     }
-
     return checksums;
   }
 }

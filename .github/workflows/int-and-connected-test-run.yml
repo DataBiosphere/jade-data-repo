@@ -1,154 +1,84 @@
 name: Unit, Smoke, Connected and Integration tests
-env:
-  K8_CLUSTER: 'integration-master'
-  # This must be defined for the bash redirection
-  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
-  # This must be defined for the bash redirection
-  GOOGLE_SA_CERT: 'jade-dev-account.pem'
-  # This will make test logs not use JSON
-  TDR_LOG_APPENDER: 'Console-Standard'
-  # The default Azure credentials to use to authenticate
-  AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
-  AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
-  JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
-  RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
-  CACHE_PATHS: |
-    build/jacoco
-    build/reports
-    build/spotless
-    build/test-results
-    build/jacocoHtml
 on:
-  pull_request:
-    branches:
-      - develop
-    paths:
-      - '!*'
-      - 'src/**'
-      - 'gradle**'
-      - 'gradle/**'
-      - '**.gradle'
-      - 'Dockerfile'
-      - 'datarepo-clienttests/**'
-      - '.github/workflows/int-and-connected-test-run.yml'
-      - '.swagger-codegen-ignore'
   workflow_dispatch: {}
+  pull_request:
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
+# do not allow concurrent runs of this workflow on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
-  test_check:
-    name: "Checkout, verify and run unit tests"
-    outputs:
-      job-status: ${{ job.status }}
+  test_unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
     timeout-minutes: 60
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Cache build"
-        uses: actions/cache@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-build-unit }}
-      - name: "Run unit tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
+          fetch-depth: 0
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'check'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      - name: Run unit tests
+        env:
+          # required for unit tests
+          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
+          # required for sonarqube reports
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # output plain logs instead of json
+          TDR_LOG_APPENDER: 'Console-Standard'
+        run: |
+          # extract service account credentials
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          # assemble code, run unit tests, and generate scan
+          ./gradlew --scan assemble check jacocoTestReport sonar
   test_connected:
-    name: "Run connected tests"
-    outputs:
-      job-status: ${{ job.status }}
+    name: Connected tests
+    runs-on: ubuntu-latest
     timeout-minutes: 180
-    needs: test_check
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Cache build"
-        uses: actions/cache@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-build-connected
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.2.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
-          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/integration/helm-azure-integration applicationsecret | AZURE_CREDENTIALS_SECRET ;
-            secret/dsde/datarepo/integration/helm-azure-integration synapse-us-east-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
-            secret/dsde/datarepo/integration/helm-azure-integration synapse-us-east-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
-            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
-      - name: "Write RBS SA to a file"
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      - name: Run connected tests
+        env:
+          # required for azure tests
+          AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
+          AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
+          AZURE_CREDENTIALS_SECRET: ${{ secrets.AZURE_CREDENTIALS_SECRET }}
+          # required for synapse tests
+          AZURE_SYNAPSE_SQLADMINPASSWORD: ${{ secrets.AZURE_SYNAPSE_SQLADMINPASSWORD }}
+          AZURE_SYNAPSE_SQLADMINUSER: ${{ secrets.AZURE_SYNAPSE_SQLADMINUSER }}
+          AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
+          # required for connected tests
+          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
+          # required for testAzureBillingProfile
+          # uses an azure marketplace app with this hardcoded deployment email
+          JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
+          # required for rbs tests
+          RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+          # output plain logs instead of json
+          TDR_LOG_APPENDER: 'Console-Standard'
         run: |
-          # write vault token
-          base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
-      - name: "Run connected tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testConnected'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Temp: Archive all junit test reports"
-        uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: junit-test-reports-for-connected
-          path: build/reports
-          retention-days: 5
-  deploy_test_integration:
-    name: "Run integration and smoke tests"
-    outputs:
-      job-status: ${{ job.status }}
+          # extract service account credentials
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
+          # run connected tests
+          ./gradlew --scan --warn testConnected
+  test_integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
     timeout-minutes: 300
-    needs: test_check
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
     services:
       postgres:
         image: postgres:11
@@ -160,127 +90,94 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Cache build"
-        uses: actions/cache@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-build-integration
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.2.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
-          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/integration/helm-azure-integration applicationsecret | AZURE_CREDENTIALS_SECRET
-      - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'gcp_whitelist'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
-      - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'gradlebuild'
-      - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'helmdeploy'
-          helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.435
-          helm_datarepo_ui_chart_version: 0.0.208
-          helm_gcloud_sqlproxy_chart_version: 0.19.8
-          helm_oidc_proxy_chart_version: 0.0.39
-      - name: "Fetch gitHash for deployed integration version"
-        id: configuration
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      - name: Run integration tests
+        env:
+          # required for azure tests
+          AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
+          AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
+          AZURE_CREDENTIALS_SECRET: ${{ secrets.AZURE_CREDENTIALS_SECRET }}
+          AZURE_SYNAPSE_SQLADMINUSER: ${{ secrets.AZURE_SYNAPSE_SQLADMINUSER }}
+          AZURE_SYNAPSE_SQLADMINPASSWORD: ${{ secrets.AZURE_SYNAPSE_SQLADMINPASSWORD }}
+          AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
+          # required for integration tests
+          GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
+          GOOGLE_SA_CERT: jade-dev-account.pem
+          IT_JADE_API_URL: http://localhost:8080
+          # postgres connection details
+          PGHOST: 127.0.0.1
+          PGPASSWORD: postgres
+          # required for integration tests
+          RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+          RBS_INSTANCEURL: https://buffer.tools.integ.envs.broadinstitute.org
+          RBS_POOLID: datarepo_v1
+          # output plain logs instead of json
+          TDR_LOG_APPENDER: 'Console-Standard'
         run: |
-          git_hash=$(git rev-parse --short HEAD)
-          echo "::set-output name=git_hash::$git_hash"
-          echo "Latest git hash for this branch: $git_hash"
-      - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.63.0
-        timeout-minutes: 20
-        env:
-          DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
-          DEPLOYMENT_TYPE: 'api'
-      - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'gradletestrunnersmoketest'
-      - name: "Run integration tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testIntegration'
-      - name: "Clean state lock from used Namespace on API deploy"
+          # wait for postgres to be ready
+          pg_isready -h ${PGHOST} -t 30
+          # create the datarepo and stairway databases
+          psql -U postgres -f ./scripts/init-db/postgres-init.sql
+          # extract service account credentials
+          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+          chmod 644 ${GOOGLE_SA_CERT}
+          base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
+          # build code and run local api
+          ./gradlew bootJar
+          export DATA_REPO_JAR=$(find . -type f -name jade-data-repo-*-SNAPSHOT.jar)
+          java -jar ${DATA_REPO_JAR} > local-api-output.log &
+          # wait until api is ready
+          timeout 30 bash -c 'until curl -s ${IT_JADE_API_URL}/status; do sleep 1; done'
+          # run integration tests
+          ./gradlew --scan --warn testIntegration
+      - name: Upload API logs
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
+        uses: actions/upload-artifact@v4
         with:
-          actions_subcommand: 'k8_checknamespace_clean'
-      - name: "Clean whitelisted Runner IP"
-        if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.63.0
-        with:
-          actions_subcommand: 'gcp_whitelist_clean'
-  publish_test_reports:
-    name: "Save execution reports and notify"
-    timeout-minutes: 60
-    needs:
-      - test_check
-      - test_connected
-      - deploy_test_integration
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: always()
-    runs-on: ${{ matrix.os }}
+          name: integration-test-api-logs
+          path: local-api-output.log
+          retention-days: 7
+  git_hash:
+    name: Extract git hash
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.config.outputs.GIT_HASH }}
     steps:
-      - name: "Load unit test cache"
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-build-unit
-      - name: "Load connected test cache"
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-build-connected
-      - name: "Load integration test cache"
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-build-integration
-      - name: "Archive code coverage results"
-        uses: actions/upload-artifact@v2
-        with:
-          name: code-coverage-report
-          path: build/jacocoHtml
-          retention-days: 10
-      - name: "Archive all junit test reports"
-        uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: junit-test-reports
-          path: build/reports
-          retention-days: 10
-      - name: "Notify Jade Slack on nightly test run"
-        if: ${{ github.event_name == 'schedule' && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Nightly Unit, Connected and Integration tests"
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Get the latest git hash
+        id: config
+        run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_OUTPUT
+          echo "Latest git hash in branch is ${GIT_HASH}"
+  report-to-sherlock:
+    # only runs on pull requests and reports the appVersion even if tests fail
+    if: github.event_name == 'pull_request'
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs: git_hash
+    with:
+      new-version: ${{ needs.git_hash.outputs.version }}
+      chart-name: 'datarepo'
+    permissions:
+      contents: read
+      id-token: write
+  report-workflow:
+    if: github.ref == 'refs/heads/develop'
+    uses: broadinstitute/sherlock/.github/workflows/client-report-workflow.yaml@main
+    # dependency is not required but makes the action run page more readable
+    needs: git_hash
+    with:
+      relates-to-chart-releases: 'datarepo-dev'
+      notify-slack-channels-upon-workflow-failure: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+      notify-slack-channels-upon-workflow-retry: ${{ vars.SLACK_NOTIFICATION_CHANNELS }}
+    permissions:
+      id-token: write

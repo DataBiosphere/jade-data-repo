@@ -1,34 +1,42 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.DaoUtils.UuidMapper;
+import bio.terra.common.LockOperation;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.duos.DuosDao;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
-import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
+import bio.terra.service.tags.TagUtils;
+import bio.terra.service.tags.TaggableResourceDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import java.sql.Array;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -36,12 +44,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -53,7 +62,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class SnapshotDao {
+public class SnapshotDao implements TaggableResourceDao {
 
   private final Logger logger = LoggerFactory.getLogger(SnapshotDao.class);
 
@@ -66,6 +75,7 @@ public class SnapshotDao {
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
   private final DuosDao duosDao;
+  private final DataSource jdbcDataSource;
 
   private static final String TABLE_NAME = "snapshot";
 
@@ -84,7 +94,6 @@ public class SnapshotDao {
           + "  FROM storage_account_resource sar "
           + "  WHERE sar.id = snapshot.storage_account_resource_id) as storage_account_name, ";
 
-  @Autowired
   public SnapshotDao(
       JournalService journalService,
       NamedParameterJdbcTemplate jdbcTemplate,
@@ -94,7 +103,8 @@ public class SnapshotDao {
       DatasetDao datasetDao,
       ResourceService resourceService,
       ObjectMapper objectMapper,
-      DuosDao duosDao) {
+      DuosDao duosDao,
+      DataRepoJdbcConfiguration jdbcConfiguration) {
     this.jdbcTemplate = jdbcTemplate;
     this.journalService = journalService;
     this.snapshotTableDao = snapshotTableDao;
@@ -104,6 +114,22 @@ public class SnapshotDao {
     this.resourceService = resourceService;
     this.objectMapper = objectMapper;
     this.duosDao = duosDao;
+    this.jdbcDataSource = jdbcConfiguration.getDataSource();
+  }
+
+  @Override
+  public NamedParameterJdbcTemplate getJdbcTemplate() {
+    return jdbcTemplate;
+  }
+
+  @Override
+  public DataSource getJdbcDataSource() {
+    return jdbcDataSource;
+  }
+
+  @Override
+  public String getTable() {
+    return TABLE_NAME;
   }
 
   /**
@@ -118,6 +144,7 @@ public class SnapshotDao {
    * @throws SnapshotLockException if the snapshot is locked by another flight
    * @throws SnapshotNotFoundException if the snapshot does not exist
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void lock(UUID snapshotId, String flightId) {
     if (flightId == null) {
@@ -136,13 +163,12 @@ public class SnapshotDao {
     if (numRowsUpdated == 0) {
       // this method checks if the snapshot exists
       // if it does not exist, then the method throws a SnapshotNotFoundException
-      // we don't need the result (snapshot summary) here, just the existence check, so ignore the
-      // return value.
-      retrieveSummaryById(snapshotId);
+      // if it does exist, get any locks that exist because this is helpful info for a user
+      SnapshotSummary summary = retrieveSummaryById(snapshotId);
 
-      // otherwise, throw a Lock exception
-      logger.debug("numRowsUpdated=" + numRowsUpdated);
-      throw new SnapshotLockException("Failed to lock the snapshot");
+      throw new SnapshotLockException(
+          "Failed to lock the snapshot",
+          LockOperation.LOCK_EXCLUSIVE.getErrorDetails(summary.getResourceLocks()));
     }
   }
 
@@ -157,10 +183,11 @@ public class SnapshotDao {
    * @param flightId flight id that wants to unlock the snapshot
    * @return true if a snapshot was unlocked, false otherwise
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean unlock(UUID snapshotId, String flightId) {
     // update the snapshot entry to remove the flightid IF it is currently set to this flightid
-    String sql = "UPDATE snapshot SET flightid = NULL " + "WHERE id = :id AND flightid = :flightid";
+    String sql = "UPDATE snapshot SET flightid = NULL WHERE id = :id AND flightid = :flightid";
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("id", snapshotId).addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);
@@ -174,22 +201,36 @@ public class SnapshotDao {
    * createAndLock, unlock.
    *
    * @param snapshot the snapshot object to create
-   * @return the id of the new snapshot
    * @throws InvalidSnapshotException if a row already exists with this snapshot name
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void createAndLock(Snapshot snapshot, String flightId, AuthenticatedUserRequest userReq) {
+  public void createAndLock(Snapshot snapshot, String flightId) {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb) ";
+        """
+            INSERT INTO snapshot
+            (name, description, profile_id, project_resource_id, id, consent_code, flightid,
+              creation_information, properties, global_file_ids, compact_id_prefix,
+              duos_firecloud_group_id, tags)
+            VALUES
+            (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid,
+              :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix,
+              :duos_firecloud_group_id, :tags)
+            """;
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException(
           "Invalid JSON in snapshot creationInformation, we should've caught this already", e);
+    }
+    Array tags;
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      tags = DaoUtils.createSqlStringArray(connection, snapshot.getTags());
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("Failed to convert snapshot tags list to SQL array", e);
     }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -202,7 +243,12 @@ public class SnapshotDao {
             .addValue("flightid", flightId)
             .addValue("creation_information", creationInfo)
             .addValue(
-                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
+                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
+            .addValue("global_file_ids", snapshot.hasGlobalFileIds())
+            .addValue("compact_id_prefix", snapshot.getCompactIdPrefix())
+            .addValue("duos_firecloud_group_id", snapshot.getDuosFirecloudGroupId())
+            .addValue("tags", tags);
+
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -214,23 +260,6 @@ public class SnapshotDao {
     snapshotTableDao.createTables(snapshot.getId(), snapshot.getTables());
     for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
       createSnapshotSource(snapshotSource);
-    }
-  }
-
-  /**
-   * This method is protected because it's for use in tests only. Currently, we don't expose the
-   * lock state of a snapshot outside of the DAO for other API code to consume.
-   *
-   * @param id
-   * @return the flightid that holds an exclusive lock. null if none.
-   */
-  protected String getExclusiveLockState(UUID id) {
-    try {
-      String sql = "SELECT flightid FROM snapshot WHERE id = :id";
-      MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-      return jdbcTemplate.queryForObject(sql, params, String.class);
-    } catch (EmptyResultDataAccessException ex) {
-      throw new SnapshotNotFoundException("Snapshot not found for id " + id);
     }
   }
 
@@ -255,8 +284,9 @@ public class SnapshotDao {
     snapshotRelationshipDao.createSnapshotRelationships(snapshotSource.getSnapshot());
   }
 
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean delete(UUID id, AuthenticatedUserRequest userReq) {
+  public boolean delete(UUID id) {
     logger.debug("delete snapshot by id: " + id);
     int rowsAffected =
         jdbcTemplate.update(
@@ -265,68 +295,19 @@ public class SnapshotDao {
   }
 
   /**
-   * This is a convenience wrapper that returns a snapshot only if it is NOT exclusively locked.
-   * This method is intended for user-facing API calls (e.g. from RepositoryApiController).
+   * Retrieves a Snapshot object from the snapshot id.
    *
    * @param snapshotId the snapshot id
    * @return the Snapshot object
    */
-  @Transactional(
-      propagation = Propagation.REQUIRED,
-      isolation = Isolation.SERIALIZABLE,
-      readOnly = true)
-  public Snapshot retrieveAvailableSnapshot(UUID snapshotId) {
-    return retrieveSnapshot(snapshotId, true);
-  }
-
-  /**
-   * This is a convenience wrapper that returns a snapshot project only if it is NOT exclusively
-   * locked. This method is intended for user-facing API calls (e.g. from RepositoryApiController).
-   *
-   * @param snapshotId the snapshot id
-   * @return the SnapshotProject object
-   */
-  @Transactional(
-      propagation = Propagation.REQUIRED,
-      isolation = Isolation.SERIALIZABLE,
-      readOnly = true)
-  public SnapshotProject retrieveAvailableSnapshotProject(UUID snapshotId) {
-    return retrieveSnapshotProject(snapshotId, true);
-  }
-
-  /**
-   * This is a convenience wrapper that returns a snapshot, regardless of whether it is exclusively
-   * locked. Most places in the API code that are retrieving a snapshot will call this method.
-   *
-   * @param snapshotId the snapshot id
-   * @return the Snapshot object
-   */
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public Snapshot retrieveSnapshot(UUID snapshotId) {
-    return retrieveSnapshot(snapshotId, false);
-  }
-
-  /**
-   * Retrieves a Snapshot object from the snapshot id.
-   *
-   * @param snapshotId the snapshot id
-   * @param onlyRetrieveAvailable true to exclude snapshots that are exclusively locked, false to
-   *     include all snapshots
-   * @return the Snapshot object
-   */
-  @Transactional(
-      propagation = Propagation.REQUIRED,
-      isolation = Isolation.SERIALIZABLE,
-      readOnly = true)
-  public Snapshot retrieveSnapshot(UUID snapshotId, boolean onlyRetrieveAvailable) {
     logger.info("retrieve snapshot id: " + snapshotId);
     String sql = "SELECT * FROM snapshot WHERE id = :id";
-    if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
-      sql += " AND flightid IS NULL";
-    }
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
     Snapshot snapshot = retrieveWorker(sql, params);
     if (snapshot == null) {
@@ -335,41 +316,43 @@ public class SnapshotDao {
     return snapshot;
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
-  public SnapshotProject retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
+  public SnapshotProject retrieveSnapshotProject(UUID snapshotId) {
     logger.debug("retrieve snapshot id: " + snapshotId);
     String sql =
-        "SELECT snapshot.id, name, snapshot.profile_id, google_project_id, "
-            // Select the source dataset project information
-            + "(SELECT jsonb_agg(ds)\n"
-            + "  FROM (SELECT dataset.id, dataset.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
-            + "        FROM snapshot_source ss"
-            + "        JOIN dataset ON ss.dataset_id = dataset.id"
-            + "        LEFT JOIN project_resource p ON dataset.project_resource_id = p.id"
-            + "        WHERE snapshot.id = ss.snapshot_id) ds)"
-            + "  AS dataset_sources, "
-            // Detect the cloud provider of the snapshot
-            + "case "
-            + "when storage_account_resource_id is not null then 'azure' "
-            + "when project_resource_id is not null then 'gcp' "
-            + "end AS cloud_platform "
-            + "FROM snapshot "
-            + "LEFT JOIN project_resource ON snapshot.project_resource_id = project_resource.id "
-            + "WHERE snapshot.id = :id";
-    if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
-      sql += " AND flightid IS NULL";
-    }
+        """
+            SELECT snapshot.id, name, snapshot.profile_id, google_project_id,
+              (SELECT jsonb_agg(ds)
+                FROM
+                  (SELECT dataset.id, dataset.name, p.profile_id AS "profileId",
+                    p.google_project_id AS "dataProject"
+                    FROM snapshot_source ss
+                    JOIN dataset ON ss.dataset_id = dataset.id
+                    LEFT JOIN project_resource p ON dataset.project_resource_id = p.id
+                    WHERE snapshot.id = ss.snapshot_id
+                  ) ds
+              ) AS dataset_sources,
+              CASE
+                WHEN storage_account_resource_id IS NOT NULL THEN 'azure'
+                WHEN project_resource_id IS NOT NULL THEN 'gcp'
+              END AS cloud_platform
+            FROM snapshot
+            LEFT JOIN project_resource ON snapshot.project_resource_id = project_resource.id
+            WHERE snapshot.id = :id
+            """;
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
-    SnapshotProject snapshotProject = retrieveSnapshotProject(sql, params);
-    if (snapshotProject == null) {
+    try {
+      return jdbcTemplate.queryForObject(sql, params, new SnapshotProjectMapper());
+    } catch (EmptyResultDataAccessException ex) {
       throw new SnapshotNotFoundException("Snapshot not found - id: " + snapshotId);
     }
-    return snapshotProject;
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -393,6 +376,7 @@ public class SnapshotDao {
     }
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -415,9 +399,13 @@ public class SnapshotDao {
                           stringToSnapshotRequestContentsModel(
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
+                      .globalFileIds(rs.getBoolean("global_file_ids"))
+                      .compactIdPrefix(rs.getString("compact_id_prefix"))
                       .properties(
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
-                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class)));
+                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class))
+                      .tags(DaoUtils.getStringList(rs, "tags"))
+                      .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid"))));
 
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
@@ -438,9 +426,12 @@ public class SnapshotDao {
         }
 
         // Retrieve the Azure Storage Account associated with the snapshot.
-        resourceService
-            .getSnapshotStorageAccount(snapshot.getId())
-            .ifPresent(snapshot::storageAccountResource);
+        try {
+          snapshot.storageAccountResource(
+              resourceService.getSnapshotStorageAccount(snapshot.getId()));
+        } catch (StorageResourceNotFoundException ex) {
+          logger.debug(ex.getMessage(), ex);
+        }
 
         // Retrieve the DUOS Firecloud group associated with the snapshot.
         UUID duosFirecloudGroupId = snapshot.getDuosFirecloudGroupId();
@@ -454,39 +445,9 @@ public class SnapshotDao {
     }
   }
 
-  private SnapshotProject retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
-    try {
-      SnapshotProject snapshotProject =
-          jdbcTemplate.queryForObject(
-              sql,
-              params,
-              (rs, rowNum) -> {
-                List<DatasetProject> datasetProjects;
-                try {
-                  datasetProjects =
-                      objectMapper.readValue(
-                          rs.getString("dataset_sources"), new TypeReference<>() {});
-                } catch (JsonProcessingException e) {
-                  throw new CorruptMetadataException("Invalid dataset sources for snapshot");
-                }
-                return new SnapshotProject()
-                    .id(rs.getObject("id", UUID.class))
-                    .name(rs.getString("name"))
-                    .profileId(rs.getObject("profile_id", UUID.class))
-                    .dataProject(rs.getString("google_project_id"))
-                    .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
-                    .sourceDatasetProjects(datasetProjects);
-              });
-      return snapshotProject;
-    } catch (EmptyResultDataAccessException ex) {
-      return null;
-    }
-  }
-
   private List<SnapshotSource> retrieveSnapshotSources(Snapshot snapshot) {
-    // We collect all of the source ids first to avoid introducing a recursive query. While the
-    // recursive
-    // query might work, it makes debugging errors more difficult.
+    // We collect all the source ids first to avoid introducing a recursive query. While the
+    // recursive query might work, it makes debugging errors more difficult.
     class RawSourceData {
       private UUID id;
       private UUID datasetId;
@@ -513,17 +474,18 @@ public class SnapshotDao {
       SnapshotSource snapshotSource =
           new SnapshotSource().id(raw.id).snapshot(snapshot).dataset(dataset);
 
-      if (raw.assetId != null) { // if there is no assetId, then dont check for a spec
+      if (raw.assetId != null) { // if there is no assetId, then don't check for a spec
         // Find the matching asset in the dataset
         Optional<AssetSpecification> assetSpecification =
             dataset.getAssetSpecificationById(raw.assetId);
-        if (!assetSpecification.isPresent()) {
-          throw new CorruptMetadataException("Asset referenced by snapshot source was not found!");
-        }
-        snapshotSource.assetSpecification(assetSpecification.get());
+        snapshotSource.setAssetSpecification(
+            assetSpecification.orElseThrow(
+                () ->
+                    new CorruptMetadataException(
+                        "Asset referenced by snapshot source was not found!")));
       }
 
-      // Now that we have access to all of the parts, build the map structure
+      // Now that we have access to all the parts, build the map structure
       snapshotSource.snapshotMapTables(
           snapshotMapTableDao.retrieveMapTables(snapshot, snapshotSource));
 
@@ -538,6 +500,7 @@ public class SnapshotDao {
    *     RAS passports)
    * @return snapshot UUIDs accessible under the permissions
    */
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -547,10 +510,12 @@ public class SnapshotDao {
     if (!permissions.isEmpty()) {
       String sql =
           """
-          SELECT snapshot.id FROM snapshot
+          SELECT snapshot.id
+          FROM snapshot
           JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id
           JOIN dataset ON dataset.id = snapshot_source.dataset_id
-          WHERE snapshot.consent_code IS NOT NULL AND dataset.phs_id IS NOT NULL
+          WHERE snapshot.consent_code IS NOT NULL
+          AND dataset.phs_id IS NOT NULL
           AND (snapshot.consent_code, dataset.phs_id) IN (:permissions)
           """;
       MapSqlParameterSource params =
@@ -566,9 +531,20 @@ public class SnapshotDao {
   }
 
   /**
+   * @return a list of all snapshot IDs
+   */
+  @WithSpan
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<UUID> getSnapshotIds() {
+    return jdbcTemplate.query("SELECT snapshot.id FROM snapshot", new UuidMapper("id"));
+  }
+
+  /**
    * Fetch a list of all the available snapshots. This method returns summary objects, which do not
-   * include sub-objects associated with snapshots (e.g. tables). Note that this method will only
-   * return snapshots that are NOT exclusively locked.
+   * include sub-objects associated with snapshots (e.g. tables).
    *
    * @param offset skip this many snapshots from the beginning of the list (intended for "scrolling"
    *     behavior)
@@ -580,6 +556,7 @@ public class SnapshotDao {
    *     service)
    * @return a list of dataset summary objects
    */
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -592,27 +569,30 @@ public class SnapshotDao {
       String filter,
       String region,
       List<UUID> datasetIds,
-      Collection<UUID> accessibleSnapshotIds) {
-    logger.debug(
-        "retrieve snapshots offset: "
-            + offset
-            + " limit: "
-            + limit
-            + " sort: "
-            + sort
-            + " direction: "
-            + direction
-            + " filter: "
-            + filter
-            + " datasetIds: "
-            + StringUtils.join(datasetIds, ","));
+      Collection<UUID> accessibleSnapshotIds,
+      List<String> tags,
+      List<String> duosIds) {
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "retrieve snapshots offset: {} limit: {} sort: {} direction: {} filter: {} datasetIds: {} tags: {} duosIds: {}",
+          offset,
+          limit,
+          sort,
+          direction,
+          filter,
+          String.join(",", datasetIds.stream().map(UUID::toString).toList()),
+          String.join(",", tags),
+          String.join(",", duosIds));
+    }
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
-    whereClauses.add(" snapshot.flightid IS NULL"); // exclude snapshots that are exclusively locked
     String joinSql =
-        " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
-            + "JOIN dataset on dataset.id = snapshot_source.dataset_id ";
+        """
+      JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id
+          JOIN dataset ON dataset.id = snapshot_source.dataset_id
+            LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id
+      """;
 
     if (!datasetIds.isEmpty()) {
       String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
@@ -634,6 +614,17 @@ public class SnapshotDao {
     // add the filter to the clause to get the actual items
     DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      TagUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException(
+          "Failed to convert snapshot request tags list to SQL array", e);
+    }
+    if (!Objects.requireNonNullElse(duosIds, List.of()).isEmpty()) {
+      String duosIdMatchSql = "dfg.duos_id IN (:duosIds)";
+      whereClauses.add(duosIdMatchSql);
+      params.addValue("duosIds", duosIds);
+    }
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
@@ -650,7 +641,10 @@ public class SnapshotDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot_source.id, dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+            + "snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
+            + "snapshot_source.id, "
+            + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id,"
+            + "dataset.self_hosted, dfg.duos_id,"
             + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
@@ -668,6 +662,7 @@ public class SnapshotDao {
         .filteredTotal(filteredTotal);
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -677,11 +672,13 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.*, dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
+              + "dfg.duos_id,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + "LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id "
               + "WHERE snapshot.id = :id ";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
@@ -690,6 +687,7 @@ public class SnapshotDao {
     }
   }
 
+  @WithSpan
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -698,12 +696,14 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+              + "snapshot.consent_code, snapshot.global_file_ids, snapshot.tags, snapshot.flightid, "
+              + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted, dfg.duos_id, "
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + "LEFT JOIN duos_firecloud_group dfg ON snapshot.duos_firecloud_group_id = dfg.id "
               + "WHERE snapshot_source.dataset_id = :datasetId";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
       return jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -713,6 +713,7 @@ public class SnapshotDao {
     }
   }
 
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void updateSnapshotTableRowCounts(Snapshot snapshot, Map<String, Long> tableRowCounts) {
     String sql =
@@ -721,7 +722,8 @@ public class SnapshotDao {
     for (SnapshotTable snapshotTable : snapshot.getTables()) {
       String tableName = snapshotTable.getName();
       if (!tableRowCounts.containsKey(tableName)) {
-        throw new MissingRowCountsException("Missing counts for " + tableName);
+        // Case when there is no relationship to a table, but included in asset
+        tableRowCounts.put(tableName, 0L);
       }
       MapSqlParameterSource params =
           new MapSqlParameterSource()
@@ -740,6 +742,7 @@ public class SnapshotDao {
    * @param patchRequest updates to merge with existing snapshot
    * @return whether the snapshot record was updated
    */
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean patch(
       UUID id, SnapshotPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
@@ -761,13 +764,14 @@ public class SnapshotDao {
     boolean patchSucceeded = (rowsAffected == 1);
 
     if (patchSucceeded) {
-      logger.info("Snapshot {} patched with {}", id, patchRequest.toString());
+      logger.info("Snapshot {} patched with {}", id, patchRequest);
       journalService.recordUpdate(
           userReq, id, IamResourceType.DATASNAPSHOT, "Snapshot patched.", params.getValues());
     }
     return patchSucceeded;
   }
 
+  @WithSpan
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void updateDuosFirecloudGroupId(UUID id, UUID duosFirecloudGroupId)
       throws SnapshotUpdateException {
@@ -822,7 +826,30 @@ public class SnapshotDao {
           .storageAccount(rs.getString("storage_account_name"))
           .consentCode(rs.getString("consent_code"))
           .phsId(rs.getString("phs_id"))
-          .selfHosted(rs.getBoolean("self_hosted"));
+          .selfHosted(rs.getBoolean("self_hosted"))
+          .globalFileIds(rs.getBoolean("global_file_ids"))
+          .tags(DaoUtils.getStringList(rs, "tags"))
+          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")))
+          .duosId(rs.getString("duos_id"));
+    }
+  }
+
+  private class SnapshotProjectMapper implements RowMapper<SnapshotProject> {
+    public SnapshotProject mapRow(ResultSet rs, int rowNum) throws SQLException {
+      List<DatasetProject> datasetProjects;
+      try {
+        datasetProjects =
+            objectMapper.readValue(rs.getString("dataset_sources"), new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException("Invalid dataset sources for snapshot", e);
+      }
+      return new SnapshotProject()
+          .id(rs.getObject("id", UUID.class))
+          .name(rs.getString("name"))
+          .profileId(rs.getObject("profile_id", UUID.class))
+          .dataProject(rs.getString("google_project_id"))
+          .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
+          .sourceDatasetProjects(datasetProjects);
     }
   }
 }

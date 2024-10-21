@@ -94,7 +94,7 @@ public class DatasetStorageAccountDaoTest {
       datasetStorageAccountDao.deleteDatasetStorageAccountLink(
           datasetId, storageAccountResourceIds.get(0));
 
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
 
     azureResourceDao.deleteApplicationDeploymentMetadata(List.of(applicationId));
@@ -106,8 +106,12 @@ public class DatasetStorageAccountDaoTest {
     datasetIds.add(datasetId);
 
     AzureStorageAccountResource storageAccount =
-        azureResourceDao.createAndLockStorageAccount(
-            "sa", applicationResource, AzureRegion.ASIA_PACIFIC, ShortUUID.get());
+        azureResourceDao.createAndLockStorage(
+            "sa",
+            datasetId.toString(),
+            applicationResource,
+            AzureRegion.ASIA_PACIFIC,
+            ShortUUID.get());
     storageAccountResourceIds.add(storageAccount.getResourceId());
     datasetStorageAccountDao.createDatasetStorageAccountLink(
         datasetId, storageAccount.getResourceId(), false);
@@ -132,7 +136,7 @@ public class DatasetStorageAccountDaoTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     return datasetId;
   }

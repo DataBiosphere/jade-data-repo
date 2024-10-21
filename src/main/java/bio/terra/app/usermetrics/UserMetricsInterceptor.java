@@ -5,13 +5,13 @@ import bio.terra.app.configuration.UserMetricsConfiguration;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import liquibase.util.StringUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -46,8 +46,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
 
   @Override
   public void afterCompletion(
-      HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
-      throws Exception {
+      HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
     String method = request.getMethod().toUpperCase();
     String path = request.getRequestURI();
     AuthenticatedUserRequest userRequest;
@@ -59,7 +58,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     }
 
     // Don't log metrics if bard isn't configured or the path is part of the ignore-list
-    if (StringUtils.isEmpty(metricsConfig.getBardBasePath()) || ignoreEventForPath(path)) {
+    if (StringUtils.isEmpty(metricsConfig.bardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
 
@@ -68,6 +67,8 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
             Map.of(
                 BardEventProperties.METHOD_FIELD_NAME, method,
                 BardEventProperties.PATH_FIELD_NAME, path));
+    addToPropertiesIfPresentInHeader(
+        request, properties, "X-Transaction-Id", BardEventProperties.TRANSACTION_ID_FIELD_NAME);
     eventProperties.setAll(properties);
     HashMap<String, Object> bardEventProperties = eventProperties.get();
 
@@ -79,13 +80,33 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 new BardEvent(
                     API_EVENT_NAME,
                     bardEventProperties,
-                    metricsConfig.getAppId(),
+                    metricsConfig.appId(),
                     applicationConfiguration.getDnsName())));
   }
 
   /** Should we actually ignore sending a tracking event for this path */
   private boolean ignoreEventForPath(String path) {
-    return metricsConfig.getIgnorePaths().stream()
-        .anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
+    return metricsConfig.ignorePaths().stream().anyMatch(p -> FilenameUtils.wildcardMatch(path, p));
+  }
+
+  /**
+   * If a given header is present in the request and has a value, add it to the properties map to be
+   * tracked in Bard
+   *
+   * @param request The request being logged
+   * @param properties The properties map that will be sent to Bard for tracking
+   * @param headerName The name of the header to examine
+   * @param propertyName The name of the map key to use when adding the header value to the
+   *     properties map
+   */
+  private void addToPropertiesIfPresentInHeader(
+      HttpServletRequest request,
+      Map<String, Object> properties,
+      String headerName,
+      String propertyName) {
+    var headerValue = request.getHeader(headerName);
+    if (headerValue != null) {
+      properties.put(propertyName, headerValue);
+    }
   }
 }

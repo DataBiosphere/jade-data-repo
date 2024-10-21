@@ -12,11 +12,7 @@ public class SnapshotLockException extends InternalServerErrorException {
     super(message, cause);
   }
 
-  public SnapshotLockException(Throwable cause) {
-    super(cause);
-  }
-
-  public SnapshotLockException(String message, Throwable cause, List<String> errorDetails) {
-    super(message, cause, errorDetails);
+  public SnapshotLockException(String message, List<String> causes) {
+    super(message, causes);
   }
 }

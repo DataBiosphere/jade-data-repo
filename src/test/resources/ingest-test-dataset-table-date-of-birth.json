@@ -1,0 +1,28 @@
+{
+  "name": "date_of_birth",
+  "rawTableName": "date_of_birth",
+  "columns": [
+    {
+      "name": "month",
+      "type": "string"
+    },
+    {
+      "name": "day",
+      "type": "integer"
+    },
+    {
+      "name": "year",
+      "type": "integer"
+    },
+    {
+      "name": "participant_id",
+      "type": "string"
+    }
+  ],
+  "primaryKey": [
+    {
+      "name": "participant_id",
+      "type": "string"
+    }
+  ]
+}

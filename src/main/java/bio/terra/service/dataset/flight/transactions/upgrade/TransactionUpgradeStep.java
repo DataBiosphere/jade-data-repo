@@ -1,9 +1,9 @@
 package bio.terra.service.dataset.flight.transactions.upgrade;
 
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
@@ -56,7 +56,8 @@ public class TransactionUpgradeStep implements Step {
                 SqlSortDirection.ASC,
                 null,
                 null,
-                idsAndRoles)
+                idsAndRoles,
+                null)
             .getItems()
             .stream()
             .filter(d -> d.getCloudPlatform() == CloudPlatform.GCP)

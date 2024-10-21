@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
@@ -30,7 +31,8 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
       AzureBlobStorePdao azureBlobStorePdao,
       ObjectMapper bulkLoadObjectMapper,
       ExecutorService executor,
-      AuthenticatedUserRequest userRequest) {
+      AuthenticatedUserRequest userRequest,
+      Dataset dataset) {
     super(
         loadService,
         maxBadLoadFileLineErrorsReported,
@@ -38,7 +40,8 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
         bulkLoadObjectMapper,
         azureBlobStorePdao,
         executor,
-        userRequest);
+        userRequest,
+        dataset);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;
   }

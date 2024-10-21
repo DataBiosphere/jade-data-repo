@@ -1,8 +1,10 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.common.Table;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetTable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +39,7 @@ public class SnapshotSource {
     return assetSpecification;
   }
 
-  public SnapshotSource assetSpecification(AssetSpecification assetSpecification) {
+  public SnapshotSource setAssetSpecification(AssetSpecification assetSpecification) {
     this.assetSpecification = assetSpecification;
     return this;
   }
@@ -72,5 +74,16 @@ public class SnapshotSource {
         .filter(mapTable -> mapTable.getToTable().getName().equals(tableName))
         .findFirst()
         .map(SnapshotMapTable::getFromTable);
+  }
+
+  public DatasetTable getDatasetTable(String tableName) {
+    return this.getDataset()
+        .getTableByName(tableName)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    String.format(
+                        "Table %s was not found in dataset %s",
+                        tableName, this.getDataset().toLogString())));
   }
 }

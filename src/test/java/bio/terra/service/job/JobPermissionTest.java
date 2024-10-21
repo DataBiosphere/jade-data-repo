@@ -86,7 +86,9 @@ public class JobPermissionTest extends UsersBase {
             false,
             false,
             false,
-            new DatasetRequestModelPolicies().addCustodiansItem(custodian().getEmail()));
+            false,
+            new DatasetRequestModelPolicies().addCustodiansItem(custodian().getEmail()),
+            null);
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.waitForDatasetCreate(steward(), jobResponse);
 

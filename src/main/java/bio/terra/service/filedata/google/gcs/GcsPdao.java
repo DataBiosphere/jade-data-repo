@@ -2,11 +2,14 @@ package bio.terra.service.filedata.google.gcs;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM_TDR;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.AclUtils;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FutureUtils;
+import bio.terra.common.UriUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoFileLinkException;
@@ -23,6 +26,10 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.FileIdService;
+import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
@@ -52,7 +59,6 @@ import com.google.cloud.storage.Storage.BucketSourceOption;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -64,6 +70,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -101,7 +108,7 @@ public class GcsPdao implements CloudFileReader {
       "roles/serviceusage.serviceUsageConsumer";
 
   private static final String PSA_SEPARATOR = "|";
-  // Cache of pet service account tokens keys on a given user's actual access_token + separator +
+  // Cache of pet service account tokens keyed on a given user's actual access_token + separator +
   // projectid combo
   private final Map<String, Tokeninfo> petAccountTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(30, TimeUnit.MINUTES));
@@ -116,6 +123,7 @@ public class GcsPdao implements CloudFileReader {
   private final Environment environment;
   private final GoogleResourceManagerService resourceManagerService;
   private final String tdrServiceAccountEmail;
+  private final FileIdService fileIdService;
 
   @Autowired
   public GcsPdao(
@@ -128,7 +136,8 @@ public class GcsPdao implements CloudFileReader {
       IamProviderInterface iamClient,
       Environment environment,
       GoogleResourceManagerService resourceManagerService,
-      @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail) {
+      @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail,
+      FileIdService fileIdService) {
     this.gcsProjectFactory = gcsProjectFactory;
     this.resourceService = resourceService;
     this.fileDao = fileDao;
@@ -139,6 +148,7 @@ public class GcsPdao implements CloudFileReader {
     this.environment = environment;
     this.resourceManagerService = resourceManagerService;
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
+    this.fileIdService = fileIdService;
   }
 
   public Storage storageForProjectId(String projectId) {
@@ -190,7 +200,6 @@ public class GcsPdao implements CloudFileReader {
     }
   }
 
-  @SuppressFBWarnings("OS_OPEN_STREAM")
   private static Stream<String> getBlobLinesStream(Blob blob, String projectId, Storage storage) {
     logger.info(String.format("Reading lines from %s", GcsUriUtils.getGsPathFromBlob(blob)));
     var reader = storage.reader(blob.getBlobId(), Storage.BlobSourceOption.userProject(projectId));
@@ -234,6 +243,7 @@ public class GcsPdao implements CloudFileReader {
       writeStreamToCloudFile(path, stream, projectId);
     }
   }
+
   /**
    * Write a {@link Stream} to a GCS file separated by newlines
    *
@@ -284,33 +294,58 @@ public class GcsPdao implements CloudFileReader {
   }
 
   /**
-   * Given a list a source paths, validate that the specified user has a pat service account with
-   * read permissions
+   * Given a list of source paths, validate that the specified user has a pet service account with
+   * read permissions. This method is a no-op if the destination dataset does not necessitate access
+   * validation.
    *
    * @param sourcePaths A list of gs:// formatted paths
    * @param cloudEncapsulationId The dataset project to bill to if any of the source buckets are
    *     configured to use requester pays
    * @param user An authenticated user
+   * @param dataset destination dataset for this ingestion
    * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
    * @throws IllegalArgumentException if the source path is not a valid blob url
    */
   public void validateUserCanRead(
-      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
+      List<String> sourcePaths,
+      String cloudEncapsulationId,
+      AuthenticatedUserRequest user,
+      Dataset dataset) {
     // If the connected profile is used, skip this check since we don't specify users when mocking
     // requests
     if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
       return;
     }
+    // If a dataset has a dedicated GCP SA, it is unique to that dataset. Ingests will correctly
+    // fail if the account lacks needed permission on the GCS files to ingest.
+    // Otherwise, we must ensure that a user does not ingest files inaccessible to them, but
+    // accessible to the general TDR SA.
+    if (dataset.hasDedicatedGcpServiceAccount()) {
+      return;
+    }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
+    String tokenKey;
+    if (cloudEncapsulationId == null) {
+      tokenKey = user.getToken();
+    } else {
+      tokenKey = String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId);
+    }
     Tokeninfo token =
         petAccountTokens.computeIfAbsent(
-            String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId),
+            tokenKey,
             t -> {
               try {
                 String oauthToken = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
                 Tokeninfo tokeninfo =
                     GoogleOauthUtils.getOauth2TokenInfo(oauthToken).set(TOKEN_FIELD, oauthToken);
-                addPetServiceAccountToDatasetProject(cloudEncapsulationId, tokeninfo.getEmail());
+                // Ingests to GCP-backed datasets require that the user's pet service account be
+                // granted permissions on the dataset's project so that it can be used to ingest
+                // data.
+                // Azure-backed datasets have no such bucket and their ingest mechanism does not
+                // require it.
+                if (CloudPlatformWrapper.of(dataset.getCloudPlatform()).isGcp()) {
+                  addPetServiceAccountToDatasetProject(cloudEncapsulationId, tokeninfo.getEmail());
+                }
                 return tokeninfo;
               } catch (InterruptedException e) {
                 throw new PdaoException("Error obtaining a pet service account token");
@@ -324,15 +359,17 @@ public class GcsPdao implements CloudFileReader {
               }
             });
 
-    Storage storageAsPet =
+    StorageOptions.Builder storageAsPetBuilder =
         StorageOptions.newBuilder()
             .setCredentials(
                 OAuth2Credentials.create(
                     new AccessToken(
                         token.get(TOKEN_FIELD).toString(),
-                        Date.from(Instant.now().plusSeconds(token.getExpiresIn())))))
-            .build()
-            .getService();
+                        Date.from(Instant.now().plusSeconds(token.getExpiresIn())))));
+    if (cloudEncapsulationId != null) {
+      storageAsPetBuilder.setProjectId(cloudEncapsulationId);
+    }
+    Storage storageAsPet = storageAsPetBuilder.build().getService();
 
     Set<String> buckets =
         sourcePaths.stream()
@@ -345,9 +382,18 @@ public class GcsPdao implements CloudFileReader {
             .orElseGet(() -> new BucketSourceOption[0]);
 
     for (String bucket : buckets) {
-      List<Boolean> permissions =
-          storageAsPet.testIamPermissions(
-              bucket, List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION), options);
+      List<Boolean> permissions = List.of();
+      try {
+        permissions =
+            storageAsPet.testIamPermissions(
+                bucket, List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION), options);
+      } catch (StorageException e) {
+        // This is a potential failure mode for permissions checking: not being able to make the
+        // permissions check call at all
+        if (e.getCode() != HttpStatus.SC_FORBIDDEN) {
+          throw e;
+        }
+      }
 
       if (!permissions.equals(List.of(true))) {
         String proxyGroup;
@@ -360,8 +406,11 @@ public class GcsPdao implements CloudFileReader {
         }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account or your dataset's ingest service account and your Terra proxy user group (%s)",
-                bucket, user.getEmail(), proxyGroup));
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to your dataset's ingest service account (%s) and your Terra proxy user group (%s)",
+                bucket,
+                user.getEmail(),
+                dataset.getProjectResource().getServiceAccount(),
+                proxyGroup));
       }
     }
   }
@@ -404,7 +453,7 @@ public class GcsPdao implements CloudFileReader {
           String.format(
               "File at %s was not found or does not exist", GcsUriUtils.getGsPathFromBlob(from)));
     }
-    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId));
+    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId)).getResult();
   }
 
   private boolean isInvalidUserProjectException(StorageException ex) {
@@ -428,51 +477,76 @@ public class GcsPdao implements CloudFileReader {
       String targetProjectId = bucketResource.projectIdForBucket();
       Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), targetProjectId);
 
+      Md5ValidationResult finalMd5 =
+          FileMetadataUtils.validateFileMd5ForIngest(
+              fileLoadModel.getMd5(),
+              sourceBlob.getMd5ToHexString(),
+              fileLoadModel.getSourcePath());
+
+      String effectiveFileId;
+      if (fileId == null) {
+        effectiveFileId =
+            fileIdService
+                .calculateFileId(
+                    dataset,
+                    new FSItem()
+                        .path(fileLoadModel.getTargetPath())
+                        .checksumMd5(finalMd5.effectiveMd5())
+                        .size(sourceBlob.getSize()))
+                .toString();
+      } else {
+        effectiveFileId = fileId;
+      }
       // Read the leaf node of the source file to use as a way to name the file we store
       String sourceFileName = getLastNameFromPath(sourceBlob.getName());
       // Our path is /<dataset-id>/<file-id>/<source-file-name>
-      String targetPath = dataset.getId().toString() + "/" + fileId + "/" + sourceFileName;
+      String targetPath = dataset.getId().toString() + "/" + effectiveFileId + "/" + sourceFileName;
+      String gspath = String.format("gs://%s/%s", bucketResource.getName(), targetPath);
 
-      // The documentation is vague whether or not it is important to copy by chunk. One set of
-      // examples does it and another doesn't.
-      //
-      // I have been seeing timeouts and I think they are due to particularly large files,
-      // so I exported the timeouts to application.properties to allow for tuning
-      // and I am changing this to copy chunks.
-      //
-      // Specify the target project of the target bucket as the payor if the source is requester
-      // pays.
-      CopyWriter writer =
-          sourceBlob.copyTo(
-              BlobId.of(bucketResource.getName(), targetPath),
-              Blob.BlobSourceOption.userProject(targetProjectId));
-      while (!writer.isDone()) {
-        writer.copyChunk();
+      // If the target blob, already exists, skip ingesting it
+      Blob targetBlob = null;
+      try {
+        targetBlob = getBlobFromGsPath(storage, gspath, targetProjectId);
+      } catch (PdaoSourceFileNotFoundException e) {
+        // NOOP.  Just swallow the exception
       }
-      Blob targetBlob = writer.getResult();
+      if (targetBlob == null || !targetBlob.exists(BlobSourceOption.userProject(targetProjectId))) {
+        // The documentation is vague whether or not it is important to copy by chunk. One set of
+        // examples does it and another doesn't.
+        //
+        // I have been seeing timeouts and I think they are due to particularly large files,
+        // so I exported the timeouts to application.properties to allow for tuning
+        // and I am changing this to copy chunks.
+        //
+        // Specify the target project of the target bucket as the payor if the source is requester
+        // pays.
+        CopyWriter writer =
+            sourceBlob.copyTo(
+                BlobId.of(bucketResource.getName(), targetPath),
+                BlobSourceOption.userProject(targetProjectId));
+        while (!writer.isDone()) {
+          writer.copyChunk();
+        }
+        targetBlob = writer.getResult();
+      }
 
       // MD5 is computed per-component. So if there are multiple components, the MD5 here is
       // not useful for validating the contents of the file on access. Therefore, we only
-      // return the MD5 if there is only a single component. For more details,
-      // see https://cloud.google.com/storage/docs/hashes-etags
-      Integer componentCount = targetBlob.getComponentCount();
-      String checksumMd5 = null;
-      if (componentCount == null || componentCount == 1) {
-        checksumMd5 = targetBlob.getMd5ToHexString();
-      }
+      // return the MD5 if there is only a single component or if it's been specified by the user.
+      // For more details, see https://cloud.google.com/storage/docs/hashes-etags
+      String checksumMd5 = getMd5ToUse(finalMd5, targetBlob);
 
       // Grumble! It is not documented what the meaning of the Long is.
       // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
       Instant createTime = Instant.ofEpochMilli(targetBlob.getCreateTime());
 
-      String gspath = String.format("gs://%s/%s", bucketResource.getName(), targetPath);
-
       return new FSFileInfo()
-          .fileId(fileId)
+          .fileId(effectiveFileId)
           .createdDate(createTime.toString())
           .cloudPath(gspath)
           .checksumCrc32c(targetBlob.getCrc32cToHexString())
           .checksumMd5(checksumMd5)
+          .userSpecifiedMd5(finalMd5.isUserProvided())
           .size(targetBlob.getSize())
           .bucketResourceId(bucketResource.getResourceId().toString());
 
@@ -497,15 +571,31 @@ public class GcsPdao implements CloudFileReader {
       Storage storage = gcsProjectFactory.getStorage(projectId);
       Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), projectId);
 
+      Md5ValidationResult finalMd5 =
+          FileMetadataUtils.validateFileMd5ForIngest(
+              fileLoadModel.getMd5(),
+              sourceBlob.getMd5ToHexString(),
+              fileLoadModel.getSourcePath());
+
+      String effectiveFileId;
+      if (fileId == null) {
+        effectiveFileId =
+            fileIdService
+                .calculateFileId(
+                    true,
+                    new FSItem()
+                        .path(fileLoadModel.getTargetPath())
+                        .checksumMd5(finalMd5.effectiveMd5())
+                        .size(sourceBlob.getSize()))
+                .toString();
+      } else {
+        effectiveFileId = fileId;
+      }
       // MD5 is computed per-component. So if there are multiple components, the MD5 here is
       // not useful for validating the contents of the file on access. Therefore, we only
-      // return the MD5 if there is only a single component. For more details,
-      // see https://cloud.google.com/storage/docs/hashes-etags
-      Integer componentCount = sourceBlob.getComponentCount();
-      String checksumMd5 = null;
-      if (componentCount == null || componentCount == 1) {
-        checksumMd5 = sourceBlob.getMd5ToHexString();
-      }
+      // return the MD5 if there is only a single component or if it's been specified by the user.
+      // For more details, see https://cloud.google.com/storage/docs/hashes-etags
+      String checksumMd5 = getMd5ToUse(finalMd5, sourceBlob);
 
       // Grumble! It is not documented what the meaning of the Long is.
       // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
@@ -514,11 +604,12 @@ public class GcsPdao implements CloudFileReader {
       String gspath = String.format("gs://%s/%s", sourceBlob.getBucket(), sourceBlob.getName());
 
       return new FSFileInfo()
-          .fileId(fileId)
+          .fileId(effectiveFileId)
           .createdDate(createTime.toString())
           .cloudPath(gspath)
           .checksumCrc32c(sourceBlob.getCrc32cToHexString())
           .checksumMd5(checksumMd5)
+          .userSpecifiedMd5(finalMd5.isUserProvided())
           .size(sourceBlob.getSize())
           .bucketResourceId(null);
 
@@ -630,12 +721,26 @@ public class GcsPdao implements CloudFileReader {
 
     // Provide the project of the destination of the file copy to pay if the
     // source bucket is requester pays.
-    Blob sourceBlob = storage.get(locator, Storage.BlobGetOption.userProject(targetProjectId));
+    BlobGetOption[] getOptions = new BlobGetOption[0];
+    if (targetProjectId != null) {
+      getOptions = new BlobGetOption[] {BlobGetOption.userProject(targetProjectId)};
+    }
+    Blob sourceBlob = storage.get(locator, getOptions);
     if (sourceBlob == null) {
       throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
     }
 
     return sourceBlob;
+  }
+
+  /**
+   * Extract the project to use to access a blob (using the userProject query param)
+   *
+   * @param gspath a gs:// path to a file with optional query parameters
+   * @return the value of the userProject query parameter or null
+   */
+  public static String getProjectIdFromGsPath(String gspath) {
+    return UriUtils.getValueFromQueryParameter(gspath, USER_PROJECT_QUERY_PARAM_TDR);
   }
 
   public static String getBlobContents(Storage storage, String projectId, BlobInfo blobInfo) {
@@ -675,11 +780,14 @@ public class GcsPdao implements CloudFileReader {
       AclOp op, Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
       throws InterruptedException {
 
-    // Build all the groups that need to get read access to the files
-    List<Acl.Group> groups = new LinkedList<>();
-    groups.add(new Acl.Group(policies.get(IamRole.READER)));
-    groups.add(new Acl.Group(policies.get(IamRole.CUSTODIAN)));
-    groups.add(new Acl.Group(policies.get(IamRole.STEWARD)));
+    // Build all the groups that need to get read access to the files, ignoring null policies
+    List<Acl.Group> groups =
+        Stream.of(IamRole.READER, IamRole.CUSTODIAN, IamRole.STEWARD)
+            .map(policies::get)
+            // Filter out cases where no policies were passed in
+            .filter(Objects::nonNull)
+            .map(Acl.Group::new)
+            .toList();
 
     // build acls if necessary
     List<Acl> acls = new LinkedList<>();
@@ -771,6 +879,22 @@ public class GcsPdao implements CloudFileReader {
           }
         };
     return () -> AclUtils.aclUpdateRetry(aclUpdate);
+  }
+
+  /**
+   * MD5 is computed per-component. So if there are multiple components, the MD5 here is not useful
+   * for validating the contents of the file on access. Therefore, we only return the MD5 if there
+   * is only a single component or if it's been specified by the user. For more details, see
+   * https://cloud.google.com/storage/docs/hashes-etags
+   */
+  private String getMd5ToUse(Md5ValidationResult md5, Blob blob) {
+    Integer componentCount = blob.getComponentCount();
+    if (md5.isUserProvided()) {
+      return md5.effectiveMd5();
+    } else if (componentCount == null || componentCount == 1) {
+      return blob.getMd5ToHexString();
+    }
+    return null;
   }
 
   /**

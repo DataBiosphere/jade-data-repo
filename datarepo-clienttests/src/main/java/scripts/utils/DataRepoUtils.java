@@ -25,6 +25,7 @@ import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.auth.oauth2.OAuth2Credentials.CredentialsChangedListener;
 import common.utils.AuthenticationUtils;
 import common.utils.FileUtils;
+import jakarta.ws.rs.client.ClientBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -32,7 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import javax.ws.rs.client.ClientBuilder;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jdk.connector.JdkConnectorProvider;
 import org.slf4j.Logger;
@@ -251,7 +251,8 @@ public final class DataRepoUtils {
       CloudPlatform cloudPlatform,
       String apipayloadFilename,
       TestUserSpecification testUser,
-      boolean randomizeName)
+      boolean randomizeName,
+      boolean dedicatedIngestServiceAccount)
       throws Exception {
     logger.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
@@ -262,6 +263,7 @@ public final class DataRepoUtils {
         objectMapper.readValue(datasetRequestFile, DatasetRequestModel.class);
     createDatasetRequest.defaultProfileId(profileId);
     createDatasetRequest.setCloudPlatform(cloudPlatform);
+    createDatasetRequest.dedicatedIngestServiceAccount(dedicatedIngestServiceAccount);
 
     if (randomizeName) {
       createDatasetRequest.setName(FileUtils.randomizeName(createDatasetRequest.getName()));

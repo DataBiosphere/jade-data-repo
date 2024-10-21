@@ -1,11 +1,13 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.TestUtils.assertError;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,6 +22,8 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -36,17 +40,22 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import com.azure.resourcemanager.loganalytics.models.Workspace;
+import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import java.io.IOException;
@@ -111,6 +120,9 @@ public class DatasetServiceTest {
   @MockBean private GcsPdao gcsPdao;
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
+  @MockBean private AzureMonitoringService azureMonitoringService;
+  @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
+  @MockBean private AzureSynapsePdao azureSynapsePdao;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
   @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
@@ -119,13 +131,6 @@ public class DatasetServiceTest {
   private UUID projectId;
   private ArrayList<String> flightIdsList;
   private ArrayList<UUID> datasetIdList;
-
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
 
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
       throws IOException, SQLException {
@@ -137,7 +142,7 @@ public class DatasetServiceTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(datasetId, createFlightId);
     datasetIdList.add(datasetId);
     return datasetId;
@@ -174,7 +179,7 @@ public class DatasetServiceTest {
   @After
   public void teardown() {
     for (UUID datasetId : datasetIdList) {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(billingProfile.getId());
@@ -182,14 +187,13 @@ public class DatasetServiceTest {
 
   @Test
   public void datasetOmopTest() throws IOException, SQLException {
-    createDataset("it-dataset-omop.json");
+    createDataset("omop/it-dataset-omop.jsonl");
   }
 
   @Test(expected = DatasetNotFoundException.class)
   public void datasetDeleteTest() throws IOException, SQLException {
     UUID datasetId = createDataset("dataset-create-test.json");
-    assertThat(
-        "dataset delete signals success", datasetDao.delete(datasetId, TEST_USER), equalTo(true));
+    assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
     datasetDao.retrieve(datasetId);
   }
 
@@ -243,7 +247,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -336,7 +340,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -421,8 +425,8 @@ public class DatasetServiceTest {
         dataset2.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId1, TEST_USER);
-    datasetDao.delete(datasetId2, TEST_USER);
+    datasetDao.delete(datasetId1);
+    datasetDao.delete(datasetId2);
   }
 
   @Test
@@ -481,7 +485,7 @@ public class DatasetServiceTest {
             equalTo(2));
       }
     } finally {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
   }
 
@@ -525,7 +529,7 @@ public class DatasetServiceTest {
     assertThat(
         "dataset has one less asset spec", dataset.getAssetSpecifications().size(), equalTo(1));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -599,15 +603,14 @@ public class DatasetServiceTest {
     when(storageAccountResource.getApplicationResource()).thenReturn(applicationResource);
     when(resourceService.getOrCreateDatasetStorageAccount(any(), any(), any()))
         .thenReturn(storageAccountResource);
-    when(azureContainerPdao.getOrCreateContainer(
-            any(), any(), eq(AzureStorageAccountResource.ContainerType.SCRATCH)))
-        .thenReturn(containerClient);
-    when(azureBlobStorePdao.signFile(
-            any(),
-            eq(storageAccountResource),
-            eq(filePath),
-            eq(AzureStorageAccountResource.ContainerType.SCRATCH),
-            any()))
+    // Mock that the monitoring stack already exists so creation steps are skipped
+    when(azureMonitoringService.getLogAnalyticsWorkspace(any(), any()))
+        .thenReturn(mock(Workspace.class));
+    when(azureMonitoringService.getDiagnosticSetting(any(), any()))
+        .thenReturn(mock(DiagnosticSetting.class));
+    when(azureContainerPdao.getContainer(any(), any())).thenReturn(containerClient);
+    when(azureContainerPdao.getOrCreateContainer(any(), any())).thenReturn(containerClient);
+    when(azureBlobStorePdao.signFile(any(), eq(storageAccountResource), eq(filePath), any()))
         .thenReturn(signedPath);
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel()
@@ -636,5 +639,28 @@ public class DatasetServiceTest {
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
+  }
+
+  @Test
+  public void getOrCreateExternalAzureDataSourceHidesExceptionInformation() throws Exception {
+    UUID datasetId = UUID.randomUUID();
+    Dataset dataset = new Dataset().id(datasetId);
+    when(metadataDataAccessUtils.accessInfoFromDataset(dataset, testUser))
+        .thenReturn(
+            new AccessInfoModel()
+                .parquet(
+                    new AccessInfoParquetModel()
+                        .sasToken(
+                            "sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&sr=b&sig=mysig")
+                        .url("https://fake.url")));
+    doThrow(SQLException.class)
+        .when(azureSynapsePdao)
+        .getOrCreateExternalDataSourceForResource(
+            any(AccessInfoModel.class), any(UUID.class), eq(testUser));
+
+    assertError(
+        RuntimeException.class,
+        "Could not configure external datasource",
+        () -> datasetService.getOrCreateExternalAzureDataSource(dataset, testUser));
   }
 }

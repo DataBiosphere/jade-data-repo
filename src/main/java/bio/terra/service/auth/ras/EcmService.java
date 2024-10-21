@@ -5,6 +5,7 @@ import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.PassportApi;
 import bio.terra.externalcreds.client.ApiClient;
+import bio.terra.externalcreds.model.PassportProvider;
 import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
@@ -37,7 +38,6 @@ public class EcmService {
   private final ObjectMapper objectMapper;
   private final OidcApiService oidcApiService;
 
-  private static final String RAS_PROVIDER = "ras";
   @VisibleForTesting public static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
   private static final String RAS_DBGAP_PERMISSIONS_CLAIM = "ras_dbgap_permissions";
   private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
@@ -56,13 +56,13 @@ public class EcmService {
 
   public PassportApi getPassportApi() {
     var client = new ApiClient(restTemplate);
-    client.setBasePath(ecmConfiguration.getBasePath());
+    client.setBasePath(ecmConfiguration.basePath());
 
     return new PassportApi(client);
   }
 
   public void addRasIssuerAndType(RASv1Dot1VisaCriterion criterion) {
-    criterion.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
+    criterion.issuer(ecmConfiguration.rasIssuer()).type(RAS_CRITERIA_TYPE);
   }
 
   public ValidatePassportResult validatePassport(ValidatePassportRequest validatePassportRequest) {
@@ -98,13 +98,7 @@ public class EcmService {
    */
   public String getRasProviderPassport(AuthenticatedUserRequest userReq) {
     try {
-      String passport = oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
-      // Passports returned by OidcApi have a bug in their formatting:
-      // double quotes must be stripped if passing back to PassportApi for validation,
-      // otherwise the passport will not be considered valid JWT.
-      // This stopgap can be removed when the client is fixed:
-      // https://broadworkbench.atlassian.net/browse/ID-128
-      return StringUtils.strip(passport, "\"");
+      return oidcApiService.getOidcApi(userReq).getProviderPassport(PassportProvider.RAS);
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
         return null;

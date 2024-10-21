@@ -6,25 +6,15 @@ import static bio.terra.service.configuration.ConfigEnum.AZURE_SNAPSHOT_BATCH_SI
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DRS_LOOKUP_MAX;
-import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIES;
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.LIVENESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
@@ -37,14 +27,10 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_CACHE_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
@@ -55,9 +41,8 @@ import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -72,20 +57,17 @@ public class ConfigurationService {
 
   private final ApplicationConfiguration appConfiguration;
   private final SamConfiguration samConfiguration;
-  private final GcsConfiguration gcsConfiguration;
   private final GoogleResourceConfiguration googleResourceConfiguration;
 
-  private Map<ConfigEnum, ConfigBase> configuration = new HashMap<>();
+  private final Map<ConfigEnum, ConfigBase> configuration = new EnumMap<>(ConfigEnum.class);
 
   @Autowired
   public ConfigurationService(
       SamConfiguration samConfiguration,
-      GcsConfiguration gcsConfiguration,
       GoogleResourceConfiguration googleResourceConfiguration,
       ApplicationConfiguration appConfiguration) {
     this.appConfiguration = appConfiguration;
     this.samConfiguration = samConfiguration;
-    this.gcsConfiguration = gcsConfiguration;
     this.googleResourceConfiguration = googleResourceConfiguration;
     setConfiguration();
   }
@@ -214,9 +196,9 @@ public class ConfigurationService {
   // Setup the configuration. This is done once during construction.
   private void setConfiguration() {
     // -- Parameters --
-    addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, samConfiguration.getRetryInitialWaitSeconds());
-    addParameter(SAM_RETRY_MAXIMUM_WAIT_SECONDS, samConfiguration.getRetryMaximumWaitSeconds());
-    addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.getOperationTimeoutSeconds());
+    addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, samConfiguration.retryInitialWaitSeconds());
+    addParameter(SAM_RETRY_MAXIMUM_WAIT_SECONDS, samConfiguration.retryMaximumWaitSeconds());
+    addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.operationTimeoutSeconds());
     addParameter(LOAD_BULK_ARRAY_FILES_MAX, appConfiguration.getMaxBulkFileLoadArray());
     addParameter(LOAD_CONCURRENT_FILES, appConfiguration.getLoadConcurrentFiles());
     addParameter(LOAD_CONCURRENT_INGESTS, appConfiguration.getLoadConcurrentIngests());
@@ -228,11 +210,10 @@ public class ConfigurationService {
     addParameter(SNAPSHOT_CACHE_SIZE, appConfiguration.getSnapshotCacheSize());
     addParameter(FIRESTORE_VALIDATE_BATCH_SIZE, appConfiguration.getFirestoreValidateBatchSize());
     addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
-    addParameter(DRS_LOOKUP_MAX, appConfiguration.getMaxDrsLookups());
     addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
     addParameter(
-        ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());
-    addParameter(FIRESTORE_RETRIES, googleResourceConfiguration.getFirestoreRetries());
+        ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.allowReuseExistingBuckets());
+    addParameter(FIRESTORE_RETRIES, googleResourceConfiguration.firestoreRetries());
 
     // -- Faults --
     addFaultSimple(CREATE_ASSET_FAULT);
@@ -250,57 +231,12 @@ public class ConfigurationService {
         BUCKET_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     addFaultSimple(BUCKET_LOCK_CONFLICT_CONTINUE_FAULT);
 
-    // Dataset delete lock faults. These are used by DatasetConnectedTest > testOverlappingDeletes
-    addFaultCounted(
-        DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        1,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-    // Snapshot delete lock faults. These are used by SnapshotConnectedTest > testOverlappingDeletes
-    addFaultCounted(
-        SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        1,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-    // File ingest lock faults. These are used by DatasetConnectedTest > testSharedLockFileIngest
-    addFaultCounted(
-        FILE_INGEST_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        2,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);
-
     // File Ingest - aquire shared lock fault. These are used by FileOperationTest >
     // retryAndAcquireSharedLock
     addFaultSimple(FILE_INGEST_LOCK_FATAL_FAULT);
     addFaultSimple(FILE_INGEST_LOCK_RETRY_FAULT);
     addFaultSimple(FILE_INGEST_UNLOCK_FATAL_FAULT);
     addFaultSimple(FILE_INGEST_UNLOCK_RETRY_FAULT);
-
-    // File delete lock faults. These are used by DatasetConnectedTest > testSharedLockFileDelete
-    addFaultCounted(
-        FILE_DELETE_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        2,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-    // Table ingest lock faults. These are used by DatasetConnectedTest > testSharedLockTableIngest
-    addFaultCounted(
-        TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        2,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);
 
     // soft delete lock faults. These are used by DatasetConnectedTest > testConcurrentSoftDeletes
     addFaultCounted(
@@ -317,13 +253,5 @@ public class ConfigurationService {
         SNAPSHOT_GRANT_ACCESS_FAULT, 0, 3, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     addFaultCounted(
         SNAPSHOT_GRANT_FILE_ACCESS_FAULT, 0, 3, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
-
-    addFaultCounted(
-        FIRESTORE_RETRIEVE_FAULT, 0, 11, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
-
-    // Fault inserted into /status endpoint
-    addFaultCounted(LIVENESS_FAULT, 0, 50, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
-
-    addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT);
   }
 }

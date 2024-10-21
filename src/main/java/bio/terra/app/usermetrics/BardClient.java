@@ -3,8 +3,8 @@ package bio.terra.app.usermetrics;
 import bio.terra.app.configuration.UserMetricsConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import com.google.common.annotations.VisibleForTesting;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -17,7 +17,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -41,18 +40,16 @@ public class BardClient {
   private static final String SYNC_PATH = "/api/syncProfile";
 
   @Autowired
-  public BardClient(UserMetricsConfiguration metricsConfig) {
-    this.restTemplate = new RestTemplate();
-    restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+  public BardClient(UserMetricsConfiguration metricsConfig, RestTemplate restTemplate) {
+    this.restTemplate = restTemplate;
 
     this.headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
     int ttl =
         Objects.requireNonNullElse(
-            metricsConfig.getSyncRefreshIntervalSeconds(),
-            DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
+            metricsConfig.syncRefreshIntervalSeconds(), DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
     this.bearerCache = Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
 
     this.metricsConfig = metricsConfig;
@@ -64,13 +61,10 @@ public class BardClient {
     syncUser(userReq);
     try {
       ResponseEntity<Void> eventCall =
-          getRestTemplate()
-              .exchange(
-                  getApiURL(), HttpMethod.POST, new HttpEntity<>(event, authedHeaders), Void.class);
+          restTemplate.exchange(
+              getApiUrl(), HttpMethod.POST, new HttpEntity<>(event, authedHeaders), Void.class);
       if (!eventCall.getStatusCode().is2xxSuccessful()) {
-        logger.warn(
-            "Error logging event {}%n{}",
-            event.getEvent(), eventCall.getStatusCode().getReasonPhrase());
+        logger.warn("Error logging event {}%n{}", event.getEvent(), eventCall.getStatusCode());
       }
     } catch (Exception e) {
       logger.warn("Error logging event {}", event.getEvent(), e);
@@ -101,16 +95,11 @@ public class BardClient {
     authedHeaders.setBearerAuth(userReq.getToken());
     try {
       ResponseEntity<Void> syncCall =
-          getRestTemplate()
-              .exchange(
-                  getSyncPathURL(),
-                  HttpMethod.POST,
-                  new HttpEntity<>(null, authedHeaders),
-                  Void.class);
+          restTemplate.exchange(
+              getSyncPathUrl(), HttpMethod.POST, new HttpEntity<>(null, authedHeaders), Void.class);
       if (!syncCall.getStatusCode().is2xxSuccessful()) {
         logger.warn(
-            "Error calling sync for user {}%n{}",
-            userReq.getEmail(), syncCall.getStatusCode().getReasonPhrase());
+            "Error calling sync for user {}%n{}", userReq.getEmail(), syncCall.getStatusCode());
       } else {
         result = true;
       }
@@ -122,17 +111,12 @@ public class BardClient {
   }
 
   @VisibleForTesting
-  RestTemplate getRestTemplate() {
-    return restTemplate;
+  String getApiUrl() {
+    return metricsConfig.bardBasePath() + API_PATH;
   }
 
   @VisibleForTesting
-  String getApiURL() {
-    return metricsConfig.getBardBasePath() + API_PATH;
-  }
-
-  @VisibleForTesting
-  String getSyncPathURL() {
-    return metricsConfig.getBardBasePath() + SYNC_PATH;
+  String getSyncPathUrl() {
+    return metricsConfig.bardBasePath() + SYNC_PATH;
   }
 }

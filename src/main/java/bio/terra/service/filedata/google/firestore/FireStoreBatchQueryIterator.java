@@ -14,8 +14,11 @@ public class FireStoreBatchQueryIterator {
   private final int batchSize;
   private List<QueryDocumentSnapshot> currentList;
   private int count;
-  private FireStoreUtils fireStoreUtils;
-  private Firestore firestore;
+  private int totalSize;
+  private final int offset;
+  private final int limit;
+  private final FireStoreUtils fireStoreUtils;
+  private final Firestore firestore;
 
   /**
    * Construct and iterator over a query with a specific batch size.
@@ -25,11 +28,17 @@ public class FireStoreBatchQueryIterator {
    */
   public FireStoreBatchQueryIterator(
       Query baseQuery, int batchSize, FireStoreUtils fireStoreUtils) {
+    this(baseQuery, batchSize, fireStoreUtils, 0, Integer.MAX_VALUE);
+  }
+
+  public FireStoreBatchQueryIterator(
+      Query baseQuery, int batchSize, FireStoreUtils fireStoreUtils, int offset, int limit) {
     this.baseQuery = baseQuery;
     this.firestore = baseQuery.getFirestore();
     this.batchSize = batchSize;
     this.currentList = null;
-    this.count = 0;
+    this.offset = offset;
+    this.limit = limit;
     this.fireStoreUtils = fireStoreUtils;
   }
 
@@ -43,15 +52,17 @@ public class FireStoreBatchQueryIterator {
     Query query;
     if (currentList == null) {
       // First time through we start at the beginning
-      query = baseQuery.limit(batchSize);
+      int queryLimit = Math.min(limit, batchSize);
+      query = baseQuery.offset(offset).limit(queryLimit);
     } else {
       int listSize = currentList.size();
-      if (listSize < batchSize) {
+      if (totalSize == limit || listSize < batchSize) {
         // We delivered our last list on the previous call
         return null;
       }
+      int currentBatchSize = Math.min(limit - totalSize, batchSize);
       QueryDocumentSnapshot lastDoc = currentList.get(listSize - 1);
-      query = baseQuery.startAfter(lastDoc).limit(batchSize);
+      query = baseQuery.startAfter(lastDoc).limit(currentBatchSize);
     }
 
     // Get the next batch
@@ -64,6 +75,7 @@ public class FireStoreBatchQueryIterator {
             xn -> xn.get(query).get().getDocuments(),
             "getBatch",
             "Retrieving batch " + count + " with batch size of " + batchSize);
+    totalSize += currentList.size();
 
     return currentList;
   }

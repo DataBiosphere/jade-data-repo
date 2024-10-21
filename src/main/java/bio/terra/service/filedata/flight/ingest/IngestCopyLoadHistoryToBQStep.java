@@ -25,6 +25,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
   private final String loadTag;
   private final int waitSeconds;
   private final int loadHistoryChunkSize;
+  private final boolean isBulkMode;
 
   public IngestCopyLoadHistoryToBQStep(
       BigQueryDatasetPdao bigQueryDatasetPdao,
@@ -33,7 +34,8 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
       UUID datasetId,
       String loadTag,
       int waitSeconds,
-      int loadHistoryChunkSize) {
+      int loadHistoryChunkSize,
+      boolean isBulkMode) {
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.loadService = loadService;
     this.datasetService = datasetService;
@@ -41,12 +43,14 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
     this.loadTag = loadTag;
     this.waitSeconds = waitSeconds;
     this.loadHistoryChunkSize = loadHistoryChunkSize;
+    this.isBulkMode = isBulkMode;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     IngestCopyLoadHistoryResources resources =
-        getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
+        getResources(
+            context, loadService, datasetService, datasetId, loadHistoryChunkSize, isBulkMode);
     String tableNameFlightId = context.getFlightId().replaceAll("[^a-zA-Z0-9]", "_");
     try {
       bigQueryDatasetPdao.createStagingLoadHistoryTable(resources.dataset, tableNameFlightId);

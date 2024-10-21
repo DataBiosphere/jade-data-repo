@@ -14,10 +14,11 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -33,6 +34,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
+@Ignore("DCJ-826: Temporarily disabled due to missing Azure resources")
 public class TableDependencyConnectedTest {
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
@@ -44,7 +46,7 @@ public class TableDependencyConnectedTest {
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final UUID SNAPSHOT_ID2 = UUID.randomUUID();
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private static final List<String> REF_IDS = List.of(FILE_ID);
+  private static final Set<String> REF_IDS = Set.of(FILE_ID);
 
   @Before
   public void setUp() {

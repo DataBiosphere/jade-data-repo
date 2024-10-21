@@ -68,5 +68,6 @@
     ]
   },
   "cloudPlatform": "gcp",
-  "region": "us-east1"
+  "region": "us-east1",
+  "tags": ["a tag", "A TAG"]
 }

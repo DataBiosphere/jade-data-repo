@@ -14,18 +14,16 @@ import com.azure.resourcemanager.resources.models.GenericResources;
 import com.google.cloud.resourcemanager.ResourceManagerException;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class AzureAuthzServiceTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AzureAuthzServiceTest {
 
   private static final String USER_EMAIL = "";
   private static final UUID SUBSCRIPTION_ID =
@@ -43,19 +41,23 @@ public class AzureAuthzServiceTest {
 
   private AzureAuthzService azureAuthzService;
 
-  @Before
-  public void setUp() throws Exception {
-    when(genericResource.properties())
-        .thenReturn(Map.of("parameters", Map.of(AUTH_PARAM_KEY, Map.of("value", USER_EMAIL))));
+  @BeforeEach
+  void setUp() {
     when(resourceManager.genericResources()).thenReturn(genericResources);
     when(resourceConfiguration.getClient(SUBSCRIPTION_ID)).thenReturn(resourceManager);
-    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.getApiVersion()))
+    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.apiVersion()))
         .thenReturn(genericResource);
     azureAuthzService = new AzureAuthzService(resourceConfiguration);
   }
 
+  private void mockGenericResourceProperties() {
+    when(genericResource.properties())
+        .thenReturn(Map.of("parameters", Map.of(AUTH_PARAM_KEY, Map.of("value", USER_EMAIL))));
+  }
+
   @Test
-  public void testValidateHappyPath() {
+  void testValidateHappyPath() {
+    mockGenericResourceProperties();
     assertThat(
         azureAuthzService.canAccess(
             AuthenticatedUserRequest.builder()
@@ -70,7 +72,8 @@ public class AzureAuthzServiceTest {
   }
 
   @Test
-  public void testValidateUserDoesNotHaveAccess() {
+  void testValidateUserDoesNotHaveAccess() {
+    mockGenericResourceProperties();
     assertThat(
         azureAuthzService.canAccess(
             AuthenticatedUserRequest.builder()
@@ -85,8 +88,8 @@ public class AzureAuthzServiceTest {
   }
 
   @Test
-  public void testValidateResourceNotFound() {
-    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.getApiVersion()))
+  void testValidateResourceNotFound() {
+    when(genericResources.getById(RESOURCE_ID, resourceConfiguration.apiVersion()))
         .thenThrow(ResourceManagerException.class);
 
     assertThat(

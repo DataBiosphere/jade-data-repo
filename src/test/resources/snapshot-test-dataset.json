@@ -1,6 +1,7 @@
 {
   "name":        "snapshot_test_dataset",
   "description": "Dataset to test building snapshots with",
+  "dedicatedIngestServiceAccount": false,
   "schema":      {
     "tables":        [
       {

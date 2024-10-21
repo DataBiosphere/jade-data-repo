@@ -23,7 +23,7 @@ public class CreateProfileVerifyAccountStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    profileService.verifyAccount(request.getBillingAccountId(), user);
+    profileService.verifyGoogleBillingAccount(request.getBillingAccountId(), user);
     return StepResult.getStepResultSuccess();
   }
 

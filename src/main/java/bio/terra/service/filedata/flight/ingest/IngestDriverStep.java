@@ -352,6 +352,7 @@ public class IngestDriverStep extends DefaultUndoStep {
               .sourcePath(loadFile.getSourcePath())
               .targetPath(loadFile.getTargetPath())
               .mimeType(loadFile.getMimeType())
+              .md5(loadFile.getMd5())
               .profileId(profileId)
               .loadTag(loadTag)
               .description(loadFile.getDescription());

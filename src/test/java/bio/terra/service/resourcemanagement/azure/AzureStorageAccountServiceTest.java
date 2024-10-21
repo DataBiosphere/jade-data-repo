@@ -1,5 +1,8 @@
 package bio.terra.service.resourcemanagement.azure;
 
+import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,29 +27,22 @@ import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.resourcemanager.storage.models.StorageAccounts;
+import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class AzureStorageAccountServiceTest {
-  private final Logger logger = LoggerFactory.getLogger(AzureStorageAccountServiceTest.class);
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AzureStorageAccountServiceTest {
   private static final String MANAGED_GROUP_NAME = "mgd-grp-1";
   private static final String STORAGE_ACCOUNT_NAME = "sa1";
   private static final String APPLICATION_DEPLOYMENT_NAME = "appdeployment";
+  private static final String COLLECTION_ID = UUID.randomUUID().toString();
   private static final AzureRegion REGION = AzureRegion.CENTRAL_US;
   private static final AzureStorageAccountSkuType STORAGE_SKU_TYPE =
       AzureStorageAccountSkuType.STANDARD_LRS;
@@ -56,42 +52,45 @@ public class AzureStorageAccountServiceTest {
   @Mock private ProfileDao profileDao;
   @Mock private StorageAccounts storageAccounts;
   @Mock private StorageAccount storageAccount;
-  @Mock private AzureResourceManager client;
 
   private BillingProfileModel billingProfileModel;
   private AzureApplicationDeploymentResource applicationResource;
 
   private AzureStorageAccountService service;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() {
     service = new AzureStorageAccountService(resourceDao, resourceConfiguration, profileDao);
 
     billingProfileModel = ProfileFixtures.randomAzureBillingProfile();
-    when(profileDao.getBillingProfileById(billingProfileModel.getId()))
-        .thenReturn(billingProfileModel);
     applicationResource =
         new AzureApplicationDeploymentResource()
             .profileId(billingProfileModel.getId())
             .azureResourceGroupName(MANAGED_GROUP_NAME)
             .azureApplicationDeploymentName(APPLICATION_DEPLOYMENT_NAME)
             .storageAccountSkuType(STORAGE_SKU_TYPE);
+  }
 
+  private void mockApis() {
+    when(profileDao.getBillingProfileById(billingProfileModel.getId()))
+        .thenReturn(billingProfileModel);
     // Mock Azure client calls
+    AzureResourceManager client = mock(AzureResourceManager.class);
     when(client.storageAccounts()).thenReturn(storageAccounts);
     when(resourceConfiguration.getClient(billingProfileModel.getSubscriptionId()))
         .thenReturn(client);
   }
 
   @Test
-  public void testGetStorageAccountResourceById() {
+  void testGetStorageAccountResourceById() {
     UUID storageAccountId = UUID.randomUUID();
     service.getStorageAccountResourceById(storageAccountId, false);
     verify(resourceDao, times(1)).retrieveStorageAccountById(storageAccountId);
   }
 
   @Test
-  public void testGetStorageAccountResourceByIdAndCheckCloudFound() {
+  void testGetStorageAccountResourceByIdAndCheckCloudFound() {
+    mockApis();
     UUID storageAccountId = UUID.randomUUID();
     when(resourceDao.retrieveStorageAccountById(storageAccountId))
         .thenReturn(
@@ -106,7 +105,8 @@ public class AzureStorageAccountServiceTest {
   }
 
   @Test
-  public void testGetStorageAccountResourceByIdAndCheckCloudNotFound() {
+  void testGetStorageAccountResourceByIdAndCheckCloudNotFound() {
+    mockApis();
     UUID storageAccountId = UUID.randomUUID();
     when(resourceDao.retrieveStorageAccountById(storageAccountId))
         .thenReturn(
@@ -123,9 +123,11 @@ public class AzureStorageAccountServiceTest {
   }
 
   @Test
-  public void tesGetOrCreateStorageAccountCase1() throws InterruptedException {
+  void tesGetOrCreateStorageAccountCase1() throws InterruptedException {
+    mockApis();
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -134,16 +136,19 @@ public class AzureStorageAccountServiceTest {
     when(storageAccounts.getByResourceGroup(MANAGED_GROUP_NAME, STORAGE_ACCOUNT_NAME))
         .thenReturn(storageAccount);
 
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Create finish doesn't get called
-    verify(resourceDao, never()).unlockStorageAccount(any(), any());
+    verify(resourceDao, never()).unlockStorageAccount(any(), any(), any());
   }
 
   @Test
-  public void tesGetOrCreateStorageAccountCase2() {
+  void tesGetOrCreateStorageAccountCase2() {
+    mockApis();
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -156,21 +161,18 @@ public class AzureStorageAccountServiceTest {
 
     assertThrows(
         StorageAccountLockException.class,
-        () -> {
-          try {
+        () ->
             service.getOrCreateStorageAccount(
-                STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        },
+                STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight),
         "Storage account locked by flightId: " + flight);
   }
 
   @Test
-  public void tesGetOrCreateStorageAccountCase3() throws InterruptedException {
+  void tesGetOrCreateStorageAccountCase3() throws InterruptedException {
+    mockApis();
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -180,21 +182,19 @@ public class AzureStorageAccountServiceTest {
     when(storageAccounts.getByResourceGroup(MANAGED_GROUP_NAME, STORAGE_ACCOUNT_NAME))
         .thenReturn(storageAccount);
 
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Called by createFinish
-    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, flight);
+    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, COLLECTION_ID, flight);
   }
 
   @Test
-  public void tesGetOrCreateStorageAccountCase4() {
-    logger.info("Case 4 is not reachable");
-  }
-
-  @Test
-  public void tesGetOrCreateStorageAccountCase5() {
+  void tesGetOrCreateStorageAccountCase5() {
+    mockApis();
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -204,22 +204,19 @@ public class AzureStorageAccountServiceTest {
 
     assertThrows(
         CorruptMetadataException.class,
-        () -> {
-          try {
+        () ->
             service.getOrCreateStorageAccount(
-                STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        },
+                STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight),
         "Storage account does not exist, metadata out of sync with cloud state: "
             + STORAGE_ACCOUNT_NAME);
   }
 
   @Test
-  public void tesGetOrCreateStorageAccountCase6() {
+  void tesGetOrCreateStorageAccountCase6() {
+    mockApis();
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -231,21 +228,18 @@ public class AzureStorageAccountServiceTest {
 
     assertThrows(
         StorageAccountLockException.class,
-        () -> {
-          try {
+        () ->
             service.getOrCreateStorageAccount(
-                STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        },
+                STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight),
         "Storage account locked by flightId: " + flight);
   }
 
   @Test
-  public void tesGetOrCreateStorageAccountCase7() throws InterruptedException {
+  void tesGetOrCreateStorageAccountCase7() throws InterruptedException {
+    mockApis();
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -257,22 +251,25 @@ public class AzureStorageAccountServiceTest {
     mockStorageAccountNotFound();
     mockStorageAccountCreation();
 
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Called by createFinish
-    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, flight);
+    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, COLLECTION_ID, flight);
   }
 
   @Test
-  public void tesGetOrCreateStorageAccountCase8() throws InterruptedException {
+  void tesGetOrCreateStorageAccountCase8() throws InterruptedException {
+    mockApis();
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(null);
     mockStorageAccountNotFound();
     mockStorageAccountCreation();
     // Mock creating the metadata record
-    when(resourceDao.createAndLockStorageAccount(
-            STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight))
+    when(resourceDao.createAndLockStorage(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -280,10 +277,11 @@ public class AzureStorageAccountServiceTest {
                 .region(REGION)
                 // Locked by this flight flight
                 .flightId(flight));
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Called by createFinish
-    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, flight);
+    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, COLLECTION_ID, flight);
   }
 
   private void mockStorageAccountNotFound() {
@@ -292,7 +290,7 @@ public class AzureStorageAccountServiceTest {
             new ManagementException(
                 "Could not find storage account",
                 null,
-                new ManagementError("ResourceNotFound", "Couldn't find resource")));
+                new ManagementError(RESOURCE_NOT_FOUND_CODE, "Couldn't find resource")));
   }
 
   /** Mocks the fluent interface needed to create a storage account with the Azure client */
@@ -313,5 +311,19 @@ public class AzureStorageAccountServiceTest {
     doReturn(withSku).when(withGroup).withExistingResourceGroup(MANAGED_GROUP_NAME);
     doReturn(withGroup).when(withRegion).withRegion(REGION.getValue());
     doReturn(withRegion).when(storageAccounts).define(STORAGE_ACCOUNT_NAME);
+  }
+
+  @Test
+  void listStorageAccountPerAppDeployment() {
+    UUID appId = UUID.randomUUID();
+    List<AzureStorageAccountResource> storageAccounts =
+        List.of(
+            new AzureStorageAccountResource().name("StorageAccount1"),
+            new AzureStorageAccountResource().name("StorageAccount2"));
+    when(resourceDao.retrieveStorageAccountsByApplicationResource(appId, true))
+        .thenReturn(storageAccounts);
+    var returnedStorageAccounts = service.listStorageAccountPerAppDeployment(List.of(appId), true);
+    assertThat(
+        "Correct storage accounts are returned", returnedStorageAccounts, equalTo(storageAccounts));
   }
 }

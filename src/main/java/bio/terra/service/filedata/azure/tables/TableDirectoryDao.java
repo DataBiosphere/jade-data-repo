@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.common.FutureUtils;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -7,6 +8,7 @@ import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -22,12 +24,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -65,10 +70,14 @@ public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final int MAX_FILTER_CLAUSES = 15;
   private final ConfigurationService configurationService;
+  private final AsyncTaskExecutor azureTableThreadpool;
 
-  @Autowired
-  public TableDirectoryDao(ConfigurationService configurationService) {
+  public TableDirectoryDao(
+      ConfigurationService configurationService,
+      @Qualifier(AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
+          AsyncTaskExecutor azureTableThreadpool) {
     this.configurationService = configurationService;
+    this.azureTableThreadpool = azureTableThreadpool;
   }
 
   public String encodePathAsAzureRowKey(String path) {
@@ -217,25 +226,56 @@ public class TableDirectoryDao {
   }
 
   public List<String> validateRefIds(
-      TableServiceClient tableServiceClient, List<String> refIdArray) {
+      TableServiceClient tableServiceClient, UUID datasetId, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
-    return ListUtils.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
-        .flatMap(
-            refIdChunk -> {
-              List<TableEntity> fileRefs =
-                  TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, refIdChunk);
-              // if no files were retrieved, then every file in list is not valid
-              if (fileRefs.isEmpty()) {
-                return refIdChunk.stream();
-              }
-              // if any files were retrieved, then remove from invalid list
-              Set<String> validRefIds =
-                  fileRefs.stream()
-                      .map(e -> e.getProperty("fileId").toString())
-                      .collect(Collectors.toSet());
-              return refIdChunk.stream().filter(id -> !validRefIds.contains(id));
-            })
+    List<Future<Stream<String>>> futures = new ArrayList<>();
+    for (List<String> refIdChunk : ListUtils.partition(refIdArray, MAX_FILTER_CLAUSES)) {
+      futures.add(
+          azureTableThreadpool.submit(
+              () -> {
+                List<TableEntity> fileRefs =
+                    TableServiceClientUtils.batchRetrieveFiles(
+                        tableServiceClient, datasetId, refIdChunk);
+                // if no files were retrieved, then every file in list is not valid
+                if (fileRefs.isEmpty()) {
+                  return refIdChunk.stream();
+                }
+                // if any files were retrieved, then remove from invalid list
+                Set<String> validRefIds =
+                    fileRefs.stream()
+                        .map(e -> e.getProperty("fileId").toString())
+                        .collect(Collectors.toSet());
+                return refIdChunk.stream().filter(id -> !validRefIds.contains(id));
+              }));
+    }
+    // Flat map the results of the futures since each future returns a list of refIds
+    return FutureUtils.waitFor(futures).stream().flatMap(s -> s).toList();
+  }
+
+  public List<FireStoreDirectoryEntry> enumerateAll(
+      TableServiceClient tableServiceClient, String tableName) {
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+    ListEntitiesOptions options = new ListEntitiesOptions();
+    PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+    return entities.stream()
+        .map(FireStoreDirectoryEntry::fromTableEntity)
         .collect(Collectors.toList());
+  }
+
+  /** results are sorted by partition key and row key * */
+  public List<FireStoreDirectoryEntry> enumerateFileRefEntries(
+      TableServiceClient tableServiceClient, String collectionId, int offset, int limit) {
+    TableClient tableClient = tableServiceClient.getTableClient(collectionId);
+    ListEntitiesOptions options = new ListEntitiesOptions().setFilter("isFileRef eq true");
+    PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+    if (!entities.iterator().hasNext()) {
+      return List.of();
+    }
+    return entities.stream()
+        .skip(offset)
+        .limit(limit)
+        .map(FireStoreDirectoryEntry::fromTableEntity)
+        .toList();
   }
 
   List<FireStoreDirectoryEntry> enumerateDirectory(
@@ -287,19 +327,6 @@ public class TableDirectoryDao {
     }
   }
 
-  // Returns empty list if not found
-  private List<TableEntity> batchLookupByFileId(
-      TableServiceClient tableServiceClient, List<String> fileIds) {
-    return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
-        .flatMap(
-            fileIdsBatch -> {
-              List<TableEntity> entities =
-                  TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, fileIdsBatch);
-              return entities.stream();
-            })
-        .collect(Collectors.toList());
-  }
-
   // -- Snapshot filesystem methods --
 
   // To improve performance of building the snapshot file system, we use three techniques:
@@ -318,58 +345,70 @@ public class TableDirectoryDao {
       UUID datasetId,
       String datasetDirName,
       UUID snapshotId,
-      List<String> fileIds) {
+      Set<String> fileIds,
+      boolean usesGlobalFileIds) {
     int cacheSize = configurationService.getParameterValue(ConfigEnum.SNAPSHOT_CACHE_SIZE);
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
-    ListUtils.partition(fileIds, MAX_FILTER_CLAUSES)
-        .forEach(
-            fileIdsBatch -> {
-              List<TableEntity> entities =
-                  TableServiceClientUtils.batchRetrieveFiles(
-                      datasetTableServiceClient, fileIdsBatch);
+    List<Future<Void>> futures = new ArrayList<>();
+    for (List<String> fileIdsBatch :
+        ListUtils.partition(List.copyOf(fileIds), MAX_FILTER_CLAUSES)) {
+      futures.add(
+          azureTableThreadpool.submit(
+              () -> {
+                List<TableEntity> entities =
+                    TableServiceClientUtils.batchRetrieveFiles(
+                        datasetTableServiceClient, datasetId, fileIdsBatch);
 
-              List<FireStoreDirectoryEntry> directoryEntries =
-                  entities.stream()
-                      .map(
-                          entity -> {
-                            FireStoreDirectoryEntry directoryEntry =
-                                FireStoreDirectoryEntry.fromTableEntity(entity);
-                            if (!directoryEntry.getIsFileRef()) {
-                              throw new FileSystemExecutionException(
-                                  "Directories are not supported as references");
-                            }
-                            return directoryEntry;
-                          })
-                      .collect(Collectors.toList());
-              if (directoryEntries.isEmpty()) {
-                throw new FileSystemExecutionException("No fileIds found in batch lookup");
-              }
+                List<FireStoreDirectoryEntry> directoryEntries =
+                    entities.stream()
+                        .map(
+                            entity -> {
+                              FireStoreDirectoryEntry directoryEntry =
+                                  FireStoreDirectoryEntry.fromTableEntity(entity);
+                              if (!directoryEntry.getIsFileRef()) {
+                                throw new FileSystemExecutionException(
+                                    "Directories are not supported as references");
+                              }
+                              return directoryEntry;
+                            })
+                        .collect(Collectors.toList());
+                if (directoryEntries.isEmpty()) {
+                  throw new FileSystemExecutionException("No fileIds found in batch lookup");
+                }
 
-              // Find directory paths that need to be created; plus add to the cache
-              Set<String> newPaths =
-                  FileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
-              List<FireStoreDirectoryEntry> datasetDirectoryEntries =
-                  batchRetrieveByPath(
-                      datasetTableServiceClient,
-                      datasetId,
-                      StorageTableName.DATASET.toTableName(),
-                      newPaths);
+                // Find directory paths that need to be created; plus add to the cache
+                Set<String> newPaths =
+                    FileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
+                List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+                    batchRetrieveByPath(
+                        datasetTableServiceClient,
+                        datasetId,
+                        StorageTableName.DATASET.toTableName(datasetId),
+                        newPaths);
 
-              // Create snapshot file system entries
-              List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
-              for (FireStoreDirectoryEntry datasetEntry : directoryEntries) {
-                snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
-              }
-              for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
-                snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
-              }
+                // Create snapshot file system entries
+                List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
+                if (usesGlobalFileIds) {
+                  snapshotEntries.addAll(directoryEntries);
+                  snapshotEntries.addAll(datasetDirectoryEntries);
+                } else {
+                  for (FireStoreDirectoryEntry datasetEntry : directoryEntries) {
+                    snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+                  }
+                  for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
+                    snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+                  }
+                }
+                // Store the batch of entries. This will override existing entries,
+                // but that is not the typical case and it is lower cost just overwrite
+                // rather than retrieve to avoid the write.
+                batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
 
-              // Store the batch of entries. This will override existing entries,
-              // but that is not the typical case and it is lower cost just overwrite
-              // rather than retrieve to avoid the write.
-              batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
-            });
+                return null;
+              }));
+    }
+    FutureUtils.waitFor(futures);
   }
 
   /**
@@ -395,7 +434,7 @@ public class TableDirectoryDao {
       return;
     }
 
-    // Top directory does not exists, so create it
+    // Top directory does not exist, so create it
     FireStoreDirectoryEntry topDir =
         new FireStoreDirectoryEntry()
             .fileId(UUID.randomUUID().toString())
@@ -413,7 +452,13 @@ public class TableDirectoryDao {
       List<FireStoreDirectoryEntry> snapshotEntries) {
     String tableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
     TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
-    snapshotEntries.forEach(
-        snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));
+    FutureUtils.waitFor(
+        snapshotEntries.stream()
+            .map(
+                snapshotEntry ->
+                    azureTableThreadpool.submit(
+                        () ->
+                            createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry)))
+            .toList());
   }
 }

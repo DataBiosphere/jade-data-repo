@@ -1,6 +1,0 @@
-{
-  "name": "AlphaSmokeTests",
-  "description": "Alpha tests to run in alpha environment.",
-  "serverSpecificationFile": "alpha.json",
-  "testConfigurationFiles": ["functional/UserWorkflow.json"]
-}

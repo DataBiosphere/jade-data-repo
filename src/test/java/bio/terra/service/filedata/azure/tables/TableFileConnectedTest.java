@@ -16,6 +16,7 @@ import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import java.util.UUID;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -31,6 +32,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
+@Ignore("DCJ-826: Temporarily disabled due to missing Azure resources")
 public class TableFileConnectedTest {
 
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
@@ -40,6 +42,7 @@ public class TableFileConnectedTest {
   private TableServiceClient tableServiceClient;
 
   private static final String PARTITION_KEY = "partitionKey";
+  private static final String DATASET_ID = UUID.randomUUID().toString();
   private static final String FILE_ID = UUID.randomUUID().toString();
   private final TableEntity entity =
       new TableEntity(PARTITION_KEY, FILE_ID)
@@ -72,16 +75,16 @@ public class TableFileConnectedTest {
   @Test
   public void testCreateDeleteEntry() {
     FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
-    tableFileDao.createFileMetadata(tableServiceClient, fireStoreFile);
-    FireStoreFile file = tableFileDao.retrieveFileMetadata(tableServiceClient, FILE_ID);
+    tableFileDao.createFileMetadata(tableServiceClient, DATASET_ID, fireStoreFile);
+    FireStoreFile file = tableFileDao.retrieveFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertEquals("The same file is retrieved", file, fireStoreFile);
 
     // Delete an entry
-    boolean isDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, FILE_ID);
+    boolean isDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertTrue("File record is deleted", isDeleted);
 
     // Try to delete the entry again
-    boolean isNotDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, FILE_ID);
+    boolean isNotDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertFalse("File record was already deleted", isNotDeleted);
   }
 }

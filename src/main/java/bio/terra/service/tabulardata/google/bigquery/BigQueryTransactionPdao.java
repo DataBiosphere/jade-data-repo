@@ -62,17 +62,17 @@ public class BigQueryTransactionPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(insertIntoTransactionTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-
-    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
-    sqlTemplate.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
-    sqlTemplate.add("transactLockCol", PDAO_TRANSACTION_LOCK_COLUMN);
-    sqlTemplate.add("transactDescriptionCol", PDAO_TRANSACTION_DESCRIPTION_COLUMN);
-    sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
-    sqlTemplate.add("transactCreatedByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
+    ST sqlTemplate =
+        new ST(insertIntoTransactionTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN)
+            .add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN)
+            .add("transactLockCol", PDAO_TRANSACTION_LOCK_COLUMN)
+            .add("transactDescriptionCol", PDAO_TRANSACTION_DESCRIPTION_COLUMN)
+            .add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN)
+            .add("transactCreatedByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
     Instant filterBefore = Instant.now();
     TransactionModel transaction =
@@ -115,12 +115,12 @@ public class BigQueryTransactionPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(deleteFromTransactionTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-
-    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    ST sqlTemplate =
+        new ST(deleteFromTransactionTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
 
     bigQueryProject.query(
         sqlTemplate.render(),
@@ -145,15 +145,15 @@ public class BigQueryTransactionPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(updateTransactionTableLockTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-
-    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
-    sqlTemplate.add("transactLockCol", PDAO_TRANSACTION_LOCK_COLUMN);
-    sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
-    sqlTemplate.add("createdByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
+    ST sqlTemplate =
+        new ST(updateTransactionTableLockTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN)
+            .add("transactLockCol", PDAO_TRANSACTION_LOCK_COLUMN)
+            .add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN)
+            .add("createdByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
     String lockErrorMessage = "Transaction already locked or was created by another user";
     sqlTemplate.add("lockErrorMessage", lockErrorMessage);
@@ -194,15 +194,15 @@ public class BigQueryTransactionPdao {
     }
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(updateTransactionTableStatusTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-
-    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
-    sqlTemplate.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
-    sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
-    sqlTemplate.add("transactTerminatedByCol", PDAO_TRANSACTION_TERMINATED_BY_COLUMN);
+    ST sqlTemplate =
+        new ST(updateTransactionTableStatusTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN)
+            .add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN)
+            .add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN)
+            .add("transactTerminatedByCol", PDAO_TRANSACTION_TERMINATED_BY_COLUMN);
 
     Instant terminatedAt = Instant.now();
 
@@ -238,14 +238,14 @@ public class BigQueryTransactionPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(enumerateTransactionsTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-
-    sqlTemplate.add("limit", limit);
-    sqlTemplate.add("offset", offset);
-    sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
+    ST sqlTemplate =
+        new ST(enumerateTransactionsTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("limit", limit)
+            .add("offset", offset)
+            .add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
 
     return StreamSupport.stream(
             bigQueryProject.query(sqlTemplate.render()).getValues().spliterator(), false)
@@ -260,12 +260,12 @@ public class BigQueryTransactionPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(retrieveTransactionTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-
-    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    ST sqlTemplate =
+        new ST(retrieveTransactionTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
 
     TableResult result =
         bigQueryProject.query(
@@ -303,20 +303,20 @@ public class BigQueryTransactionPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(verifyTransactionTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("targetTable", datasetTable.getName());
-    sqlTemplate.add("metadataTable", datasetTable.getRowMetadataTableName());
-    sqlTemplate.add("rawDataTable", datasetTable.getRawTableName());
-    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-
-    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
-    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
-    sqlTemplate.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
-    sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
-    sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
-    sqlTemplate.add("pkColumns", datasetTable.getPrimaryKey());
+    ST sqlTemplate =
+        new ST(verifyTransactionTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("targetTable", datasetTable.getName())
+            .add("metadataTable", datasetTable.getRowMetadataTableName())
+            .add("rawDataTable", datasetTable.getRawTableName())
+            .add("transactionTable", PDAO_TRANSACTIONS_TABLE)
+            .add("rowIdColumn", PDAO_ROW_ID_COLUMN)
+            .add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN)
+            .add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN)
+            .add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN)
+            .add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN)
+            .add("pkColumns", datasetTable.getPrimaryKey());
 
     TableResult result =
         bigQueryProject.query(
@@ -346,11 +346,12 @@ public class BigQueryTransactionPdao {
     }
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(rollbackDatasetTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("targetTable", targetTableName);
-    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
+    ST sqlTemplate =
+        new ST(rollbackDatasetTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("targetTable", targetTableName)
+            .add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
 
     bigQueryProject.query(
         sqlTemplate.render(),
@@ -371,13 +372,14 @@ public class BigQueryTransactionPdao {
     }
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(rollbackDatasetMetadataTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("metadataTable", targetTable.getRowMetadataTableName());
-    sqlTemplate.add("targetTable", targetTable.getRawTableName());
-    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
-    sqlTemplate.add("datarepoIdCol", PDAO_ROW_ID_COLUMN);
+    ST sqlTemplate =
+        new ST(rollbackDatasetMetadataTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("metadataTable", targetTable.getRowMetadataTableName())
+            .add("targetTable", targetTable.getRawTableName())
+            .add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN)
+            .add("datarepoIdCol", PDAO_ROW_ID_COLUMN);
 
     bigQueryProject.query(
         sqlTemplate.render(),

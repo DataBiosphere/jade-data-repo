@@ -11,21 +11,18 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobContainerProperties;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class AzureContainerPdaoTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class AzureContainerPdaoTest {
 
   @Mock private AzureAuthService authService;
   @Mock private BlobContainerClient blobContainerClient;
@@ -33,23 +30,23 @@ public class AzureContainerPdaoTest {
   private BillingProfileModel billingProfile;
   private AzureContainerPdao dao;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() {
 
     billingProfile = new BillingProfileModel();
     storageAccountResource =
         new AzureStorageAccountResource()
             .name("mystorageaccount")
             .metadataContainer("md")
-            .dataContainer("d");
-    when(authService.getBlobContainerClient(any(), any(), eq("d"))).thenReturn(blobContainerClient);
-    when(authService.getBlobContainerClient(any(), any(), eq("md")))
+            .dataContainer("d")
+            .topLevelContainer("tld");
+    when(authService.getBlobContainerClient(any(), any(), eq("tld")))
         .thenReturn(blobContainerClient);
     dao = new AzureContainerPdao(authService);
   }
 
   @Test
-  public void testGetContainer() {
+  void testGetContainer() {
     BlobContainerProperties properties = mock(BlobContainerProperties.class);
     when(blobContainerClient.exists()).thenReturn(true);
     when(properties.getETag()).thenReturn("TAG");
@@ -57,16 +54,14 @@ public class AzureContainerPdaoTest {
 
     assertThat(
         "same object is returned",
-        dao.getOrCreateContainer(billingProfile, storageAccountResource, ContainerType.DATA)
-            .getProperties()
-            .getETag(),
+        dao.getOrCreateContainer(billingProfile, storageAccountResource).getProperties().getETag(),
         equalTo("TAG"));
 
     verify(blobContainerClient, times(0)).create();
   }
 
   @Test
-  public void testCreateContainer() {
+  void testCreateContainer() {
     BlobContainerProperties properties = mock(BlobContainerProperties.class);
     when(blobContainerClient.exists()).thenReturn(false);
     when(properties.getETag()).thenReturn("TAG");
@@ -74,11 +69,15 @@ public class AzureContainerPdaoTest {
 
     assertThat(
         "same object is returned",
-        dao.getOrCreateContainer(billingProfile, storageAccountResource, ContainerType.DATA)
-            .getProperties()
-            .getETag(),
+        dao.getOrCreateContainer(billingProfile, storageAccountResource).getProperties().getETag(),
         equalTo("TAG"));
 
     verify(blobContainerClient, times(1)).create();
+  }
+
+  @Test
+  void testDeleteContainer() {
+    dao.deleteContainer(billingProfile, storageAccountResource);
+    verify(blobContainerClient).deleteIfExists();
   }
 }

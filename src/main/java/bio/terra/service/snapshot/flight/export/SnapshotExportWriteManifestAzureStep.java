@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.SnapshotExportResponseModel;
@@ -10,13 +9,14 @@ import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocation;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocationTables;
 import bio.terra.model.SnapshotModel;
+import bio.terra.service.common.azure.AzureUriUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -66,22 +66,24 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
 
     Map<String, List<String>> paths =
         FlightUtils.getTyped(workingMap, SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_PARQUET_PATHS);
-    ContainerType containerType = ContainerType.METADATA;
 
     UUID billingProfileId = workingMap.get(JobMapKeys.BILLING_ID.getKeyName(), UUID.class);
-    BillingProfileModel billingProfile = profileService.getProfileById(billingProfileId, userReq);
+    // We do not check that the caller has direct access to the billing profile:
+    // It is sufficient that they hold the necessary action on the snapshot, which is checked
+    // before calling the flight.
+    BillingProfileModel billingProfile = profileService.getProfileByIdNoCheck(billingProfileId);
     AzureStorageAccountResource storageAccountResource =
-        resourceService
-            .getSnapshotStorageAccount(snapshotId)
-            .orElseThrow(() -> new NotFoundException("Snapshot storage account not found"));
+        resourceService.getSnapshotStorageAccount(snapshotId);
     String exportManifestPath = "manifests/%s/manifest.json".formatted(context.getFlightId());
     String fullExportManifestPath =
         "%s/%s/%s"
             .formatted(
-                storageAccountResource.getStorageAccountUrl(), containerType, exportManifestPath);
+                storageAccountResource.getStorageAccountUrl(),
+                storageAccountResource.getTopLevelContainer(),
+                FolderType.METADATA.getPath(exportManifestPath));
     BlobUrlParts snapshotSignedUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            fullExportManifestPath, billingProfile, storageAccountResource, containerType, userReq);
+            fullExportManifestPath, billingProfile, storageAccountResource, userReq);
 
     List<SnapshotExportResponseModelFormatParquetLocationTables> tables =
         paths.entrySet().stream()
@@ -92,7 +94,7 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
                         .paths(entry.getValue()))
             .collect(Collectors.toList());
 
-    SnapshotModel snapshot = snapshotService.retrieveAvailableSnapshotModel(snapshotId, userReq);
+    SnapshotModel snapshot = snapshotService.retrieveSnapshotModel(snapshotId, userReq);
 
     SnapshotExportResponseModel responseModel =
         new SnapshotExportResponseModel()
@@ -101,7 +103,7 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
                 new SnapshotExportResponseModelFormat()
                     .parquet(
                         new SnapshotExportResponseModelFormatParquet()
-                            .manifest(snapshotSignedUrlBlob.toUrl().toString())
+                            .manifest(AzureUriUtils.getUriFromBlobUrlParts(snapshotSignedUrlBlob))
                             .location(
                                 new SnapshotExportResponseModelFormatParquetLocation()
                                     .tables(tables))));

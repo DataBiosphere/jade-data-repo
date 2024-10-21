@@ -1,14 +1,18 @@
 package bio.terra.integration;
 
+import static bio.terra.service.auth.iam.sam.SamIam.convertSamExToDataRepoEx;
+
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,25 +38,18 @@ public class SamFixtures {
   public SamFixtures() {
     headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
     restTemplate = new RestTemplate();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
   }
 
   public void deleteServiceAccountFromTerra(TestConfiguration.User user, String serviceAccount) {
-    logger.info("Deleting user {} from Sam {}", serviceAccount, samConfig.getBasePath());
+    logger.info("Deleting user {} from Sam {}", serviceAccount, samConfig.basePath());
     try {
       // Get the user ID to delete
       HttpHeaders authedHeader = getHeaders(user);
-      String accessToken =
-          Optional.ofNullable(
-                  Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
-                      .orElse(List.of())
-                      .iterator()
-                      .next())
-              .map(h -> h.replaceAll("Bearer ", ""))
-              .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
+      String accessToken = getAccessToken(authedHeader);
       AdminApi samAdminApi = new AdminApi(getApiClient(accessToken));
       UserStatus userStatus = samAdminApi.adminGetUserByEmail(serviceAccount);
 
@@ -64,7 +61,7 @@ public class SamFixtures {
       // Delete the user
       String userDeletionUrl =
           "%s/api/admin/v1/user/%s"
-              .formatted(samConfig.getBasePath(), userStatus.getUserInfo().getUserSubjectId());
+              .formatted(samConfig.basePath(), userStatus.getUserInfo().getUserSubjectId());
       try {
         restTemplate.exchange(
             userDeletionUrl, HttpMethod.DELETE, new HttpEntity<>(null, authedHeader), Void.class);
@@ -83,11 +80,82 @@ public class SamFixtures {
     }
   }
 
+  public void deleteSnapshotAccessRequest(
+      TestConfiguration.User user, UUID snapshotAccessRequestId) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      ResourcesApi samResourcesApi = new ResourcesApi(getApiClient(accessToken));
+      samResourcesApi.deleteResourceV2(
+          "snapshot-builder-request", snapshotAccessRequestId.toString());
+      logger.info("Deleted snapshot access request {}", snapshotAccessRequestId);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error deleting snapshot access request: %s", e);
+    }
+  }
+
+  public void addGroup(TestConfiguration.User user, String groupName) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
+      samGroupApi.postGroup(groupName, null);
+      logger.info("Created Sam Group {}", groupName);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error creating Sam Group: %s", e);
+    }
+  }
+
+  public List<String> getAuthDomainForResource(
+      TestConfiguration.User user, String resourceType, String resourceId) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      ResourcesApi samResourcesApi = new ResourcesApi(getApiClient(accessToken));
+      return samResourcesApi.getAuthDomainV2(resourceType, resourceId);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error retrieving Data Access Controls: %s", e);
+    }
+  }
+
+  public String getGroup(TestConfiguration.User user, String groupName) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
+      return samGroupApi.getGroup(groupName);
+    } catch (ApiException e) {
+      throw convertSamExToDataRepoEx(e);
+    }
+  }
+
+  public void deleteGroup(TestConfiguration.User user, String groupName) {
+    try {
+      HttpHeaders authedHeader = getHeaders(user);
+      String accessToken = getAccessToken(authedHeader);
+      GroupApi samGroupApi = new GroupApi(getApiClient(accessToken));
+      samGroupApi.deleteGroup(groupName);
+      logger.info("Deleted Sam Group {}", groupName);
+    } catch (ApiException e) {
+      throw new RuntimeException("Error deleting Sam Group: %s", e);
+    }
+  }
+
+  private String getAccessToken(HttpHeaders authedHeader) {
+    return Optional.ofNullable(
+            Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
+                .orElse(List.of())
+                .iterator()
+                .next())
+        .map(h -> h.replaceAll("Bearer ", ""))
+        .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
+  }
+
   private ApiClient getApiClient(String accessToken) {
     ApiClient apiClient = new ApiClient();
     apiClient.setAccessToken(accessToken);
     apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    return apiClient.setBasePath(samConfig.getBasePath());
+    return apiClient.setBasePath(samConfig.basePath());
   }
 
   private HttpHeaders getHeaders(TestConfiguration.User user) {

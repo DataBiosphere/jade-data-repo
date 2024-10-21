@@ -1,15 +1,23 @@
 package bio.terra.service.filedata;
 
+import static bio.terra.service.filedata.google.gcs.GcsConstants.REQUESTED_BY_QUERY_PARAM;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
+
+import bio.terra.app.configuration.DrsConfiguration;
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.app.usermetrics.BardEventProperties;
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSAuthorizations;
@@ -17,24 +25,28 @@ import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSPassportRequestModel;
+import bio.terra.model.DrsAliasModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.admin.flight.DrsAliasRegisterFlight;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.DrsDao.DrsAlias;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.exception.InvalidDrsObjectException;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -50,20 +62,28 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
 import java.net.URL;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
 /*
@@ -73,29 +93,28 @@ import org.springframework.stereotype.Component;
 @Component
 public class DrsService {
 
-  private final Logger logger = LoggerFactory.getLogger(DrsService.class);
-
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
+  private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
-  private static final Duration URL_TTL = Duration.ofMinutes(15);
-  private static final String USER_PROJECT_QUERY_PARAM = "userProject";
-  private static final String REQUESTED_BY_QUERY_PARAM = "requestedBy";
-  // atomic counter that we incr on request arrival and decr on request response
-  private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
+  @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(15);
 
   private final SnapshotService snapshotService;
   private final FileService fileService;
   private final DrsIdService drsIdService;
   private final IamService samService;
   private final ResourceService resourceService;
-  private final ConfigurationService configurationService;
+  private final DrsConfiguration drsConfiguration;
   private final JobService jobService;
   private final PerformanceLogger performanceLogger;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
   private final EcmConfiguration ecmConfiguration;
+  private final DrsDao drsDao;
+  private final DrsMetricsService drsMetricsService;
+  private final AsyncTaskExecutor executor;
+  private final UserLoggingMetrics loggingMetrics;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -104,52 +123,50 @@ public class DrsService {
   private final Map<UUID, SnapshotSummaryModel> snapshotSummariesCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
 
-  @Autowired
   public DrsService(
       SnapshotService snapshotService,
       FileService fileService,
       DrsIdService drsIdService,
       IamService samService,
       ResourceService resourceService,
-      ConfigurationService configurationService,
+      DrsConfiguration drsConfiguration,
       JobService jobService,
       PerformanceLogger performanceLogger,
       AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
-      EcmConfiguration ecmConfiguration) {
+      EcmConfiguration ecmConfiguration,
+      DrsDao drsDao,
+      DrsMetricsService drsMetricsService,
+      @Qualifier("drsResolutionThreadpool") AsyncTaskExecutor executor,
+      UserLoggingMetrics loggingMetrics) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
     this.samService = samService;
     this.resourceService = resourceService;
-    this.configurationService = configurationService;
+    this.drsConfiguration = drsConfiguration;
     this.jobService = jobService;
     this.performanceLogger = performanceLogger;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmConfiguration = ecmConfiguration;
+    this.drsDao = drsDao;
+    this.drsMetricsService = drsMetricsService;
+    this.executor = executor;
+    this.loggingMetrics = loggingMetrics;
   }
 
   private class DrsRequestResource implements AutoCloseable {
 
     DrsRequestResource() {
-      // make sure not too many requests are being made at once
       int podCount = jobService.getActivePodCount();
-      int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
-      int max = maxDRSLookups / podCount;
-      logger.info("Max number of DRS lookups allowed : " + max);
-      logger.info("Current number of requests being made : " + currentDRSRequests);
-
-      if (currentDRSRequests.get() >= max) {
-        throw new TooManyRequestsException(
-            "Too many requests are being made at once. Please try again later.");
-      }
-      currentDRSRequests.incrementAndGet();
+      drsMetricsService.setDrsRequestMax(drsConfiguration.maxDrsLookups() / podCount);
+      drsMetricsService.tryIncrementCurrentDrsRequestCount();
     }
 
     @Override
     public void close() {
-      currentDRSRequests.decrementAndGet();
+      drsMetricsService.decrementCurrentDrsRequestCount();
     }
   }
 
@@ -165,10 +182,13 @@ public class DrsService {
    */
   public DRSAuthorizations lookupAuthorizationsByDrsId(String drsObjectId) {
     try (DrsRequestResource r = new DrsRequestResource()) {
-      SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
-      SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
+      DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
+      List<SnapshotCacheResult> snapshots = lookupSnapshotsForDRSObject(resolvedDrsObjectId);
+      List<SnapshotSummaryModel> snapshotSummaries =
+          snapshots.stream().map(SnapshotCacheResult::id).map(this::getSnapshotSummary).toList();
 
-      return buildDRSAuth(SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+      return buildDRSAuth(
+          snapshotSummaries.stream().anyMatch(SnapshotSummary::passportAuthorizationAvailable));
     }
   }
 
@@ -176,10 +196,28 @@ public class DrsService {
     DRSAuthorizations auths = new DRSAuthorizations();
     if (passportAuthorizationAvailable) {
       auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
-      auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
+      auths.addPassportAuthIssuersItem(ecmConfiguration.rasIssuer());
     }
     auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
     return auths;
+  }
+
+  public long recordDrsIdToSnapshot(UUID snapshotId, List<DrsId> drsIds) {
+    return drsDao.recordDrsIdToSnapshot(snapshotId, drsIds);
+  }
+
+  public long deleteDrsIdToSnapshotsBySnapshot(UUID snapshotId) {
+    return drsDao.deleteDrsIdToSnapshotsBySnapshot(snapshotId);
+  }
+
+  private List<UUID> retrieveReferencedSnapshotIds(DrsId drsId) {
+    return drsDao.retrieveReferencedSnapshotIds(drsId);
+  }
+
+  private DrsId retrieveDrsAliasByAlias(String alias) {
+    return Optional.ofNullable(drsDao.retrieveDrsAliasByAlias(alias))
+        .map(DrsAlias::tdrDrsObjectId)
+        .orElse(null);
   }
 
   /**
@@ -197,11 +235,28 @@ public class DrsService {
   public DRSObject lookupObjectByDrsIdPassport(
       String drsObjectId, DRSPassportRequestModel drsPassportRequestModel) {
     try (DrsRequestResource r = new DrsRequestResource()) {
-      SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
-      verifyPassportAuth(snapshot.id, drsPassportRequestModel);
-
-      return lookupDRSObjectAfterAuth(
-          drsPassportRequestModel.isExpand(), snapshot, drsObjectId, null, true);
+      DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
+      List<Future<SnapshotCacheResult>> futures =
+          lookupSnapshotsForDRSObject(resolvedDrsObjectId).stream()
+              .map(
+                  s ->
+                      executor.submit(
+                          () -> {
+                            try {
+                              // Only look at snapshots that the user has access to
+                              verifyPassportAuth(s.id, drsPassportRequestModel);
+                              return s;
+                            } catch (UnauthorizedException e) {
+                              return null;
+                            }
+                          }))
+              .toList();
+      List<SnapshotCacheResult> cachedSnapshots = FutureUtils.waitFor(futures);
+      if (cachedSnapshots.isEmpty()) {
+        throw new UnauthorizedException("User does not have access");
+      }
+      return resolveDRSObject(
+          null, resolvedDrsObjectId, drsPassportRequestModel.isExpand(), cachedSnapshots, true);
     }
   }
 
@@ -218,48 +273,144 @@ public class DrsService {
    * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
    */
   public DRSObject lookupObjectByDrsId(
-      AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+      AuthenticatedUserRequest authUser, String drsObjectId, boolean expand) {
     try (DrsRequestResource r = new DrsRequestResource()) {
-      SnapshotCacheResult cachedSnapshot = lookupSnapshotForDRSObject(drsObjectId);
-
+      DrsId resolvedDrsObjectId = resolveDrsObjectId(drsObjectId);
       String samTimer = performanceLogger.timerStart();
-      samService.verifyAuthorization(
-          authUser,
-          IamResourceType.DATASNAPSHOT,
-          cachedSnapshot.id.toString(),
-          IamAction.READ_DATA);
+      List<Future<SnapshotCacheResult>> futures =
+          lookupSnapshotsForDRSObject(resolvedDrsObjectId).stream()
+              .map(
+                  s ->
+                      executor.submit(
+                          () -> {
+                            try {
+                              // Only look at snapshots that the user has access to
+                              samService.verifyAuthorization(
+                                  authUser,
+                                  IamResourceType.DATASNAPSHOT,
+                                  s.id.toString(),
+                                  IamAction.READ_DATA);
+                              return s;
+                            } catch (IamForbiddenException e) {
+                              return null;
+                            }
+                          }))
+              .toList();
+      List<SnapshotCacheResult> cachedSnapshots = FutureUtils.waitFor(futures);
+      if (cachedSnapshots.isEmpty()) {
+        throw new IamForbiddenException("User does not have access");
+      }
       performanceLogger.timerEndAndLog(
           samTimer,
           drsObjectId, // not a flight, so no job id
           this.getClass().getName(),
           "samService.verifyAuthorization");
 
-      return lookupDRSObjectAfterAuth(expand, cachedSnapshot, drsObjectId, authUser, false);
+      return resolveDRSObject(authUser, resolvedDrsObjectId, expand, cachedSnapshots, false);
     }
   }
 
+  /**
+   * Given the precalculated list of associated snapshots, look up the DRS object in the various
+   * firestore/azure table dbs and merged into a single DRSObject. Note: this will fail if object
+   * overlap in invalid ways, such as mismatched checksums, multiple names, etc.
+   */
+  private DRSObject resolveDRSObject(
+      AuthenticatedUserRequest authUser,
+      DrsId drsId,
+      boolean expand,
+      List<SnapshotCacheResult> cachedSnapshots,
+      boolean passportAuth) {
+
+    Map<UUID, UUID> snapshotToBillingSnapshot = chooseBillingSnapshotsPerSnapshot(cachedSnapshots);
+    List<Future<DRSObject>> futures =
+        cachedSnapshots.stream()
+            .map(
+                s ->
+                    executor.submit(
+                        () ->
+                            lookupDRSObjectAfterAuth(
+                                expand,
+                                s,
+                                drsId,
+                                authUser,
+                                passportAuth,
+                                snapshotToBillingSnapshot.get(s.id).toString())))
+            .toList();
+    List<DRSObject> drsObjects = FutureUtils.waitFor(futures);
+
+    return mergeDRSObjects(drsObjects);
+  }
+
+  /**
+   * Given a list of snapshots, return a map of snapshot ids mapped to the snapshot to use for
+   * billing
+   */
   @VisibleForTesting
-  SnapshotCacheResult lookupSnapshotForDRSObject(String drsObjectId) {
-    DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-    SnapshotCacheResult snapshot;
+  Map<UUID, UUID> chooseBillingSnapshotsPerSnapshot(List<SnapshotCacheResult> cachedSnapshots) {
+    // First create a multimap keyed on billing profile id whose values are a list of snapshots
+    // sorted by id
+    Map<UUID, List<SnapshotCacheResult>> snapshotsByBillingId =
+        cachedSnapshots.stream()
+            .collect(Collectors.groupingBy(SnapshotCacheResult::snapshotBillingProfileId))
+            .entrySet()
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    Entry::getKey,
+                    e ->
+                        e.getValue().stream()
+                            .sorted(Comparator.comparing(SnapshotCacheResult::id))
+                            .toList()));
+
+    // Create the map keyed on each snapshot id and whose value is the first snapshot for that
+    // snapshot's group (when grouped by billing account)
+    record BillingAndSnapshot(UUID billingId, SnapshotCacheResult snapshot) {}
+    return snapshotsByBillingId.entrySet().stream()
+        .flatMap(e -> e.getValue().stream().map(v -> new BillingAndSnapshot(e.getKey(), v)))
+        .collect(
+            Collectors.toMap(
+                e -> e.snapshot().id(), e -> snapshotsByBillingId.get(e.billingId()).get(0).id()));
+  }
+
+  @VisibleForTesting
+  List<SnapshotCacheResult> lookupSnapshotsForDRSObject(DrsId drsId) {
     try {
-      UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
-      // We only look up DRS ids for unlocked snapshots.
+      List<UUID> snapshotIds = new ArrayList<>();
+      if (drsId.getVersion().equals("v1")) {
+        snapshotIds.add(UUID.fromString(drsId.getSnapshotId()));
+      } else if (drsId.getVersion().equals("v2")) {
+        snapshotIds.addAll(retrieveReferencedSnapshotIds(drsId));
+      } else {
+        throw new InvalidDrsIdException("Invalid DRS ID version %s".formatted(drsId.getVersion()));
+      }
       String retrieveTimer = performanceLogger.timerStart();
 
-      snapshot = getSnapshot(snapshotId);
+      List<SnapshotCacheResult> snapshots =
+          snapshotIds.stream()
+              .map(
+                  i -> {
+                    try {
+                      return this.getSnapshot(i);
+                    } catch (SnapshotNotFoundException ex) {
+                      return null;
+                    }
+                  })
+              .filter(Objects::nonNull)
+              .toList();
 
       performanceLogger.timerEndAndLog(
           retrieveTimer,
-          drsObjectId, // not a flight, so no job id
+          drsId.toDrsObjectId(), // not a flight, so no job id
           this.getClass().getName(),
           "snapshotService.retrieveAvailable");
-      return snapshot;
+      if (snapshots.isEmpty()) {
+        throw new DrsObjectNotFoundException("No snapshots found for this DRS Object ID");
+      }
+      return snapshots;
     } catch (IllegalArgumentException ex) {
-      throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-    } catch (SnapshotNotFoundException ex) {
-      throw new DrsObjectNotFoundException(
-          "No snapshot found for DRS object id '" + drsObjectId + "'", ex);
+      throw new InvalidDrsIdException(
+          "Invalid object id format '%s'".formatted(drsId.toDrsObjectId()), ex);
     }
   }
 
@@ -274,10 +425,10 @@ public class DrsService {
   private DRSObject lookupDRSObjectAfterAuth(
       boolean expand,
       SnapshotCacheResult snapshot,
-      String drsObjectId,
+      DrsId drsId,
       AuthenticatedUserRequest authUser,
-      boolean passportAuth) {
-    DrsId drsId = drsIdService.fromObjectId(drsObjectId);
+      boolean passportAuth,
+      String billingSnapshot) {
     SnapshotProject snapshotProject = getSnapshotProject(snapshot.id);
     int depth = (expand ? -1 : 1);
 
@@ -288,7 +439,7 @@ public class DrsService {
 
       performanceLogger.timerEndAndLog(
           lookupTimer,
-          drsObjectId, // not a flight, so no job id
+          drsId.toDrsObjectId(), // not a flight, so no job id
           this.getClass().getName(),
           "fileService.lookupSnapshotFSItem");
     } catch (InterruptedException ex) {
@@ -296,35 +447,51 @@ public class DrsService {
           "Unexpected interruption during file system processing", ex);
     }
 
-    if (fsObject instanceof FSFile) {
-      return drsObjectFromFSFile((FSFile) fsObject, snapshot, authUser, passportAuth);
-    } else if (fsObject instanceof FSDir) {
-      return drsObjectFromFSDir((FSDir) fsObject, drsId.getSnapshotId());
+    if (fsObject instanceof FSFile fsFile) {
+      return drsObjectFromFSFile(fsFile, snapshot, authUser, passportAuth, billingSnapshot);
+    } else if (fsObject instanceof FSDir fsDir) {
+      return drsObjectFromFSDir(fsDir, snapshot);
     }
 
     throw new IllegalArgumentException("Invalid object type");
   }
 
   public DRSAccessURL postAccessUrlForObjectId(
-      String objectId, String accessId, DRSPassportRequestModel passportRequestModel) {
+      String objectId,
+      String accessId,
+      DRSPassportRequestModel passportRequestModel,
+      String userProject) {
     DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
-    return getAccessURL(null, drsObject, objectId, accessId);
+    return getAccessURL(null, drsObject, accessId, userProject);
   }
 
   public DRSAccessURL getAccessUrlForObjectId(
-      AuthenticatedUserRequest authUser, String objectId, String accessId) {
+      AuthenticatedUserRequest authUser, String objectId, String accessId, String userProject) {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
-    return getAccessURL(authUser, drsObject, objectId, accessId);
+    return getAccessURL(authUser, drsObject, accessId, userProject);
   }
 
   private DRSAccessURL getAccessURL(
-      AuthenticatedUserRequest authUser, DRSObject drsObject, String objectId, String accessId) {
+      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId, String userProject) {
+    // To avoid having to re-resolve the DRS ID in case it is an alias, use the id from the passed
+    // in DRS object.
+    DrsId drsId = drsIdService.fromObjectId(drsObject.getId());
 
-    DrsId drsId = drsIdService.fromObjectId(objectId);
-    UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+    UUID snapshotId;
+    if (drsId.getSnapshotId() != null) {
+      snapshotId = UUID.fromString(drsId.getSnapshotId());
+    } else {
+      String[] parts = accessId.split("\\Q" + ACCESS_ID_SEPARATOR + "\\E");
+      if (parts.length != 2) {
+        throw new IllegalArgumentException("Invalid access id");
+      }
+      snapshotId = UUID.fromString(parts[1]);
+    }
     SnapshotCacheResult cachedSnapshot = getSnapshot(snapshotId);
 
-    BillingProfileModel billingProfileModel = cachedSnapshot.billingProfileModel;
+    BillingProfileModel billingProfileModel = cachedSnapshot.datasetBillingProfileModel;
+
+    logAdditionalProperties(cachedSnapshot);
 
     assertAccessMethodMatchingAccessId(accessId, drsObject);
 
@@ -333,15 +500,16 @@ public class DrsService {
       fsFile =
           (FSFile)
               fileService.lookupSnapshotFSItem(
-                  snapshotService.retrieveAvailableSnapshotProject(cachedSnapshot.id),
+                  snapshotService.retrieveSnapshotProject(cachedSnapshot.id),
                   drsId.getFsObjectId(),
                   1);
     } catch (InterruptedException e) {
       throw new IllegalArgumentException(e);
     }
-    CloudPlatformWrapper platform = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
+
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(cachedSnapshot.cloudPlatform);
     if (platform.isGcp()) {
-      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser);
+      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
     } else if (platform.isAzure()) {
       return signAzureUrl(billingProfileModel, fsFile, authUser);
     } else {
@@ -349,12 +517,45 @@ public class DrsService {
     }
   }
 
+  /**
+   * Include additional properties in the event log sent to Bard
+   *
+   * @param cachedSnapshot
+   */
+  private void logAdditionalProperties(SnapshotCacheResult cachedSnapshot) {
+    loggingMetrics.set(BardEventProperties.DATASET_ID_FIELD_NAME, cachedSnapshot.datasetId());
+    loggingMetrics.set(BardEventProperties.DATASET_NAME_FIELD_NAME, cachedSnapshot.datasetName());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_ID_FIELD_NAME, cachedSnapshot.id());
+    loggingMetrics.set(BardEventProperties.SNAPSHOT_NAME_FIELD_NAME, cachedSnapshot.name());
+    loggingMetrics.set(
+        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME,
+        cachedSnapshot.snapshotBillingProfileId());
+    loggingMetrics.set(
+        BardEventProperties.CLOUD_PLATFORM_FIELD_NAME, cachedSnapshot.cloudPlatform());
+  }
+
+  @VisibleForTesting
+  DrsId resolveDrsObjectId(String drsObjectId) {
+    // If the drsObjectId is not a TDR generated DRS ID, then assume it's an alias and resolve it
+    // to a TDR DRS ID
+    DrsId drsId;
+    if (!drsIdService.isValidObjectId(drsObjectId)) {
+      drsId = retrieveDrsAliasByAlias(drsObjectId);
+      if (drsId == null) {
+        throw new InvalidDrsIdException("Invalid DRS ID %s".formatted(drsObjectId));
+      }
+    } else {
+      drsId = drsIdService.fromObjectId(drsObjectId);
+    }
+    return drsId;
+  }
+
   private DRSAccessMethod assertAccessMethodMatchingAccessId(String accessId, DRSObject object) {
     Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
         () -> new IllegalArgumentException("No matching access ID was found for object");
 
     return object.getAccessMethods().stream()
-        .filter(drsAccessMethod -> drsAccessMethod.getAccessId().equals(accessId))
+        .filter(drsAccessMethod -> Objects.equals(drsAccessMethod.getAccessId(), accessId))
         .findFirst()
         .orElseThrow(illegalArgumentExceptionSupplier);
   }
@@ -369,7 +570,6 @@ public class DrsService {
                 profileModel,
                 storageAccountResource,
                 ((FSFile) fsItem).getCloudPath(),
-                ContainerType.DATA,
                 new BlobSasTokenOptions(
                     URL_TTL,
                     new BlobSasPermission().setReadPermission(true),
@@ -377,44 +577,93 @@ public class DrsService {
   }
 
   private DRSAccessURL signGoogleUrl(
-      SnapshotCacheResult cachedSnapshot, String gsPath, AuthenticatedUserRequest authUser) {
-    Storage storage;
-    if (cachedSnapshot.isSelfHosted) {
-      // In the case of a self-hosted dataset, use the dataset's service account to sign the url
-      storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
-    } else {
-      storage =
-          StorageOptions.newBuilder()
-              .setProjectId(cachedSnapshot.googleProjectId)
-              .build()
-              .getService();
-    }
+      SnapshotCacheResult cachedSnapshot,
+      String gsPath,
+      AuthenticatedUserRequest authUser,
+      String userProject) {
     BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
 
     BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
 
-    Map<String, String> queryParams = new HashMap<>();
-    queryParams.put(USER_PROJECT_QUERY_PARAM, cachedSnapshot.googleProjectId);
-    if (authUser != null) {
-      queryParams.put(REQUESTED_BY_QUERY_PARAM, authUser.getEmail());
-    }
-    URL url =
-        storage.signUrl(
-            blobInfo,
-            URL_TTL.toMinutes(),
-            TimeUnit.MINUTES,
-            Storage.SignUrlOption.withQueryParams(queryParams),
-            Storage.SignUrlOption.withV4Signature());
+    Function<Storage, URL> signUrlFunction =
+        storage ->
+            storage.signUrl(
+                blobInfo,
+                URL_TTL.toMinutes(),
+                TimeUnit.MINUTES,
+                getUrlSigningOptions(cachedSnapshot, userProject, authUser));
 
-    return new DRSAccessURL().url(url.toString());
+    final URL signedUrl;
+    if (cachedSnapshot.isSelfHosted) {
+      // If a userProject is explicitly passed in, then use that to sign the url.
+      // Note: the expectation is that this is a Terra hosted bucket
+      if (!StringUtils.isEmpty(userProject)) {
+        return new DRSAccessURL()
+            .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));
+      }
+      // In the base case of a self-hosted dataset, use the dataset's service account to sign the
+      // url
+      signedUrl =
+          signUrlFunction.apply(gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId));
+    } else {
+      try (Storage storage = initStorage(cachedSnapshot.googleProjectId)) {
+        signedUrl = signUrlFunction.apply(storage);
+      } catch (Exception e) {
+        throw new GoogleInternalServerErrorException("Error getting storage ", e);
+      }
+    }
+
+    return new DRSAccessURL().url(signedUrl.toString());
+  }
+
+  @VisibleForTesting
+  Storage initStorage(String projectId) {
+    return StorageOptions.newBuilder().setProjectId(projectId).build().getService();
+  }
+
+  /**
+   * Returns the options to use when signing a URL from TDR
+   *
+   * @param cachedSnapshot Snapshot where the drs request initiated
+   * @param userProject The Google project being billed for the accessing the signed URL
+   * @param authUser The user requesting the signed URL
+   * @return The options to use when signing a URL from TDR
+   */
+  private Storage.SignUrlOption[] getUrlSigningOptions(
+      SnapshotCacheResult cachedSnapshot, String userProject, AuthenticatedUserRequest authUser) {
+    final String signingProject;
+    final String signingUser;
+    // If a user specifies a billing project in the request, prefer that over the snapshot's
+    // project.  If a billing project is required to access the data, and it is not provided,
+    // nothing will fail until the user tries to access the signed URL.
+    if (!StringUtils.isEmpty(userProject)) {
+      signingProject = userProject;
+    } else {
+      signingProject = cachedSnapshot.googleProjectId;
+    }
+    if (authUser != null) {
+      signingUser = authUser.getEmail();
+    } else {
+      signingUser = null;
+    }
+
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put(USER_PROJECT_QUERY_PARAM, signingProject);
+    if (signingUser != null) {
+      queryParams.put(REQUESTED_BY_QUERY_PARAM, signingUser);
+    }
+    return new Storage.SignUrlOption[] {
+      Storage.SignUrlOption.withQueryParams(queryParams), Storage.SignUrlOption.withV4Signature()
+    };
   }
 
   private DRSObject drsObjectFromFSFile(
       FSFile fsFile,
       SnapshotCacheResult cachedSnapshot,
       AuthenticatedUserRequest authUser,
-      boolean passportAuth) {
-    DRSObject fileObject = makeCommonDrsObject(fsFile, cachedSnapshot.id.toString());
+      boolean passportAuth,
+      String billingSnapshot) {
+    DRSObject fileObject = makeCommonDrsObject(fsFile, cachedSnapshot);
 
     List<DRSAccessMethod> accessMethods;
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
@@ -423,20 +672,31 @@ public class DrsService {
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion, passportAuth);
+                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT,
+                gcpRegion,
+                passportAuth,
+                billingSnapshot);
       } else {
         accessMethods =
-            getDrsAccessMethodsOnGcp(fsFile, authUser, gcpRegion, cachedSnapshot.googleProjectId);
+            getDrsAccessMethodsOnGcp(
+                fsFile, authUser, gcpRegion, cachedSnapshot.googleProjectId, billingSnapshot);
       }
     } else if (platform.isAzure()) {
       String azureRegion = retrieveAzureSnapshotRegion(fsFile);
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion, passportAuth);
+                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT,
+                azureRegion,
+                passportAuth,
+                cachedSnapshot.globalFileIds ? billingSnapshot : null);
       } else {
         accessMethods =
-            getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion, passportAuth);
+            getDrsSignedURLAccessMethods(
+                ACCESS_ID_PREFIX_AZURE,
+                azureRegion,
+                passportAuth,
+                cachedSnapshot.globalFileIds ? billingSnapshot : null);
       }
     } else {
       throw new InvalidCloudPlatformException();
@@ -444,23 +704,40 @@ public class DrsService {
 
     fileObject
         .mimeType(fsFile.getMimeType())
-        .checksums(fileService.makeChecksums(fsFile))
-        .selfUri(drsIdService.makeDrsId(fsFile, cachedSnapshot.id.toString()).toDrsUri())
+        .checksums(FileService.makeChecksums(fsFile))
         .accessMethods(accessMethods);
 
     return fileObject;
   }
 
-  private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile) {
+  /**
+   * @param cachedSnapshot a cached snapshot entry for a GCP-backed snapshot
+   * @param fsFile a file entry for a file within the snapshot specifying a Google Cloud Storage URI
+   * @return the GCP region associated with the GCS URI, with lookup billed to the snapshot's
+   *     project if self-hosted
+   * @throws DrsObjectNotFoundException if the snapshot is self-hosted and TDR cannot retrieve the
+   *     bucket specified by the GCS URI
+   */
+  private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile)
+      throws DrsObjectNotFoundException {
     final GoogleRegion region;
     if (cachedSnapshot.isSelfHosted) {
       // Authorize using the dataset's service account...
       Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
-      Bucket bucket =
-          storage.get(
-              GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket(),
-              // ...but bill to the snapshot's project
-              BucketGetOption.userProject(cachedSnapshot.googleProjectId));
+      // ...but bill to the snapshot's project (available for all GCP-backed snapshots, regardless
+      // of their self-hosted status).
+      BucketGetOption userProject = BucketGetOption.userProject(cachedSnapshot.googleProjectId);
+      String cloudPath = fsFile.getCloudPath();
+      Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(cloudPath).getBucket(), userProject);
+      if (bucket == null) {
+        throw new DrsObjectNotFoundException(
+            """
+                Could not access GCS URI %s found in self-hosted GCP snapshot.
+                Source snapshot: %s
+                File entry: %s
+                """
+                .formatted(cloudPath, cachedSnapshot, fsFile));
+      }
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {
       GoogleBucketResource bucketResource =
@@ -479,11 +756,18 @@ public class DrsService {
   }
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
-      FSFile fsFile, AuthenticatedUserRequest authUser, String region, String userProject) {
+      FSFile fsFile,
+      AuthenticatedUserRequest authUser,
+      String region,
+      String userProject,
+      String billingSnapshot) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
     DRSAuthorizations authorizationsBearerOnly = buildDRSAuth(false);
 
-    String accessId = ACCESS_ID_PREFIX_GCP + region;
+    String accessId =
+        ACCESS_ID_PREFIX_GCP
+            + region
+            + Optional.ofNullable(billingSnapshot).map(s -> ACCESS_ID_SEPARATOR + s).orElse("");
     DRSAccessMethod gsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
@@ -508,9 +792,12 @@ public class DrsService {
   }
 
   private List<DRSAccessMethod> getDrsSignedURLAccessMethods(
-      String prefix, String region, boolean passportAuth) {
-    String accessId = prefix + region;
+      String prefix, String region, boolean passportAuth, String billingProject) {
     DRSAuthorizations authorizations = buildDRSAuth(passportAuth);
+    String accessId =
+        prefix
+            + region
+            + Optional.ofNullable(billingProject).map(b -> ACCESS_ID_SEPARATOR + b).orElse("");
     DRSAccessMethod httpsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
@@ -521,23 +808,24 @@ public class DrsService {
     return List.of(httpsAccessMethod);
   }
 
-  private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {
-    DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
-
-    DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
-    dirObject.size(0L).addChecksumsItem(drsChecksum).contents(makeContentsList(fsDir, snapshotId));
-
-    return dirObject;
+  private DRSObject drsObjectFromFSDir(FSDir fsDir, SnapshotCacheResult snapshot) {
+    return makeCommonDrsObject(fsDir, snapshot).contents(makeContentsList(fsDir, snapshot));
   }
 
-  private DRSObject makeCommonDrsObject(FSItem fsObject, String snapshotId) {
+  private DRSObject makeCommonDrsObject(FSItem fsObject, SnapshotCacheResult snapshot) {
     // Compute the time once; used for both created and updated times as per DRS spec for immutable
     // objects
     String theTime = fsObject.getCreatedDate().toString();
-    DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
+    DrsId drsId;
+    if (snapshot.globalFileIds) {
+      drsId = drsIdService.makeDrsId(fsObject);
+    } else {
+      drsId = drsIdService.makeDrsId(fsObject, snapshot.id.toString());
+    }
 
     return new DRSObject()
         .id(drsId.toDrsObjectId())
+        .selfUri(drsId.toDrsUri())
         .name(getLastNameFromPath(fsObject.getPath()))
         .createdTime(theTime)
         .updatedTime(theTime)
@@ -545,21 +833,26 @@ public class DrsService {
         .description(fsObject.getDescription())
         .aliases(Collections.singletonList(fsObject.getPath()))
         .size(fsObject.getSize())
-        .checksums(fileService.makeChecksums(fsObject));
+        .checksums(FileService.makeChecksums(fsObject));
   }
 
-  private List<DRSContentsObject> makeContentsList(FSDir fsDir, String snapshotId) {
+  private List<DRSContentsObject> makeContentsList(FSDir fsDir, SnapshotCacheResult snapshot) {
     List<DRSContentsObject> contentsList = new ArrayList<>();
 
     for (FSItem fsObject : fsDir.getContents()) {
-      contentsList.add(makeDrsContentsObject(fsObject, snapshotId));
+      contentsList.add(makeDrsContentsObject(fsObject, snapshot));
     }
 
     return contentsList;
   }
 
-  private DRSContentsObject makeDrsContentsObject(FSItem fsObject, String snapshotId) {
-    DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
+  private DRSContentsObject makeDrsContentsObject(FSItem fsObject, SnapshotCacheResult snapshot) {
+    DrsId drsId;
+    if (snapshot.globalFileIds) {
+      drsId = drsIdService.makeDrsId(fsObject);
+    } else {
+      drsId = drsIdService.makeDrsId(fsObject, snapshot.id().toString());
+    }
 
     List<String> drsUris = new ArrayList<>();
     drsUris.add(drsId.toDrsUri());
@@ -573,7 +866,7 @@ public class DrsService {
     if (fsObject instanceof FSDir) {
       FSDir fsDir = (FSDir) fsObject;
       if (fsDir.isEnumerated()) {
-        contentsObject.contents(makeContentsList(fsDir, snapshotId));
+        contentsObject.contents(makeContentsList(fsDir, snapshot));
       }
     }
 
@@ -593,13 +886,16 @@ public class DrsService {
   }
 
   public static String getLastNameFromPath(String path) {
+    if (path.equals("/")) {
+      return "";
+    }
     String[] pathParts = StringUtils.split(path, '/');
     return pathParts[pathParts.length - 1];
   }
 
   private SnapshotProject getSnapshotProject(UUID snapshotId) {
     return snapshotProjectsCache.computeIfAbsent(
-        snapshotId, snapshotService::retrieveAvailableSnapshotProject);
+        snapshotId, snapshotService::retrieveSnapshotProject);
   }
 
   private SnapshotCacheResult getSnapshot(UUID snapshotId) {
@@ -612,35 +908,151 @@ public class DrsService {
         snapshotId, snapshotService::retrieveSnapshotSummary);
   }
 
+  public String registerDrsAliases(List<DrsAliasModel> aliases, AuthenticatedUserRequest userReq) {
+    return jobService
+        .newJob("Register DRS Aliases", DrsAliasRegisterFlight.class, aliases, userReq)
+        .submit();
+  }
+
   @VisibleForTesting
-  static class SnapshotCacheResult {
-    private final UUID id;
-    private final Boolean isSelfHosted;
-    private final BillingProfileModel billingProfileModel;
-    private final String googleProjectId;
-    private final String datasetProjectId;
-
-    public SnapshotCacheResult(Snapshot snapshot) {
-      this.id = snapshot.getId();
-      this.isSelfHosted = snapshot.isSelfHosted();
-      this.billingProfileModel =
-          snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile();
-      var projectResource = snapshot.getProjectResource();
-      if (projectResource != null) {
-        this.googleProjectId = projectResource.getGoogleProjectId();
-      } else {
-        this.googleProjectId = null;
-      }
-      var datasetProjectResource = snapshot.getSourceDataset().getProjectResource();
-      if (datasetProjectResource != null) {
-        this.datasetProjectId = datasetProjectResource.getGoogleProjectId();
-      } else {
-        this.datasetProjectId = null;
-      }
+  DRSObject mergeDRSObjects(List<DRSObject> drsObjects) {
+    boolean isDirectory =
+        drsObjects.stream().map(DRSObject::getAccessMethods).anyMatch(Objects::isNull);
+    if (isDirectory
+        && drsObjects.stream().map(DRSObject::getAccessMethods).anyMatch(Objects::nonNull)) {
+      throw new InvalidDrsObjectException(
+          "Drs object would contain a mix of file and directory objects");
     }
+    DRSObject drsObject =
+        new DRSObject()
+            // Extract singleton values
+            .id(extractUniqueDrsObjectValue(drsObjects, DRSObject::getId))
+            .name(extractUniqueDrsObjectValue(drsObjects, DRSObject::getName))
+            .description(extractUniqueDrsObjectValue(drsObjects, DRSObject::getDescription))
+            .size(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSize))
+            .selfUri(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSelfUri))
+            .mimeType(extractUniqueDrsObjectValue(drsObjects, DRSObject::getMimeType))
+            .version(extractUniqueDrsObjectValue(drsObjects, DRSObject::getVersion))
+            .createdTime(getMinCreatedTime(drsObjects))
+            .updatedTime(getMaxUpdatedTime(drsObjects))
+            .accessMethods(
+                isDirectory
+                    ? null
+                    : extractDistinctListOfDrsObjectValues(
+                        drsObjects,
+                        DRSObject::getAccessMethods,
+                        Comparator.comparing(DRSAccessMethod::getRegion)
+                            .thenComparing(DRSAccessMethod::getType)))
+            .checksums(
+                extractDistinctListOfDrsObjectValues(
+                    drsObjects,
+                    DRSObject::getChecksums,
+                    Comparator.comparing(DRSChecksum::getType)))
+            .aliases(
+                extractDistinctListOfDrsObjectValues(
+                    drsObjects, DRSObject::getAliases, Comparator.naturalOrder()))
+            .contents(
+                isDirectory
+                    ? extractDistinctListOfDrsObjectValues(
+                        drsObjects,
+                        DRSObject::getContents,
+                        Comparator.comparing(DRSContentsObject::getName))
+                    : null);
 
-    public UUID getId() {
-      return this.id;
+    // If there are overlapping checksum types with different values, throw an error
+    Map<String, List<DRSChecksum>> checksumsByType =
+        drsObject.getChecksums().stream().collect(Collectors.groupingBy(DRSChecksum::getType));
+    checksumsByType.forEach(
+        (k, v) -> {
+          if (v.size() > 1) {
+            throw new InvalidDrsObjectException(
+                "Invalid DRS object. Many checksums for %s exist: %s"
+                    .formatted(
+                        k,
+                        v.stream().map(DRSChecksum::getChecksum).collect(Collectors.joining(","))));
+          }
+        });
+    return drsObject;
+  }
+
+  @VisibleForTesting
+  static String getMinCreatedTime(List<DRSObject> drsObjects) {
+    return drsObjects.stream()
+        .map(DRSObject::getCreatedTime)
+        .map(Instant::parse)
+        .min(Comparator.naturalOrder())
+        .map(Instant::toString)
+        .orElse("");
+  }
+
+  @VisibleForTesting
+  static String getMaxUpdatedTime(List<DRSObject> drsObjects) {
+    return drsObjects.stream()
+        .map(DRSObject::getUpdatedTime)
+        .map(Instant::parse)
+        .max(Comparator.naturalOrder())
+        .map(Instant::toString)
+        .orElse("");
+  }
+
+  /**
+   * Given a list of DRSObjects, extract a singleton value and fail if there are 0, 2 or more values
+   */
+  @VisibleForTesting
+  static <R> R extractUniqueDrsObjectValue(
+      List<DRSObject> drsObjects, Function<DRSObject, ? extends R> mapper) {
+    List<R> values = new ArrayList<>();
+    try {
+      values.addAll(drsObjects.stream().map(mapper).distinct().toList());
+      return CollectionUtils.extractSingleton(values);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidDrsObjectException("Found duplicate values: %s".formatted(values), e);
+    }
+  }
+
+  /** Given a list of DRSObjects, extract a list of distinct values sorted by the comparator. */
+  @VisibleForTesting
+  static <R> List<R> extractDistinctListOfDrsObjectValues(
+      List<DRSObject> drsObjects,
+      Function<DRSObject, ? extends Collection<R>> mapper,
+      Comparator<R> comparator) {
+    return drsObjects.stream()
+        .map(mapper)
+        .flatMap(Collection::stream)
+        .distinct()
+        .sorted(comparator)
+        .toList();
+  }
+
+  record SnapshotCacheResult(
+      UUID id,
+      String name,
+      boolean isSelfHosted,
+      boolean globalFileIds,
+      BillingProfileModel datasetBillingProfileModel,
+      UUID snapshotBillingProfileId,
+      CloudPlatform cloudPlatform,
+      String googleProjectId,
+      String datasetProjectId,
+      UUID datasetId,
+      String datasetName) {
+    public SnapshotCacheResult(Snapshot snapshot) {
+      this(
+          snapshot.getId(),
+          snapshot.getName(),
+          snapshot.isSelfHosted(),
+          snapshot.hasGlobalFileIds(),
+          snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile(),
+          snapshot.getProfileId(),
+          snapshot.getCloudPlatform(),
+          Optional.ofNullable(snapshot.getProjectResource())
+              .map(GoogleProjectResource::getGoogleProjectId)
+              .orElse(null),
+          Optional.ofNullable(snapshot.getSourceDataset().getProjectResource())
+              .map(GoogleProjectResource::getGoogleProjectId)
+              .orElse(null),
+          snapshot.getSourceDataset().getId(),
+          snapshot.getSourceDataset().getName());
     }
   }
 }

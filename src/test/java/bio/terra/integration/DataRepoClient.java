@@ -13,7 +13,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public class DataRepoClient {
 
     headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
   }
 
   // -- RepositoryController Client --
@@ -105,7 +105,13 @@ public class DataRepoClient {
 
   public <T> DataRepoResponse<T> delete(
       TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
-    HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
+    return delete(user, path, null, responseClass);
+  }
+
+  public <T> DataRepoResponse<T> delete(
+      TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
+      throws Exception {
+    HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
     return makeDataRepoRequest(path, HttpMethod.DELETE, entity, user, responseClass);
   }
 
@@ -266,7 +272,7 @@ public class DataRepoClient {
         restTemplate.exchange(testConfig.getJadeApiUrl() + path, method, entity, String.class);
 
     ObjectOrErrorResponse<S, T> drResponse = new ObjectOrErrorResponse<>();
-    drResponse.setStatusCode(response.getStatusCode());
+    drResponse.setStatusCode(HttpStatus.valueOf(response.getStatusCode().value()));
 
     URI uri = response.getHeaders().getLocation();
     drResponse.setLocationHeader((uri == null) ? Optional.empty() : Optional.of(uri.toString()));

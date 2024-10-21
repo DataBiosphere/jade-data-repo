@@ -28,20 +28,22 @@ public class SnapshotAuthzTabularAclStep implements Step {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final ConfigurationService configService;
+  private final UUID snapshotId;
 
   public SnapshotAuthzTabularAclStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      UUID snapshotId) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.configService = configService;
+    this.snapshotId = snapshotId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     Map<IamRole, String> policies =

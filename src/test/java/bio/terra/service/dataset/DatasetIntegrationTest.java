@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -14,15 +15,12 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
@@ -42,36 +40,22 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
-import com.google.cloud.Identity;
-import com.google.cloud.Policy;
-import com.google.cloud.Role;
 import com.google.cloud.WriteChannel;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.FieldList;
-import com.google.cloud.bigquery.FieldValue;
-import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobWriteOption;
-import com.google.cloud.storage.Storage.BucketSourceOption;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -99,7 +83,6 @@ public class DatasetIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
-  @Rule @Autowired public TestJobWatcher testWatcher;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
 
@@ -132,7 +115,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Test
   public void datasetHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -213,8 +196,19 @@ public class DatasetIntegrationTest extends UsersBase {
 
     assertTrue("dataset was found in enumeration", metExpectation);
 
-    // test allowable permissions
+    // Check permissions on lookupDatasetDataById
+    dataRepoFixtures.retrieveDatasetData(
+        steward(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+    dataRepoFixtures.retrieveDatasetDataExpectFailure(
+        custodian(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        HttpStatus.FORBIDDEN);
 
+    // test allowable permissions
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), summaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
@@ -223,6 +217,18 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+
+    // Check permissions on lookupDatasetDataById now that the custodian has been given permission
+    dataRepoFixtures.retrieveDatasetData(
+        custodian(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+    dataRepoFixtures.retrieveDatasetDataExpectFailure(
+        reader(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        HttpStatus.FORBIDDEN);
 
     List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian(), datasetId);
     assertThat("The Custodian was given custodian access", custodianRoles, hasItem("custodian"));
@@ -254,7 +260,7 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetHappyPathWithPet() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "it-dataset-omop.json", CloudPlatform.GCP, true);
+            steward(), profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.GCP, true, null);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
@@ -352,13 +358,12 @@ public class DatasetIntegrationTest extends UsersBase {
   public void testAssetCreationUndo() throws Exception {
     // create a dataset
     DatasetSummaryModel summaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "it-dataset-omop.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "omop/it-dataset-omop.jsonl");
     datasetId = summaryModel.getId();
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
-    assertThat(
-        "Asset specification is as originally expected", originalAssetList.size(), equalTo(1));
+    assertThat("Asset specification is as originally expected", originalAssetList, hasSize(3));
 
     // Test Asset Validation
     AssetModel invalidAssetModel =
@@ -387,7 +392,7 @@ public class DatasetIntegrationTest extends UsersBase {
     List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
     // assert that the asset isn't there
-    assertThat("Additional asset specification has never been added", assetList.size(), equalTo(1));
+    assertThat("Additional asset specification has never been added", assetList, hasSize(3));
   }
 
   @Test
@@ -404,7 +409,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDatasetWithPolicies(
-            steward(), profileId, "it-dataset-omop.json", policiesRequest);
+            steward(), profileId, "omop/it-dataset-omop.jsonl", policiesRequest);
     datasetId = summaryModel.getId();
 
     Map<String, List<String>> rolesToPolicies =
@@ -447,20 +452,6 @@ public class DatasetIntegrationTest extends UsersBase {
         .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
   }
 
-  static List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
-      throws InterruptedException {
-
-    String tableRef = BigQueryFixtures.makeTableRef(dataset, tableName);
-    String sql =
-        String.format("SELECT %s FROM %s LIMIT %s", PdaoConstant.PDAO_ROW_ID_COLUMN, tableRef, n);
-    TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-
-    assertThat("got right num of row ids back", result.getTotalRows(), equalTo(n));
-    return StreamSupport.stream(result.getValues().spliterator(), false)
-        .map(fieldValues -> fieldValues.get(0).getStringValue())
-        .collect(Collectors.toList());
-  }
-
   static String writeListToScratch(String bucket, String prefix, List<String> contents)
       throws IOException {
     return writeListToScratch(bucket, prefix, contents, null);
@@ -478,74 +469,9 @@ public class DatasetIntegrationTest extends UsersBase {
 
     try (WriteChannel writer = storage.writer(blob, options)) {
       for (String line : contents) {
-        writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
+        writer.write(ByteBuffer.wrap((line + "\n").getBytes(StandardCharsets.UTF_8)));
       }
     }
     return String.format("gs://%s/%s", blob.getBucket(), targetPath);
-  }
-
-  static void addServiceAccountRoleToBucket(
-      String bucket, String serviceAccount, Role role, String userProject) {
-    Storage storage = StorageOptions.getDefaultInstance().getService();
-    BucketSourceOption[] options =
-        Optional.ofNullable(userProject)
-            .map(p -> new BucketSourceOption[] {BucketSourceOption.userProject(p)})
-            .orElseGet(() -> new BucketSourceOption[0]);
-
-    Policy iamPolicy = storage.getIamPolicy(bucket, options);
-    storage.setIamPolicy(
-        bucket,
-        iamPolicy.toBuilder().addIdentity(role, Identity.serviceAccount(serviceAccount)).build(),
-        options);
-  }
-
-  static void removeServiceAccountRoleFromBucket(
-      String bucket, String serviceAccount, Role role, String userProject) {
-    Storage storage = StorageOptions.getDefaultInstance().getService();
-    BucketSourceOption[] options =
-        Optional.ofNullable(userProject)
-            .map(p -> new BucketSourceOption[] {BucketSourceOption.userProject(p)})
-            .orElseGet(() -> new BucketSourceOption[0]);
-    Policy iamPolicy = storage.getIamPolicy(bucket, options);
-    storage.setIamPolicy(
-        bucket,
-        iamPolicy.toBuilder().removeIdentity(role, Identity.serviceAccount(serviceAccount)).build(),
-        options);
-  }
-
-  static void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
-      throws InterruptedException {
-
-    String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
-    TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-    assertThat(
-        "count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
-  }
-
-  static List<Map<String, List<String>>> transformStringResults(
-      BigQuery bigQuery, DatasetModel dataset, String tableName) throws InterruptedException {
-    String sql = "SELECT * FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
-    TableResult tableResult = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-    List<Map<String, List<String>>> result = new ArrayList<>();
-    FieldList fields = tableResult.getSchema().getFields();
-    for (FieldValueList valueList : tableResult.getValues()) {
-      Map<String, List<String>> transformed = new HashMap<>();
-      for (Field field : fields) {
-        String name = field.getName();
-        FieldValue value = valueList.get(name);
-        final List<String> values;
-        if (field.getMode().equals(Field.Mode.REPEATED)) {
-          values =
-              value.getRepeatedValue().stream()
-                  .map(FieldValue::getStringValue)
-                  .collect(Collectors.toList());
-        } else {
-          values = List.of(value.getStringValue());
-        }
-        transformed.put(name, values);
-      }
-      result.add(transformed);
-    }
-    return result;
   }
 }

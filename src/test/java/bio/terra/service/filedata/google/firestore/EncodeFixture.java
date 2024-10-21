@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
@@ -78,10 +76,19 @@ public class EncodeFixture {
 
   // Create dataset, load files and tables. Create and return snapshot.
   // Steward owns dataset; custodian is custodian on dataset; reader has access to the snapshot.
+
+  /**
+   * Create dataset, load files and tables. Create and return snapshot. Steward owns dataset;
+   * custodian is custodian on dataset; reader has access to the snapshot.
+   *
+   * @param shouldAssertBqDatasetAccessible if set, verify that the snapshot's underlying BigQuery
+   *     dataset is accessible to the reader
+   */
   public SetupResult setupEncode(
       TestConfiguration.User steward,
       TestConfiguration.User custodian,
-      TestConfiguration.User reader)
+      TestConfiguration.User reader,
+      boolean shouldAssertBqDatasetAccessible)
       throws Exception {
 
     UUID profileId = dataRepoFixtures.createBillingProfile(steward).getId();
@@ -129,33 +136,36 @@ public class EncodeFixture {
     dataRepoFixtures.addSnapshotPolicyMember(
         custodian, snapshotSummary.getId(), IamRole.READER, reader.getEmail());
 
-    // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
-    // issues have shown. We make a BigQuery request as the test to see that READER has access.
-    // We need to get the snapshot, rather than the snapshot summary in order to make a query.
-    // TODO: Add dataProject to SnapshotSummaryModel?
-    SnapshotModel snapshotModel =
-        dataRepoFixtures.getSnapshot(
-            custodian,
-            snapshotSummary.getId(),
-            List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
-    logger.info(
-        "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
-        snapshotModel.getName(),
-        snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
-        snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+    if (shouldAssertBqDatasetAccessible) {
+      // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
+      // issues have shown. We make a BigQuery request as the test to see that READER has access.
+      // We need to get the snapshot, rather than the snapshot summary in order to make a query.
+      // TODO: Add dataProject to SnapshotSummaryModel?
+      SnapshotModel snapshotModel =
+          dataRepoFixtures.getSnapshot(
+              custodian,
+              snapshotSummary.getId(),
+              List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
+      logger.info(
+          "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
+          snapshotModel.getName(),
+          snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+          snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-    String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-    BigQuery bigQueryReader =
-        BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-    boolean hasAccess =
-        BigQueryFixtures.hasAccess(
-            bigQueryReader,
-            snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
-            snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+      String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+      BigQuery bigQueryReader =
+          BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
 
-    assertThat("has access to BQ", hasAccess);
+      BigQueryFixtures.assertBqDatasetAccessible(
+          bigQueryReader,
+          snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+          snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-    logger.info("Successfully checked access");
+      logger.info("Successfully checked access");
+    } else {
+      logger.info("Skipping BQ dataset access check for snapshot {}", snapshotSummary.getName());
+    }
+
     return new SetupResult(profileId, datasetId, snapshotSummary);
   }
 

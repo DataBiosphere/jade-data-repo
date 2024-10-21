@@ -5,24 +5,35 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.model.FileDetailModel;
+import bio.terra.model.FileModel;
+import bio.terra.model.FileModelType;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class FileMetadataUtilsTest {
+@Tag(Unit.TAG)
+class FileMetadataUtilsTest {
 
   @Test
-  public void makeLookupPathNoRootDir() {
+  void makeLookupPathNoRootDir() {
     String noRootDir = "/test/path/file.json";
     String lookupPath = FileMetadataUtils.makeLookupPath(noRootDir);
     assertThat(
@@ -30,14 +41,14 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void makeLookupPathWithRootDir() {
+  void makeLookupPathWithRootDir() {
     String withRootDir = ROOT_DIR_NAME + "/test/path/file.json";
     String lookupPath = FileMetadataUtils.makeLookupPath(withRootDir);
     assertThat("url should not have changed.", lookupPath, equalTo(withRootDir));
   }
 
   @Test
-  public void findNewDirectoryPaths() {
+  void findNewDirectoryPaths() {
     List<FireStoreDirectoryEntry> testEntries = initTestEntries(2);
     // LRU has enough space for all entries
     LRUMap<String, Boolean> pathMap = new LRUMap<>(5);
@@ -64,7 +75,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void findNewDirectoryPathsTestCache() {
+  void findNewDirectoryPathsTestCache() {
     List<FireStoreDirectoryEntry> testEntries = initTestEntries(5);
     // LRU does NOT have enough space for all entries
     LRUMap<String, Boolean> pathMap = new LRUMap<>(2);
@@ -121,7 +132,7 @@ public class FileMetadataUtilsTest {
   }
 
   @Test
-  public void testUniqueNewPaths() {
+  void testUniqueNewPaths() {
     List<FireStoreDirectoryEntry> testEntries = initTestEntries(5);
 
     // Checking for unique new paths requires two constraints on the findNewDirectoryPaths method
@@ -149,6 +160,127 @@ public class FileMetadataUtilsTest {
             "/_dr_/test/path-4"));
   }
 
+  @Test
+  void testValidateFileMd5ForIngest() {
+    assertThat(
+        "matching md5s pass",
+        FileMetadataUtils.validateFileMd5ForIngest("foo", "foo", "gs://bucket/path.txt"),
+        equalTo(new Md5ValidationResult("foo", Md5Type.CLOUD_PROVIDED)));
+
+    assertThat(
+        "user specified md5 returns if no cloud md5 is present",
+        FileMetadataUtils.validateFileMd5ForIngest("foo", null, "gs://bucket/path.txt"),
+        equalTo(new Md5ValidationResult("foo", Md5Type.USER_PROVIDED)));
+
+    assertThat(
+        "cloud md5 returns if no user specified md5 is present",
+        FileMetadataUtils.validateFileMd5ForIngest(null, "foo", "gs://bucket/path.txt"),
+        equalTo(new Md5ValidationResult("foo", Md5Type.CLOUD_PROVIDED)));
+
+    assertThat(
+        "null returned if both inputs are null",
+        FileMetadataUtils.validateFileMd5ForIngest(null, null, "gs://bucket/path.txt"),
+        equalTo(new Md5ValidationResult(null, Md5Type.NEITHER)));
+
+    assertThat(
+        "empty string returned if both inputs are empty strings",
+        FileMetadataUtils.validateFileMd5ForIngest("", "", "gs://bucket/path.txt"),
+        equalTo(new Md5ValidationResult("", Md5Type.NEITHER)));
+
+    TestUtils.assertError(
+        InvalidFileChecksumException.class,
+        "Checksums do not match for file gs://bucket/path.txt",
+        () -> FileMetadataUtils.validateFileMd5ForIngest("foo", "bar", "gs://bucket/path.txt"));
+  }
+
+  @Test
+  void extractDirectoryPathsTest() {
+    assertThat(FileMetadataUtils.extractDirectoryPaths("/foo.txt"), equalTo(List.of("/")));
+
+    assertThat(FileMetadataUtils.extractDirectoryPaths("/"), equalTo(List.of("/")));
+
+    assertThat(
+        FileMetadataUtils.extractDirectoryPaths("/foo/bar/baz.txt"),
+        equalTo(List.of("/", "/foo", "/foo/bar")));
+
+    assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.extractDirectoryPaths(""));
+  }
+
+  @Test
+  void pathParsingTest() {
+    assertThat("empty string returns empty", FileMetadataUtils.getDirectoryPath(""), equalTo(""));
+    assertThat("root directory dir looks ok", FileMetadataUtils.getDirectoryPath("/"), equalTo(""));
+    assertThat("root directory file looks ok", FileMetadataUtils.getName("/"), equalTo(""));
+
+    // It's admitedly strange that this is what we expect but changing the behavior causes untold
+    // chaos
+    assertThat(
+        "1st level directory dir looks ok",
+        FileMetadataUtils.getDirectoryPath("/foo"),
+        equalTo(""));
+    assertThat(
+        "1st level directory file looks ok", FileMetadataUtils.getName("/foo"), equalTo("foo"));
+
+    assertThat(
+        "2nd level directory dir looks ok",
+        FileMetadataUtils.getDirectoryPath("/foo/bar"),
+        equalTo("/foo"));
+    assertThat(
+        "2nd level directory file looks ok", FileMetadataUtils.getName("/foo/bar"), equalTo("bar"));
+  }
+
+  @Test
+  void testToFileModel() {
+    UUID fileId = UUID.randomUUID();
+    String collectionId = UUID.randomUUID().toString();
+    FireStoreDirectoryEntry entry = mockFileRefDirectoryEntry(fileId);
+    FireStoreFile file = mockFileRefFireStoreFile(fileId);
+
+    FileModel fileModel = mockExpectedFileModel(entry, file, collectionId);
+
+    assertEquals(
+        List.of(fileModel),
+        FileMetadataUtils.toFileModel(List.of(entry), List.of(file), collectionId, true));
+  }
+
+  @Test
+  void testToFileModelMismatchedSizes() {
+    List<FireStoreDirectoryEntry> entries = List.of(new FireStoreDirectoryEntry());
+    List<FireStoreFile> files = List.of(new FireStoreFile(), new FireStoreFile());
+    assertThrows(
+        FileSystemExecutionException.class,
+        () -> FileMetadataUtils.toFileModel(entries, files, UUID.randomUUID().toString(), true));
+  }
+
+  @Test
+  void testMissingDirectoryEntry() {
+    UUID fileId1 = UUID.randomUUID();
+    UUID fileId2 = UUID.randomUUID();
+    FireStoreDirectoryEntry entry1 = mockFileRefDirectoryEntry(fileId1);
+    FireStoreFile file1 = mockFileRefFireStoreFile(fileId1);
+    FireStoreFile file2 = mockFileRefFireStoreFile(fileId2);
+    assertThrows(
+        FileSystemExecutionException.class,
+        () ->
+            FileMetadataUtils.toFileModel(
+                List.of(entry1), List.of(file1, file2), UUID.randomUUID().toString(), false));
+  }
+
+  @Test
+  void testIgnoreMismatchedSize() {
+    UUID fileId1 = UUID.randomUUID();
+    UUID fileId2 = UUID.randomUUID();
+    String collectionId = UUID.randomUUID().toString();
+    FireStoreDirectoryEntry entry1 = mockFileRefDirectoryEntry(fileId1);
+    FireStoreDirectoryEntry entry2 = mockFileRefDirectoryEntry(fileId2);
+    FireStoreFile file1 = mockFileRefFireStoreFile(fileId1);
+    FileModel expectedFileModel = mockExpectedFileModel(entry1, file1, collectionId);
+    assertEquals(
+        List.of(expectedFileModel),
+        FileMetadataUtils.toFileModel(
+            List.of(entry1, entry2), List.of(file1), collectionId, false));
+  }
+
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {
     List<FireStoreDirectoryEntry> testEntries = new ArrayList<>();
     // Add 4 files per different directory path
@@ -161,5 +293,46 @@ public class FileMetadataUtilsTest {
     }
 
     return testEntries;
+  }
+
+  private FireStoreDirectoryEntry mockFileRefDirectoryEntry(UUID fileId) {
+    return new FireStoreDirectoryEntry()
+        .fileId(fileId.toString())
+        .datasetId(UUID.randomUUID().toString())
+        .path("/files/foo.txt")
+        .name("foo.txt");
+  }
+
+  private FireStoreFile mockFileRefFireStoreFile(UUID fileId) {
+    return new FireStoreFile()
+        .fileId(fileId.toString())
+        .fileCreatedDate(Instant.now().toString())
+        .checksumCrc32c("25f9e794323b453885f5181f1b624d0b")
+        .checksumMd5("0xCBF43926")
+        .size(300L)
+        .description("Test file")
+        .gspath("gs://testbucket/files/foo.txt")
+        .mimeType("text/plain")
+        .bucketResourceId("bucketResourceId")
+        .loadTag("loadTag");
+  }
+
+  private FileModel mockExpectedFileModel(
+      FireStoreDirectoryEntry entry, FireStoreFile file, String collectionId) {
+    return new FileModel()
+        .fileId(entry.getFileId())
+        .collectionId(collectionId)
+        .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+        .size(file.getSize())
+        .created(file.getFileCreatedDate())
+        .description(file.getDescription())
+        .fileType(FileModelType.FILE)
+        .checksums(FileService.makeChecksums(file))
+        .fileDetail(
+            new FileDetailModel()
+                .datasetId(entry.getDatasetId())
+                .accessUrl(file.getGspath())
+                .mimeType(file.getMimeType())
+                .loadTag(file.getLoadTag()));
   }
 }

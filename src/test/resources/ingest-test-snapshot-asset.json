@@ -1,0 +1,16 @@
+{
+  "name":        "snapshot_test",
+  "description": "Very simple snapshot by asset for test",
+  "contents": [
+    {
+      "datasetName": "replaceMe",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "sample_centric",
+        "rootValues": [
+          "sample2", "sample3"
+        ]
+      }
+    }
+  ]
+}

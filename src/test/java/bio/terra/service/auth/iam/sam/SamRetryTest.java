@@ -3,48 +3,50 @@ package bio.terra.service.auth.iam.sam;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class SamRetryTest {
-  @Autowired private ConfigurationService configService;
+@Tag(Unit.TAG)
+class SamRetryTest {
+  private ConfigurationService configService;
 
   private int count;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     count = 0;
-  }
-
-  @Test(expected = IamInternalServerErrorException.class)
-  public void testRetryTimeout() throws Exception {
-    setSamParams("testRetryTimeout", 1, 3, 10);
-    SamRetry.retry(configService, () -> testRetryFinishInner(100));
+    configService =
+        new ConfigurationService(
+            mock(SamConfiguration.class),
+            mock(GoogleResourceConfiguration.class),
+            mock(ApplicationConfiguration.class));
   }
 
   @Test
-  public void testRetryFinish() throws Exception {
+  void testRetryTimeout() {
+    setSamParams("testRetryTimeout", 1, 3, 10);
+    assertThrows(
+        IamInternalServerErrorException.class,
+        () -> SamRetry.retry(configService, () -> testRetryFinishInner(100)));
+  }
+
+  @Test
+  void testRetryFinish() throws Exception {
     setSamParams("testRetryFinish", 2, 5, 10);
     SamRetry.retry(configService, () -> testRetryFinishInner(2));
   }
@@ -59,14 +61,16 @@ public class SamRetryTest {
     return true;
   }
 
-  @Test(expected = IamInternalServerErrorException.class)
-  public void testRetryVoidTimeout() throws Exception {
+  @Test
+  void testRetryVoidTimeout() throws Exception {
     setSamParams("testRetryTimeout", 1, 3, 10);
-    SamRetry.retry(configService, () -> testRetryVoidFinishInner(100));
+    assertThrows(
+        IamInternalServerErrorException.class,
+        () -> SamRetry.retry(configService, () -> testRetryVoidFinishInner(100)));
   }
 
   @Test
-  public void testRetryVoidFinish() throws Exception {
+  void testRetryVoidFinish() throws Exception {
     setSamParams("testRetryFinish", 2, 5, 10);
     SamRetry.retry(configService, () -> testRetryVoidFinishInner(2));
   }

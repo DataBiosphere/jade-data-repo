@@ -1,44 +1,32 @@
 package bio.terra.flight;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.mockito.Mockito.mock;
 
+import bio.terra.common.FlightTestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.stairway.FlightMap;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ActiveProfiles;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class ProfileDeleteFlightTest {
-
-  @Mock private ApplicationContext context;
+@Tag(Unit.TAG)
+class ProfileDeleteFlightTest {
 
   @Test
-  public void testConstructFlight() {
-    var flight = new ProfileDeleteFlight(new FlightMap(), context);
-    var steps =
-        flight.getSteps().stream()
-            .map(step -> step.getClass().getSimpleName())
-            .collect(Collectors.toList());
+  void testConstructFlight() {
+    var flight = new ProfileDeleteFlight(new FlightMap(), mock(ApplicationContext.class));
+    var steps = FlightTestUtils.getStepNames(flight);
     assertThat(
         steps,
-        is(
-            List.of(
-                "DeleteProfileMarkUnusedProjects",
-                "DeleteProfileDeleteUnusedProjects",
-                "DeleteProfileProjectMetadata",
-                "DeleteProfileMetadataStep",
-                "DeleteProfileAuthzIamStep",
-                "JournalRecordDeleteEntryStep")));
+        contains(
+            "DeleteProfileMarkUnusedProjects",
+            "DeleteProfileDeleteUnusedProjects",
+            "DeleteProfileProjectMetadata",
+            "DeleteProfileMetadataStep",
+            "DeleteProfileAuthzIamStep",
+            "JournalRecordDeleteEntryStep"));
   }
 }

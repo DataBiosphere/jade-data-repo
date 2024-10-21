@@ -15,10 +15,14 @@ public enum IamAction {
   SHARE_POLICY_READER("share_policy::reader"),
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
-  // datarepo
+  UPDATE_AUTH_DOMAIN,
+  ADMIN_READ_SUMMARY_INFORMATION,
+  // datarepo (admin-only actions)
   LIST_JOBS,
   DELETE_JOBS,
   CONFIGURE,
+  REGISTER_DRS_ALIASES,
+  RUN_UPGRADE_FLIGHT,
   SYNC_DUOS_USERS,
   // dataset
   MANAGE_SCHEMA,
@@ -28,16 +32,27 @@ public enum IamAction {
   HARD_DELETE,
   LINK_SNAPSHOT,
   UNLINK_SNAPSHOT,
+  GET_SNAPSHOT_BUILDER_SETTINGS,
   // snapshots
   UPDATE_SNAPSHOT,
+  SHARE_POLICY_AGGREGATE_DATA_READER("share_policy::aggregate_data_reader"),
   READ_DATA,
+  READ_AGGREGATE_DATA,
+  CREATE_SNAPSHOT_REQUEST,
   DISCOVER_DATA,
   EXPORT_SNAPSHOT,
+  // snapshot builder requests
+  GET,
+  UPDATE,
+  APPROVE,
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
   LINK,
   // journal
-  VIEW_JOURNAL;
+  VIEW_JOURNAL,
+  // lock/unlock resources
+  LOCK_RESOURCE,
+  UNLOCK_RESOURCE;
 
   private final String samActionName;
 

@@ -2,12 +2,13 @@ package bio.terra.service.filedata.azure.tables;
 
 import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
 
-import bio.terra.service.filedata.exception.FileSystemCorruptException;
+import bio.terra.common.FutureUtils;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.ApiFutureGenerator;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -16,14 +17,12 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.google.api.core.SettableApiFuture;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,24 +35,30 @@ import org.springframework.stereotype.Component;
 @Component
 public class TableFileDao {
   private final Logger logger = LoggerFactory.getLogger(TableFileDao.class);
-  private final ExecutorService executor;
+  private final AsyncTaskExecutor azureTableThreadpool;
   private static final String PARTITION_KEY = "partitionKey";
 
-  @Autowired
-  TableFileDao(@Qualifier("performanceThreadpool") ExecutorService executor) {
-    this.executor = executor;
+  TableFileDao(
+      @Qualifier(AzureResourceConfiguration.TABLE_THREADPOOL_NAME)
+          AsyncTaskExecutor azureTableThreadpool) {
+    this.azureTableThreadpool = azureTableThreadpool;
   }
 
-  public void createFileMetadata(TableServiceClient tableServiceClient, FireStoreFile newFile) {
-    tableServiceClient.createTableIfNotExists(FILES_TABLE.toTableName());
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
+  public void createFileMetadata(
+      TableServiceClient tableServiceClient, String collectionId, FireStoreFile newFile) {
+    tableServiceClient.createTableIfNotExists(
+        FILES_TABLE.toTableName(UUID.fromString(collectionId)));
+    TableClient tableClient =
+        tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
     TableEntity entity = FireStoreFile.toTableEntity(PARTITION_KEY, newFile);
     logger.info("creating file metadata for fileId {}", newFile.getFileId());
     tableClient.createEntity(entity);
   }
 
-  public boolean deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
+  public boolean deleteFileMetadata(
+      TableServiceClient tableServiceClient, String collectionId, String fileId) {
+    TableClient tableClient =
+        tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
     try {
       logger.info("deleting file metadata for fileId {}", fileId);
       TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
@@ -66,10 +71,19 @@ public class TableFileDao {
     }
   }
 
-  public FireStoreFile retrieveFileMetadata(TableServiceClient tableServiceClient, String fileId) {
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
-    TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
-    return FireStoreFile.fromTableEntity(entity);
+  public FireStoreFile retrieveFileMetadata(
+      TableServiceClient tableServiceClient, String collectionId, String fileId) {
+    try {
+      TableClient tableClient =
+          tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
+      TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
+      return FireStoreFile.fromTableEntity(entity);
+    } catch (TableServiceException ex) {
+      // enable listFiles to work that have file ingests before the DC-1259 fix
+      // This is a temporary fix to ignore directory entries that do not have matching file entries
+      logger.warn("Error retrieving file metadata for fileId: {}", fileId);
+      return null;
+    }
   }
 
   /**
@@ -81,16 +95,17 @@ public class TableFileDao {
    *     with the order of the input list objects
    */
   List<FireStoreFile> batchRetrieveFileMetadata(
-      TableServiceClient tableServiceClient, List<FireStoreDirectoryEntry> directoryEntries) {
-    return directoryEntries.stream()
-        .map(
-            f ->
-                Optional.ofNullable(retrieveFileMetadata(tableServiceClient, f.getFileId()))
-                    .orElseThrow(
+      TableServiceClient tableServiceClient,
+      String collectionId,
+      List<FireStoreDirectoryEntry> directoryEntries) {
+    return FutureUtils.waitFor(
+        directoryEntries.stream()
+            .map(
+                f ->
+                    azureTableThreadpool.submit(
                         () ->
-                            new FileSystemCorruptException(
-                                "Directory entry refers to non-existent file")))
-        .collect(Collectors.toList());
+                            retrieveFileMetadata(tableServiceClient, collectionId, f.getFileId())))
+            .toList());
   }
 
   <V> void scanTableObjects(TableClient tableClient, ApiFutureGenerator<V, TableEntity> generator) {
@@ -112,27 +127,37 @@ public class TableFileDao {
   }
 
   void deleteFilesFromDataset(
-      TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func) {
-    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, FILES_TABLE.toTableName())) {
-      TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
+      TableServiceClient tableServiceClient,
+      UUID datasetId,
+      InterruptibleConsumer<FireStoreFile> func) {
+    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName(datasetId));
+
+    if (TableServiceClientUtils.tableHasEntries(
+        tableServiceClient, FILES_TABLE.toTableName(datasetId))) {
       scanTableObjects(
           tableClient,
           entity -> {
             SettableApiFuture<Boolean> future = SettableApiFuture.create();
-            executor.execute(
+            azureTableThreadpool.execute(
                 () -> {
                   try {
                     FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
                     func.accept(fireStoreFile);
-                    future.set(deleteFileMetadata(tableServiceClient, fireStoreFile.getFileId()));
+                    future.set(
+                        deleteFileMetadata(
+                            tableServiceClient, datasetId.toString(), fireStoreFile.getFileId()));
                   } catch (final Exception e) {
                     future.setException(e);
                   }
                 });
             return future;
           });
+
     } else {
       logger.warn("No files found to be deleted from dataset.");
     }
+
+    // Delete the table
+    tableClient.deleteTable();
   }
 }

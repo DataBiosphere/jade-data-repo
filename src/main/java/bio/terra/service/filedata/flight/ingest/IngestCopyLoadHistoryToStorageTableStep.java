@@ -50,8 +50,9 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
+    // TODO: support bulk mode in azure
     var resources =
-        getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
+        getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize, false);
     AzureStorageAccountResource storageAccountForFile =
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);

@@ -36,12 +36,19 @@ public class Column {
     return (SynapseColumn)
         new SynapseColumn()
             .synapseDataType(
-                SynapseColumn.translateDataType(datasetColumn.getType(), datasetColumn.isArrayOf()))
+                SynapseColumn.translateDataType(
+                    datasetColumn.getType(), datasetColumn.isArrayOf(), false))
+            .synapseDataTypeForCsv(
+                SynapseColumn.translateDataType(
+                    datasetColumn.getType(), datasetColumn.isArrayOf(), true))
             .requiresCollate(
                 SynapseColumn.checkForCollateArgRequirement(
                     datasetColumn.getType(), datasetColumn.isArrayOf()))
             .requiresJSONCast(
                 SynapseColumn.checkForJSONCastRequirement(
+                    datasetColumn.getType(), datasetColumn.isArrayOf()))
+            .requiresTypeCast(
+                SynapseColumn.checkForCastTypeArgRequirement(
                     datasetColumn.getType(), datasetColumn.isArrayOf()))
             .name(datasetColumn.getName())
             .type(datasetColumn.getType())
@@ -85,6 +92,27 @@ public class Column {
     return this;
   }
 
+  public boolean isTextType() {
+    return switch (this.type) {
+      case TEXT, STRING, DIRREF, FILEREF -> true;
+      default -> false;
+    };
+  }
+
+  public boolean isDoubleType() {
+    return switch (this.type) {
+      case NUMERIC, FLOAT, FLOAT64 -> true;
+      default -> false;
+    };
+  }
+
+  public boolean isIntType() {
+    return switch (this.type) {
+      case INT64, INTEGER -> true;
+      default -> false;
+    };
+  }
+
   public boolean isArrayOf() {
     return arrayOf;
   }
@@ -118,7 +146,7 @@ public class Column {
     Column column = (Column) o;
     return arrayOf == column.arrayOf
         && required == column.required
-        && id.equals(column.id)
+        && Objects.equals(id, column.id)
         && Objects.equals(table, column.table)
         && Objects.equals(name, column.name)
         && type == column.type;

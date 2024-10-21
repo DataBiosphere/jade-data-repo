@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -173,7 +173,7 @@ public class DataRepoWrap {
   }
 
   public WrapFuture<DeleteResponseModel> deleteProfileFuture(UUID profileId) {
-    JobModel jobResponse = apiCallThrow(() -> resourcesApi.deleteProfile(profileId));
+    JobModel jobResponse = apiCallThrow(() -> resourcesApi.deleteProfile(profileId, false));
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
   }
 

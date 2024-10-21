@@ -1,14 +1,12 @@
 package bio.terra.service.filedata.google.firestore;
 
-import static io.grpc.Status.Code.DEADLINE_EXCEEDED;
-
 import com.google.api.core.ApiFuture;
-import com.google.api.gax.grpc.GrpcStatusCode;
 import com.google.api.gax.rpc.DeadlineExceededException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.jetbrains.annotations.NotNull;
 
 // Fake future class testing fire store batchOperation.
 // This is not thread safe!
@@ -47,19 +45,15 @@ public class FakeApiFuture implements ApiFuture<String> {
 
   @Override
   public String get() throws InterruptedException, ExecutionException, DeadlineExceededException {
-    if (FakeApiFuture.shouldThrow()) {
-      throw new DeadlineExceededException(
-          "test",
-          new IllegalArgumentException("test"),
-          GrpcStatusCode.of(DEADLINE_EXCEEDED),
-          false);
-    }
-    return "abc";
+    throw new RuntimeException("TDR should only use the timeout version of get");
   }
 
   @Override
-  public String get(long timeout, TimeUnit unit)
+  public String get(long timeout, @NotNull TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
-    return null;
+    if (FakeApiFuture.shouldThrow()) {
+      throw new TimeoutException("test");
+    }
+    return "abc";
   }
 }

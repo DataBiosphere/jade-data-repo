@@ -13,12 +13,10 @@ import bio.terra.common.GcsUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.SamFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -41,8 +39,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.storage.StorageRoles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -54,7 +50,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -82,8 +77,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   @Autowired private SamFixtures samFixtures;
   @Autowired private GoogleResourceManagerService resourceManagerService;
 
-  @Rule @Autowired public TestJobWatcher testWatcher;
-
   // Disabling check while we debug failing tests.
   // See https://broadworkbench.atlassian.net/browse/DR-2858
   private static final Boolean SHOULD_ASSERT_HTTPS_ACCESSIBILITY = false;
@@ -94,7 +87,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   private String snapshotProject;
   private UUID profileId;
   private List<String> uploadedFiles;
-  private String ingestServiceAccount;
   private String ingestBucket;
 
   @Before
@@ -110,24 +102,12 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
-    if (ingestServiceAccount != null && ingestBucket != null) {
-      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          ingestBucket, ingestServiceAccount, StorageRoles.objectViewer(), snapshotProject);
-
-      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          ingestBucket, ingestServiceAccount, StorageRoles.legacyBucketReader(), snapshotProject);
-    }
-
     if (snapshotId != null) {
       dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
     }
 
-    if (ingestServiceAccount != null) {
-      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
-    }
-
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
     }
 
     if (profileId != null) {
@@ -141,22 +121,23 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
   @Test
   public void testSelfHostedDatasetLifecycle() throws Exception {
-    testSelfHostedDatasetLifecycle("jade-testdata-useastregion", false);
+    ingestBucket = "jade-testdata-useastregion";
+    testSelfHostedDatasetLifecycle(false);
   }
 
   @Test
   public void testSelfHostedDatasetWithDedicatedSALifecycle() throws Exception {
-    testSelfHostedDatasetLifecycle("jade_testbucket_no_jade_sa", true);
+    ingestBucket = "jade_testbucket_no_jade_sa";
+    testSelfHostedDatasetLifecycle(true);
   }
 
   @Test
   public void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
-    testSelfHostedDatasetLifecycle("jade_testbucket_requester_pays", true);
+    ingestBucket = "jade_testbucket_requester_pays";
+    testSelfHostedDatasetLifecycle(true);
   }
 
-  private void testSelfHostedDatasetLifecycle(String ingestBucket, boolean dedicatedServiceAccount)
-      throws Exception {
-
+  private void testSelfHostedDatasetLifecycle(boolean dedicatedServiceAccount) throws Exception {
     gcsUtils.fileExists(wgsVcfPath(ingestBucket));
 
     DatasetSummaryModel datasetSummaryModel =
@@ -173,22 +154,8 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         dataset.isSelfHosted(),
         is(true));
 
-    // Authorize the ingest source bucket
-    if (dedicatedServiceAccount) {
-      ingestServiceAccount = dataset.getIngestServiceAccount();
-      this.ingestBucket = ingestBucket;
-      // Note: this role gets removed in teardown
-      DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket,
-          ingestServiceAccount,
-          StorageRoles.objectViewer(),
-          dataset.getDataProject());
-      DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket,
-          ingestServiceAccount,
-          StorageRoles.legacyBucketReader(),
-          dataset.getDataProject());
-    }
+    // If needed, authorize the ingest source bucket
+    dataRepoFixtures.grantIngestBucketPermissionsToDedicatedSa(dataset, ingestBucket);
 
     // Ingest a single file
     FileModel exomeVcfModel =
@@ -266,11 +233,10 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 2L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 2);
 
     List<Map<String, List<String>>> sampleVcfResults =
-        DatasetIntegrationTest.transformStringResults(bigQuery, dataset, "sample_vcf");
+        dataRepoFixtures.transformStringResults(steward(), dataset, "sample_vcf");
     Set<String> ingestedFileIds =
         sampleVcfResults.stream()
             .flatMap(
@@ -343,14 +309,14 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     // validate that snapshot export works correctly
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false, true);
     assertThat(
         "self-hosted snapshots can be exported with DRS URIs",
         exportResponse.getResponseObject().isPresent(),
         is(true));
 
     DataRepoResponse<JobModel> exportSnapshotExpectFailure =
-        dataRepoFixtures.exportSnapshot(steward(), snapshotId, true, false);
+        dataRepoFixtures.exportSnapshot(steward(), snapshotId, true, false, true);
     DataRepoResponse<ErrorModel> errorResponse =
         dataRepoClient.waitForResponseLog(
             steward(), exportSnapshotExpectFailure, new TypeReference<>() {});
@@ -390,7 +356,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         fileExistsAfterDataDelete,
         is(true));
 
-    dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
     datasetId = null;
 
     boolean fileExistsAfterDatasetDelete = gcsUtils.fileExists(exomeVcfPath(ingestBucket));

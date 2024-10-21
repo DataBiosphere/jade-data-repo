@@ -1,0 +1,49 @@
+# Note that this action is called from the UI build process:
+# https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/.github/workflows/dev-image-update.yaml#L95
+# Changes merged here require a version bump in that action.
+name: cherry-pick-image
+on:
+  workflow_call:
+    inputs:
+      gcr_tag:
+        description: tag to cherry pick
+        type: string
+        required: true
+      source_gcr_url:
+        type: string
+        required: true
+      target_gcr_url:
+        type: string
+        required: true
+  workflow_dispatch:
+      inputs:
+        gcr_tag:
+          description: tag to cherry pick
+          type: string
+          required: true
+        source_gcr_url:
+          description: gcr url to cherry pick image from
+          type: string
+          required: true
+        target_gcr_url:
+          description: gcr url to cherry pick image to
+          type: string
+          required: true
+jobs:
+  cherry-pick-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Authenticate with GCR SA Credentials"
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
+        run: |
+          # write token
+          base64 --decode <<< ${{ secrets.GCR_SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: "Perform cherry-pick"
+        run: |
+          SOURCE_IMAGE="${{ inputs.source_gcr_url }}:${{ inputs.gcr_tag }}"
+          TARGET_IMAGE="${{ inputs.target_gcr_url }}:${{ inputs.gcr_tag }}"
+          echo "Cherry picking ${{ inputs.gcr_tag }} from ${SOURCE_IMAGE} to ${TARGET_IMAGE}"
+          gcloud container images add-tag --quiet "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
+

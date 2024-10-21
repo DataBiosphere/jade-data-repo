@@ -46,7 +46,6 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
             parquetDatasetSourceLocation,
             billingProfile,
             datasetAzureStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
             userRequest);
     try {
       azureSynapsePdao.getOrCreateExternalDataSource(

@@ -6,12 +6,12 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.constraints.NotNull;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,12 +105,13 @@ public class JournalDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void deleteJournalEntryById(@NotNull UUID journalEntryId) {
-    String sql = "DELETE FROM " + TABLE_NAME + " WHERE id = :id";
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", journalEntryId);
+  public void deleteJournalEntriesByFlightId(@NotNull String flightId) {
+    String sql = "DELETE FROM " + TABLE_NAME + " WHERE mutation->>'FLIGHT_ID' = :flightId";
+
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("flightId", flightId);
 
     int entriesRemoved = jdbcTemplate.update(sql, params);
-    logger.warn("Journal entry deleted: {} {}", journalEntryId, entriesRemoved);
+    logger.warn("{} journal entries removed for flight id: {}", entriesRemoved, flightId);
   }
 
   @Transactional(
@@ -118,27 +119,24 @@ public class JournalDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public List<JournalEntryModel> retrieveEntriesByIdAndType(
-      UUID resource_key, @NotNull IamResourceType resourceType, long offset, int limit) {
+      UUID resourceKey, @NotNull IamResourceType resourceType, long offset, int limit) {
     String sql =
-        "SELECT "
-            + summaryQueryColumns
-            + "FROM "
-            + TABLE_NAME
-            + " "
-            + "WHERE "
-            + "resource_key = :resource_key "
-            + "AND "
-            + "resource_type = :resourceType "
-            + "ORDER BY entry_timestamp ASC "
-            + "OFFSET :offset LIMIT :limit";
+        """
+            SELECT %s FROM %s
+            WHERE resource_key = :resource_key
+            AND resource_type = :resource_type
+            ORDER BY entry_timestamp DESC
+            OFFSET :offset LIMIT :limit
+            """
+            .formatted(summaryQueryColumns, TABLE_NAME);
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue("resource_key", resource_key)
-            .addValue("resourceType", resourceType.toString())
+            .addValue("resource_key", resourceKey)
+            .addValue("resource_type", resourceType.toString())
             .addValue("offset", offset)
             .addValue("limit", limit);
-    return jdbcTemplate.query(sql, params, new JournalDao.JournalEntryMapper());
+    return jdbcTemplate.query(sql, params, new JournalEntryMapper());
   }
 
   private class JournalEntryMapper implements RowMapper<JournalEntryModel> {

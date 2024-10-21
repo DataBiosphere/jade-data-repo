@@ -63,7 +63,7 @@ public class GoogleResourceManagerService {
     }
 
     return new CloudResourceManager.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.getApplicationName())
+        .setApplicationName(resourceConfiguration.applicationName())
         .build();
   }
 

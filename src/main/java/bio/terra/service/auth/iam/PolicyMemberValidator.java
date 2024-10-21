@@ -2,7 +2,7 @@ package bio.terra.service.auth.iam;
 
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.PolicyMemberRequest;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;

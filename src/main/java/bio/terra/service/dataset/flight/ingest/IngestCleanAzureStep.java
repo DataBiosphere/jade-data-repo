@@ -5,6 +5,7 @@ import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -35,19 +36,18 @@ public class IngestCleanAzureStep implements Step {
             IngestUtils.getSynapseIngestTableName(context.getFlightId())));
     azureSynapsePdao.dropDataSources(
         List.of(
-            IngestUtils.getScratchDataSourceName(context.getFlightId()),
             IngestUtils.getTargetDataSourceName(context.getFlightId()),
             IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
     azureSynapsePdao.dropScopedCredentials(
         List.of(
-            IngestUtils.getScratchScopedCredentialName(context.getFlightId()),
             IngestUtils.getTargetScopedCredentialName(context.getFlightId()),
             IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId())));
 
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
-    String scratchParquetFile = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
+    String scratchParquetFile =
+        FolderType.SCRATCH.getPath(workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class));
     azureBlobStorePdao.deleteScratchParquet(
         scratchParquetFile, storageAccountResource, userRequest);
 

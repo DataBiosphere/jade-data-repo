@@ -3,12 +3,15 @@ package bio.terra.service.snapshot;
 import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Table;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -62,73 +65,73 @@ public class SnapshotMapTableDao {
 
   public List<SnapshotMapTable> retrieveMapTables(Snapshot snapshot, SnapshotSource source) {
     String sql =
-        "SELECT id, source_id, from_table_id, to_table_id"
-            + " FROM snapshot_map_table WHERE source_id = :source_id";
-    List<SnapshotMapTable> mapTableList =
-        jdbcTemplate.query(
-            sql,
-            new MapSqlParameterSource().addValue("source_id", source.getId()),
-            (rs, rowNum) -> {
-              List<SnapshotMapTable> mapTables = new ArrayList<>();
-              UUID fromTableId = rs.getObject("from_table_id", UUID.class);
-              Optional<DatasetTable> datasetTable = source.getDataset().getTableById(fromTableId);
-              if (!datasetTable.isPresent()) {
-                throw new CorruptMetadataException(
-                    "Dataset table referenced by snapshot source map table was not found!");
-              }
+        """
+SELECT smt.id map_table_id, from_table_id, to_table_id,
+       smc.id map_column_id, from_column_id, to_column_id
+FROM snapshot_map_table smt,
+     snapshot_map_column smc
+WHERE smt.source_id = :source_id
+AND  smt.id = smc.map_table_id
+    """;
+    Map<UUID, SnapshotMapTable> mappingMap = new TreeMap<>();
+    jdbcTemplate.query(
+        sql,
+        new MapSqlParameterSource().addValue("source_id", source.getId()),
+        (rs, rowNum) -> {
+          UUID mapTableId = rs.getObject("map_table_id", UUID.class);
+          UUID fromTableId = rs.getObject("from_table_id", UUID.class);
+          UUID toTableId = rs.getObject("to_table_id", UUID.class);
+          UUID mapColumnId = rs.getObject("map_column_id", UUID.class);
+          UUID fromColumnId = rs.getObject("from_column_id", UUID.class);
+          UUID toColumnId = rs.getObject("to_column_id", UUID.class);
 
-              UUID toTableId = UUID.fromString(rs.getString("to_table_id"));
-              Optional<SnapshotTable> snapshotTable = snapshot.getTableById(toTableId);
-              if (!snapshotTable.isPresent()) {
-                throw new CorruptMetadataException(
-                    "Snapshot table referenced by snapshot source map table was not found!");
-              }
+          DatasetTable datasetTable = (DatasetTable) getTable(fromTableId, source.getDataset());
 
-              UUID id = rs.getObject("id", UUID.class);
-              List<SnapshotMapColumn> mapColumns =
-                  retrieveMapColumns(id, datasetTable.get(), snapshotTable.get());
+          SnapshotTable snapshotTable = (SnapshotTable) getTable(toTableId, snapshot);
 
-              return new SnapshotMapTable()
-                  .id(id)
-                  .fromTable(datasetTable.get())
-                  .toTable(snapshotTable.get())
-                  .snapshotMapColumns(mapColumns);
-            });
+          SnapshotMapTable snapshotMapTable =
+              mappingMap.computeIfAbsent(
+                  mapTableId,
+                  id ->
+                      new SnapshotMapTable()
+                          .id(id)
+                          .fromTable(datasetTable)
+                          .toTable(snapshotTable)
+                          .snapshotMapColumns(new ArrayList<>()));
 
-    return mapTableList;
+          snapshotMapTable
+              .getSnapshotMapColumns()
+              .add(
+                  new SnapshotMapColumn()
+                      .id(mapColumnId)
+                      .fromColumn(getColumn(datasetTable, fromColumnId))
+                      .toColumn(getColumn(snapshotTable, toColumnId)));
+
+          return snapshotMapTable;
+        });
+
+    return List.copyOf(mappingMap.values());
   }
 
-  public List<SnapshotMapColumn> retrieveMapColumns(
-      UUID mapTableId, Table fromTable, Table toTable) {
-    String sql =
-        "SELECT id, from_column_id, to_column_id"
-            + " FROM snapshot_map_column WHERE map_table_id = :map_table_id";
+  private Table getTable(UUID tableId, FSContainerInterface container)
+      throws CorruptMetadataException {
+    var table =
+        switch (container.getCollectionType()) {
+          case DATASET -> ((Dataset) container).getTableById(tableId);
+          case SNAPSHOT -> ((Snapshot) container).getTableById(tableId);
+        };
+    return table.orElseThrow(
+        () ->
+            new CorruptMetadataException(
+                "Dataset table referenced by snapshot source map table was not found"));
+  }
 
-    List<SnapshotMapColumn> mapColumns =
-        jdbcTemplate.query(
-            sql,
-            new MapSqlParameterSource().addValue("map_table_id", mapTableId),
-            (rs, rowNum) -> {
-              UUID fromId = rs.getObject("from_column_id", UUID.class);
-              Optional<Column> datasetColumn = fromTable.getColumnById(fromId);
-              if (!datasetColumn.isPresent()) {
-                throw new CorruptMetadataException(
-                    "Dataset column referenced by snapshot source map column was not found");
-              }
-
-              UUID toId = rs.getObject("to_column_id", UUID.class);
-              Optional<Column> snapshotColumn = toTable.getColumnById(toId);
-              if (!snapshotColumn.isPresent()) {
-                throw new CorruptMetadataException(
-                    "Snapshot column referenced by snapshot source map column was not found");
-              }
-
-              return new SnapshotMapColumn()
-                  .id(rs.getObject("from_column_id", UUID.class))
-                  .fromColumn(datasetColumn.get())
-                  .toColumn(snapshotColumn.get());
-            });
-
-    return mapColumns;
+  private Column getColumn(Table table, UUID columnId) {
+    return table
+        .getColumnById(columnId)
+        .orElseThrow(
+            () ->
+                new CorruptMetadataException(
+                    "Dataset column referenced by snapshot source map column was not found"));
   }
 }

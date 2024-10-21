@@ -1,16 +1,19 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestIdModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
-import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -26,6 +29,13 @@ import org.springframework.validation.Validator;
  */
 @Component
 public class SnapshotRequestValidator implements Validator {
+
+  private final ApplicationConfiguration applicationConfiguration;
+
+  @Autowired
+  public SnapshotRequestValidator(ApplicationConfiguration applicationConfiguration) {
+    this.applicationConfiguration = applicationConfiguration;
+  }
 
   @Override
   public boolean supports(Class<?> clazz) {
@@ -51,22 +61,22 @@ public class SnapshotRequestValidator implements Validator {
             }
 
             switch (contents.getMode()) {
-              case BYASSET:
-                validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
-                break;
-              case BYFULLVIEW:
+              case BYASSET -> validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
+              case BYFULLVIEW -> {
                 // no additional validation necessary
-                break;
-              case BYQUERY:
-                validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
-                break;
-              case BYROWID:
-                validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
-                break;
-              default:
-                errors.rejectValue("contents", "SnapshotContentsModeInvalid");
+              }
+              case BYQUERY -> validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
+              case BYROWID -> validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
+              case BYREQUESTID ->
+                  validateSnapshotRequestIdSpec(contents.getRequestIdSpec(), errors);
             }
           });
+    }
+  }
+
+  private void validateSnapshotRequestIdSpec(SnapshotRequestIdModel requestIdSpec, Errors errors) {
+    if (requestIdSpec == null) {
+      errors.rejectValue("contents", "SnapshotRequestIdMissing");
     }
   }
 
@@ -126,6 +136,18 @@ public class SnapshotRequestValidator implements Validator {
     }
   }
 
+  private void validateCompactIdPrefix(String compactIdPrefix, Errors errors) {
+    // TODO<DR-2985> Implement check against identifiers.org
+    if (!StringUtils.isEmpty(compactIdPrefix)) {
+      if (!applicationConfiguration.getCompactIdPrefixAllowList().contains(compactIdPrefix)) {
+        errors.rejectValue(
+            "compactIdPrefix",
+            "InvalidCompactIdPrefix",
+            "the compact id that you specified is not valid");
+      }
+    }
+  }
+
   @Override
   public void validate(@NotNull Object target, Errors errors) {
     if (target != null && target instanceof SnapshotRequestModel) {
@@ -133,6 +155,7 @@ public class SnapshotRequestValidator implements Validator {
       validateSnapshotName(snapshotRequestModel.getName(), errors);
       validateSnapshotDescription(snapshotRequestModel.getDescription(), errors);
       validateSnapshotContents(snapshotRequestModel.getContents(), errors);
+      validateCompactIdPrefix(snapshotRequestModel.getCompactIdPrefix(), errors);
     }
   }
 }

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -51,7 +52,7 @@ public class DuosClient {
 
   @VisibleForTesting
   String getStatusUrl() {
-    return String.format("%s/status", duosConfiguration.getBasePath());
+    return String.format("%s/status", duosConfiguration.basePath());
   }
 
   /**
@@ -67,7 +68,7 @@ public class DuosClient {
 
   @VisibleForTesting
   String getDatasetUrl(String duosId) {
-    return String.format("%s/api/tdr/%s", duosConfiguration.getBasePath(), duosId);
+    return String.format("%s/api/tdr/%s", duosConfiguration.basePath(), duosId);
   }
 
   /**
@@ -119,11 +120,13 @@ public class DuosClient {
   @VisibleForTesting
   static ErrorReportException convertToDataRepoException(
       HttpStatusCodeException duosEx, String duosId) {
-    return switch (duosEx.getStatusCode()) {
-      case BAD_REQUEST -> new DuosDatasetBadRequestException(
-          "DUOS dataset identifier %s is malformed".formatted(duosId), duosEx);
-      case NOT_FOUND -> new DuosDatasetNotFoundException(
-          "Could not find DUOS dataset for identifier %s".formatted(duosId), duosEx);
+    return switch (HttpStatus.valueOf(duosEx.getStatusCode().value())) {
+      case BAD_REQUEST ->
+          new DuosDatasetBadRequestException(
+              "DUOS dataset identifier %s is malformed".formatted(duosId), duosEx);
+      case NOT_FOUND ->
+          new DuosDatasetNotFoundException(
+              "Could not find DUOS dataset for identifier %s".formatted(duosId), duosEx);
       default -> new DuosInternalServerErrorException("Unexpected error from DUOS", duosEx);
     };
   }

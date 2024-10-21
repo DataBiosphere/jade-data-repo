@@ -31,10 +31,19 @@ public class Query {
     }
   }
 
+  /**
+   * Used for query validation; There should only ever be one dataset name
+   *
+   * @return List of dataset names
+   */
   public List<String> getDatasetNames() {
     DatasetNameListener listener = new DatasetNameListener();
     ParseTreeWalker.DEFAULT.walk(listener, queryStatement);
     return listener.getDatasetNames();
+  }
+
+  public String getDatasetName() {
+    return getDatasetNames().get(0);
   }
 
   public List<String> getTableNames() {

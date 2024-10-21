@@ -9,7 +9,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import java.util.Optional;
 import java.util.UUID;
 
 public class JournalRecordUpdateEntryStep implements Step {
@@ -17,8 +16,23 @@ public class JournalRecordUpdateEntryStep implements Step {
   private final AuthenticatedUserRequest userReq;
   private final UUID resourceKey;
   private final IamResourceType resourceType;
-  private final String note;
-  private UUID journalEntryKey;
+  private String note;
+  private final boolean includeFlightIdInNote;
+
+  public JournalRecordUpdateEntryStep(
+      JournalService journalService,
+      AuthenticatedUserRequest userRequest,
+      UUID resourceKey,
+      IamResourceType resourceType,
+      String note,
+      boolean includeFlightIdInNote) {
+    this.journalService = journalService;
+    this.userReq = userRequest;
+    this.resourceKey = resourceKey;
+    this.resourceType = resourceType;
+    this.note = note;
+    this.includeFlightIdInNote = includeFlightIdInNote;
+  }
 
   public JournalRecordUpdateEntryStep(
       JournalService journalService,
@@ -26,25 +40,23 @@ public class JournalRecordUpdateEntryStep implements Step {
       UUID resourceKey,
       IamResourceType resourceType,
       String note) {
-    this.journalService = journalService;
-    this.userReq = userRequest;
-    this.resourceKey = resourceKey;
-    this.resourceType = resourceType;
-    this.note = note;
-    this.journalEntryKey = null;
+    this(journalService, userRequest, resourceKey, resourceType, note, false);
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    this.journalEntryKey =
-        journalService.recordUpdate(
-            userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
+    if (includeFlightIdInNote) {
+      note = note + " (job id = " + context.getFlightId() + ")";
+    }
+    journalService.recordUpdate(
+        userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    Optional.ofNullable(this.journalEntryKey).ifPresent(this.journalService::removeJournalEntry);
+    String flightId = context.getFlightId();
+    journalService.removeJournalEntriesByFlightId(flightId);
     return StepResult.getStepResultSuccess();
   }
 }

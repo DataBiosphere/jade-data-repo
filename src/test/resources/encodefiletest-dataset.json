@@ -2,6 +2,7 @@
   "name":        "EncodeTest",
   "description": "Subset encode for test and demo",
   "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+  "dedicatedIngestServiceAccount": false,
   "schema":      {
         "tables": [
             {

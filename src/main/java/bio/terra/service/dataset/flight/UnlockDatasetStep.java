@@ -8,14 +8,18 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
 import org.springframework.transaction.TransactionSystemException;
 
 public class UnlockDatasetStep extends DefaultUndoStep {
 
   private final DatasetService datasetService;
-  private final boolean sharedLock; // default to false
+  private boolean sharedLock;
   private UUID datasetId;
+  private String lockName;
+
+  private boolean throwLockException = false;
 
   public UnlockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
     this.datasetService = datasetService;
@@ -27,6 +31,29 @@ public class UnlockDatasetStep extends DefaultUndoStep {
 
   public UnlockDatasetStep(DatasetService datasetService, boolean sharedLock) {
     this(datasetService, null, sharedLock);
+  }
+
+  public UnlockDatasetStep(
+      DatasetService datasetService, UUID datasetId, String lockName, boolean throwLockException) {
+    this.datasetService = datasetService;
+    this.datasetId = datasetId;
+    this.lockName = lockName;
+    this.throwLockException = throwLockException;
+  }
+
+  @VisibleForTesting
+  public boolean isSharedLock() {
+    return sharedLock;
+  }
+
+  @VisibleForTesting
+  public String getLockName() {
+    return lockName;
+  }
+
+  @VisibleForTesting
+  public boolean isThrowLockException() {
+    return throwLockException;
   }
 
   @Override
@@ -44,9 +71,20 @@ public class UnlockDatasetStep extends DefaultUndoStep {
                 "Expected dataset id to either be passed in or in the working map."));
       }
     }
+    if (lockName == null) {
+      lockName = context.getFlightId();
+    }
+    if (map.containsKey(DatasetWorkingMapKeys.IS_SHARED_LOCK)) {
+      sharedLock = map.get(DatasetWorkingMapKeys.IS_SHARED_LOCK, Boolean.class);
+    }
 
     try {
-      datasetService.unlock(datasetId, context.getFlightId(), sharedLock);
+      boolean successfulUnlock = datasetService.unlock(datasetId, lockName, sharedLock);
+      if (throwLockException && !successfulUnlock) {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL,
+            new DatasetLockException("Failed to unlock dataset"));
+      }
     } catch (RetryQueryException | TransactionSystemException retryQueryException) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
     }

@@ -12,7 +12,7 @@ import org.hamcrest.Matcher;
 
 public class ValidatorTestUtils {
 
-  public static void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {
+  public static void checkValidationErrorModel(ErrorModel errorModel, String... messageCodes) {
     List<String> details = errorModel.getErrorDetail();
     assertThat(
         "Main message is right",

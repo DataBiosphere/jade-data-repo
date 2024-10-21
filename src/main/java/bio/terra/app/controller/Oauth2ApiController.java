@@ -3,13 +3,11 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.common.exception.BadRequestException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.api.client.util.Charsets;
-import com.google.common.annotations.VisibleForTesting;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
@@ -21,7 +19,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -33,29 +30,33 @@ public class Oauth2ApiController {
   static final String TOKEN_REFRESH_ENDPOINT = "/oauth2/token";
   private static final String SCOPE_PARAM = "scope";
   private static final String CLIENT_SECRET_PARAM = "client_secret";
-  private final RestTemplate restTemplate;
   private final OpenIDConnectConfiguration openIDConnectConfiguration;
+  private final RestTemplate restTemplate;
 
   @Autowired
-  public Oauth2ApiController(OpenIDConnectConfiguration openIDConnectConfiguration) {
+  public Oauth2ApiController(
+      OpenIDConnectConfiguration openIDConnectConfiguration, RestTemplate restTemplate) {
     this.openIDConnectConfiguration = openIDConnectConfiguration;
-    restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
+    this.restTemplate = restTemplate;
   }
 
   @RequestMapping(value = AUTHORIZE_ENDPOINT)
   public String oauthAuthorize(HttpServletRequest request) {
+    String concatCharacter =
+        openIDConnectConfiguration.getAuthorizationEndpoint().contains("?") ? "&" : "?";
     return "redirect:"
         + openIDConnectConfiguration.getAuthorizationEndpoint()
-        + "?"
+        + concatCharacter
         + decorateAuthRedirectQueryParameters(request.getQueryString());
   }
 
   // Modify the query parameters that were passed to be compatible with configured Oauth flow
   private String decorateAuthRedirectQueryParameters(String initialParams) {
-    List<NameValuePair> parameters = URLEncodedUtils.parse(initialParams, Charsets.UTF_8);
+    List<NameValuePair> parameters = URLEncodedUtils.parse(initialParams, StandardCharsets.UTF_8);
 
     parameters.addAll(
-        URLEncodedUtils.parse(openIDConnectConfiguration.getExtraAuthParams(), Charsets.UTF_8));
+        URLEncodedUtils.parse(
+            openIDConnectConfiguration.getExtraAuthParams(), StandardCharsets.UTF_8));
 
     parameters =
         parameters.stream()
@@ -69,9 +70,9 @@ public class Oauth2ApiController {
                     return p;
                   }
                 })
-            .collect(Collectors.toList());
+            .toList();
 
-    return URLEncodedUtils.format(parameters, Charsets.UTF_8);
+    return URLEncodedUtils.format(parameters, StandardCharsets.UTF_8);
   }
 
   @RequestMapping(
@@ -94,17 +95,13 @@ public class Oauth2ApiController {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-    return getRestTemplate()
-        .exchange(
-            actualEndpoint,
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            JsonNode.class);
+    return restTemplate.exchange(
+        actualEndpoint, HttpMethod.POST, new HttpEntity<>(requestBody, headers), JsonNode.class);
   }
 
   // Modify the form url encoded body and add the client secret if it was not specified
   private String addClientSecret(String requestBody) {
-    List<NameValuePair> parameters = URLEncodedUtils.parse(requestBody, Charsets.UTF_8);
+    List<NameValuePair> parameters = URLEncodedUtils.parse(requestBody, StandardCharsets.UTF_8);
 
     if (!StringUtils.isEmpty(openIDConnectConfiguration.getClientSecret())
         && parameters.stream()
@@ -117,11 +114,6 @@ public class Oauth2ApiController {
               CLIENT_SECRET_PARAM, openIDConnectConfiguration.getClientSecret()));
     }
 
-    return URLEncodedUtils.format(parameters, Charsets.UTF_8);
-  }
-
-  @VisibleForTesting
-  RestTemplate getRestTemplate() {
-    return restTemplate;
+    return URLEncodedUtils.format(parameters, StandardCharsets.UTF_8);
   }
 }

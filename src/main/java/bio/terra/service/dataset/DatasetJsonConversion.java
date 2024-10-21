@@ -19,6 +19,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,13 +29,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
+@Component
 public final class DatasetJsonConversion {
 
-  // only allow use of static methods
-  private DatasetJsonConversion() {}
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
 
-  public static Dataset datasetRequestToDataset(DatasetRequestModel datasetRequest) {
+  public DatasetJsonConversion(MetadataDataAccessUtils metadataDataAccessUtils) {
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
+  }
+
+  public static Dataset datasetRequestToDataset(
+      DatasetRequestModel datasetRequest, UUID datasetId) {
     Map<String, DatasetTable> tablesMap = new HashMap<>();
     Map<String, Relationship> relationshipsMap = new HashMap<>();
     List<AssetSpecification> assetSpecifications = new ArrayList<>();
@@ -71,6 +78,7 @@ public final class DatasetJsonConversion {
 
     return new Dataset(
             new DatasetSummary()
+                .id(datasetId)
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)
@@ -78,16 +86,17 @@ public final class DatasetJsonConversion {
                 .secureMonitoringEnabled(enableSecureMonitoring)
                 .phsId(datasetRequest.getPhsId())
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
-                .properties(datasetRequest.getProperties()))
+                .properties(datasetRequest.getProperties())
+                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
+                .tags(TagUtils.sanitizeTags(datasetRequest.getTags())))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
   }
 
-  public static DatasetModel populateDatasetModelFromDataset(
+  public DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
-      MetadataDataAccessUtils metadataDataAccessUtils,
       AuthenticatedUserRequest userRequest) {
     DatasetModel datasetModel =
         new DatasetModel()
@@ -97,7 +106,10 @@ public final class DatasetJsonConversion {
             .createdDate(dataset.getCreatedDate().toString())
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
             .phsId(dataset.getPhsId())
-            .selfHosted(dataset.isSelfHosted());
+            .selfHosted(dataset.isSelfHosted())
+            .predictableFileIds(dataset.hasPredictableFileIds())
+            .tags(dataset.getTags())
+            .resourceLocks(dataset.getResourceLocks());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;
@@ -320,11 +332,12 @@ public final class DatasetJsonConversion {
 
   private static List<AssetRelationship> processAssetRelationships(
       List<String> assetRelationshipNames, Map<String, Relationship> relationships) {
-    return Collections.unmodifiableList(
-        relationships.entrySet().stream()
-            .filter(map -> assetRelationshipNames.contains(map.getKey()))
-            .map(entry -> new AssetRelationship().datasetRelationship(entry.getValue()))
-            .collect(Collectors.toList()));
+    return assetRelationshipNames.stream()
+        .filter(relationships::containsKey)
+        .map(
+            relationshipName ->
+                new AssetRelationship().datasetRelationship(relationships.get(relationshipName)))
+        .toList();
   }
 
   public static AssetModel assetModelFromAssetSpecification(AssetSpecification spec) {

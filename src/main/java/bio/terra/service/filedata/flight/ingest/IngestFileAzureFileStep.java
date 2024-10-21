@@ -57,15 +57,17 @@ public class IngestFileAzureFileStep implements Step {
               .gspath(fsFileInfo.getCloudPath())
               .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
               .checksumMd5(fsFileInfo.getChecksumMd5())
+              .userSpecifiedMd5(fsFileInfo.isUserSpecifiedMd5())
               .size(fsFileInfo.getSize())
               .loadTag(fileLoadModel.getLoadTag());
 
       try {
-        tableDao.createFileMetadata(newFile, storageAuthInfo);
+        tableDao.createFileMetadata(dataset.getId().toString(), newFile, storageAuthInfo);
         // Retrieve to build the complete FSItem
         FSItem fsItem =
             tableDao.retrieveById(
                 CollectionType.DATASET,
+                dataset.getId(),
                 dataset.getId(),
                 fileId,
                 1,
@@ -89,7 +91,7 @@ public class IngestFileAzureFileStep implements Step {
             context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     try {
-      tableDao.deleteFileMetadata(itemId, storageAuthInfo);
+      tableDao.deleteFileMetadata(dataset.getId().toString(), itemId, storageAuthInfo);
     } catch (TableServiceException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }

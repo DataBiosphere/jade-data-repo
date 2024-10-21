@@ -8,6 +8,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,16 @@ public class LockDatasetStep implements Step {
     // for most cases, this should be set to false because we expect the dataset metadata record to
     // exist.
     this.suppressNotFoundException = suppressNotFoundException;
+  }
+
+  @VisibleForTesting
+  public boolean isSharedLock() {
+    return sharedLock;
+  }
+
+  @VisibleForTesting
+  public boolean shouldSuppressNotFoundException() {
+    return suppressNotFoundException;
   }
 
   @Override

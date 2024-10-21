@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -18,10 +19,7 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import com.google.api.client.util.Lists;
 import com.google.cloud.billing.v1.ProjectBillingInfo;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
@@ -141,20 +139,13 @@ public class GoogleBillingServiceTest {
   }
 
   private GoogleProjectResource buildProjectResource() throws Exception {
-    String role = "roles/bigquery.jobUser";
-    String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
-    List<String> stewardsGroupEmailList = Lists.newArrayList();
-    stewardsGroupEmailList.add(stewardsGroupEmail);
-    Map<String, List<String>> roleToStewardMap = new HashMap<>();
-    roleToStewardMap.put(role, stewardsGroupEmailList);
-
     ResourceInfo resourceInfo = bufferService.handoutResource(false);
     // create project metadata
     return projectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
         profile,
-        roleToStewardMap,
         GoogleRegion.DEFAULT_GOOGLE_REGION,
-        Map.of("test-name", "google-billing-service-test"));
+        Map.of("test-name", "google-billing-service-test"),
+        CollectionType.DATASET);
   }
 }

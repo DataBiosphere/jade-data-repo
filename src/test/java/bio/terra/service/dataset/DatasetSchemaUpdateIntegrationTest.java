@@ -5,13 +5,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +20,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -38,7 +38,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Rule @Autowired public TestJobWatcher testWatcher;
   private UUID profileId;
   private UUID datasetId;
 
@@ -163,5 +162,30 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .collect(Collectors.toList())
             .containsAll(List.of(newTableColumnName, anotherNewColumnName));
     assertThat("The new table includes the new columns in the update response", columns);
+  }
+
+  @Test
+  public void testDatasetAddNewRelationshipSuccess() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
+    datasetId = datasetSummaryModel.getId();
+    String relationshipName = "testRelationship";
+    RelationshipModel relationshipModel =
+        new RelationshipModel()
+            .name(relationshipName)
+            .from(new RelationshipTermModel().table("thetable").column("thecolumn"))
+            .to(new RelationshipTermModel().table("anothertable").column("anothercolumn"));
+
+    DatasetSchemaUpdateModel updateModel =
+        new DatasetSchemaUpdateModel()
+            .description("Integration test relationship addition")
+            .changes(
+                new DatasetSchemaUpdateModelChanges().addRelationships(List.of(relationshipModel)));
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    Optional<RelationshipModel> createdRelationship =
+        response.getSchema().getRelationships().stream()
+            .filter(r -> r.getName().equals(relationshipName))
+            .findFirst();
+    assertThat("The new relationship is in the update response", createdRelationship.isPresent());
   }
 }

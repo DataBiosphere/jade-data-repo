@@ -1,29 +1,30 @@
 package bio.terra.service.load;
 
-import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadResultModel;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import com.google.common.annotations.VisibleForTesting;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.apache.commons.codec.binary.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -33,15 +34,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class LoadDao {
-  private final Logger logger = LoggerFactory.getLogger(LoadDao.class);
+  private static final Logger logger = LoggerFactory.getLogger(LoadDao.class);
+  private static final LoadLockMapper LOAD_LOCK_MAPPER = new LoadLockMapper();
+  private static final String LOAD_TAG = "load_tag";
+  private static final String LOCKING_FLIGHT_ID = "locking_flight_id";
+  private static final String DATASET_ID = "dataset_id";
 
-  private NamedParameterJdbcTemplate jdbcTemplate;
-  private ConfigurationService configService;
+  private final NamedParameterJdbcTemplate jdbcTemplate;
 
   @Autowired
-  public LoadDao(NamedParameterJdbcTemplate jdbcTemplate, ConfigurationService configService) {
+  public LoadDao(NamedParameterJdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
-    this.configService = configService;
   }
 
   // -- load tags public methods --
@@ -50,14 +53,19 @@ public class LoadDao {
   // are detected. We lock the table so that we avoid serialization errors.
 
   /**
-   * We implement a rule that one load job can use one load tag at a time. That rule is needed to
-   * control concurrent operations. For example, a delete-by-load-tag cannot compete with a load;
-   * two loads cannot run in parallel with the same load tag - it confuses the algorithm for
-   * re-running a load with a load tag and skipping already-loaded files.
+   * We implement a rule that concurrent load operations (e.g. file ingests) to a dataset are not
+   * allowed to use the same load tag. That rule is needed to control concurrent operations. For
+   * example, a delete-by-load-tag cannot compete with a load; two loads to a dataset cannot run in
+   * parallel with the same load tag - it confuses the algorithm for re-running a load with a load
+   * tag and skipping already-loaded files.
    *
-   * <p>This call and the unlock call use a load table in the database to record that a load tag is
-   * in use. The load tag is associated with a load id (a guid); that guid is a foreign key to the
-   * load_file table that maintains the state of files being loaded.
+   * <p>Note that the scoping of this lock to the impacted dataset means that a load tag may be used
+   * simultaneously across different datasets with no conflict.
+   *
+   * <p>This call and the unlock call use a {@code load_lock} table in the database to record that a
+   * load tag is in use within a dataset. The load tag is associated with a load id (a UUID); that
+   * UUID is a foreign key to the {@code load_file} table that maintains the state of files being
+   * loaded.
    *
    * <p>We expect conflicts on load tags to be rare. The typical case will be: a load starts, runs,
    * and ends without conflict and with a re-run.
@@ -65,93 +73,128 @@ public class LoadDao {
    * <p>We learned from the first implementation of this code that when there were conflicts, we
    * would get serialization errors from Postgres. Those require building retry logic. Instead, we
    * chose to use table locks to serialize access to the load table during the time we are setting
-   * and freeing the our load lock state.
+   * and freeing our load lock state.
    *
    * <p>A lock is taken by creating the load tag row and storing the flight id holding the lock. The
-   * lock is freed by deleting the load tag row. Code can safely re-lock a load tag lock it holds
-   * and unlock a load tag lock it has freed.
+   * lock is freed by deleting the load tag row. Code can safely re-lock a load tag in a dataset if
+   * it holds the existing lock, and unlock a load tag in a dataset if it has already freed the
+   * lock.
    *
    * <p>There is never a case where a lock row is updated. They are only ever inserted or deleted.
+   * The presence of a row in the {@code load_lock} table indicates that a lock is actively held.
    *
-   * @param loadTag tag identifying this load
+   * @param loadLockKey load tag identifying this file load, scoped to the destination dataset
    * @param flightId flight id taking the lock
-   * @return Load object including the load id
+   * @return {@link LoadLock} object including the load id
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public Load lockLoad(String loadTag, String flightId) throws InterruptedException {
-    jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
+  public LoadLock lockLoad(LoadLockKey loadLockKey, String flightId) {
+    jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load_lock IN EXCLUSIVE MODE");
 
     String upsert =
-        "INSERT INTO load (load_tag, locked, locking_flight_id)"
-            + " VALUES (:load_tag, true, :flight_id)"
-            + " ON CONFLICT ON CONSTRAINT load_load_tag_key DO NOTHING";
+        """
+        INSERT INTO load_lock (load_tag, dataset_id, locking_flight_id)
+        VALUES (:load_tag, :dataset_id, :locking_flight_id)
+        ON CONFLICT ON CONSTRAINT load_load_tag_dataset_id_key DO NOTHING
+        """;
 
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("load_tag", loadTag).addValue("flight_id", flightId);
-    DaoKeyHolder keyHolder = new DaoKeyHolder();
-    int rows = jdbcTemplate.update(upsert, params, keyHolder);
-    Load load;
-    if (rows == 0) {
-      // We did not insert. Therefore, someone has the load tag locked.
-      // Retrieve it, in case it is us re-locking
-      load = lookupLoadByTag(loadTag);
-      if (load == null) {
-        throw new CorruptMetadataException("Load row should exist! Load tag: " + loadTag);
+        new MapSqlParameterSource()
+            .addValue(LOAD_TAG, loadLockKey.loadTag())
+            .addValue(DATASET_ID, loadLockKey.datasetId())
+            .addValue(LOCKING_FLIGHT_ID, flightId);
+    int rowsInserted = jdbcTemplate.update(upsert, params);
+    LoadLock loadLock = lookupLoadLock(loadLockKey);
+    if (rowsInserted == 0) {
+      if (loadLock == null) {
+        throw new CorruptMetadataException("Load lock row should exist! %s".formatted(loadLockKey));
       }
-
-      // It is locked by someone else
-      if (!StringUtils.equals(load.getLockingFlightId(), flightId)) {
+      // We did not insert. Therefore, some flight is actively using the load tag to perform a load
+      // operation in this dataset. It could be this flight attempting to take out the same lock, or
+      // a different flight.
+      String lockingFlightId = loadLock.lockingFlightId();
+      if (!Objects.equals(lockingFlightId, flightId)) {
         throw new LoadLockedException(
-            "Load '" + loadTag + "' is locked by flight '" + load.getLockingFlightId() + "'");
+            "File load operation with %s is locked by flight %s"
+                .formatted(loadLockKey, lockingFlightId));
       }
-    } else {
-      load =
-          new Load()
-              .id(keyHolder.getId())
-              .loadTag(keyHolder.getString("load_tag"))
-              .locked(keyHolder.getField("locked", Boolean.class).orElse(false))
-              .lockingFlightId(keyHolder.getString("locking_flight_id"));
     }
-
-    return load;
+    return loadLock;
   }
 
   /**
-   * Unlocking means deleting the specific row for our load tag and flight id. If no row is deleted,
-   * we assume this is a redo of the unlock and is OK. That can happen if a flight successfully
-   * unlocks and then fails. When the first flight recovers it will retry unlocking. We don't want
-   * that to be an error.
+   * Unlocking means deleting the specific row for our load lock key and flight id. The load lock
+   * key identifies the dataset targeted by a load operation, and may also identify the load tag
+   * used. Callers may not know the name of the load tag to clear (e.g. when clearing a stuck lock
+   * on a dataset, we also want to clear any locks stuck on load tags in the dataset). In such
+   * cases, when the load tag is unspecified then this unlock will delete any row present for the
+   * dataset and flight ID, making no attempt to filter on load tag.
+   *
+   * <p>If no row is deleted, we assume this is a redo of the unlock and is OK. That can happen if a
+   * flight successfully unlocks and then fails. When the first flight recovers it will retry
+   * unlocking. We don't want that to be an error.
    *
    * <p>If a row is deleted, then we have performed the unlock. So we don't check the affected row
    * count.
    *
-   * @param loadTag tag identifying this load
+   * @param loadLockKey load tag identifying this file load, scoped to the destination dataset
    * @param flightId flight id releasing the lock
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void unlockLoad(String loadTag, String flightId) {
-    jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
+  public void unlockLoad(LoadLockKey loadLockKey, String flightId) {
+    jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load_lock IN EXCLUSIVE MODE");
 
     String delete =
-        "DELETE FROM load WHERE load_tag = :load_tag AND locking_flight_id = :flight_id";
+        """
+        DELETE FROM load_lock
+        WHERE dataset_id = :dataset_id
+        AND locking_flight_id = :locking_flight_id
+        """;
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("load_tag", loadTag).addValue("flight_id", flightId);
+        new MapSqlParameterSource()
+            .addValue(DATASET_ID, loadLockKey.datasetId())
+            .addValue(LOCKING_FLIGHT_ID, flightId);
+    String loadTag = loadLockKey.loadTag();
+    if (loadTag != null) {
+      delete += " AND load_tag = :load_tag";
+      params.addValue(LOAD_TAG, loadTag);
+    }
     jdbcTemplate.update(delete, params);
   }
 
-  private Load lookupLoadByTag(String loadTag) {
+  private LoadLock lookupLoadLock(LoadLockKey loadTagLockKey) {
     String sql =
-        "SELECT id, load_tag, locked, locking_flight_id FROM load WHERE load_tag = :load_tag";
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("load_tag", loadTag);
-    return jdbcTemplate.queryForObject(
-        sql,
-        params,
-        (rs, rowNum) ->
-            new Load()
-                .id(rs.getObject("id", UUID.class))
-                .loadTag(rs.getString("load_tag"))
-                .locked(rs.getBoolean("locked"))
-                .lockingFlightId(rs.getString("locking_flight_id")));
+        """
+        SELECT id, load_tag, dataset_id, locking_flight_id
+        FROM load_lock
+        WHERE load_tag = :load_tag AND dataset_id = :dataset_id
+        """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue(LOAD_TAG, loadTagLockKey.loadTag())
+            .addValue(DATASET_ID, loadTagLockKey.datasetId());
+    return jdbcTemplate.queryForObject(sql, params, LOAD_LOCK_MAPPER);
+  }
+
+  @VisibleForTesting
+  List<LoadLock> lookupLoadLocks(UUID datasetId) {
+    String sql =
+        """
+        SELECT id, load_tag, dataset_id, locking_flight_id
+        FROM load_lock
+        WHERE dataset_id = :dataset_id
+        """;
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue(DATASET_ID, datasetId);
+    return jdbcTemplate.query(sql, params, LOAD_LOCK_MAPPER);
+  }
+
+  private static class LoadLockMapper implements RowMapper<LoadLock> {
+    public LoadLock mapRow(ResultSet rs, int rowNum) throws SQLException {
+      var loadLockKey =
+          new LoadLockKey(rs.getString(LOAD_TAG), rs.getObject(DATASET_ID, UUID.class));
+      return new LoadLock(
+          rs.getObject("id", UUID.class), loadLockKey, rs.getString(LOCKING_FLIGHT_ID));
+    }
   }
 
   // -- load files methods --
@@ -176,21 +219,24 @@ public class LoadDao {
   @Transactional
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
     final String sql =
-        "INSERT INTO load_file "
-            + " (load_id, source_path, target_path, mime_type, description, state)"
-            + " VALUES(?,?,?,?,?,?)";
+        """
+        INSERT INTO load_file
+        (load_id, source_path, target_path, mime_type, description, state, checksum_md5)
+        VALUES(?,?,?,?,?,?,?)
+        """;
 
     JdbcTemplate baseJdbcTemplate = jdbcTemplate.getJdbcTemplate();
     baseJdbcTemplate.batchUpdate(
         sql,
         new BatchPreparedStatementSetter() {
-          public void setValues(PreparedStatement ps, int i) throws SQLException {
+          public void setValues(@NotNull PreparedStatement ps, int i) throws SQLException {
             ps.setObject(1, loadId);
             ps.setString(2, loadFileModelList.get(i).getSourcePath());
             ps.setString(3, loadFileModelList.get(i).getTargetPath());
             ps.setString(4, loadFileModelList.get(i).getMimeType());
             ps.setString(5, loadFileModelList.get(i).getDescription());
             ps.setString(6, BulkLoadFileState.NOT_TRIED.toString());
+            ps.setString(7, loadFileModelList.get(i).getMd5());
           }
 
           public int getBatchSize() {
@@ -205,6 +251,7 @@ public class LoadDao {
    * @param loadId Load ID tying all these file ingests together
    * @param loadFileModelStream The stream to be chunked and processed over
    */
+  @Transactional
   public void populateFiles(
       UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream, int batchSize) {
     Spliterator<BulkLoadFileModel> split = loadFileModelStream.spliterator();
@@ -289,47 +336,35 @@ public class LoadDao {
     return jdbcTemplate.query(
         bulkLoadResultSql,
         params,
-        (ResultSetExtractor<BulkLoadResultModel>)
-            rs -> {
-              BulkLoadResultModel result =
-                  new BulkLoadResultModel()
-                      .succeededFiles(0)
-                      .failedFiles(0)
-                      .notTriedFiles(0)
-                      .totalFiles(0);
+        rs -> {
+          BulkLoadResultModel result =
+              new BulkLoadResultModel()
+                  .succeededFiles(0)
+                  .failedFiles(0)
+                  .notTriedFiles(0)
+                  .totalFiles(0);
 
-              while (rs.next()) {
-                BulkLoadFileState state = BulkLoadFileState.fromValue(rs.getString("state"));
-                if (state == null) {
-                  throw new CorruptMetadataException("Invalid file state");
-                }
-                switch (state) {
-                  case RUNNING:
-                    logger.info("Unexpected running loads: " + rs.getInt("statecount"));
-                    throw new CorruptMetadataException("No loads should be running!");
-
-                  case FAILED:
-                    result.setFailedFiles(rs.getInt("statecount"));
-                    break;
-
-                  case NOT_TRIED:
-                    result.setNotTriedFiles(rs.getInt("statecount"));
-                    break;
-
-                  case SUCCEEDED:
-                    result.setSucceededFiles(rs.getInt("statecount"));
-                    break;
-
-                  default:
-                    throw new CorruptMetadataException("Invalid load state");
-                }
-                result.setTotalFiles(
-                    result.getFailedFiles()
-                        + result.getNotTriedFiles()
-                        + result.getSucceededFiles());
+          while (rs.next()) {
+            BulkLoadFileState state = BulkLoadFileState.fromValue(rs.getString("state"));
+            if (state == null) {
+              throw new CorruptMetadataException("Invalid file state");
+            }
+            int statecount = rs.getInt("statecount");
+            switch (state) {
+              case RUNNING -> {
+                logger.info("Unexpected running loads: {}", statecount);
+                throw new CorruptMetadataException("No loads should be running!");
               }
-              return result;
-            });
+              case FAILED -> result.setFailedFiles(statecount);
+              case NOT_TRIED -> result.setNotTriedFiles(statecount);
+              case SUCCEEDED -> result.setSucceededFiles(statecount);
+              default -> throw new CorruptMetadataException("Invalid load state");
+            }
+            result.setTotalFiles(
+                result.getFailedFiles() + result.getNotTriedFiles() + result.getSucceededFiles());
+          }
+          return result;
+        });
   }
 
   public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {
@@ -367,23 +402,25 @@ public class LoadDao {
     return jdbcTemplate.query(
         sql,
         params,
-        (rs, rowNum) -> {
-          return new BulkLoadHistoryModel()
-              .sourcePath(rs.getString("source_path"))
-              .targetPath(rs.getString("target_path"))
-              .state(BulkLoadFileState.fromValue(rs.getString("state")))
-              .fileId(rs.getString("file_id"))
-              .checksumCRC(rs.getString("checksum_crc32c"))
-              .checksumMD5(rs.getString("checksum_md5"))
-              .error(rs.getString("error"));
-        });
+        (rs, rowNum) ->
+            new BulkLoadHistoryModel()
+                .sourcePath(rs.getString("source_path"))
+                .targetPath(rs.getString("target_path"))
+                .state(BulkLoadFileState.fromValue(rs.getString("state")))
+                .fileId(rs.getString("file_id"))
+                .checksumCRC(rs.getString("checksum_crc32c"))
+                .checksumMD5(rs.getString("checksum_md5"))
+                .error(rs.getString("error")));
   }
 
   // -- private methods --
   private List<LoadFile> queryByState(UUID loadId, BulkLoadFileState state, Integer limit) {
     String sql =
-        "SELECT source_path, target_path, mime_type, description, state, flight_id, file_id, error"
-            + " FROM load_file WHERE load_id = :load_id AND state = :state";
+        """
+      SELECT source_path, target_path, mime_type, description, state, flight_id, file_id, error,
+      checksum_md5
+      FROM load_file WHERE load_id = :load_id AND state = :state
+      """;
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("load_id", loadId).addValue("state", state.toString());
 
@@ -405,7 +442,8 @@ public class LoadDao {
                 .state(BulkLoadFileState.fromValue(rs.getString("state")))
                 .flightId(rs.getString("flight_id"))
                 .fileId(rs.getString("file_id"))
-                .error(rs.getString("error")));
+                .error(rs.getString("error"))
+                .md5(rs.getString("checksum_md5")));
   }
 
   private void updateLoadFile(

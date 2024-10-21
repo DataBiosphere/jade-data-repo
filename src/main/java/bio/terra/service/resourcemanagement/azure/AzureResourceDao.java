@@ -49,16 +49,20 @@ public class AzureResourceDao {
           + " azure_application_deployment_name, azure_resource_group_name, azure_synapse_workspace, "
           + " default_region, storage_account_prefix, storage_account_sku_type, "
           + " profile_id, sa.id AS storage_account_resource_id, name, datacontainer, metadatacontainer, dbname, "
-          + " sr.region as region, flightid "
+          + " sr.region as region, flightid, toplevelcontainer "
           + "FROM storage_account_resource sa "
           + "JOIN application_deployment_resource da ON sa.application_resource_id = da.id "
           + "LEFT JOIN dataset_storage_account dsa on sa.id = dsa.storage_account_resource_id "
-          + "LEFT JOIN storage_resource sr on dsa.dataset_id = sr.dataset_id AND sr.cloud_resource='STORAGE_ACCOUNT' "
-          + "WHERE sa.marked_for_delete = false";
+          + "LEFT JOIN storage_resource sr on dsa.dataset_id = sr.dataset_id AND sr.cloud_resource='STORAGE_ACCOUNT' ";
+
+  private static final String sqlStorageAccountRetrievedByApplicationResource =
+      sqlStorageAccountRetrieve
+          + "WHERE sa.marked_for_delete = :marked_for_delete AND application_resource_id = :application_resource_id";
   private static final String sqlStorageAccountRetrievedById =
-      sqlStorageAccountRetrieve + " AND sa.id = :id";
+      sqlStorageAccountRetrieve + "WHERE sa.marked_for_delete = false AND sa.id = :id";
   private static final String sqlStorageAccountRetrievedByName =
-      sqlStorageAccountRetrieve + " AND sa.name = :name";
+      sqlStorageAccountRetrieve
+          + "WHERE sa.marked_for_delete = false AND sa.name = :name AND sa.toplevelcontainer = :toplevelcontainer";
 
   // Given a profile id, compute the count of all references to projects associated with the profile
   private static final String sqlProfileProjectRefs =
@@ -152,6 +156,19 @@ public class AzureResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("azure_application_deployment_name", applicationName);
     return retrieveApplicationDeploymentBy(sqlApplicationRetrieveByDepName, params);
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<AzureStorageAccountResource> retrieveStorageAccountsByApplicationResource(
+      UUID applicationResourceId, boolean markedForDelete) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("application_resource_id", applicationResourceId)
+            .addValue("marked_for_delete", markedForDelete);
+    return retrieveStorageAccountsBy(sqlStorageAccountRetrievedByApplicationResource, params);
   }
 
   @Transactional(
@@ -288,31 +305,35 @@ public class AzureResourceDao {
   /**
    * Insert a new row into the storage_account_resource metadata table and give the provided flight
    * the lock by setting the flightid column. If there already exists a row with this storage
-   * account name, return null instead of throwing an exception.
+   * account name and top level container, return null instead of throwing an exception.
    *
    * @return an AzureStorageAccountResource if the insert succeeded, null otherwise
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public AzureStorageAccountResource createAndLockStorageAccount(
+  public AzureStorageAccountResource createAndLockStorage(
       String storageAccountName,
+      String collectionId,
       AzureApplicationDeploymentResource applicationResource,
       AzureRegion region,
       String flightId) {
     // Put an end to serialization errors here. We only come through here if we really need to
-    // create
-    // the storage, so this is not on the path of most storage account lookups.
+    // create the storage, so this is not on the path of most storage account lookups.
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE storage_account_resource IN EXCLUSIVE MODE");
 
     String sql =
-        "INSERT INTO storage_account_resource (application_resource_id, name, datacontainer, "
-            + "metadatacontainer, dbname, flightid) VALUES "
-            + "(:application_resource_id, :name, :datacontainer, :metadatacontainer, :dbname, :flightid) "
-            + "ON CONFLICT ON CONSTRAINT storage_account_resource_name_key DO NOTHING";
+        """
+      INSERT INTO storage_account_resource (application_resource_id, name, toplevelcontainer,
+        datacontainer, metadatacontainer, dbname, flightid) VALUES
+        (:application_resource_id, :name, :toplevelcontainer, :datacontainer, :metadatacontainer,
+        :dbname, :flightid)
+      ON CONFLICT ON CONSTRAINT storage_account_resource_name_toplevelcontainer_key DO NOTHING
+    """;
+
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("application_resource_id", applicationResource.getId())
             .addValue("name", storageAccountName)
-            // TODO<muscles>: move to constants
+            .addValue("toplevelcontainer", collectionId)
             .addValue("datacontainer", "data")
             .addValue("metadatacontainer", "metadata")
             .addValue("dbname", storageAccountName)
@@ -327,6 +348,7 @@ public class AzureResourceDao {
           .profileId(applicationResource.getProfileId())
           .applicationResource(applicationResource)
           .name(storageAccountName)
+          .topLevelContainer(collectionId)
           .dataContainer("data")
           .metadataContainer("metadata")
           .dbName(storageAccountName)
@@ -342,21 +364,29 @@ public class AzureResourceDao {
    * an error
    *
    * @param storageAccountName storage account to unlock
+   * @param collectionId the id of the dataset or snapshot to unlock the storage account for
    * @param flightId flight trying to unlock it
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void unlockStorageAccount(String storageAccountName, String flightId) {
+  public void unlockStorageAccount(
+      String storageAccountName, String collectionId, String flightId) {
     String sql =
-        "UPDATE storage_account_resource SET flightid = NULL "
-            + "WHERE name = :name AND flightid = :flightid";
+        """
+        UPDATE storage_account_resource SET flightid = NULL
+        WHERE name = :name
+        AND toplevelcontainer = :toplevelcontainer
+        AND flightid = :flightid
+        """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", storageAccountName)
+            .addValue("toplevelcontainer", collectionId)
             .addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);
     logger.info(
-        "Storage account {} was {}",
+        "Storage account {} with container {} was {}",
         storageAccountName,
+        collectionId,
         (numRowsUpdated > 0 ? "unlocked" : "not locked"));
   }
 
@@ -366,6 +396,7 @@ public class AzureResourceDao {
    * and application name.
    *
    * @param storageAccountName name of the storage account
+   * @param collectionId id of the collection (e.g. dataset or snapshot)
    * @param applicationName application name in which we are searching for the storage account
    * @return a reference to the storage account as a POJO {@link AzureStorageAccountResource} or
    *     null if not found
@@ -375,8 +406,11 @@ public class AzureResourceDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public AzureStorageAccountResource getStorageAccount(
-      String storageAccountName, String applicationName) {
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", storageAccountName);
+      String storageAccountName, String collectionId, String applicationName) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("name", storageAccountName)
+            .addValue("toplevelcontainer", collectionId);
     AzureStorageAccountResource storageAccountResource =
         retrieveStorageAccountBy(sqlStorageAccountRetrievedByName, params);
     if (storageAccountResource == null) {
@@ -418,21 +452,30 @@ public class AzureResourceDao {
   }
 
   /**
-   * Delete the storage_account_resource metadata row associated with the storage account, provided
-   * the row is either unlocked or locked by the provided flight.
+   * Mark the storage_account_resource metadata row associated with the storage account for delete,
+   * provided the row is either unlocked or locked by the provided flight.
+   *
+   * <p>Actual delete is performed when the associated application deployment is deleted
    *
    * @param storageAccountName name of storage account to delete
-   * @param flightId flight trying to do the delete
+   * @param flightId flight trying to delete storage account
    * @return true if a row is deleted, false otherwise
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean deleteStorageAccountMetadata(String storageAccountName, String flightId) {
+  public boolean markForDeleteStorageAccountMetadata(
+      String storageAccountName, String topLevelContainer, String flightId) {
     String sql =
-        "DELETE FROM storage_account_resource "
-            + "WHERE name = :name AND (flightid = :flightid OR flightid IS NULL)";
+        """
+      UPDATE storage_account_resource SET marked_for_delete = true
+      WHERE name = :name
+      AND toplevelcontainer = :topLevelContainer
+      AND (flightid = :flightid OR flightid IS NULL)
+      """;
+
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", storageAccountName)
+            .addValue("topLevelContainer", topLevelContainer)
             .addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);
     return (numRowsUpdated == 1);
@@ -441,46 +484,7 @@ public class AzureResourceDao {
   private AzureStorageAccountResource retrieveStorageAccountBy(
       String sql, MapSqlParameterSource params) {
     List<AzureStorageAccountResource> storageAccountResources =
-        jdbcTemplate.query(
-            sql,
-            params,
-            (rs, rowNum) -> {
-              // Make deployed application resource and a storage account resource from the query
-              // result
-              AzureApplicationDeploymentResource applicationResource =
-                  new AzureApplicationDeploymentResource()
-                      .id(rs.getObject("application_resource_id", UUID.class))
-                      .profileId(rs.getObject("profile_id", UUID.class))
-                      .azureApplicationDeploymentId(rs.getString("azure_application_deployment_id"))
-                      .azureApplicationDeploymentName(
-                          rs.getString("azure_application_deployment_name"))
-                      .azureResourceGroupName(rs.getString("azure_resource_group_name"))
-                      .azureSynapseWorkspaceName(rs.getString("azure_synapse_workspace"))
-                      .defaultRegion(AzureRegion.fromName(rs.getString("default_region")))
-                      .storageAccountPrefix(rs.getString("storage_account_prefix"))
-                      .storageAccountSkuType(
-                          AzureStorageAccountSkuType.valueOf(
-                              rs.getString("storage_account_sku_type")));
-
-              AzureRegion region =
-                  Optional.ofNullable(rs.getString("region"))
-                      .map(AzureRegion::valueOf)
-                      .orElse(applicationResource.getDefaultRegion());
-
-              // Since storing the region was not in the original data, we supply the
-              // default if a value is not present.
-              return new AzureStorageAccountResource()
-                  .applicationResource(applicationResource)
-                  .profileId(rs.getObject("profile_id", UUID.class))
-                  .resourceId(rs.getObject("storage_account_resource_id", UUID.class))
-                  .name(rs.getString("name"))
-                  .dataContainer(rs.getString("datacontainer"))
-                  .metadataContainer(rs.getString("metadatacontainer"))
-                  .dbName(rs.getString("dbname"))
-                  .flightId(rs.getString("flightid"))
-                  .region(region);
-            });
-
+        retrieveStorageAccountsBy(sql, params);
     if (storageAccountResources.size() > 1) {
       throw new CorruptMetadataException(
           "Found more than one result for storage account resource: "
@@ -488,5 +492,47 @@ public class AzureResourceDao {
     }
 
     return (storageAccountResources.size() == 0 ? null : storageAccountResources.get(0));
+  }
+
+  private List<AzureStorageAccountResource> retrieveStorageAccountsBy(
+      String sql, MapSqlParameterSource params) {
+    return jdbcTemplate.query(
+        sql,
+        params,
+        (rs, rowNum) -> {
+          // Make deployed application resource and a storage account resource from the query
+          // result
+          AzureApplicationDeploymentResource applicationResource =
+              new AzureApplicationDeploymentResource()
+                  .id(rs.getObject("application_resource_id", UUID.class))
+                  .profileId(rs.getObject("profile_id", UUID.class))
+                  .azureApplicationDeploymentId(rs.getString("azure_application_deployment_id"))
+                  .azureApplicationDeploymentName(rs.getString("azure_application_deployment_name"))
+                  .azureResourceGroupName(rs.getString("azure_resource_group_name"))
+                  .azureSynapseWorkspaceName(rs.getString("azure_synapse_workspace"))
+                  .defaultRegion(AzureRegion.fromName(rs.getString("default_region")))
+                  .storageAccountPrefix(rs.getString("storage_account_prefix"))
+                  .storageAccountSkuType(
+                      AzureStorageAccountSkuType.valueOf(rs.getString("storage_account_sku_type")));
+
+          AzureRegion region =
+              Optional.ofNullable(rs.getString("region"))
+                  .map(AzureRegion::valueOf)
+                  .orElse(applicationResource.getDefaultRegion());
+
+          // Since storing the region was not in the original data, we supply the
+          // default if a value is not present.
+          return new AzureStorageAccountResource()
+              .applicationResource(applicationResource)
+              .profileId(rs.getObject("profile_id", UUID.class))
+              .resourceId(rs.getObject("storage_account_resource_id", UUID.class))
+              .name(rs.getString("name"))
+              .topLevelContainer(rs.getString("toplevelcontainer"))
+              .dataContainer(rs.getString("datacontainer"))
+              .metadataContainer(rs.getString("metadatacontainer"))
+              .dbName(rs.getString("dbname"))
+              .flightId(rs.getString("flightid"))
+              .region(region);
+        });
   }
 }

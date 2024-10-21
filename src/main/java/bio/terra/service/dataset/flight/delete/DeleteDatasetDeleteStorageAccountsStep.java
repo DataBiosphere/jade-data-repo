@@ -28,7 +28,7 @@ public class DeleteDatasetDeleteStorageAccountsStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(datasetId);
     logger.info("Deleting a storage account for Azure backed dataset");
-    resourceService.deleteStorageAccount(dataset, context.getFlightId());
+    resourceService.deleteStorageContainer(dataset, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 

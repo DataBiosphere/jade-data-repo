@@ -48,7 +48,12 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
             .getTenantId()
             .toString();
     return IngestUtils.getJsonNodesStreamFromFile(
-        azureBlobStorePdao, objectMapper, ingestRequest, userRequest, tenantId, errorCollector);
+        azureBlobStorePdao,
+        objectMapper,
+        ingestRequest.getPath(),
+        userRequest,
+        tenantId,
+        errorCollector);
   }
 
   @Override
@@ -60,10 +65,9 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
     BlobContainerClient containerClient =
-        azureContainerPdao.getOrCreateContainer(
-            billingProfile, storageAccount, AzureStorageAccountResource.ContainerType.SCRATCH);
+        azureContainerPdao.getOrCreateContainer(billingProfile, storageAccount);
     return containerClient
-        .getBlobClient(flightContext.getFlightId() + "/ingest-scratch.json")
+        .getBlobClient("scratch/" + flightContext.getFlightId() + "/ingest-scratch.json")
         .getBlobUrl();
   }
 
@@ -80,7 +84,6 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
             billingProfile,
             storageAccount,
             path,
-            AzureStorageAccountResource.ContainerType.SCRATCH,
             new BlobSasTokenOptions(
                 Duration.ofHours(1),
                 new BlobSasPermission().setReadPermission(true).setWritePermission(true),

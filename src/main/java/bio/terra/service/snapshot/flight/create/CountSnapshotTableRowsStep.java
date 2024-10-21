@@ -7,14 +7,21 @@ import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.transaction.TransactionSystemException;
 
 public class CountSnapshotTableRowsStep implements Step {
 
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotDao snapshotDao;
   private final SnapshotRequestModel snapshotReq;
+
+  private static final Logger logger = LoggerFactory.getLogger(CountSnapshotTableRowsStep.class);
 
   public CountSnapshotTableRowsStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -30,7 +37,12 @@ public class CountSnapshotTableRowsStep implements Step {
       throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     Map<String, Long> tableRowCounts = bigQuerySnapshotPdao.getSnapshotTableRowCounts(snapshot);
-    snapshotDao.updateSnapshotTableRowCounts(snapshot, tableRowCounts);
+    try {
+      snapshotDao.updateSnapshotTableRowCounts(snapshot, tableRowCounts);
+    } catch (CannotSerializeTransactionException | TransactionSystemException ex) {
+      logger.error("Could not serialize the transaction. Retrying.", ex);
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+    }
     return StepResult.getStepResultSuccess();
   }
 

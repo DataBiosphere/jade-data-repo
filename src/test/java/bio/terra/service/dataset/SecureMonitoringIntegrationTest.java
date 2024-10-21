@@ -9,7 +9,6 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
@@ -29,7 +28,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -56,7 +54,6 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private UUID datasetId;
   private UUID snapshotId;
@@ -108,7 +105,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     assertThat(
         "The parent of the dataset project is in the 'secure' folder",
         datasetParent.getId(),
-        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
+        equalTo(googleResourceConfiguration.secureFolderResourceId()));
 
     String datasetName = dataset.getName();
     SnapshotRequestModel requestModel =
@@ -161,7 +158,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     assertThat(
         "The parent of the snapshot project is in the 'secure' folder",
         snapshotParent.getId(),
-        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
+        equalTo(googleResourceConfiguration.secureFolderResourceId()));
   }
 
   private DatasetSummaryModel datasetWithSecureMonitoring(boolean secureMonitoringEnabled)
@@ -172,6 +169,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     requestModel.setName(Names.randomizeName(requestModel.getName()));
     requestModel.setCloudPlatform(CloudPlatform.GCP);
     requestModel.setEnableSecureMonitoring(secureMonitoringEnabled);
+    requestModel.dedicatedIngestServiceAccount(false);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), requestModel, false);
     datasetId = summaryModel.getId();

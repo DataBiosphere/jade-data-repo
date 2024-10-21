@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
+import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -202,18 +203,6 @@ public class DatasetBucketDao {
       }
       logger.error("datasetBucket link operation failed with fatal exception.");
       throw dataAccessException;
-    }
-  }
-
-  private static class UuidMapper implements RowMapper<UUID> {
-    private String columnLabel;
-
-    UuidMapper(String columnLabel) {
-      this.columnLabel = columnLabel;
-    }
-
-    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
-      return rs.getObject(this.columnLabel, UUID.class);
     }
   }
 }

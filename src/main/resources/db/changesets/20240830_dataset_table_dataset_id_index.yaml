@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: dataset_table_dataset_id_index
+      author: okotsopo
+      remarks: |
+        When retrieving dataset or snapshot relationships, we query dataset_table.
+      changes:
+        - createIndex:
+            indexName: dataset_table_dataset_id_idx
+            tableName: dataset_table
+            columns:
+              - column:
+                  name: dataset_id

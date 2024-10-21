@@ -1,0 +1,39 @@
+{"datarepo_row_id": "b93e30a3-269c-4856-9a4a-eb39c85ce71b", "domain_id": "Spec Disease Status", "domain_name": "Specimen Disease Status", "domain_concept_id": 39}
+{"datarepo_row_id": "7b40dae1-902f-4e55-955e-08c2a92e3cee", "domain_id": "Condition/Drug", "domain_name": "Condition/Drug", "domain_concept_id": 53}
+{"datarepo_row_id": "e7a41da4-5e90-4e96-a041-ab9d8325761b", "domain_id": "Procedure", "domain_name": "Procedure", "domain_concept_id": 10}
+{"datarepo_row_id": "a887394a-e1fa-4b69-b877-59bd53d10123", "domain_id": "Condition/Meas", "domain_name": "Condition/Measurement", "domain_concept_id": 47}
+{"datarepo_row_id": "84cff169-f638-4b3f-83b4-095a1b66bd2e", "domain_id": "Revenue Code", "domain_name": "Revenue Code", "domain_concept_id": 35}
+{"datarepo_row_id": "1c0c6ae4-1ab6-4886-911e-121530829315", "domain_id": "Race", "domain_name": "Race", "domain_concept_id": 3}
+{"datarepo_row_id": "0911876b-b15a-4497-a53d-efdabee07bbd", "domain_id": "Place of Service", "domain_name": "Place of Service", "domain_concept_id": 32}
+{"datarepo_row_id": "13c2eca9-a87a-437f-84a4-54e5dc3d29da", "domain_id": "Meas Value Operator", "domain_name": "Measurement Value Operator", "domain_concept_id": 23}
+{"datarepo_row_id": "08194056-5aca-45e7-82aa-9a70a9e8cd20", "domain_id": "Route", "domain_name": "Route Of Administration", "domain_concept_id": 15}
+{"datarepo_row_id": "fd886816-ce81-4910-bcfe-dafaa26f6d40", "domain_id": "Spec Anatomic Site", "domain_name": "Specimen Anatomic Site", "domain_concept_id": 38}
+{"datarepo_row_id": "32bf8dc1-3775-4749-8ea0-549daff099d0", "domain_id": "Meas Value", "domain_name": "Measurement Value", "domain_concept_id": 24}
+{"datarepo_row_id": "15045494-a9d3-41bf-a6ae-699584e24a8e", "domain_id": "Device/Procedure", "domain_name": "Device/Procedure", "domain_concept_id": 41}
+{"datarepo_row_id": "22336343-56ab-4f77-a069-52009da6c0b3", "domain_id": "Condition/Procedure", "domain_name": "Condition/Procedure", "domain_concept_id": 49}
+{"datarepo_row_id": "a5570d1f-a3c1-4f26-a2e8-bba703e3658b", "domain_id": "Type Concept", "domain_name": "Type Concept", "domain_concept_id": 58}
+{"datarepo_row_id": "ffa4d4af-3d46-4b1a-8d4a-160143f3c66e", "domain_id": "Currency", "domain_name": "Currency", "domain_concept_id": 34}
+{"datarepo_row_id": "94185509-4307-4e12-8a6f-c57dd63d229e", "domain_id": "Relationship", "domain_name": "Relationship", "domain_concept_id": 31}
+{"datarepo_row_id": "feb7f423-923f-4731-af58-114b678da018", "domain_id": "Meas/Procedure", "domain_name": "Measurement/Procedure", "domain_concept_id": 43}
+{"datarepo_row_id": "64514eda-b0ac-43e1-96cd-ceab1e8f3c5d", "domain_id": "Drug/Measurement", "domain_name": "Drug/Measurement", "domain_concept_id": 51}
+{"datarepo_row_id": "7fa63860-b2fc-4ee4-a2f7-16489771d03a", "domain_id": "Ethnicity", "domain_name": "Ethnicity", "domain_concept_id": 4}
+{"datarepo_row_id": "1bfa4cbf-69e3-44fe-9804-313dc81f65f3", "domain_id": "Drug", "domain_name": "Drug", "domain_concept_id": 13}
+{"datarepo_row_id": "26446bef-de16-451f-99f7-2c80661b22ca", "domain_id": "Device", "domain_name": "Device", "domain_concept_id": 17}
+{"datarepo_row_id": "68c719cc-69f7-4c0a-b052-6ef9da771ddb", "domain_id": "Modifier", "domain_name": "Modifier", "domain_concept_id": 12}
+{"datarepo_row_id": "80c47028-94fe-406d-8635-2637c289e459", "domain_id": "Obs/Procedure", "domain_name": "Observation/Procedure", "domain_concept_id": 42}
+{"datarepo_row_id": "606e9dae-e02a-4644-9366-3ee97a17b1bb", "domain_id": "Visit", "domain_name": "Visit", "domain_concept_id": 8}
+{"datarepo_row_id": "6f94e2b7-a164-4d08-849e-710cdcdd1629", "domain_id": "Unit", "domain_name": "Unit", "domain_concept_id": 16}
+{"datarepo_row_id": "67ae0682-c9ba-47d3-850a-a50c35fa6f41", "domain_id": "Measurement", "domain_name": "Measurement", "domain_concept_id": 21}
+{"datarepo_row_id": "57d81c05-689a-4a17-b5da-de0b178e0a96", "domain_id": "Gender", "domain_name": "Gender", "domain_concept_id": 2}
+{"datarepo_row_id": "8b90bb41-5a9a-4fc6-8797-9ebedf158520", "domain_id": "Drug/Procedure", "domain_name": "Drug/Procedure", "domain_concept_id": 54}
+{"datarepo_row_id": "c660de76-1d81-4d5c-9e48-76430a25112c", "domain_id": "Device/Obs", "domain_name": "Device/Observation", "domain_concept_id": 45}
+{"datarepo_row_id": "787da20f-64e3-4f2c-8664-21b4543c1045", "domain_id": "Condition/Device", "domain_name": "Condition/Device", "domain_concept_id": 235}
+{"datarepo_row_id": "6cd7ca58-7d33-4b07-adc5-dce2c65c3385", "domain_id": "Observation", "domain_name": "Observation", "domain_concept_id": 27}
+{"datarepo_row_id": "431ee14e-f14c-40ac-8b44-1b353b0ce643", "domain_id": "Measurement/Obs", "domain_name": "Measurement/Observation", "domain_concept_id": 44}
+{"datarepo_row_id": "cc0cbc8f-f5be-4a7f-8ba8-1c8a1d37c0e2", "domain_id": "Condition/Obs", "domain_name": "Condition/Observation", "domain_concept_id": 48}
+{"datarepo_row_id": "823d060b-84df-4ee6-8c04-4f7815ab2f68", "domain_id": "Drug/Obs", "domain_name": "Drug/Observation", "domain_concept_id": 52}
+{"datarepo_row_id": "be023b57-dd3e-46e8-bbfd-2f528fe37c25", "domain_id": "Condition", "domain_name": "Condition", "domain_concept_id": 19}
+{"datarepo_row_id": "2329fbe4-c6a3-4710-945b-f802e1acc0d1", "domain_id": "Metadata", "domain_name": "Metadata", "domain_concept_id": 7}
+{"datarepo_row_id": "d9dc8e86-5207-49a9-9a13-b25918efd5d1", "domain_id": "Device/Drug", "domain_name": "Device/Drug", "domain_concept_id": 50}
+{"datarepo_row_id": "28e52524-9ec7-4712-bd86-8b7d04e3857b", "domain_id": "Specimen", "domain_name": "Specimen", "domain_concept_id": 36}
+{"datarepo_row_id": "0c35e735-32b8-4f94-ae29-09f9ee2e44b7", "domain_id": "Provider Specialty", "domain_name": "Provider Specialty", "domain_concept_id": 33}

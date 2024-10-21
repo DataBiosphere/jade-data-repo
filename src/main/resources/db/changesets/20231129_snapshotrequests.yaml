@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_requests
+      author: rjohanek
+      changes:
+        - createTable:
+            tableName: snapshot_request
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_snapshot_requests
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: snapshot_name
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: snapshot_research_purpose
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: snapshot_specification
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_date
+                  type: timestamptz
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: text
+                  defaultValue: 'SUBMITTED'
+                  constraints:
+                    nullable: false

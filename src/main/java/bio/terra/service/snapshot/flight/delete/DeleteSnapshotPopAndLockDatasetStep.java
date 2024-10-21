@@ -58,6 +58,7 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
       map.put(SnapshotWorkingMapKeys.DATASET_EXISTS, false);
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_GOOGLE_PROJECT, false);
       map.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, false);
+
       return StepResult.getStepResultSuccess();
     }
 

@@ -8,49 +8,78 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.controller.ApiValidationExceptionHandler;
+import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionJsonArrayModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.snapshotbuilder.SnapshotBuilderService;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-@AutoConfigureMockMvc
-public class DataDeletionRequestValidatorTest {
+@ContextConfiguration(
+    classes = {
+      DataDeletionRequestValidator.class,
+      DatasetsApiController.class,
+      ApiValidationExceptionHandler.class
+    })
+@WebMvcTest
+@Tag(Unit.TAG)
+class DataDeletionRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
-  @MockBean private DatasetService datasetService;
   @MockBean private JobService jobService;
+  @MockBean private DatasetService datasetService;
+  @MockBean private IamService iamService;
+  @MockBean private FileService fileService;
+  @MockBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  @MockBean private SnapshotBuilderService snapshotBuilderService;
+  @MockBean private IngestRequestValidator ingestRequestValidator;
+  @MockBean private AssetModelValidator assetModelValidator;
+  @MockBean private DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+  @MockBean private DatasetRequestValidator datasetRequestValidator;
 
   private DataDeletionRequest goodGcsRequest;
   private DataDeletionRequest goodJsonArrayRequest;
 
-  @Before
-  public void setup() throws Exception {
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
+
+  @BeforeEach
+  void setup() throws Exception {
+    when(ingestRequestValidator.supports(any())).thenReturn(true);
+    when(datasetRequestValidator.supports(any())).thenReturn(true);
+    when(assetModelValidator.supports(any())).thenReturn(true);
+    when(datasetSchemaUpdateValidator.supports(any())).thenReturn(true);
+
+    when(authenticatedUserRequestFactory.from(any())).thenReturn(TEST_USER);
+    when(datasetService.retrieveDatasetSummary(any())).thenReturn(new DatasetSummaryModel());
     when(datasetService.deleteTabularData(any(), any(), any())).thenReturn("mock-job-id");
     when(jobService.retrieveJob(any(), any()))
         .thenReturn(new JobModel().id("mock-job-id").jobStatus(JobModel.JobStatusEnum.RUNNING));
@@ -80,7 +109,7 @@ public class DataDeletionRequestValidatorTest {
   }
 
   @Test
-  public void goodGcsFileSpecTest() throws Exception {
+  void goodGcsFileSpecTest() throws Exception {
     mvc.perform(
             post("/api/repository/v1/datasets/{id}/deletes", UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -89,7 +118,8 @@ public class DataDeletionRequestValidatorTest {
         .andReturn();
   }
 
-  public void goodJsonArraySpecTest() throws Exception {
+  @Test
+  void goodJsonArraySpecTest() throws Exception {
     mvc.perform(
             post("/api/repository/v1/datasets/{id}/deletes", UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -99,7 +129,7 @@ public class DataDeletionRequestValidatorTest {
   }
 
   @Test
-  public void badGcsFileSpecTest() throws Exception {
+  void badGcsFileSpecTest() throws Exception {
     DataDeletionRequest badGcsRequest =
         goodGcsRequest.tables(
             List.of(
@@ -144,7 +174,7 @@ public class DataDeletionRequestValidatorTest {
   }
 
   @Test
-  public void badJsonArraySpecTest() throws Exception {
+  void badJsonArraySpecTest() throws Exception {
     DataDeletionRequest badJsonRequest =
         goodJsonArrayRequest.tables(
             List.of(
@@ -180,7 +210,7 @@ public class DataDeletionRequestValidatorTest {
   }
 
   @Test
-  public void testBadRequest() throws Exception {
+  void testBadRequest() throws Exception {
     DataDeletionRequest badRequest = new DataDeletionRequest().addTablesItem(null);
     MvcResult result =
         mvc.perform(

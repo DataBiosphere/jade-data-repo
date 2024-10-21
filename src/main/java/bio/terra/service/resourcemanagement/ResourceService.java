@@ -11,10 +11,14 @@ import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
+import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
@@ -29,7 +33,6 @@ import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +50,8 @@ public class ResourceService {
 
   private static final Logger logger = LoggerFactory.getLogger(ResourceService.class);
   public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
-  public static final String STORAGE_OBJECT_VIEWER_ROLE = "roles/storage.objectViewer";
+  public static final String SERVICE_USAGE_CONSUMER_ROLE =
+      "roles/serviceusage.serviceUsageConsumer";
 
   private final AzureDataLocationSelector azureDataLocationSelector;
   private final GoogleProjectService projectService;
@@ -58,6 +62,8 @@ public class ResourceService {
   private final DatasetStorageAccountDao datasetStorageAccountDao;
   private final SnapshotStorageAccountDao snapshotStorageAccountDao;
   private final GoogleResourceManagerService resourceManagerService;
+  private final AzureContainerPdao azureContainerPdao;
+  private final ProfileDao profileDao;
 
   @Autowired
   public ResourceService(
@@ -69,7 +75,9 @@ public class ResourceService {
       SamConfiguration samConfiguration,
       DatasetStorageAccountDao datasetStorageAccountDao,
       SnapshotStorageAccountDao snapshotStorageAccountDao,
-      GoogleResourceManagerService resourceManagerService) {
+      GoogleResourceManagerService resourceManagerService,
+      AzureContainerPdao azureContainerPdao,
+      ProfileDao profileDao) {
     this.azureDataLocationSelector = azureDataLocationSelector;
     this.projectService = projectService;
     this.bucketService = bucketService;
@@ -79,6 +87,8 @@ public class ResourceService {
     this.datasetStorageAccountDao = datasetStorageAccountDao;
     this.snapshotStorageAccountDao = snapshotStorageAccountDao;
     this.resourceManagerService = resourceManagerService;
+    this.azureContainerPdao = azureContainerPdao;
+    this.profileDao = profileDao;
   }
 
   /**
@@ -103,7 +113,8 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
-    return projectService.initializeGoogleProject(projectId, billingProfile, null, region, labels);
+    return projectService.initializeGoogleProject(
+        projectId, billingProfile, region, labels, CollectionType.DATASET);
   }
 
   /**
@@ -136,6 +147,8 @@ public class ResourceService {
   /**
    * Fetch/create a project, then use that to fetch/create a bucket.
    *
+   * <p>Autoclass will be enabled on the bucket by default
+   *
    * @param flightId used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO GoogleBucketResource
    * @throws CorruptMetadataException in two cases.
@@ -159,11 +172,15 @@ public class ResourceService {
         flightId,
         null,
         getReaderGroups,
-        dedicatedServiceAccount);
+        dedicatedServiceAccount,
+        true);
   }
 
   /**
    * Get or create a bucket for the ingest scratch files
+   *
+   * <p>Autoclass is disabled by default on scratch file buckets Cost of Autoclass would most likely
+   * outweigh savings due to usage pattern of files in scratch file buckets
    *
    * @param flightId used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO GoogleBucketResource
@@ -185,11 +202,15 @@ public class ResourceService {
         flightId,
         null,
         null,
-        dataset.getProjectResource().getServiceAccount());
+        dataset.getProjectResource().getServiceAccount(),
+        false);
   }
 
   /**
    * Get or create a bucket for snapshot export files
+   *
+   * <p>Autoclass disabled by default for snapshot export buckets Cost of Autoclass would most
+   * likely outweigh savings due to usage pattern of files in snapshot export buckets
    *
    * @param flightId used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO GoogleBucketResource
@@ -215,7 +236,8 @@ public class ResourceService {
         flightId,
         Duration.ofDays(1),
         null,
-        null);
+        null,
+        false);
   }
 
   /**
@@ -250,30 +272,38 @@ public class ResourceService {
             .orElse(
                 azureDataLocationSelector.createStorageAccountName(
                     applicationResource.getStorageAccountPrefix(),
-                    dataset.getName(),
-                    billingProfile));
+                    dataset.getStorageAccountRegion(),
+                    billingProfile,
+                    dataset.isSecureMonitoringEnabled()));
 
     return storageAccountService.getOrCreateStorageAccount(
-        storageAccountName, applicationResource, region, flightId);
+        storageAccountName, dataset.getId().toString(), applicationResource, region, flightId);
   }
 
   public AzureStorageAccountResource createSnapshotStorageAccount(
-      String snapshotName,
       UUID snapshotId,
-      AzureRegion sourceDatasetAzureRegion,
+      AzureRegion datasetAzureRegion,
       BillingProfileModel billingProfile,
-      String flightId)
+      String flightId,
+      boolean isSecureMonitoringEnabled)
       throws InterruptedException {
 
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
     String computedStorageAccountName =
         azureDataLocationSelector.createStorageAccountName(
-            applicationResource.getStorageAccountPrefix(), snapshotName, billingProfile);
+            applicationResource.getStorageAccountPrefix(),
+            datasetAzureRegion,
+            billingProfile,
+            isSecureMonitoringEnabled);
 
     AzureStorageAccountResource storageAccountResource =
         storageAccountService.getOrCreateStorageAccount(
-            computedStorageAccountName, applicationResource, sourceDatasetAzureRegion, flightId);
+            computedStorageAccountName,
+            snapshotId.toString(),
+            applicationResource,
+            datasetAzureRegion,
+            flightId);
 
     snapshotStorageAccountDao.createSnapshotStorageAccountLink(
         snapshotId, storageAccountResource.getResourceId());
@@ -324,33 +354,79 @@ public class ResourceService {
     return storageAccountResource;
   }
 
-  public Optional<AzureStorageAccountResource> getSnapshotStorageAccount(UUID snapshotId) {
+  public AzureStorageAccountResource getSnapshotStorageAccount(UUID snapshotId) {
     return snapshotStorageAccountDao
         .getStorageAccountResourceIdForSnapshotId(snapshotId)
-        .map(this::lookupStorageAccount);
+        .map(this::lookupStorageAccount)
+        .orElseThrow(
+            () -> new StorageResourceNotFoundException("Snapshot storage account was not found"));
+  }
+
+  public AzureStorageAuthInfo getDatasetStorageAuthInfo(Dataset dataset) {
+    BillingProfileModel billingProfileModel =
+        profileDao.getBillingProfileById(dataset.getDefaultProfileId());
+    AzureStorageAccountResource storageAccountResource =
+        getDatasetStorageAccount(dataset, billingProfileModel);
+    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+        billingProfileModel, storageAccountResource);
+  }
+
+  public AzureStorageAuthInfo getSnapshotStorageAuthInfo(Snapshot snapshot) {
+    return getSnapshotStorageAuthInfo(snapshot.getProfileId(), snapshot.getId());
+  }
+
+  public AzureStorageAuthInfo getSnapshotStorageAuthInfo(UUID billingProfileId, UUID snapshotId) {
+    BillingProfileModel billingProfileModel = profileDao.getBillingProfileById(billingProfileId);
+    AzureStorageAccountResource storageAccountResource = getSnapshotStorageAccount(snapshotId);
+    return AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+        billingProfileModel, storageAccountResource);
   }
 
   /**
-   * Delete the metadata and cloud storage account. Note: this will not check references and delete
-   * the storage even if it contains data
+   * Delete the metadata and cloud storage container. Note: this will not check references and
+   * delete the storage even if it contains data
    *
    * @param dataset The dataset whose storage account to delete
    * @param flightId The flight that might potentially have the storage account locked
    */
-  public void deleteStorageAccount(Dataset dataset, String flightId) {
+  public void deleteStorageContainer(Dataset dataset, String flightId) {
     // Get list of linked accounts
     List<UUID> sasToDelete =
         datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
 
     sasToDelete.forEach(
         s -> {
-          logger.info("Deleting storage account id {}", s);
+          logger.info("Deleting dataset storage account and container id {}", s);
           AzureStorageAccountResource storageAccountResource =
               storageAccountService.retrieveStorageAccountById(s);
-          storageAccountService.deleteCloudStorageAccount(storageAccountResource);
-          storageAccountService.deleteCloudStorageAccountMetadata(
-              storageAccountResource.getName(), flightId);
+          azureContainerPdao.deleteContainer(
+              dataset.getDatasetSummary().getDefaultBillingProfile(), storageAccountResource);
+          storageAccountService.markForDeleteCloudStorageAccountMetadata(
+              storageAccountResource.getName(),
+              storageAccountResource.getTopLevelContainer(),
+              flightId);
         });
+  }
+
+  /**
+   * Delete the metadata and cloud storage container. Note: this will not check references and
+   * delete the storage even if it contains data
+   *
+   * @param storageResourceId The id of the snapshot's storage account. When this gets called, tha
+   *     snapshot has already been deleted so we can't look up this id in the db
+   * @param profileId The id of the snapshot's billing profile
+   * @param flightId The flight that might potentially have the storage account locked
+   */
+  public void deleteStorageContainer(UUID storageResourceId, UUID profileId, String flightId) {
+    logger.info("Deleting snapshot storage account id {}", storageResourceId);
+    BillingProfileModel snapshotBillingProfile = profileDao.getBillingProfileById(profileId);
+    // get container
+    AzureStorageAccountResource storageAccountResource =
+        storageAccountService.retrieveStorageAccountById(storageResourceId);
+    azureContainerPdao.deleteContainer(snapshotBillingProfile, storageAccountResource);
+
+    storageAccountService.markForDeleteCloudStorageAccountMetadata(
+        storageAccountResource.getName(), storageAccountResource.getTopLevelContainer(), flightId);
   }
 
   private boolean storageAccountIsForBillingProfile(
@@ -437,38 +513,28 @@ public class ResourceService {
   public UUID initializeSnapshotProject(
       BillingProfileModel billingProfile,
       String projectId,
-      List<Dataset> sourceDatasets,
+      Dataset sourceDataset,
       String snapshotName,
       UUID snapshotId)
       throws InterruptedException {
 
     GoogleRegion region =
         (GoogleRegion)
-            sourceDatasets
-                .iterator()
-                .next()
+            sourceDataset
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
 
-    String datasetNames =
-        sourceDatasets.stream().map(Dataset::getName).collect(Collectors.joining(","));
-
-    String datasetIds =
-        sourceDatasets.stream()
-            .map(Dataset::getId)
-            .map(UUID::toString)
-            .collect(Collectors.joining(","));
-
     Map<String, String> labels =
         Map.of(
-            "dataset-names", datasetNames,
-            "dataset-ids", datasetIds,
+            "dataset-names", sourceDataset.getName(),
+            "dataset-ids", sourceDataset.getId().toString(),
             "snapshot-name", snapshotName,
             "snapshot-id", snapshotId.toString(),
             "project-usage", "snapshot");
 
     GoogleProjectResource googleProjectResource =
-        projectService.initializeGoogleProject(projectId, billingProfile, null, region, labels);
+        projectService.initializeGoogleProject(
+            projectId, billingProfile, region, labels, CollectionType.SNAPSHOT);
 
     return googleProjectResource.getId();
   }
@@ -495,7 +561,7 @@ public class ResourceService {
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(
-            projectId, billingProfile, getStewardPolicy(), region, labels);
+            projectId, billingProfile, region, labels, CollectionType.DATASET);
 
     return googleProjectResource.getId();
   }
@@ -535,29 +601,37 @@ public class ResourceService {
 
   public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
-    modifyBqJobUserRole(dataProject, policyEmails, ENABLE_PERMISSIONS);
+    modifyRoles(dataProject, policyEmails, List.of(BQ_JOB_USER_ROLE), ENABLE_PERMISSIONS);
   }
 
   public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
-    modifyBqJobUserRole(dataProject, policyEmails, REVOKE_PERMISSIONS);
+    modifyRoles(dataProject, policyEmails, List.of(BQ_JOB_USER_ROLE), REVOKE_PERMISSIONS);
   }
 
-  private void modifyBqJobUserRole(
-      String dataProject, Collection<String> policyEmails, GoogleProjectService.PermissionOp op)
+  public void grantPoliciesServiceUsageConsumer(String dataProject, Collection<String> policyEmails)
+      throws InterruptedException {
+    modifyRoles(
+        dataProject, policyEmails, List.of(SERVICE_USAGE_CONSUMER_ROLE), ENABLE_PERMISSIONS);
+  }
+
+  public void revokePoliciesServiceUsageConsumer(
+      String dataProject, Collection<String> policyEmails) throws InterruptedException {
+    modifyRoles(
+        dataProject, policyEmails, List.of(SERVICE_USAGE_CONSUMER_ROLE), REVOKE_PERMISSIONS);
+  }
+
+  private void modifyRoles(
+      String dataProject,
+      Collection<String> policyEmails,
+      List<String> roles,
+      GoogleProjectService.PermissionOp op)
       throws InterruptedException {
     final List<String> emails =
-        policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-    resourceManagerService.updateIamPermissions(
-        Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, op);
-  }
-
-  private Map<String, List<String>> getStewardPolicy() {
-    // get steward emails and add to policy
-    String stewardsGroupEmail = "group:" + samConfiguration.getStewardsGroupEmail();
-    Map<String, List<String>> policyMap = new HashMap<>();
-    policyMap.put(BQ_JOB_USER_ROLE, Collections.singletonList(stewardsGroupEmail));
-    return Collections.unmodifiableMap(policyMap);
+        policyEmails.stream().map(ResourceService::formatEmailForPolicy).toList();
+    final Map<String, List<String>> userPermissions =
+        roles.stream().collect(Collectors.toMap(r -> r, r -> emails));
+    resourceManagerService.updateIamPermissions(userPermissions, dataProject, op);
   }
 
   public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
@@ -582,5 +656,16 @@ public class ResourceService {
 
   public void deleteDeployedApplicationMetadata(List<UUID> applicationIdList) {
     applicationDeploymentService.deleteApplicationDeploymentMetadata(applicationIdList);
+  }
+
+  public static String formatEmailForPolicy(String email) {
+    if (email == null) {
+      return null;
+    }
+    if (email.endsWith(".iam.gserviceaccount.com")) {
+      return "serviceAccount:" + email;
+    } else {
+      return "group:" + email;
+    }
   }
 }

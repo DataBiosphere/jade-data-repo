@@ -1,0 +1,28 @@
+[
+  {
+    "name": "CatalogTestDataset",
+    "schema": "CatalogTestDataset",
+    "cloud_platform": "gcp",
+    "tables": [
+      "participant",
+      "sample"
+    ],
+    "upload_prefix": "gs://catalog-testdata-useastregion/CatalogTestDataset",
+    "format": "json",
+    "stewards": [],
+    "custodians": [],
+    "snapshot_creators": [],
+    "snapshots": [
+      {
+        "name": "ReadableCatalogSnapshot",
+        "description": "A publicly readable snapshot created by the Catalog admin test user.",
+        "readers": ["GROUP_All_Users@dev.test.firecloud.org"]
+      },
+      {
+        "name": "DiscoverableCatalogSnapshot",
+        "description": "A publicly discoverable snapshot created by the Catalog admin test user.",
+        "discoverers": ["GROUP_All_Users@dev.test.firecloud.org"]
+      }
+    ]
+  }
+]

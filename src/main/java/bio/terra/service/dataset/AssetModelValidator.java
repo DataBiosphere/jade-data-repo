@@ -3,9 +3,8 @@ package bio.terra.service.dataset;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
-import javax.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -43,7 +42,6 @@ public class AssetModelValidator implements Validator {
   }
 
   @Override
-  @SuppressFBWarnings("UC_USELESS_VOID_METHOD")
   public void validate(@NotNull Object target, Errors errors) {
     if (target != null && target instanceof AssetModel) {
       AssetModel assetModel = (AssetModel) target;

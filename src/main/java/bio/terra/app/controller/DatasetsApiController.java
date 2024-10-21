@@ -6,6 +6,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -15,7 +16,10 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnStatisticsModel;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
@@ -32,17 +36,22 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.QueryColumnStatisticsRequestModel;
+import bio.terra.model.QueryDataRequestModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SamPolicyModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.SqlSortDirectionAscDefault;
+import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
+import bio.terra.model.UnlockResourceRequest;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetSchemaUpdateValidator;
 import bio.terra.service.dataset.DatasetService;
@@ -50,20 +59,16 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -75,12 +80,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @Api(tags = {"datasets"})
 public class DatasetsApiController implements DatasetsApi {
-
-  private Logger logger = LoggerFactory.getLogger(DatasetsApiController.class);
-
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SCHEMA,PROFILE,DATA_PROJECT,STORAGE";
 
-  private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final JobService jobService;
   private final DatasetRequestValidator datasetRequestValidator;
@@ -91,12 +92,10 @@ public class DatasetsApiController implements DatasetsApi {
   private final AssetModelValidator assetModelValidator;
   private final IngestRequestValidator ingestRequestValidator;
   private final DataDeletionRequestValidator dataDeletionRequestValidator;
-
   private final DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
 
   @Autowired
   public DatasetsApiController(
-      ObjectMapper objectMapper,
       HttpServletRequest request,
       JobService jobService,
       DatasetRequestValidator datasetRequestValidator,
@@ -108,7 +107,6 @@ public class DatasetsApiController implements DatasetsApi {
       IngestRequestValidator ingestRequestValidator,
       DataDeletionRequestValidator dataDeletionRequestValidator,
       DatasetSchemaUpdateValidator datasetSchemaUpdateValidator) {
-    this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
     this.datasetRequestValidator = datasetRequestValidator;
@@ -131,16 +129,6 @@ public class DatasetsApiController implements DatasetsApi {
     binder.addValidators(datasetSchemaUpdateValidator);
   }
 
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
-  }
-
   private AuthenticatedUserRequest getAuthenticatedInfo() {
     return authenticatedUserRequestFactory.from(request);
   }
@@ -156,25 +144,101 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<DatasetModel> retrieveDataset(
-      @PathVariable("id") UUID id,
-      @Valid
-          @RequestParam(
+      UUID id,
+      @RequestParam(
               value = "include",
               required = false,
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<DatasetRequestAccessIncludeModel> include) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifyDatasetAuthorizations(userRequest, id.toString(), List.of(IamAction.READ_DATASET));
+
+    return ResponseEntity.ok(datasetService.retrieveDatasetModel(id, userRequest, include));
+  }
+
+  @Override
+  public ResponseEntity<DatasetSummaryModel> retrieveDatasetSummary(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userRequest, id.toString(), null);
+    return ResponseEntity.ok(datasetService.retrieveDatasetSummary(id));
+  }
+
+  @Override
+  public ResponseEntity<DatasetDataModel> queryDatasetDataById(
+      UUID id, String table, QueryDataRequestModel queryDataRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
+    SqlSortDirection sortDirection = SqlSortDirection.from(queryDataRequest.getDirection());
+    DatasetDataModel previewModel =
+        datasetService.retrieveData(
+            userReq,
+            id,
+            table,
+            queryDataRequest.getLimit(),
+            queryDataRequest.getOffset(),
+            queryDataRequest.getSort(),
+            sortDirection,
+            queryDataRequest.getFilter());
+    return ResponseEntity.ok(previewModel);
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> lockDataset(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
-    return new ResponseEntity<>(
-        datasetService.retrieveAvailableDatasetModel(id, userRequest, include), HttpStatus.OK);
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.LOCK_RESOURCE);
+    return ResponseEntity.ok(datasetService.manualExclusiveLock(userRequest, id));
+  }
+
+  @Override
+  public ResponseEntity<ResourceLocks> unlockDataset(UUID id, UnlockResourceRequest request) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.UNLOCK_RESOURCE);
+    return ResponseEntity.ok(datasetService.manualUnlock(userRequest, id, request));
+  }
+
+  @Override
+  public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirectionAscDefault direction,
+      String filter) {
+    var request =
+        new QueryDataRequestModel()
+            .offset(offset)
+            .limit(limit)
+            .sort(sort)
+            .direction(direction)
+            .filter(filter);
+    return queryDatasetDataById(id, table, request);
+  }
+
+  @Override
+  public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsById(
+      UUID id, String table, String column, String filter) {
+    return queryDatasetColumnStatisticsById(
+        id, table, column, new QueryColumnStatisticsRequestModel().filter(filter));
+  }
+
+  @Override
+  public ResponseEntity<ColumnStatisticsModel> queryDatasetColumnStatisticsById(
+      UUID id, String table, String column, QueryColumnStatisticsRequestModel requestModel) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.READ_DATA);
+    ColumnStatisticsModel columnStatisticsModel =
+        datasetService.retrieveColumnStatistics(
+            userReq, id, table, column, requestModel.getFilter());
+    return ResponseEntity.ok(columnStatisticsModel);
   }
 
   @Override
   public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") UUID id) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.DELETE);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.DELETE);
     String jobId = datasetService.delete(id.toString(), userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
@@ -185,8 +249,8 @@ public class DatasetsApiController implements DatasetsApi {
       UUID id, DatasetPatchRequestModel patchRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     Set<IamAction> actions = datasetService.patchDatasetIamActions(patchRequest);
-    iamService.verifyAuthorizations(userReq, IamResourceType.DATASET, id.toString(), actions);
-    return new ResponseEntity<>(datasetService.patch(id, patchRequest), HttpStatus.OK);
+    verifyDatasetAuthorizations(userReq, id.toString(), actions);
+    return ResponseEntity.ok(datasetService.patch(id, patchRequest, userReq));
   }
 
   @Override
@@ -194,13 +258,23 @@ public class DatasetsApiController implements DatasetsApi {
       Integer offset,
       Integer limit,
       EnumerateSortByParam sort,
-      SqlSortDirection direction,
+      SqlSortDirectionAscDefault direction,
       String filter,
-      String region) {
+      String region,
+      List<String> tags) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
-    var edm = datasetService.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles);
+    var edm =
+        datasetService.enumerate(
+            offset,
+            limit,
+            sort,
+            SqlSortDirection.from(direction),
+            filter,
+            region,
+            idsAndRoles,
+            tags);
     return ResponseEntity.ok(edm);
   }
 
@@ -208,13 +282,12 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> ingestDataset(
       @PathVariable("id") UUID id, @Valid @RequestBody IngestRequestModel ingest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     // Set default strategy to append
     if (ingest.getUpdateStrategy() == null) {
       ingest.updateStrategy(UpdateStrategyEnum.APPEND);
     }
     validateIngestParams(ingest, id);
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
     String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -223,8 +296,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> addDatasetAssetSpecifications(
       @PathVariable("id") UUID id, @Valid @RequestBody AssetModel asset) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.MANAGE_SCHEMA);
     String jobId = datasetService.addDatasetAssetSpecifications(id.toString(), asset, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -233,8 +305,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> removeDatasetAssetSpecifications(
       @PathVariable("id") UUID id, @PathVariable("assetid") String assetId) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.MANAGE_SCHEMA);
     String jobId = datasetService.removeDatasetAssetSpecifications(id.toString(), assetId, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -243,6 +314,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> applyDatasetDataDeletion(
       UUID id, @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.SOFT_DELETE);
     String jobId = datasetService.deleteTabularData(id.toString(), dataDeletionRequest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -252,19 +324,25 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> deleteFile(
       @PathVariable("id") UUID id, @PathVariable("fileid") String fileid) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.SOFT_DELETE);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.SOFT_DELETE);
     String jobId = fileService.deleteFile(id.toString(), fileid, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override
+  public ResponseEntity<List<FileModel>> listFiles(UUID id, Integer offset, Integer limit) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userRequest, id.toString(), IamAction.READ_DATASET);
+    List<FileModel> results = fileService.listDatasetFiles(id.toString(), offset, limit);
+    return ResponseEntity.ok(results);
+  }
+
+  @Override
   public ResponseEntity<JobModel> ingestFile(
       @PathVariable("id") UUID id, @Valid @RequestBody FileLoadModel ingestFile) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = fileService.ingestFile(id.toString(), ingestFile, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
@@ -274,6 +352,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> bulkFileLoad(
       @PathVariable("id") UUID id, @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = fileService.ingestBulkFile(id.toString(), bulkFileLoad, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -283,6 +362,7 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @Valid @RequestBody BulkLoadArrayRequestModel bulkFileLoadArray) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = fileService.ingestBulkFileArray(id.toString(), bulkFileLoadArray, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -293,8 +373,7 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("loadTag") String loadTag,
       @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
       @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+    verifyDatasetAuthorization(getAuthenticatedInfo(), id.toString(), IamAction.READ_DATASET);
     List<BulkLoadHistoryModel> history = datasetService.getLoadHistory(id, loadTag, offset, limit);
     return ResponseEntity.ok(new BulkLoadHistoryModelList().total(history.size()).items(history));
   }
@@ -304,25 +383,23 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @PathVariable("fileid") String fileid,
       @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATA);
+    verifyDatasetAuthorization(getAuthenticatedInfo(), id.toString(), IamAction.READ_DATA);
     FileModel fileModel = fileService.lookupFile(id.toString(), fileid, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
   }
 
   @Override
   public ResponseEntity<FileModel> lookupFileByPath(
       @PathVariable("id") UUID id,
-      @RequestParam(value = "path", required = true) String path,
+      @RequestParam(value = "path") String path,
       @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATA);
+    verifyDatasetAuthorization(getAuthenticatedInfo(), id.toString(), IamAction.READ_DATA);
     if (!ValidationUtils.isValidPath(path)) {
       throw new ValidationException("InvalidPath");
     }
     FileModel fileModel = fileService.lookupPath(id.toString(), path, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
   }
 
   // --dataset policies --
@@ -331,15 +408,12 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @PathVariable("policyName") String policyName,
       @Valid @RequestBody PolicyMemberRequest policyMember) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     PolicyModel policy =
         iamService.addPolicyMember(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASET,
-            id,
-            policyName,
-            policyMember.getEmail());
+            userReq, IamResourceType.DATASET, id, policyName, policyMember.getEmail());
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -348,7 +422,7 @@ public class DatasetsApiController implements DatasetsApi {
         iamService.retrievePolicies(getAuthenticatedInfo(), IamResourceType.DATASET, id);
     PolicyResponse response =
         new PolicyResponse().policies(PolicyUtils.samToTdrPolicyModels(policies));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -356,29 +430,29 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @PathVariable("policyName") String policyName,
       @PathVariable("memberEmail") String memberEmail) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     // member email can't be null since it is part of the URL
     if (!ValidationUtils.isValidEmail(memberEmail)) {
       throw new ValidationException("InvalidMemberEmail");
     }
     PolicyModel policy =
         iamService.deletePolicyMember(
-            getAuthenticatedInfo(), IamResourceType.DATASET, id, policyName, memberEmail);
+            userReq, IamResourceType.DATASET, id, policyName, memberEmail);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
   public ResponseEntity<List<String>> retrieveUserDatasetRoles(UUID id) {
     List<String> roles =
         iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASET, id);
-    return new ResponseEntity<>(roles, HttpStatus.OK);
+    return ResponseEntity.ok(roles);
   }
 
   @Override
   public ResponseEntity<JobModel> updateSchema(UUID id, DatasetSchemaUpdateModel body) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.MANAGE_SCHEMA);
     String jobId = datasetService.updateDatasetSchema(id, body, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -386,8 +460,7 @@ public class DatasetsApiController implements DatasetsApi {
   @Override
   public ResponseEntity<JobModel> openTransaction(UUID id, TransactionCreateModel body) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = datasetService.openTransaction(id, body, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -396,8 +469,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> closeTransaction(
       UUID id, UUID transactionId, TransactionCloseModel body) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.INGEST_DATA);
     String jobId = datasetService.closeTransaction(id, transactionId, userReq, body.getMode());
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -405,32 +477,47 @@ public class DatasetsApiController implements DatasetsApi {
   @Override
   public ResponseEntity<List<TransactionModel>> enumerateTransactions(
       UUID id, Integer offset, Integer limit) {
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    return new ResponseEntity<>(
-        datasetService.enumerateTransactions(id, offset, limit), HttpStatus.OK);
+    verifyDatasetAuthorization(getAuthenticatedInfo(), id.toString(), IamAction.INGEST_DATA);
+    return ResponseEntity.ok(datasetService.enumerateTransactions(id, offset, limit));
   }
 
   @Override
   public ResponseEntity<TransactionModel> retrieveTransaction(UUID id, UUID transactionId) {
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    return new ResponseEntity<>(
-        datasetService.retrieveTransaction(id, transactionId), HttpStatus.OK);
+    verifyDatasetAuthorization(getAuthenticatedInfo(), id.toString(), IamAction.INGEST_DATA);
+    return ResponseEntity.ok(datasetService.retrieveTransaction(id, transactionId));
+  }
+
+  @Override
+  public ResponseEntity<DatasetSummaryModel> updateDatasetTags(
+      UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    verifyDatasetAuthorization(userReq, id.toString(), IamAction.MANAGE_SCHEMA);
+    return ResponseEntity.ok(datasetService.updateTags(id, tagUpdateRequest));
+  }
+
+  @Override
+  public ResponseEntity<TagCountResultModel> getDatasetTags(String filter, Integer limit) {
+    var idsAndRoles =
+        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
+    return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
-    Dataset dataset = datasetService.retrieve(datasetId);
-    CloudPlatformWrapper platform =
-        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
-
-    if (platform.isAzure()) {
+    CloudPlatform datasetPlatform =
+        datasetService.retrieveDatasetSummary(datasetId).getCloudPlatform();
+    if (CloudPlatformWrapper.of(datasetPlatform).isAzure()) {
       validateAzureIngestParams(ingestRequestModel);
     }
   }
 
   private void validateAzureIngestParams(IngestRequestModel ingestRequest) {
     List<String> errors = new ArrayList<>();
+    UpdateStrategyEnum updateStrategy = ingestRequest.getUpdateStrategy();
+    if (updateStrategy != UpdateStrategyEnum.APPEND) {
+      errors.add(
+          "Ingests to Azure datasets can only use 'append' as an update strategy, was '%s'."
+              .formatted(updateStrategy));
+    }
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV) {
       // validate CSV parameters
       if (ingestRequest.getCsvSkipLeadingRows() == null) {
@@ -462,5 +549,26 @@ public class DatasetsApiController implements DatasetsApi {
     if (!errors.isEmpty()) {
       throw new InvalidJobParameterException("Invalid ingest parameters detected", errors);
     }
+  }
+
+  private void verifyDatasetAuthorization(
+      AuthenticatedUserRequest userReq, String resourceId, IamAction action) {
+    IamResourceType resourceType = IamResourceType.DATASET;
+    // Check if dataset exists
+    datasetService.retrieveDatasetSummary(UUID.fromString(resourceId));
+    // Verify dataset permissions
+    if (action != null) {
+      iamService.verifyAuthorization(userReq, resourceType, resourceId, action);
+    } else {
+      iamService.verifyAuthorization(userReq, resourceType, resourceId);
+    }
+  }
+
+  private void verifyDatasetAuthorizations(
+      AuthenticatedUserRequest userReq, String resourceId, Collection<IamAction> actions) {
+    // Check if dataset exists
+    datasetService.retrieveDatasetSummary(UUID.fromString(resourceId));
+    // Verify dataset permissions
+    iamService.verifyAuthorizations(userReq, IamResourceType.DATASET, resourceId, actions);
   }
 }

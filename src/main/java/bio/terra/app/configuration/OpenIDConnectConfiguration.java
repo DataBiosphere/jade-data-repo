@@ -2,9 +2,11 @@ package bio.terra.app.configuration;
 
 import bio.terra.common.exception.ServiceInitializationException;
 import com.google.common.annotations.VisibleForTesting;
+import jakarta.annotation.PostConstruct;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -32,6 +34,7 @@ public class OpenIDConnectConfiguration {
   private String clientSecret;
   private String extraAuthParams;
   private boolean addClientIdToScope;
+  private String profileParam;
 
   private String authorizationEndpoint;
   private String tokenEndpoint;
@@ -60,8 +63,7 @@ public class OpenIDConnectConfiguration {
       if (!metadataConfig.getStatusCode().is2xxSuccessful()) {
         throw new ServiceInitializationException(
             String.format(
-                "Error reading OIDC configuration endpoint: %s",
-                metadataConfig.getStatusCode().getReasonPhrase()));
+                "Error reading OIDC configuration endpoint: %s", metadataConfig.getStatusCode()));
       }
       OpenIDProviderMetadata response = metadataConfig.getBody();
       if (response == null) {
@@ -82,8 +84,12 @@ public class OpenIDConnectConfiguration {
     }
   }
 
-  private String getOidcMetadataUrl() {
-    return getAuthorityEndpoint() + "/" + OIDC_METADATA_URL_SUFFIX;
+  String getOidcMetadataUrl() {
+    String profileParameter =
+        StringUtils.isEmpty(getProfileParam())
+            ? ""
+            : String.format("?p=%s", URLEncoder.encode(getProfileParam(), StandardCharsets.UTF_8));
+    return getAuthorityEndpoint() + "/" + OIDC_METADATA_URL_SUFFIX + profileParameter;
   }
 
   public String getSchemeName() {
@@ -132,6 +138,14 @@ public class OpenIDConnectConfiguration {
 
   public void setAddClientIdToScope(Boolean addClientIdToScope) {
     this.addClientIdToScope = addClientIdToScope;
+  }
+
+  public void setProfileParam(String profileParam) {
+    this.profileParam = profileParam;
+  }
+
+  public String getProfileParam() {
+    return this.profileParam;
   }
 
   public String getAuthorizationEndpoint() {

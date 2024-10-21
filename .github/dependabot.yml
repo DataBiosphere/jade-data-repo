@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Enable version updates for Gradle
+  - package-ecosystem: "gradle"
+    directory: "/"
+    groups:
+      # We group minor and patch updates together because they are less likely to break things.
+      # Major updates will be PR-ed individually: they are more likely to need developer
+      # intervention.
+      minor-patch-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "com.diffplug.spotless" # likely to require reformatting of code
+          - "io.swagger.codegen.v3" # patch upgrades have lately included breaking changes
+        update-types:
+          - "minor"
+          - "patch"
+      # We want Swagger codegen dep versions to stay in sync with each other, and be PRed together.
+      io.swagger.codegen.v3:
+        patterns:
+          - "io.swagger.codegen.v3"
+    schedule:
+      interval: "weekly"
+      time: "06:00"
+      timezone: "America/New_York"
+    target-branch: "develop"
+    labels:
+      - "dependency"
+      - "gradle"
+    commit-message:
+      prefix: "[DCJ-400-gradle]"
+    ignore:
+      # Google API dependencies use a version format that Dependabot wrongly interprets as semver.
+      - dependency-name: "com.google.apis:*"
+      # From 20.0.0 onward, k8s client publishes versions with and without '-legacy' suffix.
+      # We use the non-legacy client: the legacy client is not compatible with our code.
+      # Dependabot doesn't have an option for ignoring versions conforming to a naming convention
+      # (outside of semver major, minor, and patch designations) and will attempt to update
+      # to the latest published version.
+      - dependency-name: "io.kubernetes:client-java"

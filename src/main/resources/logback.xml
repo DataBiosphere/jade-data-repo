@@ -24,7 +24,7 @@
 
     <appender name="Console-Stackdriver" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
-            <layout class="org.springframework.cloud.gcp.logging.StackdriverJsonLayout">
+            <layout class="com.google.cloud.spring.logging.StackdriverJsonLayout">
                 <includeTraceId>true</includeTraceId>
                 <includeSpanId>true</includeSpanId>
             </layout>

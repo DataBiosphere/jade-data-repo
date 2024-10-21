@@ -162,7 +162,31 @@ public class BufferServiceConnectedTest {
     assertThat(
         "Sensitive project was moved to the correct folder",
         sensitiveParent.getId(),
-        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
+        equalTo(googleResourceConfiguration.secureFolderResourceId()));
+
+    // test trying to move a project that is already in the secure folder
+    bufferService.refolderProjectToSecureFolder(sensitiveProjectId);
+    assertThat(
+        "Sensitive project is still in secure folder",
+        sensitiveParent.getId(),
+        equalTo(googleResourceConfiguration.secureFolderResourceId()));
+
+    // test trying to move a project back to the default folder
+    bufferService.refolderProjectToDefaultFolder(sensitiveProjectId);
+    // Reload the project to get the updated parent folder
+    ResourceId updatedParentFolder =
+        resourceManagerService.getProject(sensitiveProjectId).getParent();
+    assertThat(
+        "Formerly sensitive project is now in default folder",
+        updatedParentFolder.getId(),
+        equalTo(normalParent.getId()));
+
+    // test trying to move a project back to the default folder
+    bufferService.refolderProjectToDefaultFolder(sensitiveProjectId);
+    assertThat(
+        "Formerly sensitive project is still in default folder",
+        updatedParentFolder.getId(),
+        equalTo(normalParent.getId()));
   }
 
   private SnapshotModel getTestSnapshot(UUID id) throws Exception {

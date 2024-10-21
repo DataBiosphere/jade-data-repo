@@ -21,7 +21,6 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableItem;
 import com.azure.data.tables.models.TableServiceException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -62,7 +61,6 @@ public class TableDirectoryDaoTest {
   @Autowired private TableDirectoryDao dao;
 
   @Before
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void setUp() {
     dao = spy(dao);
     when(authService.getTableServiceClient(any(), any(), any())).thenReturn(tableServiceClient);
@@ -96,7 +94,10 @@ public class TableDirectoryDaoTest {
     when(tableClient.getEntity(PARTITION_KEY, ROW_KEY)).thenReturn(entity);
     FireStoreDirectoryEntry response =
         dao.retrieveByPath(
-            tableServiceClient, DATASET_ID, StorageTableName.DATASET.toTableName(), FULL_PATH);
+            tableServiceClient,
+            DATASET_ID,
+            StorageTableName.DATASET.toTableName(DATASET_ID),
+            FULL_PATH);
     assertEquals("The same entry is returned", directoryEntry, response);
 
     when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_ROW_KEY))
@@ -105,7 +106,7 @@ public class TableDirectoryDaoTest {
         dao.retrieveByPath(
             tableServiceClient,
             DATASET_ID,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(DATASET_ID),
             NONEXISTENT_PATH);
     assertNull("The entry does not exist", nonExistentEntry);
   }
@@ -127,7 +128,8 @@ public class TableDirectoryDaoTest {
           .when(() -> TableServiceClientUtils.tableHasSingleEntry(any(), any(), any()))
           .thenReturn(true);
       FireStoreDirectoryEntry response =
-          dao.retrieveById(tableServiceClient, StorageTableName.DATASET.toTableName(), FILE_ID);
+          dao.retrieveById(
+              tableServiceClient, StorageTableName.DATASET.toTableName(DATASET_ID), FILE_ID);
       assertThat(
           "retrieveById returns the correct directory entry", response, equalTo(directoryEntry));
     }
@@ -143,7 +145,7 @@ public class TableDirectoryDaoTest {
 
     FireStoreDirectoryEntry response =
         dao.retrieveById(
-            tableServiceClient, StorageTableName.DATASET.toTableName(), "nonexistentId");
+            tableServiceClient, StorageTableName.DATASET.toTableName(DATASET_ID), "nonexistentId");
     assertNull("The entry does not exist", response);
   }
 
@@ -157,7 +159,7 @@ public class TableDirectoryDaoTest {
 
     String missingId = UUID.randomUUID().toString();
     List<String> refIds = List.of(missingId);
-    List<String> response = dao.validateRefIds(tableServiceClient, refIds);
+    List<String> response = dao.validateRefIds(tableServiceClient, DATASET_ID, refIds);
     assertEquals(response.get(0), missingId);
   }
 
@@ -169,7 +171,8 @@ public class TableDirectoryDaoTest {
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
     List<FireStoreDirectoryEntry> response =
-        dao.enumerateDirectory(tableServiceClient, StorageTableName.DATASET.toTableName(), FILE_ID);
+        dao.enumerateDirectory(
+            tableServiceClient, StorageTableName.DATASET.toTableName(DATASET_ID), FILE_ID);
     assertEquals(response.get(0), directoryEntry);
   }
 }

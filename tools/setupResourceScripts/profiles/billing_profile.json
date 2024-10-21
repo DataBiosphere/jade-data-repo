@@ -1,0 +1,7 @@
+{
+  "billingAccountId": "00708C-45D19D-27AAFA",
+  "profileName": "ui_integration_data",
+  "biller": "direct",
+  "description": "Billing profile for UI integration test data",
+  "cloudPlatform": "gcp"
+}

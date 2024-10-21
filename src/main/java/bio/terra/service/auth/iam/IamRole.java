@@ -8,11 +8,15 @@ public enum IamRole {
   ADMIN,
   STEWARD,
   CUSTODIAN,
+  AGGREGATE_DATA_READER,
   READER,
   DISCOVERER,
   OWNER,
   USER,
-  SNAPSHOT_CREATOR;
+  APPROVER,
+  SNAPSHOT_CREATOR,
+  /** A role used by Firecloud Managed Groups */
+  MEMBER;
 
   @Override
   @JsonValue

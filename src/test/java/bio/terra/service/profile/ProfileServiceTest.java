@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -21,9 +22,7 @@ import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
-import com.google.api.client.util.Lists;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -174,21 +173,14 @@ public class ProfileServiceTest {
   }
 
   private GoogleProjectResource buildProjectResource() throws Exception {
-    String role = "roles/bigquery.jobUser";
-    String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
-    List<String> stewardsGroupEmailList = Lists.newArrayList();
-    stewardsGroupEmailList.add(stewardsGroupEmail);
-    Map<String, List<String>> roleToStewardMap = new HashMap<>();
-    roleToStewardMap.put(role, stewardsGroupEmailList);
-
     ResourceInfo resourceInfo = bufferService.handoutResource(false);
 
     // create project metadata
     return googleProjectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
         profile,
-        roleToStewardMap,
         GoogleRegion.DEFAULT_GOOGLE_REGION,
-        Map.of("test-name", "profile-service-test"));
+        Map.of("test-name", "profile-service-test"),
+        CollectionType.DATASET);
   }
 }

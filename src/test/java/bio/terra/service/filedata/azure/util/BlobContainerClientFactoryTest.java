@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
+import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -17,6 +17,7 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -40,13 +41,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
+@Ignore("DCJ-826: Temporarily disabled due to missing Azure resources")
 public class BlobContainerClientFactoryTest {
 
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
 
-  private BlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility blobIOTestUtility;
   private String accountName;
   private String containerName;
   private String blobName;
@@ -58,13 +60,13 @@ public class BlobContainerClientFactoryTest {
     retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
-            azureResourceConfiguration.getMaxRetries(),
-            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            azureResourceConfiguration.maxRetries(),
+            azureResourceConfiguration.retryTimeoutSeconds(),
             null,
             null,
             null);
     blobIOTestUtility =
-        new BlobIOTestUtility(
+        new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName(),
@@ -79,7 +81,7 @@ public class BlobContainerClientFactoryTest {
 
   @After
   public void tearDown() throws Exception {
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtility.teardown();
   }
 
   @Test

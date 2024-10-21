@@ -6,23 +6,25 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.ParquetUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocationTables;
@@ -43,6 +45,10 @@ import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +57,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -61,6 +66,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -75,7 +81,6 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   @Autowired private GcsPdao gcsPdao;
   @Autowired private GoogleBucketService googleBucketService;
   @Autowired private AuthService authService;
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   @Autowired
   @Qualifier("objectMapper")
@@ -143,8 +148,25 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
+
+    DataRepoResponse<JobModel> failedExportResponse =
+        dataRepoFixtures.exportSnapshot(reader(), snapshotSummary.getId(), false, false, false);
+    assertThat(
+        "Reader is not authorized to export a snapshot",
+        failedExportResponse.getStatusCode(),
+        equalTo(HttpStatus.FORBIDDEN));
+
+    // Test using signed URLS
+    testExport(snapshotId, true);
+
+    // Test using gs URIS
+    testExport(snapshotId, false);
+  }
+
+  private void testExport(UUID snapshotId, boolean signUrls) throws Exception {
+
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true, signUrls);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().orElseThrow();
 
@@ -163,19 +185,26 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         "The response has the correct tables",
         parquet.getLocation().getTables().stream()
             .map(SnapshotExportResponseModelFormatParquetLocationTables::getName)
-            .collect(Collectors.toList()),
+            .toList(),
         containsInAnyOrder("participant", "sample"));
 
     assertThat("Response contains the snapshot", snapshot.getId(), equalTo(snapshotId));
 
-    BlobId manifestBlob = GcsUriUtils.parseBlobUri(parquet.getManifest());
-
-    String bucketProject = manifestBlob.getBucket().replace("-snapshot-export-bucket", "");
-    String manifestContentsRaw =
-        gcsPdao
-            .getBlobsLinesStream(parquet.getManifest(), bucketProject, null)
-            .collect(Collectors.joining("\n"));
-
+    String manifestContentsRaw;
+    String manifestBucket;
+    if (signUrls) {
+      manifestContentsRaw = new String(readUrl(parquet.getManifest()), StandardCharsets.UTF_8);
+      // The first element in the path is the bucket with Google's signed urls
+      manifestBucket = URI.create(parquet.getManifest()).getPath().split("/")[1];
+    } else {
+      BlobId manifestBlob = GcsUriUtils.parseBlobUri(parquet.getManifest());
+      manifestBucket = manifestBlob.getBucket();
+      String bucketProject = manifestBlob.getBucket().replace("-snapshot-export-bucket", "");
+      manifestContentsRaw =
+          gcsPdao
+              .getBlobsLinesStream(parquet.getManifest(), bucketProject, null)
+              .collect(Collectors.joining("\n"));
+    }
     TypeReference<SnapshotExportResponseModel> ref = new TypeReference<>() {};
     SnapshotExportResponseModel manifestContents =
         objectMapper.convertValue(objectMapper.readTree(manifestContentsRaw), ref);
@@ -192,8 +221,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
     Integer deleteAge = 1;
 
-    var lifecycleRules =
-        googleBucketService.getCloudBucket(manifestBlob.getBucket()).getLifecycleRules();
+    var lifecycleRules = googleBucketService.getCloudBucket(manifestBucket).getLifecycleRules();
 
     var lifecycleRule = lifecycleRules.get(0);
     var lifecycleAction = lifecycleRule.getAction();
@@ -210,7 +238,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         Stream.concat(
                 parquet.getLocation().getTables().stream().flatMap(t -> t.getPaths().stream()),
                 Stream.of(parquet.getManifest()))
-            .collect(Collectors.toList());
+            .toList();
 
     Storage unauthedStorage =
         StorageOptions.newBuilder()
@@ -224,19 +252,32 @@ public class SnapshotExportIntegrationTest extends UsersBase {
             .getService();
 
     for (var path : paths) {
-      Blob blob = authedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest()));
-      assertThat("Authorized user can read " + path, blob, notNullValue());
+      if (signUrls) {
+        // Make sure we can download the parquet bytes
+        byte[] bytes = readUrl(path);
+        assertThat(
+            "Signed URL is accessible and parquet isn't empty", bytes.length, greaterThan(0));
+      } else {
+        Blob blob = authedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest()));
+        assertThat("Authorized user can read " + path, blob, notNullValue());
 
-      StorageException notAuthorizedException = null;
-      try {
-        unauthedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest()));
-      } catch (StorageException ex) {
-        notAuthorizedException = ex;
+        StorageException notAuthorizedException =
+            assertThrows(
+                "Unauthorized user cannot read " + path,
+                StorageException.class,
+                () -> unauthedStorage.get(GcsUriUtils.parseBlobUri(parquet.getManifest())));
+
+        assertThat(
+            "Unauthorized user cannot read " + path,
+            notAuthorizedException.getCode(),
+            equalTo(403));
       }
-      // Appeasing SpotBugs
-      assert notAuthorizedException != null;
-      assertThat(
-          "Unauthorized user cannot read " + path, notAuthorizedException.getCode(), equalTo(403));
+    }
+  }
+
+  private byte[] readUrl(String url) throws IOException {
+    try (var responseBody = new URL(url).openStream()) {
+      return responseBody.readAllBytes();
     }
   }
 
@@ -267,7 +308,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true, false, false);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().orElseThrow();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
@@ -325,7 +366,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true, true);
 
     ErrorModel errorModel = exportResponse.getErrorObject().orElseThrow();
 

@@ -4,11 +4,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.BillingProfileModel;
@@ -19,47 +21,36 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-public class MetadataDataAccessUtilsTest {
+@ExtendWith(MockitoExtension.class)
+@Tag(Unit.TAG)
+class MetadataDataAccessUtilsTest {
   private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
+      AuthenticationFixtures.randomUserRequest();
 
-  @InjectMocks private MetadataDataAccessUtils metadataDataAccessUtils;
+  private MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Mock private static ResourceService resourceService;
 
   @Mock private static AzureBlobStorePdao azureBlobStorePdao;
-  @Mock private static ProfileService profileService;
 
   private Dataset azureDataset;
-  private DatasetSummary azureDatasetSummary;
-  private BillingProfileModel defaultProfileModel;
 
-  @Before
-  public void setup() throws Exception {
+  @BeforeEach
+  void setup() {
     UUID azureDatsetId = UUID.randomUUID();
     UUID billingProfileModelId = UUID.randomUUID();
-    defaultProfileModel =
+    BillingProfileModel defaultProfileModel =
         new BillingProfileModel().profileName("default profile").id(billingProfileModelId);
-    azureDatasetSummary =
+    DatasetSummary azureDatasetSummary =
         new DatasetSummary()
             .storage(
                 List.of(
@@ -74,30 +65,33 @@ public class MetadataDataAccessUtilsTest {
         new Dataset(azureDatasetSummary).tables(List.of(sampleTable)).name("test-dataset");
 
     metadataDataAccessUtils =
-        new MetadataDataAccessUtils(resourceService, azureBlobStorePdao, profileService);
+        new MetadataDataAccessUtils(
+            resourceService, azureBlobStorePdao, mock(ProfileService.class));
   }
 
   @Test
-  public void testAzureAccessInfo() {
+  void testAzureAccessInfo() {
     AzureStorageAccountResource storageAccountResource =
-        new AzureStorageAccountResource().resourceId(UUID.randomUUID()).name("michaelstorage");
+        new AzureStorageAccountResource()
+            .resourceId(UUID.randomUUID())
+            .name("michaelstorage")
+            .topLevelContainer("tlc");
     when(resourceService.getDatasetStorageAccount(any(), any())).thenReturn(storageAccountResource);
 
     when(azureBlobStorePdao.signFile(
             any(),
             any(),
-            eq("https://michaelstorage.blob.core.windows.net/metadata/parquet"),
-            eq(ContainerType.METADATA),
+            eq("https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet"),
             any()))
-        .thenReturn("https://michaelstorage.blob.core.windows.net/metadata/parquet/signedUrl?sast");
+        .thenReturn(
+            "https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/signedUrl?sast");
     when(azureBlobStorePdao.signFile(
             any(),
             any(),
-            eq("https://michaelstorage.blob.core.windows.net/metadata/parquet/sample"),
-            eq(ContainerType.METADATA),
+            eq("https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/sample"),
             any()))
         .thenReturn(
-            "https://michaelstorage.blob.core.windows.net/metadata/parquet/sample/signedUrl?sast");
+            "https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/sample/signedUrl?sast");
 
     AccessInfoParquetModel infoModel =
         metadataDataAccessUtils.accessInfoFromDataset(azureDataset, TEST_USER).getParquet();
@@ -106,7 +100,7 @@ public class MetadataDataAccessUtilsTest {
     assertThat(infoModel.getDatasetId(), equalTo("michaelstorage.test-dataset"));
     assertThat(
         infoModel.getUrl(),
-        equalTo("https://michaelstorage.blob.core.windows.net/metadata/parquet/signedUrl"));
+        equalTo("https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/signedUrl"));
     assertThat(infoModel.getSasToken(), equalTo("sast"));
   }
 }

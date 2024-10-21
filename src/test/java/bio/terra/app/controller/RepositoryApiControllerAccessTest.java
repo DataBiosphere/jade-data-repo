@@ -6,13 +6,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -36,8 +34,6 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
-  @Rule @Autowired public TestJobWatcher testWatcher;
-
   @Before
   public void setup() throws Exception {
     super.setup();
@@ -50,7 +46,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
     // This call should be unsuccessful
     assertThat(dataRepoFixtures.getConfigListRaw(reader()).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
@@ -70,7 +66,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
     // This call should be unsuccessful
     assertThat(dataRepoFixtures.setConfigListRaw(reader(), configGroup).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
 
     // Reset config changes
     dataRepoFixtures.resetConfig(admin());
@@ -88,7 +84,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
             dataRepoFixtures
                 .getConfig(reader(), SAM_RETRY_INITIAL_WAIT_SECONDS.name())
                 .getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
@@ -97,7 +93,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
         .isEqualTo(HttpStatus.NO_CONTENT);
 
     assertThat(dataRepoFixtures.setFault(reader(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
 
     // Reset config changes
     dataRepoFixtures.resetConfig(admin());
@@ -109,6 +105,6 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
         .isEqualTo(HttpStatus.NO_CONTENT);
 
     assertThat(dataRepoFixtures.resetConfig(reader()).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 }

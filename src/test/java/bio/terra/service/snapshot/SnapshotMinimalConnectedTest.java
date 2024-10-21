@@ -30,6 +30,7 @@ import com.google.cloud.storage.StorageOptions;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,6 +87,7 @@ public class SnapshotMinimalConnectedTest {
   public void testMinimal() throws Exception {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
     String datasetName = PDAO_PREFIX + datasetMinimalSummary.getName();
+    UUID datasetMinimalSummaryDefaultProfileId = datasetMinimalSummary.getDefaultProfileId();
     BigQueryProject bigQueryProject =
         TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetMinimalSummary.getName());
     long datasetParticipants =
@@ -97,7 +99,9 @@ public class SnapshotMinimalConnectedTest {
 
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json");
+            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json", null);
+    assertThat(
+        "SnapshotRequestModel profileId is empty", snapshotRequest.getProfileId(), equalTo(null));
     MockHttpServletResponse response =
         SnapshotConnectedTestUtils.performCreateSnapshot(
             connectedOperations, mvc, snapshotRequest, "");
@@ -114,6 +118,10 @@ public class SnapshotMinimalConnectedTest {
         tables.stream().filter(t -> t.getName().equals("sample")).findFirst();
     assertThat("participant table exists", participantTable.isPresent(), equalTo(true));
     assertThat("sample table exists", sampleTable.isPresent(), equalTo(true));
+    assertThat(
+        "defaultProfileId from dataset was used for snapshot",
+        snapshotModel.getProfileId(),
+        equalTo(datasetMinimalSummaryDefaultProfileId));
 
     BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshotModel.getName());
@@ -145,7 +153,7 @@ public class SnapshotMinimalConnectedTest {
 
     SnapshotPreviewModel snapshotPreviewModel =
         SnapshotConnectedTestUtils.getTablePreview(
-            connectedOperations, summaryModel.getId(), "participant", 10, 0, null);
+            connectedOperations, summaryModel.getId(), "participant", 10, 0, null, null);
 
     assertThat(
         "participant has the correct age",
@@ -154,11 +162,26 @@ public class SnapshotMinimalConnectedTest {
   }
 
   @Test
-  public void testPreview() throws Exception {
+  public void testDatasetAndSnapshotDataView() throws Exception {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
+    validateDataView(
+        ConnectedOperations.TdrResourceType.DATASET,
+        datasetMinimalSummary.getId(),
+        datasetMinimalSummary.getName());
+
+    UUID datasetMinimalSummaryProfileId = datasetMinimalSummary.getDefaultProfileId();
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json");
+            jsonLoader,
+            datasetMinimalSummary,
+            "dataset-minimal-snapshot-full-view.json",
+            datasetMinimalSummary.getDefaultProfileId());
+
+    assertThat(
+        "dataset default profile Id was included in snapshot request",
+        snapshotRequest.getProfileId(),
+        equalTo(datasetMinimalSummaryProfileId));
+
     MockHttpServletResponse response =
         SnapshotConnectedTestUtils.performCreateSnapshot(
             connectedOperations, mvc, snapshotRequest, "");
@@ -166,34 +189,47 @@ public class SnapshotMinimalConnectedTest {
         SnapshotConnectedTestUtils.validateSnapshotCreated(
             connectedOperations, snapshotRequest, response);
 
-    SnapshotPreviewModel snapshotPreviewModel =
-        SnapshotConnectedTestUtils.getTablePreview(
-            connectedOperations, summaryModel.getId(), "participant", 10, 0, "WHERE age > 1");
+    validateDataView(
+        ConnectedOperations.TdrResourceType.SNAPSHOT, summaryModel.getId(), summaryModel.getName());
+  }
+
+  private void validateDataView(
+      ConnectedOperations.TdrResourceType resourceType, UUID resourceId, String resourceName)
+      throws Exception {
+    List<Object> ageGreaterThanOneResult =
+        connectedOperations.retrieveDataSuccess(
+            resourceType, resourceId, "participant", 10, 0, "WHERE age > 1", null);
 
     assertThat(
-        "participant preview has one record", snapshotPreviewModel.getResult().size(), equalTo(1));
+        "participant dataset data has 2 records", ageGreaterThanOneResult.size(), equalTo(2));
 
-    SnapshotPreviewModel snapshotEmptyPreviewModel =
-        SnapshotConnectedTestUtils.getTablePreview(
-            connectedOperations, summaryModel.getId(), "participant", 10, 0, "WHERE age > 23");
+    List<Object> ageGreaterThan23Result =
+        connectedOperations.retrieveDataSuccess(
+            resourceType, resourceId, "participant", 10, 0, "WHERE age > 23", null);
 
     assertThat(
-        "participant preview is empty", snapshotEmptyPreviewModel.getResult().size(), equalTo(0));
+        "participant dataset view has one record", ageGreaterThan23Result.size(), equalTo(1));
 
-    String joinClause = "JOIN " + summaryModel.getName() + ".sample ON sample.participant_id = id";
-    ErrorModel snapshotPreviewError =
-        SnapshotConnectedTestUtils.getTablePreviewFailure(
-            connectedOperations,
-            summaryModel.getId(),
+    String prefix =
+        resourceType.equals(ConnectedOperations.TdrResourceType.DATASET) ? PDAO_PREFIX : "";
+    String joinClause =
+        "JOIN " + prefix + resourceName + ".sample ON " + prefix + "sample.participant_id = id";
+    // if the user provided filter doesn't start with "WHERE", we append it
+    // We then parse the filter, so this fails because the filter starts with "WHERE JOIN..."
+    ErrorModel previewError =
+        connectedOperations.retrieveDataFailure(
+            resourceType,
+            resourceId,
             "participant",
             10,
             0,
             joinClause,
-            HttpStatus.INTERNAL_SERVER_ERROR);
+            null,
+            HttpStatus.BAD_REQUEST);
 
     assertTrue(
         "JOIN with sample table fails",
-        snapshotPreviewError.getMessage().contains("Failure executing query"));
+        previewError.getMessage().contains("Unable to parse user provided filter"));
   }
 
   @Test
@@ -201,7 +237,10 @@ public class SnapshotMinimalConnectedTest {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot-bad-asset.json");
+            jsonLoader,
+            datasetMinimalSummary,
+            "dataset-minimal-snapshot-bad-asset.json",
+            datasetMinimalSummary.getDefaultProfileId());
     MvcResult result = SnapshotConnectedTestUtils.launchCreateSnapshot(mvc, snapshotRequest, "");
     MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
     assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));

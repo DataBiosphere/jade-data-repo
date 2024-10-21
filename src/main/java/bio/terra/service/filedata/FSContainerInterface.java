@@ -1,6 +1,7 @@
 package bio.terra.service.filedata;
 
 import bio.terra.common.CollectionType;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.util.UUID;
@@ -17,4 +18,10 @@ public interface FSContainerInterface {
   String getName();
 
   CollectionType getCollectionType();
+
+  CloudPlatform getCloudPlatform();
+
+  boolean isDataset();
+
+  boolean isSnapshot();
 }

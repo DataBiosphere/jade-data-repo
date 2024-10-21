@@ -5,8 +5,12 @@ import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
+@ConfigurationPropertiesScan("bio.terra")
+@SpringBootApplication(
+    exclude = {DataSourceAutoConfiguration.class},
+    scanBasePackages = {"bio.terra"})
 public class Main implements CommandLineRunner {
 
   @Override
@@ -21,6 +25,7 @@ public class Main implements CommandLineRunner {
     // Initially, Jade runs only with Google cloud parts right now, so we set the profile here.
     // ITFOT, we can parameterize the profile to include the appropriate pdao implementations.
     theApp.setAdditionalProfiles("google");
+
     theApp.run(args);
   }
 

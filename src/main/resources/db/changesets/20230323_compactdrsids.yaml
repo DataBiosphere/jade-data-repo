@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: compactdrsids
+      author: nm
+      changes:
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: compact_id_prefix
+              type: varchar(256)

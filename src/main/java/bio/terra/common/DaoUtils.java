@@ -2,7 +2,7 @@ package bio.terra.common;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -12,15 +12,18 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public final class DaoUtils {
@@ -48,7 +51,9 @@ public final class DaoUtils {
     if (!StringUtils.isEmpty(filter)) {
       params.addValue("filter", DaoUtils.escapeFilter(filter));
       clauses.add(
-          String.format(" (%s.name ILIKE :filter OR %s.description ILIKE :filter) ", table, table));
+          String.format(
+              " (%s.id::text ILIKE :filter OR %s.name ILIKE :filter OR %s.description ILIKE :filter) ",
+              table, table, table));
     }
   }
 
@@ -86,7 +91,8 @@ public final class DaoUtils {
 
   public static Array createSqlStringArray(Connection connection, List<String> list)
       throws SQLException {
-    return connection.createArrayOf("text", list.toArray());
+    Object[] array = ListUtils.emptyIfNull(list).toArray();
+    return connection.createArrayOf("text", array);
   }
 
   public static List<String> getStringList(ResultSet rs, String column) throws SQLException {
@@ -95,19 +101,6 @@ public final class DaoUtils {
       return List.of();
     }
     return List.of((String[]) sqlArray.getArray());
-  }
-
-  public static List<String> getJsonStringArray(
-      ResultSet rs, String column, ObjectMapper objectMapper)
-      throws SQLException, JsonProcessingException {
-    String jsonArrayRaw = rs.getString(column);
-    if (jsonArrayRaw != null) {
-      return objectMapper.readValue(jsonArrayRaw, new TypeReference<>() {});
-    } else {
-      // This needs to be an ArrayList because List.of() does not provide an object
-      // with a zero-arg constructor, causing Jackson to complain upon deserialization.
-      return new ArrayList<>();
-    }
   }
 
   // Based on Exception returned, determine if we should attempt to retry an operation/stairway step
@@ -137,6 +130,52 @@ public final class DaoUtils {
       }
     } else {
       return null;
+    }
+  }
+
+  public static Instant getInstant(ResultSet rs, String columnLabel) throws SQLException {
+    Timestamp timestamp = rs.getTimestamp(columnLabel);
+    return timestamp != null ? timestamp.toInstant() : null;
+  }
+
+  public static String getInstantString(ResultSet rs, String columnLabel) throws SQLException {
+    Instant instant = getInstant(rs, columnLabel);
+    return instant != null ? instant.toString() : null;
+  }
+
+  public static class UuidMapper implements RowMapper<UUID> {
+    private final String columnLabel;
+
+    public UuidMapper(String columnLabel) {
+      this.columnLabel = columnLabel;
+    }
+
+    @Override
+    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return rs.getObject(this.columnLabel, UUID.class);
+    }
+  }
+
+  /**
+   * Common RowMapper for mapping a column row. This assumes that all fields are prefixed with
+   * column_ in the result set (e.g. name should be selected as column_name).
+   */
+  public static class TableColumnMapper implements RowMapper<Column> {
+    private final Table table;
+
+    public TableColumnMapper(Table table) {
+      this.table = table;
+    }
+
+    @Override
+    public Column mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return new Column()
+          .id(rs.getObject("column_id", UUID.class))
+          .table(table)
+          .name(rs.getString("column_name"))
+          .type(TableDataType.fromValue(rs.getString("column_type")))
+          .arrayOf(rs.getBoolean("column_array_of"))
+          .required(rs.getBoolean("column_required"));
     }
   }
 }

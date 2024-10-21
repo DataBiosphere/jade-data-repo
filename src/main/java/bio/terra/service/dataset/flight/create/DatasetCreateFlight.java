@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -18,6 +19,7 @@ import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
@@ -25,7 +27,8 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
@@ -58,9 +61,14 @@ public class DatasetCreateFlight extends Flight {
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+
+    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+        new AzureStorageMonitoringStepProvider(monitoringService);
 
     var platform = CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
 
@@ -83,16 +91,18 @@ public class DatasetCreateFlight extends Flight {
           new GetResourceBufferProjectStep(
               bufferService,
               googleResourceManagerService,
-              datasetRequest.isEnableSecureMonitoring()));
+              datasetRequest.isEnableSecureMonitoring()),
+          getDefaultExponentialBackoffRetryRule());
 
       // Get or initialize the project where the dataset resources will be created
       addStep(
           new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
           getDefaultExponentialBackoffRetryRule());
 
-      // Create the service account to use to ingest data
+      // Create the service account to use to ingest data and register it in Terra
       if (datasetRequest.isDedicatedIngestServiceAccount()) {
         addStep(new CreateDatasetCreateIngestServiceAccountStep(resourceService, datasetRequest));
+        addStep(new CreateDatasetRegisterIngestServiceAccountStep(iamService));
       }
     }
 
@@ -102,15 +112,17 @@ public class DatasetCreateFlight extends Flight {
           new CreateDatasetGetOrCreateStorageAccountStep(
               resourceService, datasetRequest, azureBlobStorePdao));
 
-      // Create the metadata container
+      // Create the top level container
       addStep(
           new CreateDatasetGetOrCreateContainerStep(
-              resourceService, datasetRequest, azureContainerPdao, ContainerType.METADATA));
+              resourceService, datasetRequest, azureContainerPdao));
 
-      // Create the data container
-      addStep(
-          new CreateDatasetGetOrCreateContainerStep(
-              resourceService, datasetRequest, azureContainerPdao, ContainerType.DATA));
+      // Turn on logging and monitoring for the storage account associated with the dataset
+      azureStorageMonitoringStepProvider
+          .configureSteps(
+              datasetRequest.isEnableSecureMonitoring(),
+              AzureRegion.fromValue(datasetRequest.getRegion()))
+          .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 
     // Create dataset metadata objects in postgres and lock the dataset
@@ -124,8 +136,9 @@ public class DatasetCreateFlight extends Flight {
           new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
     }
 
+    // Create the IAM resource for the dataset with any specified policy members.
     // The underlying service provides retries so we do not need to retry for IAM step
-    addStep(new CreateDatasetAuthzIamStep(iamClient, userReq));
+    addStep(new CreateDatasetAuthzIamStep(iamClient, userReq, datasetRequest));
 
     if (platform.isGcp()) {
       addStep(new CreateDatasetPrimaryDataStep(bigQueryDatasetPdao, datasetDao));
@@ -153,5 +166,8 @@ public class DatasetCreateFlight extends Flight {
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
     }
     addStep(new UnlockDatasetStep(datasetService, false));
+    // once unlocked, the dataset summary can be written as the job response
+    addStep(new CreateDatasetSetResponseStep(datasetService));
+    addStep(new CreateDatasetJournalEntryStep(journalService, userReq));
   }
 }

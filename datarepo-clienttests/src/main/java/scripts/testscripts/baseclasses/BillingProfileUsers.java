@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.utils.tdrwrapper.DataRepoWrap;
+import scripts.utils.tdrwrapper.exception.DataRepoForbiddenClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoNotFoundClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoUnauthorizedClientException;
 
@@ -73,7 +74,7 @@ public class BillingProfileUsers extends runner.TestScript {
           wrap.createDataset(profileId, "dataset-simple.json", true);
       wrap.deleteDataset(datasetSummaryModel.getId());
       datasetSuccess = true;
-    } catch (DataRepoUnauthorizedClientException ex) {
+    } catch (DataRepoForbiddenClientException ex) {
       datasetSuccess = false;
     }
     logger.info("Role {} dataset {}", role, datasetSuccess);
@@ -83,7 +84,7 @@ public class BillingProfileUsers extends runner.TestScript {
     try {
       wrap.addProfilePolicyMember(profileId, "user", userUser.userEmail);
       addUserSuccess = true;
-    } catch (DataRepoNotFoundClientException | DataRepoUnauthorizedClientException ex) {
+    } catch (DataRepoNotFoundClientException | DataRepoForbiddenClientException ex) {
       addUserSuccess = false;
     }
     logger.info("Role {} addUser {}", role, addUserSuccess);
@@ -94,7 +95,7 @@ public class BillingProfileUsers extends runner.TestScript {
       try {
         wrap.deleteProfilePolicyMember(profileId, "user", userUser.userEmail);
         deleteUserSuccess = true;
-      } catch (DataRepoNotFoundClientException | DataRepoUnauthorizedClientException ex) {
+      } catch (DataRepoNotFoundClientException | DataRepoForbiddenClientException ex) {
         deleteUserSuccess = false;
       }
     }
@@ -105,7 +106,7 @@ public class BillingProfileUsers extends runner.TestScript {
     try {
       wrap.retrieveProfilePolicies(profileId);
       retrievePolicySuccess = true;
-    } catch (DataRepoNotFoundClientException | DataRepoUnauthorizedClientException ex) {
+    } catch (DataRepoNotFoundClientException | DataRepoForbiddenClientException ex) {
       retrievePolicySuccess = false;
     }
     logger.info("Role {} retrievePolicies {}", role, retrievePolicySuccess);

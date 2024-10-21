@@ -49,11 +49,12 @@ public class IngestFileFileStep implements Step {
               .gspath(fsFileInfo.getCloudPath())
               .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
               .checksumMd5(fsFileInfo.getChecksumMd5())
+              .userSpecifiedMd5(fsFileInfo.isUserSpecifiedMd5())
               .size(fsFileInfo.getSize())
               .loadTag(fileLoadModel.getLoadTag());
 
       try {
-        fileDao.createFileMetadata(dataset, newFile);
+        fileDao.upsertFileMetadata(dataset, newFile);
         // Retrieve to build the complete FSItem
         FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));

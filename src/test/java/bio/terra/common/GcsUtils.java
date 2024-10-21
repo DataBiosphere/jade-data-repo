@@ -4,7 +4,9 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Blob.BlobSourceOption;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobGetOption;
 import com.google.cloud.storage.StorageOptions;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -39,7 +41,7 @@ public class GcsUtils {
 
   public boolean fileExists(String path) {
     logger.info("Checking that file {} exists", path);
-    Blob blob = storage.get(GcsUriUtils.parseBlobUri(path));
-    return blob.exists();
+    Blob blob = storage.get(GcsUriUtils.parseBlobUri(path), BlobGetOption.userProject(projectId));
+    return blob.exists(BlobSourceOption.userProject(projectId));
   }
 }

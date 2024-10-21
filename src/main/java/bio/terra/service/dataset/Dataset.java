@@ -7,7 +7,11 @@ import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.AssetModel;
+import bio.terra.model.CloudPlatform;
+import bio.terra.model.ResourceLocks;
 import bio.terra.service.dataset.exception.InvalidAssetException;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
@@ -21,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 
 public class Dataset implements FSContainerInterface, LogPrintable {
@@ -43,6 +48,16 @@ public class Dataset implements FSContainerInterface, LogPrintable {
   @Override
   public CollectionType getCollectionType() {
     return CollectionType.DATASET;
+  }
+
+  @Override
+  public boolean isSnapshot() {
+    return false;
+  }
+
+  @Override
+  public boolean isDataset() {
+    return true;
   }
 
   public List<DatasetTable> getTables() {
@@ -90,6 +105,24 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return Optional.empty();
   }
 
+  /**
+   * @param tableName the string name of the table the column is in
+   * @param columnName the string name of the column to fetch
+   * @return the column at the specified path
+   * @throws InvalidTableException if there is no table of the specified name
+   * @throws InvalidColumnException if there is no column in the specified table
+   */
+  public Column getColumn(String tableName, String columnName) {
+    return getTableByName(tableName)
+        .orElseThrow(
+            () -> new InvalidTableException("No dataset table exists with the name: " + tableName))
+        .getColumnByName(columnName)
+        .orElseThrow(
+            () ->
+                new InvalidColumnException(
+                    "No column exists in table " + tableName + " with column name: " + columnName));
+  }
+
   public void validateDatasetAssetSpecification(AssetModel assetModel) {
     List<String> errors = new ArrayList<>();
     // Validate Root Table
@@ -132,7 +165,7 @@ public class Dataset implements FSContainerInterface, LogPrintable {
 
     // Follow should reference an existing relationship as defined in the original dataset create
     // query
-    for (var assetFollow : assetModel.getFollow()) {
+    for (var assetFollow : ListUtils.emptyIfNull(assetModel.getFollow())) {
       if (!relationships.stream().anyMatch(r -> r.getName().equals(assetFollow))) {
         errors.add(
             "Relationship specified in follow list '"
@@ -286,6 +319,15 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  /**
+   * @return whether this dataset has a dedicated GCP service account
+   */
+  public boolean hasDedicatedGcpServiceAccount() {
+    return Optional.ofNullable(projectResource)
+        .map(GoogleProjectResource::hasDedicatedServiceAccount)
+        .orElse(false);
+  }
+
   @Override
   public FireStoreProject firestoreConnection() {
     return FireStoreProject.get(getProjectResource().getGoogleProjectId());
@@ -320,6 +362,28 @@ public class Dataset implements FSContainerInterface, LogPrintable {
 
   public Object getProperties() {
     return datasetSummary.getProperties();
+  }
+
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return datasetSummary.getCloudPlatform();
+  }
+
+  public boolean hasPredictableFileIds() {
+    return datasetSummary.hasPredictableFileIds();
+  }
+
+  public Dataset predictableFileIds(boolean predictableFileIds) {
+    datasetSummary.predictableFileIds(predictableFileIds);
+    return this;
+  }
+
+  public List<String> getTags() {
+    return datasetSummary.getTags();
+  }
+
+  public ResourceLocks getResourceLocks() {
+    return datasetSummary.getResourceLocks();
   }
 
   @Override

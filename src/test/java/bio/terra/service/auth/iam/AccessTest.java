@@ -33,21 +33,18 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -66,9 +63,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(OnDemand.class)
-@SuppressFBWarnings(
-    value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
-    justification = "Spurious RCN check; related to Java 11")
 public class AccessTest extends UsersBase {
   private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 
@@ -160,14 +154,8 @@ public class AccessTest extends UsersBase {
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
 
-    boolean custodianHasAccess =
-        BigQueryFixtures.hasAccess(
-            custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
-
-    assertThat(
-        "custodian can access the bq snapshot after it has been shared",
-        custodianHasAccess,
-        equalTo(true));
+    BigQueryFixtures.assertBqDatasetAccessible(
+        custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
 
     SnapshotSummaryModel snapshotSummaryModel =
         dataRepoFixtures.createSnapshot(
@@ -209,11 +197,8 @@ public class AccessTest extends UsersBase {
             IamAction.READ_DATA),
         equalTo(true));
 
-    boolean readerHasAccess =
-        BigQueryFixtures.hasAccess(
-            bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
-    assertThat(
-        "reader can access the snapshot after it has been shared", readerHasAccess, equalTo(true));
+    BigQueryFixtures.assertBqDatasetAccessible(
+        bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
   }
 
   @Test
@@ -278,7 +263,7 @@ public class AccessTest extends UsersBase {
     // so we have to use the custodian to look up the DRS id.
     BigQuery bigQueryCustodian =
         BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
-    BigQueryFixtures.hasAccess(
+    BigQueryFixtures.assertBqDatasetAccessible(
         bigQueryCustodian, snapshotModel.getDataProject(), snapshotModel.getName());
 
     /*
@@ -287,11 +272,13 @@ public class AccessTest extends UsersBase {
      */
     // Read and validate the DRS URI from the file ref column in the 'file' table.
     String drsObjectId =
-        BigQueryFixtures.queryForDrsId(bigQueryCustodian, snapshotModel, "file", "file_ref");
+        dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
+            reader(), snapshotModel.getId(), "file", "file_ref");
 
     // Use DRS API to lookup the file by DRS ID (pulled out of the URI).
     DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
-    String gsuri = TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(), custodianToken);
+    String gsuri =
+        TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(), custodianToken, false);
 
     // Try to read the file of the gs path as reader and discoverer
     String[] strings = gsuri.split("/", 4);
@@ -356,18 +343,12 @@ public class AccessTest extends UsersBase {
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
 
-    boolean custodianHasAccess =
-        BigQueryFixtures.hasAccess(
-            custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
-
-    assertTrue("custodian can access the bq snapshot after it has been shared", custodianHasAccess);
+    BigQueryFixtures.assertBqDatasetAccessible(
+        custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
 
     // gets the "sample" table and makes a table ref to use in the query
-    String tableRef =
-        BigQueryFixtures.makeTableRef(dataset, dataset.getSchema().getTables().get(1).getName());
-    String sql = String.format("SELECT * FROM %s LIMIT %s", tableRef, 1000);
-    TableResult results = BigQueryFixtures.query(sql, custodianBigQuery);
-    Assert.assertEquals(7, results.getTotalRows());
+    dataRepoFixtures.assertDatasetTableCount(
+        custodian(), dataset, dataset.getSchema().getTables().get(1).getName(), 7);
   }
 
   private boolean canReadBlob(Storage storage, BlobId blobId) throws Exception {

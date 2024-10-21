@@ -1,0 +1,25 @@
+{
+  "name": "sample_centric",
+  "assetTable" : {
+
+  },
+  "rootTable": "sample",
+  "rootColumn": "id",
+  "tables": [
+    {
+      "name": "sample",
+      "columns": []
+    },
+    {
+      "name": "participant",
+      "columns": []
+    },
+    {
+      "name": "file",
+      "columns": []
+    }
+  ],
+  "follow": [
+    "sample_derived_from"
+  ]
+}

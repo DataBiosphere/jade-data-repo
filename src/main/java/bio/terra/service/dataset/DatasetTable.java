@@ -6,6 +6,7 @@ import bio.terra.common.Table;
 import com.google.cloud.bigquery.FieldValueList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -82,6 +83,10 @@ public class DatasetTable implements Table, LogPrintable {
   public DatasetTable columns(List<Column> columns) {
     this.columns = columns;
     return this;
+  }
+
+  public Optional<Column> getColumnByName(String columnName) {
+    return this.columns.stream().filter(column -> column.getName().equals(columnName)).findFirst();
   }
 
   @Override

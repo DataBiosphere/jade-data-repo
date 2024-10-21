@@ -11,10 +11,9 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
+import bio.terra.integration.SamFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -23,15 +22,13 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.storage.StorageRoles;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -52,18 +49,18 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
   @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private SamFixtures samFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
-  @Rule @Autowired public TestJobWatcher testWatcher;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
 
-  private String stewardToken;
   private UUID datasetId;
   private UUID profileId;
+  private String ingestBucket;
 
   @Before
   public void setup() throws Exception {
     super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
   }
@@ -73,7 +70,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward());
 
     if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward(), datasetId);
+      dataRepoFixtures.deleteDataset(steward(), datasetId, ingestBucket);
     }
 
     if (profileId != null) {
@@ -87,12 +84,14 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
 
+    // Initial uses bulk mode
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table("sample_vcf")
+            .bulkMode(true)
             .path(
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 
@@ -130,9 +129,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         equalTo(2));
 
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 6L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 6);
 
     IngestRequestModel thirdIngestRequest =
         new IngestRequestModel()
@@ -278,9 +275,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
 
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-
-    List<String> rowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample_vcf", 1L);
+    List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 1);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
             testConfiguration.getIngestbucket(), "softDel", rowIds);
@@ -293,7 +288,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test
@@ -317,9 +312,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
 
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-
-    List<String> rowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample_vcf", 1L);
+    List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 1);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
             testConfiguration.getIngestbucket(), "softDel", rowIds);
@@ -332,7 +325,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test
@@ -389,8 +382,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
     // Soft delete from file
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    List<String> rowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample_vcf", 4L);
+    List<String> rowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 4);
     String rowIdsPath =
         DatasetIntegrationTest.writeListToScratch(
             "jade_testbucket_requester_pays",
@@ -408,17 +400,18 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should only see 2 records now
-    DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample_vcf", 2L);
+    dataRepoFixtures.getRowIds(steward(), dataset, "sample_vcf", 2);
   }
 
   @Test
   public void interactionsWithPerDatasetServiceAccount() throws Exception {
-    String bucketWithNoJadeSa = "jade_testbucket_no_jade_sa";
+    ingestBucket = "jade_testbucket_no_jade_sa";
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDatasetWithOwnServiceAccount(
             steward(), profileId, "dataset-ingest-combined-array.json");
 
     datasetId = datasetSummaryModel.getId();
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -428,8 +421,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
             .table("sample_vcf")
             .path(
                 String.format(
-                    "gs://%s/dataset-ingest-combined-control-duplicates-array.json",
-                    bucketWithNoJadeSa));
+                    "gs://%s/dataset-ingest-combined-control-duplicates-array.json", ingestBucket));
 
     DataRepoResponse<IngestResponseModel> ingestResponseBeforeGrant =
         dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
@@ -442,31 +434,23 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     assertThat(
         "error message is the right one",
         ingestResponseBeforeGrant.getErrorObject().map(ErrorModel::getMessage).orElse(""),
-        containsString(String.format("TDR cannot access bucket %s.", bucketWithNoJadeSa)));
+        containsString(String.format("TDR cannot access bucket %s.", ingestBucket)));
 
     // Now grant the reader role on the source bucket to the ingest service account
-    String ingestServiceAccount =
-        dataRepoFixtures.getDataset(steward(), datasetId).getIngestServiceAccount();
     assertThat(
         "the ingest service account is not the global one",
-        ingestServiceAccount,
+        dataset.getIngestServiceAccount(),
         startsWith("tdr-ingest-sa"));
-    DatasetIntegrationTest.addServiceAccountRoleToBucket(
-        bucketWithNoJadeSa, ingestServiceAccount, StorageRoles.objectViewer());
-    try {
-      IngestResponseModel ingestResponse =
-          dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    dataRepoFixtures.grantIngestBucketPermissionsToDedicatedSa(dataset, ingestBucket);
 
-      dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-      assertThat(
-          "All 4 rows were ingested, including the one with duplicate files",
-          ingestResponse.getRowCount(),
-          equalTo(4L));
-    } finally {
-      // Clean up role grants on shared bucket
-      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          bucketWithNoJadeSa, ingestServiceAccount, StorageRoles.objectViewer());
-    }
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+    assertThat(
+        "All 4 rows were ingested, including the one with duplicate files",
+        ingestResponse.getRowCount(),
+        equalTo(4L));
   }
 }

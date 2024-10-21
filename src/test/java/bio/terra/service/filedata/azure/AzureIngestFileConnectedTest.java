@@ -9,6 +9,7 @@ import bio.terra.common.AzureUtils;
 import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
@@ -19,6 +20,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.common.azure.StorageTableName;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
@@ -27,15 +29,24 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
+import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.resourcemanagement.azure.*;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -45,6 +56,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -54,6 +66,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
+@Ignore("DCJ-826: Temporarily disabled due to missing Azure resources")
 public class AzureIngestFileConnectedTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIngestFileConnectedTest.class);
 
@@ -72,10 +85,11 @@ public class AzureIngestFileConnectedTest {
   private AzureStorageAuthInfo storageAuthInfo;
   private AzureStorageAccountResource storageAccountResource;
   private BillingProfileModel billingProfile;
+  private String exampleAzureFileToIngest;
   private FileLoadModel fileLoadModel;
   private TableServiceClient tableServiceClient;
 
-  @Autowired private AzureResourceConfiguration azureResourceConfiguration;
+  @SpyBean private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -96,8 +110,8 @@ public class AzureIngestFileConnectedTest {
     UUID storageAccountId = UUID.randomUUID();
     datasetId = UUID.randomUUID();
 
-    homeTenantId = azureResourceConfiguration.getCredentials().getHomeTenantId();
-    azureResourceConfiguration.getCredentials().setHomeTenantId(testConfig.getTargetTenantId());
+    AzureResourceConfiguration.Credentials credentials = azureResourceConfiguration.credentials();
+    credentials.setHomeTenantId(testConfig.getTargetTenantId());
 
     billingProfile =
         new BillingProfileModel()
@@ -123,8 +137,7 @@ public class AzureIngestFileConnectedTest {
             .resourceId(storageAccountId)
             .name(testConfig.getSourceStorageAccountName())
             .applicationResource(applicationResource)
-            .metadataContainer("metadata")
-            .dataContainer("data");
+            .topLevelContainer(datasetId.toString());
 
     storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
@@ -139,7 +152,7 @@ public class AzureIngestFileConnectedTest {
                 "https://" + testConfig.getSourceStorageAccountName() + ".table.core.windows.net")
             .buildClient();
 
-    String exampleAzureFileToIngest =
+    exampleAzureFileToIngest =
         synapseUtils.ingestRequestURL(
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
@@ -161,13 +174,12 @@ public class AzureIngestFileConnectedTest {
   @After
   public void cleanup() throws Exception {
     try {
-      tableDao.deleteFileMetadata(fileId, storageAuthInfo);
+      tableDao.deleteFileMetadata(datasetId.toString(), fileId, storageAuthInfo);
       tableDirectoryDao.deleteDirectoryEntry(
-          tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fileId);
+          tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
     }
-    azureResourceConfiguration.getCredentials().setHomeTenantId(homeTenantId);
     connectedOperations.teardown();
   }
 
@@ -184,7 +196,10 @@ public class AzureIngestFileConnectedTest {
 
     FireStoreDirectoryEntry de =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), targetPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            targetPath);
     assertThat("directory should not yet exist.", de, equalTo(null));
 
     // 4 - IngestFileAzureDirectoryStep
@@ -199,18 +214,61 @@ public class AzureIngestFileConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), newEntry);
+        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), targetPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
 
     // 5 - IngestFileAzurePrimaryDataStep
+    // First try is with an invalid user provided md5
+    TestUtils.assertError(
+        InvalidFileChecksumException.class,
+        "Checksums do not match for file",
+        () -> {
+          fileLoadModel.md5("foo");
+          azureBlobStorePdao.copyFile(
+              new Dataset().id(datasetId).predictableFileIds(false),
+              billingProfile,
+              fileLoadModel,
+              fileId,
+              storageAccountResource,
+              TEST_USER);
+        });
+
+    // Second try is with a valid md5 specified
+    String actualMd5;
+    try (Stream<String> contents =
+        azureBlobStorePdao.getBlobsLinesStream(
+            exampleAzureFileToIngest, testConfig.getTargetTenantId().toString(), TEST_USER)) {
+      actualMd5 = DigestUtils.md5Hex(contents.collect(Collectors.joining("\n")));
+    }
+    fileLoadModel.md5(actualMd5);
+    FSFileInfo fsFileInfoWithUserMd5 =
+        azureBlobStorePdao.copyFile(
+            new Dataset().id(datasetId).predictableFileIds(false),
+            billingProfile,
+            fileLoadModel,
+            fileId,
+            storageAccountResource,
+            TEST_USER);
+    assertThat("md5 is valid", fsFileInfoWithUserMd5.getChecksumMd5(), equalTo(actualMd5));
+    // Finally attempt to copy with no user provided md5
+    fileLoadModel.md5(null);
     FSFileInfo fsFileInfo =
         azureBlobStorePdao.copyFile(
-            billingProfile, fileLoadModel, fileId, storageAccountResource, TEST_USER);
+            new Dataset().id(datasetId).predictableFileIds(false),
+            billingProfile,
+            fileLoadModel,
+            fileId,
+            storageAccountResource,
+            TEST_USER);
+    assertThat("md5 is valid", fsFileInfo.getChecksumMd5(), equalTo(actualMd5));
 
     // 6 - IngestFileAzureFileStep
     FireStoreFile newFile =
@@ -223,21 +281,28 @@ public class AzureIngestFileConnectedTest {
             .gspath(fsFileInfo.getCloudPath())
             .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
             .checksumMd5(fsFileInfo.getChecksumMd5())
+            .userSpecifiedMd5(fsFileInfo.isUserSpecifiedMd5())
             .size(fsFileInfo.getSize())
             .loadTag(fileLoadModel.getLoadTag());
 
-    tableDao.createFileMetadata(newFile, storageAuthInfo);
+    tableDao.createFileMetadata(datasetId.toString(), newFile, storageAuthInfo);
     // Retrieve to build the complete FSItem
     FSItem fsItem =
         tableDao.retrieveById(
-            CollectionType.DATASET, datasetId, fileId, 1, storageAuthInfo, storageAuthInfo);
+            CollectionType.DATASET,
+            datasetId,
+            datasetId,
+            fileId,
+            1,
+            storageAuthInfo,
+            storageAuthInfo);
     FileModel resultingFileModel = fileService.fileModelFromFSItem(fsItem);
     assertThat(
         "file model contains correct info.", resultingFileModel.getFileId(), equalTo(fileId));
 
     // Testing other cases from IngestFileAzureDirectoryStep (step 4 above)
     // We use this to check if we are in re-run of a load job
-    FireStoreFile fileEntry = tableDao.lookupFile(fileId, storageAuthInfo);
+    FireStoreFile fileEntry = tableDao.lookupFile(datasetId.toString(), fileId, storageAuthInfo);
     assertThat("FileEntry should not be null", fileEntry, notNullValue());
   }
 }

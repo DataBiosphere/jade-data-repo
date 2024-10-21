@@ -4,6 +4,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
@@ -12,7 +13,10 @@ import com.google.cloud.bigquery.TableResult;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.awaitility.Awaitility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.threeten.bp.Duration;
@@ -42,7 +46,7 @@ public final class BigQueryUtils {
             .setInitialRetryDelay(Duration.ofSeconds(1))
             .setMaxRetryDelay(Duration.ofSeconds(32))
             .setRetryDelayMultiplier(2.0)
-            .setTotalTimeout(Duration.ofMinutes(7))
+            .setTotalTimeout(Duration.ofMinutes(15))
             .setInitialRpcTimeout(Duration.ofSeconds(50))
             .setRpcTimeoutMultiplier(1.0)
             .setMaxRpcTimeout(Duration.ofSeconds(50))
@@ -97,7 +101,35 @@ public final class BigQueryUtils {
   public static TableResult queryBigQuery(BigQuery bigQueryClient, String query)
       throws InterruptedException {
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-    return bigQueryClient.query(queryConfig);
+    BigQueryResult bigQueryResult = new BigQueryResult(bigQueryClient, queryConfig);
+    // We have seen permission propagation delays of ~15 minutes
+    // addition addtional 2 minutes as buffer (total of 17 minutes)
+    Awaitility.await().atMost(17, TimeUnit.MINUTES).until(bigQueryResult);
+    return bigQueryResult.getTableResult();
+  }
+
+  private static final class BigQueryResult implements Callable<Boolean> {
+    private final BigQuery bigQueryClient;
+    private final QueryJobConfiguration queryConfig;
+    private TableResult result;
+
+    private BigQueryResult(BigQuery bigQueryClient, QueryJobConfiguration queryConfig) {
+      this.bigQueryClient = bigQueryClient;
+      this.queryConfig = queryConfig;
+    }
+
+    public Boolean call() throws Exception {
+      try {
+        result = bigQueryClient.query(queryConfig);
+      } catch (BigQueryException ex) {
+        return false;
+      }
+      return true;
+    }
+
+    public TableResult getTableResult() {
+      return result;
+    }
   }
 
   /**

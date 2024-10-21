@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +48,7 @@ public class GoogleResourceDao {
 
   private static final String sqlBucketRetrieve =
       "SELECT distinct p.id AS project_resource_id, google_project_id, google_project_number, profile_id,"
-          + " b.id AS bucket_resource_id, name, sr.region as region, flightid "
+          + " b.id AS bucket_resource_id, name, sr.region as region, flightid, b.autoclass_enabled "
           + "FROM bucket_resource b "
           + "JOIN project_resource p ON b.project_resource_id = p.id "
           + "LEFT JOIN dataset_bucket db on b.id = db.bucket_resource_id "
@@ -110,7 +111,7 @@ public class GoogleResourceDao {
       @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
-    this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.getRegion());
+    this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.region());
     this.googleResourceConfiguration = googleResourceConfiguration;
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
@@ -319,15 +320,18 @@ public class GoogleResourceDao {
     return jdbcTemplate.query(
         sql,
         params,
-        (rs, rowNum) ->
-            new GoogleProjectResource()
-                .id(rs.getObject("id", UUID.class))
-                .profileId(rs.getObject("profile_id", UUID.class))
-                .googleProjectId(rs.getString("google_project_id"))
-                .googleProjectNumber(rs.getString("google_project_number"))
-                .serviceAccount(
-                    Optional.ofNullable(rs.getString("service_account"))
-                        .orElse(tdrServiceAccountEmail)));
+        (rs, rowNum) -> {
+          String serviceAccount = rs.getString("service_account");
+          return new GoogleProjectResource()
+              .id(rs.getObject("id", UUID.class))
+              .profileId(rs.getObject("profile_id", UUID.class))
+              .googleProjectId(rs.getString("google_project_id"))
+              .googleProjectNumber(rs.getString("google_project_number"))
+              .serviceAccount(Optional.ofNullable(serviceAccount).orElse(tdrServiceAccountEmail))
+              .dedicatedServiceAccount(
+                  StringUtils.isNotEmpty(serviceAccount)
+                      && !StringUtils.equalsIgnoreCase(serviceAccount, tdrServiceAccountEmail));
+        });
   }
 
   // -- bucket resource methods --
@@ -343,21 +347,23 @@ public class GoogleResourceDao {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      String flightId) {
+      String flightId,
+      boolean autoclassEnabled) {
     // Put an end to serialization errors here. We only come through here if we really need to
     // create
     // the bucket, so this is not on the path of most bucket lookups.
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE bucket_resource IN EXCLUSIVE MODE");
 
     String sql =
-        "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES "
-            + "(:project_resource_id, :name, :flightid) "
+        "INSERT INTO bucket_resource (project_resource_id, name, flightid, autoclass_enabled) VALUES "
+            + "(:project_resource_id, :name, :flightid, :autoclass_enabled) "
             + "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getId())
             .addValue("name", bucketName)
-            .addValue("flightid", flightId);
+            .addValue("flightid", flightId)
+            .addValue("autoclass_enabled", autoclassEnabled);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
 
     int numRowsUpdated = jdbcTemplate.update(sql, params, keyHolder);
@@ -368,7 +374,8 @@ public class GoogleResourceDao {
           .profileId(projectResource.getProfileId())
           .projectResource(projectResource)
           .name(bucketName)
-          .region(region);
+          .region(region)
+          .autoclassEnabled(autoclassEnabled);
     } else {
       return null;
     }
@@ -424,6 +431,25 @@ public class GoogleResourceDao {
   }
 
   /**
+   * Fetch an existing bucket_resource metadata row using the name. This method expects that there
+   * is exactly one row matching the provided name.
+   *
+   * @param bucketName name of the bucket
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   * @throws GoogleResourceNotFoundException if no bucket_resource metadata row is found
+   * @throws CorruptMetadataException if multiple buckets have the same name
+   */
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public GoogleBucketResource retrieveBucketByName(String bucketName) {
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", bucketName);
+    GoogleBucketResource bucketResource = retrieveBucketBy(sqlBucketRetrievedByName, params);
+    if (bucketResource == null) {
+      throw new GoogleResourceNotFoundException("Bucket resource not found: " + bucketName);
+    }
+    return bucketResource;
+  }
+
+  /**
    * Fetch an existing bucket_resource metadata row using the id. This method expects that there is
    * exactly one row matching the provided resource id.
    *
@@ -439,6 +465,22 @@ public class GoogleResourceDao {
       throw new GoogleResourceNotFoundException("Bucket not found for id:" + bucketResourceId);
     }
     return bucketResource;
+  }
+
+  /**
+   * Update the autoclass_enabled column in the bucket_resource metadata table for the bucket with
+   * the provided name.
+   *
+   * @param bucketName name of the bucket
+   * @param autoclass new value for the autoclass_enabled column
+   * @return number of rows updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public int updateBucketAutoclassByName(String bucketName, boolean autoclass) {
+    String sql = "UPDATE bucket_resource SET autoclass_enabled = :autoclass WHERE name = :name";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("name", bucketName).addValue("autoclass", autoclass);
+    return jdbcTemplate.update(sql, params);
   }
 
   /**
@@ -486,13 +528,14 @@ public class GoogleResourceDao {
                   .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                   .name(rs.getString("name"))
                   .flightId(rs.getString("flightid"))
-                  .region(region);
+                  .region(region)
+                  .autoclassEnabled(rs.getObject("autoclass_enabled", Boolean.class));
             });
 
     if (bucketResources.size() > 1) {
       // TODO This is only here because of the dev case. It should be removed when we start using
       // RBS in dev.
-      if (googleResourceConfiguration.getAllowReuseExistingBuckets()) {
+      if (googleResourceConfiguration.allowReuseExistingBuckets()) {
         return bucketResources.get(0).region(defaultRegion);
       }
       throw new CorruptMetadataException(

@@ -4,7 +4,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
@@ -39,10 +38,9 @@ public class DatasetSchemaUpdateResponseStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    Dataset dataset = datasetDao.retrieve(datasetId);
     DatasetModel updatedDataset =
-        datasetService.retrieveModel(
-            dataset, userRequest, List.of(DatasetRequestAccessIncludeModel.SCHEMA));
+        datasetService.retrieveDatasetModel(
+            datasetId, userRequest, List.of(DatasetRequestAccessIncludeModel.SCHEMA));
     FlightMap workingMap = context.getWorkingMap();
     workingMap.put(JobMapKeys.RESPONSE.getKeyName(), updatedDataset);
     workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);

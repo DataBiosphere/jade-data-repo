@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2drsids
+      author: nm
+      changes:
+        - createTable:
+            tableName: drs_id
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: drs_object_id
+                  type: varchar(256)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: snapshot_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            constraintName: fk_drs_id_snapshot
+            baseTableName: drs_id
+            baseColumnNames: snapshot_id
+            referencedTableName: snapshot
+            referencedColumnNames: id
+            onDelete: NO ACTION
+            onUpdate: NO ACTION
+            validate: true
+        - createIndex:
+            indexName: drs_ids_object_snapshot_idx
+            tableName: drs_id
+            unique: true
+            columns:
+              - column:
+                  name: drs_object_id
+              - column:
+                  name: snapshot_id
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: global_file_ids
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false

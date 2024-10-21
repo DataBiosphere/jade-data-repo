@@ -13,12 +13,13 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -41,28 +42,36 @@ public class DataRepoClient {
   private final HttpHeaders headers;
 
   public DataRepoClient() {
-    restTemplate = new RestTemplate();
+    restTemplate =
+        new RestTemplateBuilder()
+            .setConnectTimeout(Duration.ofMinutes(5))
+            .setReadTimeout(Duration.ofMinutes(5))
+            .build();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
     restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
 
     headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
   }
 
   // -- RepositoryController Client --
 
   private <T> DataRepoResponse<T> makeDataRepoRequest(
-      String path, HttpMethod method, HttpEntity entity, TypeReference<T> responseClass)
+      String path,
+      HttpMethod method,
+      HttpEntity entity,
+      TestConfiguration.User user,
+      TypeReference<T> responseClass)
       throws Exception {
     return new DataRepoResponse<T>(
-        makeRequest(path, method, entity, responseClass, ErrorModel.class));
+        makeRequest(path, method, entity, user, responseClass, ErrorModel.class));
   }
 
   public <T> DataRepoResponse<T> get(
       TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.GET, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> post(
@@ -84,20 +93,26 @@ public class DataRepoClient {
     } else {
       entity = new HttpEntity<>(json, getHeaders(user));
     }
-    return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.POST, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> put(
       TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
       throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.PUT, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.PUT, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> delete(
       TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
-    HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
+    return delete(user, path, null, responseClass);
+  }
+
+  public <T> DataRepoResponse<T> delete(
+      TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
+      throws Exception {
+    HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
+    return makeDataRepoRequest(path, HttpMethod.DELETE, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> waitForResponseLog(
@@ -150,7 +165,11 @@ public class DataRepoClient {
 
     if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
       throw new IllegalStateException(
-          "unexpected job status code: " + jobModelResponse.getStatusCode());
+          "unexpected job status:"
+              + "\nwith code: "
+              + jobModelResponse.getStatusCode()
+              + jobModelResponse.getErrorObject().map(e -> "\nwith error: " + e).orElse("")
+              + jobModelResponse.getResponseObject().map(r -> "\nwith response: " + r).orElse(""));
     }
 
     location = getLocationHeader(jobModelResponse);
@@ -209,7 +228,7 @@ public class DataRepoClient {
   public <T> DrsResponse<T> drsGet(
       TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
+    return makeDrsRequest(path, HttpMethod.GET, entity, user, responseClass);
   }
 
   public ResponseEntity<String> makeUnauthenticatedDrsRequest(String path, HttpMethod method) {
@@ -222,9 +241,14 @@ public class DataRepoClient {
    * any consequences downstream to DRS clients.
    */
   private <T> DrsResponse<T> makeDrsRequest(
-      String path, HttpMethod method, HttpEntity entity, TypeReference<T> responseClass)
+      String path,
+      HttpMethod method,
+      HttpEntity entity,
+      TestConfiguration.User user,
+      TypeReference<T> responseClass)
       throws Exception {
-    return new DrsResponse<T>(makeRequest(path, method, entity, responseClass, DRSError.class));
+    return new DrsResponse<T>(
+        makeRequest(path, method, entity, user, responseClass, DRSError.class));
   }
 
   // -- Common Client Code --
@@ -233,17 +257,22 @@ public class DataRepoClient {
       String path,
       HttpMethod method,
       HttpEntity entity,
+      TestConfiguration.User user,
       TypeReference<T> responseClass,
       Class<S> errorClass)
       throws Exception {
     logger.info(
-        "api request: method={} path={} body={}", method.toString(), path, entity.getBody());
+        "api request: method={} path={} user={} body={}",
+        method.toString(),
+        path,
+        user.getName(),
+        entity.getBody());
 
     ResponseEntity<String> response =
         restTemplate.exchange(testConfig.getJadeApiUrl() + path, method, entity, String.class);
 
     ObjectOrErrorResponse<S, T> drResponse = new ObjectOrErrorResponse<>();
-    drResponse.setStatusCode(response.getStatusCode());
+    drResponse.setStatusCode(HttpStatus.valueOf(response.getStatusCode().value()));
 
     URI uri = response.getHeaders().getLocation();
     drResponse.setLocationHeader((uri == null) ? Optional.empty() : Optional.of(uri.toString()));
@@ -271,14 +300,12 @@ public class DataRepoClient {
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
     copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
     return copy;
   }
 
   private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
     copy.setBearerAuth(authService.getPetAccountAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
     return copy;
   }
 }

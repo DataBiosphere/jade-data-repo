@@ -101,16 +101,14 @@ public class ProfileService {
    */
   public String updateProfile(
       BillingProfileUpdateModel billingProfileRequest, AuthenticatedUserRequest user) {
-    iamService.verifyAuthorization(
-        user,
-        IamResourceType.SPEND_PROFILE,
-        billingProfileRequest.getId().toString(),
-        IamAction.UPDATE_BILLING_ACCOUNT);
-
     String description =
         String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
     return jobService
         .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(
+            JobMapKeys.IAM_RESOURCE_ID.getKeyName(), billingProfileRequest.getId().toString())
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.UPDATE_BILLING_ACCOUNT)
         .submit();
   }
 
@@ -124,12 +122,13 @@ public class ProfileService {
    * </ul>
    *
    * @param id the unique id of the bill profile
+   * @param deleteCloudResources flag to also delete azure cloud resources such as storage account
+   *     and monitoring resources
    * @param user the user attempting the delete
    * @return jobId of the submitted stairway job
    */
-  public String deleteProfile(UUID id, AuthenticatedUserRequest user) {
-    iamService.verifyAuthorization(
-        user, IamResourceType.SPEND_PROFILE, id.toString(), IamAction.DELETE);
+  public String deleteProfile(
+      UUID id, boolean deleteCloudResources, AuthenticatedUserRequest user) {
     CloudPlatform platform;
     try {
       BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);
@@ -146,6 +145,10 @@ public class ProfileService {
         .newJob(description, ProfileDeleteFlight.class, null, user)
         .addParameter(ProfileMapKeys.PROFILE_ID, id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
+        .addParameter(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), deleteCloudResources)
         .submit();
   }
 
@@ -178,7 +181,8 @@ public class ProfileService {
    */
   public BillingProfileModel getProfileById(UUID id, AuthenticatedUserRequest user) {
     if (!iamService.hasAnyActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
-      throw new IamUnauthorizedException("unauthorized");
+      throw new IamUnauthorizedException(
+          "User '" + user.getEmail() + "' does not have access to billing profile '" + id + "'.");
     }
     return getProfileByIdNoCheck(id);
   }
@@ -271,7 +275,7 @@ public class ProfileService {
   }
 
   // Verify user access to the billing account during billing profile creation
-  public void verifyAccount(String billingAccountId, AuthenticatedUserRequest user) {
+  public void verifyGoogleBillingAccount(String billingAccountId, AuthenticatedUserRequest user) {
     if (!googleBillingService.canAccess(user, billingAccountId)) {
       throw new InaccessibleBillingAccountException(
           "The user '"

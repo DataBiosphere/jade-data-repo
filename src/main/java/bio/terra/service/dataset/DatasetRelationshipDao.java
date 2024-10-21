@@ -3,14 +3,20 @@ package bio.terra.service.dataset;
 import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Relationship;
-import java.util.ArrayList;
+import bio.terra.common.Table;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class DatasetRelationshipDao {
@@ -22,13 +28,21 @@ public class DatasetRelationshipDao {
     this.jdbcTemplate = jdbcTemplate;
   }
 
-  // part of a transaction propagated from DatasetDao
-  public void createDatasetRelationships(Dataset dataset) {
-    for (Relationship rel : dataset.getRelationships()) {
+  /**
+   * When creating new relationships, callers should note that relationships are assumed to exist
+   * only between tables in the same dataset. The query powering relationship retrieval relies on
+   * this assumption -- see {@link #retrieve(Dataset)}.
+   *
+   * @param relationships Dataset relationships to create in {@code dataset_relationship} table.
+   *     Each relationship is assumed to only exist between tables in the same dataset.
+   */
+  public void createDatasetRelationships(List<Relationship> relationships) {
+    for (Relationship rel : relationships) {
       create(rel);
     }
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   protected void create(Relationship relationship) {
     String sql =
         "INSERT INTO dataset_relationship "
@@ -47,32 +61,63 @@ public class DatasetRelationshipDao {
     relationship.id(relationshipId);
   }
 
+  /**
+   * Enrich the supplied dataset with its associated relationships.
+   *
+   * <p>Callers should note that relationships are assumed to exist only between tables in the same
+   * dataset. The query powering this method relies on this assumption.
+   *
+   * @param dataset Dataset whose relationships will be populated from the {@code
+   *     dataset_relationship} table. Each relationship is assumed to only exist between tables in
+   *     the same dataset.
+   */
   public void retrieve(Dataset dataset) {
-    List<UUID> columnIds = new ArrayList<>();
-    dataset
-        .getTables()
-        .forEach(table -> table.getColumns().forEach(column -> columnIds.add(column.getId())));
-    dataset.relationships(
-        retrieveDatasetRelationships(
-            columnIds, dataset.getTablesById(), dataset.getAllColumnsById()));
+    List<Relationship> relationships = retrieveDatasetRelationships(dataset);
+    dataset.relationships(relationships);
   }
 
-  private List<Relationship> retrieveDatasetRelationships(
-      List<UUID> columnIds, Map<UUID, DatasetTable> tables, Map<UUID, Column> columns) {
-    String sql =
-        "SELECT id, name, from_table, from_column, to_table, to_column "
-            + "FROM dataset_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
-    return jdbcTemplate.query(
-        sql,
-        params,
-        (rs, rowNum) ->
-            new Relationship()
-                .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"))
-                .fromTable(tables.get(rs.getObject("from_table", UUID.class)))
-                .fromColumn(columns.get(rs.getObject("from_column", UUID.class)))
-                .toTable(tables.get(rs.getObject("to_table", UUID.class)))
-                .toColumn(columns.get(rs.getObject("to_column", UUID.class))));
+  private List<Relationship> retrieveDatasetRelationships(Dataset dataset) {
+    String select =
+        """
+            SELECT r.id, r.name, r.from_table, r.from_column, r.to_table, r.to_column
+            FROM dataset_relationship AS r
+            -- Assumption: from_table and to_table will be in the same dataset, saving us a join.
+            -- Relationships cannot exist between tables in different datasets.
+            JOIN dataset_table AS dt ON (r.from_table = dt.id)
+            WHERE dt.dataset_id = :dataset_id
+            """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("dataset_id", dataset.getId());
+    return jdbcTemplate.query(select, params, new RelationshipMapper(dataset));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean delete(UUID id) {
+    String sql = "DELETE FROM dataset_relationship WHERE id = :id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return rowsAffected > 0;
+  }
+
+  private static class RelationshipMapper implements RowMapper<Relationship> {
+    private final Map<UUID, ? extends Table> tablesById;
+    private final Map<UUID, Column> columnsById;
+
+    /** A RowMapper to construct a Relationship enriched by a dataset's tables and columns. */
+    public RelationshipMapper(Dataset dataset) {
+      this.tablesById = dataset.getTablesById();
+      this.columnsById = dataset.getAllColumnsById();
+    }
+
+    @Override
+    public Relationship mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return new Relationship()
+          .id(rs.getObject("id", UUID.class))
+          .name(rs.getString("name"))
+          .fromTable(tablesById.get(rs.getObject("from_table", UUID.class)))
+          .fromColumn(columnsById.get(rs.getObject("from_column", UUID.class)))
+          .toTable(tablesById.get(rs.getObject("to_table", UUID.class)))
+          .toColumn(columnsById.get(rs.getObject("to_column", UUID.class)));
+    }
   }
 }

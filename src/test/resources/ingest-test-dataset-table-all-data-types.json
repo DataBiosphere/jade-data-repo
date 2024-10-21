@@ -1,0 +1,74 @@
+{
+  "name": "all_data_types",
+  "rawTableName": "all_data_types",
+  "softDeleteTableName": "all_data_types",
+  "columns": [
+    {
+      "name": "boolCol",
+      "type": "boolean"
+    },
+    {
+      "name": "dateCol",
+      "type": "date"
+    },
+    {
+      "name": "dateTimeCol",
+      "type": "datetime"
+    },
+    {
+      "name": "dirRefCol",
+      "type": "dirref"
+    },
+    {
+      "name": "file",
+      "type": "dirref"
+    },
+    {
+      "name": "floatCol",
+      "type": "float"
+    },
+    {
+      "name": "float64Col",
+      "type": "float64"
+    },
+    {
+      "name": "intCol",
+      "type": "integer"
+    },
+    {
+      "name": "int64Col",
+      "type": "int64"
+    },
+    {
+      "name": "numericCol",
+      "type": "numeric"
+    },
+    {
+      "name": "first_name",
+      "type": "string"
+    },
+    {
+      "name": "textCol",
+      "type": "text"
+    },
+    {
+      "name": "timeCol",
+      "type": "time"
+    },
+    {
+      "name": "timestampCol",
+      "type": "timestamp"
+    },
+    {
+      "name": "arrayCol",
+      "type": "string",
+      "arrayOf": true
+    }
+  ],
+  "primaryKey": [
+    {
+      "name": "boolCol",
+      "type": "boolean"
+    }
+  ]
+}

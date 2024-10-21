@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -13,6 +14,7 @@ import bio.terra.service.profile.ProfileDao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
@@ -43,6 +45,9 @@ public class AzureResourceDaoTest {
 
   @Before
   public void setup() throws IOException, InterruptedException {
+    UUID datasetId = UUID.randomUUID();
+    UUID snapshotId = UUID.randomUUID();
+
     // Initialize list;
     applicationDeployments = new ArrayList<>();
     storageAccounts = new ArrayList<>();
@@ -58,16 +63,18 @@ public class AzureResourceDaoTest {
     applicationDeployments.add(appDeployment);
 
     var sa1 =
-        azureResourceDao.createAndLockStorageAccount(
+        azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa1"),
+            datasetId.toString(),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
             null);
     storageAccounts.add(sa1);
 
     var sa2 =
-        azureResourceDao.createAndLockStorageAccount(
+        azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa2"),
+            snapshotId.toString(),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
             null);
@@ -78,7 +85,10 @@ public class AzureResourceDaoTest {
   public void teardown() {
     boolean allStorageDeleted =
         storageAccounts.stream()
-            .allMatch(sa -> azureResourceDao.deleteStorageAccountMetadata(sa.getName(), null));
+            .allMatch(
+                sa ->
+                    azureResourceDao.markForDeleteStorageAccountMetadata(
+                        sa.getName(), sa.getTopLevelContainer(), null));
 
     azureResourceDao.markUnusedApplicationDeploymentsForDelete(billingProfile.getId());
     azureResourceDao.deleteApplicationDeploymentMetadata(
@@ -96,8 +106,7 @@ public class AzureResourceDaoTest {
     var retrievedAppDeployments =
         azureResourceDao.retrieveApplicationDeploymentsByBillingProfileId(billingProfile.getId());
 
-    assertThat(
-        "Application Deployment count should be 1", retrievedAppDeployments.size(), equalTo(1));
+    assertThat("Application Deployment count should be 1", retrievedAppDeployments, hasSize(1));
 
     var retrievedAppDeployment = retrievedAppDeployments.get(0);
 
@@ -122,10 +131,37 @@ public class AzureResourceDaoTest {
               azureResourceDao.retrieveStorageAccountById(sa.getResourceId()),
               equalTo(sa));
           assertThat(
-              "Can fetch storage account by name",
+              "Can fetch storage account by name and container",
               azureResourceDao.getStorageAccount(
-                  sa.getName(), sa.getApplicationResource().getAzureApplicationDeploymentName()),
+                  sa.getName(),
+                  sa.getTopLevelContainer(),
+                  sa.getApplicationResource().getAzureApplicationDeploymentName()),
               equalTo(sa));
         });
+  }
+
+  @Test
+  public void markForDeleteStorageAccountMetadata() {
+    var appDeploymentId = applicationDeployments.get(0).getId();
+    assertThat(
+        "Before marking for delete, confirm that 2 storage accounts are returned when marked_for_delete = false",
+        azureResourceDao.retrieveStorageAccountsByApplicationResource(appDeploymentId, false),
+        hasSize(2));
+
+    // Mark one storage account for delete
+    var storageAccount1 = storageAccounts.get(0);
+    assertThat(
+        "Can mark storage account for delete",
+        azureResourceDao.markForDeleteStorageAccountMetadata(
+            storageAccount1.getName(), storageAccount1.getTopLevelContainer(), null),
+        equalTo(true));
+
+    var storageAccountsMarkedForDelete =
+        azureResourceDao.retrieveStorageAccountsByApplicationResource(appDeploymentId, true);
+    assertThat("Only 1 storage accounts is returned", storageAccountsMarkedForDelete, hasSize(1));
+    assertThat(
+        "Storage account marked for delete is returned",
+        storageAccountsMarkedForDelete.get(0).getStorageAccountId(),
+        equalTo(storageAccount1.getStorageAccountId()));
   }
 }

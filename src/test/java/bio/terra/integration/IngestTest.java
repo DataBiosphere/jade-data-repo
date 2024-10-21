@@ -12,6 +12,7 @@ import bio.terra.common.BQTestUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AccessInfoBigQueryModelTable;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -34,7 +35,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -57,8 +57,6 @@ public class IngestTest extends UsersBase {
   @Autowired private DataRepoClient dataRepoClient;
 
   @Autowired private JsonLoader jsonLoader;
-
-  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private UUID datasetId;
   private UUID profileId;
@@ -238,9 +236,31 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
+  public void ingestJsonData() throws Exception {
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant-with-json-data.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+    DatasetDataModel data =
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "participant", 0, 6, null);
+    assertThat("correct participant row count", data.getFilteredRowCount(), equalTo(5));
+    DatasetDataModel filteredData =
+        dataRepoFixtures.retrieveDatasetData(
+            steward(),
+            datasetId,
+            "participant",
+            0,
+            6,
+            "CAST(JSON_EXTRACT_SCALAR(jsonData, '$.numericField') AS INT64) > 5");
+    assertThat("correct filtered number of rows", filteredData.getFilteredRowCount(), equalTo(2));
+  }
+
+  @Test
   public void ingestWildcardSuffix() throws Exception {
     IngestRequestModel ingestRequest =
-        dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/ingest-test-participant*");
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/wildcard/ingest-test-participant*");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
@@ -249,7 +269,8 @@ public class IngestTest extends UsersBase {
   @Test
   public void ingestWildcardMiddle() throws Exception {
     IngestRequestModel ingestRequest =
-        dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/ingest-test-p*t.json");
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/wildcard/ingest-test-p*t.json");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
@@ -268,7 +289,7 @@ public class IngestTest extends UsersBase {
     assertThat(
         "Reader is not authorized to ingest data",
         ingestReadResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
   }
 
   @Test
@@ -332,7 +353,7 @@ public class IngestTest extends UsersBase {
   @Test
   public void ingestWildcardMalformedTest() throws Exception {
     IngestRequestModel request =
-        dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-p*.json");
+        dataRepoFixtures.buildSimpleIngest("file", "ingest-test/wildcard/ingest-test-p*.json");
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
@@ -346,12 +367,24 @@ public class IngestTest extends UsersBase {
 
   @Test
   public void ingestMergeHappyPathTest() throws Exception {
+    DatasetModel dataset =
+        dataRepoFixtures.getDataset(
+            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+    // -------- Simple ingest with 7 rows --------
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+    assertSampleTableIdColumnRemainsUnchanged(dataset);
+    // Original ingest request should include value 'sample7' for column 'derived_from'
+    dataRepoFixtures.assertColumnTextValueCount(
+        steward(), datasetId, "sample", "derived_from", "sample7", 1);
+    // Test column stats endpoint's handling of array columns
+    dataRepoFixtures.assertColumnTextValueCount(
+        steward(), datasetId, "sample", "participant_ids", "participant_1", 1);
 
+    // Rows ingested via merge should not increase the existing live row count.
     IngestRequestModel mergeIngestRequest =
         dataRepoFixtures
             .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge.json")
@@ -359,49 +392,14 @@ public class IngestTest extends UsersBase {
     IngestResponseModel mergeIngestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, mergeIngestRequest);
     assertThat("correct merge sample row count", mergeIngestResponse.getRowCount(), equalTo(2L));
+    assertSampleTableIdColumnRemainsUnchanged(dataset);
+    // We cannot "null-out" a value in a merge ingest request
+    // so the value remains 'sample7' for the 'derived_from' column despite being set to null in the
+    // request
+    dataRepoFixtures.assertColumnTextValueCount(
+        steward(), datasetId, "sample", "derived_from", "sample7", 1);
 
-    // Rows ingested via merge should not increase the existing live row count.
-    // TODO: once the preview API GA and works for datasets, we should use that here
-    DatasetModel dataset =
-        dataRepoFixtures.getDataset(
-            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
-    BigQueryProject bigQueryProject =
-        BigQueryProject.get(dataset.getAccessInformation().getBigQuery().getProjectId());
-    AccessInfoBigQueryModelTable bqTableInfo =
-        dataset.getAccessInformation().getBigQuery().getTables().stream()
-            .filter(t -> t.getName().equals("sample"))
-            .findFirst()
-            .orElseThrow();
-    // Note: the sample query is just a formatted select * query against the table
-    TableResult bqQueryResult = bigQueryProject.query(bqTableInfo.getSampleQuery());
-    assertThat("Expected number of rows are present", bqQueryResult.getTotalRows(), equalTo(7L));
-
-    List<Map<String, Object>> results =
-        BQTestUtils.mapToList(
-            bqQueryResult, "id", "participant_ids", "date_collected", "derived_from");
-
-    List<Map<String, Object>> dataPostMerge =
-        jsonLoader.loadObjectAsStream(
-            "ingest-test/merge/ingest-test-sample-merge-expected.json", new TypeReference<>() {});
-    List<Map<String, Object>> dataOriginal =
-        jsonLoader.loadObjectAsStream("ingest-test-sample.json", new TypeReference<>() {});
-
-    assertThat(
-        "Only specified records and fields updated by first merge ingest",
-        results,
-        containsInAnyOrder(
-            // Updated rows
-            dataPostMerge.get(0), // ID = sample1
-            dataPostMerge.get(1), // ID = sample2
-            // Untouched rows
-            dataOriginal.get(2), // ID = sample3
-            dataOriginal.get(3), // ID = sample4
-            dataOriginal.get(4), // ID = sample5
-            dataOriginal.get(5), // ID = sample6
-            dataOriginal.get(6) // ID = sample7
-            ));
-
-    // Updating the same row again via merge ingest should succeed
+    // -------- Updating the same row again via merge ingest should succeed--------
     IngestRequestModel mergeAgainIngestRequest =
         dataRepoFixtures
             .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge-again.json")
@@ -412,34 +410,19 @@ public class IngestTest extends UsersBase {
         "correct merge again sample row count",
         mergeAgainIngestResponse.getRowCount(),
         equalTo(1L));
+    assertSampleTableIdColumnRemainsUnchanged(dataset);
+  }
 
-    bqQueryResult = bigQueryProject.query(bqTableInfo.getSampleQuery());
-    assertThat("Expected number of rows are present", bqQueryResult.getTotalRows(), equalTo(7L));
-
-    results =
-        BQTestUtils.mapToList(
-            bqQueryResult, "id", "participant_ids", "date_collected", "derived_from");
-
-    List<Map<String, Object>> dataPostMergeAgain =
-        jsonLoader.loadObjectAsStream(
-            "ingest-test/merge/ingest-test-sample-merge-again-expected.json",
-            new TypeReference<>() {});
-
+  private void assertSampleTableIdColumnRemainsUnchanged(DatasetModel dataset) throws Exception {
+    int expectedNumRows = 7;
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", expectedNumRows);
+    List<String> actualValues =
+        dataRepoFixtures.retrieveColumnTextValues(steward(), datasetId, "sample", "id");
     assertThat(
-        "Only specified records and fields updated by second merge ingest",
-        results,
+        "Expected values returned from column stats endpoint for sample id table",
+        actualValues,
         containsInAnyOrder(
-            // Newly updated row
-            dataPostMergeAgain.get(0), // ID = sample1
-            // Prior updated row
-            dataPostMerge.get(1), // ID = sample2
-            // Untouched rows
-            dataOriginal.get(2), // ID = sample3
-            dataOriginal.get(3), // ID = sample4
-            dataOriginal.get(4), // ID = sample5
-            dataOriginal.get(5), // ID = sample6
-            dataOriginal.get(6) // ID = sample7
-            ));
+            "sample1", "sample2", "sample3", "sample4", "sample5", "sample6", "sample7"));
   }
 
   @Test

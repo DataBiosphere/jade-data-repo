@@ -171,7 +171,7 @@ public class AzureResourceConfigurationTest {
         () -> {
           AzureResourceManager clientFromHome =
               azureResourceConfiguration.getClient(
-                  azureResourceConfiguration.getCredentials().getHomeTenantId(),
+                  azureResourceConfiguration.credentials().getHomeTenantId(),
                   profileModel.getSubscriptionId());
 
           clientFromHome
@@ -235,7 +235,7 @@ public class AzureResourceConfigurationTest {
                         // user's subscription
                         AzureResourceManager clientFromHome =
                             azureResourceConfiguration.getClient(
-                                azureResourceConfiguration.getCredentials().getHomeTenantId(),
+                                azureResourceConfiguration.credentials().getHomeTenantId(),
                                 profileModel.getSubscriptionId());
 
                         try {
@@ -372,7 +372,7 @@ public class AzureResourceConfigurationTest {
           ((Map<String, Map<String, Map<String, String>>>)
                   client
                       .genericResources()
-                      .getById(resourceReference.id(), azureResourceConfiguration.getApiVersion())
+                      .getById(resourceReference.id(), azureResourceConfiguration.apiVersion())
                       .properties())
               .get("outputs");
 

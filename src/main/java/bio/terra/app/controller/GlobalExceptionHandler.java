@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.ErrorReportException;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
@@ -15,6 +16,7 @@ import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -65,6 +67,7 @@ public class GlobalExceptionHandler {
 
   // -- exceptions from validations - we don't control the exception raised --
   @ExceptionHandler({
+    TypeMismatchException.class,
     MethodArgumentNotValidException.class,
     IllegalArgumentException.class,
     NoHandlerFoundException.class
@@ -78,6 +81,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnauthorizedException.class)
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public ErrorModel samAuthorizationException(UnauthorizedException ex) {
+    return buildErrorModel(ex, ex.getCauses());
+  }
+
+  @ExceptionHandler(ForbiddenException.class)
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  public ErrorModel forbiddenHandler(ErrorReportException ex) {
     return buildErrorModel(ex, ex.getCauses());
   }
 
@@ -100,7 +109,7 @@ public class GlobalExceptionHandler {
     // the conversion,
     // but want to add in a logging message that there's an escaped SAM ApiException somewhere.
     logger.error("SAM ApiException caught outside the service/iam package", ex);
-    ErrorReportException drex = SamIam.convertSAMExToDataRepoEx(ex);
+    ErrorReportException drex = SamIam.convertSamExToDataRepoEx(ex);
     return buildErrorModel(drex);
   }
 

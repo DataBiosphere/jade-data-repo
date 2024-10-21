@@ -48,10 +48,9 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
             snapshotParquetTargetLocation,
             billingProfile,
             snapshotAzureStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
             userRequest);
     try {
-      azureSynapsePdao.createExternalDataSource(
+      azureSynapsePdao.getOrCreateExternalDataSource(
           snapshotSignUrlBlob,
           IngestUtils.getTargetScopedCredentialName(context.getFlightId()),
           IngestUtils.getTargetDataSourceName(context.getFlightId()));

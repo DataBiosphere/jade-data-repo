@@ -4,14 +4,14 @@ import bio.terra.common.Column;
 import bio.terra.common.ErrorCollector;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.List;
 
-public abstract class IngestJsonFileSetupStep implements Step {
+public abstract class IngestJsonFileSetupStep extends DefaultUndoStep {
 
   final Dataset dataset;
   final int maxBadLoadFileLineErrorsReported;
@@ -51,11 +51,6 @@ public abstract class IngestJsonFileSetupStep implements Step {
 
     workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, fileModelsCount);
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
     return StepResult.getStepResultSuccess();
   }
 

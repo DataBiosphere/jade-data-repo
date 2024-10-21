@@ -27,7 +27,9 @@ public class CreateDatasetCreateIngestServiceAccountStep implements Step {
     String projectId = workingMap.get(DatasetWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
 
     try {
-      resourceService.createDatasetServiceAccount(projectId, datasetRequestModel.getName());
+      String datasetServiceAccount =
+          resourceService.createDatasetServiceAccount(projectId, datasetRequestModel.getName());
+      workingMap.put(DatasetWorkingMapKeys.SERVICE_ACCOUNT_EMAIL, datasetServiceAccount);
     } catch (GoogleResourceException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }

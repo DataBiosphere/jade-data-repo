@@ -23,6 +23,13 @@ public class DatasetSchemaUpdateUtils {
     return !(columns == null || columns.isEmpty());
   }
 
+  public static boolean hasRelationshipAdditions(DatasetSchemaUpdateModel updateModel) {
+    var changes =
+        Objects.requireNonNullElse(updateModel.getChanges(), new DatasetSchemaUpdateModelChanges());
+    var relationships = changes.getAddRelationships();
+    return !(relationships == null || relationships.isEmpty());
+  }
+
   public static List<String> getNewTableNames(DatasetSchemaUpdateModel updateModel) {
     return updateModel.getChanges().getAddTables().stream()
         .map(TableModel::getName)

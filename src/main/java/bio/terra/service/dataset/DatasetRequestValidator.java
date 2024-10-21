@@ -11,18 +11,19 @@ import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
-import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -215,13 +216,14 @@ public class DatasetRequestValidator implements Validator {
               "MissingPrimaryKeyColumn",
               String.format("Expected column(s): %s", String.join(", ", missingKeys)));
         }
-
-        for (ColumnModel columnModel : table.getColumns()) {
-          if (primaryKeyList.contains(columnModel.getName())) {
-            validateColumnType(errors, columnModel, PRIMARY_KEY);
-          }
-        }
       }
+      for (ColumnModel columnModel : table.getColumns()) {
+        if (primaryKeyList != null && primaryKeyList.contains(columnModel.getName())) {
+          validateColumnType(errors, columnModel, PRIMARY_KEY);
+        }
+        validateColumnMode(errors, columnModel);
+      }
+
       context.addTable(tableName, columns);
     }
 
@@ -280,6 +282,18 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
+  private void validateColumnMode(Errors errors, ColumnModel columnModel) {
+    // Explicitly check if isRequired is true to avoid a null pointer exception.
+    // isArrayOf has a default value set in the open-api spec so it does not require
+    // the same handling.
+    if (Boolean.TRUE.equals(columnModel.isRequired()) && columnModel.isArrayOf()) {
+      errors.rejectValue(
+          "schema",
+          "InvalidColumnMode",
+          String.format("Array column %s cannot be marked as required", columnModel.getName()));
+    }
+  }
+
   private void rejectKey(Errors errors, String keyType, String columnName, String type) {
     errors.rejectValue(
         "schema",
@@ -306,50 +320,26 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
-  private void validateRelationshipTerm(
-      RelationshipTermModel term,
-      List<TableModel> tables,
-      Errors errors,
-      SchemaValidationContext context) {
-    String tableName = term.getTable();
-    String column = term.getColumn();
-    if (tableName != null && column != null) {
-      if (!context.isValidTableColumn(tableName, column)) {
-        errors.rejectValue(
-            "schema",
-            "InvalidRelationshipTermTableColumn",
-            "invalid table '" + tableName + "." + column + "'");
-      }
-    }
-    for (TableModel tableModel : tables) {
-      if (term.getTable().equals(tableModel.getName())) {
-        for (ColumnModel columnModel : tableModel.getColumns()) {
-          if (term.getColumn().equals(columnModel.getName())) {
-            validateColumnType(errors, columnModel, FOREIGN_KEY);
-          }
-        }
-      }
-    }
-  }
-
   private void validateRelationship(
       RelationshipModel relationship,
       List<TableModel> tables,
       Errors errors,
       SchemaValidationContext context) {
-    RelationshipTermModel fromTerm = relationship.getFrom();
-    if (fromTerm != null) {
-      validateRelationshipTerm(fromTerm, tables, errors, context);
-    }
-
-    RelationshipTermModel toTerm = relationship.getTo();
-    if (toTerm != null) {
-      validateRelationshipTerm(toTerm, tables, errors, context);
-    }
+    ArrayList<LinkedHashMap<String, String>> validationErrors =
+        ValidationUtils.getRelationshipValidationErrors(relationship, tables);
+    validationErrors.forEach(e -> rejectValues(errors, e));
 
     String relationshipName = relationship.getName();
     if (relationshipName != null) {
       context.addRelationship(relationshipName);
+    }
+  }
+
+  private void rejectValues(Errors errors, Map<String, String> errorMap) {
+    for (var entry : errorMap.entrySet()) {
+      var errorCode = entry.getKey();
+      var errorMessage = entry.getValue();
+      errors.rejectValue("schema", errorCode, errorMessage);
     }
   }
 

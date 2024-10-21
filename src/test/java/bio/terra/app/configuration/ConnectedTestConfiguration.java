@@ -13,6 +13,7 @@ public class ConnectedTestConfiguration {
   private String ingestbucket;
   private String nonDefaultRegionIngestBucket;
   private String ingestRequesterPaysBucket;
+  private String ingestRequesterPaysBucketBillingProject;
   private String googleBillingAccountId;
   private String noSpendGoogleBillingAccountId;
   private UUID targetTenantId;
@@ -22,6 +23,7 @@ public class ConnectedTestConfiguration {
   private String sourceStorageAccountName;
   private String destinationStorageAccountName;
   private String ingestRequestContainer;
+  private String azureManagedResourceGroupName;
 
   public String getSourceStorageAccountName() {
     return sourceStorageAccountName;
@@ -71,6 +73,15 @@ public class ConnectedTestConfiguration {
     this.ingestRequesterPaysBucket = ingestRequesterPaysBucket;
   }
 
+  public String getIngestRequesterPaysBucketBillingProject() {
+    return ingestRequesterPaysBucketBillingProject;
+  }
+
+  public void setIngestRequesterPaysBucketBillingProject(
+      String ingestRequesterPaysBucketBillingProject) {
+    this.ingestRequesterPaysBucketBillingProject = ingestRequesterPaysBucketBillingProject;
+  }
+
   public String getGoogleBillingAccountId() {
     return googleBillingAccountId;
   }
@@ -117,5 +128,13 @@ public class ConnectedTestConfiguration {
 
   public void setTargetResourceGroupName(String targetResourceGroupName) {
     this.targetResourceGroupName = targetResourceGroupName;
+  }
+
+  public String getAzureManagedResourceGroupName() {
+    return azureManagedResourceGroupName;
+  }
+
+  public void setAzureManagedResourceGroupName(String azureManagedResourceGroupName) {
+    this.azureManagedResourceGroupName = azureManagedResourceGroupName;
   }
 }

@@ -7,10 +7,8 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DataDeletionRequest;
-import bio.terra.service.auth.iam.IamAction;
-import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.auth.iam.flight.VerifyAuthorizationStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -22,6 +20,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionUnlockStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
@@ -42,11 +41,11 @@ public class DatasetDataDeleteFlight extends Flight {
     BigQueryTransactionPdao bigQueryTransactionPdao =
         appContext.getBean(BigQueryTransactionPdao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
-    IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     // get data from inputs that steps need
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -57,17 +56,16 @@ public class DatasetDataDeleteFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
     DataDeletionRequest request =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
-
-    addStep(
-        new VerifyAuthorizationStep(
-            iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
 
     if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
       addStep(
           new ValidateBucketAccessStep(
-              gcsPdao, UUID.fromString(datasetId), datasetService, userReq),
+              gcsPdao, userReq, datasetService.retrieve(UUID.fromString(datasetId))),
           getDefaultExponentialBackoffRetryRule());
     }
 
@@ -83,7 +81,8 @@ public class DatasetDataDeleteFlight extends Flight {
       String transactionDesc = "Autocommit transaction";
       addStep(
           new TransactionOpenStep(
-              datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false));
+              datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false),
+          randomBackoffRetry);
       autocommit = true;
     } else {
       addStep(
@@ -119,7 +118,8 @@ public class DatasetDataDeleteFlight extends Flight {
               datasetService, bigQueryTransactionPdao, request.getTransactionId(), userReq));
     } else {
       addStep(
-          new TransactionCommitStep(datasetService, bigQueryTransactionPdao, userReq, false, null));
+          new TransactionCommitStep(datasetService, bigQueryTransactionPdao, userReq, false, null),
+          randomBackoffRetry);
     }
 
     // unlock
@@ -129,5 +129,12 @@ public class DatasetDataDeleteFlight extends Flight {
     // cleanup
     addStep(new DropExternalTablesStep(datasetService));
     addStep(new DataDeletionDeleteScratchFilesGcsStep(gcsPdao));
+    addStep(
+        new JournalRecordUpdateEntryStep(
+            journalService,
+            userReq,
+            UUID.fromString(datasetId),
+            IamResourceType.DATASET,
+            "Data deleted from dataset."));
   }
 }

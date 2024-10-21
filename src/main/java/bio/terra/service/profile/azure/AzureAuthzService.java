@@ -38,7 +38,7 @@ public class AzureAuthzService {
       GenericResource applicationDeployment =
           client
               .genericResources()
-              .getById(applicationResourceId, resourceConfiguration.getApiVersion());
+              .getById(applicationResourceId, resourceConfiguration.apiVersion());
 
       return ((Map<String, Map<String, Map<String, String>>>) applicationDeployment.properties())
           .get("parameters")

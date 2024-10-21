@@ -1,17 +1,26 @@
 package bio.terra.service.job;
 
+import static bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression.makeAnd;
+import static bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression.makeOr;
+import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateFlightClass;
+import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateInput;
+import static bio.terra.stairway.FlightFilter.FlightFilterPredicate.makePredicateSubmitTime;
+
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
-import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.SqlSortDirection;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
+import bio.terra.common.stairway.MonitoringHook;
 import bio.terra.common.stairway.StairwayComponent;
+import bio.terra.common.stairway.StairwayLoggingHook;
 import bio.terra.model.JobModel;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.model.JobTargetResourceModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.common.CommonMapKeys;
+import bio.terra.service.filedata.flight.ingest.FileIngestWorkerFlight;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
@@ -21,6 +30,8 @@ import bio.terra.service.upgrade.Migrate;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightFilter;
+import bio.terra.stairway.FlightFilter.FlightBooleanOperationExpression;
+import bio.terra.stairway.FlightFilter.FlightFilterPredicateInterface;
 import bio.terra.stairway.FlightFilterOp;
 import bio.terra.stairway.FlightFilterSortDirection;
 import bio.terra.stairway.FlightMap;
@@ -31,11 +42,19 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import jakarta.annotation.PostConstruct;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,8 +78,8 @@ public class JobService {
   private final AtomicBoolean isRunning;
   private final Migrate migrate;
   private final ObjectMapper objectMapper;
-  private final PerformanceLogger performanceLogger;
   private final ApplicationContext applicationContext;
+  private final OpenTelemetry openTelemetry;
   private Stairway stairway;
 
   @Autowired
@@ -73,20 +92,18 @@ public class JobService {
       ApplicationContext applicationContext,
       Migrate migrate,
       ObjectMapper objectMapper,
-      PerformanceLogger performanceLogger)
+      OpenTelemetry openTelemetry)
       throws StairwayExecutionException {
     this.samService = samService;
     this.appConfig = appConfig;
-
     this.stairwayComponent = stairwayComponent;
     this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
     this.isRunning = new AtomicBoolean(true);
     this.migrate = migrate;
     this.applicationContext = applicationContext;
     this.objectMapper = objectMapper;
-    this.performanceLogger = performanceLogger;
     this.kubeService = kubeService;
-    initialize();
+    this.openTelemetry = openTelemetry;
   }
 
   /**
@@ -94,6 +111,7 @@ public class JobService {
    * and recovering any jobs; i.e., Stairway flights. It lives in this class so that JobService
    * encapsulates all Stairway interaction.
    */
+  @PostConstruct
   public void initialize() {
     migrate.migrateDatabase();
 
@@ -104,7 +122,8 @@ public class JobService {
             .newStairwayOptionsBuilder()
             .dataSource(stairwayJdbcConfiguration.getDataSource())
             .context(applicationContext)
-            .addHook(new StairwayLoggingHooks(performanceLogger))
+            .addHook(new StairwayLoggingHook())
+            .addHook(new MonitoringHook(openTelemetry))
             .exceptionSerializer(serializer));
     stairway = stairwayComponent.get();
   }
@@ -191,6 +210,7 @@ public class JobService {
       try {
         stairway.submit(jobId, flightClass, parameterMap);
       } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
         throw new JobServiceShutdownException("Job service interrupted", ex);
       }
       return jobId;
@@ -201,7 +221,7 @@ public class JobService {
 
   // submit a new job to stairway, wait for it to finish, then return the result
   // protected method intended to be called only from JobBuilder
-  protected <T> T submitAndWait(
+  public <T> T submitAndWait(
       Class<? extends Flight> flightClass, FlightMap parameterMap, Class<T> resultClass) {
     String jobId = submit(flightClass, parameterMap);
     waitForJob(jobId);
@@ -211,10 +231,26 @@ public class JobService {
     return retrieveJobResult(jobId, resultClass, userReq).getResult();
   }
 
-  void waitForJob(String jobId) {
+  /**
+   * Wait for a flight to complete, polling Stairway at its default interval.
+   *
+   * @param jobId the flight to wait for
+   */
+  private void waitForJob(String jobId) {
+    waitForJob(jobId, null);
+  }
+
+  /**
+   * Wait for a flight to complete, polling Stairway at the specified interval.
+   *
+   * @param jobId the flight to wait for
+   * @param pollSeconds sleep time for each poll cycle
+   */
+  void waitForJob(String jobId, Integer pollSeconds) {
     try {
-      stairway.waitForFlight(jobId, null, null);
+      stairway.waitForFlight(jobId, pollSeconds, null);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -254,7 +290,26 @@ public class JobService {
         .jobStatus(jobStatus)
         .statusCode(statusCode.value())
         .submitted(submittedDate)
-        .completed(completedDate);
+        .completed(completedDate)
+        .targetIamResource(createTargetResource(flightState));
+  }
+
+  private JobTargetResourceModel createTargetResource(FlightState flightState) {
+    FlightMap inputParameters = flightState.getInputParameters();
+    IamResourceType iamResourceType =
+        inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+    String iamResourceId =
+        inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+    IamAction iamResourceAction =
+        inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+
+    if (iamResourceId == null || iamResourceType == null || iamResourceAction == null) {
+      return null;
+    }
+    return new JobTargetResourceModel()
+        .id(iamResourceId)
+        .type(iamResourceType.getSamResourceName())
+        .action(iamResourceAction.toString());
   }
 
   private JobModel.JobStatusEnum getJobStatus(FlightState flightState) {
@@ -281,45 +336,90 @@ public class JobService {
       SqlSortDirection direction,
       String className) {
 
-    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
-
     // if the user has access to all jobs, then fetch everything
     // otherwise, filter the jobs on the user
-    List<FlightState> flightStateList;
-    try {
-      FlightFilter filter = new FlightFilter();
-
-      if (!canListAnyJob) {
-        filter.addFilterInputParameter(
-            JobMapKeys.SUBJECT_ID.getKeyName(), FlightFilterOp.EQUAL, userReq.getSubjectId());
-      }
-
-      // Set the order to use to return values
-      switch (direction) {
-        case ASC:
-          filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
-          break;
-        case DESC:
-          filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
-          break;
-        default:
-          throw new IllegalArgumentException(String.format("Unrecognized direction %s", direction));
-      }
-      // Filter on FQ class name if specified
-      if (!StringUtils.isEmpty(className)) {
-        filter.addFilterFlightClass(FlightFilterOp.EQUAL, className);
-      }
-
-      flightStateList = stairway.getFlights(offset, limit, filter);
-    } catch (InterruptedException ex) {
-      throw new JobServiceShutdownException("Job service interrupted", ex);
+    FlightFilter filter = new FlightFilter(createFlightFilter(userReq, className));
+    // Set the order to use to return values
+    switch (direction) {
+      case ASC -> filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
+      case DESC -> filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
     }
 
-    return flightStateList.stream()
-        .map(this::mapFlightStateToJobModel)
-        .collect(Collectors.toList());
+    try {
+      return stairway.getFlights(offset, limit, filter).stream()
+          .map(this::mapFlightStateToJobModel)
+          .toList();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new JobServiceShutdownException("Job service interrupted", e);
+    }
   }
 
+  private FlightBooleanOperationExpression createFlightFilter(
+      AuthenticatedUserRequest userReq, String className) {
+    List<FlightFilterPredicateInterface> topLevelBooleans = new ArrayList<>();
+    // Exclude FileIngestWorkerFlight subflights since they pollute the jobs page.  We may
+    // eventually add a boolean to re-add or display the subflights as children.
+    // Note: do not add this filter if the user is explicitly requesting FileIngestWorkerFlight's
+    if (!StringUtils.isEmpty(className)) {
+      topLevelBooleans.add(makePredicateFlightClass(FlightFilterOp.EQUAL, className));
+    }
+    if (StringUtils.isEmpty(className)
+        || !StringUtils.isEmpty(className)
+            && !className.equals(FileIngestWorkerFlight.class.getName())) {
+      topLevelBooleans.add(
+          makePredicateFlightClass(FlightFilterOp.NOT_EQUAL, FileIngestWorkerFlight.class));
+    }
+
+    // Only return recent flights. This is a performance enhancement since it causes the query to
+    // NOT do a full table scan.
+    // TODO<DR-3379>: make an option in the API. Not tackled yet since I'm not sure of the value
+    topLevelBooleans.add(
+        makePredicateSubmitTime(
+            FlightFilterOp.GREATER_THAN,
+            Instant.now().minus(Duration.ofDays(appConfig.getMaxNumberOfDaysToShowJobs()))));
+
+    // Make sure that only flights a user has access to are returned if the user is not an admin
+    if (!checkUserCanListAnyJob(userReq)) {
+      topLevelBooleans.add(
+          makeOr(
+              Stream.of(
+                      // Always allow the user to see their own flights
+                      makePredicateInput(
+                          JobMapKeys.SUBJECT_ID.getKeyName(),
+                          FlightFilterOp.EQUAL,
+                          userReq.getSubjectId()),
+                      // The user can view flights associated with profiles they have access to
+                      makeResourceTypeFilter(IamResourceType.SPEND_PROFILE, userReq),
+                      // The user can view flights associated with datasets they have access to
+                      makeResourceTypeFilter(IamResourceType.DATASET, userReq),
+                      // The user can view flights associated with snapshots they have access to
+                      makeResourceTypeFilter(IamResourceType.DATASNAPSHOT, userReq))
+                  // Remove nulls (e.g. if the user doesn't have access to any profiles or datasets)
+                  .filter(Objects::nonNull)
+                  .toArray(FlightFilterPredicateInterface[]::new)));
+    }
+
+    return makeAnd(topLevelBooleans.toArray(new FlightFilterPredicateInterface[0]));
+  }
+
+  private FlightBooleanOperationExpression makeResourceTypeFilter(
+      IamResourceType resourceType, AuthenticatedUserRequest userReq) {
+    List<String> authorizedResources =
+        samService.listAuthorizedResources(userReq, resourceType).keySet().stream()
+            .map(UUID::toString)
+            .toList();
+    if (authorizedResources.isEmpty()) {
+      return null;
+    }
+    return makeAnd(
+        makePredicateInput(
+            JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), FlightFilterOp.EQUAL, resourceType),
+        makePredicateInput(
+            JobMapKeys.IAM_RESOURCE_ID.getKeyName(), FlightFilterOp.IN, authorizedResources));
+  }
+
+  @WithSpan
   public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
     boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
@@ -332,6 +432,21 @@ public class JobService {
       FlightState flightState = stairway.getFlightState(jobId);
       return mapFlightStateToJobModel(flightState);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new JobServiceShutdownException("Job service interrupted", ex);
+    }
+  }
+
+  /*
+   * Check the status of a job
+   * We are NOT performing auth checks here. Expecting to have done this in the controller layer.
+   */
+  public FlightStatus unauthRetrieveJobState(String jobId) {
+    try {
+      FlightState flightState = stairway.getFlightState(jobId);
+      return flightState.getFlightStatus();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -359,6 +474,7 @@ public class JobService {
    * @param jobId to process
    * @return object of the result class pulled from the result map
    */
+  @WithSpan
   public <T> JobResultWithStatus<T> retrieveJobResult(
       String jobId, Class<T> resultClass, AuthenticatedUserRequest userReq) {
     boolean canListAnyJob = checkUserCanListAnyJob(userReq);
@@ -371,6 +487,7 @@ public class JobService {
       }
       return retrieveJobResultWorker(jobId, resultClass);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }
@@ -460,12 +577,25 @@ public class JobService {
       FlightMap inputParameters = flightState.getInputParameters();
       String flightSubjectId =
           inputParameters.get(JobMapKeys.SUBJECT_ID.getKeyName(), String.class);
+
       if (!StringUtils.equals(flightSubjectId, userReq.getSubjectId())) {
-        throw new JobUnauthorizedException("Unauthorized");
+        String resourceId =
+            inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+        IamResourceType resourceType =
+            inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+        IamAction iamAction =
+            inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+        if (resourceId != null
+            && resourceType != null
+            && iamAction != null
+            && !samService.isAuthorized(userReq, resourceType, resourceId, iamAction)) {
+          throw new JobUnauthorizedException("Unauthorized");
+        }
       }
     } catch (FlightNotFoundException ex) {
       throw new JobNotFoundException("Job not found", ex);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
   }

@@ -2,10 +2,12 @@ package bio.terra.common;
 
 import static bio.terra.service.filedata.google.gcs.GcsPdao.getBlobFromGsPath;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
@@ -34,13 +36,17 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Policy;
+import com.google.cloud.ServiceOptions;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -49,19 +55,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.function.Executable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.stringtemplate.v4.ST;
 
 public final class TestUtils {
-  private static Logger logger = LoggerFactory.getLogger(TestUtils.class);
-  private static ObjectMapper objectMapper = new ObjectMapper();
+  private static final Logger logger = LoggerFactory.getLogger(TestUtils.class);
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private TestUtils() {}
 
@@ -87,8 +96,8 @@ public final class TestUtils {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change
    * and any consequences downstream to DRS clients.
    */
-  public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods, String token)
-      throws IOException {
+  public static String validateDrsAccessMethods(
+      List<DRSAccessMethod> accessMethods, String token, boolean shouldAssertHttpsAccessibility) {
     assertThat("Two access methods", accessMethods.size(), equalTo(2));
 
     String gsuri = StringUtils.EMPTY;
@@ -96,36 +105,54 @@ public final class TestUtils {
     boolean gotHttps = false;
     for (DRSAccessMethod accessMethod : accessMethods) {
       if (accessMethod.getType() == DRSAccessMethod.TypeEnum.GS) {
-        assertFalse("have not seen GS yet", gotGs);
+        assertFalse(gotGs, "have not seen GS yet");
         gsuri = accessMethod.getAccessUrl().getUrl();
 
         // Make sure we can actually read the file
         final Storage storage = StorageOptions.getDefaultInstance().getService();
-        final String projectId = StorageOptions.getDefaultProjectId();
+        final String projectId = ServiceOptions.getDefaultProjectId();
         getBlobFromGsPath(storage, gsuri, projectId);
         gotGs = true;
       } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
-        assertFalse("have not seen HTTPS yet", gotHttps);
-        // Make sure that the HTTP url is valid and accessible
+        assertFalse(gotHttps, "have not seen HTTPS yet");
         verifyHttpAccess(
             accessMethod.getAccessUrl().getUrl(),
-            Map.of("Authorization", String.format("Bearer %s", token)));
+            Map.of("Authorization", String.format("Bearer %s", token)),
+            shouldAssertHttpsAccessibility);
         gotHttps = true;
       } else {
         fail("Invalid access method");
       }
     }
-    assertTrue("got both access methods", gotGs && gotHttps);
+    assertTrue(gotGs && gotHttps, "got both access methods");
     return gsuri;
   }
 
   public static void verifyHttpAccess(String url, Map<String, String> headers) {
+    verifyHttpAccess(url, headers, true);
+  }
+
+  /**
+   * Make sure that the HTTP url is valid.
+   *
+   * @param shouldAssertAccessibility if true, also assert that the HTTP url is accessible. When
+   *     debugging certain test failures, disabling the accessibility check can allow the remainder
+   *     of the test to complete.
+   */
+  public static void verifyHttpAccess(
+      String url, Map<String, String> headers, boolean shouldAssertAccessibility) {
     HttpUriRequest request = new HttpHead(url);
-    headers.entrySet().forEach(e -> request.setHeader(e.getKey(), e.getValue()));
+    headers.forEach(request::setHeader);
     try (CloseableHttpClient client = HttpClients.createDefault()) {
-      try (CloseableHttpResponse response = client.execute(request); ) {
-        assertThat(
-            "Https Uri is accessible", response.getStatusLine().getStatusCode(), equalTo(200));
+      try (CloseableHttpResponse response = client.execute(request)) {
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (shouldAssertAccessibility) {
+          assertThat("Https Uri is accessible", statusCode, equalTo(200));
+        } else if (statusCode == 200) {
+          logger.info("Https Uri is accessible (but not asserted in test): " + response);
+        } else {
+          logger.warn("Https Uri is inaccessible (but not asserted in test): " + response);
+        }
       }
     } catch (IOException e) {
       throw new RuntimeException("Error creating Http client", e);
@@ -234,9 +261,8 @@ public final class TestUtils {
     try {
       return objectMapper.readValue(content, valueType);
     } catch (Exception ex) {
-      logger.error(
-          "unable to map JSON response to " + valueType.getName() + "JSON: " + content, ex);
-      throw ex;
+      throw new RuntimeException(
+          "unable to map JSON response to " + valueType.getName() + " JSON: " + content, ex);
     }
   }
 
@@ -270,9 +296,8 @@ public final class TestUtils {
     try {
       return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException ex) {
-      logger.error("unable to map value to JSON. Value is: " + value, ex);
+      throw new RuntimeException("unable to map value to JSON. Value is: " + value, ex);
     }
-    return null;
   }
 
   public static void setConfigParameterValue(
@@ -303,5 +328,62 @@ public final class TestUtils {
       sb.append('\n');
     }
     return sb.toString();
+  }
+
+  /**
+   * Asserts that a command fails with the type passed in with a message that contains the expected
+   * message
+   *
+   * @param expectedThrowable The class that should be thrown. Note: this is the top level exception
+   *     and not the cause exception
+   * @param expectedMessage The partial message that should be present in the exception
+   * @param runnable The code to test
+   */
+  public static void assertError(
+      Class<? extends Throwable> expectedThrowable, String expectedMessage, Executable runnable) {
+    Throwable throwable = assertThrows(expectedThrowable, runnable, "expect a failure");
+    assertThat(throwable.getMessage(), containsString(expectedMessage));
+  }
+
+  /**
+   * Given an object with a private field, extract the value of that field and return it. Note: this
+   * should not be used for classes that we control but for third party library classes that aren't
+   * easily mocked (e.g. certain Google client SDK configuration classes)
+   *
+   * @param object The object to extract the value from
+   * @param fieldName The name of the field to extract
+   * @return A typed object containing the value of the field
+   * @param <T> The expected type of the field
+   */
+  public static <T> T extractValueFromPrivateObject(Object object, String fieldName) {
+    return objectMapper.convertValue(
+        ReflectionTestUtils.getField(object, fieldName), new TypeReference<>() {});
+  }
+
+  public static String loadJson(final String resourcePath) {
+    try (InputStream stream = TestUtils.class.getClassLoader().getResourceAsStream(resourcePath)) {
+      if (stream == null) {
+        throw new FileNotFoundException(resourcePath);
+      }
+      return IOUtils.toString(stream, StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static <T> T loadObject(final String resourcePath, final Class<T> resourceClass) {
+    try {
+      return objectMapper.readerFor(resourceClass).readValue(loadJson(resourcePath));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static <T> T loadObject(final String resourcePath, final TypeReference<T> typeReference) {
+    try {
+      return objectMapper.readerFor(typeReference).readValue(loadJson(resourcePath));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

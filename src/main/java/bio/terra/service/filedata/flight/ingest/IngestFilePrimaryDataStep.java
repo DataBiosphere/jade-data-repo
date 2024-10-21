@@ -8,6 +8,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -38,7 +39,10 @@ public class IngestFilePrimaryDataStep implements Step {
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
     FlightMap workingMap = context.getWorkingMap();
-    String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+    String fileId = null;
+    if (!dataset.hasPredictableFileIds()) {
+      fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+    }
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       FSFileInfo fsFileInfo;
@@ -58,10 +62,16 @@ public class IngestFilePrimaryDataStep implements Step {
             fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
           }
         }
+        if (fileId == null) {
+          workingMap.put(FileMapKeys.FILE_ID, fsFileInfo.getFileId());
+        }
         workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
       } catch (InvalidUserProjectException ex) {
         // We retry this exception because often when we've seen this error it has been transient
         // and untruthful -- i.e. the user project specified exists and has a legal id.
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+      } catch (GoogleInternalServerErrorException ex) {
+        // Google's error message suggests retrying the operation
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
       }
     }

@@ -48,7 +48,7 @@ public class IngestCreateIngestRequestDataSourceStep implements Step {
               CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
       signedBlobUrlParts =
           azureBlobStorePdao.getOrSignUrlForTargetFactory(
-              path, billingProfileModel, storageAccount, ContainerType.SCRATCH, userRequest);
+              path, billingProfileModel, storageAccount, userRequest);
     } else {
       signedBlobUrlParts =
           azureBlobStorePdao.getOrSignUrlForSourceFactory(
@@ -56,7 +56,7 @@ public class IngestCreateIngestRequestDataSourceStep implements Step {
     }
 
     try {
-      azureSynapsePdao.createExternalDataSource(
+      azureSynapsePdao.getOrCreateExternalDataSource(
           signedBlobUrlParts,
           IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId()),
           IngestUtils.getIngestRequestDataSourceName(context.getFlightId()));

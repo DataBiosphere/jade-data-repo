@@ -2,10 +2,18 @@ package bio.terra.service.profile.flight.delete;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.common.JournalRecordDeleteEntryStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
+import bio.terra.service.resourcemanagement.flight.DeleteAzureStorageAccountStep;
+import bio.terra.service.resourcemanagement.flight.RecordAzureStorageAccountsStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -19,6 +27,10 @@ public class ProfileDeleteFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     ProfileService profileService = appContext.getBean(ProfileService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
+    AzureStorageAccountService azureStorageAccountService =
+        appContext.getBean(AzureStorageAccountService.class);
 
     UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 
@@ -70,10 +82,26 @@ public class ProfileDeleteFlight extends Flight {
       addStep(
           new DeleteProfileMarkUnusedApplicationDeployments(
               profileService, resourceService, user, profileId));
+      if (inputParameters.get(JobMapKeys.DELETE_CLOUD_RESOURCES.getKeyName(), Boolean.class)) {
+        // Find all records of storage accounts marked for delete and associated with this
+        // application deployment
+        addStep(new RecordAzureStorageAccountsStep(azureStorageAccountService));
+        // delete monitoring resources
+        AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+            new AzureStorageMonitoringStepProvider(monitoringService);
+        azureStorageMonitoringStepProvider
+            .configureDeleteSteps()
+            .forEach(s -> this.addStep(s.step(), s.retryRule()));
+        // Delete storage account
+        addStep(new DeleteAzureStorageAccountStep(azureStorageAccountService));
+      }
       addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService));
     }
 
     addStep(new DeleteProfileMetadataStep(profileService, profileId));
     addStep(new DeleteProfileAuthzIamStep(profileService, profileId));
+    addStep(
+        new JournalRecordDeleteEntryStep(
+            journalService, user, profileId, IamResourceType.SPEND_PROFILE, "Deleted profile."));
   }
 }

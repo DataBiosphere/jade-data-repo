@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_builder_settings
+      author: srubenstein
+      changes:
+        - createTable:
+            tableName: snapshot_builder_settings
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    unique: true
+                    foreignKeyName: fk_dataset_snapshot_builder_settings
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: settings
+                  type: jsonb
+                  constraints:
+                    nullable: false

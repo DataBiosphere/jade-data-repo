@@ -2,17 +2,15 @@ package bio.terra.service.dataset;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
+import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -158,18 +156,6 @@ public class DatasetStorageAccountDao {
       }
       logger.error("datasetStorageAccount link operation failed with fatal exception.");
       throw dataAccessException;
-    }
-  }
-
-  private static class UuidMapper implements RowMapper<UUID> {
-    private String columnLabel;
-
-    UuidMapper(String columnLabel) {
-      this.columnLabel = columnLabel;
-    }
-
-    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
-      return rs.getObject(this.columnLabel, UUID.class);
     }
   }
 }

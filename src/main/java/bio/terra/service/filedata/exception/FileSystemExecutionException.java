@@ -3,6 +3,7 @@ package bio.terra.service.filedata.exception;
 import bio.terra.common.exception.InternalServerErrorException;
 
 public class FileSystemExecutionException extends InternalServerErrorException {
+
   public FileSystemExecutionException(String message) {
     super(message);
   }
@@ -12,6 +13,6 @@ public class FileSystemExecutionException extends InternalServerErrorException {
   }
 
   public FileSystemExecutionException(Throwable cause) {
-    super(cause);
+    super("Unexpected interruption during file system processing", cause);
   }
 }

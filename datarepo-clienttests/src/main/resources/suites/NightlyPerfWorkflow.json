@@ -1,7 +1,7 @@
 {
   "name": "NightlyPerfWorkflow",
   "description": "Performance tests to run on nightly github action",
-  "serverSpecificationFile": "perf.json",
+  "serverSpecificationFile": "localhost.json",
   "testConfigurationFiles": [
     "basicexamples/BasicAuthenticated.json",
     "basicexamples/BasicUnauthenticated.json",
@@ -11,6 +11,7 @@
     "profiling/BuildSnapshotWithFiles1000_50.json",
     "profiling/BulkLoadScale200_20.json",
     "functional/CreateSnapshot.json",
-    "functional/AzureCreateSnapshot.json"
+    "functional/AzureCreateSnapshot.json",
+    "profiling/CombinedIngestLoadScale50.json"
   ]
 }

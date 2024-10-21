@@ -45,8 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,7 +157,6 @@ public class GoogleProjectService {
    *
    * @param googleProjectId google's id of the project
    * @param billingProfile previously authorized billing profile
-   * @param roleIdentityMapping permissions to set
    * @param region region of dataset/snapshot
    * @param labels labels to add to the project
    * @return project resource object
@@ -168,9 +165,9 @@ public class GoogleProjectService {
   public GoogleProjectResource initializeGoogleProject(
       String googleProjectId,
       BillingProfileModel billingProfile,
-      Map<String, List<String>> roleIdentityMapping,
       GoogleRegion region,
-      Map<String, String> labels)
+      Map<String, String> labels,
+      CollectionType collectionType)
       throws InterruptedException {
 
     try {
@@ -191,7 +188,8 @@ public class GoogleProjectService {
               + " with a different profile "
               + billingProfile.getId());
     } catch (GoogleResourceNotFoundException e) {
-      logger.info("no project resource found for projectId: {}", googleProjectId);
+      logger.info(
+          "no project resource found for projectId: {}, initializing one instead", googleProjectId);
     }
 
     // Otherwise this project needs to be initialized
@@ -199,7 +197,7 @@ public class GoogleProjectService {
     if (project == null) {
       throw new GoogleResourceException("Could not get project after handout");
     }
-    return initializeProject(project, billingProfile, roleIdentityMapping, region, labels);
+    return initializeProject(project, billingProfile, region, labels, collectionType);
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -229,9 +227,9 @@ public class GoogleProjectService {
   private GoogleProjectResource initializeProject(
       Project project,
       BillingProfileModel billingProfile,
-      Map<String, List<String>> roleIdentityMapping,
       GoogleRegion region,
-      Map<String, String> labels)
+      Map<String, String> labels,
+      CollectionType collectionType)
       throws InterruptedException {
 
     String googleProjectNumber = project.getProjectNumber().toString();
@@ -248,9 +246,16 @@ public class GoogleProjectService {
     billingService.assignProjectBilling(billingProfile, googleProjectResource);
 
     enableServices(googleProjectResource, region);
-    resourceManagerService.updateIamPermissions(
-        roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
     resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);
+
+    String projectName;
+    switch (collectionType) {
+      case DATASET -> projectName = "TDR Dataset Project";
+      case SNAPSHOT -> projectName = "TDR Snapshot Project";
+      default -> throw new IllegalArgumentException("Invalid collection type");
+    }
+    resourceManagerService.addOrEditNameOfProject(
+        googleProjectResource.getGoogleProjectId(), projectName);
 
     UUID id = resourceDao.createProject(googleProjectResource);
     googleProjectResource.id(id);
@@ -289,7 +294,7 @@ public class GoogleProjectService {
                 .map(GoogleApiServiceusageV1Service::getName)
                 .collect(Collectors.toList());
       }
-      long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
+      long timeout = resourceConfiguration.projectCreateTimeoutSeconds();
 
       if (actualServiceNames.containsAll(requiredServices)) {
         logger.info("project already has the right resources enabled, skipping");
@@ -377,7 +382,7 @@ public class GoogleProjectService {
     }
 
     return new Appengine.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.getApplicationName())
+        .setApplicationName(resourceConfiguration.applicationName())
         .build();
   }
 
@@ -467,16 +472,18 @@ public class GoogleProjectService {
   static String extractOperationIdFromName(final String appId, final String opName) {
     // The format returns is apps/{appId}/operations/{useful id} so we need to extract it
     // Add a check in case they ever change the format
-    final String uuidRegex =
-        "\\p{XDigit}{8}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{12}";
-    final Pattern pattern =
-        Pattern.compile(String.format("^apps/%s/operations/(%s)", appId, uuidRegex));
-    final Matcher matcher = pattern.matcher(opName);
-    if (!matcher.find()) {
+    String expectedPrefix = String.format("apps/%s/operations/", appId);
+    if (opName.startsWith(expectedPrefix)) {
+      var split = opName.split("/");
+      if (split.length == 4) {
+        return split[3];
+      }
       throw new AppengineException(
-          String.format("Operation Name does not look as expected: %s", opName));
+          String.format("Operation Name %s expected to have exactly 4 elements", opName));
     }
-    return matcher.group(1);
+    throw new AppengineException(
+        String.format(
+            "Operation Name %s does not start with expected prefix %s", opName, expectedPrefix));
   }
 
   /**
@@ -524,7 +531,7 @@ public class GoogleProjectService {
     }
 
     return new ServiceUsage.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.getApplicationName())
+        .setApplicationName(resourceConfiguration.applicationName())
         .build();
   }
 

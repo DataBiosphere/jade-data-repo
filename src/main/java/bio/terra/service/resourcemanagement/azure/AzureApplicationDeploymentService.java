@@ -117,7 +117,7 @@ public class AzureApplicationDeploymentService {
         MetadataDataAccessUtils.getApplicationDeploymentId(billingProfile);
     return client
         .genericResources()
-        .getById(applicationResourceId, resourceConfiguration.getApiVersion());
+        .getById(applicationResourceId, resourceConfiguration.apiVersion());
   }
 
   /**

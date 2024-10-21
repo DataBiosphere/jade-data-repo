@@ -4,9 +4,16 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Optional steps are used to optionally run or skip their nested step based on information that is
+ * generated as the flight is run rather than information available on flight construction
+ * (information provided in an api request). We use them to optionally run steps based on
+ * information put in the flight map by other steps.
+ */
 public abstract class OptionalStep implements Step {
 
   private static final Logger logger = LoggerFactory.getLogger(OptionalStep.class);
@@ -15,6 +22,11 @@ public abstract class OptionalStep implements Step {
 
   public OptionalStep(Step step) {
     this.step = step;
+  }
+
+  @VisibleForTesting
+  public Step getStep() {
+    return step;
   }
 
   public abstract boolean isEnabled(FlightContext context);

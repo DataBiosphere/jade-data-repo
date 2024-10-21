@@ -45,7 +45,7 @@ jobs:
         with:
           # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
           workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
-          service_account: 'gcr-sa@public-datarepo-gcr.iam.gserviceaccount.com'
+          service_account: 'gcr-sa@datarepo-public-gcr.iam.gserviceaccount.com'
       - name: "Perform cherry-pick"
         run: |
           SOURCE_IMAGE="${{ inputs.source_gcr_url }}:${{ inputs.gcr_tag }}"

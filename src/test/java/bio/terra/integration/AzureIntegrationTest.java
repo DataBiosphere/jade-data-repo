@@ -259,7 +259,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE, false, region);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE, false, region);
     datasetId = summaryModel.getId();
     String storageAccountName = recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     logger.info("dataset id is " + summaryModel.getId());
@@ -367,7 +367,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Create and delete a dataset and make sure that the profile still can't be deleted
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
@@ -427,7 +427,7 @@ public class AzureIntegrationTest extends UsersBase {
   private void populateOmopTable() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
     datasetName = summaryModel.getName();
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
@@ -716,7 +716,7 @@ public class AzureIntegrationTest extends UsersBase {
     String sourceFileGcs = gcsBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
     recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
@@ -1565,7 +1565,7 @@ public class AzureIntegrationTest extends UsersBase {
     String sourceFile = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward, profileId, "omop/it-dataset-omop.jsonl", CloudPlatform.AZURE);
+            steward, profileId, "omop/it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
     BulkLoadFileModel fileLoadModel =

@@ -352,7 +352,7 @@ public class BigQueryPdaoTest {
   }
 
   private Snapshot stageOmopData() throws Exception {
-    Dataset dataset = readDataset("omop/it-dataset-omop.jsonl");
+    Dataset dataset = readDataset("omop/it-dataset-omop.json");
     connectedOperations.addDataset(dataset.getId());
     bigQueryDatasetPdao.createDataset(dataset);
     // Stage tabular data for ingest.

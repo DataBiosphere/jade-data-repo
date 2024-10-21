@@ -161,7 +161,8 @@ class FireStoreDirectoryDaoTest {
     List<String> mismatches =
         directoryDao.validateRefIds(firestore, collectionId, fileRefs, "testCol");
     assertThat("No invalid file refs", mismatches.size(), equalTo(0));
-    List<String> mismatches = directoryDao.validateRefIds(firestore, collectionId, fileRefs, "testCol");
+    List<String> mismatches =
+        directoryDao.validateRefIds(firestore, collectionId, fileRefs, "testCol");
     assertThat("No invalid file refs", mismatches, empty());
 
     List<String> badids = Arrays.asList("badid1", "badid2");

@@ -61,15 +61,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      - name: 'Auth as resource buffer service (RBS) SA'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
-          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
-          service_account: 'buffer-tools@terra-kernel-k8s.iam.gserviceaccount.com'
-      - name: 'Save off RBS SA credential file path'
-        run: |
-          echo "RBS_CLIENT_CREDENTIAL_FILE_PATH=${{ env.CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE }}" >> $GITHUB_ENV
       - name: 'Auth as jade-k8-sa'
         uses: 'google-github-actions/auth@v2'
         with:
@@ -91,6 +82,9 @@ jobs:
           JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
           # output plain logs instead of json
           TDR_LOG_APPENDER: 'Console-Standard'
+          # required for integration tests
+          RBS_INSTANCEURL: https://buffer.tools.integ.envs.broadinstitute.org
+          RBS_POOLID: datarepo_v1
         run: |
           # run connected tests
           ./gradlew --scan --warn testConnected
@@ -121,15 +115,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      - name: 'Auth as resource buffer service (RBS) SA'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          # Centralized in dsp-tools-k8s; ask in #dsp-devops-champions for help troubleshooting
-          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
-          service_account: 'buffer-tools@terra-kernel-k8s.iam.gserviceaccount.com'
-      - name: 'Save off RBS SA credential file path'
-        run: |
-          echo "RBS_CLIENT_CREDENTIAL_FILE_PATH=${{ env.CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE }}" >> $GITHUB_ENV
       - name: 'Auth as jade-k8-sa'
         uses: 'google-github-actions/auth@v2'
         with:
@@ -160,11 +145,6 @@ jobs:
           pg_isready -h ${PGHOST} -t 30
           # create the datarepo and stairway databases
           psql -U postgres -f ./scripts/init-db/postgres-init.sql
-          # extract service account credentials
-          base64 --decode <<< ${{ secrets.SA_B64_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
-          chmod 644 ${GOOGLE_SA_CERT}
-          base64 --decode <<< ${{ secrets.B64_RBS_APPLICATION_CREDENTIALS }} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
           # build code and run local api
           ./gradlew bootJar
           export DATA_REPO_JAR=$(find . -type f -name jade-data-repo-*-SNAPSHOT.jar)

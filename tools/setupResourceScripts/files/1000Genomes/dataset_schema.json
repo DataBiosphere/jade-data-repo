@@ -1,0 +1,841 @@
+{
+  "name": "1000GenomesDataset_SelfHostedGoogle",
+  "description": "Public dataset 1000 Genomes with files hosted directly in google's public bucket",
+  "enableSecureMonitoring": false,
+  "cloudPlatform": "gcp",
+  "experimentalSelfHosted": true,
+  "dedicatedIngestServiceAccount": true,
+  "experimentalPredictableFileIds": true,
+  "schema": {
+    "tables": [
+      {
+        "name": "vcf_file",
+        "columns": [
+          {
+            "name": "VCF_File_Path",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VCF_File_Ref",
+            "datatype": "fileref",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Description",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "pedigree",
+        "columns": [
+          {
+            "name": "Family_ID",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Individual_ID",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Paternal_ID",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Maternal_ID",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Gender",
+            "datatype": "integer",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Phenotype",
+            "datatype": "integer",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Population",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Relationship",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Siblings",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Second_Order",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Third_Order",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Other_Comments",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "bam_file",
+        "columns": [
+          {
+            "name": "Sample",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "BAM_File_Path",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "BAM_File_Ref",
+            "datatype": "fileref",
+            "array_of": false,
+            "required": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      },
+      {
+        "name": "sample_info",
+        "columns": [
+          {
+            "name": "Sample",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Family_ID",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Population",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Population_Description",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Gender",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Relationship",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Unexpected_Parent_Child",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Non_Paternity",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Siblings",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Grandparents",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Avuncular",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Half_Siblings",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Unknown_Second_Order",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Third_Order",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "In_Low_Coverage_Pilot",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "LC_Pilot_Platforms",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "LC_Pilot_Centers",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "In_High_Coverage_Pilot",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "HC_Pilot_Platforms",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "HC_Pilot_Centers",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "In_Exon_Targetted_Pilot",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "ET_Pilot_Platforms",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "ET_Pilot_Centers",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_Sequence_in_Phase1",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Phase1_LC_Platform",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Phase1_LC_Centers",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Phase1_E_Platform",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Phase1_E_Centers",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "In_Phase1_Integrated_Variant_Set",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_Phase1_chrY_SNPS",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_phase1_chrY_Deletions",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_phase1_chrMT_SNPs",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Main_project_LC_Centers",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Main_project_LC_platform",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Total_LC_Sequence",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "LC_Non_Duplicated_Aligned_Coverage",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Main_Project_E_Centers",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Main_Project_E_Platform",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Total_Exome_Sequence",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "X_Targets_Covered_to_20x_or_greater",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_E_Omni_Free",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_E_Affy_Free",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_E_Omni_Chip",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_E_Affy_Chip",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_LC_Omni_Free",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_LC_Affy_Free",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_LC_Omni_Chip",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "VerifyBam_LC_Affy_Chip",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "LC_Indel_Ratio",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "E_Indel_Ratio",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "LC_Passed_QC",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "E_Passed_QC",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "In_Final_Phase_Variant_Calling",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_Omni_Genotypes",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_Axiom_Genotypes",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_Affy_6_0_Genotypes",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_Exome_LOF_Genotypes",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "EBV_Coverage",
+            "datatype": "float",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "DNA_Source_from_Coriell",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Has_Sequence_from_Blood_in_Index",
+            "datatype": "boolean",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Super_Population",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          },
+          {
+            "name": "Super_Population_Description",
+            "datatype": "string",
+            "array_of": false,
+            "required": false
+          }
+        ],
+        "primaryKey": [],
+        "partitionMode": "none",
+        "datePartitionOptions": null,
+        "intPartitionOptions": null,
+        "rowCount": null
+      }
+    ],
+    "relationships": [
+      {
+        "name": "pedigree_sample",
+        "from": {
+          "table": "pedigree",
+          "column": "Family_ID"
+        },
+        "to": {
+          "table": "sample_info",
+          "column": "Family_ID"
+        }
+      },
+      {
+        "name": "sample_bam",
+        "from": {
+          "table": "sample_info",
+          "column": "Sample"
+        },
+        "to": {
+          "table": "bam_file",
+          "column": "Sample"
+        }
+      }
+    ],
+    "assets": [
+      {
+        "name": "sample_pedigree",
+        "tables": [
+          {
+            "name": "pedigree",
+            "columns": [
+              "Family_ID",
+              "Individual_ID",
+              "Paternal_ID",
+              "Maternal_ID",
+              "Gender",
+              "Phenotype",
+              "Population",
+              "Relationship",
+              "Siblings",
+              "Second_Order",
+              "Third_Order",
+              "Other_Comments"
+            ]
+          },
+          {
+            "name": "sample_info",
+            "columns": [
+              "Sample",
+              "Family_ID",
+              "Population",
+              "Population_Description",
+              "Gender",
+              "Relationship",
+              "Unexpected_Parent_Child",
+              "Non_Paternity",
+              "Siblings",
+              "Grandparents",
+              "Avuncular",
+              "Half_Siblings",
+              "Unknown_Second_Order",
+              "Third_Order",
+              "In_Low_Coverage_Pilot",
+              "LC_Pilot_Platforms",
+              "LC_Pilot_Centers",
+              "In_High_Coverage_Pilot",
+              "HC_Pilot_Platforms",
+              "HC_Pilot_Centers",
+              "In_Exon_Targetted_Pilot",
+              "ET_Pilot_Platforms",
+              "ET_Pilot_Centers",
+              "Has_Sequence_in_Phase1",
+              "Phase1_LC_Platform",
+              "Phase1_LC_Centers",
+              "Phase1_E_Platform",
+              "Phase1_E_Centers",
+              "In_Phase1_Integrated_Variant_Set",
+              "Has_Phase1_chrY_SNPS",
+              "Has_phase1_chrY_Deletions",
+              "Has_phase1_chrMT_SNPs",
+              "Main_project_LC_Centers",
+              "Main_project_LC_platform",
+              "Total_LC_Sequence",
+              "LC_Non_Duplicated_Aligned_Coverage",
+              "Main_Project_E_Centers",
+              "Main_Project_E_Platform",
+              "Total_Exome_Sequence",
+              "X_Targets_Covered_to_20x_or_greater",
+              "VerifyBam_E_Omni_Free",
+              "VerifyBam_E_Affy_Free",
+              "VerifyBam_E_Omni_Chip",
+              "VerifyBam_E_Affy_Chip",
+              "VerifyBam_LC_Omni_Free",
+              "VerifyBam_LC_Affy_Free",
+              "VerifyBam_LC_Omni_Chip",
+              "VerifyBam_LC_Affy_Chip",
+              "LC_Indel_Ratio",
+              "E_Indel_Ratio",
+              "LC_Passed_QC",
+              "E_Passed_QC",
+              "In_Final_Phase_Variant_Calling",
+              "Has_Omni_Genotypes",
+              "Has_Axiom_Genotypes",
+              "Has_Affy_6_0_Genotypes",
+              "Has_Exome_LOF_Genotypes",
+              "EBV_Coverage",
+              "DNA_Source_from_Coriell",
+              "Has_Sequence_from_Blood_in_Index",
+              "Super_Population",
+              "Super_Population_Description"
+            ]
+          }
+        ],
+        "rootTable": "sample_info",
+        "rootColumn": "Sample",
+        "follow": [
+          "pedigree_sample"
+        ]
+      },
+      {
+        "name": "sample_bam",
+        "tables": [
+          {
+            "name": "sample_info",
+            "columns": [
+              "Sample",
+              "Family_ID",
+              "Population",
+              "Population_Description",
+              "Gender",
+              "Relationship",
+              "Unexpected_Parent_Child",
+              "Non_Paternity",
+              "Siblings",
+              "Grandparents",
+              "Avuncular",
+              "Half_Siblings",
+              "Unknown_Second_Order",
+              "Third_Order",
+              "In_Low_Coverage_Pilot",
+              "LC_Pilot_Platforms",
+              "LC_Pilot_Centers",
+              "In_High_Coverage_Pilot",
+              "HC_Pilot_Platforms",
+              "HC_Pilot_Centers",
+              "In_Exon_Targetted_Pilot",
+              "ET_Pilot_Platforms",
+              "ET_Pilot_Centers",
+              "Has_Sequence_in_Phase1",
+              "Phase1_LC_Platform",
+              "Phase1_LC_Centers",
+              "Phase1_E_Platform",
+              "Phase1_E_Centers",
+              "In_Phase1_Integrated_Variant_Set",
+              "Has_Phase1_chrY_SNPS",
+              "Has_phase1_chrY_Deletions",
+              "Has_phase1_chrMT_SNPs",
+              "Main_project_LC_Centers",
+              "Main_project_LC_platform",
+              "Total_LC_Sequence",
+              "LC_Non_Duplicated_Aligned_Coverage",
+              "Main_Project_E_Centers",
+              "Main_Project_E_Platform",
+              "Total_Exome_Sequence",
+              "X_Targets_Covered_to_20x_or_greater",
+              "VerifyBam_E_Omni_Free",
+              "VerifyBam_E_Affy_Free",
+              "VerifyBam_E_Omni_Chip",
+              "VerifyBam_E_Affy_Chip",
+              "VerifyBam_LC_Omni_Free",
+              "VerifyBam_LC_Affy_Free",
+              "VerifyBam_LC_Omni_Chip",
+              "VerifyBam_LC_Affy_Chip",
+              "LC_Indel_Ratio",
+              "E_Indel_Ratio",
+              "LC_Passed_QC",
+              "E_Passed_QC",
+              "In_Final_Phase_Variant_Calling",
+              "Has_Omni_Genotypes",
+              "Has_Axiom_Genotypes",
+              "Has_Affy_6_0_Genotypes",
+              "Has_Exome_LOF_Genotypes",
+              "EBV_Coverage",
+              "DNA_Source_from_Coriell",
+              "Has_Sequence_from_Blood_in_Index",
+              "Super_Population",
+              "Super_Population_Description"
+            ]
+          },
+          {
+            "name": "bam_file",
+            "columns": [
+              "Sample",
+              "BAM_File_Path",
+              "BAM_File_Ref"
+            ]
+          }
+        ],
+        "rootTable": "sample_info",
+        "rootColumn": "Sample",
+        "follow": [
+          "sample_bam"
+        ]
+      },
+      {
+        "name": "default",
+        "tables": [
+          {
+            "name": "pedigree",
+            "columns": [
+              "Family_ID",
+              "Individual_ID",
+              "Paternal_ID",
+              "Maternal_ID",
+              "Gender",
+              "Phenotype",
+              "Population",
+              "Relationship",
+              "Siblings",
+              "Second_Order",
+              "Third_Order",
+              "Other_Comments"
+            ]
+          },
+          {
+            "name": "sample_info",
+            "columns": [
+              "Sample",
+              "Family_ID",
+              "Population",
+              "Population_Description",
+              "Gender",
+              "Relationship",
+              "Unexpected_Parent_Child",
+              "Non_Paternity",
+              "Siblings",
+              "Grandparents",
+              "Avuncular",
+              "Half_Siblings",
+              "Unknown_Second_Order",
+              "Third_Order",
+              "In_Low_Coverage_Pilot",
+              "LC_Pilot_Platforms",
+              "LC_Pilot_Centers",
+              "In_High_Coverage_Pilot",
+              "HC_Pilot_Platforms",
+              "HC_Pilot_Centers",
+              "In_Exon_Targetted_Pilot",
+              "ET_Pilot_Platforms",
+              "ET_Pilot_Centers",
+              "Has_Sequence_in_Phase1",
+              "Phase1_LC_Platform",
+              "Phase1_LC_Centers",
+              "Phase1_E_Platform",
+              "Phase1_E_Centers",
+              "In_Phase1_Integrated_Variant_Set",
+              "Has_Phase1_chrY_SNPS",
+              "Has_phase1_chrY_Deletions",
+              "Has_phase1_chrMT_SNPs",
+              "Main_project_LC_Centers",
+              "Main_project_LC_platform",
+              "Total_LC_Sequence",
+              "LC_Non_Duplicated_Aligned_Coverage",
+              "Main_Project_E_Centers",
+              "Main_Project_E_Platform",
+              "Total_Exome_Sequence",
+              "X_Targets_Covered_to_20x_or_greater",
+              "VerifyBam_E_Omni_Free",
+              "VerifyBam_E_Affy_Free",
+              "VerifyBam_E_Omni_Chip",
+              "VerifyBam_E_Affy_Chip",
+              "VerifyBam_LC_Omni_Free",
+              "VerifyBam_LC_Affy_Free",
+              "VerifyBam_LC_Omni_Chip",
+              "VerifyBam_LC_Affy_Chip",
+              "LC_Indel_Ratio",
+              "E_Indel_Ratio",
+              "LC_Passed_QC",
+              "E_Passed_QC",
+              "In_Final_Phase_Variant_Calling",
+              "Has_Omni_Genotypes",
+              "Has_Axiom_Genotypes",
+              "Has_Affy_6_0_Genotypes",
+              "Has_Exome_LOF_Genotypes",
+              "EBV_Coverage",
+              "DNA_Source_from_Coriell",
+              "Has_Sequence_from_Blood_in_Index",
+              "Super_Population",
+              "Super_Population_Description"
+            ]
+          },
+          {
+            "name": "bam_file",
+            "columns": [
+              "Sample",
+              "BAM_File_Path",
+              "BAM_File_Ref"
+            ]
+          }
+        ],
+        "rootTable": "sample_info",
+        "rootColumn": "Sample",
+        "follow": [
+          "pedigree_sample",
+          "sample_bam"
+        ]
+      }
+    ]
+  }
+}

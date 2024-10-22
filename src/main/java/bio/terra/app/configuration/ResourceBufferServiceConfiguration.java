@@ -17,6 +17,7 @@ public record ResourceBufferServiceConfiguration(
 
   public String getAccessToken() throws IOException {
     GoogleCredentials sourceCredentials = GoogleCredentials.getApplicationDefault();
+
     ImpersonatedCredentials targetCredentials =
         ImpersonatedCredentials.create(
             sourceCredentials,
@@ -25,7 +26,7 @@ public record ResourceBufferServiceConfiguration(
             BUFFER_SCOPES,
             3600);
 
-    AccessToken token = targetCredentials.refreshAccessToken();
-    return token.getTokenValue();
+    var targetCredentialsScoped = targetCredentials.createScoped(BUFFER_SCOPES);
+    return targetCredentialsScoped.refreshAccessToken().getTokenValue();
   }
 }

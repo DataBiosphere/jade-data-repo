@@ -1,9 +1,8 @@
 package bio.terra.app.configuration;
 
 import com.google.auth.oauth2.AccessToken;
-import com.google.auth.oauth2.ExternalAccountCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
-import java.io.FileInputStream;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -16,14 +15,17 @@ public record ResourceBufferServiceConfiguration(
   // I think we'd want to re-use our app scopes.
   private static final List<String> BUFFER_SCOPES = List.of("openid", "email", "profile");
 
-  // TODO - not sure if this is actually how we want to do this, just copying wsm's implementation
-  // for now
   public String getAccessToken() throws IOException {
-    try (FileInputStream fileInputStream = new FileInputStream(clientCredentialFilePath)) {
-      GoogleCredentials credentials =
-          ExternalAccountCredentials.fromStream(fileInputStream).createScoped(BUFFER_SCOPES);
-      AccessToken token = credentials.refreshAccessToken();
-      return token.getTokenValue();
-    }
+    GoogleCredentials sourceCredentials = GoogleCredentials.getApplicationDefault();
+    ImpersonatedCredentials targetCredentials =
+        ImpersonatedCredentials.create(
+            sourceCredentials,
+            "buffer-tools@terra-kernel-k8s.iam.gserviceaccount.com",
+            null,
+            BUFFER_SCOPES,
+            3600);
+
+    AccessToken token = targetCredentials.refreshAccessToken();
+    return token.getTokenValue();
   }
 }

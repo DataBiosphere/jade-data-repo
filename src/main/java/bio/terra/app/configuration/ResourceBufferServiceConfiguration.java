@@ -1,6 +1,5 @@
 package bio.terra.app.configuration;
 
-import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ImpersonatedCredentials;
 import java.io.IOException;

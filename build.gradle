@@ -163,6 +163,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-appengine:v1-rev20230206-2.0.0'
     implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-2.0.0'
     implementation 'com.google.apis:google-api-services-iam:v1-rev20230209-2.0.0'
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.19.0'
 
     implementation platform('com.google.cloud:libraries-bom:26.47.0')
     implementation 'com.google.cloud:google-cloud-billing'

@@ -1,7 +1,7 @@
 package bio.terra.app.configuration;
 
+import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ImpersonatedCredentials;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,17 +15,9 @@ public record ResourceBufferServiceConfiguration(
   private static final List<String> BUFFER_SCOPES = List.of("openid", "email", "profile");
 
   public String getAccessToken() throws IOException {
-    GoogleCredentials sourceCredentials = GoogleCredentials.getApplicationDefault();
-
-    ImpersonatedCredentials targetCredentials =
-        ImpersonatedCredentials.create(
-            sourceCredentials,
-            "buffer-tools@terra-kernel-k8s.iam.gserviceaccount.com",
-            null,
-            BUFFER_SCOPES,
-            3600);
-
-    var targetCredentialsScoped = targetCredentials.createScoped(BUFFER_SCOPES);
-    return targetCredentialsScoped.refreshAccessToken().getTokenValue();
+    GoogleCredentials credentials =
+        GoogleCredentials.getApplicationDefault().createScoped(BUFFER_SCOPES);
+    AccessToken token = credentials.refreshAccessToken();
+    return token.getTokenValue();
   }
 }

@@ -85,6 +85,7 @@ jobs:
           # required for integration tests
           RBS_INSTANCEURL: https://buffer.tools.integ.envs.broadinstitute.org
           RBS_POOLID: datarepo_v1
+          GOOGLE_CLOUD_PROJECT: broad-jade-dev
         run: |
           # run connected tests
           ./gradlew --scan --warn testConnected
